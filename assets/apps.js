@@ -196,11 +196,21 @@ const APPS = [
   {
     id: "reportes",
     name: "Reportes (Boox)",
-    desc: "Dashboard de estadísticas por área.",
+    desc: "Dashboard de estadísticas para clientes.",
     icon: "📊",
     area: "reportes",
-    roles: ["admin", "direccion", "reportes", "compras", "cliente"],
+    roles: ["admin", "direccion", "reportes", "cliente"],
     status: "live",
+    url: "#",
+  },
+  {
+    id: "reportes-compras",
+    name: "Reportes de Compras",
+    desc: "Reportes del departamento de Compras y Mayorista que arma Luci.",
+    icon: "📈",
+    area: "reportes",
+    roles: ["admin", "compras"],
+    status: "soon",
     url: "#",
   },
 ];
