@@ -38,7 +38,7 @@ const APPS = [
     area: "ventas",
     roles: ["admin", "ventas", "compras"],
     status: "live",
-    url: "#",
+    url: "manual-vendedores/admin.html",
   },
   {
     id: "mercaderia-pendiente",
