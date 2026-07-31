@@ -5,32 +5,31 @@
    - url:   a dónde lleva la tarjeta (dejá "#" si todavía no hay)
    - area:  clave de AREAS (agrupa y filtra)
    - roles: qué roles la ven. ["*"] = todos.
-   - status:"live" (funcionando) | "soon" (en construcción)
+   - status:"live" (funcionando/existe) | "soon" (a desarrollar)
 
-   ROLES disponibles (alineados al organigrama):
+   ROLES disponibles (alineados al organigrama / 9 Reinas):
      admin          → Desarrollo / superadmin (ve todo)
      direccion      → Fernando (reportes)
      ventas         → equipo comercial
      administracion → admin y finanzas
      compras        → Luciana (Compras + Mayorista)
      mayorista      → puntos de venta al público
-     deposito       → depósito (stock, rutas, materiales)
+     deposito       → depósito (stock, vencimientos, materiales)
      marketing      → Marketing + Desarrollo
      reportes       → acceso a dashboards
      cliente        → clientes externos
    =========================================================== */
 const AREAS = {
-  ventas:      "Ventas",
-  catalogos:   "Catálogos y Acciones",
-  operaciones: "Stock y Operaciones",
-  marketing:   "Marketing",
-  admin:       "Administración y Finanzas",
-  reportes:    "Reportes",
-  clientes:    "Clientes",
+  ventas:         "Ventas",
+  marketing:      "Marketing",
+  compras:        "Compras",
+  deposito:       "Depósito",
+  administracion: "Administración y Finanzas",
+  reportes:       "Reportes",
 };
 
 const APPS = [
-  // ---------- Ventas ----------
+  // =================== VENTAS ===================
   {
     id: "vendedores",
     name: "Manual de Vendedores",
@@ -41,14 +40,34 @@ const APPS = [
     status: "live",
     url: "#",
   },
+  {
+    id: "mercaderia-pendiente",
+    name: "Mercadería Pendiente",
+    desc: "Seguimiento de mercadería pendiente de entrega y recepción.",
+    icon: "⏳",
+    area: "ventas",
+    roles: ["admin", "ventas", "compras"],
+    status: "soon",
+    url: "#",
+  },
 
-  // ---------- Catálogos y Acciones ----------
+  // =================== MARKETING ===================
+  {
+    id: "placas-diseno",
+    name: "Placas / Diseño a Pedido",
+    desc: "Pedidos de placas y piezas de diseño al área de Marketing.",
+    icon: "🖼️",
+    area: "marketing",
+    roles: ["admin", "marketing", "compras"],
+    status: "soon",
+    url: "#",
+  },
   {
     id: "catalogo",
     name: "Catálogo de Acciones",
     desc: "Ver las acciones y promos vigentes por marca.",
     icon: "📖",
-    area: "catalogos",
+    area: "marketing",
     roles: ["admin", "ventas", "marketing"],
     status: "live",
     url: "https://catalogosgrandbar.netlify.app",
@@ -58,32 +77,10 @@ const APPS = [
     name: "Cargar al Catálogo",
     desc: "Panel admin para subir y editar acciones de los catálogos.",
     icon: "⬆️",
-    area: "catalogos",
+    area: "marketing",
     roles: ["admin", "marketing", "compras"],
     status: "live",
     url: "https://catalogosgrandbar.netlify.app/admin.html",
-  },
-  {
-    id: "propuestas",
-    name: "Recolector de Propuestas",
-    desc: "Buzón para juntar propuestas de acciones de proveedores.",
-    icon: "📥",
-    area: "catalogos",
-    roles: ["admin", "ventas", "marketing", "compras"],
-    status: "live",
-    url: "#",
-  },
-
-  // ---------- Stock y Operaciones ----------
-  {
-    id: "stock",
-    name: "Stock e Inventario",
-    desc: "Control de stock del depósito y de los puntos del Mayorista.",
-    icon: "📦",
-    area: "operaciones",
-    roles: ["admin", "compras", "deposito", "mayorista"],
-    status: "live",
-    url: "#",
   },
   {
     id: "materiales",
@@ -96,13 +93,87 @@ const APPS = [
     url: "#",
   },
 
-  // ---------- Administración y Finanzas ----------
+  // =================== COMPRAS ===================
+  {
+    id: "propuestas",
+    name: "Recolector de Propuestas",
+    desc: "Buzón para juntar propuestas de acciones de proveedores.",
+    icon: "📥",
+    area: "compras",
+    roles: ["admin", "ventas", "marketing", "compras"],
+    status: "live",
+    url: "#",
+  },
+  {
+    id: "reco",
+    name: "Reco (Recompra)",
+    desc: "Sugerencias de recompra y reposición. Herramienta de Luciana.",
+    icon: "🛒",
+    area: "compras",
+    roles: ["admin", "compras"],
+    status: "soon",
+    url: "#",
+  },
+  {
+    id: "rotacion",
+    name: "Rotación de Mercadería",
+    desc: "Análisis de rotación de mercadería por producto y marca.",
+    icon: "🔄",
+    area: "compras",
+    roles: ["admin", "compras"],
+    status: "soon",
+    url: "#",
+  },
+  {
+    id: "dias-inventario",
+    name: "Días de Inventario",
+    desc: "Días de inventario y cobertura de stock por producto.",
+    icon: "📅",
+    area: "compras",
+    roles: ["admin", "compras"],
+    status: "soon",
+    url: "#",
+  },
+
+  // =================== DEPÓSITO ===================
+  {
+    id: "stock",
+    name: "Stock e Inventario",
+    desc: "Control de stock del depósito y de los puntos del Mayorista.",
+    icon: "📦",
+    area: "deposito",
+    roles: ["admin", "compras", "deposito", "mayorista"],
+    status: "live",
+    url: "#",
+  },
+  {
+    id: "vencimientos",
+    name: "Vencimientos",
+    desc: "Control de productos próximos a vencer en depósito.",
+    icon: "⏰",
+    area: "deposito",
+    roles: ["admin", "deposito", "compras"],
+    status: "soon",
+    url: "#",
+  },
+
+  // =================== ADMINISTRACIÓN Y FINANZAS ===================
+  {
+    id: "cashflow",
+    name: "Cashflow",
+    desc: "Flujo de caja proyectado y seguimiento de ingresos/egresos.",
+    icon: "💹",
+    area: "administracion",
+    roles: ["admin", "administracion", "compras"],
+    status: "soon",
+    url: "#",
+  },
   {
     id: "portal",
     name: "Portal Cuenta Corriente",
     desc: "Saldos, facturas y pagos de clientes (MercadoPago).",
     icon: "🏦",
-    area: "admin",
+    area: "administracion",
     roles: ["admin", "administracion", "cliente"],
     status: "live",
     url: "#",
@@ -112,7 +183,7 @@ const APPS = [
     name: "Cobranzas",
     desc: "Reparto automático de pagos parciales, factura más atrasada primero.",
     icon: "💵",
-    area: "admin",
+    area: "administracion",
     roles: ["admin", "administracion"],
     status: "live",
     url: "#",
@@ -122,13 +193,13 @@ const APPS = [
     name: "Recordatorios WhatsApp",
     desc: "Avisos automáticos de cuenta corriente por WhatsApp oficial.",
     icon: "💬",
-    area: "admin",
+    area: "administracion",
     roles: ["admin", "administracion"],
     status: "live",
     url: "#",
   },
 
-  // ---------- Reportes ----------
+  // =================== REPORTES ===================
   {
     id: "reportes",
     name: "Reportes (Boox)",
