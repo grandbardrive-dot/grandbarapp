@@ -1,0 +1,5 @@
+# Configuración de publicación en Netlify (deploy automático desde GitHub)
+# El sitio es estático: se publica la raíz del repo tal cual, sin "build".
+[build]
+  publish = "."
+  functions = "netlify/functions"

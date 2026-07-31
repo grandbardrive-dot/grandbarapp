@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GrandBar · Guía para Proveedores</title>
+<style>
+  :root{
+    --azul:#1F447F; --azul2:#16345f; --azul-claro:#EAF2FB; --oro:#CBB86A; --oro-osc:#a8923f;
+    --verde:#2D6A4F; --verde-osc:#1B4332; --verde-bg:#EAF4EE;
+    --gris:#8b877f; --gris-txt:#5a5650; --tinta:#25211c;
+    --fondo:#f4f2ee; --card:#fff; --borde:rgba(31,68,127,.12);
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif; color:var(--tinta); background:var(--fondo); line-height:1.55}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 20px}
+  section{padding:64px 0}
+  h2.title{font-size:clamp(24px,4vw,34px); color:var(--azul); text-align:center; line-height:1.15}
+  h2.title small{display:block; font-size:13px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--oro-osc); margin-bottom:10px}
+  p.lead{max-width:640px; margin:14px auto 0; text-align:center; font-size:16px; color:var(--gris-txt)}
+
+  /* ── Hero ── */
+  .hero{background:linear-gradient(160deg,var(--azul) 0%,var(--azul2) 100%); color:#fff; padding:0; position:relative; overflow:hidden}
+  .hero::after{content:''; position:absolute; left:0; right:0; bottom:0; height:5px; background:var(--oro)}
+  .hero-inner{max-width:1080px; margin:0 auto; padding:56px 20px 64px; position:relative; z-index:2}
+  .hero .logo{height:44px; margin-bottom:26px; filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+  .hero .kicker{display:inline-block; background:rgba(203,184,106,.2); border:1px solid rgba(203,184,106,.5); color:#f0e6c6; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:6px 14px; border-radius:30px; margin-bottom:20px}
+  .hero h1{font-size:clamp(28px,5.5vw,46px); line-height:1.1; font-weight:800; max-width:760px}
+  .hero h1 span{color:var(--oro)}
+  .hero p{max-width:600px; margin-top:18px; font-size:17px; color:#d5deee}
+  .hero-cta{margin-top:30px; display:flex; gap:12px; flex-wrap:wrap}
+  .btn{display:inline-flex; align-items:center; gap:8px; border:none; border-radius:12px; font-size:15px; font-weight:700; padding:14px 24px; cursor:pointer; text-decoration:none; transition:transform .12s, box-shadow .15s}
+  .btn:active{transform:scale(.98)}
+  .btn-oro{background:var(--oro); color:#3a3320; box-shadow:0 6px 18px rgba(203,184,106,.35)}
+  .btn-ghost-l{background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3)}
+  .hero-deco{position:absolute; right:-80px; top:-40px; width:340px; height:340px; border:2px solid rgba(203,184,106,.18); border-radius:50%; z-index:1}
+  .hero-deco.b{right:60px; top:120px; width:180px; height:180px; border-color:rgba(255,255,255,.08)}
+
+  /* ── Feature cards ── */
+  .grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px; margin-top:38px}
+  .fcard{background:var(--card); border:1px solid var(--borde); border-radius:16px; padding:24px; box-shadow:0 3px 14px rgba(0,0,0,.04)}
+  .fcard .ic{width:52px; height:52px; border-radius:14px; background:var(--azul-claro); display:flex; align-items:center; justify-content:center; font-size:26px; margin-bottom:14px}
+  .fcard h3{font-size:17px; color:var(--azul); margin-bottom:6px}
+  .fcard p{font-size:14px; color:var(--gris-txt)}
+
+  /* ── Pasos circuito ── */
+  .steps{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-top:40px; counter-reset:s}
+  .step{position:relative; background:var(--card); border:1px solid var(--borde); border-radius:16px; padding:26px 20px 20px}
+  .step::before{counter-increment:s; content:counter(s); position:absolute; top:-16px; left:20px; width:34px; height:34px; background:var(--azul); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; box-shadow:0 4px 10px rgba(31,68,127,.3)}
+  .step .em{font-size:24px; display:block; margin-bottom:8px}
+  .step h4{font-size:15px; color:var(--azul); margin-bottom:5px}
+  .step p{font-size:13px; color:var(--gris-txt)}
+
+  /* ── Mockups (teléfonos) ── */
+  .mocks{display:flex; gap:30px; justify-content:center; flex-wrap:wrap; margin-top:44px; align-items:flex-start}
+  .mock{width:264px; flex-shrink:0}
+  .phone{background:#141b29; border-radius:34px; padding:10px; box-shadow:0 26px 60px rgba(20,27,41,.32)}
+  .phone-screen{background:var(--fondo); border-radius:26px; overflow:hidden; height:500px; position:relative; display:flex; flex-direction:column}
+  .m-head{background:var(--azul); border-bottom:3px solid var(--oro); padding:12px 14px; color:#fff; flex-shrink:0}
+  .m-head .mh-logo{font-size:9px; letter-spacing:.16em; opacity:.7; font-weight:700}
+  .m-head .mh-t{font-size:14px; font-weight:800; margin-top:2px}
+  .m-body{padding:14px; overflow:hidden; flex:1}
+  .mock-cap{text-align:center; font-size:13px; font-weight:700; color:var(--azul); margin-top:16px}
+  .mock-sub{text-align:center; font-size:12px; color:var(--gris); margin-top:2px}
+
+  /* recorrido nodes */
+  .m-recorrido-t{font-size:12px; font-weight:800; color:var(--azul); text-align:center; margin-bottom:12px}
+  .nodes{display:grid; grid-template-columns:repeat(3,1fr); gap:14px 6px}
+  .node{text-align:center}
+  .node .circ{width:44px; height:44px; margin:0 auto 5px; border-radius:50%; background:#fff; border:2px solid #e4dfd4; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 2px 6px rgba(0,0,0,.07)}
+  .node.done .circ{border-color:var(--verde); background:var(--verde-bg)}
+  .node.fin .circ{background:var(--azul); border-color:var(--oro)}
+  .node span{font-size:8px; font-weight:700; color:var(--azul); text-transform:uppercase; letter-spacing:.02em; line-height:1.2; display:block}
+
+  /* action card mock */
+  .m-acard{background:#fff; border:1px solid rgba(203,184,106,.4); border-left:4px solid var(--oro); border-radius:12px; display:flex; overflow:hidden; margin-bottom:10px}
+  .m-acard .img{width:34%; background:#f7f5f2; display:flex; align-items:center; justify-content:center; font-size:30px}
+  .m-acard .bd{padding:9px 10px; flex:1}
+  .m-acard .nm{font-size:12px; font-weight:700; color:var(--azul); line-height:1.2}
+  .m-acard .sub{font-size:8px; color:var(--gris); text-transform:uppercase; letter-spacing:.04em; margin:2px 0 5px}
+  .m-badge{display:inline-block; background:var(--verde-osc); color:#fff; font-size:10px; font-weight:800; padding:2px 9px; border-radius:20px}
+  .m-price{font-family:'DM Mono',monospace; font-size:13px; font-weight:700; color:var(--azul); margin-top:6px}
+
+  /* recolector mock */
+  .m-rcard{display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid var(--borde); border-radius:13px; padding:11px; margin-bottom:9px}
+  .m-rcard .e{font-size:22px; width:38px; height:38px; border-radius:10px; background:var(--azul-claro); display:flex; align-items:center; justify-content:center}
+  .m-rcard b{font-size:12px; color:var(--azul); display:block}
+  .m-rcard small{font-size:9px; color:var(--gris)}
+  .m-rcard .chev{margin-left:auto; color:var(--oro); font-size:16px}
+  .m-sub-row{display:flex; align-items:center; gap:8px; padding:9px 4px; border-bottom:1px solid rgba(31,68,127,.07)}
+  .m-sub-row .snm{flex:1; font-size:11px; font-weight:600; color:var(--tinta)}
+  .m-add{background:var(--azul); color:#fff; font-size:9px; font-weight:700; padding:5px 9px; border-radius:7px}
+
+  /* ── Rubros / secciones ── */
+  .rubro-tabs{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:36px}
+  .rtab{background:#fff; border:1.5px solid var(--borde); color:var(--gris-txt); padding:10px 20px; border-radius:30px; font-size:14px; font-weight:700; cursor:pointer; transition:all .15s}
+  .rtab.active{background:var(--azul); color:#fff; border-color:var(--azul)}
+  .rpanel{display:none; margin-top:30px}
+  .rpanel.active{display:block; animation:fade .25s}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+  .sec-list{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px}
+  .sec-item{background:var(--card); border:1px solid var(--borde); border-radius:14px; padding:16px 18px; border-left:4px solid var(--azul)}
+  .sec-item.madre{border-left-color:var(--oro); background:linear-gradient(#fff,#fdfbf6)}
+  .sec-item .sh{display:flex; align-items:center; gap:10px}
+  .sec-item .sh .ei{font-size:22px}
+  .sec-item .sh b{font-size:15px; color:var(--azul)}
+  .sec-item .sd{font-size:13px; color:var(--gris-txt); margin-top:7px}
+  .subs{display:flex; flex-wrap:wrap; gap:6px; margin-top:11px}
+  .subchip{background:var(--azul-claro); border:1px solid var(--borde); color:var(--azul); font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:20px}
+  .note-fallback{max-width:720px; margin:18px auto 0; background:#FDF7E7; border:1px solid #E8D9A8; border-radius:12px; padding:12px 16px; font-size:13px; color:#7a5f16; text-align:center}
+
+  /* ── CTA final ── */
+  .cta{background:var(--azul); border-radius:22px; padding:44px 30px; text-align:center; color:#fff; border-top:4px solid var(--oro); margin-top:10px}
+  .cta h2{font-size:26px; margin-bottom:10px}
+  .cta p{color:#d5deee; max-width:520px; margin:0 auto 24px}
+  .cta ol{max-width:440px; margin:0 auto 26px; text-align:left; color:#e7ecf4; font-size:14px; padding-left:20px}
+  .cta ol li{margin:7px 0}
+
+  footer{text-align:center; padding:34px 20px; color:var(--gris); font-size:12.5px}
+  footer .lg{font-weight:800; color:var(--azul); letter-spacing:.05em}
+
+  @media(max-width:560px){ section{padding:46px 0} .phone-screen{height:460px} }
+</style>
+</head>
+<body>
+
+<!-- ═══════ HERO ═══════ -->
+<header class="hero">
+  <div class="hero-deco"></div><div class="hero-deco b"></div>
+  <div class="hero-inner">
+    <img src="logo.png" alt="GrandBar" class="logo" onerror="this.style.display='none'">
+    <div class="kicker">Guía para proveedores &amp; bodegas</div>
+    <h1>Tus acciones, en la mano de <span>cada vendedor</span> de GrandBar</h1>
+    <p>GrandBar equipa a su fuerza de ventas con una app que guía cada visita a los puntos de venta. Acá te explicamos qué es, para qué sirve y cómo tu marca propone las acciones que los vendedores van a presentar.</p>
+    <div class="hero-cta">
+      <a href="propuestas.html" class="btn btn-oro">➕ Cargar una propuesta</a>
+      <a href="#secciones" class="btn btn-ghost-l">Ver las secciones ↓</a>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════ QUÉ ES ═══════ -->
+<section>
+  <div class="wrap">
+    <h2 class="title"><small>Qué es</small>Una app para vender mejor en el punto de venta</h2>
+    <p class="lead">Cada vendedor de GrandBar entra a un restaurante, vinoteca o autoservicio con un <strong>checklist guiado</strong> en el celular: recorre el local paso a paso, presenta las acciones vigentes, registra acuerdos y deja todo cargado.</p>
+    <div class="grid3">
+      <div class="fcard">
+        <div class="ic">🗺️</div>
+        <h3>Un recorrido por visita</h3>
+        <p>La app arma un checklist según el tipo de cliente. El vendedor no se olvida de nada: vidriera, góndola, heladera, promos, fechas especiales.</p>
+      </div>
+      <div class="fcard">
+        <div class="ic">🎯</div>
+        <h3>Acciones siempre a mano</h3>
+        <p>Las promos, incorporaciones y planes de cada marca aparecen en la sección que corresponde, listos para mostrarle al cliente.</p>
+      </div>
+      <div class="fcard">
+        <div class="ic">📊</div>
+        <h3>Todo queda registrado</h3>
+        <p>Cada acuerdo, pedido y compromiso se guarda. GrandBar mide qué se activó y qué funcionó en cada punto de venta.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ FINALIDAD / CIRCUITO ═══════ -->
+<section style="background:#fff">
+  <div class="wrap">
+    <h2 class="title"><small>Para qué te sirve a vos</small>Cómo entra tu marca en el circuito</h2>
+    <p class="lead">Vos conocés tus productos y tus promociones mejor que nadie. Esta plataforma es el canal para que esas ideas lleguen ordenadas al equipo y, si se aprueban, a cada visita.</p>
+    <div class="steps">
+      <div class="step"><span class="em">✍️</span><h4>1. Proponés</h4><p>Cargás tu acción (promo, incorporación, material, plan de vidriera) en el rubro y la sección que corresponde, con sus adjuntos.</p></div>
+      <div class="step"><span class="em">🔎</span><h4>2. Se evalúa</h4><p>El equipo de GrandBar junta todas las propuestas y decide en conjunto cuáles se activan cada mes.</p></div>
+      <div class="step"><span class="em">🚀</span><h4>3. Se activa</h4><p>La acción aprobada se carga en la app de la fuerza de ventas, en la categoría de tu producto.</p></div>
+      <div class="step"><span class="em">🤝</span><h4>4. Se presenta</h4><p>El vendedor la muestra en la visita, la ofrece al cliente y registra el acuerdo. Tu marca, en acción.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ MOCKUPS ═══════ -->
+<section>
+  <div class="wrap">
+    <h2 class="title"><small>Así se ve</small>La app por dentro</h2>
+    <p class="lead">Una idea de lo que ve el vendedor en cada visita y de cómo cargás vos tus propuestas.</p>
+    <div class="mocks">
+
+      <!-- Mock 1: recorrido -->
+      <div class="mock">
+        <div class="phone"><div class="phone-screen">
+          <div class="m-head"><div class="mh-logo">GRANDBAR · VENDEDORES</div><div class="mh-t">Visita — Restaurante</div></div>
+          <div class="m-body">
+            <div class="m-recorrido-t">📖 Tu recorrido de hoy</div>
+            <div class="nodes">
+              <div class="node done"><div class="circ">📋</div><span>Intro</span></div>
+              <div class="node"><div class="circ">🍷</div><span>Vinos</span></div>
+              <div class="node"><div class="circ">🥃</div><span>Spirits</span></div>
+              <div class="node"><div class="circ">☕</div><span>Café</span></div>
+              <div class="node"><div class="circ">📅</div><span>Fechas</span></div>
+              <div class="node"><div class="circ">🏷️</div><span>Precio</span></div>
+              <div class="node"><div class="circ">🏆</div><span>Partners</span></div>
+              <div class="node fin"><div class="circ">🏁</div><span>Cierre</span></div>
+              <div class="node"><div class="circ" style="border-style:dashed;opacity:.5">＋</div><span style="opacity:.5">Más</span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="mock-cap">El recorrido</div>
+        <div class="mock-sub">Cada círculo es una sección del checklist</div>
+      </div>
+
+      <!-- Mock 2: acción -->
+      <div class="mock">
+        <div class="phone"><div class="phone-screen">
+          <div class="m-head"><div class="mh-logo">SECCIÓN · VINOS</div><div class="mh-t">⭐ Acciones del mes</div></div>
+          <div class="m-body">
+            <div class="m-acard">
+              <div class="img">🍾</div>
+              <div class="bd"><div class="nm">Espumante Extra Brut</div><div class="sub">Tu Bodega</div><span class="m-badge">3 + 1</span><div class="m-price">$ 8.900</div></div>
+            </div>
+            <div class="m-acard">
+              <div class="img">🍷</div>
+              <div class="bd"><div class="nm">Malbec Reserva</div><div class="sub">Incorporación</div><span class="m-badge">1 + 1</span><div class="m-price">$ 6.200</div></div>
+            </div>
+            <div class="m-acard">
+              <div class="img">🥂</div>
+              <div class="bd"><div class="nm">Rosé línea premium</div><div class="sub">Vino por copa</div><span class="m-badge">Plan copa</span></div>
+            </div>
+          </div>
+        </div></div>
+        <div class="mock-cap">Tu acción, en la visita</div>
+        <div class="mock-sub">Aparece en la categoría de tu producto</div>
+      </div>
+
+      <!-- Mock 3: recolector -->
+      <div class="mock">
+        <div class="phone"><div class="phone-screen">
+          <div class="m-head"><div class="mh-logo">RECOLECTOR · PROPUESTAS</div><div class="mh-t">Cargar una acción</div></div>
+          <div class="m-body">
+            <div class="m-rcard"><span class="e">🍽</span><div><b>Restaurantes</b><small>8 secciones</small></div><span class="chev">›</span></div>
+            <div style="background:#fff;border:1px solid var(--borde);border-radius:12px;padding:10px 12px;margin-bottom:9px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🍷</span><b style="font-size:12px;color:var(--azul)">VINOS</b></div>
+              <div class="m-sub-row"><span class="snm">Acciones de incorporación</span><span class="m-add">+ Agregar</span></div>
+              <div class="m-sub-row"><span class="snm">Acciones Mensuales</span><span class="m-add">+ Agregar</span></div>
+              <div class="m-sub-row" style="border:none"><span class="snm">Vino por copa</span><span class="m-add">+ Agregar</span></div>
+            </div>
+            <div class="m-rcard"><span class="e">🥃</span><div><b>SPIRITS</b><small>4 subsecciones</small></div><span class="chev">›</span></div>
+          </div>
+        </div></div>
+        <div class="mock-cap">Donde cargás vos</div>
+        <div class="mock-sub">Rubro → sección → “+ Agregar acción”</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SECCIONES POR RUBRO ═══════ -->
+<section id="secciones" style="background:#fff">
+  <div class="wrap">
+    <h2 class="title"><small>El detalle</small>Cada rubro y sus secciones</h2>
+    <p class="lead">Hay tres tipos de punto de venta. Cada uno tiene su propio recorrido. Estas son las secciones donde tu marca puede proponer acciones.</p>
+
+    <div class="rubro-tabs">
+      <button class="rtab active" onclick="rtab('resto',this)">🍽 Restaurantes</button>
+      <button class="rtab" onclick="rtab('vino',this)">🍷 Vinotecas</button>
+      <button class="rtab" onclick="rtab('auto',this)">🏪 Autoservicios</button>
+    </div>
+
+    <!-- Restaurantes -->
+    <div class="rpanel active" id="rp-resto">
+      <div class="sec-list">
+        <div class="sec-item"><div class="sh"><span class="ei">📋</span><b>Introducción &amp; preparación</b></div><div class="sd">El vendedor repasa el historial del cliente y los materiales antes de entrar. (No se cargan acciones acá.)</div></div>
+        <div class="sec-item madre"><div class="sh"><span class="ei">🍷</span><b>VINOS</b></div><div class="sd">Todo lo de la categoría vinos.</div><div class="subs"><span class="subchip">Acciones de incorporación</span><span class="subchip">Acciones Mensuales</span><span class="subchip">Vino por copa</span></div></div>
+        <div class="sec-item madre"><div class="sh"><span class="ei">🥃</span><b>SPIRITS</b></div><div class="sd">Whisky, gin, vodka, aperitivos y planes de marca.</div><div class="subs"><span class="subchip">Incorporaciones</span><span class="subchip">Mensuales</span><span class="subchip">Aperitivos</span><span class="subchip">Planes Campari</span></div></div>
+        <div class="sec-item madre"><div class="sh"><span class="ei">🏷️</span><b>Acciones de precio</b></div><div class="sd">Sugerencias de precio de carta y futuras incorporaciones.</div><div class="subs"><span class="subchip">Futuras incorporaciones</span></div></div>
+        <div class="sec-item madre"><div class="sh"><span class="ei">📅</span><b>Fechas especiales</b></div><div class="sd">Acciones de temporada y materiales para fechas clave.</div><div class="subs"><span class="subchip">Materiales</span><span class="subchip">Fechas especiales</span></div></div>
+        <div class="sec-item madre"><div class="sh"><span class="ei">☕</span><b>Café Segafreddo</b></div><div class="sd">La categoría café: catálogos, acciones y relevamiento.</div><div class="subs"><span class="subchip">Catálogos</span><span class="subchip">Acciones</span><span class="subchip">Preguntas</span></div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">🏆</span><b>Partners con bodegas</b></div><div class="sd">Beneficios co-branded: degustaciones, capacitaciones, eventos y materiales conjuntos.</div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">🏁</span><b>Cierre de la visita</b></div><div class="sd">Resumen de acuerdos y próximo seguimiento. (Cierre del recorrido.)</div></div>
+      </div>
+    </div>
+
+    <!-- Vinotecas -->
+    <div class="rpanel" id="rp-vino">
+      <div class="sec-list">
+        <div class="sec-item"><div class="sh"><span class="ei">📋</span><b>Introducción &amp; preparación</b></div><div class="sd">Repaso previo del cliente antes de la visita.</div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">🪟</span><b>Vidrieras</b></div><div class="sd">Acuerdos de exhibición y planes de vidriera. Ideal para presentar tu plan de marca.</div></div>
+        <div class="sec-item madre"><div class="sh"><span class="ei">🍷</span><b>VINOS</b></div><div class="sd">La góndola de vinos y sus condiciones.</div><div class="subs"><span class="subchip">Góndola de Vinos</span><span class="subchip">Incorporaciones</span><span class="subchip">Acciones Mensuales</span></div></div>
+        <div class="sec-item madre"><div class="sh"><span class="ei">🥃</span><b>SPIRITS</b></div><div class="sd">Góndola de spirits y productos de frío.</div><div class="subs"><span class="subchip">Góndola Spirits</span><span class="subchip">Productos de Heladera</span></div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">🏝️</span><b>Exhibición e Islas</b></div><div class="sd">Acciones de isla, puntas de góndola y exhibiciones destacadas.</div></div>
+        <div class="sec-item madre"><div class="sh"><span class="ei">📅</span><b>Fechas especiales</b></div><div class="sd">Activaciones de temporada y materiales.</div><div class="subs"><span class="subchip">Activaciones con Materiales</span><span class="subchip">Fechas Especiales</span></div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">🏆</span><b>Partners con Bodegas</b></div><div class="sd">Beneficios y programas co-branded exclusivos para vinotecas.</div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">🏁</span><b>Cierre de Visita</b></div><div class="sd">Resumen, acuerdos y seguimiento.</div></div>
+      </div>
+    </div>
+
+    <!-- Autoservicios -->
+    <div class="rpanel" id="rp-auto">
+      <div class="sec-list">
+        <div class="sec-item"><div class="sh"><span class="ei">🏆</span><b>Programas Satélites</b></div><div class="sd">Torneos y programas de incentivos con el cliente.</div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">🏪</span><b>Frente del local</b></div><div class="sd">Vidriera y cartelería visible desde la calle.</div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">🧊</span><b>Heladera</b></div><div class="sd">RTD, cervezas, gaseosas y propuesta integral de frío.</div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">🍷</span><b>Góndola de Vinos</b></div><div class="sd">Surtido de vinos por segmento de precio.</div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">🥃</span><b>Góndola de Spirits</b></div><div class="sd">Incorporaciones y acciones de spirits en góndola.</div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">📦</span><b>Materiales</b></div><div class="sd">Exhibidores, catálogo POP y solicitudes.</div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">📅</span><b>Fechas especiales</b></div><div class="sd">Acciones de temporada y eventos.</div></div>
+        <div class="sec-item"><div class="sh"><span class="ei">⭐</span><b>Acciones Mensuales</b></div><div class="sd">Promos y condiciones activas del mes.</div></div>
+      </div>
+      <div class="note-fallback">ℹ️ Autoservicios se está terminando de cargar en el sistema — estas secciones son las de referencia y pueden ajustarse.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CTA FINAL ═══════ -->
+<section>
+  <div class="wrap">
+    <div class="cta">
+      <h2>¿Listo para cargar tu primera acción?</h2>
+      <p>Entrá al recolector de propuestas con el usuario y la contraseña que te dio GrandBar.</p>
+      <ol>
+        <li>Entrá y elegí <strong>“Soy proveedor”</strong>.</li>
+        <li>Elegí el <strong>rubro</strong> y desplegá la <strong>sección</strong>.</li>
+        <li>Tocá <strong>“+ Agregar acción”</strong> y completá título, condición y descripción.</li>
+        <li>Adjuntá <strong>PDF, presentaciones, imágenes o links</strong> y enviá.</li>
+      </ol>
+      <a href="propuestas.html" class="btn btn-oro">➕ Ir al recolector de propuestas</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="lg">GrandBar</div>
+  <div>Distribuciones · Fuerza de Ventas — Guía para proveedores</div>
+</footer>
+
+<script>
+function rtab(id, btn){
+  document.querySelectorAll('.rtab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.rpanel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('rp-'+id).classList.add('active');
+}
+</script>
+</body>
+</html>

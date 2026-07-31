@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Importar Clientes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul:    #1F447F;
+    --azul-dk: #172f5a;
+    --dorado:  #CBB86A;
+    --dorado-lt: rgba(203,184,106,0.13);
+    --crema:   #F1EDE8;
+    --surface: #FFFFFF;
+    --surface2: #f7f5f2;
+    --border:  rgba(31,68,127,0.13);
+    --border-strong: rgba(31,68,127,0.28);
+    --text:    #1A1814;
+    --text2:   #5a5650;
+    --text3:   #9E9B96;
+    --green:   #2D6A4F; --green-light:#EAF4EE; --green-text:#1B4332;
+    --radius:  12px; --radius-sm: 8px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:system-ui,-apple-system,sans-serif; background:var(--crema); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; }
+
+  /* ── Auth overlay ── */
+  #auth-overlay { position:fixed; inset:0; background:var(--azul); display:flex; align-items:center; justify-content:center; z-index:999; padding:20px; flex-direction:column; gap:24px; }
+  #auth-overlay img { height:52px; object-fit:contain; }
+  .auth-card { background:var(--surface); border-radius:var(--radius); border-top:4px solid var(--dorado); padding:28px; width:100%; max-width:340px; box-shadow:0 12px 40px rgba(0,0,0,.3); }
+  .auth-card h2 { font-family:Georgia,serif; font-size:20px; font-weight:normal; color:var(--azul); margin-bottom:5px; }
+  .auth-card p  { font-size:13px; color:var(--text2); margin-bottom:22px; }
+  .auth-input { width:100%; padding:12px 13px; border:1.5px solid var(--border-strong); border-radius:var(--radius-sm); font-family:system-ui,sans-serif; font-size:14px; background:var(--surface); color:var(--text); outline:none; margin-bottom:12px; transition:border-color .15s; }
+  .auth-input:focus { border-color:var(--azul); }
+  .auth-btn { width:100%; padding:13px; background:var(--azul); color:#fff; border:none; border-radius:var(--radius-sm); font-family:system-ui,sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:background .2s; }
+  .auth-btn:hover { background:var(--azul-dk); }
+  .auth-error { font-size:12px; color:#B91C1C; margin-top:10px; display:none; }
+
+  /* ── Top bar ── */
+  .top-bar { background:var(--azul); border-bottom:3px solid var(--dorado); padding:0 16px; display:flex; align-items:center; gap:12px; min-height:58px; }
+  .btn-back { background:rgba(255,255,255,.12); border:none; color:#fff; width:32px; height:32px; border-radius:8px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s; }
+  .btn-back:hover { background:rgba(255,255,255,.22); }
+  .top-bar-logo { flex:1; display:flex; justify-content:center; }
+  .top-bar-logo img { height:30px; object-fit:contain; }
+  .top-bar-placeholder { width:32px; flex-shrink:0; }
+
+  /* ── Layout ── */
+  .main { max-width:800px; margin:0 auto; padding:20px 20px 60px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px 22px; margin-bottom:14px; }
+  .card-title { font-family:Georgia,serif; font-size:17px; font-weight:normal; color:var(--azul); margin-bottom:4px; }
+  .card-sub { font-size:13px; color:var(--text2); margin-bottom:16px; line-height:1.5; }
+
+  .format-box { background:var(--dorado-lt); border:1px solid rgba(203,184,106,.3); border-left:3px solid var(--dorado); border-radius:0 var(--radius-sm) var(--radius-sm) 0; padding:12px 14px; margin-bottom:14px; }
+  .format-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#7a6830; margin-bottom:6px; display:block; }
+  .format-code { font-family:'DM Mono',monospace; font-size:12px; color:var(--text); line-height:1.7; }
+  .format-note { font-size:11px; color:var(--text2); margin-top:8px; line-height:1.5; }
+
+  .vend-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .vend-chip { font-size:12px; font-family:'DM Mono',monospace; background:var(--dorado-lt); border:1px solid rgba(203,184,106,.3); border-radius:20px; padding:3px 10px; color:#7a6830; font-weight:600; }
+
+  /* ── Drop zone ── */
+  .drop-zone { border:2px dashed var(--border-strong); border-radius:var(--radius); padding:36px 20px; text-align:center; cursor:pointer; transition:all .2s; background:var(--surface); }
+  .drop-zone:hover, .drop-zone.dragover { border-color:var(--azul); background:var(--dorado-lt); }
+  .drop-zone-icon { font-size:36px; margin-bottom:10px; }
+  .drop-zone-text { font-size:14px; font-weight:600; margin-bottom:4px; color:var(--azul); }
+  .drop-zone-sub  { font-size:12px; color:var(--text3); }
+  .drop-zone input[type=file] { display:none; }
+
+  .filename-row { display:none; align-items:center; gap:10px; padding:10px 14px; background:var(--dorado-lt); border:1px solid rgba(203,184,106,.3); border-radius:var(--radius-sm); margin-top:12px; }
+  .filename-name { flex:1; font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--azul); }
+  .filename-clear { background:none; border:none; color:var(--text3); cursor:pointer; font-size:16px; padding:2px; }
+
+  /* ── Preview ── */
+  .preview-wrap { overflow-x:auto; margin-top:14px; border:1px solid var(--border); border-radius:var(--radius-sm); }
+  table.preview { width:100%; border-collapse:collapse; font-size:12px; }
+  table.preview th { padding:8px 12px; background:var(--dorado-lt); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--azul); border-bottom:2px solid var(--dorado); text-align:left; white-space:nowrap; }
+  table.preview td { padding:8px 12px; border-bottom:1px solid var(--border); font-family:'DM Mono',monospace; font-size:11px; }
+  table.preview tr:last-child td { border-bottom:none; }
+  table.preview tr.row-error td { background:#FEF2F2; color:#B91C1C; }
+  .row-status { font-family:system-ui,sans-serif; font-size:11px; font-weight:600; }
+  .status-ok  { color:var(--green); }
+  .status-err { color:#B91C1C; }
+  .preview-more { text-align:center; padding:10px; font-size:12px; color:var(--text3); background:var(--surface2); border-top:1px solid var(--border); }
+
+  /* ── Botón importar ── */
+  .import-footer { display:flex; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap; }
+  .btn-import { padding:13px 28px; background:var(--azul); color:#fff; border:none; border-radius:var(--radius-sm); font-family:system-ui,sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:background .2s; display:flex; align-items:center; gap:8px; }
+  .btn-import:hover { background:var(--azul-dk); }
+  .btn-import:disabled { opacity:.4; cursor:not-allowed; }
+  .import-summary { font-size:13px; color:var(--text2); }
+  .spinner { width:16px; height:16px; border:2.5px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; display:none; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .result-card { border-radius:var(--radius-sm); padding:14px 16px; font-size:13px; line-height:1.6; display:none; margin-top:12px; }
+  .result-card.success { background:var(--green-light); color:var(--green-text); border-left:3px solid var(--green); }
+  .result-card.error   { background:#FEF2F2; color:#B91C1C; border-left:3px solid #EF4444; }
+  .result-card h4 { font-size:14px; font-weight:600; margin-bottom:4px; }
+</style>
+<style id="_bg-fondo">
+/* Fondo de pantalla GrandBar */
+body::before { content:""; position:fixed; inset:0; z-index:-1; background:url("fondoo.jpg.jpg") center/cover no-repeat; filter:brightness(0.5); transform:scale(1.05); }
+body { background:transparent !important; }
+:root { --crema:rgba(241,237,232,0.08) !important; --surface:rgba(255,255,255,0.95) !important; --surface2:rgba(247,245,242,0.95) !important; }
+</style>
+</head>
+<body>
+
+<div id="auth-overlay">
+  <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar">
+  <div class="auth-card">
+    <h2>Panel Administrador</h2>
+    <p>Ingresá la contraseña para continuar.</p>
+    <input class="auth-input" type="password" id="pwd" placeholder="Contraseña"
+           onkeydown="if(event.key==='Enter') autenticar()">
+    <button class="auth-btn" onclick="autenticar()">Ingresar</button>
+    <div class="auth-error" id="auth-error">Contraseña incorrecta.</div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="top-bar">
+    <button class="btn-back" onclick="window.location.href='admin.html'">←</button>
+    <div class="top-bar-logo"><img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar"></div>
+    <div class="top-bar-placeholder"></div>
+  </div>
+
+  <div class="main">
+
+    <div class="card">
+      <h3 class="card-title">Importar clientes desde CSV</h3>
+      <p class="card-sub">El archivo debe tener la primera fila como encabezado con exactamente estas columnas:</p>
+      <div class="format-box">
+        <span class="format-label">Encabezado requerido</span>
+        <div class="format-code">codigo_cliente,nombre,direccion,tipo,codigo_vendedor</div>
+        <div class="format-note">
+          · <b>tipo</b>: restaurante, vinoteca, hotel, bar, evento (u otro valor)<br>
+          · <b>codigo_vendedor</b>: debe coincidir con un código existente en la tabla de vendedores<br>
+          · Si ya existe un cliente con ese <b>codigo_cliente</b>, sus datos se actualizarán (upsert)
+        </div>
+      </div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px">Vendedores registrados</div>
+      <div class="vend-list" id="vend-list"><span style="font-size:12px;color:var(--text3)">Cargando…</span></div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">Seleccioná el archivo</h3>
+      <p class="card-sub">Arrastrá el CSV o hacé clic para seleccionarlo.</p>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <div class="drop-zone-icon">📄</div>
+        <div class="drop-zone-text">Arrastrá el CSV aquí</div>
+        <div class="drop-zone-sub">o hacé clic para elegir un archivo</div>
+        <input type="file" id="file-input" accept=".csv,text/csv" onchange="onFileChange(event)">
+      </div>
+      <div class="filename-row" id="filename-row">
+        <span style="font-size:20px">📄</span>
+        <span class="filename-name" id="filename-name"></span>
+        <button class="filename-clear" onclick="limpiarArchivo()">✕</button>
+      </div>
+    </div>
+
+    <div class="card" id="preview-card" style="display:none">
+      <h3 class="card-title">Vista previa</h3>
+      <p class="card-sub" id="preview-sub"></p>
+      <div id="preview-container"></div>
+      <div class="import-footer">
+        <button class="btn-import" id="btn-import" onclick="importar()">
+          <span id="btn-txt">Importar registros</span>
+          <div class="spinner" id="spinner"></div>
+        </button>
+        <span class="import-summary" id="import-summary"></span>
+      </div>
+      <div class="result-card" id="result-card"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script>
+  function autenticar() {
+    if(document.getElementById('pwd').value===ADMIN_PASSWORD){
+      sessionStorage.setItem('admin_auth','1');
+      document.getElementById('auth-overlay').style.display='none';
+      document.getElementById('app').style.display='block';
+      cargarVendedores();
+    } else { document.getElementById('auth-error').style.display='block'; }
+  }
+  if(sessionStorage.getItem('admin_auth')==='1'){
+    document.getElementById('auth-overlay').style.display='none';
+    document.getElementById('app').style.display='block';
+    cargarVendedores();
+  }
+
+  let vendedoresMap={};
+
+  async function cargarVendedores(){
+    const {data}=await sb.from('vendedores').select('id,nombre,codigo').order('nombre');
+    const el=document.getElementById('vend-list');
+    if(!data||!data.length){el.innerHTML=`<span style="font-size:12px;color:var(--text3)">No hay vendedores cargados.</span>`;return;}
+    data.forEach(v=>{vendedoresMap[v.codigo.toUpperCase()]=v.id;});
+    el.innerHTML=data.map(v=>`<span class="vend-chip">${esc(v.codigo)} — ${esc(v.nombre)}</span>`).join('');
+  }
+
+  function onDragOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('dragover');}
+  function onDragLeave(){document.getElementById('drop-zone').classList.remove('dragover');}
+  function onDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)procesarArchivo(f);}
+  function onFileChange(e){const f=e.target.files[0];if(f)procesarArchivo(f);}
+
+  let filasParsed=[];
+
+  function procesarArchivo(file){
+    if(!file.name.endsWith('.csv')){alert('El archivo debe ser .csv');return;}
+    document.getElementById('filename-name').textContent=file.name;
+    document.getElementById('filename-row').style.display='flex';
+    const reader=new FileReader();
+    reader.onload=e=>parseCSV(e.target.result);
+    reader.readAsText(file,'UTF-8');
+  }
+
+  function parseCSV(text){
+    text=text.replace(/^﻿/,'');
+    const lines=text.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length<2){alert('El archivo está vacío o solo tiene encabezado.');return;}
+    const header=parseCsvLine(lines[0]).map(h=>h.trim().toLowerCase());
+    const expected=['codigo_cliente','nombre','direccion','tipo','codigo_vendedor'];
+    const missing=expected.filter(col=>!header.includes(col));
+    if(missing.length){alert(`Columnas faltantes: ${missing.join(', ')}`);return;}
+    const idx={};expected.forEach(col=>{idx[col]=header.indexOf(col);});
+    filasParsed=lines.slice(1).map((line,i)=>{
+      const cols=parseCsvLine(line);
+      const row={
+        codigo_cliente:(cols[idx.codigo_cliente]||'').trim(),
+        nombre:(cols[idx.nombre]||'').trim(),
+        direccion:(cols[idx.direccion]||'').trim(),
+        tipo:(cols[idx.tipo]||'restaurante').trim().toLowerCase(),
+        codigo_vendedor:(cols[idx.codigo_vendedor]||'').trim().toUpperCase(),
+      };
+      const vendedor_id=vendedoresMap[row.codigo_vendedor];
+      const errores=[];
+      if(!row.codigo_cliente)errores.push('sin código');
+      if(!row.nombre)errores.push('sin nombre');
+      if(!vendedor_id)errores.push(`vendedor "${row.codigo_vendedor}" no existe`);
+      return{...row,vendedor_id,errores,lineNum:i+2};
+    }).filter(r=>r.codigo_cliente||r.nombre);
+    mostrarPreview();
+  }
+
+  function parseCsvLine(line){
+    const result=[];let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+      else if(ch===','&&!inQ){result.push(cur);cur='';}
+      else cur+=ch;
+    }
+    result.push(cur);return result;
+  }
+
+  function mostrarPreview(){
+    const ok=filasParsed.filter(r=>!r.errores.length).length;
+    const err=filasParsed.filter(r=>r.errores.length).length;
+    document.getElementById('preview-sub').innerHTML=`<b>${filasParsed.length} filas</b> detectadas · <span style="color:var(--green)">${ok} válidas</span>${err?` · <span style="color:#B91C1C">${err} con errores</span>`:''}`;
+    const shown=filasParsed.slice(0,50);
+    const more=filasParsed.length-50;
+    document.getElementById('preview-container').innerHTML=`<div class="preview-wrap">
+      <table class="preview"><thead><tr><th>#</th><th>Código</th><th>Nombre</th><th>Dirección</th><th>Tipo</th><th>Vendedor</th><th>Estado</th></tr></thead>
+      <tbody>${shown.map(r=>`<tr class="${r.errores.length?'row-error':''}">
+        <td>${r.lineNum}</td><td>${esc(r.codigo_cliente)}</td><td>${esc(r.nombre)}</td>
+        <td>${esc(r.direccion)}</td><td>${esc(r.tipo)}</td><td>${esc(r.codigo_vendedor)}</td>
+        <td class="row-status ${r.errores.length?'status-err':'status-ok'}">${r.errores.length?'✗ '+r.errores.join(', '):'✓ OK'}</td>
+      </tr>`).join('')}</tbody></table>
+      ${more>0?`<div class="preview-more">… y ${more} filas más</div>`:''}
+    </div>`;
+    document.getElementById('btn-txt').textContent=ok>0?`Importar ${ok} registro${ok!==1?'s':''} válido${ok!==1?'s':''}`:'No hay filas válidas';
+    document.getElementById('btn-import').disabled=ok===0;
+    document.getElementById('import-summary').textContent=err>0?`${err} fila${err!==1?'s':''} con errores serán ignoradas.`:'';
+    document.getElementById('result-card').style.display='none';
+    document.getElementById('preview-card').style.display='block';
+    window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+  }
+
+  async function importar(){
+    const validas=filasParsed.filter(r=>!r.errores.length);
+    if(!validas.length)return;
+    setLoading(true);document.getElementById('result-card').style.display='none';
+    let ok=0,errCount=0,errores=[];
+    for(let i=0;i<validas.length;i+=50){
+      const lote=validas.slice(i,i+50).map(r=>({codigo_cliente:r.codigo_cliente,nombre:r.nombre,direccion:r.direccion||null,tipo:r.tipo||'restaurante',vendedor_id:r.vendedor_id}));
+      const {error}=await sb.from('clientes').upsert(lote,{onConflict:'codigo_cliente',ignoreDuplicates:false});
+      if(error){errCount+=lote.length;errores.push(error.message);}else{ok+=lote.length;}
+    }
+    setLoading(false);mostrarResultado(ok,errCount,errores);
+  }
+
+  function mostrarResultado(ok,err,errores){
+    const el=document.getElementById('result-card');
+    if(err===0){el.className='result-card success';el.innerHTML=`<h4>✓ Importación completada</h4>${ok} cliente${ok!==1?'s':''} importado${ok!==1?'s':''} correctamente.`;}
+    else if(ok===0){el.className='result-card error';el.innerHTML=`<h4>✗ Error en la importación</h4>${errores.slice(0,3).map(esc).join('<br>')}`;}
+    else{el.className='result-card success';el.innerHTML=`<h4>Importación parcial</h4>${ok} importado${ok!==1?'s':''}, ${err} con error.`;}
+    el.style.display='block';el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
+  function limpiarArchivo(){
+    filasParsed=[];
+    document.getElementById('filename-row').style.display='none';
+    document.getElementById('preview-card').style.display='none';
+    document.getElementById('file-input').value='';
+  }
+  function setLoading(on){
+    document.getElementById('btn-import').disabled=on;
+    document.getElementById('btn-txt').style.display=on?'none':'inline';
+    document.getElementById('spinner').style.display=on?'block':'none';
+  }
+  function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>

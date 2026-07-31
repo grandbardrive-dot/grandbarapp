@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Ingreso Vendedores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul:    #1F447F;
+    --azul-dk: #172f5a;
+    --dorado:  #CBB86A;
+    --crema:   #F1EDE8;
+    --surface: #FFFFFF;
+    --border:  rgba(31,68,127,0.15);
+    --border-strong: rgba(31,68,127,0.3);
+    --text:    #1A1814;
+    --text2:   #5a5650;
+    --text3:   #9E9B96;
+    --radius:  12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--crema);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Header ── */
+  .top-bar {
+    background: #1F447F;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 3px solid var(--dorado);
+  }
+  .top-bar img { height: 50px; object-fit: contain; }
+
+  /* ── Contenido ── */
+  .page {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px 48px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 4px solid var(--dorado);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 6px 30px rgba(31,68,127,0.1);
+  }
+
+  .card-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 22px;
+    font-weight: normal;
+    color: var(--azul);
+    margin-bottom: 6px;
+  }
+  .card-sub {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 28px;
+    line-height: 1.55;
+  }
+
+  label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--azul);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    display: block;
+    margin-bottom: 7px;
+  }
+
+  input[type=text] {
+    width: 100%;
+    padding: 13px 14px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    margin-bottom: 16px;
+  }
+  input[type=text]:focus {
+    border-color: var(--azul);
+    box-shadow: 0 0 0 3px rgba(31,68,127,0.12);
+  }
+  input[type=text]::placeholder {
+    font-size: 14px;
+    letter-spacing: 0;
+    font-family: system-ui, sans-serif;
+    color: var(--text3);
+    font-weight: 400;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--azul);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s, transform .1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: .01em;
+  }
+  .btn:hover  { background: var(--azul-dk); }
+  .btn:active { transform: scale(.99); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .error-msg {
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
+    border-radius: var(--radius-sm);
+    padding: 11px 13px;
+    font-size: 13px;
+    color: #B91C1C;
+    margin-top: 14px;
+    display: none;
+  }
+
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .admin-link {
+    text-align: center;
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .admin-link a {
+    color: var(--azul);
+    text-decoration: none;
+    opacity: .6;
+    transition: opacity .15s;
+  }
+  .admin-link a:hover { opacity: 1; }
+
+  /* ── Supervisor entry ── */
+  .sup-entry {
+    margin-top: 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 13px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color .15s, box-shadow .15s;
+    width: 100%;
+    max-width: 380px;
+  }
+  .sup-entry:hover { border-color: var(--dorado); box-shadow: 0 3px 14px rgba(31,68,127,.1); }
+  .sup-entry-icon { font-size: 22px; flex-shrink: 0; }
+  .sup-entry-info { flex: 1; }
+  .sup-entry-title { font-size: 13px; font-weight: 600; color: var(--azul); }
+  .sup-entry-sub   { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .sup-entry-arrow { font-size: 14px; color: var(--text3); }
+
+  /* Indicador de sucursal */
+  .sucursal-tag {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+  }
+  .sucursal-mendoza { background: var(--dorado-lt); color: #6a5218; border: 1px solid rgba(203,184,106,.3); }
+  .sucursal-sanluis  { background: rgba(31,68,127,.08); color: var(--azul); border: 1px solid var(--border-strong); }
+</style>
+<style id="_bg-fondo">
+/* Fondo de pantalla GrandBar */
+body::before { content:""; position:fixed; inset:0; z-index:-1; background:url("fondoo.jpg.jpg") center/cover no-repeat; filter:brightness(0.5); transform:scale(1.05); }
+body { background:transparent !important; }
+:root { --crema:rgba(241,237,232,0.08) !important; --surface:rgba(255,255,255,0.95) !important; --surface2:rgba(247,245,242,0.95) !important; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar">
+</div>
+
+<div class="page">
+  <div>
+    <div class="card">
+      <h1 class="card-title">Bienvenido</h1>
+      <p class="card-sub">Ingresá tu código de vendedor para acceder a tu cartera de clientes.</p>
+
+      <label for="codigo">Código de vendedor</label>
+      <input type="text" id="codigo" placeholder="Ej: 001" autocomplete="off"
+             autocorrect="off" spellcheck="false"
+             oninput="mostrarSucursal()"
+             onkeydown="if(event.key==='Enter') login()">
+
+      <div class="sucursal-tag" id="sucursal-tag">
+        <span id="sucursal-icon"></span>
+        <span id="sucursal-txt"></span>
+      </div>
+
+      <button class="btn" id="btn-login" onclick="login()">
+        <span id="btn-txt">Ingresar</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
+
+      <div class="error-msg" id="error-msg"></div>
+    </div>
+
+    <div class="admin-link">
+      <a href="admin.html">Panel administrador →</a>
+    </div>
+
+
+    <a class="sup-entry" href="supervisor.html">
+      <span class="sup-entry-icon">🏅</span>
+      <div class="sup-entry-info">
+        <div class="sup-entry-title">Soy supervisor</div>
+        <div class="sup-entry-sub">Acceder al panel de equipo y ranking</div>
+      </div>
+      <span class="sup-entry-arrow">→</span>
+    </a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script src="_sucursales.js"></script>
+<script>
+  if (sessionStorage.getItem('vendedor')) window.location.href = 'clientes.html';
+
+  // Badge de compromisos (se carga si ya hay sesión activa - raro en login, pero útil)
+  async function cargarBadgeCompromisos(vendedorId) {
+    const HOY = new Date().toISOString().slice(0,10);
+    const { data } = await sb.from('compromisos').select('id,estado,fecha_ejecucion')
+      .eq('vendedor_id', vendedorId).in('estado', ['pendiente','atrasado']);
+    if (!data?.length) return;
+    const urgentes = data.filter(c => c.estado === 'atrasado' || c.fecha_ejecucion === HOY).length;
+    if (urgentes > 0) {
+      const badge = document.getElementById('comp-badge');
+      badge.textContent = urgentes;
+      badge.style.display = 'inline';
+      document.getElementById('comp-sub').textContent = `${urgentes} compromiso${urgentes>1?'s':''} urgente${urgentes>1?'s':''} hoy`;
+    }
+  }
+
+  function mostrarSucursal() {
+    const codigo = document.getElementById('codigo').value.trim();
+    const tag    = document.getElementById('sucursal-tag');
+    if (codigo.length < 2) { tag.style.display = 'none'; return; }
+    const suc = getSucursal(codigo);
+    document.getElementById('sucursal-icon').textContent = suc === 'San Luis' ? '🏔' : '🍇';
+    document.getElementById('sucursal-txt').textContent  = `Sucursal ${suc}`;
+    tag.className = `sucursal-tag ${suc === 'San Luis' ? 'sucursal-sanluis' : 'sucursal-mendoza'}`;
+    tag.style.display = 'inline-flex';
+  }
+
+  async function login() {
+    const codigo = document.getElementById('codigo').value.trim().toUpperCase();
+    if (!codigo) { showError('Ingresá tu código de vendedor.'); return; }
+    setLoading(true); hideError();
+
+    const { data, error } = await sb
+      .from('vendedores').select('*').eq('codigo', codigo).maybeSingle();
+
+    setLoading(false);
+    if (error) { showError('Error de conexión. Intentá de nuevo.'); return; }
+    if (!data)  { showError('Código no encontrado. Verificá e intentá de nuevo.'); return; }
+
+    sessionStorage.setItem('vendedor', JSON.stringify(data));
+    window.location.href = 'clientes.html';
+  }
+
+  function setLoading(on) {
+    document.getElementById('btn-login').disabled = on;
+    document.getElementById('btn-txt').style.display   = on ? 'none'  : 'inline';
+    document.getElementById('spinner').style.display   = on ? 'block' : 'none';
+  }
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideError() { document.getElementById('error-msg').style.display = 'none'; }
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Panel Marketing</title>
+<style>
+  :root{
+    --navy:#1F447F; --navy-d:#16305a; --navy-dd:#0f2340;
+    --gold:#CBB86A; --gold-d:#B08D2E;
+    --bg:#F4F1EA; --surface:#FFFFFF; --surface2:#FBF9F5;
+    --ink:#1F1B16; --ink2:#5f574c; --ink3:#9a9187;
+    --line:rgba(31,68,127,.10); --line-2:rgba(31,68,127,.16);
+    --green:#2D6A4F; --green-bg:#E7F1EC;
+    --red:#C0392B;  --red-bg:#FBEAE7;
+    --amber:#9A6B0E; --amber-bg:#FaF0DA;
+    --shadow:0 1px 2px rgba(31,68,127,.05), 0 14px 34px rgba(31,68,127,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ===== Estructura ===== */
+  .layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  .main-col{display:flex;flex-direction:column;min-width:0}
+  @media (max-width:820px){ .layout{grid-template-columns:1fr} .sidebar{display:none} }
+
+  /* ===== Sidebar ===== */
+  .sidebar{background:linear-gradient(185deg,var(--navy),var(--navy-d) 62%,var(--navy-dd));color:#fff;
+    display:flex;flex-direction:column;padding:0 0 18px;position:sticky;top:0;height:100vh}
+  .sb-logo{padding:22px 22px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .sb-logo img{height:40px;object-fit:contain}
+  .sb-nav{display:flex;flex-direction:column;gap:3px;padding:16px 12px}
+  .sb-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:rgba(255,255,255,.72);cursor:pointer;transition:background .15s,color .15s}
+  .sb-item:hover{background:rgba(255,255,255,.07);color:#fff}
+  .sb-item.active{background:rgba(255,255,255,.12);color:#fff}
+  .sb-item.active .sb-ico{color:var(--gold)}
+  .sb-ico{width:20px;height:20px;flex:none;color:rgba(255,255,255,.6)}
+  .sb-item.active .sb-txt-main{font-weight:700}
+  .sb-txt-main{font-size:14px;line-height:1.15}
+  .sb-txt-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:1px}
+  .sb-label{font-size:10.5px;font-weight:700;letter-spacing:.13em;color:var(--gold);text-transform:uppercase;padding:16px 20px 8px}
+  .sb-spacer{flex:1}
+  .sb-help{margin:0 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:16px}
+  .sb-help-t{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
+  .sb-help-p{font-size:11.5px;color:rgba(255,255,255,.6);margin:7px 0 12px;line-height:1.45}
+  .sb-help-btn{display:inline-flex;align-items:center;gap:7px;background:var(--gold);color:var(--navy-d);font-weight:700;font-size:12px;border:none;border-radius:9px;padding:9px 14px;cursor:pointer;font-family:inherit}
+
+  /* ===== Topbar ===== */
+  .topbar{background:var(--navy);border-bottom:3px solid var(--gold);height:70px;display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 26px;position:relative}
+  .tb-bell{position:relative;color:rgba(255,255,255,.85);cursor:pointer;background:none;border:none}
+  .tb-bell svg{width:22px;height:22px}
+  .tb-user{display:flex;align-items:center;gap:11px;cursor:pointer;padding:6px 8px;border-radius:11px;transition:background .15s}
+  .tb-user:hover{background:rgba(255,255,255,.08)}
+  .tb-ava{width:38px;height:38px;border-radius:50%;background:var(--gold);color:var(--navy-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+  .tb-user-info{text-align:right;line-height:1.2}
+  .tb-user-name{font-size:14px;font-weight:700;color:#fff}
+  .tb-user-role{font-size:11px;color:rgba(255,255,255,.6)}
+  .tb-chev{color:rgba(255,255,255,.6)}
+
+  /* ===== Contenido central ===== */
+  .content{padding:30px 30px 44px;min-width:0;max-width:1100px;width:100%;margin:0 auto}
+  .hello{font-size:clamp(26px,3.4vw,34px);font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+  .hello-sub{color:var(--ink2);font-size:15.5px;margin-top:6px;max-width:56ch;line-height:1.5}
+
+  /* Lienzo en blanco (para diseñar juntos) */
+  .canvas{margin-top:30px;background:var(--surface);border:2px dashed var(--line-2);border-radius:20px;
+    padding:56px 28px;text-align:center;box-shadow:var(--shadow)}
+  .canvas-ico{width:64px;height:64px;border-radius:18px;background:rgba(31,68,127,.08);color:var(--navy);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+  .canvas-ico svg{width:32px;height:32px}
+  .canvas-h{font-size:20px;font-weight:800;letter-spacing:-.01em}
+  .canvas-p{font-size:13.5px;color:var(--ink2);margin:8px auto 0;max-width:44ch;line-height:1.5}
+
+  /* Accesos rápidos (lo que ya va: Campañas + Catálogo) */
+  .quick{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:24px}
+  @media (max-width:640px){ .quick{grid-template-columns:1fr} }
+  .qcard{display:flex;align-items:center;gap:15px;background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    padding:18px 20px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s,border-color .15s;text-align:left;font-family:inherit;color:inherit}
+  .qcard:hover{transform:translateY(-2px);border-color:var(--line-2)}
+  .qcard-ico{width:46px;height:46px;border-radius:13px;background:rgba(31,68,127,.08);color:var(--navy);display:flex;align-items:center;justify-content:center;flex:none}
+  .qcard-ico svg{width:24px;height:24px}
+  .qcard-t{font-size:15px;font-weight:700}
+  .qcard-d{font-size:12px;color:var(--ink3);margin-top:2px}
+  .qcard-arrow{margin-left:auto;color:var(--ink3)}
+
+  /* menú de perfil */
+  .menu{position:absolute;top:64px;right:26px;background:var(--surface);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.16);padding:6px;display:none;z-index:50;min-width:180px}
+  .menu.open{display:block}
+  .menu button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;padding:10px 12px;border-radius:8px;font-size:13.5px;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left}
+  .menu button:hover{background:var(--surface2)}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- ===== Sidebar (compartido, ver _admin-sidebar.js) ===== -->
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <!-- ===== Columna principal ===== -->
+  <div class="main-col">
+    <header class="topbar">
+      <button class="tb-bell" title="Notificaciones">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 20a2 2 0 0 0 4 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="tb-user" onclick="toggleMenu(event)">
+        <div class="tb-ava">M</div>
+        <div class="tb-user-info">
+          <div class="tb-user-name">Marketing</div>
+          <div class="tb-user-role">Trade Marketing</div>
+        </div>
+        <svg class="tb-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="menu" id="perfil-menu">
+        <button onclick="location.href='admin.html?tab=visitas'">⚙️ Panel clásico</button>
+        <button onclick="salir()">↩️ Cambiar de perfil</button>
+      </div>
+    </header>
+
+    <!-- Contenido central -->
+    <main class="content">
+      <div class="hello">👋 ¡Hola, Marketing!</div>
+      <div class="hello-sub">Este es tu nuevo panel de Trade Marketing. Lo estamos diseñando desde cero — abajo tenés lo que ya quedó listo.</div>
+
+      <!-- Accesos rápidos (lo que YA va) -->
+      <div class="quick">
+        <button class="qcard" onclick="location.href='admin-campanias.html'">
+          <span class="qcard-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/></svg></span>
+          <span><span class="qcard-t">Campañas</span><span class="qcard-d">Acciones y promociones comerciales</span></span>
+          <svg class="qcard-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="qcard" onclick="location.href='admin-catalogo.html'">
+          <span class="qcard-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 7v10l8 4 8-4V7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span><span class="qcard-t">Catálogo</span><span class="qcard-d">Proveedores y productos</span></span>
+          <svg class="qcard-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Lienzo en blanco -->
+      <div class="canvas">
+        <div class="canvas-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 19l7-7a2.8 2.8 0 0 0-4-4l-7 7-1 5z" stroke-linejoin="round"/><path d="M2 22l4-1M14 6l4 4" stroke-linecap="round"/></svg></div>
+        <div class="canvas-h">Lienzo en blanco</div>
+        <div class="canvas-p">Acá vamos a diseñar juntos las secciones de Marketing (checklists, vinotecas, fechas especiales, lo que definas). Decime qué querés que vaya y lo armo.</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script src="_admin-sidebar.js"></script>
+<script>
+  // Marca de sesión: perfil marketing
+  sessionStorage.setItem('admin_auth','1');
+  sessionStorage.setItem('admin_perfil','marketing');
+  renderSidebar('inicio');
+
+  function toggleMenu(ev){ ev.stopPropagation(); document.getElementById('perfil-menu').classList.toggle('open'); }
+  document.addEventListener('click', ()=> document.getElementById('perfil-menu').classList.remove('open'));
+  function salir(){ sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil'); location.href='admin.html'; }
+  function verGuias(){ alert('Guías y tutoriales — próximamente.'); }
+  function soporte(){ alert('Soporte: escribí al equipo de GrandBar.'); }
+</script>
+</body>
+</html>

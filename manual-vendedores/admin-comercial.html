@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Panel Comercial</title>
+<style>
+  :root{
+    --navy:#1F447F; --navy-d:#16305a; --navy-dd:#0f2340;
+    --gold:#CBB86A; --gold-d:#B08D2E;
+    --bg:#F4F1EA; --surface:#FFFFFF; --surface2:#FBF9F5;
+    --ink:#1F1B16; --ink2:#5f574c; --ink3:#9a9187;
+    --line:rgba(31,68,127,.10); --line-2:rgba(31,68,127,.16);
+    --green:#2D6A4F; --green-bg:#E7F1EC;
+    --red:#C0392B;  --red-bg:#FBEAE7;
+    --amber:#9A6B0E; --amber-bg:#FaF0DA;
+    --shadow:0 1px 2px rgba(31,68,127,.05), 0 14px 34px rgba(31,68,127,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ===== Estructura ===== */
+  .layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  .main-col{display:grid;grid-template-columns:1fr 320px;min-width:0}
+  @media (max-width:1180px){ .main-col{grid-template-columns:1fr} .rail{display:none} }
+  @media (max-width:820px){ .layout{grid-template-columns:1fr} .sidebar{display:none} }
+
+  /* ===== Sidebar ===== */
+  .sidebar{background:linear-gradient(185deg,var(--navy),var(--navy-d) 62%,var(--navy-dd));color:#fff;
+    display:flex;flex-direction:column;padding:0 0 18px;position:sticky;top:0;height:100vh}
+  .sb-logo{padding:22px 22px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .sb-logo img{height:40px;object-fit:contain}
+  .sb-nav{display:flex;flex-direction:column;gap:3px;padding:16px 12px}
+  .sb-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:rgba(255,255,255,.72);cursor:pointer;transition:background .15s,color .15s}
+  .sb-item:hover{background:rgba(255,255,255,.07);color:#fff}
+  .sb-item.active{background:rgba(255,255,255,.12);color:#fff}
+  .sb-item.active .sb-ico{color:var(--gold)}
+  .sb-ico{width:20px;height:20px;flex:none;color:rgba(255,255,255,.6)}
+  .sb-item.active .sb-txt-main{font-weight:700}
+  .sb-txt-main{font-size:14px;line-height:1.15}
+  .sb-txt-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:1px}
+  .sb-label{font-size:10.5px;font-weight:700;letter-spacing:.13em;color:var(--gold);text-transform:uppercase;padding:16px 20px 8px}
+  .sb-spacer{flex:1}
+  .sb-help{margin:0 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:16px}
+  .sb-help-t{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
+  .sb-help-p{font-size:11.5px;color:rgba(255,255,255,.6);margin:7px 0 12px;line-height:1.45}
+  .sb-help-btn{display:inline-flex;align-items:center;gap:7px;background:var(--gold);color:var(--navy-d);font-weight:700;font-size:12px;border:none;border-radius:9px;padding:9px 14px;cursor:pointer;font-family:inherit}
+
+  /* ===== Topbar ===== */
+  .topbar{grid-column:1 / -1;background:var(--navy);border-bottom:3px solid var(--gold);height:70px;display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 26px}
+  .tb-bell{position:relative;color:rgba(255,255,255,.85);cursor:pointer;background:none;border:none}
+  .tb-bell svg{width:22px;height:22px}
+  .tb-bell .badge{position:absolute;top:-5px;right:-6px;background:var(--gold);color:var(--navy-d);font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+  .tb-user{display:flex;align-items:center;gap:11px;cursor:pointer;padding:6px 8px;border-radius:11px;transition:background .15s}
+  .tb-user:hover{background:rgba(255,255,255,.08)}
+  .tb-ava{width:38px;height:38px;border-radius:50%;background:var(--gold);color:var(--navy-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+  .tb-user-info{text-align:right;line-height:1.2}
+  .tb-user-name{font-size:14px;font-weight:700;color:#fff}
+  .tb-user-role{font-size:11px;color:rgba(255,255,255,.6)}
+  .tb-chev{color:rgba(255,255,255,.6)}
+
+  /* ===== Contenido central ===== */
+  .content{padding:30px 30px 44px;min-width:0}
+  .hello{font-size:clamp(26px,3.4vw,34px);font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+  .hello-sub{color:var(--ink2);font-size:15.5px;margin-top:6px;max-width:52ch;line-height:1.5}
+
+  .row-hero{display:flex;gap:20px;align-items:flex-start;margin-top:4px;flex-wrap:wrap}
+  .row-hero .txt{flex:1;min-width:240px}
+  .cta-new{background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none;border-radius:16px;
+    padding:20px 24px;display:flex;align-items:center;gap:15px;cursor:pointer;box-shadow:var(--shadow);font-family:inherit;text-align:left;min-width:250px;transition:transform .15s}
+  .cta-new:hover{transform:translateY(-2px)}
+  .cta-plus{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex:none}
+  .cta-plus svg{width:24px;height:24px;color:var(--gold)}
+  .cta-new .t1{font-size:16px;font-weight:700}
+  .cta-new .t2{font-size:12px;color:rgba(255,255,255,.6);margin-top:2px}
+
+  /* Stat cards */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:24px}
+  @media (max-width:900px){ .stats{grid-template-columns:repeat(2,1fr)} }
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:17px 18px;box-shadow:var(--shadow)}
+  .stat-top{display:flex;align-items:center;gap:10px}
+  .stat-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none}
+  .stat-ico svg{width:20px;height:20px}
+  .stat-name{font-size:14px;font-weight:700}
+  .stat-num{font-size:34px;font-weight:800;letter-spacing:-.02em;margin-top:12px;line-height:1}
+  .stat-cap{font-size:12px;color:var(--ink3);margin-top:3px}
+  .stat-link{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--navy);margin-top:12px;cursor:pointer}
+  .stat-link svg{width:14px;height:14px}
+  .c-green{background:var(--green-bg);color:var(--green)} .t-green{color:var(--green)}
+  .c-amber{background:var(--amber-bg);color:var(--amber)} .t-amber{color:var(--amber)}
+  .c-red{background:var(--red-bg);color:var(--red)} .t-red{color:var(--red)}
+  .c-navy{background:rgba(31,68,127,.09);color:var(--navy)} .t-navy{color:var(--navy)}
+
+  /* Próximas a vencer */
+  .warn{display:flex;align-items:center;gap:16px;background:var(--surface2);border:1px solid var(--line-2);border-left:4px solid var(--gold);border-radius:14px;padding:15px 18px;margin-top:20px;flex-wrap:wrap}
+  .warn-ico{width:42px;height:42px;border-radius:11px;background:var(--amber-bg);color:var(--amber);display:flex;align-items:center;justify-content:center;flex:none}
+  .warn-ico svg{width:22px;height:22px}
+  .warn-h{font-size:14px;font-weight:700}
+  .warn-p{font-size:12px;color:var(--ink3)}
+  .warn-chip{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:8px 13px}
+  .warn-thumb{width:30px;height:38px;object-fit:contain;flex:none}
+  .warn-chip-n{font-size:13.5px;font-weight:700}
+  .warn-chip-s{font-size:11px;color:var(--ink3)}
+  .pill-danger{background:var(--red-bg);color:var(--red);font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .warn-edit{margin-left:auto;display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1.5px solid var(--line-2);border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:700;color:var(--navy);cursor:pointer;font-family:inherit}
+  .warn-edit svg{width:15px;height:15px}
+
+  /* Últimas campañas */
+  .sec-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:32px 0 4px;flex-wrap:wrap}
+  .sec-title{font-size:20px;font-weight:800;letter-spacing:-.01em}
+  .sec-sub{font-size:12.5px;color:var(--ink3);margin-top:2px}
+  .sec-tools{display:flex;gap:10px;align-items:center}
+  .search{position:relative}
+  .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--ink3)}
+  .search input{width:300px;max-width:52vw;padding:10px 12px 10px 36px;border:1px solid var(--line-2);border-radius:10px;font-size:13px;font-family:inherit;background:var(--surface);color:var(--ink);outline:none}
+  .search input:focus{border-color:var(--navy)}
+  .btn-filtros{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1.5px solid var(--line-2);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit}
+  .btn-filtros svg{width:15px;height:15px}
+
+  .table-wrap{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow-x:auto}
+  table{width:100%;border-collapse:collapse;min-width:820px}
+  thead th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);padding:14px 18px;border-bottom:1px solid var(--line)}
+  tbody td{padding:14px 18px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--surface2)}
+  .camp{display:flex;align-items:center;gap:12px}
+  .camp-thumb{width:30px;height:40px;object-fit:contain;flex:none;border-radius:4px;background:var(--surface2)}
+  .camp-thumb.ph{display:flex;align-items:center;justify-content:center;font-size:16px}
+  .camp-n{font-weight:700;line-height:1.2}
+  .camp-t{font-size:11.5px;color:var(--ink3);margin-top:1px}
+  .prov{display:flex;align-items:center;gap:8px;color:var(--ink2);font-weight:600;font-size:13px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .chip{font-size:11px;font-weight:600;color:var(--navy);background:rgba(31,68,127,.07);border-radius:6px;padding:3px 9px;white-space:nowrap}
+  .vig{font-size:12.5px;color:var(--ink2);white-space:nowrap}
+  .estado{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px}
+  .estado::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .edicion{font-size:12px;color:var(--ink2)}
+  .edicion small{display:block;color:var(--ink3);font-size:11px}
+  .dots{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:20px;line-height:1;padding:2px 6px;border-radius:6px}
+  .dots:hover{background:var(--surface2);color:var(--ink)}
+  .ver-todas{display:flex;justify-content:center;margin-top:20px}
+  .ver-todas button{display:inline-flex;align-items:center;gap:9px;background:var(--surface);border:1.5px solid var(--line-2);border-radius:11px;padding:12px 22px;font-size:13.5px;font-weight:700;color:var(--navy);cursor:pointer;font-family:inherit}
+  .empty{padding:30px 18px;text-align:center;color:var(--ink3);font-size:13px}
+
+  /* ===== Rail derecho ===== */
+  .rail{padding:30px 26px 44px;border-left:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.5),transparent 200px)}
+  .rail-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 18px;box-shadow:var(--shadow);margin-bottom:20px}
+  .rail-h{font-size:16px;font-weight:800;letter-spacing:-.01em}
+  .rail-p{font-size:12.5px;color:var(--ink2);margin:6px 0 16px;line-height:1.45}
+  .step{display:flex;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .step:last-child{border-bottom:none}
+  .step-n{width:26px;height:26px;border-radius:8px;background:rgba(31,68,127,.08);color:var(--navy);font-weight:800;font-size:12.5px;display:flex;align-items:center;justify-content:center;flex:none}
+  .step-t{font-size:13px;font-weight:700;line-height:1.2}
+  .step-d{font-size:11.5px;color:var(--ink3);margin-top:2px;line-height:1.4}
+  .rail-help-h{font-size:15px;font-weight:800}
+  .rail-help-p{font-size:12.5px;color:var(--ink2);margin:6px 0 14px}
+  .rail-help-btn{display:inline-flex;align-items:center;gap:8px;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;justify-content:center}
+  .rail-help-btn svg{width:15px;height:15px}
+
+  /* menú de perfil */
+  .menu{position:absolute;top:64px;right:26px;background:var(--surface);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.16);padding:6px;display:none;z-index:50;min-width:180px}
+  .menu.open{display:block}
+  .menu button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;padding:10px 12px;border-radius:8px;font-size:13.5px;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left}
+  .menu button:hover{background:var(--surface2)}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar">
+    <div class="sb-logo"><img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar Distribuciones"></div>
+    <nav class="sb-nav">
+      <a class="sb-item active" href="admin-comercial.html">
+        <svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v9h14v-9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div><div class="sb-txt-main">Inicio</div></div>
+      </a>
+      <a class="sb-item" href="admin-campanias.html">
+        <svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/></svg>
+        <div><div class="sb-txt-main">Campañas</div><div class="sb-txt-sub">Acciones comerciales</div></div>
+      </a>
+      <a class="sb-item" href="admin-catalogo.html">
+        <svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 7v10l8 4 8-4V7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div><div class="sb-txt-main">Catálogo</div><div class="sb-txt-sub">Proveedores y productos</div></div>
+      </a>
+      <a class="sb-item" href="admin-catalogo-clientes.html">
+        <svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2zM20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z" stroke-linejoin="round"/></svg>
+        <div><div class="sb-txt-main">Catálogo clientes</div><div class="sb-txt-sub">Catálogo público de acciones</div></div>
+      </a>
+      <a class="sb-item" href="admin-resultados.html">
+        <svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke-linecap="round"/></svg>
+        <div><div class="sb-txt-main">Resultados</div><div class="sb-txt-sub">Desempeño de campañas</div></div>
+      </a>
+      <a class="sb-item" href="admin-campanias.html?estado=borrador">
+        <svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" stroke-linecap="round"/></svg>
+        <div><div class="sb-txt-main">Borradores</div><div class="sb-txt-sub">En edición</div></div>
+      </a>
+    </nav>
+    <div class="sb-label">Ayuda</div>
+    <nav class="sb-nav" style="padding-top:0">
+      <button class="sb-item" style="background:none;border:none;font-family:inherit;text-align:left;width:100%" onclick="verGuias()">
+        <svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7v.4" stroke-linecap="round"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>
+        <div><div class="sb-txt-main">Guías y tutoriales</div></div>
+      </button>
+      <button class="sb-item" style="background:none;border:none;font-family:inherit;text-align:left;width:100%" onclick="soporte()">
+        <svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-1v-6h3M4 13v4a2 2 0 0 0 2 2h1v-6H4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div><div class="sb-txt-main">Soporte</div></div>
+      </button>
+    </nav>
+    <div class="sb-spacer"></div>
+    <div class="sb-help">
+      <div class="sb-help-t">💡 ¿Necesitás ayuda?</div>
+      <div class="sb-help-p">Accedé a guías rápidas y tutoriales paso a paso.</div>
+      <button class="sb-help-btn" onclick="verGuias()">Ver guías
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17L17 7M9 7h8v8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ===== Columna principal (topbar + content + rail) ===== -->
+  <div class="main-col">
+    <header class="topbar">
+      <button class="tb-bell" onclick="verNotificaciones()" title="Notificaciones">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 20a2 2 0 0 0 4 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="badge num" id="bell-badge" style="display:none">0</span>
+      </button>
+      <div class="tb-user" onclick="toggleMenu(event)">
+        <div class="tb-ava">L</div>
+        <div class="tb-user-info">
+          <div class="tb-user-name">Luciana</div>
+          <div class="tb-user-role">Gestora Comercial</div>
+        </div>
+        <svg class="tb-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="menu" id="perfil-menu">
+        <button onclick="location.href='admin.html?tab=acciones'">⚙️ Panel clásico</button>
+        <button onclick="salir()">↩️ Cambiar de perfil</button>
+      </div>
+    </header>
+
+    <!-- Contenido central -->
+    <main class="content">
+      <div class="row-hero">
+        <div class="txt">
+          <div class="hello">👋 ¡Hola, Luciana!</div>
+          <div class="hello-sub">Gestioná las campañas y acciones comerciales que ven los vendedores en sus visitas.</div>
+        </div>
+        <button class="cta-new" onclick="location.href='admin-nueva-campania.html'">
+          <span class="cta-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></span>
+          <span><span class="t1">Nueva campaña</span><br><span class="t2">Crear una nueva acción o promoción</span></span>
+        </button>
+      </div>
+
+      <!-- Tarjetas de resumen -->
+      <div class="stats" id="stats">
+        <div class="stat"><div class="stat-cap">Cargando resumen…</div></div>
+      </div>
+
+      <!-- Próximas a vencer -->
+      <div id="warn-slot"></div>
+
+      <!-- Últimas campañas -->
+      <div class="sec-head">
+        <div>
+          <div class="sec-title">Últimas campañas</div>
+          <div class="sec-sub">Tus campañas más recientes.</div>
+        </div>
+        <div class="sec-tools">
+          <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg>
+            <input id="buscar" type="text" placeholder="Buscar por producto, proveedor o campaña…" oninput="renderTabla()"></div>
+          <button class="btn-filtros" onclick="location.href='admin.html?tab=acciones'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z" stroke-linejoin="round"/></svg>Filtros</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Campaña</th><th>Proveedor</th><th>Canales</th><th>Vigencia</th><th>Estado</th><th>Última edición</th><th></th>
+          </tr></thead>
+          <tbody id="tabla-body"><tr><td colspan="7" class="empty">Cargando campañas…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="ver-todas">
+        <button onclick="location.href='admin-campanias.html'">Ver todas las campañas
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </main>
+
+    <!-- Rail derecho -->
+    <aside class="rail">
+      <div class="rail-card">
+        <div class="rail-h">¿Cómo crear una campaña?</div>
+        <div class="rail-p">Seguí estos pasos para publicar una nueva acción.</div>
+        <div class="step"><div class="step-n">1</div><div><div class="step-t">Elegí proveedor</div><div class="step-d">Seleccioná el proveedor de la acción.</div></div></div>
+        <div class="step"><div class="step-n">2</div><div><div class="step-t">Elegí producto</div><div class="step-d">Seleccioná el producto o marca.</div></div></div>
+        <div class="step"><div class="step-n">3</div><div><div class="step-t">Elegí canales</div><div class="step-d">Indicá en qué canales aparecerá.</div></div></div>
+        <div class="step"><div class="step-n">4</div><div><div class="step-t">Elegí ubicación</div><div class="step-d">Seleccioná la sección del manual.</div></div></div>
+        <div class="step"><div class="step-n">5</div><div><div class="step-t">Configurá la acción</div><div class="step-d">Definí la promoción, fechas y condiciones.</div></div></div>
+        <div class="step"><div class="step-n">6</div><div><div class="step-t">Vinculá materiales</div><div class="step-d">Asociá los materiales POP disponibles.</div></div></div>
+        <div class="step"><div class="step-n">7</div><div><div class="step-t">Revisá y publicá</div><div class="step-d">Confirmá y publicá tu campaña.</div></div></div>
+      </div>
+      <div class="rail-card">
+        <div class="rail-help-h">¿Necesitás ayuda?</div>
+        <div class="rail-help-p">Mirar guías y tutoriales para aprender más.</div>
+        <button class="rail-help-btn" onclick="verGuias()">Ir a guías
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 17L17 7M9 7h8v8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script src="_admin-sidebar.js"></script>
+<script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
+<script>
+  // ── Estado de sesión: si no eligió perfil, mandarlo a la bienvenida ──
+  sessionStorage.setItem('admin_auth','1');
+  sessionStorage.setItem('admin_perfil','comercial');
+
+  const CANAL_LABEL = { restaurantes:'Restaurantes', vinotecas:'Vinotecas', bares:'Bares', discos:'Discos', hoteles:'Hoteles', eventos:'Eventos', autoservicios:'Autoservicios', todos:'Todos' };
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const fmtFecha = d => { if(!d) return '—'; const x=new Date(d); return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear(); };
+
+  let CAMPANAS = [];
+
+  function estadoDe(a){
+    if(!a.activa) return {k:'borrador', txt:'Borrador', cls:'t-navy'};
+    const fi = a.fecha_inicio ? new Date(a.fecha_inicio) : null;
+    const ff = a.fecha_fin ? new Date(a.fecha_fin) : null;
+    if(ff && ff < hoy) return {k:'vencida', txt:'Vencida', cls:'t-red'};
+    if(fi && fi > hoy) return {k:'proxima', txt:'Próxima', cls:'t-amber'};
+    return {k:'activa', txt:'Activa', cls:'t-green'};
+  }
+
+  async function cargar(){
+    let data = [];
+    try{
+      const r = await sb.from('acciones_mensuales').select('*').order('created_at',{ascending:false});
+      data = r.data || [];
+    }catch(e){ console.warn(e); }
+    CAMPANAS = data;
+    renderStats();
+    renderWarn();
+    renderTabla();
+  }
+
+  function renderStats(){
+    const b = { activa:0, proxima:0, vencida:0, borrador:0 };
+    CAMPANAS.forEach(a => b[estadoDe(a).k]++);
+    const cards = [
+      { key:'activa',   name:'Activas',    num:b.activa,   cap:'campañas activas',   link:'Ver todas',      color:'c-green', ico:'<path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' },
+      { key:'proxima',  name:'Próximas',   num:b.proxima,  cap:'por activarse',       link:'Ver próximas',   color:'c-amber', ico:'<rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' },
+      { key:'vencida',  name:'Vencidas',   num:b.vencida,  cap:'campañas vencidas',   link:'Ver vencidas',   color:'c-red',   ico:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' },
+      { key:'borrador', name:'Borradores', num:b.borrador, cap:'sin publicar',        link:'Ver borradores', color:'c-navy',  ico:'<path d="M7 3h7l5 5v13H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.8"/>' },
+    ];
+    document.getElementById('stats').innerHTML = cards.map(c => `
+      <div class="stat">
+        <div class="stat-top">
+          <div class="stat-ico ${c.color}"><svg viewBox="0 0 24 24">${c.ico}</svg></div>
+          <div class="stat-name ${c.color.replace('c-','t-')}">${c.name}</div>
+        </div>
+        <div class="stat-num num">${c.num}</div>
+        <div class="stat-cap">${c.cap}</div>
+        <div class="stat-link" onclick="location.href='admin.html?tab=acciones'">${c.link}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>`).join('');
+    const badge = document.getElementById('bell-badge');
+    const porVencer = contarPorVencer();
+    if(porVencer>0){ badge.style.display='flex'; badge.textContent = porVencer; }
+  }
+
+  function contarPorVencer(){
+    const lim = new Date(hoy); lim.setDate(lim.getDate()+7);
+    return CAMPANAS.filter(a => { const e=estadoDe(a); if(e.k!=='activa'||!a.fecha_fin) return false; const ff=new Date(a.fecha_fin); return ff>=hoy && ff<=lim; }).length;
+  }
+
+  function renderWarn(){
+    const lim = new Date(hoy); lim.setDate(lim.getDate()+7);
+    const porVencer = CAMPANAS.filter(a => { const e=estadoDe(a); if(e.k!=='activa'||!a.fecha_fin) return false; const ff=new Date(a.fecha_fin); return ff>=hoy && ff<=lim; })
+      .sort((x,y)=> new Date(x.fecha_fin)-new Date(y.fecha_fin));
+    const slot = document.getElementById('warn-slot');
+    if(!porVencer.length){ slot.innerHTML=''; return; }
+    const a = porVencer[0];
+    const ff = new Date(a.fecha_fin); const dias = Math.round((ff-hoy)/86400000);
+    const etiqueta = dias<=0?'Vence hoy':(dias===1?'Vence mañana':`Vence en ${dias} días`);
+    const canales = (a.aplica_a||[]).map(c=>CANAL_LABEL[c]||c).slice(0,2).join(' • ');
+    slot.innerHTML = `
+      <div class="warn">
+        <div class="warn-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2h12M6 22h12M8 2c0 5 8 5 8 10s-8 5-8 10M16 2c0 5-8 5-8 10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><div class="warn-h">Próximas a vencer</div><div class="warn-p">${porVencer.length} campaña${porVencer.length===1?'':'s'} vence${porVencer.length===1?'':'n'} en los próximos 7 días.</div></div>
+        <div class="warn-chip">
+          ${a.imagen_url?`<img class="warn-thumb" src="${esc(a.imagen_url)}" alt="">`:`<span class="warn-thumb">🍾</span>`}
+          <div><div class="warn-chip-n">${esc(a.producto||'Campaña')}</div><div class="warn-chip-s">${esc(canales||'—')}</div></div>
+          <span class="pill-danger">${etiqueta}</span>
+        </div>
+        <button class="warn-edit" onclick="location.href='admin.html?tab=acciones'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16z" stroke-linejoin="round"/></svg>Editar campaña</button>
+      </div>`;
+  }
+
+  function renderTabla(){
+    const q = (document.getElementById('buscar').value||'').toLowerCase().trim();
+    let rows = CAMPANAS.slice();
+    if(q) rows = rows.filter(a => (`${a.producto||''} ${a.proveedor||''} ${a.accion||''} ${a.categoria||''}`).toLowerCase().includes(q));
+    rows = rows.slice(0,6);
+    const body = document.getElementById('tabla-body');
+    if(!rows.length){ body.innerHTML = `<tr><td colspan="7" class="empty">No hay campañas${q?' para esa búsqueda':''}.</td></tr>`; return; }
+    body.innerHTML = rows.map(a => {
+      const e = estadoDe(a);
+      const canales = (a.aplica_a||[]).map(c=>`<span class="chip">${esc(CANAL_LABEL[c]||c)}</span>`).join('');
+      const thumb = a.imagen_url?`<img class="camp-thumb" src="${esc(a.imagen_url)}" alt="">`:`<span class="camp-thumb ph">🍾</span>`;
+      const vig = (a.fecha_inicio||a.fecha_fin)?`${fmtFecha(a.fecha_inicio)}<br>– ${fmtFecha(a.fecha_fin)}`:'—';
+      return `<tr>
+        <td><div class="camp">${thumb}<div><div class="camp-n">${esc(a.producto||'—')}</div><div class="camp-t">${esc(a.accion||a.categoria||'Campaña')}</div></div></div></td>
+        <td>${a.proveedor?`<span class="prov">${esc(a.proveedor)}</span>`:'<span style="color:var(--ink3)">—</span>'}</td>
+        <td><div class="chips">${canales||'<span style="color:var(--ink3)">—</span>'}</div></td>
+        <td><span class="vig">${vig}</span></td>
+        <td><span class="estado ${e.cls}">${e.txt}</span></td>
+        <td><div class="edicion">${fmtFecha(a.created_at)}<small>última carga</small></div></td>
+        <td style="text-align:right"><button class="dots" onclick="location.href='admin.html?tab=acciones'" title="Acciones">⋯</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── acciones de UI ──
+  function toggleMenu(ev){ ev.stopPropagation(); document.getElementById('perfil-menu').classList.toggle('open'); }
+  document.addEventListener('click', ()=> document.getElementById('perfil-menu').classList.remove('open'));
+  function salir(){ sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil'); location.href='admin.html'; }
+  function verGuias(){ alert('Guías y tutoriales — próximamente.'); }
+  function soporte(){ alert('Soporte: escribí al equipo de GrandBar.'); }
+  function verNotificaciones(){ const n=contarPorVencer(); alert(n?`Tenés ${n} campaña(s) que vencen en los próximos 7 días.`:'No hay novedades por ahora.'); }
+
+  cargar();
+</script>
+</body>
+</html>

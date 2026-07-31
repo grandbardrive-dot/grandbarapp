@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Registrar Actividad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul:    #1F447F;
+    --azul-dk: #172f5a;
+    --dorado:  #CBB86A;
+    --dorado-lt: rgba(203,184,106,0.15);
+    --crema:   #F1EDE8;
+    --surface: #FFFFFF;
+    --surface2: #f7f5f2;
+    --border:  rgba(31,68,127,0.13);
+    --border-strong: rgba(31,68,127,0.28);
+    --text:    #1A1814;
+    --text2:   #5a5650;
+    --text3:   #9E9B96;
+    --green:   #2D6A4F; --green-lt:#EAF4EE;
+    --radius:  12px; --radius-sm: 8px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:system-ui,-apple-system,sans-serif; background:var(--crema); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; }
+
+  .top-bar { background:var(--azul); border-bottom:3px solid var(--dorado); padding:0 14px; display:flex; align-items:center; gap:10px; min-height:58px; position:sticky; top:0; z-index:100; }
+  .btn-back { background:rgba(255,255,255,.12); border:none; color:#fff; width:32px; height:32px; border-radius:8px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .top-bar-center { flex:1; display:flex; justify-content:center; }
+  .top-bar-logo { height:30px; object-fit:contain; }
+
+  .main { max-width:480px; margin:0 auto; padding:16px 16px 80px; }
+
+  /* ── Step label ── */
+  .step-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--azul); margin-bottom:6px; display:flex; align-items:center; gap:5px; }
+  .step-num { background:var(--azul); color:#fff; width:18px; height:18px; border-radius:50%; font-size:9px; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; }
+
+  /* ── Cards ── */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:15px; margin-bottom:12px; }
+  .card-title { font-family:Georgia,serif; font-size:15px; color:var(--azul); margin-bottom:12px; }
+
+  /* ── Búsqueda cliente ── */
+  .search-wrap { position:relative; }
+  .search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); opacity:.35; pointer-events:none; }
+  .search-input { width:100%; padding:11px 12px 11px 34px; border:1.5px solid var(--border-strong); border-radius:var(--radius-sm); font-size:14px; font-family:system-ui,sans-serif; background:var(--surface); color:var(--text); outline:none; transition:border-color .15s; }
+  .search-input:focus { border-color:var(--azul); }
+  .search-input::placeholder { color:var(--text3); }
+  .search-results { border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; margin-top:6px; display:none; max-height:220px; overflow-y:auto; }
+  .search-item { padding:10px 13px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px; transition:background .1s; }
+  .search-item:last-child { border-bottom:none; }
+  .search-item:hover, .search-item:active { background:var(--dorado-lt); }
+  .search-item-nombre { font-weight:600; color:var(--azul); }
+  .search-item-meta { font-size:11px; color:var(--text3); margin-top:2px; display:flex; gap:6px; align-items:center; }
+
+  /* ── Cliente seleccionado ── */
+  .cliente-sel {
+    display:none; background:var(--dorado-lt); border:1px solid rgba(203,184,106,.35);
+    border-radius:var(--radius-sm); padding:11px 13px; margin-top:8px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .cliente-sel-info { flex:1; min-width:0; }
+  .cliente-sel-nombre { font-size:14px; font-weight:600; color:var(--azul); }
+  .cliente-sel-meta { font-size:11px; color:var(--text2); margin-top:2px; display:flex; gap:6px; align-items:center; }
+  .btn-cambiar { background:none; border:none; color:var(--text3); font-size:12px; cursor:pointer; flex-shrink:0; font-family:system-ui,sans-serif; }
+
+  /* ── Liga badge ── */
+  .liga-badge { display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; padding:2px 8px; border-radius:20px; }
+  .liga-ON  { background:var(--azul); color:#fff; }
+  .liga-OFF { background:var(--dorado); color:var(--azul); }
+
+  /* ── Selector tipo ── */
+  .tipo-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .tipo-btn {
+    padding:12px 6px; border:2px solid var(--border-strong); border-radius:var(--radius-sm);
+    background:var(--surface); color:var(--text2); font-family:system-ui,sans-serif;
+    font-size:12px; font-weight:600; cursor:pointer; text-align:center; transition:all .15s;
+  }
+  .tipo-btn .tipo-icon { font-size:20px; display:block; margin-bottom:5px; }
+  .tipo-btn.active { border-color:var(--azul); background:var(--azul); color:#fff; }
+
+  /* ── Líneas volumen ── */
+  .linea-grid { display:flex; flex-direction:column; gap:6px; }
+  .linea-btn {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:11px 13px; border:2px solid var(--border); border-radius:var(--radius-sm);
+    background:var(--surface); cursor:pointer; transition:all .15s;
+  }
+  .linea-btn.active { border-color:var(--azul); background:rgba(31,68,127,.05); }
+  .linea-nombre { font-size:13px; font-weight:500; color:var(--text); }
+  .linea-pts-badge { font-size:11px; font-weight:700; font-family:'DM Mono',monospace; color:var(--azul); background:var(--dorado-lt); padding:2px 8px; border-radius:20px; }
+
+  /* ── Input cajas ── */
+  .cajas-wrap { margin-top:12px; }
+  .cajas-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); margin-bottom:6px; display:block; }
+  .cajas-input { width:100%; padding:12px; border:1.5px solid var(--border-strong); border-radius:var(--radius-sm); font-family:'DM Mono',monospace; font-size:22px; font-weight:600; color:var(--text); outline:none; text-align:center; transition:border-color .15s; }
+  .cajas-input:focus { border-color:var(--azul); }
+
+  /* ── Opciones radio (cobertura / activación) ── */
+  .opciones-list { display:flex; flex-direction:column; gap:7px; }
+  .opcion-btn {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 14px; border:2px solid var(--border); border-radius:var(--radius-sm);
+    background:var(--surface); cursor:pointer; transition:all .15s;
+  }
+  .opcion-btn.active { border-color:var(--azul); background:rgba(31,68,127,.05); }
+  .opcion-label { font-size:13px; font-weight:500; color:var(--text); }
+  .opcion-pts { font-size:12px; font-weight:700; font-family:'DM Mono',monospace; color:var(--dorado); background:var(--azul); padding:2px 9px; border-radius:20px; }
+
+  /* ── Foto upload ── */
+  .foto-section { margin-top:14px; padding-top:12px; border-top:1px dashed var(--border); }
+  .foto-label-txt { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); margin-bottom:8px; display:block; }
+  .foto-drop {
+    border:2px dashed var(--border-strong); border-radius:var(--radius-sm);
+    padding:24px; text-align:center; cursor:pointer; transition:all .2s;
+    position:relative;
+  }
+  .foto-drop:hover { border-color:var(--azul); background:rgba(31,68,127,.03); }
+  .foto-drop input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .foto-drop-icon { font-size:28px; margin-bottom:6px; }
+  .foto-drop-text { font-size:13px; font-weight:500; color:var(--azul); }
+  .foto-drop-sub  { font-size:11px; color:var(--text3); }
+  .foto-preview-wrap { margin-top:10px; display:none; position:relative; }
+  .foto-preview { width:100%; max-height:200px; object-fit:cover; border-radius:var(--radius-sm); }
+  .foto-clear { position:absolute; top:8px; right:8px; background:rgba(0,0,0,.55); border:none; color:#fff; width:28px; height:28px; border-radius:50%; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+  /* ── Preview puntos ── */
+  .pts-preview {
+    background:var(--azul); border-radius:var(--radius); padding:16px 18px;
+    margin-bottom:14px; border-bottom:3px solid var(--dorado);
+    display:flex; align-items:center; gap:14px;
+  }
+  .pts-preview-val { font-family:'DM Mono',monospace; font-size:36px; font-weight:700; color:var(--dorado); line-height:1; }
+  .pts-preview-info { flex:1; }
+  .pts-preview-label { font-size:11px; color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.07em; margin-bottom:3px; }
+  .pts-preview-detalle { font-size:13px; color:#fff; line-height:1.4; }
+
+  /* ── Botón confirmar ── */
+  .btn-confirmar {
+    width:100%; padding:15px; background:var(--dorado); color:var(--azul);
+    border:none; border-radius:var(--radius-sm); font-family:system-ui,sans-serif;
+    font-size:15px; font-weight:700; cursor:pointer; transition:opacity .15s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-confirmar:disabled { opacity:.4; cursor:not-allowed; }
+  .btn-confirmar:hover:not(:disabled) { opacity:.9; }
+
+  .spinner { width:18px; height:18px; border:2.5px solid rgba(31,68,127,.3); border-top-color:var(--azul); border-radius:50%; animation:spin .6s linear infinite; display:none; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--azul); color:#fff; padding:12px 20px; border-radius:var(--radius); font-size:14px; font-weight:500; box-shadow:0 6px 24px rgba(31,68,127,.35); transition:transform .3s; z-index:999; white-space:nowrap; border-bottom:3px solid var(--dorado); }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+  .toast.success { background:#1B4332; }
+  .toast.error   { background:#B91C1C; border-bottom-color:#f87171; }
+
+  .hidden { display:none !important; }
+</style>
+<style id="_bg-fondo">
+/* Fondo de pantalla GrandBar */
+body::before { content:""; position:fixed; inset:0; z-index:-1; background:url("fondoo.jpg.jpg") center/cover no-repeat; filter:brightness(0.5); transform:scale(1.05); }
+body { background:transparent !important; }
+:root { --crema:rgba(241,237,232,0.08) !important; --surface:rgba(255,255,255,0.95) !important; --surface2:rgba(247,245,242,0.95) !important; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <button class="btn-back" onclick="window.location.href='torneo.html'">←</button>
+  <div class="top-bar-center">
+    <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" class="top-bar-logo" alt="GrandBar">
+  </div>
+  <div style="width:32px"></div>
+</div>
+
+<div class="main">
+
+  <!-- PASO 1: Seleccionar cliente -->
+  <div class="card">
+    <div class="step-label"><span class="step-num">1</span> Cliente</div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="buscar-cliente" type="text"
+        placeholder="Buscar por nombre o código…"
+        oninput="buscarClientes()" autocomplete="off">
+      <div class="search-results" id="search-results"></div>
+    </div>
+    <div id="cliente-sel-wrap" class="hidden">
+      <div class="cliente-sel" style="display:flex">
+        <div class="cliente-sel-info">
+          <div class="cliente-sel-nombre" id="sel-nombre"></div>
+          <div class="cliente-sel-meta">
+            <span id="sel-codigo" style="font-family:'DM Mono',monospace;font-size:11px"></span>
+            <span class="liga-badge" id="sel-liga"></span>
+          </div>
+        </div>
+        <button class="btn-cambiar" onclick="limpiarCliente()">Cambiar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 2: Tipo de actividad -->
+  <div class="card hidden" id="paso-tipo">
+    <div class="step-label"><span class="step-num">2</span> Tipo de actividad</div>
+    <div class="tipo-grid">
+      <button class="tipo-btn" onclick="setTipo('volumen')">
+        <span class="tipo-icon">📦</span>Volumen
+      </button>
+      <button class="tipo-btn" onclick="setTipo('cobertura')">
+        <span class="tipo-icon">🎯</span>Cobertura
+      </button>
+      <button class="tipo-btn" onclick="setTipo('activacion')">
+        <span class="tipo-icon">⚡</span>Activación
+      </button>
+    </div>
+  </div>
+
+  <!-- PASO 3: Detalle según tipo -->
+  <div class="card hidden" id="paso-detalle">
+    <div class="step-label"><span class="step-num">3</span> <span id="detalle-label">Detalle</span></div>
+    <div id="detalle-content"></div>
+  </div>
+
+  <!-- Preview de puntos -->
+  <div class="pts-preview hidden" id="pts-preview">
+    <span class="pts-preview-val" id="pts-val">0</span>
+    <div class="pts-preview-info">
+      <div class="pts-preview-label">Puntos que vas a sumar</div>
+      <div class="pts-preview-detalle" id="pts-detalle"></div>
+    </div>
+  </div>
+
+  <!-- Botón confirmar -->
+  <button class="btn-confirmar hidden" id="btn-confirmar" onclick="confirmar()">
+    <span id="btn-txt">Confirmar y sumar puntos</span>
+    <div class="spinner" id="spinner"></div>
+  </button>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script src="_sucursales.js"></script>
+<script src="_torneo.js"></script>
+<script src="_celebracion.js"></script>
+<script>
+  const vendedor = JSON.parse(sessionStorage.getItem('vendedor') || 'null');
+  if (!vendedor) window.location.href = 'index.html';
+
+  // Pre-carga el cliente si viene de visita.html
+  const clientePre = JSON.parse(sessionStorage.getItem('cliente') || 'null');
+
+  let todosClientes = [];
+  let clienteSel = null;
+  let tipoSel    = null; // 'volumen' | 'cobertura' | 'activacion'
+  let detalleSel = {};   // { linea, cajas } | { tipo } | { tipo }
+  let fotoFile   = null;
+  let puntosCalc = 0;
+
+  // ── Cargar clientes del vendedor ─────────────────────────────────────────────
+  async function init() {
+    const { data } = await sb.from('clientes').select('id,nombre,codigo_cliente,tipo')
+      .eq('vendedor_id', vendedor.id).order('nombre');
+    todosClientes = data || [];
+
+    if (clientePre) seleccionarCliente(clientePre);
+  }
+
+  // ── Búsqueda de cliente ──────────────────────────────────────────────────────
+  let busqTimer;
+  function buscarClientes() {
+    clearTimeout(busqTimer);
+    busqTimer = setTimeout(() => {
+      const q = document.getElementById('buscar-cliente').value.trim().toLowerCase();
+      const res = document.getElementById('search-results');
+      if (!q) { res.style.display = 'none'; return; }
+      const filtrado = todosClientes.filter(c =>
+        c.nombre.toLowerCase().includes(q) || c.codigo_cliente.toLowerCase().includes(q)
+      ).slice(0, 8);
+      if (!filtrado.length) { res.style.display = 'none'; return; }
+      res.innerHTML = filtrado.map(c => `
+        <div class="search-item" onclick="seleccionarCliente(${JSON.stringify(c).replace(/"/g,'&quot;')})">
+          <div class="search-item-nombre">${esc(c.nombre)}</div>
+          <div class="search-item-meta">
+            <span style="font-family:'DM Mono',monospace">${esc(c.codigo_cliente)}</span>
+            <span class="liga-badge liga-${getLiga(c.tipo)}">${getLiga(c.tipo)}</span>
+          </div>
+        </div>`).join('');
+      res.style.display = 'block';
+    }, 200);
+  }
+
+  function seleccionarCliente(c) {
+    clienteSel = c;
+    const liga = getLiga(c.tipo);
+    document.getElementById('buscar-cliente').value = c.nombre;
+    document.getElementById('search-results').style.display = 'none';
+    document.getElementById('sel-nombre').textContent  = c.nombre;
+    document.getElementById('sel-codigo').textContent  = c.codigo_cliente;
+    const lb = document.getElementById('sel-liga');
+    lb.textContent  = `Liga ${liga}`;
+    lb.className    = `liga-badge liga-${liga}`;
+    document.getElementById('cliente-sel-wrap').classList.remove('hidden');
+    document.getElementById('paso-tipo').classList.remove('hidden');
+    tipoSel = null; detalleSel = {};
+    document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('paso-detalle').classList.add('hidden');
+    ocultarConfirmar();
+  }
+
+  function limpiarCliente() {
+    clienteSel = null; tipoSel = null; detalleSel = {}; fotoFile = null;
+    document.getElementById('buscar-cliente').value = '';
+    document.getElementById('cliente-sel-wrap').classList.add('hidden');
+    document.getElementById('paso-tipo').classList.add('hidden');
+    document.getElementById('paso-detalle').classList.add('hidden');
+    ocultarConfirmar();
+  }
+
+  // ── Selector tipo ────────────────────────────────────────────────────────────
+  function setTipo(tipo) {
+    tipoSel = tipo; detalleSel = {}; fotoFile = null;
+    document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tipo-btn').forEach(b => {
+      if (b.textContent.toLowerCase().includes(tipo.slice(0,3))) b.classList.add('active');
+    });
+    document.getElementById('detalle-label').textContent =
+      tipo === 'volumen' ? 'Línea y cajas' :
+      tipo === 'cobertura' ? 'Tipo de cobertura' : 'Tipo de activación';
+    document.getElementById('detalle-content').innerHTML = renderDetalle(tipo);
+    document.getElementById('paso-detalle').classList.remove('hidden');
+    ocultarConfirmar();
+  }
+
+  function renderDetalle(tipo) {
+    if (tipo === 'volumen') {
+      return `<div class="linea-grid">${LINEAS_VOLUMEN.map(l => `
+        <div class="linea-btn" id="linea-${l.id}" onclick="setLinea('${l.id}')">
+          <span class="linea-nombre">${esc(l.nombre)}</span>
+          <span class="linea-pts-badge">${l.pts} pt/caja</span>
+        </div>`).join('')}</div>
+        <div class="cajas-wrap hidden" id="cajas-wrap">
+          <span class="cajas-label">Cantidad de cajas</span>
+          <input class="cajas-input" id="cajas-input" type="number" min="1" max="999"
+            placeholder="0" oninput="setCajas()" inputmode="numeric">
+        </div>`;
+    }
+    if (tipo === 'cobertura') {
+      return `<div class="opciones-list">${TIPOS_COBERTURA.map(t => `
+        <div class="opcion-btn" id="op-${t.id}" onclick="setOpcion('${t.id}','cobertura')">
+          <span class="opcion-label">${esc(t.label)}</span>
+          <span class="opcion-pts">${t.pts} pt</span>
+        </div>`).join('')}</div>`;
+    }
+    if (tipo === 'activacion') {
+      const liga = getLiga(clienteSel?.tipo);
+      // Vendedores dual canal (017 y 041) ven todas las activaciones sin importar la liga del cliente
+      const opciones = isDualCanal(vendedor.codigo)
+        ? [...TIPOS_ACT_ON, ...TIPOS_ACT_OFF]
+        : (liga === 'OFF' ? TIPOS_ACT_OFF : TIPOS_ACT_ON);
+      return `<div class="opciones-list">${opciones.map(t => `
+        <div class="opcion-btn" id="op-${t.id}" onclick="setOpcion('${t.id}','activacion')">
+          <span class="opcion-label">${esc(t.label)}</span>
+          <span class="opcion-pts">${t.pts} pt</span>
+        </div>`).join('')}</div>
+        <div class="foto-section" id="foto-section" style="display:none">
+          <span class="foto-label-txt">Foto de evidencia (opcional)</span>
+          <div class="foto-drop" onclick="document.getElementById('foto-input').click()">
+            <input type="file" id="foto-input" accept="image/*" capture="environment"
+              style="display:none" onchange="onFotoChange(event)">
+            <div class="foto-drop-icon">📷</div>
+            <div class="foto-drop-text">Sacar foto o elegir de galería</div>
+            <div class="foto-drop-sub">JPG, PNG — evidencia de la activación</div>
+          </div>
+          <div class="foto-preview-wrap" id="foto-preview-wrap">
+            <img class="foto-preview" id="foto-preview" src="">
+            <button class="foto-clear" onclick="clearFoto()">✕</button>
+          </div>
+        </div>`;
+    }
+    return '';
+  }
+
+  function setLinea(lineaId) {
+    detalleSel = { linea: lineaId, cajas: detalleSel.cajas || '' };
+    document.querySelectorAll('.linea-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`linea-${lineaId}`)?.classList.add('active');
+    document.getElementById('cajas-wrap')?.classList.remove('hidden');
+    calcularPuntos();
+  }
+
+  function setCajas() {
+    detalleSel.cajas = parseInt(document.getElementById('cajas-input')?.value) || 0;
+    calcularPuntos();
+  }
+
+  function setOpcion(id, tipo) {
+    detalleSel = { tipo: id };
+    document.querySelectorAll('.opcion-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`op-${id}`)?.classList.add('active');
+    if (tipo === 'activacion') {
+      document.getElementById('foto-section').style.display = 'block';
+    }
+    calcularPuntos();
+  }
+
+  // ── Foto ──────────────────────────────────────────────────────────────────────
+  function onFotoChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    fotoFile = file;
+    const url = URL.createObjectURL(file);
+    document.getElementById('foto-preview').src = url;
+    document.getElementById('foto-preview-wrap').style.display = 'block';
+  }
+  function clearFoto() {
+    fotoFile = null;
+    document.getElementById('foto-preview-wrap').style.display = 'none';
+    document.getElementById('foto-input').value = '';
+  }
+
+  // ── Cálculo de puntos ─────────────────────────────────────────────────────────
+  function calcularPuntos() {
+    if (!tipoSel) return;
+    puntosCalc = calcPuntosTorneo(tipoSel, detalleSel);
+
+    if (puntosCalc > 0) {
+      document.getElementById('pts-val').textContent = puntosCalc;
+      let detTxt = '';
+      if (tipoSel === 'volumen') {
+        const l = LINEAS_VOLUMEN.find(x => x.id === detalleSel.linea);
+        detTxt = `${l?.nombre || ''} × ${detalleSel.cajas || 0} cajas (${l?.pts || 0} pt/caja)`;
+      } else if (tipoSel === 'cobertura') {
+        const t = TIPOS_COBERTURA.find(x => x.id === detalleSel.tipo);
+        detTxt = t?.label || '';
+      } else {
+        const all = [...TIPOS_ACT_ON, ...TIPOS_ACT_OFF];
+        const t = all.find(x => x.id === detalleSel.tipo);
+        detTxt = t?.label || '';
+      }
+      document.getElementById('pts-detalle').textContent = detTxt;
+      document.getElementById('pts-preview').classList.remove('hidden');
+      document.getElementById('btn-confirmar').classList.remove('hidden');
+    } else {
+      ocultarConfirmar();
+    }
+  }
+
+  function ocultarConfirmar() {
+    document.getElementById('pts-preview').classList.add('hidden');
+    document.getElementById('btn-confirmar').classList.add('hidden');
+    puntosCalc = 0;
+  }
+
+  // ── Confirmar registro ────────────────────────────────────────────────────────
+  async function confirmar() {
+    if (!clienteSel || !tipoSel || puntosCalc <= 0) return;
+    setLoading(true);
+
+    let foto_url = null;
+    if (fotoFile) {
+      foto_url = await subirFotoTorneo(fotoFile, vendedor.id);
+    }
+
+    const { error } = await sb.from('torneo_registros').insert({
+      torneo_id:   TORNEO_ID,
+      vendedor_id: vendedor.id,
+      cliente_id:  clienteSel.id,
+      mes:         getMesActual(),
+      tipo:        tipoSel,
+      detalle:     detalleSel,
+      puntos:      puntosCalc,
+      foto_url
+    });
+
+    setLoading(false);
+
+    if (error) {
+      showToast('Error al guardar. Intentá de nuevo.', 'error');
+      return;
+    }
+
+    showToast(`✓ +${fmtPts(puntosCalc)} sumados al torneo`, 'success');
+    const descCeleb = (() => {
+      if (tipoSel === 'volumen') {
+        const l = LINEAS_VOLUMEN.find(x => x.id === detalleSel.linea);
+        return `${l?.nombre || 'Volumen'} × ${detalleSel.cajas} cajas — +${fmtPts(puntosCalc)}`;
+      }
+      if (tipoSel === 'activacion') {
+        const all = [...TIPOS_ACT_ON, ...TIPOS_ACT_OFF];
+        const t = all.find(x => x.id === detalleSel.tipo);
+        return `${t?.label || 'Activación'} — +${fmtPts(puntosCalc)}`;
+      }
+      return `Torneo Doña Paula — +${fmtPts(puntosCalc)}`;
+    })();
+    celebrarVenta(descCeleb);
+    setTimeout(() => window.location.href = 'torneo.html', 3800);
+  }
+
+  function setLoading(on) {
+    document.getElementById('btn-confirmar').disabled = on;
+    document.getElementById('btn-txt').style.display  = on ? 'none'  : 'inline';
+    document.getElementById('spinner').style.display  = on ? 'block' : 'none';
+  }
+  function showToast(msg, type='') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = `toast ${type}`;
+    void t.offsetWidth; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+  function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  init();
+</script>
+</body>
+</html>

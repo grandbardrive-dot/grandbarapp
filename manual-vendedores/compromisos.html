@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Mis Compromisos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul:#1F447F; --azul-dk:#172f5a; --dorado:#CBB86A; --dorado-lt:rgba(203,184,106,.15);
+    --crema:#F1EDE8; --surface:#fff; --surface2:#f7f5f2;
+    --border:rgba(31,68,127,.13); --border-strong:rgba(31,68,127,.28);
+    --text:#1A1814; --text2:#5a5650; --text3:#9E9B96;
+    --green:#2D6A4F; --green-lt:#EAF4EE; --green-text:#1B4332;
+    --amber:#8A5E00; --amber-lt:#FDF5E0; --amber-text:#5C3D00;
+    --red:#B91C1C; --red-lt:#FEF2F2;
+    --radius:12px; --radius-sm:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,sans-serif;background:var(--crema);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+  .top-bar{background:#1F447F;border-bottom:3px solid var(--dorado);padding:12px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+  .btn-back{background:rgba(255,255,255,.12);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .top-bar-logo{height:50px;object-fit:contain;flex:1;display:block;margin:0 auto}
+
+  /* Summary strip */
+  .sum-strip{background:var(--azul-dk);border-bottom:1px solid rgba(255,255,255,.1);padding:10px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px}
+  .sum-bl{text-align:center;padding:4px}
+  .sum-val{font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#fff}
+  .sum-label{font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+  .sum-val.alert{color:#f87171}
+  .sum-val.warn{color:var(--dorado)}
+
+  .main{max-width:480px;margin:0 auto;padding:14px 14px 80px}
+
+  /* Filtros */
+  .filter-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .filter-row::-webkit-scrollbar{display:none}
+  .filter-chip{flex-shrink:0;padding:5px 13px;border-radius:20px;border:1.5px solid var(--border-strong);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:system-ui,sans-serif;transition:all .15s;white-space:nowrap}
+  .filter-chip.active{background:var(--azul);color:#fff;border-color:var(--azul)}
+
+  /* Comp cards */
+  .comp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 15px;margin-bottom:8px;border-left:4px solid var(--border)}
+  .comp-card.pendiente{border-left-color:var(--dorado)}
+  .comp-card.ejecutado{border-left-color:var(--green)}
+  .comp-card.atrasado {border-left-color:var(--red)}
+
+  .comp-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+  .comp-desc{font-size:13px;font-weight:600;color:var(--text);flex:1;line-height:1.3}
+  .badge-estado{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap}
+  .badge-pendiente{background:var(--amber-lt);color:var(--amber-text)}
+  .badge-ejecutado{background:var(--green-lt);color:var(--green-text)}
+  .badge-atrasado {background:var(--red-lt);color:var(--red)}
+
+  .comp-meta{font-size:11px;color:var(--text3);display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+  .comp-seccion{display:inline-block;background:var(--dorado-lt);color:#7a6830;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;border:1px solid rgba(203,184,106,.25)}
+
+  .btn-evidencia-comp{width:100%;padding:10px;background:var(--azul);color:#fff;border:none;border-radius:var(--radius-sm);font-family:system-ui,sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .2s}
+  .btn-evidencia-comp:hover{background:var(--azul-dk)}
+  .comp-foto{width:100%;border-radius:var(--radius-sm);max-height:120px;object-fit:cover;margin-top:8px;display:block;cursor:pointer}
+  .foto-uploading{font-size:12px;color:var(--text3);font-style:italic;text-align:center;padding:8px}
+
+  .empty-state{text-align:center;padding:48px 20px;color:var(--text3)}
+  .empty-icon{font-size:36px;margin-bottom:12px}
+
+  /* Spinner */
+  .spinner-center{text-align:center;padding:40px;color:var(--text3)}
+  .sp{display:inline-block;width:18px;height:18px;border:2.5px solid var(--border);border-top-color:var(--azul);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Toast */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--azul);color:#fff;padding:12px 20px;border-radius:var(--radius);font-size:14px;font-weight:500;box-shadow:0 6px 24px rgba(31,68,127,.35);transition:transform .3s;z-index:999;white-space:nowrap;border-bottom:3px solid var(--dorado)}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.success{background:var(--green);border-bottom-color:#4ade80}
+  .toast.error{background:var(--red);border-bottom-color:#f87171}
+
+  /* Input file oculto */
+  #foto-comp-input{display:none}
+
+  /* Notif banner */
+  .notif-banner{background:var(--azul);border-radius:var(--radius);padding:13px 15px;margin-bottom:12px;display:flex;align-items:center;gap:10px;cursor:pointer}
+  .notif-banner-txt{flex:1;font-size:13px;color:#fff}
+  .notif-banner-txt small{display:block;font-size:11px;color:rgba(255,255,255,.55);margin-top:2px}
+  .notif-btn{padding:7px 13px;background:var(--dorado);color:var(--azul);border:none;border-radius:20px;font-family:system-ui,sans-serif;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
+</style>
+<style id="_bg-fondo">
+/* Fondo de pantalla GrandBar */
+body::before { content:""; position:fixed; inset:0; z-index:-1; background:url("fondoo.jpg.jpg") center/cover no-repeat; filter:brightness(0.5); transform:scale(1.05); }
+body { background:transparent !important; }
+:root { --crema:rgba(241,237,232,0.08) !important; --surface:rgba(255,255,255,0.95) !important; --surface2:rgba(247,245,242,0.95) !important; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <button class="btn-back" onclick="window.location.href='clientes.html'">←</button>
+  <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" class="top-bar-logo" alt="GrandBar">
+  <div style="width:32px"></div>
+</div>
+
+<div class="sum-strip" id="sum-strip">
+  <div class="sum-bl"><div class="sum-val alert" id="sum-atrasados">–</div><div class="sum-label">Atrasados</div></div>
+  <div class="sum-bl"><div class="sum-val warn"  id="sum-hoy">–</div><div class="sum-label">Hoy</div></div>
+  <div class="sum-bl"><div class="sum-val"       id="sum-total">–</div><div class="sum-label">Total pendientes</div></div>
+</div>
+
+<div class="main">
+
+  <!-- Banner de notificaciones push -->
+  <div class="notif-banner" id="notif-banner" style="display:none">
+    <span style="font-size:22px">🔔</span>
+    <div class="notif-banner-txt">
+      Activá notificaciones push
+      <small>Te avisamos el día de cada compromiso</small>
+    </div>
+    <button class="notif-btn" onclick="activarNotificaciones()">Activar</button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filter-row" id="filter-row">
+    <button class="filter-chip active" data-estado=""          onclick="setFiltro(this)">Todos</button>
+    <button class="filter-chip"        data-estado="atrasado"  onclick="setFiltro(this)">⚠️ Atrasados</button>
+    <button class="filter-chip"        data-estado="pendiente" onclick="setFiltro(this)">🟡 Pendientes</button>
+    <button class="filter-chip"        data-estado="ejecutado" onclick="setFiltro(this)">✅ Ejecutados</button>
+  </div>
+
+  <div id="list-container">
+    <div class="spinner-center"><span class="sp"></span></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="foto-comp-input" accept="image/*" capture="environment" onchange="onFotoComp(event)">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script>
+  const vendedor = JSON.parse(sessionStorage.getItem('vendedor') || 'null');
+  if (!vendedor) window.location.href = 'index.html';
+
+  let todosCompromisos = [];
+  let filtroActivo = '';
+  let compPendingId = null;
+  const HOY = new Date().toISOString().slice(0,10);
+
+  // ── Carga ─────────────────────────────────────────────────────────────────────
+  async function init() {
+    // Marcar atrasados automáticamente
+    await sb.from('compromisos')
+      .update({ estado: 'atrasado' })
+      .eq('vendedor_id', vendedor.id)
+      .eq('estado', 'pendiente')
+      .lt('fecha_ejecucion', HOY);
+
+    const { data } = await sb
+      .from('compromisos')
+      .select('*, clientes(id, nombre, tipo)')
+      .eq('vendedor_id', vendedor.id)
+      .order('fecha_ejecucion', { ascending: true });
+
+    todosCompromisos = data || [];
+    calcSummary();
+    renderLista();
+    checkNotifPermission();
+  }
+
+  function calcSummary() {
+    const atrasados = todosCompromisos.filter(c => c.estado === 'atrasado').length;
+    const hoy       = todosCompromisos.filter(c => c.fecha_ejecucion === HOY && c.estado === 'pendiente').length;
+    const pendientes = todosCompromisos.filter(c => c.estado === 'pendiente').length;
+    document.getElementById('sum-atrasados').textContent = atrasados;
+    document.getElementById('sum-hoy').textContent       = hoy;
+    document.getElementById('sum-total').textContent     = pendientes;
+  }
+
+  // ── Filtro ────────────────────────────────────────────────────────────────────
+  function setFiltro(btn) {
+    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filtroActivo = btn.dataset.estado;
+    renderLista();
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+  function renderLista() {
+    const lista = filtroActivo
+      ? todosCompromisos.filter(c => c.estado === filtroActivo)
+      : todosCompromisos;
+
+    const el = document.getElementById('list-container');
+
+    if (!lista.length) {
+      el.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">${filtroActivo === 'atrasado' ? '✅' : '📋'}</div>
+        <p>${filtroActivo === 'atrasado' ? '¡Sin compromisos atrasados!' : 'Sin compromisos en esta categoría.'}</p>
+      </div>`;
+      return;
+    }
+
+    el.innerHTML = lista.map(c => {
+      const esHoy     = c.fecha_ejecucion === HOY && c.estado === 'pendiente';
+      const fechaFmt  = new Date(c.fecha_ejecucion + 'T12:00:00').toLocaleDateString('es-AR', { day:'numeric', month:'short', year:'numeric' });
+      const badgeMap  = { pendiente:'badge-pendiente', ejecutado:'badge-ejecutado', atrasado:'badge-atrasado' };
+      const labelMap  = { pendiente:'Pendiente', ejecutado:'Ejecutado ✓', atrasado:'Atrasado ⚠️' };
+
+      const fotoHtml = c.foto_evidencia_url
+        ? `<img class="comp-foto" src="${esc(c.foto_evidencia_url)}" onclick="window.open('${esc(c.foto_evidencia_url)}')" alt="Evidencia">`
+        : '';
+
+      const evidenciaBtn = (c.estado === 'pendiente' || c.estado === 'atrasado')
+        ? `<button class="btn-evidencia-comp" onclick="pedirFoto('${c.id}')">
+            📷 Cargar evidencia y marcar como ejecutado
+           </button>`
+        : '';
+
+      return `<div class="comp-card ${c.estado}${esHoy ? ' card-hoy' : ''}">
+        <div class="comp-top">
+          <div class="comp-desc">${esc(c.descripcion)}</div>
+          <span class="badge-estado ${badgeMap[c.estado]}">${labelMap[c.estado]}</span>
+        </div>
+        <div class="comp-meta">
+          <span>👤 ${esc(c.clientes?.nombre || '—')}</span>
+          <span>🗓 ${fechaFmt}${esHoy ? ' ← HOY' : ''}</span>
+          <span class="comp-seccion">${esc(c.seccion)}</span>
+        </div>
+        ${evidenciaBtn}
+        ${fotoHtml}
+      </div>`;
+    }).join('');
+  }
+
+  // ── Foto evidencia ────────────────────────────────────────────────────────────
+  function pedirFoto(compId) {
+    compPendingId = compId;
+    document.getElementById('foto-comp-input').click();
+  }
+
+  async function onFotoComp(e) {
+    const file = e.target.files[0];
+    if (!file || !compPendingId) return;
+    const idx  = todosCompromisos.findIndex(c => c.id === compPendingId);
+    if (idx >= 0) {
+      // UI optimista
+      const el = document.getElementById('list-container');
+      showToast('Subiendo foto…');
+    }
+    const path = `compromisos/${compPendingId}/${Date.now()}.jpg`;
+    const { error: upErr } = await sb.storage.from('Activaciones').upload(path, file, { upsert: true });
+    if (upErr) { showToast('Error al subir foto', 'error'); return; }
+    const { data: urlData } = sb.storage.from('Activaciones').getPublicUrl(path);
+    const { error } = await sb.from('compromisos').update({
+      estado: 'ejecutado',
+      foto_evidencia_url: urlData.publicUrl,
+    }).eq('id', compPendingId);
+    if (error) { showToast('Error al actualizar', 'error'); return; }
+    // Actualizar local
+    if (idx >= 0) {
+      todosCompromisos[idx].estado = 'ejecutado';
+      todosCompromisos[idx].foto_evidencia_url = urlData.publicUrl;
+    }
+    showToast('✓ Compromiso ejecutado', 'success');
+    calcSummary();
+    renderLista();
+    compPendingId = null;
+    e.target.value = '';
+  }
+
+  // ── Notificaciones push (Firebase) ───────────────────────────────────────────
+  function checkNotifPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      document.getElementById('notif-banner').style.display = 'flex';
+    }
+  }
+
+  async function activarNotificaciones() {
+    if (!('Notification' in window)) return;
+    const perm = await Notification.requestPermission();
+    document.getElementById('notif-banner').style.display = 'none';
+    if (perm === 'granted') {
+      showToast('✓ Notificaciones activadas', 'success');
+      registrarFCMToken();
+    }
+  }
+
+  async function registrarFCMToken() {
+    // Registrar service worker y obtener token FCM
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      // El token real se obtiene con Firebase SDK — ver firebase-messaging-sw.js
+      console.log('Service worker registrado para notificaciones push');
+    } catch(e) { console.error('SW error:', e); }
+  }
+
+  // ── Utils ─────────────────────────────────────────────────────────────────────
+  function showToast(msg, type='') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = `toast ${type}`;
+    void t.offsetWidth; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+  function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>GrandBar · Propuestas de Acciones</title>
+<style>
+  :root{
+    --azul:#1F447F; --azul-claro:#EAF2FB; --oro:#CBB86A;
+    --verde:#2D6A4F; --verde-osc:#1B4332; --verde-bg:#EAF4EE;
+    --rojo:#B91C1C; --rojo-bg:#FBEAEA;
+    --gris:#9E9B96; --gris-txt:#5a5650; --fondo:#f4f2ee; --card:#ffffff;
+    --borde:rgba(31,68,127,.12);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0; font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+    background:var(--fondo); color:#25211c; min-height:100vh;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:0 14px 60px}
+
+  /* ── Header ── */
+  header.top{
+    background:var(--azul); border-bottom:3px solid var(--oro);
+    padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    position:sticky; top:0; z-index:50;
+  }
+  header.top .brand{display:flex; align-items:center; gap:10px; min-width:0}
+  header.top img{height:30px; width:auto; display:block}
+  header.top .titles{min-width:0}
+  header.top .titles b{color:#fff; font-size:15px; display:block; line-height:1.15}
+  header.top .titles span{color:#cdd8ea; font-size:11px}
+  .btn-salir{
+    background:rgba(255,255,255,.15); color:#fff; border:none; border-radius:8px;
+    padding:7px 12px; font-size:12px; font-weight:700; cursor:pointer; flex-shrink:0;
+  }
+
+  /* ── Cards / secciones ── */
+  .panel{
+    background:var(--card); border:1px solid var(--borde); border-radius:14px;
+    padding:18px; margin-top:16px; box-shadow:0 2px 10px rgba(0,0,0,.05);
+  }
+  h2.sec-t{font-size:16px; color:var(--azul); margin:0 0 4px}
+  p.sec-s{font-size:12.5px; color:var(--gris-txt); margin:0 0 14px}
+
+  label.fld{display:block; font-size:12px; font-weight:700; color:var(--azul); margin:14px 0 5px; letter-spacing:.02em}
+  label.fld .opt{color:var(--gris); font-weight:500; text-transform:none}
+  input[type=text], input[type=password], select, textarea{
+    width:100%; padding:11px 12px; border:1.5px solid var(--borde); border-radius:10px;
+    font-size:14px; font-family:inherit; background:#fff; color:#25211c;
+  }
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--azul)}
+  textarea{min-height:84px; resize:vertical}
+  select{appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231F447F' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:34px}
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    border:none; border-radius:10px; font-family:inherit; font-size:14px; font-weight:700;
+    padding:12px 18px; cursor:pointer; transition:transform .1s, background .15s; width:100%;
+  }
+  .btn:active{transform:scale(.98)}
+  .btn-primary{background:var(--azul); color:#fff}
+  .btn-verde{background:var(--verde); color:#fff}
+  .btn-oro{background:var(--oro); color:#3a3320}
+  .btn-ghost{background:#eef1f6; color:var(--azul)}
+  .btn:disabled{opacity:.55; cursor:default}
+
+  /* ── Login: elección ── */
+  .rol-grid{display:grid; gap:12px; margin-top:6px}
+  .rol-card{
+    display:flex; align-items:center; gap:14px; text-align:left;
+    background:#fff; border:1.5px solid var(--borde); border-radius:14px;
+    padding:16px; cursor:pointer; transition:border-color .15s, box-shadow .15s; width:100%;
+  }
+  .rol-card:hover{border-color:var(--azul); box-shadow:0 4px 14px rgba(31,68,127,.12)}
+  .rol-card .emoji{font-size:30px; line-height:1}
+  .rol-card .txt b{display:block; font-size:15px; color:var(--azul)}
+  .rol-card .txt span{font-size:12px; color:var(--gris-txt)}
+
+  /* ── Adjuntos ── */
+  .adj-zona{border:1.5px dashed var(--borde); border-radius:12px; padding:14px; margin-top:6px}
+  .adj-btns{display:flex; gap:8px; flex-wrap:wrap}
+  .adj-mini{
+    flex:1; min-width:130px; background:#eef1f6; color:var(--azul); border:none; border-radius:9px;
+    padding:10px; font-size:12.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .chips{display:flex; flex-direction:column; gap:7px; margin-top:12px}
+  .chip{
+    display:flex; align-items:center; gap:9px; background:var(--azul-claro);
+    border:1px solid var(--borde); border-radius:9px; padding:8px 10px; font-size:12.5px;
+  }
+  .chip .ic{font-size:16px; flex-shrink:0}
+  .chip .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--azul); font-weight:600}
+  .chip a.nm{text-decoration:none}
+  .chip .rm{background:none; border:none; color:var(--rojo); font-size:16px; cursor:pointer; line-height:1; padding:2px 4px}
+
+  /* ── Mensajes ── */
+  .msg{margin-top:12px; font-size:13px; font-weight:600; padding:10px 12px; border-radius:10px; display:none}
+  .msg.ok{display:block; background:var(--verde-bg); color:var(--verde-osc)}
+  .msg.err{display:block; background:var(--rojo-bg); color:var(--rojo)}
+
+  /* ── Lista de propuestas ── */
+  .prop{background:#fff; border:1px solid var(--borde); border-left:4px solid var(--oro); border-radius:12px; padding:13px 14px; margin-bottom:11px}
+  .prop.aprobada{border-left-color:var(--verde)}
+  .prop.descartada{border-left-color:var(--rojo); opacity:.72}
+  .prop-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px}
+  .prop-tit{font-size:14.5px; font-weight:700; color:var(--azul); line-height:1.25}
+  .badge{font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:20px; flex-shrink:0; white-space:nowrap}
+  .b-pendiente{background:#F0EEE8; color:#7a6f52}
+  .b-aprobada{background:var(--verde); color:#fff}
+  .b-descartada{background:var(--rojo); color:#fff}
+  .prop-meta{font-size:11px; color:var(--gris); margin-top:4px; display:flex; flex-wrap:wrap; gap:5px 10px}
+  .prop-cond{display:inline-block; background:var(--verde-osc); color:#fff; font-size:11px; font-weight:700; padding:2px 10px; border-radius:20px; margin-top:8px}
+  .prop-desc{font-size:12.5px; color:var(--gris-txt); margin-top:8px; line-height:1.45; white-space:pre-wrap}
+  .prop-adj{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+  .prop-adj a{display:inline-flex; align-items:center; gap:5px; background:var(--azul-claro); border:1px solid var(--borde); border-radius:8px; padding:5px 9px; font-size:11.5px; font-weight:600; color:var(--azul); text-decoration:none}
+  .prop-acc{display:flex; gap:7px; margin-top:11px; flex-wrap:wrap; border-top:1px solid var(--borde); padding-top:10px}
+  .mini-btn{flex:1; min-width:92px; border:none; border-radius:8px; padding:8px; font-size:11.5px; font-weight:700; cursor:pointer}
+  .mb-ok{background:var(--verde-bg); color:var(--verde-osc)} .mb-ok.on{background:var(--verde); color:#fff}
+  .mb-no{background:var(--rojo-bg); color:var(--rojo)} .mb-no.on{background:var(--rojo); color:#fff}
+  .mb-pe{background:#F0EEE8; color:#7a6f52} .mb-pe.on{background:#7a6f52; color:#fff}
+  .mb-del{background:none; color:var(--gris); flex:0 0 auto; min-width:auto; padding:8px 10px}
+
+  /* ── Sub-tabs admin ── */
+  .subtabs{display:flex; gap:6px; margin-top:16px; background:#e7e3db; padding:4px; border-radius:11px}
+  .subtab{flex:1; text-align:center; padding:9px; border-radius:8px; font-size:12.5px; font-weight:700; color:var(--gris-txt); cursor:pointer; border:none; background:none}
+  .subtab.active{background:#fff; color:var(--azul); box-shadow:0 1px 4px rgba(0,0,0,.08)}
+
+  .filtros{display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 4px}
+  .filtros select{flex:1; min-width:120px; padding:9px 10px; font-size:13px}
+  .contador{font-size:12px; color:var(--gris); margin:10px 0}
+
+  .row-item{display:flex; align-items:center; gap:10px; background:#fff; border:1px solid var(--borde); border-radius:10px; padding:11px 12px; margin-bottom:8px}
+  .row-item .info{flex:1; min-width:0}
+  .row-item .info b{font-size:13.5px; color:var(--azul); display:block}
+  .row-item .info span{font-size:11.5px; color:var(--gris)}
+  .row-item .rol-tag{font-size:10px; font-weight:700; background:var(--azul-claro); color:var(--azul); padding:2px 8px; border-radius:20px; text-transform:uppercase}
+  .row-item button.del{background:var(--rojo-bg); color:var(--rojo); border:none; border-radius:8px; padding:7px 11px; font-size:12px; font-weight:700; cursor:pointer}
+
+  .add-box{background:#fbfaf7; border:1px dashed var(--borde); border-radius:12px; padding:14px; margin-top:12px}
+  .empty{text-align:center; color:var(--gris); font-style:italic; font-size:13px; padding:26px 10px}
+  .hint{font-size:11.5px; color:var(--gris); margin-top:6px; line-height:1.4}
+  .spin{display:inline-block; width:15px; height:15px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* ── Tarjetas de rubro ── */
+  .rubro-cards{display:grid; gap:12px; margin-top:6px}
+  .rubro-card{
+    display:flex; align-items:center; gap:15px; text-align:left; width:100%;
+    background:#fff; border:1.5px solid var(--borde); border-radius:16px; padding:18px 16px;
+    cursor:pointer; transition:border-color .15s, box-shadow .15s, transform .1s;
+  }
+  .rubro-card:hover{border-color:var(--azul); box-shadow:0 6px 18px rgba(31,68,127,.13)}
+  .rubro-card:active{transform:scale(.99)}
+  .rubro-card .emoji{font-size:34px; line-height:1; width:52px; height:52px; border-radius:13px; background:var(--azul-claro); display:flex; align-items:center; justify-content:center; flex-shrink:0}
+  .rubro-card .txt{flex:1; min-width:0}
+  .rubro-card .txt b{display:block; font-size:17px; color:var(--azul)}
+  .rubro-card .txt span{font-size:12px; color:var(--gris-txt)}
+  .rubro-card .chev{color:var(--oro); font-size:22px; flex-shrink:0}
+  .rubro-card .mini-count{font-size:11px; font-weight:700; color:var(--verde); margin-top:2px}
+
+  /* ── Header del checklist ── */
+  .ck-head{display:flex; align-items:center; gap:12px; margin-top:16px}
+  .ck-volver{background:#fff; border:1.5px solid var(--borde); color:var(--azul); border-radius:10px; padding:9px 13px; font-size:13px; font-weight:700; cursor:pointer; flex-shrink:0}
+  .ck-titles b{display:block; font-size:19px; color:var(--azul)}
+  .ck-titles span{font-size:12px; color:var(--gris-txt)}
+
+  /* ── Acordeón de secciones ── */
+  .secc-card{background:#fff; border:1px solid var(--borde); border-radius:14px; margin-top:11px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.05)}
+  .secc-head{display:flex; align-items:center; gap:12px; padding:14px; cursor:pointer; -webkit-tap-highlight-color:transparent}
+  .secc-head .ic{width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:21px; flex-shrink:0; background:var(--azul-claro)}
+  .secc-head .nm{flex:1; min-width:0}
+  .secc-head .nm b{display:block; font-size:14.5px; color:var(--azul); line-height:1.2}
+  .secc-head .nm span{font-size:11px; color:var(--gris)}
+  .secc-badge{background:var(--verde); color:#fff; font-size:11px; font-weight:800; min-width:20px; height:20px; padding:0 6px; border-radius:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0}
+  .secc-chev{color:var(--gris); font-size:15px; transition:transform .2s; flex-shrink:0}
+  .secc-card.open .secc-chev{transform:rotate(180deg)}
+  .secc-body{display:none; padding:2px 14px 12px; border-top:1px solid var(--borde)}
+  .secc-card.open .secc-body{display:block}
+  .sub-row{display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid rgba(31,68,127,.07)}
+  .sub-row:last-child{border-bottom:none}
+  .sub-row .sub-nm{flex:1; min-width:0; font-size:13.5px; color:#33302b; font-weight:600}
+  .sub-row .sub-nm small{display:block; font-weight:500; color:var(--verde); font-size:10.5px; margin-top:1px}
+  .sub-row.otra .sub-nm{color:var(--gris); font-style:italic; font-weight:500}
+  .btn-add{background:var(--azul); color:#fff; border:none; border-radius:9px; padding:8px 13px; font-size:12.5px; font-weight:700; cursor:pointer; flex-shrink:0; white-space:nowrap}
+  .btn-add:active{transform:scale(.97)}
+  .sec-intro{font-size:12.5px; color:var(--gris-txt); line-height:1.5; margin:10px 0 12px}
+  .sec-mias{background:var(--verde-bg); border-radius:10px; padding:9px 12px; margin-bottom:12px}
+  .sec-mias .mia{font-size:12px; color:var(--verde-osc); font-weight:600; padding:2px 0}
+  .sec-mias .mia em{font-weight:500; color:var(--verde); font-style:normal}
+  .btn-add-full{width:100%; background:var(--azul); color:#fff; border:none; border-radius:11px; padding:12px; font-size:13.5px; font-weight:700; cursor:pointer; margin-top:2px}
+  .btn-add-full:active{transform:scale(.99)}
+
+  /* ── Modal agregar acción ── */
+  #modal-accion{display:none; position:fixed; inset:0; z-index:600; background:rgba(20,25,35,.55); overflow-y:auto; padding:18px 12px}
+  #modal-accion.open{display:block}
+  .modal-card{background:#fff; border-radius:16px; max-width:560px; margin:0 auto; overflow:hidden; box-shadow:0 20px 56px rgba(0,0,0,.3)}
+  .modal-head{background:var(--azul); border-bottom:3px solid var(--oro); padding:14px 16px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0}
+  .modal-head span{font-size:15px; font-weight:700; color:#fff}
+  .modal-x{background:rgba(255,255,255,.15); border:none; color:#fff; width:30px; height:30px; border-radius:8px; font-size:15px; cursor:pointer}
+  .modal-body{padding:8px 16px 16px}
+  .modal-foot{padding:12px 16px 16px; display:flex; gap:9px}
+  .bread{background:var(--azul-claro); border:1px solid var(--borde); border-radius:10px; padding:9px 12px; margin-top:12px; font-size:12.5px; color:var(--azul); font-weight:700; line-height:1.4}
+
+  /* ── Toast ── */
+  #_toast{position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); z-index:700;
+    background:var(--verde-osc); color:#fff; padding:12px 20px; border-radius:30px; font-size:13.5px; font-weight:700;
+    box-shadow:0 8px 24px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .25s, transform .25s}
+  #_toast.show{opacity:1; transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <img src="logo.png" alt="GrandBar" onerror="this.style.display='none'">
+    <div class="titles">
+      <b>Propuestas de Acciones</b>
+      <span id="hdr-sub">Recolector interno GrandBar</span>
+    </div>
+  </div>
+  <button class="btn-salir" id="btn-salir" style="display:none" onclick="salir()">Salir</button>
+</header>
+
+<div class="wrap">
+
+  <!-- ═══════════ LOGIN: elegir quién sos ═══════════ -->
+  <section id="view-login">
+    <div class="panel">
+      <h2 class="sec-t">¿Quién sos?</h2>
+      <p class="sec-s">Elegí cómo entrás para cargar tus propuestas.</p>
+      <div class="rol-grid">
+        <button class="rol-card" onclick="verLoginGrandbar()">
+          <span class="emoji">🧑‍💼</span>
+          <span class="txt"><b>Soy de GrandBar</b><span>Lucy, marketing o supervisores — entrás con tu nombre</span></span>
+        </button>
+        <button class="rol-card" onclick="verLoginProveedor()">
+          <span class="emoji">🏭</span>
+          <span class="txt"><b>Soy proveedor</b><span>Entrás con usuario y contraseña</span></span>
+        </button>
+        <button class="rol-card" onclick="verLoginAdmin()">
+          <span class="emoji">🔑</span>
+          <span class="txt"><b>Panel de revisión</b><span>Ver todas las propuestas (solo admin)</span></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- GrandBar: elegir nombre -->
+    <div class="panel" id="box-grandbar" style="display:none">
+      <h2 class="sec-t">Entrar como GrandBar</h2>
+      <label class="fld">Elegí tu nombre</label>
+      <select id="sel-cargador"><option value="">Cargando…</option></select>
+      <div class="msg err" id="err-grandbar"></div>
+      <button class="btn btn-primary" style="margin-top:14px" onclick="loginGrandbar()">Entrar</button>
+      <p class="hint">¿No está tu nombre? Pediselo al admin que te agregue desde el panel.</p>
+    </div>
+
+    <!-- Proveedor: usuario + contraseña -->
+    <div class="panel" id="box-proveedor" style="display:none">
+      <h2 class="sec-t">Entrar como proveedor</h2>
+      <label class="fld">Usuario</label>
+      <input type="text" id="prov-user" autocomplete="username" placeholder="tu usuario">
+      <label class="fld">Contraseña</label>
+      <input type="password" id="prov-pass" autocomplete="current-password" placeholder="tu contraseña">
+      <div class="msg err" id="err-proveedor"></div>
+      <button class="btn btn-primary" style="margin-top:14px" onclick="loginProveedor()">Entrar</button>
+    </div>
+
+    <!-- Admin -->
+    <div class="panel" id="box-admin" style="display:none">
+      <h2 class="sec-t">Panel de revisión</h2>
+      <label class="fld">Contraseña de admin</label>
+      <input type="password" id="admin-pass" placeholder="••••••" onkeydown="if(event.key==='Enter')loginAdmin()">
+      <div class="msg err" id="err-admin"></div>
+      <button class="btn btn-primary" style="margin-top:14px" onclick="loginAdmin()">Entrar</button>
+    </div>
+  </section>
+
+  <!-- ═══════════ CARGA (contribuidor) ═══════════ -->
+  <section id="view-form" style="display:none">
+
+    <!-- Paso 1: elegir rubro -->
+    <div id="view-rubros">
+      <div class="panel">
+        <h2 class="sec-t">¿Dónde querés cargar acciones?</h2>
+        <p class="sec-s" id="form-hola"></p>
+        <div class="rubro-cards" id="rubro-cards"></div>
+      </div>
+      <div class="panel">
+        <h2 class="sec-t">Mis propuestas cargadas</h2>
+        <p class="sec-s">Lo que fuiste subiendo. Se revisa todo junto más adelante.</p>
+        <div id="mis-propuestas"><div class="empty">Todavía no cargaste ninguna.</div></div>
+      </div>
+    </div>
+
+    <!-- Paso 2: checklist del rubro (acordeón) -->
+    <div id="view-checklist" style="display:none">
+      <div class="ck-head">
+        <button class="ck-volver" onclick="volverRubros()">← Rubros</button>
+        <div class="ck-titles"><b id="ck-tit"></b><span id="ck-sub"></span></div>
+      </div>
+      <p class="hint" style="margin:2px 2px 0">Tocá una sección para desplegarla y agregá las acciones que propongas en cada punto.</p>
+      <div id="ck-secciones"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════ MODAL: agregar acción ═══════════ -->
+  <div id="modal-accion">
+    <div class="modal-card">
+      <div class="modal-head">
+        <span>➕ Agregar acción</span>
+        <button class="modal-x" onclick="cerrarModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="bread" id="m-bread"></div>
+
+        <label class="fld">Título de la acción</label>
+        <input type="text" id="f-titulo" placeholder="Ej: Combo espumantes 3+1 fin de año">
+
+        <label class="fld">Condición <span class="opt">(opcional)</span></label>
+        <input type="text" id="f-condicion" placeholder="Ej: 3+1, 20% OFF, precio especial">
+
+        <label class="fld">Descripción / argumento <span class="opt">(opcional)</span></label>
+        <textarea id="f-desc" placeholder="Detalle de la acción, líneas que participan, argumento de venta…"></textarea>
+
+        <label class="fld">Vigencia <span class="opt">(opcional)</span></label>
+        <div style="display:flex; gap:8px">
+          <div style="flex:1">
+            <span class="hint" style="margin:0 0 3px; display:block">Desde</span>
+            <input type="date" id="f-vig-desde" style="width:100%; padding:10px 11px; border:1.5px solid var(--borde); border-radius:10px; font-size:14px; font-family:inherit">
+          </div>
+          <div style="flex:1">
+            <span class="hint" style="margin:0 0 3px; display:block">Hasta</span>
+            <input type="date" id="f-vig-hasta" style="width:100%; padding:10px 11px; border:1.5px solid var(--borde); border-radius:10px; font-size:14px; font-family:inherit">
+          </div>
+        </div>
+
+        <label class="fld">Adjuntos <span class="opt">(PDF, presentaciones, imágenes o links)</span></label>
+        <div class="adj-zona">
+          <div class="adj-btns">
+            <button type="button" class="adj-mini" onclick="document.getElementById('f-file').click()">📎 Subir archivo</button>
+            <button type="button" class="adj-mini" onclick="agregarLink()">🔗 Agregar link</button>
+          </div>
+          <input type="file" id="f-file" multiple style="display:none"
+                 accept=".pdf,.ppt,.pptx,.key,.odp,.png,.jpg,.jpeg,.webp,.gif,image/*"
+                 onchange="subirArchivos(this)">
+          <div class="chips" id="f-chips"></div>
+          <p class="hint" id="adj-hint" style="display:none">Subiendo…</p>
+        </div>
+
+        <div class="msg" id="form-msg"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" onclick="cerrarModal()" style="flex:0 0 auto; width:auto; padding:12px 16px">Cancelar</button>
+        <button class="btn btn-verde" id="btn-enviar" onclick="enviarPropuesta()">Enviar propuesta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PANEL DE REVISIÓN (ADMIN) ═══════════ -->
+  <section id="view-admin" style="display:none">
+    <div class="subtabs">
+      <button class="subtab active" id="st-prop" onclick="subtab('prop')">📋 Propuestas</button>
+      <button class="subtab" id="st-equipo" onclick="subtab('equipo')">🧑‍💼 GrandBar</button>
+      <button class="subtab" id="st-prov" onclick="subtab('prov')">🏭 Proveedores</button>
+    </div>
+
+    <!-- Propuestas -->
+    <div id="admin-prop">
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px">
+          <h2 class="sec-t" style="margin:0">Todas las propuestas</h2>
+          <button class="btn btn-ghost" style="width:auto; padding:8px 14px; font-size:12.5px" onclick="exportarCSV()">⬇ Exportar</button>
+        </div>
+        <div class="filtros">
+          <select id="fl-rubro" onchange="renderPropuestas()"><option value="">Todos los rubros</option></select>
+          <select id="fl-estado" onchange="renderPropuestas()">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="aprobada">Aprobadas</option>
+            <option value="descartada">Descartadas</option>
+          </select>
+        </div>
+        <div class="contador" id="prop-contador"></div>
+        <div id="lista-propuestas"><div class="empty">Cargando…</div></div>
+      </div>
+    </div>
+
+    <!-- Equipo GrandBar -->
+    <div id="admin-equipo" style="display:none">
+      <div class="panel">
+        <h2 class="sec-t">Equipo GrandBar</h2>
+        <p class="sec-s">Quienes entran solo con el nombre.</p>
+        <div id="lista-cargadores"><div class="empty">Cargando…</div></div>
+        <div class="add-box">
+          <label class="fld" style="margin-top:0">Agregar persona</label>
+          <input type="text" id="c-nombre" placeholder="Nombre y apellido">
+          <label class="fld">Rol</label>
+          <select id="c-rol">
+            <option value="grandbar">GrandBar (general)</option>
+            <option value="marketing">Marketing</option>
+            <option value="supervisor">Supervisor</option>
+          </select>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="agregarCargador()">Agregar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Proveedores -->
+    <div id="admin-prov" style="display:none">
+      <div class="panel">
+        <h2 class="sec-t">Proveedores</h2>
+        <p class="sec-s">Entran con usuario y contraseña.</p>
+        <div id="lista-proveedores"><div class="empty">Cargando…</div></div>
+        <div class="add-box">
+          <label class="fld" style="margin-top:0">Nueva cuenta de proveedor</label>
+          <input type="text" id="p-empresa" placeholder="Empresa / bodega">
+          <label class="fld">Contacto <span class="opt">(opcional)</span></label>
+          <input type="text" id="p-contacto" placeholder="Nombre del contacto">
+          <label class="fld">Usuario</label>
+          <input type="text" id="p-usuario" placeholder="usuario para entrar">
+          <label class="fld">Contraseña</label>
+          <input type="text" id="p-password" placeholder="contraseña">
+          <button class="btn btn-primary" style="margin-top:12px" onclick="agregarProveedor()">Crear cuenta</button>
+          <p class="hint">La contraseña se guarda tal cual (sin encriptar) — usá una simple y no reutilices claves importantes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script src="_checklist-data.js"></script>
+<script>
+// ─── Estado ──────────────────────────────────────────────────────────────────
+let usuario   = null;   // { nombre, rol, empresa }
+let adjuntos  = [];      // [{tipo,url,nombre}]
+let _propsCache = [];    // cache de propuestas en el panel admin
+let _misProps  = [];     // propuestas del usuario logueado (para contadores)
+let _sel = { rubro:null, seccion:null, subseccion:null };  // selección actual al agregar
+
+const RUBRO_LABEL = { restaurante:'🍽 Restaurantes', vinoteca:'🍷 Vinotecas', autoservicio:'🏪 Autoservicios' };
+const TIPO_ICON   = { pdf:'📄', presentacion:'📊', imagen:'🖼️', link:'🔗', archivo:'📎' };
+// Las secciones salen de la MISMA base que la app (checklist_secciones vía getChecklistDynamic),
+// con su estructura real de secciones madre → subsecciones. Se precargan al entrar.
+const _checklists = {};
+async function preloadChecklists(){
+  const rubros = Object.keys(RUBRO_LABEL);
+  const arr = await Promise.all(rubros.map(r =>
+    getChecklistDynamic(r).catch(() => getChecklist(r))));
+  rubros.forEach((r, i) => _checklists[r] = arr[i]);
+}
+function seccionesDe(rubro){ return (_checklists[rubro] || getChecklist(rubro)).secciones; }
+
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function show(id){document.getElementById(id).style.display='';}
+function hide(id){document.getElementById(id).style.display='none';}
+function setMsg(id, txt, tipo){const e=document.getElementById(id); e.textContent=txt; e.className='msg '+(tipo||'');}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Rubros en el filtro del panel admin
+  const optsRubro = Object.keys(RUBRO_LABEL).map(r => `<option value="${r}">${RUBRO_LABEL[r]}</option>`).join('');
+  document.getElementById('fl-rubro').insertAdjacentHTML('beforeend', optsRubro);
+  // Cerrar el modal tocando el fondo oscuro
+  document.getElementById('modal-accion').addEventListener('click', e => {
+    if (e.target.id === 'modal-accion') cerrarModal();
+  });
+});
+
+// ─── Navegación login ─────────────────────────────────────────────────────────
+function verLoginGrandbar(){ toggleBox('box-grandbar'); cargarCargadoresSelect(); }
+function verLoginProveedor(){ toggleBox('box-proveedor'); }
+function verLoginAdmin(){ toggleBox('box-admin'); }
+function toggleBox(id){
+  ['box-grandbar','box-proveedor','box-admin'].forEach(b => document.getElementById(b).style.display = b===id ? '' : 'none');
+  document.getElementById(id).scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+async function cargarCargadoresSelect(){
+  const sel = document.getElementById('sel-cargador');
+  const { data, error } = await sb.from('cargadores').select('*').eq('activo', true).order('nombre');
+  if (error){ sel.innerHTML = '<option value="">Error al cargar</option>'; return; }
+  if (!data.length){ sel.innerHTML = '<option value="">(Nadie cargado aún)</option>'; return; }
+  sel.innerHTML = '<option value="">Elegí tu nombre…</option>' +
+    data.map(c => `<option value="${esc(c.nombre)}" data-rol="${esc(c.rol)}">${esc(c.nombre)}</option>`).join('');
+}
+
+function loginGrandbar(){
+  const sel = document.getElementById('sel-cargador');
+  const nombre = sel.value;
+  if (!nombre){ setMsg('err-grandbar','Elegí tu nombre.','err'); return; }
+  const rol = sel.options[sel.selectedIndex].dataset.rol || 'grandbar';
+  usuario = { nombre, rol, empresa:null };
+  entrarForm();
+}
+
+async function loginProveedor(){
+  const u = document.getElementById('prov-user').value.trim();
+  const p = document.getElementById('prov-pass').value;
+  if (!u || !p){ setMsg('err-proveedor','Completá usuario y contraseña.','err'); return; }
+  const { data, error } = await sb.from('proveedores_carga').select('*')
+    .eq('usuario', u).eq('activo', true).maybeSingle();
+  if (error || !data || data.password !== p){ setMsg('err-proveedor','Usuario o contraseña incorrectos.','err'); return; }
+  usuario = { nombre: data.empresa, rol:'proveedor', empresa: data.empresa };
+  entrarForm();
+}
+
+function loginAdmin(){
+  const p = document.getElementById('admin-pass').value;
+  if (p !== ADMIN_PASSWORD){ setMsg('err-admin','Contraseña incorrecta.','err'); return; }
+  hide('view-login'); show('view-admin');
+  document.getElementById('btn-salir').style.display='';
+  document.getElementById('hdr-sub').textContent = 'Panel de revisión';
+  cargarPropuestasAdmin(); cargarCargadoresAdmin(); cargarProveedoresAdmin();
+}
+
+async function entrarForm(){
+  hide('view-login'); show('view-form');
+  document.getElementById('btn-salir').style.display='';
+  const rolTxt = usuario.rol==='proveedor' ? `proveedor · ${usuario.empresa}` : usuario.rol;
+  document.getElementById('form-hola').textContent = `Hola ${usuario.nombre} (${rolTxt}). Elegí el rubro donde querés proponer acciones.`;
+  document.getElementById('hdr-sub').textContent = usuario.nombre;
+  show('view-rubros'); hide('view-checklist');
+  document.getElementById('rubro-cards').innerHTML = '<div class="empty"><span class="spin" style="border-color:rgba(31,68,127,.25);border-top-color:#1F447F"></span> Cargando secciones…</div>';
+  await cargarMisPropuestas();
+  await preloadChecklists();
+  renderRubroCards();
+}
+
+function salir(){
+  usuario = null; adjuntos = [];
+  hide('view-form'); hide('view-admin'); show('view-login');
+  document.getElementById('btn-salir').style.display='none';
+  document.getElementById('hdr-sub').textContent = 'Recolector interno GrandBar';
+  ['box-grandbar','box-proveedor','box-admin'].forEach(hide);
+  ['prov-user','prov-pass','admin-pass'].forEach(id=>document.getElementById(id).value='');
+  resetForm();
+}
+
+// ─── Navegación: tarjetas de rubro → checklist → modal ──────────────────────────
+function renderRubroCards(){
+  const cont = document.getElementById('rubro-cards');
+  cont.innerHTML = Object.keys(RUBRO_LABEL).map(r => {
+    const label = RUBRO_LABEL[r].replace(/^\S+\s/,'');   // sin el emoji
+    const emoji = RUBRO_LABEL[r].split(' ')[0];
+    const n = _misProps.filter(p => p.rubro===r).length;
+    const nSec = seccionesDe(r).length;
+    return `
+      <button class="rubro-card" onclick="abrirRubro('${r}')">
+        <span class="emoji">${emoji}</span>
+        <span class="txt">
+          <b>${esc(label)}</b>
+          <span>${nSec} secciones (igual que el checklist)</span>
+          ${n ? `<span class="mini-count">✓ ${n} propuesta${n!==1?'s':''} tuya${n!==1?'s':''} acá</span>` : ''}
+        </span>
+        <span class="chev">›</span>
+      </button>`;
+  }).join('');
+}
+
+function volverRubros(){
+  show('view-rubros'); hide('view-checklist');
+  renderRubroCards();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function abrirRubro(rubro){
+  _sel.rubro = rubro;
+  document.getElementById('ck-tit').textContent = RUBRO_LABEL[rubro];
+  document.getElementById('ck-sub').textContent = 'Las mismas secciones del checklist. Desplegá y agregá tus propuestas.';
+  const secs = seccionesDe(rubro);
+  document.getElementById('ck-secciones').innerHTML = secs.map((sec, i) => {
+    const subs = sec.subsecciones || [];
+    const nSec = _misProps.filter(p => p.rubro===rubro && p.seccion===sec.titulo).length;
+    let body;
+    if (subs.length){
+      // Sección madre (ej. VINOS) → una fila por subsección
+      body = subs.map((ss, j) => {
+        const nSub = _misProps.filter(p => p.rubro===rubro && p.seccion===sec.titulo && p.subseccion===ss.titulo).length;
+        return `
+          <div class="sub-row">
+            <span class="sub-nm">${ss.icono?ss.icono+' ':''}${esc(ss.titulo)}${nSub?`<small>✓ ${nSub} cargada${nSub!==1?'s':''}</small>`:''}</span>
+            <button class="btn-add" onclick="abrirModal(${i},${j})">+ Agregar</button>
+          </div>`;
+      }).join('');
+    } else {
+      // Sección suelta (ej. Introducción, Partners, Cierre) → agregar directo
+      const mias = _misProps.filter(p => p.rubro===rubro && p.seccion===sec.titulo);
+      const listaMias = mias.length ? `<div class="sec-mias">${mias.map(p =>
+        `<div class="mia">✓ ${esc(p.titulo)}</div>`).join('')}</div>` : '';
+      body = `${sec.intro?`<p class="sec-intro">${esc(sec.intro)}</p>`:''}${listaMias}
+        <button class="btn-add-full" onclick="abrirModal(${i},-1)">➕ Agregar acción en “${esc(sec.titulo)}”</button>`;
+    }
+    return `
+      <div class="secc-card" id="secc-${i}">
+        <div class="secc-head" onclick="toggleSecc(${i})">
+          <span class="ic" style="background:${sec.iconoBg||'#EAF2FB'}">${sec.icono||'📋'}</span>
+          <span class="nm"><b>${esc(sec.titulo)}</b>${sec.subtitulo?`<span>${esc(sec.subtitulo)}</span>`:''}</span>
+          ${nSec?`<span class="secc-badge">${nSec}</span>`:''}
+          <span class="secc-chev">▾</span>
+        </div>
+        <div class="secc-body">${body}</div>
+      </div>`;
+  }).join('');
+  hide('view-rubros'); show('view-checklist');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function toggleSecc(i){
+  document.getElementById('secc-'+i).classList.toggle('open');
+}
+
+// ─── Modal ──────────────────────────────────────────────────────────────────────
+function abrirModal(i, j){
+  const sec = seccionesDe(_sel.rubro)[i];
+  const sub = (j >= 0 && sec.subsecciones) ? sec.subsecciones[j] : null;
+  _sel.seccion = sec.titulo;
+  _sel.subseccion = sub ? sub.titulo : null;
+  document.getElementById('m-bread').innerHTML =
+    `${RUBRO_LABEL[_sel.rubro]} &nbsp;›&nbsp; ${esc(sec.titulo)}` + (sub ? ` &nbsp;›&nbsp; ${esc(sub.titulo)}` : '');
+  resetCamposModal();
+  document.getElementById('modal-accion').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarModal(){
+  document.getElementById('modal-accion').classList.remove('open');
+  document.body.style.overflow = '';
+  setMsg('form-msg','','');
+}
+
+function resetCamposModal(){
+  ['f-titulo','f-condicion','f-desc','f-vig-desde','f-vig-hasta'].forEach(id=>{const e=document.getElementById(id); if(e)e.value='';});
+  adjuntos = []; renderChips(); setMsg('form-msg','','');
+}
+
+// ─── Adjuntos ──────────────────────────────────────────────────────────────────
+function tipoDe(name){
+  const ext = (name.split('.').pop()||'').toLowerCase();
+  if (ext==='pdf') return 'pdf';
+  if (['ppt','pptx','key','odp'].includes(ext)) return 'presentacion';
+  if (['png','jpg','jpeg','webp','gif','heic','bmp','svg'].includes(ext)) return 'imagen';
+  return 'archivo';
+}
+
+async function subirArchivos(input){
+  const files = [...input.files];
+  input.value = '';
+  if (!files.length) return;
+  const hint = document.getElementById('adj-hint');
+  hint.style.display='block';
+  for (const file of files){
+    try{
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path = `propuestas/${Date.now()}_${Math.floor(Math.random()*1e4)}_${safe}`;
+      const { error } = await sb.storage.from('Activaciones').upload(path, file, { upsert:false });
+      if (error) throw error;
+      const url = sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+      adjuntos.push({ tipo: tipoDe(file.name), url, nombre: file.name });
+    }catch(e){ alert('No se pudo subir '+file.name+': '+(e.message||e)); }
+  }
+  hint.style.display='none';
+  renderChips();
+}
+
+function agregarLink(){
+  let url = prompt('Pegá el link (Drive, YouTube, web, etc.):');
+  if (!url) return;
+  url = url.trim();
+  if (!/^https?:\/\//i.test(url)) url = 'https://'+url;
+  adjuntos.push({ tipo:'link', url, nombre: url.replace(/^https?:\/\//,'').slice(0,42) });
+  renderChips();
+}
+
+function renderChips(){
+  const c = document.getElementById('f-chips');
+  c.innerHTML = adjuntos.map((a,i) => `
+    <div class="chip">
+      <span class="ic">${TIPO_ICON[a.tipo]||'📎'}</span>
+      <a class="nm" href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.nombre)}</a>
+      <button class="rm" onclick="quitarAdj(${i})" title="Quitar">✕</button>
+    </div>`).join('');
+}
+function quitarAdj(i){ adjuntos.splice(i,1); renderChips(); }
+
+// ─── Enviar propuesta ──────────────────────────────────────────────────────────
+async function enviarPropuesta(){
+  const rubro = _sel.rubro, seccion = _sel.seccion, subseccion = _sel.subseccion;
+  const titulo = document.getElementById('f-titulo').value.trim();
+  const condicion = document.getElementById('f-condicion').value.trim();
+  const descripcion = document.getElementById('f-desc').value.trim();
+  const vDesde = document.getElementById('f-vig-desde').value || null;
+  const vHasta = document.getElementById('f-vig-hasta').value || null;
+
+  if (!titulo){ setMsg('form-msg','Poné un título para la acción.','err'); return; }
+  if (vDesde && vHasta && vHasta < vDesde){ setMsg('form-msg','La fecha "hasta" no puede ser anterior a "desde".','err'); return; }
+
+  const btn = document.getElementById('btn-enviar');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Enviando…';
+
+  const row = {
+    rubro, seccion, subseccion: subseccion||null, titulo,
+    condicion: condicion||null, descripcion: descripcion||null,
+    vigencia_desde: vDesde, vigencia_hasta: vHasta,
+    adjuntos, autor_nombre: usuario.nombre, autor_rol: usuario.rol,
+    autor_empresa: usuario.empresa || null, estado:'pendiente'
+  };
+  const { error } = await sb.from('propuestas_acciones').insert(row);
+  btn.disabled = false; btn.textContent = 'Enviar propuesta';
+
+  if (error){ setMsg('form-msg','Error al guardar: '+error.message,'err'); return; }
+  cerrarModal();
+  toast('✅ Propuesta agregada');
+  await cargarMisPropuestas();
+  // reabrir el rubro para refrescar contadores del acordeón
+  if (document.getElementById('view-checklist').style.display !== 'none') abrirRubro(rubro);
+}
+
+function resetForm(){
+  resetCamposModal();
+  _sel = { rubro:null, seccion:null };
+}
+
+async function cargarMisPropuestas(){
+  const cont = document.getElementById('mis-propuestas');
+  const { data, error } = await sb.from('propuestas_acciones').select('*')
+    .eq('autor_nombre', usuario.nombre).order('created_at', {ascending:false});
+  _misProps = error ? [] : (data||[]);
+  cont.innerHTML = _misProps.length ? _misProps.map(p => propCard(p, false)).join('')
+                                    : '<div class="empty">Todavía no cargaste ninguna.</div>';
+}
+
+function toast(txt){
+  let t = document.getElementById('_toast');
+  if (!t){ t = document.createElement('div'); t.id='_toast'; document.body.appendChild(t); }
+  t.textContent = txt; t.className = 'show';
+  clearTimeout(t._h); t._h = setTimeout(()=>{ t.className=''; }, 2600);
+}
+
+// ─── Render de una propuesta ────────────────────────────────────────────────────
+function propCard(p, admin){
+  const adj = (p.adjuntos||[]).map(a =>
+    `<a href="${esc(a.url)}" target="_blank" rel="noopener">${TIPO_ICON[a.tipo]||'📎'} ${esc(a.nombre||a.tipo)}</a>`).join('');
+  const badge = `<span class="badge b-${p.estado}">${p.estado}</span>`;
+  const fecha = new Date(p.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'});
+  const secTxt = esc(p.seccion || p.seccion_nombre || '') + (p.subseccion ? ' › '+esc(p.subseccion) : '');
+  const fmtV = d => { const [a,m,dd]=String(d).split('-'); return `${dd}/${m}/${a.slice(2)}`; };
+  let vigTxt = '';
+  if (p.vigencia_desde || p.vigencia_hasta){
+    vigTxt = '🗓️ ' + (p.vigencia_desde?fmtV(p.vigencia_desde):'…') + ' → ' + (p.vigencia_hasta?fmtV(p.vigencia_hasta):'…');
+  }
+  const acciones = admin ? `
+    <div class="prop-acc">
+      <button class="mini-btn mb-ok ${p.estado==='aprobada'?'on':''}" onclick="setEstado('${p.id}','aprobada')">✓ Aprobar</button>
+      <button class="mini-btn mb-pe ${p.estado==='pendiente'?'on':''}" onclick="setEstado('${p.id}','pendiente')">◷ Pendiente</button>
+      <button class="mini-btn mb-no ${p.estado==='descartada'?'on':''}" onclick="setEstado('${p.id}','descartada')">✕ Descartar</button>
+      <button class="mini-btn mb-del" onclick="borrarPropuesta('${p.id}')" title="Borrar">🗑</button>
+    </div>` : '';
+  return `
+    <div class="prop ${p.estado}">
+      <div class="prop-top">
+        <span class="prop-tit">${esc(p.titulo)}</span>
+        ${badge}
+      </div>
+      <div class="prop-meta">
+        <span>${RUBRO_LABEL[p.rubro]||p.rubro}</span>
+        <span>· ${secTxt}</span>
+        ${admin ? `<span>· 👤 ${esc(p.autor_nombre)}${p.autor_empresa?' ('+esc(p.autor_empresa)+')':''}</span>` : ''}
+        <span>· ${fecha}</span>
+      </div>
+      ${vigTxt ? `<div class="prop-meta" style="margin-top:5px"><span>${vigTxt}</span></div>` : ''}
+      ${p.condicion ? `<span class="prop-cond">${esc(p.condicion)}</span>` : ''}
+      ${p.descripcion ? `<div class="prop-desc">${esc(p.descripcion)}</div>` : ''}
+      ${adj ? `<div class="prop-adj">${adj}</div>` : ''}
+      ${acciones}
+    </div>`;
+}
+
+// ─── ADMIN: propuestas ──────────────────────────────────────────────────────────
+async function cargarPropuestasAdmin(){
+  const { data, error } = await sb.from('propuestas_acciones').select('*').order('created_at',{ascending:false});
+  _propsCache = error ? [] : (data||[]);
+  renderPropuestas();
+}
+
+function renderPropuestas(){
+  const fr = document.getElementById('fl-rubro').value;
+  const fe = document.getElementById('fl-estado').value;
+  let lista = _propsCache;
+  if (fr) lista = lista.filter(p => p.rubro===fr);
+  if (fe) lista = lista.filter(p => p.estado===fe);
+  const cont = document.getElementById('lista-propuestas');
+  document.getElementById('prop-contador').textContent =
+    `${lista.length} propuesta${lista.length!==1?'s':''}` + (fr||fe?' (filtradas)':'');
+  cont.innerHTML = lista.length ? lista.map(p => propCard(p, true)).join('') : '<div class="empty">No hay propuestas para este filtro.</div>';
+}
+
+async function setEstado(id, estado){
+  const { error } = await sb.from('propuestas_acciones').update({estado}).eq('id', id);
+  if (error){ alert('Error: '+error.message); return; }
+  const p = _propsCache.find(x=>x.id===id); if (p) p.estado = estado;
+  renderPropuestas();
+}
+
+async function borrarPropuesta(id){
+  if (!confirm('¿Borrar esta propuesta definitivamente?')) return;
+  const { error } = await sb.from('propuestas_acciones').delete().eq('id', id);
+  if (error){ alert('Error: '+error.message); return; }
+  _propsCache = _propsCache.filter(x=>x.id!==id);
+  renderPropuestas();
+}
+
+// ─── ADMIN: sub-tabs ────────────────────────────────────────────────────────────
+function subtab(t){
+  ['prop','equipo','prov'].forEach(x=>{
+    document.getElementById('admin-'+x).style.display = x===t?'':'none';
+    document.getElementById('st-'+x).classList.toggle('active', x===t);
+  });
+}
+
+// ─── ADMIN: equipo GrandBar ─────────────────────────────────────────────────────
+async function cargarCargadoresAdmin(){
+  const cont = document.getElementById('lista-cargadores');
+  const { data, error } = await sb.from('cargadores').select('*').order('nombre');
+  if (error || !data?.length){ cont.innerHTML = '<div class="empty">Nadie cargado todavía.</div>'; return; }
+  cont.innerHTML = data.map(c => `
+    <div class="row-item">
+      <div class="info"><b>${esc(c.nombre)}</b></div>
+      <span class="rol-tag">${esc(c.rol)}</span>
+      <button class="del" onclick="borrarCargador('${c.id}')">Quitar</button>
+    </div>`).join('');
+}
+async function agregarCargador(){
+  const nombre = document.getElementById('c-nombre').value.trim();
+  const rol = document.getElementById('c-rol').value;
+  if (!nombre){ alert('Poné un nombre.'); return; }
+  const { error } = await sb.from('cargadores').insert({nombre, rol});
+  if (error){ alert('Error: '+error.message); return; }
+  document.getElementById('c-nombre').value='';
+  cargarCargadoresAdmin();
+}
+async function borrarCargador(id){
+  if (!confirm('¿Quitar a esta persona?')) return;
+  await sb.from('cargadores').delete().eq('id', id);
+  cargarCargadoresAdmin();
+}
+
+// ─── ADMIN: proveedores ─────────────────────────────────────────────────────────
+async function cargarProveedoresAdmin(){
+  const cont = document.getElementById('lista-proveedores');
+  const { data, error } = await sb.from('proveedores_carga').select('*').order('empresa');
+  if (error || !data?.length){ cont.innerHTML = '<div class="empty">Sin proveedores todavía.</div>'; return; }
+  cont.innerHTML = data.map(p => `
+    <div class="row-item">
+      <div class="info">
+        <b>${esc(p.empresa)}</b>
+        <span>👤 ${esc(p.usuario)} · 🔑 ${esc(p.password)}${p.nombre_contacto?' · '+esc(p.nombre_contacto):''}</span>
+      </div>
+      <button class="del" onclick="borrarProveedor('${p.id}')">Borrar</button>
+    </div>`).join('');
+}
+async function agregarProveedor(){
+  const empresa = document.getElementById('p-empresa').value.trim();
+  const contacto = document.getElementById('p-contacto').value.trim();
+  const usuario = document.getElementById('p-usuario').value.trim();
+  const password = document.getElementById('p-password').value.trim();
+  if (!empresa || !usuario || !password){ alert('Completá empresa, usuario y contraseña.'); return; }
+  const { error } = await sb.from('proveedores_carga').insert({empresa, nombre_contacto:contacto||null, usuario, password});
+  if (error){ alert(error.message.includes('duplicate')?'Ese usuario ya existe.':'Error: '+error.message); return; }
+  ['p-empresa','p-contacto','p-usuario','p-password'].forEach(id=>document.getElementById(id).value='');
+  cargarProveedoresAdmin();
+}
+async function borrarProveedor(id){
+  if (!confirm('¿Borrar esta cuenta de proveedor?')) return;
+  await sb.from('proveedores_carga').delete().eq('id', id);
+  cargarProveedoresAdmin();
+}
+
+// ─── Export CSV ─────────────────────────────────────────────────────────────────
+function exportarCSV(){
+  if (!_propsCache.length){ alert('No hay propuestas para exportar.'); return; }
+  const cols = ['created_at','estado','rubro','seccion','subseccion','titulo','condicion','descripcion','vigencia_desde','vigencia_hasta','autor_nombre','autor_rol','autor_empresa'];
+  const head = cols.join(',');
+  const rows = _propsCache.map(p => cols.map(c => {
+    let v = p[c]==null ? '' : String(p[c]);
+    if (c==='created_at') v = new Date(p[c]).toLocaleString('es-AR');
+    if (c==='rubro') v = (RUBRO_LABEL[p.rubro]||p.rubro).replace(/^[^ ]+ /,'');
+    return '"'+v.replace(/"/g,'""')+'"';
+  }).join(',')).join('\n');
+  const blob = new Blob(['﻿'+head+'\n'+rows], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'propuestas_grandbar.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>

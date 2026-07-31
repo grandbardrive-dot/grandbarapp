@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Catálogo</title>
+<style>
+  :root{
+    --navy:#1F447F; --navy-d:#16305a; --navy-dd:#0f2340; --gold:#CBB86A; --gold-d:#B08D2E;
+    --bg:#F4F1EA; --surface:#FFFFFF; --surface2:#FBF9F5;
+    --ink:#1F1B16; --ink2:#5f574c; --ink3:#9a9187;
+    --line:rgba(31,68,127,.10); --line-2:rgba(31,68,127,.16);
+    --green:#2D6A4F; --green-bg:#E7F1EC; --red:#C0392B; --red-bg:#FBEAE7;
+    --shadow:0 1px 2px rgba(31,68,127,.05), 0 14px 34px rgba(31,68,127,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  @media (max-width:820px){ .layout{grid-template-columns:1fr} .sidebar{display:none} }
+
+  /* Sidebar */
+  .sidebar{background:linear-gradient(185deg,var(--navy),var(--navy-d) 62%,var(--navy-dd));color:#fff;display:flex;flex-direction:column;padding:0 0 18px;position:sticky;top:0;height:100vh}
+  .sb-logo{padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .sb-logo img{height:38px;object-fit:contain}
+  .sb-nav{display:flex;flex-direction:column;gap:3px;padding:16px 12px}
+  .sb-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:rgba(255,255,255,.72);cursor:pointer;transition:background .15s,color .15s;background:none;border:none;font-family:inherit;text-align:left;width:100%}
+  .sb-item:hover{background:rgba(255,255,255,.07);color:#fff}
+  .sb-item.active{background:rgba(255,255,255,.12);color:#fff}
+  .sb-item.active .sb-ico{color:var(--gold)} .sb-item.active .sb-txt-main{font-weight:700}
+  .sb-ico{width:20px;height:20px;flex:none;color:rgba(255,255,255,.6)}
+  .sb-txt-main{font-size:14px;line-height:1.15} .sb-txt-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:1px}
+  .sb-label{font-size:10.5px;font-weight:700;letter-spacing:.13em;color:var(--gold);text-transform:uppercase;padding:16px 20px 8px}
+  .sb-spacer{flex:1}
+  .sb-help{margin:0 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:16px}
+  .sb-help-t{font-size:13px;font-weight:700} .sb-help-p{font-size:11.5px;color:rgba(255,255,255,.6);margin:7px 0 12px;line-height:1.45}
+  .sb-help-btn{display:inline-flex;align-items:center;gap:7px;background:var(--gold);color:var(--navy-d);font-weight:700;font-size:12px;border:none;border-radius:9px;padding:9px 14px;cursor:pointer;font-family:inherit}
+
+  /* Topbar */
+  .topbar{background:var(--navy);border-bottom:3px solid var(--gold);height:70px;display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 26px;position:relative}
+  .tb-user{display:flex;align-items:center;gap:11px;cursor:pointer;padding:6px 8px;border-radius:11px}
+  .tb-user:hover{background:rgba(255,255,255,.08)}
+  .tb-ava{width:38px;height:38px;border-radius:50%;background:var(--gold);color:var(--navy-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+  .tb-user-name{font-size:14px;font-weight:700;color:#fff;text-align:right} .tb-user-role{font-size:11px;color:rgba(255,255,255,.6);text-align:right}
+
+  .content{padding:28px 34px 60px;max-width:1200px}
+  .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:4px}
+  .page-title{font-size:clamp(23px,3vw,30px);font-weight:800;letter-spacing:-.02em}
+  .page-sub{color:var(--ink2);font-size:14.5px;margin-top:7px;max-width:60ch;line-height:1.5}
+  .btn-new{display:inline-flex;align-items:center;gap:9px;background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none;border-radius:12px;padding:13px 20px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:var(--shadow);white-space:nowrap}
+  .btn-new svg{width:19px;height:19px;color:var(--gold)}
+
+  /* Switch Proveedores/Productos */
+  .switch{display:inline-flex;background:var(--surface);border:1px solid var(--line-2);border-radius:12px;padding:4px;margin:22px 0 8px;gap:4px}
+  .switch button{border:none;background:none;font-family:inherit;font-size:13.5px;font-weight:700;color:var(--ink2);padding:9px 18px;border-radius:9px;cursor:pointer}
+  .switch button.on{background:var(--navy);color:#fff}
+  .count-pill{font-size:11px;color:var(--ink3);margin-left:6px}
+
+  /* Grillas */
+  .grid{display:grid;gap:14px;margin-top:16px}
+  .grid.prov{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+  .grid.prod{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);position:relative;transition:transform .15s,box-shadow .15s}
+  .card:hover{transform:translateY(-3px);box-shadow:0 2px 4px rgba(31,68,127,.06),0 22px 42px rgba(31,68,127,.14)}
+  .card-logo{height:66px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+  .card-logo img{max-height:66px;max-width:100%;object-fit:contain}
+  .card-logo.ph{color:var(--ink3);font-size:26px}
+  .card-photo{height:150px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:10px;margin-bottom:12px;overflow:hidden}
+  .card-photo img{max-height:150px;max-width:100%;object-fit:contain}
+  .card-photo.ph{color:var(--ink3);font-size:34px}
+  .card-name{font-size:14.5px;font-weight:700;text-align:center;line-height:1.2}
+  .card-meta{font-size:12px;color:var(--ink3);text-align:center;margin-top:3px}
+  .card-cat{display:inline-block;margin-top:7px;font-size:10.5px;font-weight:700;color:var(--navy);background:rgba(31,68,127,.08);border-radius:5px;padding:2px 8px}
+  .card-actions{display:flex;justify-content:center;gap:6px;margin-top:12px;border-top:1px solid var(--line);padding-top:11px}
+  .card-btn{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink2)}
+  .card-btn:hover{background:var(--surface2)}
+  .card-btn.del{color:var(--red);border-color:var(--red-bg)}
+  .center-wrap{text-align:center;display:flex;flex-direction:column;align-items:center}
+
+  .cats{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .cat-chip{border:1px solid var(--line-2);background:var(--surface);border-radius:20px;padding:7px 14px;font-size:12.5px;font-weight:600;color:var(--ink2);cursor:pointer}
+  .cat-chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .cat-chip .n{opacity:.6;margin-left:5px}
+
+  .empty{padding:44px 18px;text-align:center;color:var(--ink3);font-size:14px;background:var(--surface);border:1px dashed var(--line-2);border-radius:14px;margin-top:16px}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(15,25,40,.55);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:26px 16px;overflow:auto}
+  .modal.open{display:flex}
+  .modal-card{background:var(--surface);border-radius:18px;width:100%;max-width:460px;box-shadow:0 24px 60px rgba(0,0,0,.3);overflow:hidden}
+  .modal-head{background:var(--navy);border-bottom:3px solid var(--gold);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+  .modal-head h3{font-size:16px;font-weight:700}
+  .modal-x{background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px}
+  .modal-body{padding:20px}
+  .fld{margin-bottom:15px}
+  .fld label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+  .fld input[type=text], .fld select{width:100%;padding:11px 12px;border:1.5px solid var(--line-2);border-radius:9px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--ink);outline:none}
+  .fld input:focus,.fld select:focus{border-color:var(--navy)}
+  .uploader{border:2px dashed var(--line-2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;background:var(--surface2)}
+  .uploader:hover{border-color:var(--navy)}
+  .uploader img{max-height:120px;max-width:100%;object-fit:contain;margin:0 auto 8px;display:block}
+  .uploader .hint{font-size:12.5px;color:var(--ink3)}
+  .uploader .hint b{color:var(--navy)}
+  .modal-foot{display:flex;gap:10px;padding:0 20px 20px}
+  .btn-save{flex:1;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn-save:disabled{opacity:.6;cursor:default}
+  .btn-cancel{background:var(--surface2);border:1.5px solid var(--line-2);color:var(--ink2);border-radius:10px;padding:13px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+  .msg{font-size:12.5px;text-align:center;padding:0 20px 14px;font-weight:600}
+  .msg.ok{color:var(--green)} .msg.err{color:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-logo"><img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar Distribuciones"></div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="admin-comercial.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v9h14v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Inicio</div></div></a>
+      <a class="sb-item" href="admin-campanias.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Campañas</div><div class="sb-txt-sub">Acciones comerciales</div></div></a>
+      <a class="sb-item active" href="admin-catalogo.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 7v10l8 4 8-4V7" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Catálogo</div><div class="sb-txt-sub">Proveedores y productos</div></div></a>
+      <a class="sb-item" href="admin-catalogo-clientes.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2zM20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Catálogo clientes</div><div class="sb-txt-sub">Catálogo público de acciones</div></div></a>
+      <a class="sb-item" href="admin-resultados.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Resultados</div><div class="sb-txt-sub">Desempeño de campañas</div></div></a>
+      <a class="sb-item" href="admin-campanias.html?estado=borrador"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Borradores</div><div class="sb-txt-sub">En edición</div></div></a>
+    </nav>
+    <div class="sb-label">Ayuda</div>
+    <nav class="sb-nav" style="padding-top:0">
+      <button class="sb-item" onclick="alert('Guías y tutoriales — próximamente.')"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7v.4" stroke-linecap="round"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg><div><div class="sb-txt-main">Guías y tutoriales</div></div></button>
+      <button class="sb-item" onclick="alert('Soporte: escribí al equipo de GrandBar.')"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-1v-6h3M4 13v4a2 2 0 0 0 2 2h1v-6H4" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Soporte</div></div></button>
+    </nav>
+    <div class="sb-spacer"></div>
+    <div class="sb-help"><div class="sb-help-t">💡 ¿Necesitás ayuda?</div><div class="sb-help-p">Accedé a guías rápidas y tutoriales paso a paso.</div><button class="sb-help-btn" onclick="alert('Guías — próximamente.')">Ver guías</button></div>
+  </aside>
+
+  <div>
+    <header class="topbar">
+      <div class="tb-user"><div class="tb-ava">L</div><div><div class="tb-user-name">Luciana</div><div class="tb-user-role">Gestora Comercial</div></div></div>
+    </header>
+
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <div class="page-title">Catálogo</div>
+          <div class="page-sub">Cargá tus <b>proveedores</b> (con su logo) y tus <b>productos</b> (con su foto). Estas imágenes son las que después usás al crear una campaña.</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-new" id="btn-importar" onclick="abrirImport()" style="display:none;background:var(--surface);color:var(--navy);border:1.5px solid var(--line-2);box-shadow:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M5 21h14" stroke-linecap="round" stroke-linejoin="round"/></svg>Importar del stock</button>
+          <button class="btn-new" id="btn-agregar" onclick="abrirNuevo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg><span id="btn-agregar-txt">Agregar proveedor</span></button>
+        </div>
+      </div>
+
+      <div class="switch">
+        <button id="sw-prov" class="on" onclick="verVista('prov')">Proveedores <span class="count-pill" id="c-prov"></span></button>
+        <button id="sw-prod" onclick="verVista('prod')">Productos <span class="count-pill" id="c-prod"></span></button>
+      </div>
+
+      <!-- categorías (solo productos) -->
+      <div class="cats" id="cats" style="display:none"></div>
+
+      <div id="grid-slot"><div class="empty">Cargando…</div></div>
+    </main>
+  </div>
+</div>
+
+<!-- ===== Modal ===== -->
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="modal-title">Nuevo</h3><button class="modal-x" onclick="cerrarModal()">✕</button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="msg" id="modal-msg" style="display:none"></div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-save" id="btn-save" onclick="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal Importar ===== -->
+<div class="modal" id="modal-imp">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-head"><h3>Importar productos</h3><button class="modal-x" onclick="cerrarImport()">✕</button></div>
+    <div class="modal-body">
+      <div class="switch" style="margin:0 0 14px">
+        <button id="imp-sw-stock" class="on" onclick="impModo('stock')">Desde el stock GrandBar</button>
+        <button id="imp-sw-pegar" onclick="impModo('pegar')">Pegar una lista</button>
+      </div>
+
+      <!-- Modo stock -->
+      <div id="imp-modo-stock">
+        <div class="fld"><label>Buscá el producto en tu stock (7.152 cargados)</label>
+          <input type="text" id="imp-q" placeholder="Ej: Jameson, Campari, Malbec…" oninput="buscarStock()"></div>
+        <div style="max-height:280px;overflow:auto;border:1px solid var(--line-2);border-radius:10px" id="imp-list">
+          <div class="empty" style="margin:0;border:none">Escribí al menos 2 letras para buscar en el stock.</div>
+        </div>
+        <div style="font-size:12px;color:var(--ink3);margin-top:8px" id="imp-sel-info"></div>
+      </div>
+
+      <!-- Modo pegar -->
+      <div id="imp-modo-pegar" style="display:none">
+        <div class="fld"><label>Pegá una lista (una por línea). Podés separar con TAB: <b>Nombre ⇥ Categoría ⇥ Volumen</b></label>
+          <textarea id="imp-paste" rows="8" style="width:100%;padding:11px 12px;border:1.5px solid var(--line-2);border-radius:9px;font-family:inherit;font-size:13px;resize:vertical" placeholder="Jameson Triple Distilled&#9;Whisky&#9;700 ml&#10;Campari&#9;Aperitivos&#9;750 ml&#10;Alma Mora Malbec&#9;Vinos&#9;750 ml"></textarea></div>
+        <div style="font-size:12px;color:var(--ink3)">Si solo pegás nombres (sin TAB), quedan en categoría "Otros" y los editás después.</div>
+      </div>
+    </div>
+    <div class="msg" id="imp-msg" style="display:none"></div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="cerrarImport()">Cancelar</button>
+      <button class="btn-save" id="imp-save" onclick="importar()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script src="_admin-sidebar.js"></script>
+<script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
+<script>
+  sessionStorage.setItem('admin_auth','1'); if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
+  const BUCKET='Activaciones';
+  const CATEGORIAS=['Whisky','Vinos','Espumantes','Aperitivos','Gin','Vodka','Ron','Licores','Otros'];
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+  let VISTA='prov';            // 'prov' | 'prod'
+  let PROV=[], PROD=[];
+  let catFiltro='';
+  let editId=null;            // id en edición (o null = nuevo)
+  let fileSel=null;           // File elegido en el uploader
+
+  async function cargar(){
+    try{ const p=await sb.from('proveedores').select('*').order('nombre'); PROV=p.data||[]; }catch(e){}
+    try{ const q=await sb.from('productos').select('*').order('created_at',{ascending:false}); PROD=q.data||[]; }catch(e){}
+    document.getElementById('c-prov').textContent=PROV.length;
+    document.getElementById('c-prod').textContent=PROD.length;
+    render();
+  }
+  const provNombre=id=>{ const p=PROV.find(x=>x.id===id); return p?p.nombre:''; };
+
+  function verVista(v){
+    VISTA=v; catFiltro='';
+    document.getElementById('sw-prov').classList.toggle('on',v==='prov');
+    document.getElementById('sw-prod').classList.toggle('on',v==='prod');
+    document.getElementById('btn-agregar-txt').textContent = v==='prov'?'Agregar proveedor':'Agregar producto';
+    document.getElementById('cats').style.display = v==='prod'?'flex':'none';
+    document.getElementById('btn-importar').style.display = v==='prod'?'inline-flex':'none';
+    render();
+  }
+
+  // ═══ Importador masivo ═══
+  let impModoActual='stock', stockRes=[], stockSel=new Set(), _impT=null;
+  function abrirImport(){
+    impModo('stock'); stockRes=[]; stockSel.clear();
+    document.getElementById('imp-q').value='';
+    document.getElementById('imp-paste').value='';
+    document.getElementById('imp-list').innerHTML='<div class="empty" style="margin:0;border:none">Escribí al menos 2 letras para buscar en el stock.</div>';
+    document.getElementById('imp-sel-info').textContent='';
+    document.getElementById('imp-msg').style.display='none';
+    document.getElementById('imp-save').disabled=false;
+    document.getElementById('modal-imp').classList.add('open');
+  }
+  function cerrarImport(){ document.getElementById('modal-imp').classList.remove('open'); }
+  function impModo(m){
+    impModoActual=m;
+    document.getElementById('imp-sw-stock').classList.toggle('on',m==='stock');
+    document.getElementById('imp-sw-pegar').classList.toggle('on',m==='pegar');
+    document.getElementById('imp-modo-stock').style.display=m==='stock'?'block':'none';
+    document.getElementById('imp-modo-pegar').style.display=m==='pegar'?'block':'none';
+  }
+  function parseVol(desc){ const m=String(desc||'').match(/([\d.,]+)\s*(ml|cc|lts?|lt|l|g|kg)\b/i); return m?`${m[1]} ${m[2].toLowerCase()}`:''; }
+
+  function buscarStock(){
+    clearTimeout(_impT);
+    _impT=setTimeout(async()=>{
+      const q=document.getElementById('imp-q').value.trim();
+      const cont=document.getElementById('imp-list');
+      if(q.length<2){ cont.innerHTML='<div class="empty" style="margin:0;border:none">Escribí al menos 2 letras para buscar en el stock.</div>'; return; }
+      cont.innerHTML='<div class="empty" style="margin:0;border:none">Buscando…</div>';
+      try{
+        const r=await sb.from('productos_grandbar').select('codigo,descripcion').ilike('descripcion','%'+q+'%').limit(60);
+        stockRes=r.data||[];
+      }catch(e){ stockRes=[]; }
+      const yaCargados=new Set(PROD.map(p=>p.sku).filter(Boolean));
+      if(!stockRes.length){ cont.innerHTML='<div class="empty" style="margin:0;border:none">Sin resultados para “'+esc(q)+'”.</div>'; return; }
+      cont.innerHTML=stockRes.map(x=>{
+        const ya=yaCargados.has(x.codigo);
+        const chk=stockSel.has(x.codigo)?'checked':'';
+        return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);cursor:${ya?'default':'pointer'};opacity:${ya?.5:1}">
+          <input type="checkbox" ${chk} ${ya?'disabled':''} onchange="toggleStock('${x.codigo}')">
+          <span style="flex:1;font-size:13px">${esc(x.descripcion)}</span>
+          ${ya?'<span style="font-size:11px;color:var(--green);font-weight:700">ya cargado</span>':`<span style="font-size:11px;color:var(--ink3)">${esc(parseVol(x.descripcion)||'')}</span>`}
+        </label>`;
+      }).join('');
+      actualizarSelInfo();
+    },300);
+  }
+  function toggleStock(cod){ if(stockSel.has(cod)) stockSel.delete(cod); else stockSel.add(cod); actualizarSelInfo(); }
+  function actualizarSelInfo(){ const n=stockSel.size; document.getElementById('imp-sel-info').textContent = n?`${n} seleccionado${n===1?'':'s'} para importar.`:''; }
+
+  async function importar(){
+    const btn=document.getElementById('imp-save'), msg=document.getElementById('imp-msg');
+    let filas=[];
+    if(impModoActual==='stock'){
+      const yaCargados=new Set(PROD.map(p=>p.sku).filter(Boolean));
+      filas=stockRes.filter(x=>stockSel.has(x.codigo) && !yaCargados.has(x.codigo))
+        .map(x=>({ nombre:x.descripcion, sku:x.codigo, volumen:parseVol(x.descripcion)||null, categoria:'Otros' }));
+      if(!filas.length){ impMsg('Elegí al menos un producto de la lista.','err'); return; }
+    } else {
+      const lineas=document.getElementById('imp-paste').value.split('\n').map(l=>l.trim()).filter(Boolean);
+      filas=lineas.map(l=>{ const p=l.split('\t').map(s=>s.trim()); return { nombre:p[0], categoria:(p[1]||'Otros'), volumen:p[2]||null }; }).filter(r=>r.nombre);
+      if(!filas.length){ impMsg('Pegá al menos un producto.','err'); return; }
+    }
+    btn.disabled=true; impMsg(`Importando ${filas.length}…`,'ok');
+    try{
+      // insertar en tandas de 200
+      for(let i=0;i<filas.length;i+=200){ const { error }=await sb.from('productos').insert(filas.slice(i,i+200)); if(error) throw error; }
+      cerrarImport(); await cargar(); verVista('prod');
+    }catch(e){ impMsg('No se pudo importar: '+(e.message||e),'err'); btn.disabled=false; }
+  }
+  function impMsg(t,cls){ const m=document.getElementById('imp-msg'); m.textContent=t; m.className='msg '+cls; m.style.display='block'; }
+
+  function render(){
+    const slot=document.getElementById('grid-slot');
+    if(VISTA==='prov'){
+      if(!PROV.length){ slot.innerHTML=`<div class="empty">Todavía no cargaste proveedores.<br>Tocá <b>“Agregar proveedor”</b> y subí su logo.</div>`; return; }
+      slot.innerHTML=`<div class="grid prov">`+PROV.map(p=>`
+        <div class="card"><div class="center-wrap">
+          <div class="card-logo ${p.logo_url?'':'ph'}">${p.logo_url?`<img src="${esc(p.logo_url)}" alt="">`:'🏷️'}</div>
+          <div class="card-name">${esc(p.nombre)}</div>
+          <div class="card-actions">
+            <button class="card-btn" onclick="editar('prov','${p.id}')">✏️ Editar</button>
+            <button class="card-btn del" onclick="borrar('prov','${p.id}')">Borrar</button>
+          </div>
+        </div></div>`).join('')+`</div>`;
+    } else {
+      // categorías con conteo
+      const cnt={}; PROD.forEach(x=>{const c=x.categoria||'Otros'; cnt[c]=(cnt[c]||0)+1;});
+      const catsPresentes=Object.keys(cnt).sort();   // muestra solo las categorías que existen
+      document.getElementById('cats').innerHTML =
+        `<button class="cat-chip ${catFiltro===''?'on':''}" onclick="filtrarCat('')">Todos <span class="n">${PROD.length}</span></button>`+
+        catsPresentes.map(c=>`<button class="cat-chip ${catFiltro===c?'on':''}" onclick="filtrarCat('${esc(c)}')">${esc(c)} <span class="n">${cnt[c]}</span></button>`).join('');
+      let items = catFiltro?PROD.filter(x=>(x.categoria||'Otros')===catFiltro):PROD;
+      if(!PROD.length){ slot.innerHTML=`<div class="empty">Todavía no cargaste productos.<br>Tocá <b>“Agregar producto”</b>, elegí la categoría y subí su foto.</div>`; return; }
+      if(!items.length){ slot.innerHTML=`<div class="empty">No hay productos en esa categoría.</div>`; return; }
+      slot.innerHTML=`<div class="grid prod">`+items.map(p=>`
+        <div class="card"><div class="center-wrap" style="width:100%">
+          <div class="card-photo ${p.imagen_url?'':'ph'}">${p.imagen_url?`<img src="${esc(p.imagen_url)}" alt="">`:'🍾'}</div>
+          <div class="card-name">${esc(p.nombre)}</div>
+          <div class="card-meta">${esc(p.volumen||'')}${p.volumen&&provNombre(p.proveedor_id)?' · ':''}${esc(provNombre(p.proveedor_id))}</div>
+          ${p.categoria?`<span class="card-cat">${esc(p.categoria)}</span>`:''}
+          <div class="card-actions">
+            <button class="card-btn" onclick="editar('prod','${p.id}')">✏️ Editar</button>
+            <button class="card-btn del" onclick="borrar('prod','${p.id}')">Borrar</button>
+          </div>
+        </div></div>`).join('')+`</div>`;
+    }
+  }
+  function filtrarCat(c){ catFiltro=c; render(); }
+
+  // ── Modal ──
+  function abrirNuevo(){ editId=null; abrirModal(VISTA, null); }
+  function editar(tipo,id){ editId=id; const obj=(tipo==='prov'?PROV:PROD).find(x=>x.id===id); abrirModal(tipo,obj); }
+
+  function abrirModal(tipo,obj){
+    fileSel=null;
+    document.getElementById('modal-title').textContent = (obj?'Editar ':'Nuevo ')+(tipo==='prov'?'proveedor':'producto');
+    const body=document.getElementById('modal-body');
+    if(tipo==='prov'){
+      body.dataset.tipo='prov';
+      body.innerHTML=`
+        <div class="fld"><label>Nombre del proveedor</label><input type="text" id="f-nombre" placeholder="Ej: Campari Group" value="${esc(obj?.nombre||'')}"></div>
+        <div class="fld"><label>Logo</label>
+          <div class="uploader" onclick="document.getElementById('f-img').click()">
+            <div id="prev">${obj?.logo_url?`<img src="${esc(obj.logo_url)}">`:''}</div>
+            <div class="hint"><b>Subí una imagen</b> del logo (PNG/JPG). Tocá acá para elegir.</div>
+          </div>
+          <input type="file" id="f-img" accept="image/*" style="display:none" onchange="preview(event)">
+        </div>`;
+    } else {
+      body.dataset.tipo='prod';
+      body.innerHTML=`
+        <div class="fld"><label>Nombre del producto</label><input type="text" id="f-nombre" placeholder="Ej: Jameson Triple Distilled" value="${esc(obj?.nombre||'')}"></div>
+        <div class="fld"><label>Categoría</label><select id="f-cat">${[...new Set([...CATEGORIAS, ...PROD.map(p=>p.categoria).filter(Boolean)])].map(c=>`<option ${obj?.categoria===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+        <div class="fld"><label>Volumen</label><input type="text" id="f-vol" placeholder="Ej: 700 ml" value="${esc(obj?.volumen||'')}"></div>
+        <div class="fld"><label>Proveedor</label><select id="f-prov"><option value="">— Sin proveedor —</option>${PROV.map(p=>`<option value="${p.id}" ${obj?.proveedor_id===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select></div>
+        <div class="fld"><label>Foto del producto</label>
+          <div class="uploader" onclick="document.getElementById('f-img').click()">
+            <div id="prev">${obj?.imagen_url?`<img src="${esc(obj.imagen_url)}">`:''}</div>
+            <div class="hint"><b>Subí la foto</b> de la botella (PNG/JPG). Tocá acá para elegir.</div>
+          </div>
+          <input type="file" id="f-img" accept="image/*" style="display:none" onchange="preview(event)">
+        </div>`;
+    }
+    document.getElementById('modal-msg').style.display='none';
+    document.getElementById('btn-save').disabled=false;
+    document.getElementById('modal').classList.add('open');
+  }
+  function cerrarModal(){ document.getElementById('modal').classList.remove('open'); }
+  function preview(ev){ const f=ev.target.files[0]; if(!f)return; fileSel=f; const url=URL.createObjectURL(f); document.getElementById('prev').innerHTML=`<img src="${url}">`; }
+
+  async function subirImagen(tipo){
+    if(!fileSel) return null;
+    const ext=(fileSel.name.split('.').pop()||'png').toLowerCase();
+    const carpeta = tipo==='prov'?'proveedores':'productos';
+    const path=`${carpeta}/${Date.now()}-${Math.round(Math.random()*9999)}.${ext}`;
+    const { error } = await sb.storage.from(BUCKET).upload(path, fileSel, { upsert:true, contentType:fileSel.type });
+    if(error) throw error;
+    const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  async function guardar(){
+    const tipo=document.getElementById('modal-body').dataset.tipo;
+    const nombre=document.getElementById('f-nombre').value.trim();
+    const msg=document.getElementById('modal-msg'), btn=document.getElementById('btn-save');
+    if(!nombre){ mostrarMsg('Poné un nombre.','err'); return; }
+    btn.disabled=true; mostrarMsg('Guardando…','ok');
+    try{
+      let imgUrl=null;
+      if(fileSel) imgUrl=await subirImagen(tipo);
+      if(tipo==='prov'){
+        const row={ nombre };
+        if(imgUrl) row.logo_url=imgUrl;
+        if(editId) await sb.from('proveedores').update(row).eq('id',editId);
+        else await sb.from('proveedores').insert(row);
+      } else {
+        const row={ nombre,
+          categoria: document.getElementById('f-cat').value,
+          volumen: document.getElementById('f-vol').value.trim()||null,
+          proveedor_id: document.getElementById('f-prov').value||null };
+        if(imgUrl) row.imagen_url=imgUrl;
+        if(editId) await sb.from('productos').update(row).eq('id',editId);
+        else await sb.from('productos').insert(row);
+      }
+      cerrarModal(); await cargar();
+    }catch(e){ mostrarMsg('No se pudo guardar: '+(e.message||e),'err'); btn.disabled=false; }
+  }
+  function mostrarMsg(t,cls){ const m=document.getElementById('modal-msg'); m.textContent=t; m.className='msg '+cls; m.style.display='block'; }
+
+  async function borrar(tipo,id){
+    const obj=(tipo==='prov'?PROV:PROD).find(x=>x.id===id);
+    if(!confirm(`¿Borrar "${obj?.nombre||''}"? No se puede deshacer.`)) return;
+    try{ await sb.from(tipo==='prov'?'proveedores':'productos').delete().eq('id',id); await cargar(); }
+    catch(e){ alert('No se pudo borrar: '+(e.message||e)); }
+  }
+
+  cargar();
+
+  // Adaptar barra e identidad según el perfil que entró (comercial = Luciana, marketing = Marketing)
+  (function adaptarPerfil(){
+    if (sessionStorage.getItem('admin_perfil') !== 'marketing') return;
+    const home = 'admin-marketing.html';
+    const inicio = [...document.querySelectorAll('a.sb-item')].find(a => /admin-comercial/.test(a.getAttribute('href')||''));
+    if (inicio) inicio.setAttribute('href', home);
+    const col = document.querySelector('.sb-collapse');
+    if (col) col.setAttribute('onclick', "location.href='" + home + "'");
+    const ava = document.querySelector('.tb-ava'); if (ava) ava.textContent = 'M';
+    const nm = document.querySelector('.tb-user-name'); if (nm) nm.textContent = 'Marketing';
+    const rl = document.querySelector('.tb-user-role'); if (rl) rl.textContent = 'Trade Marketing';
+  })();
+</script>
+</body>
+</html>

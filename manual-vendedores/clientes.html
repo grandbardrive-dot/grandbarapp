@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Mi Cartera</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul:    #1F447F;
+    --azul-dk: #172f5a;
+    --dorado:  #CBB86A;
+    --dorado-lt: rgba(203,184,106,0.15);
+    --crema:   #F1EDE8;
+    --surface: #FFFFFF;
+    --border:  rgba(31,68,127,0.13);
+    --border-strong: rgba(31,68,127,0.28);
+    --text:    #1A1814;
+    --text2:   #5a5650;
+    --text3:   #9E9B96;
+    --radius:  12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:system-ui,-apple-system,sans-serif; background:var(--crema); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; }
+
+  /* ── Header ── */
+  .top-bar {
+    background: var(--azul);
+    border-bottom: 3px solid var(--dorado);
+    padding: 0 16px;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .top-bar-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 12px 0;
+  }
+  .top-bar-logo img { height: 50px; object-fit: contain; }
+
+  .top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .vend-info {
+    text-align: right;
+  }
+  .vend-name  { font-size: 13px; font-weight: 600; color: #fff; }
+  .vend-zona  { font-size: 10px; color: rgba(255,255,255,.5); margin-top: 1px; }
+  .zona-tag {
+    font-size: 10px;
+    background: rgba(203,184,106,.2);
+    color: var(--dorado);
+    border: 1px solid rgba(203,184,106,.35);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: .04em;
+  }
+  .btn-logout {
+    font-size: 12px;
+    color: rgba(255,255,255,.45);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: system-ui, sans-serif;
+    padding: 4px 2px;
+    transition: color .15s;
+  }
+  .btn-logout:hover { color: #fff; }
+
+  .container { max-width: 480px; margin: 0 auto; padding: 16px 16px 60px; }
+
+  /* ── Search ── */
+  .search-wrap { position: relative; margin-bottom: 12px; }
+  .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:15px; pointer-events:none; opacity:.35; }
+  .search-input {
+    width: 100%;
+    padding: 11px 14px 11px 38px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .search-input:focus {
+    border-color: var(--azul);
+    box-shadow: 0 0 0 3px rgba(31,68,127,.1);
+  }
+  .search-input::placeholder { color: var(--text3); }
+
+  /* ── Filtros tipo ── */
+  .filter-row { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-btn {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 13px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text2);
+    cursor: pointer;
+    font-family: system-ui, sans-serif;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .filter-btn.active {
+    background: var(--azul);
+    color: #fff;
+    border-color: var(--azul);
+  }
+
+  /* ── Lista ── */
+  .list-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--text3);
+    margin-bottom: 8px;
+    padding-left: 2px;
+  }
+
+  .client-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid transparent;
+    border-radius: var(--radius);
+    padding: 13px 15px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: box-shadow .15s, border-left-color .15s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .client-card:hover {
+    box-shadow: 0 3px 16px rgba(31,68,127,.1);
+    border-left-color: var(--dorado);
+  }
+  .client-card:active { background: #faf9f7; }
+  /* Llamador "Sin Campari" */
+  .client-card.sin-campari { border-left-color: #E2231A; background: #FEF4F3; }
+  .client-card.sin-campari:hover { border-left-color: #E2231A; }
+  .badge-sincampari { display: inline-flex; align-items: center; gap: 3px; margin-left: 7px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: #fff; background: #E2231A; padding: 2px 7px; border-radius: 20px; vertical-align: middle; white-space: nowrap; }
+
+  .client-avatar {
+    width: 38px; height: 38px;
+    border-radius: var(--radius-sm);
+    background: var(--dorado-lt);
+    border: 1px solid rgba(203,184,106,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0; overflow: hidden;
+  }
+  .client-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+  .client-info { flex: 1; min-width: 0; }
+  .client-nombre { font-size: 14px; font-weight: 600; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--azul); }
+  .client-meta { font-size: 11px; color: var(--text3); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .client-tipo {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .05em; padding: 2px 7px; border-radius: 20px;
+    background: var(--dorado-lt); color: #7a6830; flex-shrink: 0;
+    border: 1px solid rgba(203,184,106,.25);
+  }
+  .client-pct { font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--azul); display: block; }
+  .client-fecha { font-size: 10px; color: var(--text3); margin-top: 2px; display: block; }
+  .pct-none { color: var(--text3); font-weight: 400; font-size: 11px; }
+
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
+  .empty-state .emoji { font-size: 36px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; line-height: 1.5; }
+
+  .loading-state { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .skeleton { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); height: 72px; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+  /* ── Torneo banner ── */
+  .torneo-banner {
+    background: var(--azul);
+    border-radius: var(--radius);
+    padding: 13px 15px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    border-bottom: 3px solid var(--dorado);
+    transition: opacity .15s;
+  }
+  .torneo-banner:active { opacity: .88; }
+  .torneo-banner-icon { font-size: 26px; flex-shrink: 0; }
+  .torneo-banner-info { flex: 1; min-width: 0; }
+  .torneo-banner-title { font-size: 13px; font-weight: 700; color: #fff; }
+  .torneo-banner-sub   { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 2px; }
+  .torneo-banner-pts {
+    background: var(--dorado);
+    color: var(--azul);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 20px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+</style>
+<style id="_bg-fondo">
+/* Fondo de pantalla GrandBar */
+body::before { content:""; position:fixed; inset:0; z-index:-1; background:url("fondoo.jpg.jpg") center/cover no-repeat; filter:brightness(0.5); transform:scale(1.05); }
+body { background:transparent !important; }
+:root { --crema:rgba(241,237,232,0.08) !important; --surface:rgba(255,255,255,0.95) !important; --surface2:rgba(247,245,242,0.95) !important; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="top-bar-logo">
+    <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar">
+  </div>
+  <div class="top-bar-right">
+    <div id="vend-avatar" class="avatar-vend avatar-vend--md"></div>
+    <div class="vend-info">
+      <div class="vend-name" id="vend-nombre">…</div>
+      <div class="vend-zona" id="vend-zona-sub"></div>
+    </div>
+    <button class="btn-logout" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Perfil del vendedor (avatar protagonista). Tocar → vestidor (Mi avatar / accesorios). -->
+  <div class="perfil-hero" onclick="window.location.href='vestidor.html'" style="cursor:pointer">
+    <div id="vend-avatar-xl" class="avatar-vend avatar-vend--xl"></div>
+    <div class="perfil-info">
+      <div class="perfil-nombre" id="perfil-nombre">…</div>
+      <div class="perfil-sub" id="perfil-sub"></div>
+      <div class="perfil-cta" style="font-size:11px;color:var(--dorado);font-weight:700;margin-top:6px">Mi avatar y accesorios →</div>
+    </div>
+  </div>
+
+  <!-- Torneo banner -->
+  <a class="torneo-banner" href="torneo.html">
+    <span class="torneo-banner-icon">🏆</span>
+    <div class="torneo-banner-info">
+      <div class="torneo-banner-title">Torneo Doña Paula</div>
+      <div class="torneo-banner-sub" id="torneo-banner-sub">Cargando puntos…</div>
+    </div>
+    <span class="torneo-banner-pts" id="torneo-banner-pts">–</span>
+  </a>
+
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="search" type="text"
+           placeholder="Buscar por nombre o código…" oninput="filtrar()">
+  </div>
+
+  <div class="filter-row" id="filter-row">
+    <button class="filter-btn active" data-tipo="" onclick="setTipo(this)">Todos</button>
+  </div>
+
+  <div class="list-label" id="list-label">Clientes</div>
+  <div id="list-container">
+    <div class="loading-state">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script src="_avatar.js"></script>
+<script src="_torneo.js"></script>
+<script>
+  const vendedor = JSON.parse(sessionStorage.getItem('vendedor') || 'null');
+  if (!vendedor) window.location.href = 'index.html';
+
+  document.getElementById('vend-nombre').textContent = vendedor.nombre;
+  if (vendedor.zona) document.getElementById('vend-zona-sub').textContent = vendedor.zona;
+  // Avatar del vendedor: encabezado (md) + perfil hero (xl). Reutilizable para el futuro camino/vestidor.
+  pintarAvatarVendedor(document.getElementById('vend-avatar'),    vendedor.codigo, vendedor.nombre);
+  pintarAvatarVendedor(document.getElementById('vend-avatar-xl'), vendedor.codigo, vendedor.nombre);
+  document.getElementById('perfil-nombre').textContent = vendedor.nombre;
+  document.getElementById('perfil-sub').textContent = vendedor.zona ? `📍 ${vendedor.zona}` : (vendedor.codigo || '');
+
+  let todosClientes = [], ultimasVisitas = {}, tipoActivo = '';
+
+  // ── Llamador "Sin Campari" (lee el Sheet del Plan Campari 5T, solo lectura) ──
+  const SHEET_BASE_5T = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRki8X-1_-X8TCp3hHWWiFuLDFXAsh58vyMAiRhaoShCg1my2PPCGRdv-pT0TFtjFsI98viBKDC4hxo/pub?output=csv';
+  const _campariMap = new Map();   // codigo normalizado → compró Campari este mes (bool)
+  let _campariLoaded = false;
+
+  function normCod5T(s) { return String(s ?? '').trim().replace(/^0+/, '') || '0'; }
+  function splitCSV5T(line) {
+    const r = []; let cur = '', q = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') q = !q;
+      else if (ch === ',' && !q) { r.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    r.push(cur.trim()); return r;
+  }
+
+  // Lee el Sheet UNA vez, arma el mapa codigo→compróCampari y re-renderiza con los llamadores.
+  async function cargarCampari5T() {
+    try {
+      const resp = await fetch(`${SHEET_BASE_5T}&gid=0`);
+      if (!resp.ok) return;
+      const text = (await resp.text()).replace(/^﻿/, '');
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) return;
+      const header = splitCSV5T(lines[0]).map(h => h.toLowerCase().trim());
+      const idxCampari = header.findIndex(h => h === 'campari');
+      if (idxCampari < 0) return;   // sin columna campari → no se puede determinar, no marcar
+      for (let i = 1; i < lines.length; i++) {
+        const cols = splitCSV5T(lines[i]);
+        const cod = normCod5T(cols[0]);
+        if (!cod || cod === '0') continue;
+        _campariMap.set(cod, cols[idxCampari] === '1');
+      }
+      _campariLoaded = true;
+      filtrar();   // re-render con los llamadores (respeta búsqueda/filtro actuales)
+    } catch { /* sin conexión / error → la lista queda sin llamadores, no rompe */ }
+  }
+
+  async function init() {
+    const { data: clientes, error } = await sb
+      .from('clientes').select('*').eq('vendedor_id', vendedor.id).order('nombre');
+    if (error || !clientes) { renderError(); return; }
+
+    todosClientes = clientes;
+
+    if (clientes.length > 0) {
+      const ids = clientes.map(c => c.id);
+      const { data: visitas } = await sb
+        .from('visitas').select('cliente_id, fecha, porcentaje_total')
+        .in('cliente_id', ids).order('fecha', { ascending: false });
+      if (visitas) visitas.forEach(v => {
+        if (!ultimasVisitas[v.cliente_id]) ultimasVisitas[v.cliente_id] = v;
+      });
+    }
+
+    const tipos = [...new Set(clientes.map(c => c.tipo).filter(Boolean))];
+    const row = document.getElementById('filter-row');
+    tipos.forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn'; btn.dataset.tipo = t;
+      btn.textContent = capitalize(t);
+      btn.onclick = function() { setTipo(this); };
+      row.appendChild(btn);
+    });
+    filtrar();
+    cargarCampari5T();   // no bloqueante: agrega los llamadores "Sin Campari" cuando llega el Sheet
+  }
+
+  function filtrar() {
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    let lista = todosClientes;
+    if (tipoActivo) lista = lista.filter(c => c.tipo === tipoActivo);
+    if (q) lista = lista.filter(c =>
+      c.nombre.toLowerCase().includes(q) || c.codigo_cliente.toLowerCase().includes(q));
+    document.getElementById('list-label').textContent =
+      lista.length === todosClientes.length
+        ? `${lista.length} cliente${lista.length !== 1 ? 's' : ''}`
+        : `${lista.length} resultado${lista.length !== 1 ? 's' : ''}`;
+    renderLista(lista);
+  }
+
+  function renderLista(lista) {
+    const cont = document.getElementById('list-container');
+    if (!lista.length) {
+      cont.innerHTML = `<div class="empty-state"><div class="emoji">🔍</div><p>No se encontraron clientes.</p></div>`;
+      return;
+    }
+    cont.innerHTML = lista.map(c => {
+      const v = ultimasVisitas[c.id];
+      const emoji = { restaurante:'🍽', vinoteca:'🍷', hotel:'🏨', bar:'🍺', evento:'🎉' }[c.tipo] || '🏢';
+      const pctHtml = v
+        ? `<span class="client-pct">${v.porcentaje_total}%</span><span class="client-fecha">${fmtFecha(v.fecha)}</span>`
+        : `<span class="pct-none">Sin visitas</span>`;
+      // Llamador "Sin Campari": solo si el Sheet está cargado, el cliente está en el Sheet y campari=0
+      const cod = normCod5T(c.codigo_cliente);
+      const sinCampari = _campariLoaded && _campariMap.has(cod) && _campariMap.get(cod) === false;
+      return `<div class="client-card${sinCampari ? ' sin-campari' : ''}" onclick="sel('${c.id}')">
+        <div class="client-avatar">${c.logo_url ? `<img src="${esc(c.logo_url)}" alt="" onerror="this.parentElement.textContent='${emoji}'">` : emoji}</div>
+        <div class="client-info">
+          <div class="client-nombre">${esc(c.nombre)}${sinCampari ? `<span class="badge-sincampari">🔴 Sin Campari</span>` : ''}</div>
+          <div class="client-meta">
+            <span style="font-family:'DM Mono',monospace">${esc(c.codigo_cliente)}</span>
+            ${c.direccion ? `<span>· ${esc(c.direccion)}</span>` : ''}
+          </div>
+        </div>
+        <span class="client-tipo">${esc(c.tipo||'cliente')}</span>
+        <div style="text-align:right;flex-shrink:0">${pctHtml}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function sel(id) {
+    const c = todosClientes.find(x => x.id === id);
+    if (!c) return;
+    sessionStorage.setItem('cliente', JSON.stringify(c));
+    window.location.href = 'visita.html';
+  }
+
+  function setTipo(btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    tipoActivo = btn.dataset.tipo;
+    filtrar();
+  }
+
+  // ── Torneo banner ─────────────────────────────────────────────────────────────
+  async function cargarTorneoBanner() {
+    const mes = new Date().getMonth() + 1;
+    const { data } = await sb
+      .from('torneo_registros')
+      .select('puntos, mes')
+      .eq('torneo_id', 'dona_paula_2025')
+      .eq('vendedor_id', vendedor.id);
+    if (!data) return;
+    const mesPts   = data.filter(r => r.mes === mes).reduce((s, r) => s + r.puntos, 0);
+    const totalPts = data.reduce((s, r) => s + r.puntos, 0);
+    const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    document.getElementById('torneo-banner-pts').textContent = `${mesPts} pts`;
+    document.getElementById('torneo-banner-sub').textContent =
+      `${meses[mes]} · ${totalPts} pts acumulados`;
+  }
+
+  function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
+  function renderError() {
+    document.getElementById('list-container').innerHTML =
+      `<div class="empty-state"><div class="emoji">⚠️</div><p>No se pudieron cargar los clientes.</p></div>`;
+  }
+  function fmtFecha(iso) {
+    return new Date(iso).toLocaleDateString('es-AR', { day:'numeric', month:'short' });
+  }
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  init();
+  cargarTorneoBanner();
+</script>
+</body>
+</html>

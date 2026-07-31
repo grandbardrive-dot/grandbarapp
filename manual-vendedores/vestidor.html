@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Mi Avatar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul:#1F447F; --azul-dk:#172f5a; --dorado:#CBB86A; --dorado-lt:rgba(203,184,106,0.15);
+    --crema:#F1EDE8; --surface:#FFFFFF; --border:rgba(31,68,127,0.13); --border-strong:rgba(31,68,127,0.28);
+    --text:#1A1814; --text2:#5a5650; --text3:#9E9B96; --radius:12px; --radius-sm:8px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:system-ui,-apple-system,sans-serif; background:var(--crema); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; }
+
+  /* Header */
+  .top-bar { background:var(--azul); border-bottom:3px solid var(--dorado); padding:0 12px; display:flex; align-items:center; gap:8px; position:sticky; top:0; z-index:100; }
+  .btn-back { background:none; border:none; color:#fff; font-size:22px; cursor:pointer; padding:8px 6px; line-height:1; }
+  .top-bar-logo { flex:1; display:flex; align-items:center; justify-content:center; padding:12px 0; }
+  .top-bar-logo img { height:46px; object-fit:contain; }
+  .top-bar-spacer { width:34px; }
+
+  .container { max-width:480px; margin:0 auto; padding:16px 16px 60px; }
+
+  /* Hero del avatar — avatar GRANDE protagonista a la izquierda, info a la derecha */
+  .vestidor-hero { background:#fff; border:1px solid var(--border); border-top:3px solid var(--dorado); border-radius:var(--radius); padding:18px 16px; margin-bottom:14px; display:flex; align-items:center; gap:18px; }
+  /* id para ganarle en especificidad a .avatar-vend (40px) que _avatar.js inyecta después */
+  #vestidor-avatar.vestidor-avatar { width:clamp(150px,46vw,210px); height:clamp(150px,46vw,210px); flex-shrink:0; margin:0; }
+  .vestidor-info { flex:1; min-width:0; }
+  .vestidor-titulo { font-family:'Parginer',Georgia,serif; font-size:19px; color:var(--azul); line-height:1.15; }
+  .vestidor-sub { font-size:12px; color:var(--text2); margin-top:2px; }
+  /* Stats */
+  .vestidor-stats { display:flex; gap:10px; margin-top:14px; }
+  /* Mobile angosto: stack — avatar grande arriba centrado, info debajo */
+  @media (max-width:400px) {
+    .vestidor-hero { flex-direction:column; text-align:center; gap:12px; }
+    #vestidor-avatar.vestidor-avatar { width:min(72vw,230px); height:min(72vw,230px); }
+    .vestidor-info { width:100%; }
+  }
+  .stat-card { flex:1; background:var(--crema); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 8px; }
+  .stat-num { font-family:'DM Mono',monospace; font-size:22px; font-weight:500; color:var(--azul); line-height:1; }
+  .stat-label { font-size:10px; color:var(--text2); margin-top:4px; text-transform:uppercase; letter-spacing:.05em; }
+
+  /* Nivel (bronce/plata/oro/platino) — color de acento por nivel vía --nivel-color */
+  .nivel-block { margin-bottom:20px; }
+  .nivel-titulo { font-family:'Parginer',Georgia,serif; font-size:16px; color:var(--azul); display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:6px 0 7px; border-bottom:2px solid var(--nivel-color,var(--border)); }
+  .nivel-ico { font-size:19px; }
+  .nivel-req { margin-left:auto; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#fff; background:var(--nivel-color,#999); padding:3px 9px; border-radius:20px; }
+  .nivel-block.bloqueado .nivel-titulo { color:var(--text3); }
+  .slot-row { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+
+  /* Slot de look */
+  .slot { background:#fff; border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:9px 8px 9px; text-align:center; position:relative; transition:border-color .15s, box-shadow .15s; }
+  .slot.locked  { opacity:.72; }
+  .slot.equipped { border-color:var(--dorado); box-shadow:0 0 0 2px var(--dorado-lt); background:#FFFEFA; }
+  /* Miniatura del look (avatar con el atuendo) */
+  .slot-img { width:100%; aspect-ratio:3/4; border-radius:6px; background:var(--crema); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:26px; margin-bottom:7px; overflow:hidden; position:relative; }
+  .slot-img img { width:100%; height:100%; object-fit:contain; }
+  .slot.locked .slot-img { filter:grayscale(1) brightness(.96); }
+  .slot-lock { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:24px; background:rgba(241,237,232,.55); }
+  .slot-nombre { font-size:11px; font-weight:600; color:var(--text); line-height:1.15; min-height:26px; display:flex; align-items:center; justify-content:center; }
+  .slot-estado { font-size:10px; margin-top:5px; min-height:14px; }
+  .slot.locked .slot-estado { color:var(--text2); }
+  /* Botón equipar */
+  .slot-btn { width:100%; margin-top:7px; border:none; border-radius:6px; padding:6px 4px; font-size:11px; font-weight:700; cursor:pointer; font-family:system-ui,sans-serif; }
+  .slot-btn.equip   { background:var(--azul); color:#fff; }
+  .slot-btn.equip:active { background:var(--azul-dk); }
+  .slot-btn.quitar  { background:var(--dorado); color:#3a3206; }
+  .slot-btn.disabled{ background:var(--border); color:var(--text3); cursor:not-allowed; }
+
+  .loading { text-align:center; color:var(--text2); padding:40px 0; font-size:13px; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <button class="btn-back" onclick="window.location.href='clientes.html'">←</button>
+  <div class="top-bar-logo"><img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar"></div>
+  <div class="top-bar-spacer"></div>
+</div>
+
+<div class="container">
+  <!-- Hero: muestra el LOOK equipado (avatar del vendedor con el accesorio puesto),
+       o el avatar base si no tiene look. Lo pinta pintarHero() según lo equipado. -->
+  <div class="vestidor-hero">
+    <div id="vestidor-avatar" class="vestidor-avatar avatar-vend"></div>
+    <div class="vestidor-info">
+      <div class="vestidor-titulo" id="vestidor-nombre">…</div>
+      <div class="vestidor-sub" id="vestidor-codigo"></div>
+      <div class="vestidor-stats">
+        <div class="stat-card"><div class="stat-num" id="stat-visitas">–</div><div class="stat-label">Visitas finalizadas</div></div>
+        <div class="stat-card"><div class="stat-num" id="stat-desbloq">–</div><div class="stat-label">Accesorios 🔓</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="cats"><div class="loading">Cargando tu vestidor…</div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script src="_avatar.js"></script>
+<script src="_accesorios.js"></script>
+<script>
+  const vendedor = JSON.parse(sessionStorage.getItem('vendedor') || 'null');
+  if (!vendedor) window.location.href = 'index.html';
+
+  let visitasFinalizadas = 0;
+  let lookEquipado = null;   // accesorio_id del look puesto (o null = base)
+  let looks = [];            // [{accesorio_id, nombre, nivel, look_url}] de este vendedor
+  let looksById = {};        // accesorio_id → fila (lookup rápido)
+  let baseAvatarUrl = null;  // avatar base (sin look)
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function bust(u){ return (typeof _conCacheBust==='function') ? _conCacheBust(u) : u; }
+
+  async function init() {
+    document.getElementById('vestidor-nombre').textContent = vendedor.nombre || vendedor.codigo || 'Vendedor';
+    document.getElementById('vestidor-codigo').textContent = vendedor.codigo ? `Código ${vendedor.codigo}` : '';
+
+    [visitasFinalizadas, lookEquipado, looks, baseAvatarUrl] = await Promise.all([
+      contarVisitasFinalizadas(vendedor.id),
+      getLookEquipado(vendedor.codigo),
+      getLooksVendedor(vendedor.codigo),
+      getAvatarBaseUrl(vendedor.codigo),
+    ]);
+    looksById = Object.fromEntries(looks.map(l => [l.accesorio_id, l]));
+
+    const { desbloqueados, total } = resumenLooks(looks, visitasFinalizadas);
+    document.getElementById('stat-visitas').textContent = visitasFinalizadas;
+    document.getElementById('stat-desbloq').textContent = `${desbloqueados}/${total}`;
+
+    pintarHero();
+    render();
+  }
+
+  // Hero: muestra el look equipado (avatar con el atuendo), si no el base, si no placeholder.
+  function pintarHero() {
+    const cont = document.getElementById('vestidor-avatar');
+    const url = (lookEquipado && looksById[lookEquipado]?.look_url) || baseAvatarUrl;
+    if (url) {
+      cont.classList.remove('avatar-vend-ph');
+      cont.innerHTML = `<img class="avatar-vend-img" src="${esc(bust(url))}" alt="${esc(vendedor.nombre||'')}"
+        onerror="this.parentElement.classList.add('avatar-vend-ph');this.parentElement.textContent='${esc(_avatarIniciales(vendedor.nombre))}'">`;
+    } else {
+      cont.classList.add('avatar-vend-ph');
+      cont.textContent = _avatarIniciales(vendedor.nombre);
+    }
+  }
+
+  // Render agrupado por NIVEL (solo niveles que tengan looks para este vendedor).
+  function render() {
+    const html = NIVELES.map(nivel => {
+      const delNivel = looks.filter(l => l.nivel === nivel.id);
+      if (!delNivel.length) return '';                    // sin looks en este nivel → no se muestra
+      const desbloqueado = nivelDesbloqueado(nivel.id, visitasFinalizadas);
+      const slots = delNivel.map(l => slotHTML(l, desbloqueado, nivel)).join('');
+      return `<div class="nivel-block ${desbloqueado ? '' : 'bloqueado'}" style="--nivel-color:${nivel.color}">
+        <div class="nivel-titulo">
+          <span class="nivel-ico">${nivel.icono}</span>${esc(nivel.label)}
+          <span class="nivel-req">desde ${nivel.visitas} visita${nivel.visitas===1?'':'s'}</span>
+        </div>
+        <div class="slot-row">${slots}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('cats').innerHTML = html;
+  }
+
+  function slotHTML(look, desbloqueado, nivel) {
+    const equipadoAca = lookEquipado === look.accesorio_id;
+    const faltan = Math.max(0, nivel.visitas - visitasFinalizadas);
+
+    const imgInner = look.look_url
+      ? `<img src="${esc(bust(look.look_url))}" alt="${esc(look.nombre)}">`
+      : `<span>${nivel.icono}</span>`;
+    const lockOverlay = desbloqueado ? '' : `<div class="slot-lock">🔒</div>`;
+
+    let estado, boton;
+    if (!desbloqueado) {
+      estado = `Faltan ${faltan} visita${faltan===1?'':'s'}`;
+      boton  = `<button class="slot-btn disabled" disabled>Bloqueado</button>`;
+    } else if (equipadoAca) {
+      estado = '✓ Puesto';
+      boton  = `<button class="slot-btn quitar" onclick="toggleLook('${look.accesorio_id}')">Sacar</button>`;
+    } else {
+      estado = 'Disponible';
+      boton  = `<button class="slot-btn equip" onclick="toggleLook('${look.accesorio_id}')">Equipar</button>`;
+    }
+
+    return `<div class="slot ${desbloqueado ? '' : 'locked'} ${equipadoAca ? 'equipped' : ''}">
+      <div class="slot-img">${imgInner}${lockOverlay}</div>
+      <div class="slot-nombre">${esc(look.nombre)}</div>
+      <div class="slot-estado">${estado}</div>
+      ${boton}
+    </div>`;
+  }
+
+  // Equipar un look (UNO a la vez; reemplaza). Si ya estaba puesto → lo saca (vuelve al base).
+  async function toggleLook(accesorioId) {
+    const previo = lookEquipado;
+    const nuevo  = (lookEquipado === accesorioId) ? null : accesorioId;
+    lookEquipado = nuevo;          // optimista
+    pintarHero(); render();
+
+    const ok = await equiparLook(vendedor.codigo, nuevo);
+    if (!ok) {                     // falló → revertir
+      lookEquipado = previo;
+      pintarHero(); render();
+      alert('No se pudo guardar. Probá de nuevo.');
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

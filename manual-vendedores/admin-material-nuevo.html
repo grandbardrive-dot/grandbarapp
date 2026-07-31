@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Nuevo material</title>
+<style>
+  :root{
+    --navy:#1F447F; --navy-d:#16305a; --gold:#CBB86A;
+    --bg:#F1EDE8; --surface:#FFFFFF; --surface2:#FBF9F5;
+    --ink:#1F1B16; --ink2:#5f574c; --ink3:#9a9187;
+    --line:rgba(31,68,127,.12); --line-2:rgba(31,68,127,.18);
+    --green:#2D6A4F; --red:#C0392B;
+    --shadow:0 1px 2px rgba(31,68,127,.05), 0 12px 30px rgba(31,68,127,.09);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .topbar{background:var(--navy);border-bottom:3px solid var(--gold);height:60px;display:flex;align-items:center;gap:14px;padding:0 16px;position:sticky;top:0;z-index:10}
+  .back{background:rgba(255,255,255,.12);border:none;color:#fff;width:34px;height:34px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .back svg{width:18px;height:18px}
+  .top-t{color:#fff;font-size:16px;font-weight:800}
+
+  .wrap{max-width:620px;margin:0 auto;padding:18px 16px 120px}
+
+  .photo-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px;margin-bottom:16px}
+  .photo-prev{aspect-ratio:1/1;max-height:280px;border-radius:14px;background:var(--surface2);border:2px dashed var(--line-2);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink3);overflow:hidden;text-align:center;padding:20px}
+  .photo-prev img{width:100%;height:100%;object-fit:contain}
+  .photo-prev .big{font-size:46px;margin-bottom:8px}
+  .photo-actions{display:flex;gap:10px;margin-top:12px}
+  .pbtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--line-2);background:var(--surface);color:var(--navy)}
+  .pbtn.pri{background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none}
+  .pbtn svg{width:18px;height:18px}
+  .ai-note{font-size:11.5px;color:var(--ink3);margin-top:10px;text-align:center;line-height:1.4}
+  .ai-proc{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;font-size:13px;font-weight:700;color:var(--navy)}
+  .spin{width:18px;height:18px;border:2.5px solid var(--line-2);border-top-color:var(--navy);border-radius:50%;animation:sp .8s linear infinite;flex:none}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .ai-fail{margin-top:12px;font-size:12.5px;color:var(--red);background:#FBEAE7;border-radius:12px;padding:12px;line-height:1.45;text-align:center}
+  .ia-compare{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .ia-opt{border:2px solid var(--line-2);border-radius:14px;padding:8px;background:var(--surface);cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .ia-opt.on{border-color:var(--navy);box-shadow:0 0 0 2px rgba(31,68,127,.12)}
+  .ia-opt img{width:100%;aspect-ratio:1/1;object-fit:contain;background:var(--surface2);border-radius:9px}
+  .ia-opt span{font-size:12px;font-weight:700;color:var(--ink2)}
+  .ia-actions{display:flex;gap:10px;margin-top:10px;justify-content:center;flex-wrap:wrap}
+  .ia-btn{border:1.5px solid var(--line-2);background:var(--surface);border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:700;color:var(--navy);cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px}
+  .fld{margin-bottom:16px}
+  .fld:last-child{margin-bottom:0}
+  .fld label{display:block;font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:7px}
+  .fld input,.fld select{width:100%;padding:13px 13px;border:1px solid var(--line-2);border-radius:11px;font-size:15px;font-family:inherit;background:var(--surface);color:var(--ink);outline:none}
+  .fld input:focus,.fld select:focus{border-color:var(--navy)}
+  .fld .hint{font-size:11.5px;color:var(--ink3);margin-top:5px}
+  .row2{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+
+  /* segmentado depósito */
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .seg button{padding:14px;border:2px solid var(--line-2);border-radius:13px;background:var(--surface);font-family:inherit;font-size:15px;font-weight:700;color:var(--ink2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .seg button.on{border-color:var(--navy);background:var(--navy);color:#fff}
+  .seg button svg{width:18px;height:18px}
+
+  .foot{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 16px}
+  .foot .inner{max-width:620px;margin:0 auto}
+  .btn{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff}
+  .btn:disabled{opacity:.5;cursor:default}
+  .msg{font-size:13.5px;font-weight:700;text-align:center;margin-top:14px}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <button class="back" onclick="location.href='admin-materiales.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <div class="top-t">Nuevo material</div>
+</header>
+
+<div class="wrap">
+  <!-- Foto -->
+  <div class="photo-card">
+    <div class="photo-prev" id="photo-prev">
+      <div class="big">📷</div>
+      <div>Sacá o subí una foto del material</div>
+    </div>
+    <div class="photo-actions">
+      <button class="pbtn pri" onclick="document.getElementById('cam').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h4l2-3h4l2 3h4v13H4z" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5"/></svg>Cámara</button>
+      <button class="pbtn" onclick="document.getElementById('gal').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 17l-5-5-4 4" stroke-linejoin="round"/></svg>Galería</button>
+    </div>
+    <input id="cam" type="file" accept="image/*" capture="environment" style="display:none" onchange="elegirFoto(this)">
+    <input id="gal" type="file" accept="image/*" style="display:none" onchange="elegirFoto(this)">
+    <div id="photo-ia"><div class="ai-note">🪄 Al sacar la foto se procesa sola con IA (fondo blanco tipo estudio). Siempre se guarda también la original.</div></div>
+  </div>
+
+  <!-- Datos -->
+  <div class="card">
+    <div class="fld">
+      <label>Nombre del material *</label>
+      <input id="i-name" placeholder="Ej: Exhibidor de mostrador" oninput="st.name=this.value">
+    </div>
+    <div class="row2">
+      <div class="fld"><label>Cantidad *</label><input id="i-cant" type="number" min="0" inputmode="numeric" placeholder="0" oninput="st.cantidad=this.value"></div>
+      <div class="fld"><label>Unidad</label><select id="i-unit" onchange="st.unit_type=this.value"></select></div>
+    </div>
+    <div class="fld">
+      <label>Depósito *</label>
+      <div class="seg" id="dep-seg"></div>
+    </div>
+    <div class="fld">
+      <label>Proveedor *</label>
+      <select id="i-prov" onchange="onProv(this.value)"><option value="">Elegí…</option></select>
+    </div>
+    <div class="fld">
+      <label>Línea de producto</label>
+      <input id="i-linea" list="dl-lineas" placeholder="Ej: Johnnie Walker, Smirnoff, Gordon's…" oninput="st.linea=this.value">
+      <datalist id="dl-lineas"></datalist>
+      <div class="hint">Elegí una existente del proveedor o escribí una nueva (se guarda sola).</div>
+    </div>
+  </div>
+
+  <div class="msg" id="msg"></div>
+</div>
+
+<div class="foot"><div class="inner">
+  <button class="btn" id="btn-crear" onclick="guardar()">✓ Crear material</button>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script>
+  sessionStorage.setItem('admin_auth','1');
+  if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','marketing');
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const UNIDADES = ['unidad','caja','kit','pack','juego','metro'];
+
+  const st = {
+    fotoFile:null, fotoPreview:null,
+    original_image_url:null, processed_image_url:null, usarProcesada:true, aiStatus:'none', aiAttempts:0, aiError:'',
+    name:'', cantidad:'', unit_type:'unidad', warehouse_id:'', supplier_id:'', linea:'',
+  };
+  let PROV=[], WH=[], BRANDS=[];
+
+  async function cargar(){
+    const [p,w] = await Promise.all([
+      sb.from('proveedores').select('id,nombre').order('nombre'),
+      sb.from('warehouses').select('id,name').eq('activo',true).order('name'),
+    ]);
+    PROV=p.data||[]; WH=w.data||[];
+    // unidades
+    document.getElementById('i-unit').innerHTML = UNIDADES.map(u=>`<option ${u==='unidad'?'selected':''}>${u}</option>`).join('');
+    // proveedores
+    const sp=document.getElementById('i-prov');
+    PROV.forEach(p=>{ const o=document.createElement('option'); o.value=p.id; o.textContent=p.nombre; sp.appendChild(o); });
+    // depósitos (segmentado)
+    const ICON={'Mendoza':'📍','San Luis':'📍'};
+    document.getElementById('dep-seg').innerHTML = WH.map(w=>`
+      <button type="button" id="dep-${w.id}" onclick="elegirDep('${w.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.5"/></svg>
+        ${esc(w.name)}
+      </button>`).join('');
+  }
+  function elegirDep(id){
+    st.warehouse_id=id;
+    WH.forEach(w=>document.getElementById('dep-'+w.id).classList.toggle('on', w.id===id));
+  }
+
+  // ── Foto + IA ────────────────────────────────────────────────────────────────
+  function elegirFoto(input){
+    const f=input.files[0]; if(!f) return;
+    st.fotoFile=f;
+    st.original_image_url=null; st.processed_image_url=null; st.usarProcesada=true; st.aiStatus='none'; st.aiError='';
+    if(st.fotoPreview) URL.revokeObjectURL(st.fotoPreview);
+    st.fotoPreview=URL.createObjectURL(f);
+    document.getElementById('photo-prev').innerHTML=`<img src="${st.fotoPreview}" alt="">`;
+    procesarConIA();
+  }
+  async function subirOriginal(){
+    if(st.original_image_url) return st.original_image_url;
+    if(!st.fotoFile) return null;
+    const ext=(st.fotoFile.name.split('.').pop()||'jpg').toLowerCase();
+    const path=`materiales/originales/${Date.now()}-${Math.floor(Math.random()*9999)}.${ext}`;
+    const {error}=await sb.storage.from('Activaciones').upload(path, st.fotoFile,{upsert:true,contentType:st.fotoFile.type});
+    if(error){ console.warn(error); return null; }
+    return sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+  }
+  async function procesarConIA(){
+    st.aiStatus='processing'; renderIA();
+    try{
+      const orig = await subirOriginal();
+      if(!orig) throw new Error('No se pudo subir la foto original.');
+      st.original_image_url = orig; st.aiAttempts=(st.aiAttempts||0)+1;
+      const resp = await fetch('/.netlify/functions/procesar-imagen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image_url:orig})});
+      const data = await resp.json().catch(()=>({}));
+      if(!resp.ok || !data.processed_url) throw new Error(data.error || `Error ${resp.status}`);
+      st.processed_image_url = data.processed_url; st.usarProcesada=true; st.aiStatus='completed';
+    }catch(e){ st.aiStatus='failed'; st.aiError=e.message||String(e); }
+    renderIA();
+    const p=document.getElementById('photo-prev');
+    const shown=(st.aiStatus==='completed'&&st.usarProcesada&&st.processed_image_url)?st.processed_image_url:st.fotoPreview;
+    if(p&&shown) p.innerHTML=`<img src="${shown}" alt="">`;
+  }
+  function renderIA(){
+    const el=document.getElementById('photo-ia'); if(!el) return;
+    if(st.aiStatus==='none'){ el.innerHTML='<div class="ai-note">🪄 Al sacar la foto se procesa sola con IA (fondo blanco tipo estudio). Siempre se guarda también la original.</div>'; return; }
+    if(st.aiStatus==='processing'){ el.innerHTML='<div class="ai-proc"><span class="spin"></span> Procesando imagen con IA…</div>'; return; }
+    if(st.aiStatus==='failed'){ el.innerHTML=`<div class="ai-fail">⚠️ No se pudo procesar (${esc(st.aiError||'error')}).<br>Se guardará la foto <b>original</b>.</div><div class="ia-actions"><button class="ia-btn" onclick="procesarConIA()">↻ Reintentar</button></div>`; return; }
+    el.innerHTML=`
+      <div class="ia-compare">
+        <button type="button" class="ia-opt ${!st.usarProcesada?'on':''}" onclick="elegirVersion(false)"><img src="${esc(st.original_image_url)}" alt=""><span>Original</span></button>
+        <button type="button" class="ia-opt ${st.usarProcesada?'on':''}" onclick="elegirVersion(true)"><img src="${esc(st.processed_image_url)}" alt=""><span>Procesada ✨</span></button>
+      </div>
+      <div class="ia-actions"><button class="ia-btn" onclick="procesarConIA()">↻ Reprocesar</button><a class="ia-btn" href="${esc(st.processed_image_url)}" target="_blank" download>⬇ Descargar</a></div>`;
+  }
+  function elegirVersion(proc){
+    st.usarProcesada=proc; renderIA();
+    const p=document.getElementById('photo-prev');
+    const shown=proc?st.processed_image_url:(st.fotoPreview||st.original_image_url);
+    if(p&&shown) p.innerHTML=`<img src="${shown}" alt="">`;
+  }
+
+  // ── Proveedor → líneas (marcas) ──────────────────────────────────────────────
+  async function onProv(id){
+    st.supplier_id=id; st.linea=''; document.getElementById('i-linea').value='';
+    BRANDS=[];
+    if(id){ const r=await sb.from('brands').select('id,name').eq('supplier_id',id).eq('activo',true).order('name'); BRANDS=r.data||[]; }
+    document.getElementById('dl-lineas').innerHTML = BRANDS.map(b=>`<option value="${esc(b.name)}">`).join('');
+  }
+  async function idLinea(){
+    if(!st.linea.trim()) return null;
+    let b=BRANDS.find(x=>x.name.toLowerCase()===st.linea.toLowerCase().trim());
+    if(b) return b.id;
+    const {data,error}=await sb.from('brands').insert({supplier_id:st.supplier_id||null, name:st.linea.trim()}).select('id').single();
+    if(error){ console.warn(error); return null; }
+    return data.id;
+  }
+
+  function toast(m){ const el=document.getElementById('msg'); el.style.color='var(--red)'; el.textContent=m; setTimeout(()=>{if(el.textContent===m)el.textContent='';},3500); }
+
+  let guardando=false;
+  async function guardar(){
+    if(guardando) return;
+    if(!st.name.trim()) return toast('Poné un nombre al material.');
+    if(st.cantidad===''||Number(st.cantidad)<0) return toast('Ingresá la cantidad.');
+    if(!st.warehouse_id) return toast('Elegí el depósito (San Luis o Mendoza).');
+    if(!st.supplier_id) return toast('Elegí el proveedor.');
+    guardando=true;
+    const btn=document.getElementById('btn-crear'); btn.disabled=true; btn.textContent='Guardando…';
+    const el=document.getElementById('msg'); el.style.color='var(--ink2)'; el.textContent='Guardando material…';
+    try{
+      const original = st.original_image_url || await subirOriginal();
+      const procesada = (st.usarProcesada && st.processed_image_url) ? st.processed_image_url : null;
+      const aiStatus = !st.fotoFile ? 'none' : (st.processed_image_url ? (st.usarProcesada?'completed':'usa_original') : 'failed');
+      const brand_id = await idLinea();
+      const cant = Number(st.cantidad||0);
+      const {data:mat,error}=await sb.from('materials').insert({
+        name:st.name.trim(),
+        supplier_id:st.supplier_id||null, brand_id:brand_id, product_line_id:null,
+        original_image_url:original, processed_image_url:procesada, ai_processing_status:aiStatus,
+        unit_type:st.unit_type, warehouse_id:st.warehouse_id||null,
+        is_active:true, created_by:'marketing', updated_by:'marketing',
+      }).select('id').single();
+      if(error) throw error;
+      if(cant>0){
+        await sb.from('material_stock_movements').insert({
+          material_id:mat.id, movement_type:'ingreso', quantity:cant,
+          previous_stock:0, resulting_stock:cant, notes:'Alta inicial del material', created_by:'marketing'
+        });
+      }
+      if(st.fotoFile){
+        sb.from('material_ai_jobs').insert({
+          material_id:mat.id, status:aiStatus, provider:'photoroom-v2',
+          original_url:original, processed_url:st.processed_image_url||null,
+          error_message: st.aiStatus==='failed'?(st.aiError||null):null,
+          attempts:st.aiAttempts||0, processed_at: st.processed_image_url? new Date().toISOString():null, created_by:'marketing'
+        }).then(()=>{}).catch(()=>{});
+      }
+      el.style.color='var(--green)'; el.textContent='✓ Material creado. Redirigiendo…';
+      setTimeout(()=>location.href='admin-materiales.html',900);
+    }catch(e){
+      guardando=false; btn.disabled=false; btn.textContent='✓ Crear material';
+      el.style.color='var(--red)'; el.textContent='No se pudo guardar: '+(e.message||e);
+    }
+  }
+
+  cargar();
+</script>
+</body>
+</html>

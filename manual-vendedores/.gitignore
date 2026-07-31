@@ -1,0 +1,13 @@
+# Caché del publicador de Netlify (se regenera solo, no va al repo)
+.netlify/
+
+# Dependencias (si en algún momento se usan)
+node_modules/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Comprimidos temporales
+*.zip

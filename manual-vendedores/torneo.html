@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Torneo Doña Paula</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul:    #1F447F;
+    --azul-dk: #172f5a;
+    --dorado:  #CBB86A;
+    --dorado-lt: rgba(203,184,106,0.15);
+    --crema:   #F1EDE8;
+    --surface: #FFFFFF;
+    --surface2: #f7f5f2;
+    --border:  rgba(31,68,127,0.13);
+    --border-strong: rgba(31,68,127,0.28);
+    --text:    #1A1814;
+    --text2:   #5a5650;
+    --text3:   #9E9B96;
+    --green:   #2D6A4F; --green-lt:#EAF4EE;
+    --red:     #B91C1C; --red-lt:#FEF2F2;
+    --radius:  12px; --radius-sm: 8px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:system-ui,-apple-system,sans-serif; background:var(--crema); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; }
+
+  /* ── Top bar ── */
+  .top-bar { background:#1F447F; border-bottom:3px solid var(--dorado); padding:12px 14px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:100; }
+  .btn-back { background:rgba(255,255,255,.12); border:none; color:#fff; width:32px; height:32px; border-radius:8px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .top-bar-center { flex:1; display:flex; justify-content:center; }
+  .top-bar-logo { height:50px; object-fit:contain; }
+
+  /* ── Hero torneo ── */
+  .torneo-hero {
+    background:linear-gradient(135deg, var(--azul-dk) 0%, var(--azul) 100%);
+    padding:20px 16px 0;
+    border-bottom:3px solid var(--dorado);
+  }
+  .torneo-hero-inner { max-width:480px; margin:0 auto; }
+  .dp-logo { height:52px; object-fit:contain; margin-bottom:10px; display:block; }
+  .torneo-titulo {
+    font-family:Georgia,serif; font-size:22px; font-weight:normal;
+    color:#fff; line-height:1.2; margin-bottom:4px;
+  }
+  .torneo-fechas { font-size:12px; color:rgba(255,255,255,.55); margin-bottom:14px; }
+  .countdown-row { display:flex; align-items:center; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .countdown-pill {
+    background:var(--dorado); color:var(--azul);
+    font-family:'DM Mono',monospace; font-size:13px; font-weight:700;
+    padding:5px 13px; border-radius:20px; display:inline-flex; align-items:center; gap:5px;
+  }
+  .countdown-label { font-size:12px; color:rgba(255,255,255,.5); }
+
+  /* ── Tabs ── */
+  .tabs-wrap { background:var(--azul); }
+  .tabs { max-width:480px; margin:0 auto; display:flex; }
+  .tab-btn {
+    flex:1; padding:12px 6px 10px; background:none; border:none; border-bottom:3px solid transparent;
+    color:rgba(255,255,255,.5); font-family:system-ui,sans-serif; font-size:13px; font-weight:600;
+    cursor:pointer; transition:all .2s; text-align:center;
+  }
+  .tab-btn.active { color:#fff; border-bottom-color:var(--dorado); }
+
+  /* ── Contenido ── */
+  .main { max-width:480px; margin:0 auto; padding:16px 16px 80px; }
+
+  /* ── Puntos card ── */
+  .pts-hero {
+    background:var(--azul); border-radius:var(--radius); padding:18px;
+    margin-bottom:12px; border-bottom:3px solid var(--dorado);
+    display:grid; grid-template-columns:1fr 1fr; gap:12px;
+  }
+  .pts-block { }
+  .pts-val { font-family:'DM Mono',monospace; font-size:32px; font-weight:700; color:#fff; line-height:1; }
+  .pts-label { font-size:10px; color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.07em; margin-top:4px; }
+  .pts-mes-label { color:var(--dorado); }
+  .pts-divider { width:1px; background:rgba(255,255,255,.15); }
+
+  /* ── Categorías desglose ── */
+  .cat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; margin-bottom:10px; }
+  .cat-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); margin-bottom:10px; }
+  .cat-row { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border); }
+  .cat-row:last-child { border-bottom:none; }
+  .cat-name { font-size:13px; color:var(--text); display:flex; align-items:center; gap:6px; }
+  .cat-pts { font-family:'DM Mono',monospace; font-weight:700; font-size:14px; color:var(--azul); }
+  .cat-bar-wrap { flex:1; height:5px; background:var(--crema); border-radius:3px; overflow:hidden; margin:0 10px; max-width:80px; }
+  .cat-bar { height:100%; background:var(--dorado); border-radius:3px; transition:width .5s; }
+
+  /* ── Actividades recientes ── */
+  .reg-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:10px; }
+  .reg-card-header { padding:12px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+  .reg-card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); }
+  .reg-item { display:flex; align-items:center; gap:10px; padding:9px 14px; border-bottom:1px solid var(--border); font-size:13px; }
+  .reg-item:last-child { border-bottom:none; }
+  .reg-item-label { flex:1; color:var(--text); }
+  .reg-item-cliente { font-size:11px; color:var(--text3); }
+  .reg-item-pts { font-family:'DM Mono',monospace; font-weight:700; color:var(--azul); flex-shrink:0; font-size:13px; }
+  .reg-foto-thumb { width:32px; height:32px; border-radius:6px; object-fit:cover; flex-shrink:0; cursor:pointer; }
+  .reg-empty { padding:24px; text-align:center; color:var(--text3); font-size:13px; }
+
+  /* ── Botón registrar ── */
+  .btn-registrar {
+    width:100%; padding:15px; background:var(--dorado); color:var(--azul);
+    border:none; border-radius:var(--radius-sm); font-family:system-ui,sans-serif;
+    font-size:15px; font-weight:700; cursor:pointer; transition:opacity .15s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    letter-spacing:.02em; margin-bottom:14px;
+  }
+  .btn-registrar:hover { opacity:.9; }
+
+  /* ── Ranking ── */
+  .rank-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:10px; }
+  .rank-header { display:grid; grid-template-columns:32px 1fr 70px 70px; gap:8px; padding:9px 14px; background:var(--dorado-lt); border-bottom:2px solid var(--dorado); align-items:center; }
+  .rank-header span { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--azul); }
+  .rank-row { display:grid; grid-template-columns:32px 1fr 70px 70px; gap:8px; padding:11px 14px; border-bottom:1px solid var(--border); align-items:center; }
+  .rank-row:last-child { border-bottom:none; }
+  .rank-row.yo { background:rgba(203,184,106,.1); }
+  .rank-pos { font-family:'DM Mono',monospace; font-weight:700; font-size:15px; color:var(--text3); }
+  .rank-pos.top1 { color:#C9A227; }
+  .rank-pos.top2 { color:#A0A0A0; }
+  .rank-pos.top3 { color:#CD7F32; }
+  .rank-nombre { font-size:13px; font-weight:600; color:var(--text); }
+  .rank-nombre small { display:block; font-size:10px; color:var(--text3); font-weight:400; }
+  .rank-pts { font-family:'DM Mono',monospace; font-size:13px; font-weight:700; color:var(--azul); text-align:right; }
+  .rank-pts-mes { font-family:'DM Mono',monospace; font-size:12px; color:var(--text3); text-align:right; }
+  .rank-empty { padding:32px; text-align:center; color:var(--text3); font-size:13px; }
+
+  /* ── Liga badge ── */
+  .liga-badge { display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; padding:2px 9px; border-radius:20px; }
+  .liga-ON  { background:var(--azul); color:#fff; }
+  .liga-OFF { background:var(--dorado); color:var(--azul); }
+
+  .loading-msg { text-align:center; padding:32px; color:var(--text3); font-size:14px; }
+  .spinner-inline { display:inline-block; width:18px; height:18px; border:2.5px solid var(--border); border-top-color:var(--azul); border-radius:50%; animation:spin .6s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* Modal foto */
+  #foto-modal { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:999; display:none; align-items:center; justify-content:center; padding:16px; }
+  #foto-modal.open { display:flex; }
+  #foto-modal img { max-width:100%; max-height:85vh; border-radius:var(--radius); }
+  #foto-modal-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,.15); border:none; color:#fff; width:36px; height:36px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+</style>
+<style id="_bg-fondo">
+/* Fondo de pantalla GrandBar */
+body::before { content:""; position:fixed; inset:0; z-index:-1; background:url("fondoo.jpg.jpg") center/cover no-repeat; filter:brightness(0.5); transform:scale(1.05); }
+body { background:transparent !important; }
+:root { --crema:rgba(241,237,232,0.08) !important; --surface:rgba(255,255,255,0.95) !important; --surface2:rgba(247,245,242,0.95) !important; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <button class="btn-back" onclick="window.location.href='clientes.html'">←</button>
+  <div class="top-bar-center">
+    <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" class="top-bar-logo" alt="GrandBar">
+  </div>
+  <div style="width:32px"></div>
+</div>
+
+<!-- Hero del torneo -->
+<div class="torneo-hero">
+  <div class="torneo-hero-inner">
+    <img src="logo-donapaula.jpg" class="dp-logo" alt="Doña Paula"
+         onerror="this.style.display='none'">
+    <div class="torneo-titulo">Torneo Doña Paula</div>
+    <div class="torneo-fechas">1 de Mayo — 31 de Julio 2026</div>
+    <div class="countdown-row">
+      <span class="countdown-pill">⏱ <span id="dias-restantes">–</span> días</span>
+      <span class="countdown-label">restantes del torneo</span>
+    </div>
+  </div>
+
+  <!-- Tabs dentro del hero (fondo azul) -->
+  <div class="tabs-wrap">
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-progreso" onclick="showTab('progreso')">Mi progreso</button>
+      <button class="tab-btn" id="tab-on"       onclick="showTab('on')">🍇 Mza ON</button>
+      <button class="tab-btn" id="tab-off"      onclick="showTab('off')">🍇 Mza OFF</button>
+      <button class="tab-btn" id="tab-sl"       onclick="showTab('sl')">🏔 San Luis</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contenido de tabs -->
+<div class="main">
+
+  <!-- TAB: Mi progreso -->
+  <div id="content-progreso">
+    <div id="progreso-content">
+      <div class="loading-msg"><span class="spinner-inline"></span></div>
+    </div>
+  </div>
+
+  <!-- TAB: Ranking ON -->
+  <div id="content-on" style="display:none">
+    <div id="ranking-on-content">
+      <div class="loading-msg"><span class="spinner-inline"></span></div>
+    </div>
+  </div>
+
+  <!-- TAB: Ranking OFF -->
+  <div id="content-off" style="display:none">
+    <div id="ranking-off-content">
+      <div class="loading-msg"><span class="spinner-inline"></span></div>
+    </div>
+  </div>
+
+  <!-- TAB: San Luis -->
+  <div id="content-sl" style="display:none">
+    <div id="ranking-sl-content">
+      <div class="loading-msg"><span class="spinner-inline"></span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal foto -->
+<div id="foto-modal">
+  <button id="foto-modal-close" onclick="document.getElementById('foto-modal').classList.remove('open')">✕</button>
+  <img id="foto-modal-img" src="" alt="Foto activación">
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script src="_sucursales.js"></script>
+<script src="_torneo.js"></script>
+<script>
+  const vendedor = JSON.parse(sessionStorage.getItem('vendedor') || 'null');
+  if (!vendedor) window.location.href = 'index.html';
+
+  // Countdown
+  document.getElementById('dias-restantes').textContent = diasRestantes();
+
+  // ── Tabs ─────────────────────────────────────────────────────────────────────
+  let tabsLoaded = {};
+
+  function showTab(tab) {
+    ['progreso','on','off','sl'].forEach(t => {
+      document.getElementById(`content-${t}`).style.display = t === tab ? 'block' : 'none';
+      document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+    });
+    if (!tabsLoaded[tab]) { tabsLoaded[tab] = true; loadTab(tab); }
+  }
+
+  function loadTab(tab) {
+    if (tab === 'progreso') loadProgreso();
+    if (tab === 'on')       loadRanking('ON');
+    if (tab === 'off')      loadRanking('OFF');
+    if (tab === 'sl')       loadRankingSL();
+  }
+
+  // ── Mi progreso ──────────────────────────────────────────────────────────────
+  async function loadProgreso() {
+    const mes = getMesActual();
+
+    const { data, error } = await sb
+      .from('torneo_registros')
+      .select('id, tipo, puntos, mes, detalle, foto_url, clientes(id, nombre, tipo)')
+      .eq('torneo_id', TORNEO_ID)
+      .eq('vendedor_id', vendedor.id)
+      .order('created_at', { ascending: false });
+
+    const el = document.getElementById('progreso-content');
+    if (error) { el.innerHTML = `<div class="loading-msg">Error al cargar datos.</div>`; return; }
+
+    const regs = data || [];
+    const mesPts   = regs.filter(r => r.mes === mes).reduce((s, r) => s + r.puntos, 0);
+    const totalPts = regs.reduce((s, r) => s + r.puntos, 0);
+
+    // Desglose por categoría (acumulado)
+    const volPts  = regs.filter(r => r.tipo === 'volumen').reduce((s, r) => s + r.puntos, 0);
+    const cobPts  = regs.filter(r => r.tipo === 'cobertura').reduce((s, r) => s + r.puntos, 0);
+    const actPts  = regs.filter(r => r.tipo === 'activacion').reduce((s, r) => s + r.puntos, 0);
+    const maxCat  = Math.max(volPts, cobPts, actPts, 1);
+
+    // Registros recientes
+    const recientes = regs.slice(0, 15);
+
+    el.innerHTML = `
+      <button class="btn-registrar" onclick="window.location.href='torneo-registro.html'">
+        ⚡ Registrar actividad
+      </button>
+
+      <div class="pts-hero">
+        <div class="pts-block">
+          <div class="pts-val" id="pts-mes-val">${mesPts}</div>
+          <div class="pts-label pts-mes-label">pts en ${nombreMes(mes)}</div>
+        </div>
+        <div class="pts-divider"></div>
+        <div class="pts-block">
+          <div class="pts-val">${totalPts}</div>
+          <div class="pts-label">puntos totales</div>
+        </div>
+      </div>
+
+      <div class="cat-card">
+        <div class="cat-title">Desglose por categoría — acumulado</div>
+        <div class="cat-row">
+          <span class="cat-name">📦 Volumen</span>
+          <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(volPts/maxCat*100)}%"></div></div>
+          <span class="cat-pts">${fmtPts(volPts)}</span>
+        </div>
+        <div class="cat-row">
+          <span class="cat-name">🎯 Cobertura</span>
+          <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(cobPts/maxCat*100)}%"></div></div>
+          <span class="cat-pts">${fmtPts(cobPts)}</span>
+        </div>
+        <div class="cat-row">
+          <span class="cat-name">⚡ Activaciones</span>
+          <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(actPts/maxCat*100)}%"></div></div>
+          <span class="cat-pts">${fmtPts(actPts)}</span>
+        </div>
+      </div>
+
+      <div class="reg-card">
+        <div class="reg-card-header">
+          <span class="reg-card-title">Últimas actividades</span>
+        </div>
+        ${recientes.length === 0
+          ? `<div class="reg-empty">Todavía no registraste actividades.<br>¡Empezá a sumar puntos!</div>`
+          : recientes.map(r => `
+            <div class="reg-item">
+              ${r.foto_url ? `<img class="reg-foto-thumb" src="${r.foto_url}" onclick="verFoto('${r.foto_url}')">` : ''}
+              <div style="flex:1;min-width:0">
+                <div class="reg-item-label">${esc(labelRegistro(r))}</div>
+                <div class="reg-item-cliente">${esc(r.clientes?.nombre || '')} · ${nombreMes(r.mes)}</div>
+              </div>
+              <span class="reg-item-pts">+${fmtPts(r.puntos)}</span>
+            </div>`).join('')}
+      </div>`;
+  }
+
+  // ── Ranking ───────────────────────────────────────────────────────────────────
+  async function _fetchTorneoData() {
+    // Cache para no re-fetchar
+    if (window._torneoCache) return window._torneoCache;
+    const { data } = await sb
+      .from('torneo_registros')
+      .select('vendedor_id, puntos, mes, clientes(tipo), vendedores(id, nombre, codigo)')
+      .eq('torneo_id', TORNEO_ID);
+    window._torneoCache = data || [];
+    return window._torneoCache;
+  }
+
+  function _buildRankingRows(data, mes, filterFn) {
+    const mapa = {};
+    data.forEach(r => {
+      if (!filterFn(r)) return;
+      const vid = r.vendedor_id;
+      if (!mapa[vid]) mapa[vid] = { vendedor: r.vendedores, mesPts: 0, totalPts: 0 };
+      mapa[vid].totalPts += r.puntos;
+      if (r.mes === mes) mapa[vid].mesPts += r.puntos;
+    });
+    return Object.values(mapa).sort((a, b) => b.totalPts - a.totalPts);
+  }
+
+  function _renderRankingTable(rows, mes, titulo) {
+    if (!rows.length) return `<div class="rank-card"><div class="rank-empty">Sin registros todavía.</div></div>`;
+    const medals = ['🥇','🥈','🥉'];
+    return `<div class="rank-card">
+      <div class="rank-header">
+        <span>#</span><span>${titulo}</span>
+        <span style="text-align:right">${nombreMes(mes)}</span>
+        <span style="text-align:right">Total</span>
+      </div>
+      ${rows.map((row, i) => {
+        const esYo = row.vendedor?.id === vendedor.id;
+        const pos  = i + 1;
+        return `<div class="rank-row${esYo?' yo':''}">
+          <span class="rank-pos">${pos<=3?medals[i]:pos}</span>
+          <div class="rank-nombre">${esc(row.vendedor?.nombre||'—')}${esYo?'<small>← Vos</small>':''}</div>
+          <span class="rank-pts-mes">${row.mesPts}</span>
+          <span class="rank-pts">${row.totalPts}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  async function loadRanking(liga) {
+    const elId = liga === 'ON' ? 'ranking-on-content' : 'ranking-off-content';
+    const el   = document.getElementById(elId);
+    const mes  = getMesActual();
+    const data = await _fetchTorneoData();
+
+    // Solo Mendoza + esa liga
+    const rows = _buildRankingRows(data, mes, r =>
+      getSucursal(r.vendedores?.codigo) === 'Mendoza' &&
+      getLiga(r.clientes?.tipo) === liga
+    );
+
+    el.innerHTML = _renderRankingTable(rows, mes, `Mendoza — Liga ${liga}`);
+  }
+
+  async function loadRankingSL() {
+    const el   = document.getElementById('ranking-sl-content');
+    const mes  = getMesActual();
+    const data = await _fetchTorneoData();
+
+    // Solo San Luis — todos los clientes
+    const rows = _buildRankingRows(data, mes, r =>
+      getSucursal(r.vendedores?.codigo) === 'San Luis'
+    );
+
+    el.innerHTML = _renderRankingTable(rows, mes, 'San Luis');
+  }
+
+  function verFoto(url) {
+    document.getElementById('foto-modal-img').src = url;
+    document.getElementById('foto-modal').classList.add('open');
+  }
+  function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // Iniciar
+  showTab('progreso');
+  tabsLoaded['progreso'] = true;
+</script>
+</body>
+</html>

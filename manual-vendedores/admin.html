@@ -1,0 +1,2685 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Panel Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul:    #1F447F;
+    --azul-dk: #172f5a;
+    --dorado:  #CBB86A;
+    --dorado-lt: rgba(203,184,106,0.13);
+    --crema:   #F1EDE8;
+    --surface: #FFFFFF;
+    --surface2: #f7f5f2;
+    --border:  rgba(31,68,127,0.13);
+    --border-strong: rgba(31,68,127,0.28);
+    --text:    #1A1814;
+    --text2:   #5a5650;
+    --text3:   #9E9B96;
+    --green:   #2D6A4F; --green-light:#EAF4EE; --green-text:#1B4332;
+    --radius:  12px; --radius-sm: 8px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:system-ui,-apple-system,sans-serif; background:var(--crema); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; }
+
+  /* Admin tabs */
+  .admin-tab{flex-shrink:0;padding:10px 16px;background:none;border:none;border-bottom:3px solid transparent;color:rgba(255,255,255,.5);font-family:system-ui,sans-serif;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s}
+  .admin-tab.active{color:#fff;border-bottom-color:var(--dorado)}
+  .azul-dk{background:#172f5a}
+
+  /* Compromisos admin */
+  .badge-est{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:20px}
+  .est-pendiente{background:#FDF5E0;color:#5C3D00}
+  .est-ejecutado{background:#EAF4EE;color:#1B4332}
+  .est-atrasado {background:#FEF2F2;color:#B91C1C}
+  tr.atrasado-row td{background:#FEF9F9}
+
+  /* Fechas especiales form */
+  .fechas-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+  .fechas-form h3{font-family:Georgia,serif;font-size:15px;color:var(--azul);margin-bottom:14px}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .form-group{display:flex;flex-direction:column;gap:4px}
+  .form-group label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--azul)}
+  .form-input{padding:9px 11px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);font-family:system-ui,sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color .15s}
+  .form-input:focus{border-color:var(--azul)}
+  .form-full{grid-column:1/-1}
+  .btn-form-save{padding:11px 24px;background:var(--azul);color:#fff;border:none;border-radius:var(--radius-sm);font-family:system-ui,sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s}
+  .btn-form-save:hover{background:var(--azul-dk)}
+  .accion-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+  .accion-img{width:60px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0}
+  .accion-info{flex:1;min-width:0}
+  .accion-nombre{font-size:13px;font-weight:600;color:var(--azul)}
+  .accion-meta{font-size:11px;color:var(--text3);margin-top:2px}
+  .btn-del{background:none;border:1.5px solid #FCA5A5;color:#B91C1C;border-radius:20px;font-size:11px;font-weight:600;padding:4px 10px;cursor:pointer;flex-shrink:0;font-family:system-ui,sans-serif}
+
+  /* Toggle switch */
+  .toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .toggle-label{font-size:12px;color:var(--text2)}
+  .toggle{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+  .toggle input{opacity:0;width:0;height:0}
+  .toggle-slider{position:absolute;inset:0;background:#d4d0ca;border-radius:22px;cursor:pointer;transition:.3s}
+  .toggle-slider::before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+  .toggle input:checked + .toggle-slider{background:var(--azul)}
+  .toggle input:checked + .toggle-slider::before{transform:translateX(18px)}
+
+  /* Checkboxes aplica_a */
+  .chk-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .chk-pill{display:flex;align-items:center;gap:5px;padding:5px 11px;border:1.5px solid var(--border-strong);border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);background:var(--surface);transition:all .15s}
+  .chk-pill input{display:none}
+  .chk-pill.checked{background:var(--azul);color:#fff;border-color:var(--azul)}
+
+  /* Accion mensual card en lista */
+  .am-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--dorado);border-radius:var(--radius);padding:13px 15px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start}
+  .am-img{width:64px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;background:var(--surface2)}
+  .am-info{flex:1;min-width:0}
+  .am-producto{font-size:13px;font-weight:700;color:var(--azul)}
+  .am-varietales{font-size:11px;color:var(--text3);margin-top:1px}
+  .am-accion{display:inline-block;background:var(--dorado);color:var(--azul);font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin-top:5px}
+  .am-precio{font-size:12px;color:var(--text2);margin-top:3px;font-family:'DM Mono',monospace}
+  .am-meta{font-size:10px;color:var(--text3);margin-top:3px}
+  .am-btns{display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+  .btn-am-toggle{padding:4px 10px;background:var(--surface2);border:1.5px solid var(--border-strong);border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:system-ui,sans-serif;color:var(--text2);white-space:nowrap}
+  .upload-area{border:2px dashed var(--border-strong);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);position:relative}
+  .upload-area:hover{border-color:var(--azul)}
+  .upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .upload-preview{width:100%;max-height:100px;object-fit:cover;border-radius:var(--radius-sm);margin-top:8px;display:none}
+
+  /* ── Gestión Checklists ── */
+  .cl-canal-btn { padding:7px 14px; background:var(--surface2); border:1.5px solid var(--border-strong); border-radius:20px; font-family:system-ui,sans-serif; font-size:12px; font-weight:600; color:var(--text2); cursor:pointer; transition:all .15s; }
+  .cl-canal-btn.active { background:var(--azul); color:#fff; border-color:var(--azul); }
+  .cl-sec-card { background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--dorado); border-radius:var(--radius); margin-bottom:10px; overflow:hidden; }
+  .cl-sec-card.inactiva { opacity:.5; }
+  .cl-sec-header { display:flex; align-items:center; gap:10px; padding:11px 13px; background:var(--surface2); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .cl-sec-icon { width:32px; height:32px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+  .cl-sec-titulo { flex:1; font-size:13px; font-weight:700; color:var(--azul); }
+  .cl-sec-sub { font-size:10px; color:var(--text3); margin-top:1px; }
+  .cl-sec-actions { display:flex; gap:4px; flex-shrink:0; }
+  .cl-btn-icon { background:none; border:none; font-size:14px; cursor:pointer; padding:3px 5px; border-radius:5px; line-height:1; color:var(--text2); }
+  .cl-btn-icon:hover { background:rgba(31,68,127,.08); }
+  .cl-sec-body { padding:12px 13px; border-top:1px solid var(--border); display:none; }
+  .cl-sec-body.open { display:block; }
+  .cl-items-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); margin-bottom:7px; display:flex; align-items:center; justify-content:space-between; }
+  .cl-item-row { display:flex; align-items:flex-start; gap:8px; padding:7px 0; border-bottom:1px solid var(--border); font-size:12px; }
+  .cl-item-row:last-child { border-bottom:none; }
+  .cl-item-row.inactivo { opacity:.45; }
+  .cl-item-num { font-family:'DM Mono',monospace; font-size:10px; color:var(--text3); flex-shrink:0; margin-top:2px; min-width:18px; }
+  .cl-item-text { flex:1; min-width:0; }
+  .cl-item-texto { font-weight:600; color:var(--text); line-height:1.3; }
+  .cl-item-det { font-size:10px; color:var(--text3); margin-top:1px; }
+  .cl-item-acts { display:flex; gap:2px; flex-shrink:0; }
+  .cl-plan-card { background:rgba(31,68,127,.05); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:6px; display:flex; gap:8px; align-items:flex-start; }
+  .cl-plan-pill { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; background:var(--dorado); color:var(--azul); flex-shrink:0; white-space:nowrap; }
+  .cl-plan-info { flex:1; min-width:0; }
+  .cl-plan-nombre { font-size:12px; font-weight:700; color:var(--azul); }
+  .cl-plan-desc { font-size:11px; color:var(--text3); margin-top:2px; line-height:1.3; }
+  .cl-add-btn { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:var(--surface2); border:1.5px dashed var(--border-strong); border-radius:20px; font-family:system-ui,sans-serif; font-size:11px; font-weight:600; color:var(--azul); cursor:pointer; margin-top:6px; }
+
+  /* ── Reseteo de datos ── */
+  .reset-section { max-width: 600px; padding: 20px; }
+  .reset-warning-banner {
+    background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: var(--radius);
+    padding: 14px 16px; margin-bottom: 20px; display: flex; gap: 10px; align-items: flex-start;
+  }
+  .reset-warning-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .reset-warning-text { font-size: 13px; color: #7f1d1d; line-height: 1.5; }
+  .reset-warning-text strong { display: block; font-size: 14px; margin-bottom: 3px; }
+
+  .reset-card {
+    background: var(--surface); border: 1px solid #FCA5A5; border-left: 4px solid #EF4444;
+    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+  }
+  .reset-card-title { font-size: 14px; font-weight: 700; color: #7f1d1d; margin-bottom: 5px; display: flex; align-items: center; gap: 7px; }
+  .reset-card-desc  { font-size: 12px; color: var(--text2); margin-bottom: 12px; line-height: 1.5; }
+  .reset-card-sel   { width: 100%; padding: 9px 11px; border: 1.5px solid #FCA5A5; border-radius: var(--radius-sm); font-family: system-ui,sans-serif; font-size: 13px; color: var(--text); outline: none; margin-bottom: 10px; }
+  .btn-reset-action {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 18px; background: #EF4444; color: #fff; border: none;
+    border-radius: var(--radius-sm); font-family: system-ui,sans-serif;
+    font-size: 13px; font-weight: 700; cursor: pointer; transition: background .2s;
+  }
+  .btn-reset-action:hover { background: #DC2626; }
+  .btn-reset-action:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* Modal de confirmación reset */
+  #reset-modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 500; display: none; align-items: center; justify-content: center; padding: 20px; }
+  #reset-modal.open { display: flex; }
+  .reset-modal-box {
+    background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 440px;
+    border-top: 4px solid #EF4444; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden;
+  }
+  .reset-modal-header { background: #FEF2F2; padding: 16px 18px; border-bottom: 1px solid #FCA5A5; }
+  .reset-modal-title { font-size: 16px; font-weight: 700; color: #7f1d1d; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .reset-modal-subtitle { font-size: 13px; color: #991b1b; }
+  .reset-modal-body { padding: 18px; }
+  .reset-modal-count { background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #7f1d1d; }
+  .reset-modal-count strong { font-size: 16px; font-family: 'DM Mono', monospace; }
+  .reset-modal-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; }
+  .reset-modal-input { width: 100%; padding: 11px 13px; border: 2px solid #FCA5A5; border-radius: var(--radius-sm); font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 700; letter-spacing: .08em; color: var(--text); outline: none; transition: border-color .15s; text-transform: uppercase; }
+  .reset-modal-input:focus { border-color: #EF4444; }
+  .reset-modal-input.ok    { border-color: #EF4444; background: #FEF2F2; }
+  .reset-modal-btns { display: flex; gap: 8px; margin-top: 14px; }
+  .btn-reset-confirm { flex: 1; padding: 12px; background: #EF4444; color: #fff; border: none; border-radius: var(--radius-sm); font-family: system-ui,sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .2s; }
+  .btn-reset-confirm:hover:not(:disabled) { background: #DC2626; }
+  .btn-reset-confirm:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-reset-cancel { padding: 12px 16px; background: var(--surface2); color: var(--text2); border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); font-family: system-ui,sans-serif; font-size: 13px; cursor: pointer; }
+
+  /* ── Auth overlay ── */
+  #auth-overlay { position:fixed; inset:0; background:var(--azul); display:flex; align-items:center; justify-content:center; z-index:999; padding:20px; flex-direction:column; gap:24px; }
+  #auth-overlay img { height:52px; object-fit:contain; }
+  .auth-card { background:var(--surface); border-radius:var(--radius); border-top:4px solid var(--dorado); padding:28px; width:100%; max-width:340px; box-shadow:0 12px 40px rgba(0,0,0,.3); }
+  .auth-card h2 { font-family:Georgia,serif; font-size:20px; font-weight:normal; color:var(--azul); margin-bottom:5px; }
+  .auth-card p  { font-size:13px; color:var(--text2); margin-bottom:22px; }
+  .auth-input { width:100%; padding:12px 13px; border:1.5px solid var(--border-strong); border-radius:var(--radius-sm); font-family:system-ui,sans-serif; font-size:14px; background:var(--surface); color:var(--text); outline:none; margin-bottom:12px; transition:border-color .15s; }
+  .auth-input:focus { border-color:var(--azul); }
+  .auth-btn { width:100%; padding:13px; background:var(--azul); color:#fff; border:none; border-radius:var(--radius-sm); font-family:system-ui,sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:background .2s; }
+  .auth-btn:hover { background:var(--azul-dk); }
+  .auth-error { font-size:12px; color:#B91C1C; margin-top:10px; display:none; }
+
+  /* ── Top bar ── */
+  .top-bar { background:#1F447F; border-bottom:3px solid var(--dorado); padding:12px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+  .top-bar img { height:50px; object-fit:contain; }
+  .top-bar-right { display:flex; gap:10px; align-items:center; }
+  .tb-link { font-size:12px; color:rgba(255,255,255,.7); text-decoration:none; border:1px solid rgba(203,184,106,.4); border-radius:20px; padding:5px 13px; transition:all .15s; font-weight:500; }
+  .tb-link:hover { color:var(--dorado); border-color:var(--dorado); }
+  .btn-logout-admin { font-size:12px; color:rgba(255,255,255,.4); background:none; border:none; cursor:pointer; font-family:system-ui,sans-serif; }
+
+  /* ── Layout ── */
+  .main { max-width:1100px; margin:0 auto; padding:20px 20px 60px; }
+
+  /* ── Stats ── */
+  .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:18px; }
+  .stat-card { background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--dorado); border-radius:var(--radius); padding:16px 18px; }
+  .stat-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); margin-bottom:6px; }
+  .stat-val   { font-size:26px; font-weight:700; font-family:'DM Mono',monospace; color:var(--azul); }
+  .stat-sub   { font-size:11px; color:var(--text3); margin-top:3px; }
+
+  /* ── Filtros ── */
+  .filters-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; margin-bottom:14px; }
+  .filters-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; align-items:end; }
+  .filter-group label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--azul); display:block; margin-bottom:5px; }
+  .filter-select, .filter-input { width:100%; padding:9px 11px; border:1.5px solid var(--border-strong); border-radius:var(--radius-sm); font-family:system-ui,sans-serif; font-size:13px; background:var(--surface); color:var(--text); outline:none; appearance:none; transition:border-color .15s; }
+  .filter-select:focus, .filter-input:focus { border-color:var(--azul); }
+  .btn-clear { padding:9px 16px; background:var(--surface2); border:1.5px solid var(--border-strong); border-radius:var(--radius-sm); font-family:system-ui,sans-serif; font-size:13px; font-weight:500; cursor:pointer; color:var(--text2); transition:background .15s; }
+  .btn-clear:hover { background:var(--dorado-lt); border-color:var(--dorado); color:var(--azul); }
+
+  /* ── Tabla ── */
+  .table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .table-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
+  .table-title { font-family:Georgia,serif; font-size:16px; font-weight:normal; color:var(--azul); }
+  .table-count { font-size:12px; color:var(--text3); margin-top:2px; }
+  .btn-export { padding:8px 16px; background:var(--azul); color:#fff; border:none; border-radius:var(--radius-sm); font-family:system-ui,sans-serif; font-size:12px; font-weight:600; cursor:pointer; transition:background .2s; }
+  .btn-export:hover { background:var(--azul-dk); }
+
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; padding:10px 14px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--azul); border-bottom:2px solid var(--dorado); background:var(--dorado-lt); white-space:nowrap; }
+  td { padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr.data-row { cursor:pointer; transition:background .1s; }
+  tr.data-row:hover td { background:#faf8f5; }
+
+  .td-vendedor { font-weight:600; color:var(--azul); }
+  .td-tipo { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; padding:2px 8px; background:var(--dorado-lt); border:1px solid rgba(203,184,106,.25); border-radius:20px; display:inline-block; color:#7a6830; white-space:nowrap; }
+  .td-fecha { font-family:'DM Mono',monospace; font-size:12px; color:var(--text2); white-space:nowrap; }
+  .pct-badge { display:inline-flex; align-items:center; gap:6px; }
+  .pct-num { font-family:'DM Mono',monospace; font-weight:700; font-size:13px; color:var(--azul); white-space:nowrap; }
+  .pct-mini-bar { width:50px; height:5px; background:var(--crema); border-radius:3px; overflow:hidden; border:1px solid var(--border); }
+  .pct-mini-fill { height:100%; background:var(--azul); border-radius:3px; }
+  .empty-row td, .loading-row td { text-align:center; padding:40px; color:var(--text3); font-size:14px; }
+
+  /* ── Modal ── */
+  #modal-overlay { position:fixed; inset:0; background:rgba(23,47,90,.55); z-index:200; display:none; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
+  #modal-overlay.open { display:flex; }
+  .modal { background:var(--surface); border-radius:var(--radius); width:100%; max-width:600px; margin-top:20px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+  .modal-top { padding:18px 20px; background:var(--azul); border-bottom:3px solid var(--dorado); color:#fff; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .modal-top h3 { font-family:Georgia,serif; font-size:17px; font-weight:normal; }
+  .modal-top-meta { font-size:12px; opacity:.6; margin-top:3px; }
+  .modal-close { background:rgba(255,255,255,.15); border:none; color:#fff; width:30px; height:30px; border-radius:8px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .modal-body { padding:18px 20px; max-height:70vh; overflow-y:auto; }
+  .modal-pct-row { display:flex; align-items:center; gap:14px; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+  .modal-pct-big { font-size:36px; font-weight:700; font-family:'DM Mono',monospace; color:var(--azul); }
+  .modal-pct-bar { flex:1; height:7px; background:var(--crema); border-radius:4px; overflow:hidden; border:1px solid var(--border); }
+  .modal-pct-fill { height:100%; background:var(--azul); border-radius:4px; }
+  .modal-pct-label { font-size:12px; color:var(--text2); margin-top:4px; }
+  .modal-sec { margin-bottom:14px; }
+  .modal-sec-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .modal-sec-name { font-size:13px; font-weight:600; color:var(--azul); }
+  .modal-sec-pct { font-size:12px; font-family:'DM Mono',monospace; color:var(--text2); }
+  .modal-check { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px; color:var(--text2); }
+  .modal-check-dot { width:14px; height:14px; border-radius:3px; flex-shrink:0; }
+  .dot-ok { background:var(--azul); }
+  .dot-no { background:var(--surface2); border:1px solid var(--border-strong); }
+  .modal-obs { font-size:12px; color:var(--text2); background:var(--dorado-lt); border-left:3px solid var(--dorado); padding:7px 10px; margin-top:6px; font-style:italic; border-radius:0 var(--radius-sm) var(--radius-sm) 0; }
+  .modal-obs-gen { background:var(--dorado-lt); border-left:3px solid var(--dorado); padding:10px 12px; font-size:13px; margin-bottom:14px; line-height:1.5; border-radius:0 var(--radius-sm) var(--radius-sm) 0; }
+  .modal-obs-gen-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#7a6830; display:block; margin-bottom:3px; }
+  .hist-client-section { margin-top:20px; padding-top:14px; border-top:1px solid var(--border); }
+  .hist-client-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); margin-bottom:10px; }
+  .hist-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; }
+  .hist-row:last-child { border-bottom:none; }
+  .hist-row-fecha { flex:1; color:var(--text2); }
+  .hist-row-vend  { color:var(--text3); font-size:11px; }
+  .hist-row-pct   { font-family:'DM Mono',monospace; font-weight:700; color:var(--azul); }
+
+  /* Galería de evidencias en modal */
+  .foto-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(76px,1fr)); gap:6px; padding:12px 0 4px; }
+  .foto-thumb { position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; cursor:pointer; background:var(--surface2); }
+  .foto-thumb img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .2s; }
+  .foto-thumb:hover img { transform:scale(1.05); }
+  .foto-thumb-label { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.55); padding:2px 5px; font-size:9px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+</style>
+<style id="_bg-fondo">
+/* Fondo de pantalla GrandBar */
+body::before { content:""; position:fixed; inset:0; z-index:-1; background:url("fondoo.jpg.jpg") center/cover no-repeat; filter:brightness(0.5); transform:scale(1.05); }
+body { background:transparent !important; }
+:root { --crema:rgba(241,237,232,0.08) !important; --surface:rgba(255,255,255,0.95) !important; --surface2:rgba(247,245,242,0.95) !important; }
+</style>
+</head>
+<body>
+
+<style>
+  /* ── Pantalla de bienvenida (selección de perfil) ── */
+  /* Fondo crema SÓLIDO (en admin.html --crema es translúcido por la foto de fondo; acá lo forzamos opaco para que se lea) */
+  #welcome{position:fixed;inset:0;z-index:1000;background:#F1EDE8;display:flex;flex-direction:column;overflow:auto}
+  .wl-bar{background:var(--azul);border-bottom:3px solid var(--dorado);display:flex;align-items:center;justify-content:space-between;padding:0 26px;height:74px;flex:none}
+  .wl-logo{height:46px;object-fit:contain}
+  .wl-help{display:inline-flex;align-items:center;gap:7px;color:rgba(255,255,255,.85);text-decoration:none;font-size:14px;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit}
+  .wl-help svg{width:19px;height:19px}
+  .wl-help:hover{color:#fff}
+
+  .wl-body{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 22px 56px;text-align:center;overflow:hidden}
+  /* adornos */
+  .wl-dots{position:absolute;background-image:radial-gradient(var(--dorado) 1.6px,transparent 1.7px);background-size:17px 17px;opacity:.32;pointer-events:none}
+  .wl-dots.tl{top:16px;left:34px;width:120px;height:74px}
+  .wl-dots.br{bottom:54px;right:150px;width:170px;height:74px}
+  .wl-seal{position:absolute;top:96px;right:60px;width:150px;height:150px;color:var(--dorado);opacity:.32;pointer-events:none}
+  .wl-bottle{position:absolute;right:40px;bottom:0;width:200px;height:auto;color:var(--azul);opacity:.06;pointer-events:none}
+  .wl-emblem{position:absolute;left:-40px;top:50%;transform:translateY(-50%);font-family:Georgia,serif;font-size:340px;font-weight:700;color:var(--azul);opacity:.03;pointer-events:none;line-height:1}
+
+  .wl-star{display:flex;align-items:center;justify-content:center;gap:14px;color:var(--dorado);margin-bottom:20px}
+  .wl-star::before,.wl-star::after{content:"";height:1.5px;width:96px;background:linear-gradient(90deg,transparent,var(--dorado))}
+  .wl-star::after{background:linear-gradient(90deg,var(--dorado),transparent)}
+  .wl-star svg{width:22px;height:22px}
+
+  .wl-title{font-family:"Segoe UI",system-ui,Arial,sans-serif;font-weight:800;color:var(--azul);
+    font-size:clamp(30px,5.2vw,50px);line-height:1.06;letter-spacing:-.015em;text-wrap:balance;position:relative;z-index:1}
+  .wl-rule{width:64px;height:3px;background:var(--dorado);border-radius:3px;margin:22px auto 0}
+  .wl-sub{color:var(--text2);font-size:clamp(15px,2vw,17px);margin-top:20px;max-width:52ch;line-height:1.55;position:relative;z-index:1}
+
+  .wl-cards{display:flex;gap:26px;margin-top:44px;flex-wrap:wrap;justify-content:center;position:relative;z-index:1}
+  .wl-card{background:var(--surface);border:1px solid var(--border);border-bottom:4px solid var(--dorado);
+    border-radius:18px;padding:34px 30px 30px;width:340px;max-width:88vw;box-shadow:0 2px 4px rgba(31,68,127,.05),0 22px 44px rgba(31,68,127,.10);
+    display:flex;flex-direction:column;align-items:center;transition:transform .18s,box-shadow .18s}
+  .wl-card:hover{transform:translateY(-4px);box-shadow:0 2px 4px rgba(31,68,127,.06),0 30px 56px rgba(31,68,127,.16)}
+  .wl-ico{width:92px;height:92px;border-radius:50%;background:var(--azul);display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+  .wl-ico svg{width:44px;height:44px;color:var(--dorado)}
+  .wl-name{font-family:"Segoe UI",system-ui,sans-serif;font-size:26px;font-weight:800;color:var(--azul);letter-spacing:-.01em}
+  .wl-role{font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#B08D2E;margin-top:4px}
+  .wl-cdiv{width:44px;height:2px;background:var(--dorado);opacity:.7;margin:16px 0 15px}
+  .wl-desc{color:var(--text2);font-size:14.5px;line-height:1.55;min-height:66px}
+  .wl-btn{margin-top:20px;width:100%;background:var(--azul);color:#fff;border:none;border-radius:11px;padding:14px;
+    font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .18s,gap .18s}
+  .wl-btn:hover{background:var(--azul-dk);gap:16px}
+  .wl-btn svg{width:18px;height:18px}
+
+  @media (max-width:520px){
+    .wl-bar{padding:0 16px;height:64px}.wl-logo{height:38px}
+    .wl-seal,.wl-bottle,.wl-emblem,.wl-dots{display:none}
+    .wl-star::before,.wl-star::after{width:54px}
+    .wl-cards{gap:18px;margin-top:32px}
+    /* Permitir scroll en el celular para llegar al botón de cada perfil */
+    #welcome{overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .wl-body{flex:0 0 auto;justify-content:flex-start;overflow:visible;min-height:0;padding:26px 18px 48px}
+  }
+</style>
+
+<div id="welcome">
+  <header class="wl-bar">
+    <img class="wl-logo" src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar Distribuciones">
+    <button class="wl-help" onclick="alert('Panel administrador de GrandBar.\n\nElegí tu perfil para entrar:\n• Luciana (Gestora Comercial): promociones, acciones, materiales y contenido.\n• Marketing (Trade Marketing): estructura de la app, checklists y administración.\n\nAnte cualquier duda, escribí al equipo.')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1 1-1.1 1.8v.5" stroke-linecap="round"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>
+      Ayuda
+    </button>
+  </header>
+
+  <main class="wl-body">
+    <span class="wl-emblem" aria-hidden="true">G</span>
+    <div class="wl-dots tl" aria-hidden="true"></div>
+    <div class="wl-dots br" aria-hidden="true"></div>
+    <svg class="wl-seal" viewBox="0 0 120 120" aria-hidden="true">
+      <defs><path id="wl-seal-path" d="M60,60 m-46,0 a46,46 0 1,1 92,0 a46,46 0 1,1 -92,0"/></defs>
+      <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="1"/>
+      <circle cx="60" cy="60" r="41" fill="none" stroke="currentColor" stroke-width="1"/>
+      <text font-family="Georgia,serif" font-size="8.5" letter-spacing="3" fill="currentColor">
+        <textPath href="#wl-seal-path" startOffset="0%">GRANDBAR · DISTRIBUCIONES · DESDE 1999 · </textPath>
+      </text>
+      <text x="60" y="66" text-anchor="middle" font-family="Georgia,serif" font-size="15" letter-spacing="1" fill="currentColor">1999</text>
+    </svg>
+
+    <div class="wl-star" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7z"/></svg>
+    </div>
+
+    <h1 class="wl-title">Panel administrador<br>del manual de vendedores</h1>
+    <div class="wl-rule"></div>
+    <p class="wl-sub">Gestioná todo el contenido comercial que utilizan los vendedores en sus visitas al punto de venta.</p>
+
+    <div class="wl-cards">
+      <!-- Perfil comercial -->
+      <div class="wl-card">
+        <div class="wl-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" stroke-linecap="round"/></svg>
+        </div>
+        <div class="wl-name">Luciana</div>
+        <div class="wl-role">Gestora Comercial</div>
+        <div class="wl-cdiv"></div>
+        <p class="wl-desc">Cargá promociones, acciones, programas, materiales POP y contenido para los vendedores.</p>
+        <button class="wl-btn" onclick="entrarPanel('comercial')">Entrar
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <!-- Perfil marketing -->
+      <div class="wl-card">
+        <div class="wl-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 3V1M21 12h2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="wl-name">Marketing</div>
+        <div class="wl-role">Trade Marketing</div>
+        <div class="wl-cdiv"></div>
+        <p class="wl-desc">Configurá la estructura de la app, checklists, campañas, proveedores y administración general.</p>
+        <button class="wl-btn" onclick="entrarPanel('marketing')">Entrar
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="app" style="display:none">
+  <div class="top-bar">
+    <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar">
+    <div class="top-bar-right">
+      <a class="tb-link" href="admin-importar.html">Importar clientes</a>
+      <button class="btn-logout-admin" onclick="cerrarAdmin()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <!-- Sub-tabs de admin -->
+  <div style="background:var(--azul-dk);border-bottom:2px solid var(--dorado);display:flex;overflow-x:auto;scrollbar-width:none" id="admin-tabs">
+    <button class="admin-tab active" id="atab-visitas"      onclick="showAdminTab('visitas')">Visitas</button>
+    <button class="admin-tab"        id="atab-compromisos"  onclick="showAdminTab('compromisos')">Compromisos</button>
+    <button class="admin-tab"        id="atab-acciones"     onclick="showAdminTab('acciones')">Acciones Mensuales</button>
+    <button class="admin-tab"        id="atab-fechas"       onclick="showAdminTab('fechas')">Fechas especiales</button>
+    <button class="admin-tab"        id="atab-vtadmin"      onclick="showAdminTab('vtadmin')">🍷 Vinotecas</button>
+    <button class="admin-tab"        id="atab-checklists"   onclick="showAdminTab('checklists')">📋 Checklists</button>
+    <button class="admin-tab"        id="atab-reset"        onclick="showAdminTab('reset')" style="color:#f87171">⚠️ Reseteo</button>
+  </div>
+
+  <div class="main">
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card"><div class="stat-label">Visitas totales</div><div class="stat-val" id="st-visitas">–</div></div>
+      <div class="stat-card"><div class="stat-label">Promedio completado</div><div class="stat-val" id="st-prom">–</div><div class="stat-sub">sobre todas las visitas</div></div>
+      <div class="stat-card"><div class="stat-label">Clientes visitados</div><div class="stat-val" id="st-clientes">–</div></div>
+      <div class="stat-card"><div class="stat-label">Vendedores activos</div><div class="stat-val" id="st-vends">–</div></div>
+    </div>
+
+    <div class="filters-card">
+      <div class="filters-grid">
+        <div class="filter-group"><label>Sucursal</label>
+          <select class="filter-select" id="f-sucursal" onchange="filtrar()">
+            <option value="">Todas</option>
+            <option value="Mendoza">🍇 Mendoza</option>
+            <option value="San Luis">🏔 San Luis</option>
+          </select>
+        </div>
+        <div class="filter-group"><label>Vendedor</label><select class="filter-select" id="f-vendedor" onchange="filtrar()"><option value="">Todos</option></select></div>
+        <div class="filter-group"><label>Tipo cliente</label><select class="filter-select" id="f-tipo" onchange="filtrar()"><option value="">Todos</option></select></div>
+        <div class="filter-group"><label>Desde</label><input class="filter-input" type="date" id="f-desde" onchange="filtrar()"></div>
+        <div class="filter-group"><label>Hasta</label><input class="filter-input" type="date" id="f-hasta" onchange="filtrar()"></div>
+        <div class="filter-group"><label>&nbsp;</label><button class="btn-clear" onclick="limpiarFiltros()">Limpiar filtros</button></div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-header">
+        <div><div class="table-title">Registro de visitas</div><div class="table-count" id="tbl-count">Cargando…</div></div>
+        <button class="btn-export" onclick="exportarCSV()">Exportar CSV</button>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Vendedor</th><th>Cliente</th><th>Tipo</th><th>Fecha</th><th>% Completado</th><th>Duración</th></tr></thead>
+          <tbody id="tbl-body"><tr class="loading-row"><td colspan="6">Cargando datos…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Compromisos -->
+  <div id="tab-compromisos" style="display:none">
+    <div class="filters-card">
+      <div class="filters-grid">
+        <div class="filter-group"><label>Estado</label>
+          <select class="filter-select" id="fc-estado" onchange="filtrarCompromisos()">
+            <option value="">Todos</option>
+            <option value="atrasado">⚠️ Atrasados</option>
+            <option value="pendiente">🟡 Pendientes</option>
+            <option value="ejecutado">✅ Ejecutados</option>
+          </select>
+        </div>
+        <div class="filter-group"><label>Vendedor</label>
+          <select class="filter-select" id="fc-vendedor" onchange="filtrarCompromisos()"><option value="">Todos</option></select>
+        </div>
+        <div class="filter-group"><label>Desde</label>
+          <input class="filter-input" type="date" id="fc-desde" onchange="filtrarCompromisos()">
+        </div>
+        <div class="filter-group"><label>&nbsp;</label>
+          <button class="btn-clear" onclick="limpiarFiltrosComp()">Limpiar</button>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <div><div class="table-title">Compromisos</div><div class="table-count" id="comp-count">–</div></div>
+        <button class="btn-export" onclick="exportarCompromisos()">Exportar CSV</button>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Vendedor</th><th>Cliente</th><th>Sección</th><th>Descripción</th><th>Fecha ejec.</th><th>Estado</th></tr></thead>
+          <tbody id="comp-tbl-body"><tr class="loading-row"><td colspan="6">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Acciones Mensuales -->
+  <div id="tab-acciones" style="display:none">
+
+    <!-- Banner SQL para columnas nuevas -->
+    <div id="am-sql-banner" style="background:#FFF8E7;border:1px solid #CBB86A;border-left:4px solid #CBB86A;border-radius:10px;padding:13px 15px;margin-bottom:14px;font-size:12px;color:#5C3D00">
+      <div style="font-weight:700;margin-bottom:6px">⚙️ Paso único — Ejecutar en Supabase SQL Editor para habilitar Precio Regular y SKU:</div>
+      <code id="am-sql-code" style="display:block;background:#FFF3CD;border-radius:6px;padding:8px 10px;font-size:11px;font-family:'DM Mono',monospace;line-height:1.6;white-space:pre-wrap;user-select:all">alter table acciones_mensuales add column if not exists precio_regular numeric;
+alter table acciones_mensuales add column if not exists sku text;
+alter table acciones_mensuales add column if not exists seccion_checklist text;</code>
+      <button onclick="copiarSqlBanner()" style="margin-top:8px;padding:4px 12px;background:#CBB86A;color:#1F447F;border:none;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer">📋 Copiar SQL</button>
+      <button onclick="document.getElementById('am-sql-banner').style.display='none'" style="margin-top:8px;margin-left:6px;padding:4px 12px;background:none;border:1.5px solid #CBB86A;color:#5C3D00;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer">✕ Ocultar</button>
+    </div>
+
+    <div class="fechas-form">
+      <h3>Nueva acción mensual</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Categoría</label>
+          <select class="form-input" id="am-cat">
+            <option value="vinos">🍷 Vinos</option>
+            <option value="spirits">🥃 Spirits</option>
+            <option value="cervezas">🍺 Cervezas</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Producto</label>
+          <input class="form-input" id="am-producto" type="text" placeholder="Ej: Doña Paula Estate Malbec">
+        </div>
+        <div class="form-group">
+          <label>Subcategoría (spirits)</label>
+          <select class="form-input" id="am-subcat">
+            <option value="">— Sin subcategoría —</option>
+            <option value="Vodka">🍸 Vodka</option>
+            <option value="Gin">🌿 Gin</option>
+            <option value="Whisky">🥃 Whisky</option>
+            <option value="Ron">🍹 Ron</option>
+            <option value="Aperitivos">🍊 Aperitivos</option>
+            <option value="Licores">🍬 Licores</option>
+            <option value="Nacionales/Internacionales">🌍 Nacionales/Internacionales</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>SKU (opcional)</label>
+          <input class="form-input" id="am-sku" type="text" placeholder="Ej: SKY-750-ORG">
+        </div>
+        <div class="form-group form-full">
+          <div class="toggle-row">
+            <label class="toggle">
+              <input type="checkbox" id="am-varietales-toggle" onchange="toggleVarietalesAdmin(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">¿Incluye varietales?</span>
+          </div>
+          <input class="form-input" id="am-varietales" type="text" placeholder="Ej: Malbec, Cabernet, Rosado" style="display:none">
+        </div>
+        <div class="form-group form-full">
+          <label>Acción</label>
+          <input class="form-input" id="am-accion" type="text" placeholder="Ej: 2+1 en caja, 5+1, Precio especial">
+        </div>
+        <div class="form-group">
+          <label>Precio accionado ($)</label>
+          <input class="form-input" id="am-precio" type="number" min="0" placeholder="Ej: 8500">
+        </div>
+        <div class="form-group">
+          <label>Precio regular ($)</label>
+          <input class="form-input" id="am-precio-reg" type="number" min="0" placeholder="Ej: 12000">
+        </div>
+        <div class="form-group form-full">
+          <label>Aplica a</label>
+          <div class="chk-group" id="am-aplica-group">
+            <label class="chk-pill" onclick="toggleChkPill(this)" onchange="amActualizarSecciones()"><input type="checkbox" value="vinotecas"> Vinotecas</label>
+            <label class="chk-pill" onclick="toggleChkPill(this)" onchange="amActualizarSecciones()"><input type="checkbox" value="restaurantes"> Restaurantes</label>
+            <label class="chk-pill" onclick="toggleChkPill(this)" onchange="amActualizarSecciones()"><input type="checkbox" value="autoservicios"> Autoservicios</label>
+            <label class="chk-pill" onclick="toggleChkPill(this)" onchange="amActualizarSecciones()"><input type="checkbox" value="eventos"> Eventos</label>
+            <label class="chk-pill" onclick="toggleChkPill(this)" onchange="amActualizarSecciones()"><input type="checkbox" value="discos"> Discos</label>
+            <label class="chk-pill" onclick="toggleChkPill(this)" onchange="amActualizarSecciones()"><input type="checkbox" value="bares"> Bares</label>
+            <label class="chk-pill" onclick="toggleChkPill(this)" onchange="amActualizarSecciones()"><input type="checkbox" value="hoteles"> Hoteles</label>
+            <label class="chk-pill" onclick="toggleChkPillTodos(this)" onchange="amActualizarSecciones()"><input type="checkbox" value="todos"> Todos</label>
+          </div>
+        </div>
+        <div class="form-group form-full">
+          <label>¿Dónde aparece en el checklist? <span style="font-weight:400;color:var(--text3)">(opcional)</span></label>
+          <select class="form-input" id="am-seccion-checklist" onchange="">
+            <option value="">— Seleccioná primero el canal en "Aplica a" —</option>
+          </select>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">Si no seleccionás sección, aparece solo en la sección "Acciones Mensuales" general de ese canal.</div>
+        </div>
+        <div class="form-group">
+          <label>Fecha inicio</label>
+          <input class="form-input" id="am-inicio" type="date">
+        </div>
+        <div class="form-group">
+          <label>Fecha fin</label>
+          <input class="form-input" id="am-fin" type="date">
+        </div>
+        <div class="form-group form-full">
+          <label>Placa / imagen (opcional)</label>
+          <div class="upload-area" id="am-upload-area">
+            <input type="file" id="am-img-file" accept="image/*" onchange="onAmImgChange(event)">
+            <div id="am-upload-text">📷 Subir placa o imagen (JPG, PNG)</div>
+            <img id="am-img-preview" class="upload-preview" src="" alt="Preview">
+          </div>
+        </div>
+      </div>
+      <button class="btn-form-save" style="margin-top:14px" id="am-save-btn" onclick="guardarAccionMensual()">
+        Publicar acción
+      </button>
+      <span id="am-save-status" style="font-size:12px;color:var(--text3);margin-left:10px"></span>
+    </div>
+    <div id="am-list"><div style="text-align:center;padding:24px;color:var(--text3)">Cargando acciones…</div></div>
+  </div>
+
+  <!-- ── Modal editar acción mensual ── -->
+  <div id="am-edit-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.55);overflow-y:auto;padding:20px 14px">
+    <div style="background:#fff;border-radius:14px;max-width:520px;margin:0 auto;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.25)">
+      <div style="background:#1F447F;border-bottom:3px solid #CBB86A;padding:14px 16px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:15px;font-weight:700;color:#fff">✏️ Editar acción mensual</span>
+        <button onclick="cerrarEditModal()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:8px;font-size:16px;cursor:pointer">✕</button>
+      </div>
+      <div style="padding:16px">
+        <input type="hidden" id="em-id">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Categoría</label>
+            <select class="form-input" id="em-cat">
+              <option value="vinos">🍷 Vinos</option>
+              <option value="spirits">🥃 Spirits</option>
+              <option value="cervezas">🍺 Cervezas</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Subcategoría</label>
+            <select class="form-input" id="em-subcat">
+              <option value="">— Sin subcategoría —</option>
+              <option value="Vodka">🍸 Vodka</option>
+              <option value="Gin">🌿 Gin</option>
+              <option value="Whisky">🥃 Whisky</option>
+              <option value="Ron">🍹 Ron</option>
+              <option value="Aperitivos">🍊 Aperitivos</option>
+              <option value="Licores">🍬 Licores</option>
+              <option value="Nacionales/Internacionales">🌍 Nacionales/Internacionales</option>
+            </select>
+          </div>
+          <div class="form-group form-full">
+            <label>Producto</label>
+            <input class="form-input" id="em-producto" type="text">
+          </div>
+          <div class="form-group form-full">
+            <label>Varietales (opcional)</label>
+            <input class="form-input" id="em-varietales" type="text" placeholder="Ej: Malbec, Cabernet">
+          </div>
+          <div class="form-group form-full">
+            <label>Acción</label>
+            <input class="form-input" id="em-accion" type="text" placeholder="Ej: 5+1, 2+1, 30% OFF">
+          </div>
+          <div class="form-group">
+            <label>Precio accionado ($)</label>
+            <input class="form-input" id="em-precio" type="number" min="0">
+          </div>
+          <div class="form-group">
+            <label>Precio regular ($)</label>
+            <input class="form-input" id="em-precio-reg" type="number" min="0">
+          </div>
+          <div class="form-group form-full">
+            <label>SKU (opcional)</label>
+            <input class="form-input" id="em-sku" type="text" placeholder="Ej: SKY-750-ORG">
+          </div>
+          <div class="form-group form-full">
+            <label>Aplica a</label>
+            <div class="chk-group" id="em-aplica-group">
+              <label class="chk-pill" onclick="toggleChkPill(this)"><input type="checkbox" value="vinotecas"> Vinotecas</label>
+              <label class="chk-pill" onclick="toggleChkPill(this)"><input type="checkbox" value="restaurantes"> Restaurantes</label>
+              <label class="chk-pill" onclick="toggleChkPill(this)"><input type="checkbox" value="autoservicios"> Autoservicios</label>
+              <label class="chk-pill" onclick="toggleChkPill(this)"><input type="checkbox" value="eventos"> Eventos</label>
+              <label class="chk-pill" onclick="toggleChkPill(this)"><input type="checkbox" value="discos"> Discos</label>
+              <label class="chk-pill" onclick="toggleChkPill(this)"><input type="checkbox" value="bares"> Bares</label>
+              <label class="chk-pill" onclick="toggleChkPill(this)"><input type="checkbox" value="hoteles"> Hoteles</label>
+              <label class="chk-pill" onclick="toggleChkPillTodos(this)"><input type="checkbox" value="todos"> Todos</label>
+            </div>
+          </div>
+          <div class="form-group form-full">
+            <label>¿Dónde aparece en el checklist?</label>
+            <select class="form-input" id="em-seccion-checklist">
+              <option value="">— Acciones Mensuales general (todos los canales marcados) —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Fecha inicio</label>
+            <input class="form-input" id="em-inicio" type="date">
+          </div>
+          <div class="form-group">
+            <label>Fecha fin</label>
+            <input class="form-input" id="em-fin" type="date">
+          </div>
+          <div class="form-group form-full">
+            <label>Imagen del producto</label>
+            <div style="display:flex;gap:10px;align-items:flex-start">
+              <img id="em-img-current" src="" alt="" style="width:60px;height:80px;object-fit:contain;border-radius:8px;background:#f7f5f2;display:none">
+              <div style="flex:1">
+                <div class="upload-area" style="padding:10px">
+                  <input type="file" id="em-img-file" accept="image/*" onchange="onEmImgChange(event)">
+                  <div id="em-upload-text" style="font-size:12px;color:#9E9B96">📷 Subir nueva imagen</div>
+                  <img id="em-img-preview" class="upload-preview" src="" alt="Preview">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones del modal -->
+        <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+          <button id="em-save-btn" onclick="guardarEdicionAccion()" style="flex:1;padding:11px;background:#1F447F;color:#fff;border:none;border-radius:8px;font-family:system-ui,sans-serif;font-size:13px;font-weight:700;cursor:pointer">
+            💾 Guardar cambios
+          </button>
+          <button id="em-toggle-btn" onclick="toggleAccionDesdeModal()" style="padding:11px 16px;background:#f7f5f2;border:1.5px solid rgba(31,68,127,.2);color:#1F447F;border-radius:8px;font-family:system-ui,sans-serif;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">
+            ✅ Activa
+          </button>
+          <button onclick="eliminarDesdeModal()" style="padding:11px 16px;background:#FEF2F2;border:1.5px solid #FCA5A5;color:#B91C1C;border-radius:8px;font-family:system-ui,sans-serif;font-size:12px;font-weight:600;cursor:pointer">
+            🗑️ Eliminar
+          </button>
+        </div>
+        <div id="em-status" style="font-size:12px;color:#9E9B96;margin-top:8px;text-align:center"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Acciones de fechas especiales -->
+  <div id="tab-fechas" style="display:none">
+    <div class="fechas-form">
+      <h3>Nueva acción de fecha especial</h3>
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Nombre de la acción</label><input class="form-input" id="fa-nombre" type="text" placeholder="Ej: Promo Día de la Madre"></div>
+        <div class="form-group form-full"><label>Descripción</label><input class="form-input" id="fa-desc" type="text" placeholder="Descripción y detalle de la acción"></div>
+        <div class="form-group"><label>Condición</label><input class="form-input" id="fa-cond" type="text" placeholder="Ej: 3+1, 2+1, precio especial"></div>
+        <div class="form-group"><label>Canal</label>
+          <select class="form-input" id="fa-canal">
+            <option value="todos">Todos</option>
+            <option value="vinotecas">Vinotecas / Autoservicios</option>
+            <option value="restaurantes">Restaurantes / ON Trade</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Fecha inicio</label><input class="form-input" id="fa-inicio" type="date"></div>
+        <div class="form-group"><label>Fecha fin</label><input class="form-input" id="fa-fin" type="date"></div>
+        <div class="form-group form-full"><label>URL imagen / placa (opcional)</label><input class="form-input" id="fa-img" type="url" placeholder="https://…"></div>
+      </div>
+      <button class="btn-form-save" style="margin-top:14px" onclick="guardarAccion()">Guardar acción</button>
+    </div>
+    <div id="acciones-list"><div class="spinner-center" style="text-align:center;padding:32px;color:var(--text3)">Cargando…</div></div>
+  </div>
+
+  <!-- TAB: Gestión Vinotecas -->
+  <div id="tab-vtadmin" style="display:none">
+
+    <!-- A) Materiales POP -->
+    <div class="fechas-form">
+      <h3>📦 Materiales POP</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Categoría</label><input class="form-input" id="mp-categoria" type="text" placeholder="Ej: Cenefas, Displays"></div>
+        <div class="form-group"><label>Nombre</label><input class="form-input" id="mp-nombre" type="text" placeholder="Nombre del material"></div>
+        <div class="form-group form-full"><label>Descripción</label><input class="form-input" id="mp-desc" type="text" placeholder="Detalle del material"></div>
+        <div class="form-group"><label>Stock</label>
+          <select class="form-input" id="mp-stock"><option value="true">Disponible</option><option value="false">Sin stock</option></select>
+        </div>
+        <div class="form-group"><label>Foto</label><input class="form-input" id="mp-foto" type="file" accept="image/*"></div>
+      </div>
+      <button class="btn-form-save" style="margin-top:14px" onclick="guardarMaterialPOP()">Guardar material</button>
+    </div>
+    <div id="mp-list"><div class="spinner-center" style="text-align:center;padding:20px;color:var(--text3)">Cargando…</div></div>
+
+    <!-- B) Nuevos productos -->
+    <div class="fechas-form" style="margin-top:18px">
+      <h3>🆕 Nuevos productos</h3>
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Nombre</label><input class="form-input" id="np-nombre" type="text" placeholder="Nombre del producto"></div>
+        <div class="form-group form-full"><label>Descripción</label><input class="form-input" id="np-desc" type="text" placeholder="Ficha breve"></div>
+        <div class="form-group"><label>Canal</label>
+          <select class="form-input" id="np-canal"><option value="vinoteca">Vinotecas</option><option value="todos">Todos</option></select>
+        </div>
+        <div class="form-group"><label>Imagen</label><input class="form-input" id="np-img" type="file" accept="image/*"></div>
+        <div class="form-group form-full"><label>PDF / ficha técnica</label><input class="form-input" id="np-pdf" type="file" accept="application/pdf"></div>
+      </div>
+      <button class="btn-form-save" style="margin-top:14px" onclick="guardarNuevoProducto()">Guardar producto</button>
+    </div>
+    <div id="np-list"><div class="spinner-center" style="text-align:center;padding:20px;color:var(--text3)">Cargando…</div></div>
+
+    <!-- C) Partners con bodegas -->
+    <div class="fechas-form" style="margin-top:18px">
+      <h3>🏆 Partners con bodegas</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Bodega</label><input class="form-input" id="pb-bodega" type="text" placeholder="Ej: Doña Paula"></div>
+        <div class="form-group"><label>Tipo</label>
+          <select class="form-input" id="pb-tipo">
+            <option value="degustacion">Degustación</option>
+            <option value="capacitacion">Capacitación</option>
+            <option value="visita">Visita a bodega</option>
+            <option value="evento">Evento</option>
+          </select>
+        </div>
+        <div class="form-group form-full"><label>Nombre del beneficio</label><input class="form-input" id="pb-nombre" type="text" placeholder="Ej: Cata guiada para clientes"></div>
+        <div class="form-group form-full"><label>Descripción</label><input class="form-input" id="pb-desc" type="text"></div>
+        <div class="form-group"><label>Canal</label>
+          <select class="form-input" id="pb-canal"><option value="vinoteca">Vinotecas</option><option value="todos">Todos</option></select>
+        </div>
+        <div class="form-group"><label>Imagen</label><input class="form-input" id="pb-img" type="file" accept="image/*"></div>
+        <div class="form-group form-full"><label>PDF</label><input class="form-input" id="pb-pdf" type="file" accept="application/pdf"></div>
+      </div>
+      <button class="btn-form-save" style="margin-top:14px" onclick="guardarPartner()">Guardar partner</button>
+    </div>
+    <div id="pb-list"><div class="spinner-center" style="text-align:center;padding:20px;color:var(--text3)">Cargando…</div></div>
+
+    <!-- D) Incorporaciones vinoteca -->
+    <div class="fechas-form" style="margin-top:18px">
+      <h3>🔄 Incorporaciones de vinoteca</h3>
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Nombre</label><input class="form-input" id="iv-nombre" type="text" placeholder="Ej: Línea Reserva"></div>
+        <div class="form-group form-full"><label>Descripción</label><input class="form-input" id="iv-desc" type="text"></div>
+        <div class="form-group"><label>Condición</label><input class="form-input" id="iv-cond" type="text" placeholder="Ej: 1+1, 1+2 Peñaflor"></div>
+        <div class="form-group form-full"><label>Beneficios</label><input class="form-input" id="iv-benef" type="text"></div>
+        <div class="form-group"><label>Imagen</label><input class="form-input" id="iv-img" type="file" accept="image/*"></div>
+        <div class="form-group form-full"><label>PDF</label><input class="form-input" id="iv-pdf" type="file" accept="application/pdf"></div>
+      </div>
+      <button class="btn-form-save" style="margin-top:14px" onclick="guardarIncorporacion()">Guardar incorporación</button>
+    </div>
+    <div id="iv-list"><div class="spinner-center" style="text-align:center;padding:20px;color:var(--text3)">Cargando…</div></div>
+
+    <!-- E) Acciones de isla / exhibiciones -->
+    <div class="fechas-form" style="margin-top:18px">
+      <h3>🏝️ Isla / Exhibiciones especiales</h3>
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Nombre</label><input class="form-input" id="ai-nombre" type="text" placeholder="Ej: Punta de góndola verano"></div>
+        <div class="form-group form-full"><label>Descripción</label><input class="form-input" id="ai-desc" type="text"></div>
+        <div class="form-group"><label>Condición</label><input class="form-input" id="ai-cond" type="text"></div>
+        <div class="form-group"><label>Imagen</label><input class="form-input" id="ai-img" type="file" accept="image/*"></div>
+        <div class="form-group form-full"><label>PDF</label><input class="form-input" id="ai-pdf" type="file" accept="application/pdf"></div>
+      </div>
+      <button class="btn-form-save" style="margin-top:14px" onclick="guardarIslaAccion()">Guardar acción de isla</button>
+    </div>
+    <div id="ai-list"><div class="spinner-center" style="text-align:center;padding:20px;color:var(--text3)">Cargando…</div></div>
+
+  </div>
+
+</div>
+
+<div id="modal-overlay" onclick="cerrarModal(event)">
+  <div class="modal" id="modal-content">
+    <div class="modal-top">
+      <div><h3 id="m-titulo">Detalle de visita</h3><div class="modal-top-meta" id="m-meta"></div></div>
+      <button class="modal-close" onclick="cerrarModalBtn()">✕</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+  </div>
+</div>
+
+  <!-- TAB: Gestión de Checklists -->
+  <div id="tab-checklists" style="display:none;padding:14px">
+
+    <!-- Banner SQL -->
+    <div id="cl-sql-banner" style="background:#FFF8E7;border:1px solid #CBB86A;border-left:4px solid #CBB86A;border-radius:10px;padding:13px 15px;margin-bottom:14px;font-size:12px;color:#5C3D00">
+      <div style="font-weight:700;margin-bottom:6px">⚙️ Paso único — Ejecutar en Supabase SQL Editor para crear las tablas de checklists:</div>
+      <code id="cl-sql-code" style="display:block;background:#FFF3CD;border-radius:6px;padding:8px 10px;font-size:10px;font-family:'DM Mono',monospace;line-height:1.7;white-space:pre-wrap;user-select:all">create table if not exists checklist_secciones (
+  id uuid default gen_random_uuid() primary key,
+  canal text not null,
+  codigo text,
+  nombre text not null,
+  descripcion text,
+  icono text default '📋',
+  icono_bg text default '#EAF2FB',
+  icono_color text default '#1A5C9A',
+  especial text,
+  intro text,
+  orden integer not null default 0,
+  activa boolean default true,
+  created_at timestamptz default now()
+);
+create table if not exists checklist_items (
+  id uuid default gen_random_uuid() primary key,
+  seccion_id uuid references checklist_secciones(id) on delete cascade,
+  texto text not null,
+  descripcion text,
+  orden integer not null default 0,
+  activo boolean default true,
+  created_at timestamptz default now()
+);
+create table if not exists checklist_planes (
+  id uuid default gen_random_uuid() primary key,
+  seccion_id uuid references checklist_secciones(id) on delete cascade,
+  nombre text not null,
+  proveedor text,
+  condicion text,
+  descripcion text,
+  lineas_participantes text[],
+  fecha_inicio date,
+  fecha_fin date,
+  activo boolean default true,
+  created_at timestamptz default now()
+);
+alter table checklist_secciones enable row level security;
+alter table checklist_items enable row level security;
+alter table checklist_planes enable row level security;
+create policy if not exists "anon_all_cl_sec"   on checklist_secciones for all using (true) with check (true);
+create policy if not exists "anon_all_cl_items" on checklist_items     for all using (true) with check (true);
+create policy if not exists "anon_all_cl_plan"  on checklist_planes    for all using (true) with check (true);
+alter table checklist_planes add column if not exists pdf_url text;</code>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button onclick="copiarSqlChecklist()" style="padding:4px 12px;background:#CBB86A;color:#1F447F;border:none;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer">📋 Copiar SQL</button>
+        <!-- DESACTIVADO: este botón inserta duplicados (sin dedup real) y rompe la estructura madre/hija.
+             No reactivar sin reescribir la función con upsert por (canal,codigo) y parent_id. -->
+        <button id="cl-migrar-btn" disabled title="Deshabilitado: inserta duplicados y rompe la estructura madre/hija. No usar." style="padding:4px 12px;background:#9aa3ad;color:#fff;border:none;border-radius:20px;font-size:11px;font-weight:700;cursor:not-allowed;opacity:.5">⛔ Migrar (deshabilitado)</button>
+        <span id="cl-migrar-status" style="font-size:11px;color:#2D6A4F;font-weight:600;align-self:center"></span>
+        <button onclick="document.getElementById('cl-sql-banner').style.display='none'" style="padding:4px 12px;background:none;border:1.5px solid #CBB86A;color:#5C3D00;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;margin-left:auto">✕ Ocultar</button>
+      </div>
+    </div>
+
+    <!-- Selector de canal -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="cl-canal-btn active" id="clbtn-restaurante" onclick="selCanal('restaurante')">🍽 Restaurantes</button>
+      <button class="cl-canal-btn"        id="clbtn-vinoteca"    onclick="selCanal('vinoteca')">🍷 Vinotecas</button>
+      <button class="cl-canal-btn"        id="clbtn-hotel"       onclick="selCanal('hotel')">🏨 Hoteles</button>
+      <button class="cl-canal-btn"        id="clbtn-bar"         onclick="selCanal('bar')">🍺 Bares</button>
+    </div>
+
+    <!-- Botón agregar sección -->
+    <button onclick="clNuevaSeccion()" style="width:100%;padding:10px;background:rgba(31,68,127,.07);border:1.5px dashed rgba(31,68,127,.3);border-radius:10px;font-family:system-ui,sans-serif;font-size:12px;font-weight:600;color:#1F447F;cursor:pointer;margin-bottom:12px">
+      ➕ Agregar nueva sección
+    </button>
+
+    <!-- Lista de secciones -->
+    <div id="cl-secciones-list"></div>
+  </div>
+
+  <!-- Modal edición checklist (sección / ítem / plan) -->
+  <div id="cl-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.55);overflow-y:auto;padding:20px 14px">
+    <div style="background:#fff;border-radius:14px;max-width:480px;margin:0 auto;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.25)">
+      <div style="background:#1F447F;border-bottom:3px solid #CBB86A;padding:14px 16px;display:flex;align-items:center;justify-content:space-between">
+        <span id="cl-modal-title" style="font-size:14px;font-weight:700;color:#fff"></span>
+        <button onclick="clCerrarModal()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:8px;font-size:16px;cursor:pointer">✕</button>
+      </div>
+      <div id="cl-modal-body" style="padding:16px"></div>
+      <div style="padding:0 16px 16px;display:flex;gap:8px">
+        <button id="cl-modal-save" onclick="clGuardarModal()" style="flex:1;padding:11px;background:#1F447F;color:#fff;border:none;border-radius:8px;font-family:system-ui,sans-serif;font-size:13px;font-weight:700;cursor:pointer">💾 Guardar</button>
+        <button onclick="clCerrarModal()" style="padding:11px 16px;background:#f7f5f2;border:1.5px solid rgba(31,68,127,.2);color:#1F447F;border-radius:8px;font-family:system-ui,sans-serif;font-size:12px;cursor:pointer">Cancelar</button>
+      </div>
+      <div id="cl-modal-status" style="padding:0 16px 12px;font-size:12px;color:#2D6A4F;font-weight:600;text-align:center"></div>
+    </div>
+  </div>
+
+  <!-- TAB: Reseteo de datos -->
+  <div id="tab-reset" style="display:none">
+    <div class="reset-section">
+
+      <div class="reset-warning-banner">
+        <span class="reset-warning-icon">⚠️</span>
+        <div class="reset-warning-text">
+          <strong>Zona de riesgo — acciones irreversibles</strong>
+          Todas las operaciones de esta sección eliminan datos de forma permanente. Cada acción requiere escribir <code style="background:#fee2e2;padding:1px 5px;border-radius:4px;font-weight:700">CONFIRMAR</code> para ejecutarse.
+        </div>
+      </div>
+
+      <!-- Card 1: Resetear vendedor específico -->
+      <div class="reset-card">
+        <div class="reset-card-title">⚠️ Resetear vendedor específico</div>
+        <div class="reset-card-desc">Elimina todas las <strong>visitas</strong>, <strong>compromisos</strong> y <strong>registros del torneo</strong> del vendedor seleccionado. El vendedor y sus clientes no se eliminan.</div>
+        <select class="reset-card-sel" id="reset-vend-sel">
+          <option value="">— Seleccioná un vendedor —</option>
+        </select>
+        <button class="btn-reset-action" onclick="iniciarReset('vendedor')">
+          ⚠️ Resetear este vendedor
+        </button>
+      </div>
+
+      <!-- Card 2: Resetear todos los vendedores -->
+      <div class="reset-card">
+        <div class="reset-card-title">⚠️ Resetear todos los vendedores</div>
+        <div class="reset-card-desc">Elimina <strong>todas las visitas</strong>, <strong>todos los compromisos</strong> y <strong>todos los registros del torneo</strong> de todos los vendedores. Deja la app en estado inicial.</div>
+        <button class="btn-reset-action" onclick="iniciarReset('todos')">
+          ⚠️ Resetear todos los vendedores
+        </button>
+      </div>
+
+      <!-- Card 3: Resetear solo el torneo -->
+      <div class="reset-card">
+        <div class="reset-card-title">⚠️ Resetear solo el torneo Doña Paula</div>
+        <div class="reset-card-desc">Elimina únicamente los <strong>registros de torneo_registros</strong>. Las visitas y compromisos no se tocan. El marcador del torneo vuelve a 0 para todos.</div>
+        <button class="btn-reset-action" onclick="iniciarReset('torneo')">
+          ⚠️ Poner torneo en 0
+        </button>
+      </div>
+
+      <!-- Card 4: Limpiar compromisos ejecutados -->
+      <div class="reset-card">
+        <div class="reset-card-title">⚠️ Eliminar compromisos ejecutados</div>
+        <div class="reset-card-desc">Elimina solo los compromisos con estado <strong>"ejecutado"</strong>. Los pendientes y atrasados se mantienen.</div>
+        <button class="btn-reset-action" onclick="iniciarReset('compromisos_ejecutados')">
+          ⚠️ Limpiar ejecutados
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- cierra #app -->
+
+<!-- Modal de confirmación reset -->
+<div id="reset-modal">
+  <div class="reset-modal-box">
+    <div class="reset-modal-header">
+      <div class="reset-modal-title">⚠️ Confirmar eliminación</div>
+      <div class="reset-modal-subtitle" id="reset-modal-subtitle"></div>
+    </div>
+    <div class="reset-modal-body">
+      <div class="reset-modal-count" id="reset-modal-count">Calculando registros…</div>
+      <span class="reset-modal-label">Escribí <strong>CONFIRMAR</strong> para ejecutar esta acción</span>
+      <input class="reset-modal-input" id="reset-confirm-input" type="text"
+             placeholder="CONFIRMAR" autocomplete="off" autocorrect="off"
+             oninput="onResetInput(this)">
+      <div class="reset-modal-btns">
+        <button class="btn-reset-cancel" onclick="cerrarResetModal()">Cancelar</button>
+        <button class="btn-reset-confirm" id="btn-reset-confirm" disabled onclick="ejecutarReset()">
+          Eliminar definitivamente
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script src="_sucursales.js"></script>
+<script src="_checklist-data.js"></script>
+<script src="_acciones-render.js"></script>
+<script>
+  // Entrada por perfil (sin contraseña). Guarda el perfil elegido.
+  function entrarPanel(perfil) {
+    sessionStorage.setItem('admin_auth','1');
+    sessionStorage.setItem('admin_perfil', perfil);   // 'comercial' | 'marketing'
+    if (perfil === 'comercial') { window.location.href = 'admin-comercial.html'; return; }
+    if (perfil === 'marketing') { window.location.href = 'admin-marketing.html'; return; }
+    // Fallback → panel clásico
+    mostrarPanelClasico('visitas');
+  }
+  function mostrarPanelClasico(tab) {
+    document.getElementById('welcome').style.display='none';
+    document.getElementById('app').style.display='block';
+    cargarDatos();
+    if (tab) { try { showAdminTab(tab); adminTabsLoaded[tab] = true; } catch(e){} }
+  }
+  function cerrarAdmin() {
+    sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil');
+    window.location.href='index.html';
+  }
+
+  // Enlaces directos desde el panel comercial (?tab=acciones, etc.) o sesión ya iniciada → saltear bienvenida
+  (function(){
+    const tabPedida = new URLSearchParams(location.search).get('tab');
+    if (tabPedida || sessionStorage.getItem('admin_auth')==='1') {
+      sessionStorage.setItem('admin_auth','1');
+      document.getElementById('welcome').style.display='none';
+      document.getElementById('app').style.display='block';
+      if (tabPedida) window.addEventListener('load', ()=>{ try{ showAdminTab(tabPedida); adminTabsLoaded[tabPedida]=true; }catch(e){} });
+    }
+  })();
+
+  let todasVisitas=[], visitasFiltradas=[];
+
+  async function cargarDatos() {
+    const {data,error} = await sb.from('visitas').select(`
+      id,fecha,porcentaje_total,observaciones,progreso,
+      hora_inicio,hora_fin,duracion_minutos,
+      vendedores(id,nombre,codigo,zona),
+      clientes(id,nombre,codigo_cliente,tipo,direccion)
+    `).order('fecha',{ascending:false});
+
+    if(error||!data){
+      document.getElementById('tbl-body').innerHTML=`<tr class="empty-row"><td colspan="5">Error al cargar datos.</td></tr>`;return;
+    }
+    todasVisitas=data; poblarFiltros(data); calcStats(data); filtrar();
+  }
+
+  function poblarFiltros(data) {
+    const vends=[...new Map(data.map(v=>[v.vendedores?.id,v.vendedores]).filter(([id])=>id)).values()];
+    const tipos=[...new Set(data.map(v=>v.clientes?.tipo).filter(Boolean))];
+    const sv=document.getElementById('f-vendedor');
+    vends.forEach(ve=>{const o=document.createElement('option');o.value=ve.id;o.textContent=ve.nombre;sv.appendChild(o);});
+    const st=document.getElementById('f-tipo');
+    tipos.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=capitalize(t);st.appendChild(o);});
+  }
+
+  function calcStats(data) {
+    document.getElementById('st-visitas').textContent=data.length;
+    const prom=data.length?Math.round(data.reduce((s,v)=>s+(v.porcentaje_total||0),0)/data.length):0;
+    document.getElementById('st-prom').textContent=prom+'%';
+    document.getElementById('st-clientes').textContent=new Set(data.map(v=>v.cliente_id)).size;
+    document.getElementById('st-vends').textContent=new Set(data.map(v=>v.vendedor_id)).size;
+  }
+
+  function filtrar() {
+    const fS=document.getElementById('f-sucursal').value;
+    const fV=document.getElementById('f-vendedor').value, fT=document.getElementById('f-tipo').value;
+    const fD=document.getElementById('f-desde').value,   fH=document.getElementById('f-hasta').value;
+    visitasFiltradas=todasVisitas.filter(v=>{
+      if(fS&&getSucursal(v.vendedores?.codigo)!==fS) return false;
+      if(fV&&v.vendedores?.id!==fV) return false;
+      if(fT&&v.clientes?.tipo!==fT) return false;
+      const f=v.fecha?.slice(0,10);
+      if(fD&&f<fD) return false;
+      if(fH&&f>fH) return false;
+      return true;
+    });
+    renderTabla(visitasFiltradas);
+    document.getElementById('tbl-count').textContent=`${visitasFiltradas.length} visita${visitasFiltradas.length!==1?'s':''}`;
+  }
+  function limpiarFiltros(){['f-sucursal','f-vendedor','f-tipo','f-desde','f-hasta'].forEach(id=>document.getElementById(id).value='');filtrar();}
+
+  function durBadge(min) {
+    if (min === null || min === undefined) return '<span style="color:var(--text3);font-size:11px">–</span>';
+    if (min < 5)  return `<span style="background:#FDF5E0;color:#8A5E00;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px">⚠️ ${min} min</span>`;
+    if (min > 60) return `<span style="background:rgba(31,68,127,.1);color:var(--azul);font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px">⏱️ ${min} min</span>`;
+    return `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)">${min} min</span>`;
+  }
+
+  function renderTabla(data) {
+    const tbody=document.getElementById('tbl-body');
+    if(!data.length){tbody.innerHTML=`<tr class="empty-row"><td colspan="6">No hay visitas con esos filtros.</td></tr>`;return;}
+    tbody.innerHTML=data.map((v,i)=>{
+      const pct=v.porcentaje_total||0;
+      return `<tr class="data-row" onclick="abrirModal(${i})">
+        <td class="td-vendedor">${esc(v.vendedores?.nombre||'–')}</td>
+        <td>${esc(v.clientes?.nombre||'–')}</td>
+        <td><span class="td-tipo">${esc(v.clientes?.tipo||'–')}</span></td>
+        <td class="td-fecha">${fmtFechaLarga(v.fecha)}</td>
+        <td><div class="pct-badge"><div class="pct-mini-bar"><div class="pct-mini-fill" style="width:${pct}%"></div></div><span class="pct-num">${pct}%</span></div></td>
+        <td style="white-space:nowrap">${durBadge(v.duracion_minutos)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function abrirModal(idx) {
+    const v=visitasFiltradas[idx]; if(!v) return;
+    const pct=v.porcentaje_total||0;
+    document.getElementById('m-titulo').textContent=`${v.clientes?.nombre||'Cliente'} — ${fmtFechaLarga(v.fecha)}`;
+    document.getElementById('m-meta').textContent=`Vendedor: ${v.vendedores?.nombre||'–'} · ${capitalize(v.clientes?.tipo||'')}`;
+    document.getElementById('m-body').innerHTML='<div style="text-align:center;padding:32px;color:var(--text3)">Cargando…</div>';
+    document.getElementById('modal-overlay').classList.add('open');
+
+    // Usar IDs del join — vendedor_id/cliente_id no están en el select explícito
+    const clienteId  = v.clientes?.id;
+    const vendedorId = v.vendedores?.id;
+    const cl=getChecklist(v.clientes?.tipo), prog=v.progreso||{};
+
+    // Cargar fotos + historial en paralelo
+    const [torneoRes, vidRes, compFotosRes, histRes] = await Promise.all([
+      sb.from('torneo_registros').select('foto_url,tipo,puntos,detalle')
+        .eq('cliente_id', clienteId).eq('vendedor_id', vendedorId)
+        .not('foto_url','is',null).order('created_at',{ascending:false}).limit(20),
+      sb.from('acuerdos_vidriera').select('foto_url,bodega')
+        .eq('cliente_id', clienteId).not('foto_url','is',null),
+      sb.from('compromisos').select('foto_evidencia_url,descripcion')
+        .eq('cliente_id', clienteId).eq('vendedor_id', vendedorId)
+        .not('foto_evidencia_url','is',null).order('created_at',{ascending:false}).limit(10),
+      sb.from('visitas').select('id,fecha,porcentaje_total,vendedores(nombre)')
+        .eq('cliente_id', clienteId).order('fecha',{ascending:false}).limit(8),
+    ]);
+
+    // Consolidar todas las fotos
+    const todasFotos = [
+      ...(torneoRes.data||[]).map(r=>({ url:r.foto_url, label:`${r.tipo} · +${r.puntos}pts` })),
+      ...(vidRes.data||[]).map(r=>({ url:r.foto_url, label:`Vidriera ${r.bodega==='dona_paula'?'Doña Paula':r.bodega}` })),
+      ...(compFotosRes.data||[]).map(r=>({ url:r.foto_evidencia_url, label:r.descripcion })),
+    ];
+
+    const fotosHtml = todasFotos.length ? `
+      <div style="padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px">📷 Evidencias (${todasFotos.length})</div>
+        <div class="foto-grid">
+          ${todasFotos.map(f=>`
+            <div class="foto-thumb" onclick="window.open('${esc(f.url)}','_blank')" title="${esc(f.label)}">
+              <img src="${esc(f.url)}" loading="lazy" onerror="this.parentElement.style.display='none'">
+              <div class="foto-thumb-label">${esc(f.label)}</div>
+            </div>`).join('')}
+        </div>
+      </div>` : '';
+
+    // Acciones mensuales vigentes para el tipo de cliente
+    const hoy = new Date().toISOString().slice(0,10);
+    const { data: accionesData } = await sb.from('acciones_mensuales').select('*')
+      .eq('activa', true).lte('fecha_inicio', hoy).gte('fecha_fin', hoy);
+    const TIPO_CANAL = { restaurante:'restaurantes', vinoteca:'vinotecas', hotel:'hoteles', evento:'eventos', bar:'bar', disco:'discos', autoservicio:'autoservicios' };
+    const canalCliente = TIPO_CANAL[v.clientes?.tipo] || v.clientes?.tipo || '';
+    const accionesFilt = (accionesData||[]).filter(a =>
+      (a.aplica_a||[]).some(x => x === canalCliente || x === 'todos')
+    );
+    const accionesHtml = accionesFilt.length
+      ? `<div style="padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--border)">
+           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:4px">⭐ Acciones mensuales activas</div>
+           ${renderAccionesGrupo(accionesFilt)}
+         </div>`
+      : '';
+
+    const obsGenHtml=v.observaciones?`<div class="modal-obs-gen"><span class="modal-obs-gen-label">Observaciones generales</span>${esc(v.observaciones)}</div>`:'';
+
+    // Acompañantes
+    const ACOMP_LBL = { supervisor:'👤 Supervisor', lucia_caff:'👤 Lucía Kaf', facu_caff:'👤 Facu Kaf' };
+    const acompList = prog.acompanantes || [];
+    const acompHtml = acompList.length ? `
+      <div style="padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px">👥 Acompañantes en la visita</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${acompList.map(a=>`<span style="background:#EAF4EE;color:#1B4332;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${ACOMP_LBL[a]||esc(a)}</span>`).join('')}
+        </div>
+      </div>` : '';
+
+    const seccionesHtml=cl.secciones.map(sec=>{
+      const sp=prog[sec.id]||{}, checks=sp.checks||[], done=checks.filter(Boolean).length;
+      return `<div class="modal-sec">
+        <div class="modal-sec-header"><span class="modal-sec-name">${sec.icono} ${esc(sec.titulo)}</span><span class="modal-sec-pct">${done}/${sec.items.length}</span></div>
+        ${sec.items.map((item,j)=>`<div class="modal-check"><div class="modal-check-dot ${checks[j]?'dot-ok':'dot-no'}"></div><span style="${checks[j]?'':'opacity:.55'}">${esc(item.texto)}</span></div>`).join('')}
+        ${sp.obs?`<div class="modal-obs">"${esc(sp.obs)}"</div>`:''}
+      </div>`;
+    }).join('');
+    const hist=histRes.data||[];
+    const histHtml=hist.length?`<div class="hist-client-section"><div class="hist-client-label">Historial completo — ${esc(v.clientes?.nombre||'')}</div>${hist.map(h=>`<div class="hist-row"><span class="hist-row-fecha">${fmtFechaLarga(h.fecha)}</span><span class="hist-row-vend">${esc(h.vendedores?.nombre||'')}</span><span class="hist-row-pct">${h.porcentaje_total||0}%</span></div>`).join('')}</div>`:'';
+
+    // Duración y horarios
+    const durMin = v.duracion_minutos;
+    const durHtml = (v.hora_inicio || v.hora_fin || durMin !== undefined) ? `
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+        ${v.hora_inicio ? `<div style="background:var(--surface2);border-radius:8px;padding:7px 12px;font-size:11px">
+          <div style="color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Inicio</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--azul)">${fmtFechaLarga(v.hora_inicio)}</div>
+        </div>` : ''}
+        ${v.hora_fin ? `<div style="background:var(--surface2);border-radius:8px;padding:7px 12px;font-size:11px">
+          <div style="color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Fin</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--azul)">${fmtFechaLarga(v.hora_fin)}</div>
+        </div>` : ''}
+        ${durMin !== null && durMin !== undefined ? `<div style="background:var(--surface2);border-radius:8px;padding:7px 12px;font-size:11px;display:flex;align-items:center;gap:8px">
+          <div>
+            <div style="color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Duración</div>
+            <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:var(--azul)">${durMin} min</div>
+          </div>
+          ${durMin < 5 ? '<span style="background:#FDF5E0;color:#8A5E00;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;align-self:center">⚠️ Visita corta</span>' : ''}
+          ${durMin > 60 ? '<span style="background:rgba(31,68,127,.1);color:var(--azul);font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;align-self:center">⏱️ Visita extensa</span>' : ''}
+        </div>` : ''}
+      </div>` : '';
+
+    document.getElementById('m-body').innerHTML=`
+      <div class="modal-pct-row"><span class="modal-pct-big">${pct}%</span><div><div class="modal-pct-bar"><div class="modal-pct-fill" style="width:${pct}%"></div></div><div class="modal-pct-label">completado</div></div></div>
+      ${durHtml}${fotosHtml}${accionesHtml}${obsGenHtml}${acompHtml}${seccionesHtml}${histHtml}`;
+  }
+
+  function cerrarModal(e){if(e.target===document.getElementById('modal-overlay'))cerrarModalBtn();}
+  function cerrarModalBtn(){document.getElementById('modal-overlay').classList.remove('open');}
+
+  function exportarCSV() {
+    const rows=[['Vendedor','Codigo Vendedor','Cliente','Codigo Cliente','Tipo','Direccion','Fecha','% Completado','Observaciones']];
+    visitasFiltradas.forEach(v=>rows.push([v.vendedores?.nombre||'',v.vendedores?.codigo||'',v.clientes?.nombre||'',v.clientes?.codigo_cliente||'',v.clientes?.tipo||'',v.clientes?.direccion||'',v.fecha?new Date(v.fecha).toLocaleString('es-AR'):'',v.porcentaje_total||0,v.observaciones||'']));
+    const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`visitas_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function fmtFechaLarga(iso){return new Date(iso).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+  function capitalize(s){return String(s).charAt(0).toUpperCase()+String(s).slice(1);}
+  function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  // ── Reseteo de datos ──────────────────────────────────────────────────────────
+  let resetTipoActivo = null;
+
+  async function cargarVendedoresReset() {
+    const { data } = await sb.from('vendedores').select('id,nombre,codigo').order('nombre');
+    const sel = document.getElementById('reset-vend-sel');
+    if (!sel || !data) return;
+    data.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.id;
+      o.textContent = `${v.nombre} (${v.codigo})`;
+      sel.appendChild(o);
+    });
+  }
+
+  async function iniciarReset(tipo) {
+    resetTipoActivo = tipo;
+
+    // Calcular cuántos registros se van a borrar
+    let counts = {};
+    let subtitulo = '';
+
+    if (tipo === 'vendedor') {
+      const vendId = document.getElementById('reset-vend-sel').value;
+      if (!vendId) { alert('Seleccioná un vendedor primero.'); return; }
+      const vNombre = document.getElementById('reset-vend-sel').selectedOptions[0]?.text || '';
+      const [v, c, t] = await Promise.all([
+        sb.from('visitas').select('id', { count:'exact', head:true }).eq('vendedor_id', vendId),
+        sb.from('compromisos').select('id', { count:'exact', head:true }).eq('vendedor_id', vendId),
+        sb.from('torneo_registros').select('id', { count:'exact', head:true }).eq('vendedor_id', vendId),
+      ]);
+      counts = { visitas: v.count||0, compromisos: c.count||0, torneo: t.count||0 };
+      subtitulo = `Vendedor: ${vNombre}`;
+    } else if (tipo === 'todos') {
+      const [v, c, t] = await Promise.all([
+        sb.from('visitas').select('id', { count:'exact', head:true }),
+        sb.from('compromisos').select('id', { count:'exact', head:true }),
+        sb.from('torneo_registros').select('id', { count:'exact', head:true }),
+      ]);
+      counts = { visitas: v.count||0, compromisos: c.count||0, torneo: t.count||0 };
+      subtitulo = 'Todos los vendedores';
+    } else if (tipo === 'torneo') {
+      const t = await sb.from('torneo_registros').select('id', { count:'exact', head:true });
+      counts = { torneo: t.count||0 };
+      subtitulo = 'Solo torneo Doña Paula';
+    } else if (tipo === 'compromisos_ejecutados') {
+      const c = await sb.from('compromisos').select('id', { count:'exact', head:true }).eq('estado', 'ejecutado');
+      counts = { compromisos_ejecutados: c.count||0 };
+      subtitulo = 'Compromisos con estado "ejecutado"';
+    }
+
+    // Armar texto de conteo
+    const lineas = Object.entries(counts).map(([k, n]) => {
+      const labels = { visitas:'visitas', compromisos:'compromisos', torneo:'registros de torneo', compromisos_ejecutados:'compromisos ejecutados' };
+      return `<strong>${n}</strong> ${labels[k] || k}`;
+    }).join(' · ');
+    const total = Object.values(counts).reduce((a,b) => a+b, 0);
+
+    document.getElementById('reset-modal-subtitle').textContent = subtitulo;
+    document.getElementById('reset-modal-count').innerHTML =
+      `Se van a eliminar permanentemente: ${lineas}<br><strong style="font-size:15px">Total: ${total} registros</strong>`;
+    document.getElementById('reset-confirm-input').value = '';
+    document.getElementById('btn-reset-confirm').disabled = true;
+    document.getElementById('reset-modal').classList.add('open');
+  }
+
+  function onResetInput(el) {
+    const ok = el.value.trim().toUpperCase() === 'CONFIRMAR';
+    el.classList.toggle('ok', ok);
+    document.getElementById('btn-reset-confirm').disabled = !ok;
+  }
+
+  function cerrarResetModal() {
+    document.getElementById('reset-modal').classList.remove('open');
+    document.getElementById('reset-confirm-input').value = '';
+    document.getElementById('btn-reset-confirm').disabled = true;
+    resetTipoActivo = null;
+  }
+
+  async function ejecutarReset() {
+    if (!resetTipoActivo) return;
+    const btn = document.getElementById('btn-reset-confirm');
+    btn.disabled = true;
+    btn.textContent = 'Eliminando…';
+
+    try {
+      if (resetTipoActivo === 'vendedor') {
+        const vendId = document.getElementById('reset-vend-sel').value;
+        await Promise.all([
+          sb.from('visitas').delete().eq('vendedor_id', vendId),
+          sb.from('compromisos').delete().eq('vendedor_id', vendId),
+          sb.from('torneo_registros').delete().eq('vendedor_id', vendId),
+        ]);
+      } else if (resetTipoActivo === 'todos') {
+        await Promise.all([
+          sb.from('visitas').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+          sb.from('compromisos').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+          sb.from('torneo_registros').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+        ]);
+      } else if (resetTipoActivo === 'torneo') {
+        await sb.from('torneo_registros').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } else if (resetTipoActivo === 'compromisos_ejecutados') {
+        await sb.from('compromisos').delete().eq('estado', 'ejecutado');
+      }
+
+      cerrarResetModal();
+      // Recargar datos de visitas si está activo
+      todasVisitas = []; visitasFiltradas = [];
+      document.getElementById('tbl-body').innerHTML = '<tr class="loading-row"><td colspan="5">Recargando…</td></tr>';
+      adminTabsLoaded = {};
+      cargarDatos();
+      showToastAdmin('✓ Datos eliminados correctamente');
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = 'Eliminar definitivamente';
+      alert('Error al eliminar: ' + e.message);
+    }
+  }
+
+  function showToastAdmin(msg) {
+    // Toast simple sin elemento dedicado — usar alert mejorado
+    const div = document.createElement('div');
+    div.textContent = msg;
+    div.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1B4332;color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:999;box-shadow:0 6px 24px rgba(0,0,0,.25)';
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 3000);
+  }
+
+  // ── Admin tabs ─────────────────────────────────────────────────────────────────
+  let adminTabsLoaded = {};
+  function showAdminTab(tab) {
+    ['visitas','compromisos','acciones','fechas','vtadmin','checklists','reset'].forEach(t => {
+      const el = document.getElementById(`tab-${t}`);
+      if (el) el.style.display = t === tab ? 'block' : 'none';
+      const btn = document.getElementById(`atab-${t}`);
+      if (btn) btn.classList.toggle('active', t === tab);
+    });
+    const mainEl = document.querySelector('.main');
+    if (mainEl) mainEl.style.display = tab === 'visitas' ? 'block' : 'none';
+    if (!adminTabsLoaded[tab]) { adminTabsLoaded[tab] = true; loadAdminTab(tab); }
+  }
+  function loadAdminTab(tab) {
+    if (tab === 'compromisos') cargarCompromisos();
+    if (tab === 'acciones')    cargarAccionesMensualesAdmin();
+    if (tab === 'fechas')      cargarAccionesFechas();
+    if (tab === 'vtadmin')     initVtAdmin();
+    if (tab === 'reset')       cargarVendedoresReset();
+    if (tab === 'checklists')  initChecklistAdmin();
+  }
+
+  // ── Compromisos admin ─────────────────────────────────────────────────────────
+  let todosCompromisos = [], compFiltrados = [];
+
+  async function cargarCompromisos() {
+    const HOY = new Date().toISOString().slice(0,10);
+    // Marcar atrasados
+    await sb.from('compromisos').update({ estado:'atrasado' })
+      .eq('estado','pendiente').lt('fecha_ejecucion', HOY);
+
+    const { data } = await sb.from('compromisos')
+      .select('*, vendedores(nombre,codigo), clientes(nombre,tipo)')
+      .order('fecha_ejecucion', { ascending: true });
+
+    todosCompromisos = data || [];
+
+    // Poblar filtro vendedor
+    const sv = document.getElementById('fc-vendedor');
+    const vends = [...new Map(todosCompromisos.map(c=>[c.vendedor_id, c.vendedores]).filter(([id])=>id)).values()];
+    vends.forEach(v=>{ const o=document.createElement('option');o.value=v?.nombre||'';o.textContent=v?.nombre||'';sv.appendChild(o);});
+
+    filtrarCompromisos();
+  }
+
+  function filtrarCompromisos() {
+    const fE = document.getElementById('fc-estado')?.value;
+    const fV = document.getElementById('fc-vendedor')?.value;
+    const fD = document.getElementById('fc-desde')?.value;
+    compFiltrados = todosCompromisos.filter(c => {
+      if (fE && c.estado !== fE) return false;
+      if (fV && c.vendedores?.nombre !== fV) return false;
+      if (fD && c.fecha_ejecucion < fD) return false;
+      return true;
+    });
+    renderCompromisos();
+  }
+
+  function renderCompromisos() {
+    const tbody = document.getElementById('comp-tbl-body');
+    document.getElementById('comp-count').textContent = `${compFiltrados.length} compromisos`;
+    const HOY = new Date().toISOString().slice(0,10);
+    if (!compFiltrados.length) {
+      tbody.innerHTML=`<tr class="empty-row"><td colspan="6">Sin compromisos.</td></tr>`;return;
+    }
+    tbody.innerHTML = compFiltrados.map(c => {
+      const atrasado = c.estado === 'atrasado';
+      const bMap  = { pendiente:'est-pendiente', ejecutado:'est-ejecutado', atrasado:'est-atrasado' };
+      const lMap  = { pendiente:'Pendiente', ejecutado:'Ejecutado ✓', atrasado:'Atrasado ⚠️' };
+      return `<tr class="${atrasado?'atrasado-row':''}">
+        <td>${esc(c.vendedores?.nombre||'–')}</td>
+        <td>${esc(c.clientes?.nombre||'–')}</td>
+        <td><small>${esc(c.seccion)}</small></td>
+        <td style="max-width:200px;white-space:normal;font-size:12px">${esc(c.descripcion)}</td>
+        <td style="font-family:'DM Mono',monospace;white-space:nowrap">${c.fecha_ejecucion||'–'}</td>
+        <td><span class="badge-est ${bMap[c.estado]}">${lMap[c.estado]}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function limpiarFiltrosComp(){['fc-estado','fc-vendedor','fc-desde'].forEach(id=>document.getElementById(id).value='');filtrarCompromisos();}
+
+  function exportarCompromisos() {
+    const rows=[['Vendedor','Cliente','Sección','Descripción','Fecha ejecución','Estado']];
+    compFiltrados.forEach(c=>rows.push([c.vendedores?.nombre||'',c.clientes?.nombre||'',c.seccion,c.descripcion,c.fecha_ejecucion,c.estado]));
+    const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`compromisos_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  }
+
+  // ── Acciones Mensuales ────────────────────────────────────────────────────────
+  let amImgFile = null;
+  let emImgFile = null;
+  let emAccionActual = null; // objeto completo de la acción en edición
+
+  // ── Secciones de checklist por canal ──────────────────────────────────────
+  const AM_SECCIONES_CANAL = {
+    restaurantes: [
+      { value: 'general',              label: '⭐ Acciones Mensuales (general)' },
+      { value: 's1',                   label: '🔄 Acciones de Incorporación' },
+      { value: 's2',                   label: '⇄ Acciones de Rotación' },
+      { value: 's3',                   label: '📅 Fechas Especiales' },
+      { value: 's4',                   label: '🏷 Acciones de Precio' },
+      { value: 's6',                   label: '🍷 Aperitivos' },
+      { value: 's7',                   label: '🍸 Vino por Copa' },
+      { value: 's8',                   label: '☕ Café Segafreddo' },
+      { value: 's9',                   label: '📷 Acciones con Materiales' },
+      { value: 's10',                  label: '🏆 Partners con Bodegas' },
+    ],
+    vinotecas: [
+      { value: 'general',              label: '⭐ Acciones Mensuales (general)' },
+      { value: 'vt1',                  label: '🪟 Vidrieras' },
+      { value: 'vt2',                  label: '🧊 Productos de Heladera' },
+      { value: 'vt3',                  label: '🍷 Góndola de Vinos' },
+      { value: 'vt4',                  label: '🔄 Incorporaciones' },
+      { value: 'vt5',                  label: '🥃 Góndola Spirits' },
+      { value: 'vt6',                  label: '📦 Activaciones con Materiales' },
+      { value: 'vt7',                  label: '📅 Fechas Especiales' },
+      { value: 'vt8',                  label: '🏆 Partners con Bodegas' },
+    ],
+    bares: [
+      { value: 'general',              label: '⭐ Acciones Mensuales (general)' },
+      { value: 's1',                   label: '🔄 Incorporaciones' },
+      { value: 's6',                   label: '🍷 Aperitivos' },
+      { value: 's9',                   label: '📷 Materiales' },
+    ],
+    discos: [
+      { value: 'general',              label: '⭐ Acciones Mensuales (general)' },
+      { value: 's6',                   label: '🍷 Aperitivos' },
+      { value: 's9',                   label: '📷 Materiales' },
+    ],
+    hoteles: [
+      { value: 'general',              label: '⭐ Acciones Mensuales (general)' },
+      { value: 's1',                   label: '🔄 Incorporaciones' },
+      { value: 's3',                   label: '📅 Fechas Especiales' },
+    ],
+    eventos: [
+      { value: 'general',              label: '⭐ Acciones Mensuales (general)' },
+      { value: 's3',                   label: '📅 Fechas Especiales' },
+    ],
+  };
+
+  // Canal principal detectado desde aplica_a
+  function amDetectarCanal(groupId) {
+    const vals = [...document.querySelectorAll(`#${groupId} input:checked`)].map(i => i.value);
+    // Prioridad: restaurantes > vinotecas > bares > discos > hoteles > eventos
+    const orden = ['restaurantes','vinotecas','bares','discos','hoteles','eventos'];
+    for (const c of orden) { if (vals.includes(c)) return c; }
+    if (vals.includes('todos')) return 'restaurantes'; // default
+    return null;
+  }
+
+  function amActualizarSecciones(modalId) {
+    const esModal = !!modalId;
+    const groupId = esModal ? 'em-aplica-group' : 'am-aplica-group';
+    const selId   = esModal ? 'em-seccion-checklist' : 'am-seccion-checklist';
+    const sel = document.getElementById(selId);
+    if (!sel) return;
+    const canal   = amDetectarCanal(groupId);
+    const opciones = canal ? (AM_SECCIONES_CANAL[canal] || AM_SECCIONES_CANAL.restaurantes) : null;
+    const valorActual = sel.value;
+    sel.innerHTML = '<option value="">— Acciones Mensuales general (predeterminado) —</option>';
+    if (opciones) {
+      opciones.forEach(op => {
+        const o = document.createElement('option');
+        o.value = op.value; o.textContent = op.label;
+        if (op.value === valorActual) o.selected = true;
+        sel.appendChild(o);
+      });
+    } else {
+      sel.innerHTML = '<option value="">— Seleccioná primero el canal en "Aplica a" —</option>';
+    }
+  }
+
+  // Llamar amActualizarSecciones() después de cada toggleChkPill para el form nuevo
+  const _origToggleChkPill = typeof toggleChkPill !== 'undefined' ? null : null; // se parchea abajo
+
+  function copiarSqlBanner() {
+    const sql = document.getElementById('am-sql-code').textContent;
+    navigator.clipboard.writeText(sql).then(() => alert('SQL copiado al portapapeles. Pegalo en Supabase → SQL Editor.'));
+  }
+
+  function toggleVarietalesAdmin(on) {
+    document.getElementById('am-varietales').style.display = on ? 'block' : 'none';
+  }
+  function toggleChkPill(el) {
+    el.classList.toggle('checked', el.querySelector('input').checked);
+    // Actualizar selector de sección según el canal detectado
+    setTimeout(() => {
+      if (document.getElementById('am-seccion-checklist')) amActualizarSecciones();
+      if (document.getElementById('em-seccion-checklist')) amActualizarSecciones('modal');
+    }, 0);
+  }
+  function toggleChkPillTodos(el) {
+    const checked = el.querySelector('input').checked;
+    el.classList.toggle('checked', checked);
+    if (checked) {
+      const group = el.closest('.chk-group');
+      group.querySelectorAll('.chk-pill:not(:last-child)').forEach(p => {
+        p.querySelector('input').checked = false;
+        p.classList.remove('checked');
+      });
+    }
+  }
+  function onAmImgChange(e) {
+    amImgFile = e.target.files[0];
+    if (!amImgFile) return;
+    const prev = document.getElementById('am-img-preview');
+    prev.src = URL.createObjectURL(amImgFile); prev.style.display = 'block';
+    document.getElementById('am-upload-text').textContent = amImgFile.name;
+  }
+  function onEmImgChange(e) {
+    emImgFile = e.target.files[0];
+    if (!emImgFile) return;
+    const prev = document.getElementById('em-img-preview');
+    prev.src = URL.createObjectURL(emImgFile); prev.style.display = 'block';
+    document.getElementById('em-upload-text').textContent = emImgFile.name;
+  }
+
+  // ── Subir imagen al bucket ────────────────────────────────────────────────────
+  async function subirImagenAccion(file) {
+    const path = `acciones_mensuales/${Date.now()}_${file.name.replace(/\s/g,'_')}`;
+    const { error } = await sb.storage.from('Activaciones').upload(path, file, { upsert: false });
+    if (error) throw error;
+    return sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+  }
+
+  // ── Leer canales seleccionados de un grupo ────────────────────────────────────
+  function getCanales(groupId) {
+    const todos = document.querySelector(`#${groupId} input[value=todos]`)?.checked;
+    if (todos) return ['todos'];
+    return [...document.querySelectorAll(`#${groupId} input:checked`)].map(i => i.value);
+  }
+
+  // ── Setear canales en un grupo ────────────────────────────────────────────────
+  function setCanales(groupId, aplica) {
+    document.querySelectorAll(`#${groupId} .chk-pill`).forEach(p => {
+      const inp = p.querySelector('input');
+      const on = (aplica || []).includes(inp.value);
+      inp.checked = on;
+      p.classList.toggle('checked', on);
+    });
+  }
+
+  // ── Guardar nueva acción ──────────────────────────────────────────────────────
+  async function guardarAccionMensual() {
+    const cat      = document.getElementById('am-cat').value;
+    const producto = document.getElementById('am-producto').value.trim();
+    const accion   = document.getElementById('am-accion').value.trim();
+    const inicio   = document.getElementById('am-inicio').value;
+    const fin      = document.getElementById('am-fin').value;
+    if (!producto || !accion || !inicio || !fin) { alert('Completá producto, acción y fechas.'); return; }
+
+    const varietalesOn = document.getElementById('am-varietales-toggle').checked;
+    const varietales   = varietalesOn ? document.getElementById('am-varietales').value.trim() || null : null;
+    const precio       = parseFloat(document.getElementById('am-precio').value) || null;
+    const precioReg    = parseFloat(document.getElementById('am-precio-reg').value) || null;
+    const sku          = document.getElementById('am-sku').value.trim() || null;
+    const subcat       = document.getElementById('am-subcat').value || null;
+    const seccionCl    = document.getElementById('am-seccion-checklist')?.value || null;
+    const aplica       = getCanales('am-aplica-group');
+    if (!aplica.length) { alert('Seleccioná a quién aplica la acción.'); return; }
+
+    const btn = document.getElementById('am-save-btn');
+    const status = document.getElementById('am-save-status');
+    btn.disabled = true; status.textContent = 'Guardando…';
+
+    let imagen_url = null;
+    if (amImgFile) {
+      try { imagen_url = await subirImagenAccion(amImgFile); }
+      catch(e) { alert('Error imagen: ' + e.message); btn.disabled=false; status.textContent=''; return; }
+    }
+
+    // Payload: intentar con campos extendidos, fallback sin ellos
+    const payload = { categoria:cat, producto, varietales, accion, precio_accionado:precio,
+      aplica_a:aplica, fecha_inicio:inicio, fecha_fin:fin, imagen_url, activa:true };
+    if (subcat) payload.subcategoria = subcat;
+    if (seccionCl) payload.seccion_checklist = seccionCl;
+
+    let { error } = await sb.from('acciones_mensuales').insert(payload);
+    // Si falla por columnas no existentes, reintentar sin ellas
+    if (error?.code === 'PGRST204') {
+      delete payload.subcategoria; delete payload.seccion_checklist;
+      const r2 = await sb.from('acciones_mensuales').insert(payload);
+      error = r2.error;
+    }
+    if (error) {
+      // Intentar también sin precio_regular/sku por si acaso
+      alert('Error: ' + error.message);
+      btn.disabled=false; status.textContent=''; return;
+    }
+
+    btn.disabled=false; status.textContent='✅ Publicada';
+    setTimeout(()=>status.textContent='',2000);
+
+    ['am-producto','am-accion','am-precio','am-precio-reg','am-sku','am-varietales','am-inicio','am-fin'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value='';
+    });
+    document.getElementById('am-subcat').value = '';
+    const amSec = document.getElementById('am-seccion-checklist'); if (amSec) amSec.value = '';
+    document.getElementById('am-varietales-toggle').checked=false;
+    document.getElementById('am-varietales').style.display='none';
+    document.getElementById('am-img-preview').style.display='none';
+    document.getElementById('am-upload-text').textContent='📷 Subir placa o imagen (JPG, PNG)';
+    document.querySelectorAll('#am-aplica-group .chk-pill').forEach(p=>{p.querySelector('input').checked=false;p.classList.remove('checked');});
+    amImgFile=null;
+    cargarAccionesMensualesAdmin();
+  }
+
+  // ── Cargar lista de acciones ──────────────────────────────────────────────────
+  async function cargarAccionesMensualesAdmin() {
+    const { data } = await sb.from('acciones_mensuales').select('*').order('categoria').order('created_at', { ascending:false });
+    const el = document.getElementById('am-list');
+    if (!data?.length) { el.innerHTML=`<div style="text-align:center;padding:32px;color:var(--text3)">Sin acciones cargadas todavía.</div>`; return; }
+
+    // Agrupar por categoría
+    const grupos = {};
+    data.forEach(a => { const c=a.categoria||'otros'; if(!grupos[c])grupos[c]=[]; grupos[c].push(a); });
+    const CAT_LABEL = { vinos:'🍷 Vinos', spirits:'🥃 Spirits', cervezas:'🍺 Cervezas', otros:'📦 Otros' };
+
+    el.innerHTML = Object.entries(grupos).map(([cat, items]) => `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#9E9B96;margin:14px 0 8px;display:flex;align-items:center;gap:8px">
+        ${CAT_LABEL[cat]||cat}
+        <span style="flex:1;height:1px;background:rgba(31,68,127,.12)"></span>
+        <span style="font-weight:400;color:#c5c0b8">${items.length} acciones</span>
+      </div>
+      ${items.map(a => {
+        const precio  = a.precio_accionado ? `$${Number(a.precio_accionado).toLocaleString('es-AR')}` : null;
+        const subcat  = a.subcategoria || '';
+        const canales = (a.aplica_a||[]).join(', ');
+        return `<div class="am-card" style="${a.activa?'':'opacity:.45;filter:grayscale(.4)'}">
+          ${a.imagen_url
+            ? `<img class="am-img" src="${esc(a.imagen_url)}" alt="" style="width:56px;height:72px;object-fit:contain;border-radius:6px;background:#f7f5f2">`
+            : `<div class="am-img" style="width:56px;height:72px;display:flex;align-items:center;justify-content:center;font-size:22px;background:#f7f5f2;border-radius:6px">${cat==='vinos'?'🍷':'🥃'}</div>`}
+          <div class="am-info" style="flex:1;min-width:0">
+            <div class="am-producto">${esc(a.producto)}</div>
+            ${subcat ? `<div style="font-size:10px;color:#9E9B96;text-transform:uppercase;letter-spacing:.04em">${esc(subcat)}</div>` : ''}
+            ${a.varietales ? `<div class="am-varietales">${esc(a.varietales)}</div>` : ''}
+            <span class="am-accion">${esc(a.accion)}</span>
+            ${precio ? `<div class="am-precio">${precio}</div>` : ''}
+            <div class="am-meta">📅 ${a.fecha_inicio} → ${a.fecha_fin} · ${esc(canales)}</div>
+          </div>
+          <div class="am-btns">
+            <button onclick="abrirEditModal('${a.id}')"
+              style="padding:5px 11px;background:#1F447F;color:#fff;border:none;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:system-ui,sans-serif">
+              ✏️ Editar
+            </button>
+            <button class="btn-am-toggle" onclick="toggleAccionMensual('${a.id}',${!a.activa})">
+              ${a.activa ? '⏸ Pausar' : '▶ Activar'}
+            </button>
+            <button class="btn-del" onclick="eliminarAccionMensual('${a.id}')">🗑️</button>
+          </div>
+        </div>`;
+      }).join('')}
+    `).join('');
+  }
+
+  // ── Abrir modal de edición ────────────────────────────────────────────────────
+  async function abrirEditModal(id) {
+    const { data:a, error } = await sb.from('acciones_mensuales').select('*').eq('id',id).single();
+    if (!a) { alert('No se encontró la acción.'); return; }
+    emAccionActual = a;
+    emImgFile = null;
+
+    document.getElementById('em-id').value          = a.id;
+    document.getElementById('em-cat').value         = a.categoria || 'vinos';
+    document.getElementById('em-subcat').value      = a.subcategoria || '';
+    document.getElementById('em-producto').value    = a.producto || '';
+    document.getElementById('em-varietales').value  = a.varietales || '';
+    document.getElementById('em-accion').value      = a.accion || '';
+    document.getElementById('em-precio').value      = a.precio_accionado || '';
+    document.getElementById('em-precio-reg').value  = a.precio_regular || '';
+    document.getElementById('em-sku').value         = a.sku || '';
+    document.getElementById('em-inicio').value      = a.fecha_inicio || '';
+    document.getElementById('em-fin').value         = a.fecha_fin || '';
+
+    // Imagen actual
+    const imgCurrent = document.getElementById('em-img-current');
+    if (a.imagen_url) { imgCurrent.src=a.imagen_url; imgCurrent.style.display='block'; }
+    else imgCurrent.style.display='none';
+    document.getElementById('em-img-preview').style.display='none';
+    document.getElementById('em-upload-text').textContent='📷 Subir nueva imagen';
+
+    // Canales
+    setCanales('em-aplica-group', a.aplica_a || []);
+
+    // Selector de sección checklist — popular opciones según canal y pre-seleccionar
+    amActualizarSecciones('modal');
+    const emSec = document.getElementById('em-seccion-checklist');
+    if (emSec && a.seccion_checklist) emSec.value = a.seccion_checklist;
+
+    // Botón toggle
+    const tb = document.getElementById('em-toggle-btn');
+    tb.textContent = a.activa ? '✅ Activa' : '❌ Inactiva';
+    tb.style.background = a.activa ? '#EAF4EE' : '#FEF2F2';
+    tb.style.color      = a.activa ? '#1B4332' : '#B91C1C';
+
+    document.getElementById('em-status').textContent='';
+    document.getElementById('am-edit-modal').style.display='block';
+    document.body.style.overflow='hidden';
+  }
+
+  function cerrarEditModal() {
+    document.getElementById('am-edit-modal').style.display='none';
+    document.body.style.overflow='';
+    emAccionActual=null; emImgFile=null;
+  }
+
+  // ── Guardar edición ───────────────────────────────────────────────────────────
+  async function guardarEdicionAccion() {
+    const id      = document.getElementById('em-id').value;
+    const producto= document.getElementById('em-producto').value.trim();
+    const accion  = document.getElementById('em-accion').value.trim();
+    const inicio  = document.getElementById('em-inicio').value;
+    const fin     = document.getElementById('em-fin').value;
+    if (!producto||!accion||!inicio||!fin) { alert('Producto, acción y fechas son obligatorios.'); return; }
+
+    const precio    = parseFloat(document.getElementById('em-precio').value)    || null;
+    const precioReg = parseFloat(document.getElementById('em-precio-reg').value) || null;
+    const sku       = document.getElementById('em-sku').value.trim()    || null;
+    const subcat    = document.getElementById('em-subcat').value        || null;
+    const seccionCl = document.getElementById('em-seccion-checklist')?.value || null;
+    const varietales= document.getElementById('em-varietales').value.trim() || null;
+    const cat       = document.getElementById('em-cat').value;
+    const aplica    = getCanales('em-aplica-group');
+    if (!aplica.length) { alert('Seleccioná a quién aplica.'); return; }
+
+    const btn    = document.getElementById('em-save-btn');
+    const status = document.getElementById('em-status');
+    btn.disabled=true; status.textContent='Guardando…';
+
+    let imagen_url = emAccionActual?.imagen_url || null;
+    if (emImgFile) {
+      try { imagen_url = await subirImagenAccion(emImgFile); }
+      catch(e) { alert('Error imagen: '+e.message); btn.disabled=false; status.textContent=''; return; }
+    }
+
+    const payload = { categoria:cat, producto, varietales, accion,
+      precio_accionado:precio, aplica_a:aplica,
+      fecha_inicio:inicio, fecha_fin:fin, imagen_url };
+    if (subcat !== null) payload.subcategoria = subcat;
+    // Intentar incluir campos extendidos; si fallan, reintentar sin ellos
+    if (precioReg !== null) payload.precio_regular = precioReg;
+    if (sku !== null) payload.sku = sku;
+    payload.seccion_checklist = seccionCl || null;
+
+    let { error } = await sb.from('acciones_mensuales').update(payload).eq('id', id);
+    if (error?.code === 'PGRST204' || error?.message?.includes('precio_regular') || error?.message?.includes('sku')) {
+      // Columnas extendidas no existen aún → reintentar sin ellas
+      delete payload.precio_regular; delete payload.sku; delete payload.subcategoria;
+      const r2 = await sb.from('acciones_mensuales').update(payload).eq('id', id);
+      error = r2.error;
+    }
+
+    btn.disabled=false;
+    if (error) { status.textContent='❌ Error: '+error.message; return; }
+    status.textContent='✅ Guardado correctamente';
+    setTimeout(()=>{ cerrarEditModal(); cargarAccionesMensualesAdmin(); }, 900);
+  }
+
+  // ── Toggle activa desde modal ─────────────────────────────────────────────────
+  async function toggleAccionDesdeModal() {
+    if (!emAccionActual) return;
+    const nuevaActiva = !emAccionActual.activa;
+    await sb.from('acciones_mensuales').update({ activa:nuevaActiva }).eq('id', emAccionActual.id);
+    emAccionActual.activa = nuevaActiva;
+    const tb = document.getElementById('em-toggle-btn');
+    tb.textContent = nuevaActiva ? '✅ Activa' : '❌ Inactiva';
+    tb.style.background = nuevaActiva ? '#EAF4EE' : '#FEF2F2';
+    tb.style.color      = nuevaActiva ? '#1B4332' : '#B91C1C';
+    document.getElementById('em-status').textContent = nuevaActiva ? 'Activada ✅' : 'Pausada ⏸';
+    setTimeout(()=>document.getElementById('em-status').textContent='', 1500);
+    cargarAccionesMensualesAdmin();
+  }
+
+  // ── Eliminar desde modal ──────────────────────────────────────────────────────
+  async function eliminarDesdeModal() {
+    if (!emAccionActual) return;
+    if (!confirm(`¿Eliminar "${emAccionActual.producto}"? Esta acción es irreversible.`)) return;
+    await sb.from('acciones_mensuales').delete().eq('id', emAccionActual.id);
+    cerrarEditModal();
+    cargarAccionesMensualesAdmin();
+  }
+
+  // ── Toggle/Eliminar rápido desde lista ───────────────────────────────────────
+  async function toggleAccionMensual(id, activa) {
+    await sb.from('acciones_mensuales').update({ activa }).eq('id', id);
+    cargarAccionesMensualesAdmin();
+  }
+  async function eliminarAccionMensual(id) {
+    if (!confirm('¿Eliminar esta acción mensual?')) return;
+    await sb.from('acciones_mensuales').delete().eq('id', id);
+    cargarAccionesMensualesAdmin();
+  }
+
+  // Cerrar modal al click en overlay
+  document.getElementById('am-edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) cerrarEditModal();
+  });
+
+  // ── Acciones fechas especiales ─────────────────────────────────────────────────
+  async function cargarAccionesFechas() {
+    const { data } = await sb.from('acciones_fechas').select('*').order('fecha_inicio', { ascending: false });
+    const el = document.getElementById('acciones-list');
+    if (!data?.length) { el.innerHTML=`<div style="text-align:center;padding:32px;color:var(--text3)">Sin acciones cargadas.</div>`; return; }
+    el.innerHTML = data.map(a => `
+      <div class="accion-card">
+        ${a.imagen_url ? `<img class="accion-img" src="${esc(a.imagen_url)}" alt="${esc(a.nombre)}">` : '<div class="accion-img" style="background:var(--surface2);border-radius:6px"></div>'}
+        <div class="accion-info">
+          <div class="accion-nombre">${esc(a.nombre)}</div>
+          <div class="accion-meta">${esc(a.condicion||'')} · Canal: ${esc(a.canal||'todos')} · ${a.fecha_inicio} → ${a.fecha_fin} · ${a.activa?'✅ Activa':'⏸ Inactiva'}</div>
+        </div>
+        <button class="btn-del" onclick="toggleAccion('${a.id}',${!a.activa})">${a.activa?'Pausar':'Activar'}</button>
+        <button class="btn-del" onclick="eliminarAccion('${a.id}')" style="margin-left:4px">Eliminar</button>
+      </div>`).join('');
+  }
+
+  async function guardarAccion() {
+    const nombre = document.getElementById('fa-nombre').value.trim();
+    const desc   = document.getElementById('fa-desc').value.trim();
+    const cond   = document.getElementById('fa-cond').value.trim();
+    const canal  = document.getElementById('fa-canal').value;
+    const inicio = document.getElementById('fa-inicio').value;
+    const fin    = document.getElementById('fa-fin').value;
+    const img    = document.getElementById('fa-img').value.trim();
+    if (!nombre||!desc||!inicio||!fin) { alert('Completá nombre, descripción y fechas.'); return; }
+    const { error } = await sb.from('acciones_fechas').insert({ nombre, descripcion:desc, condicion:cond||null, canal, imagen_url:img||null, fecha_inicio:inicio, fecha_fin:fin, activa:true });
+    if (error) { alert('Error al guardar: '+error.message); return; }
+    ['fa-nombre','fa-desc','fa-cond','fa-img'].forEach(id=>document.getElementById(id).value='');
+    cargarAccionesFechas();
+  }
+
+  async function toggleAccion(id, activa) {
+    await sb.from('acciones_fechas').update({ activa }).eq('id', id);
+    cargarAccionesFechas();
+  }
+
+  async function eliminarAccion(id) {
+    if (!confirm('¿Eliminar esta acción?')) return;
+    await sb.from('acciones_fechas').delete().eq('id', id);
+    cargarAccionesFechas();
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // GESTIÓN VINOTECAS (materiales POP, nuevos productos, partners, incorporaciones, isla)
+  // ════════════════════════════════════════════════════════════════════════════
+
+  function initVtAdmin() {
+    cargarMaterialesPOPAdmin();
+    cargarNuevosProductosAdmin();
+    cargarPartnersAdmin();
+    cargarIncorporacionesAdmin();
+    cargarIslaAdmin();
+  }
+
+  // Subir archivo opcional desde un <input type=file>; devuelve url o null
+  async function subirArchivoVt(inputId, carpeta) {
+    const f = document.getElementById(inputId)?.files?.[0];
+    if (!f) return null;
+    const path = `${carpeta}/${Date.now()}_${f.name.replace(/\s/g,'_')}`;
+    const { error } = await sb.storage.from('Activaciones').upload(path, f, { upsert:false });
+    if (error) throw error;
+    return sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+  }
+
+  function vtItemRow(titulo, sub, activo, onToggle, onDelete, extra) {
+    return `<div class="fecha-card" style="display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--border,#e3e0db);border-radius:10px;margin-bottom:7px;background:#fff">
+      ${extra || ''}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:#1A1814">${titulo}</div>
+        ${sub ? `<div style="font-size:11px;color:#777">${sub}</div>` : ''}
+      </div>
+      <button onclick="${onToggle}" style="border:1px solid #ccc;background:${activo?'#EAF4EE':'#f3f3f3'};color:${activo?'#1B4332':'#999'};border-radius:16px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer">${activo?'Activo':'Inactivo'}</button>
+      <button onclick="${onDelete}" style="border:none;background:none;color:#C0341D;font-size:16px;cursor:pointer">🗑</button>
+    </div>`;
+  }
+  function escA(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,"\\'");}
+
+  // ── A) Materiales POP ──────────────────────────────────────────────────────
+  async function guardarMaterialPOP() {
+    const categoria = document.getElementById('mp-categoria').value.trim();
+    const nombre    = document.getElementById('mp-nombre').value.trim();
+    if (!categoria || !nombre) { alert('Completá categoría y nombre'); return; }
+    try {
+      const foto_url = await subirArchivoVt('mp-foto', 'materiales_pop');
+      const { error } = await sb.from('materiales_pop').insert({
+        categoria, nombre,
+        descripcion: document.getElementById('mp-desc').value.trim() || null,
+        foto_url,
+        stock_disponible: document.getElementById('mp-stock').value === 'true',
+        activo: true,
+      });
+      if (error) throw error;
+      ['mp-categoria','mp-nombre','mp-desc','mp-foto'].forEach(id => document.getElementById(id).value='');
+      cargarMaterialesPOPAdmin();
+    } catch (e) { alert('Error: ' + (e.message || e)); }
+  }
+  async function cargarMaterialesPOPAdmin() {
+    const el = document.getElementById('mp-list');
+    const { data } = await sb.from('materiales_pop').select('*').order('categoria');
+    if (!data || !data.length) { el.innerHTML = `<div style="font-size:12px;color:#999;padding:8px">Sin materiales cargados.</div>`; return; }
+    el.innerHTML = data.map(m => vtItemRow(
+      escA(m.nombre), `${escA(m.categoria)}${m.stock_disponible?' · 🟢 stock':' · 🔴 sin stock'}`,
+      m.activo, `toggleVt('materiales_pop','${m.id}',${!m.activo},cargarMaterialesPOPAdmin)`, `delVt('materiales_pop','${m.id}',cargarMaterialesPOPAdmin)`,
+      m.foto_url ? `<img src="${m.foto_url}" style="width:38px;height:38px;border-radius:7px;object-fit:cover">` : ''
+    )).join('');
+  }
+
+  // ── B) Nuevos productos ────────────────────────────────────────────────────
+  async function guardarNuevoProducto() {
+    const nombre = document.getElementById('np-nombre').value.trim();
+    if (!nombre) { alert('Completá el nombre'); return; }
+    try {
+      const imagen_url = await subirArchivoVt('np-img', 'nuevos_productos');
+      const pdf_url    = await subirArchivoVt('np-pdf', 'nuevos_productos');
+      const canalSel   = document.getElementById('np-canal').value;
+      const { error } = await sb.from('nuevos_productos').insert({
+        nombre,
+        descripcion: document.getElementById('np-desc').value.trim() || null,
+        imagen_url, pdf_url,
+        canal: canalSel === 'todos' ? ['vinoteca','restaurante','autoservicio'] : [canalSel],
+        activo: true,
+      });
+      if (error) throw error;
+      ['np-nombre','np-desc','np-img','np-pdf'].forEach(id => document.getElementById(id).value='');
+      cargarNuevosProductosAdmin();
+    } catch (e) { alert('Error: ' + (e.message || e)); }
+  }
+  async function cargarNuevosProductosAdmin() {
+    const el = document.getElementById('np-list');
+    const { data } = await sb.from('nuevos_productos').select('*').order('created_at', { ascending:false });
+    if (!data || !data.length) { el.innerHTML = `<div style="font-size:12px;color:#999;padding:8px">Sin novedades cargadas.</div>`; return; }
+    el.innerHTML = data.map(p => vtItemRow(
+      escA(p.nombre), `${escA((p.canal||[]).join(', '))}${p.pdf_url?' · 📄 PDF':''}`,
+      p.activo, `toggleVt('nuevos_productos','${p.id}',${!p.activo},cargarNuevosProductosAdmin)`, `delVt('nuevos_productos','${p.id}',cargarNuevosProductosAdmin)`,
+      p.imagen_url ? `<img src="${p.imagen_url}" style="width:38px;height:38px;border-radius:7px;object-fit:cover">` : ''
+    )).join('');
+  }
+
+  // ── C) Partners con bodegas ────────────────────────────────────────────────
+  async function guardarPartner() {
+    const bodega = document.getElementById('pb-bodega').value.trim();
+    const nombre = document.getElementById('pb-nombre').value.trim();
+    if (!bodega || !nombre) { alert('Completá bodega y nombre'); return; }
+    try {
+      const imagen_url = await subirArchivoVt('pb-img', 'partners');
+      const pdf_url    = await subirArchivoVt('pb-pdf', 'partners');
+      const canalSel   = document.getElementById('pb-canal').value;
+      const { error } = await sb.from('partners_bodegas').insert({
+        bodega, tipo: document.getElementById('pb-tipo').value, nombre,
+        descripcion: document.getElementById('pb-desc').value.trim() || null,
+        imagen_url, pdf_url,
+        canal: canalSel === 'todos' ? ['vinoteca','restaurante','autoservicio'] : [canalSel],
+        activo: true,
+      });
+      if (error) throw error;
+      ['pb-bodega','pb-nombre','pb-desc','pb-img','pb-pdf'].forEach(id => document.getElementById(id).value='');
+      cargarPartnersAdmin();
+    } catch (e) { alert('Error: ' + (e.message || e)); }
+  }
+  async function cargarPartnersAdmin() {
+    const el = document.getElementById('pb-list');
+    const { data } = await sb.from('partners_bodegas').select('*').order('bodega');
+    if (!data || !data.length) { el.innerHTML = `<div style="font-size:12px;color:#999;padding:8px">Sin partners cargados.</div>`; return; }
+    el.innerHTML = data.map(p => vtItemRow(
+      `${escA(p.bodega)} — ${escA(p.nombre)}`, escA(p.tipo),
+      p.activo, `toggleVt('partners_bodegas','${p.id}',${!p.activo},cargarPartnersAdmin)`, `delVt('partners_bodegas','${p.id}',cargarPartnersAdmin)`,
+      p.imagen_url ? `<img src="${p.imagen_url}" style="width:38px;height:38px;border-radius:7px;object-fit:cover">` : ''
+    )).join('');
+  }
+
+  // ── D) Incorporaciones de vinoteca ─────────────────────────────────────────
+  async function guardarIncorporacion() {
+    const nombre = document.getElementById('iv-nombre').value.trim();
+    if (!nombre) { alert('Completá el nombre'); return; }
+    try {
+      const imagen_url = await subirArchivoVt('iv-img', 'incorporaciones');
+      const pdf_url    = await subirArchivoVt('iv-pdf', 'incorporaciones');
+      const { error } = await sb.from('incorporaciones_vinoteca').insert({
+        nombre,
+        descripcion: document.getElementById('iv-desc').value.trim() || null,
+        condicion:   document.getElementById('iv-cond').value.trim() || null,
+        beneficios:  document.getElementById('iv-benef').value.trim() || null,
+        imagen_url, pdf_url, activo: true,
+      });
+      if (error) throw error;
+      ['iv-nombre','iv-desc','iv-cond','iv-benef','iv-img','iv-pdf'].forEach(id => document.getElementById(id).value='');
+      cargarIncorporacionesAdmin();
+    } catch (e) { alert('Error: ' + (e.message || e)); }
+  }
+  async function cargarIncorporacionesAdmin() {
+    const el = document.getElementById('iv-list');
+    const { data } = await sb.from('incorporaciones_vinoteca').select('*').order('created_at', { ascending:false });
+    if (!data || !data.length) { el.innerHTML = `<div style="font-size:12px;color:#999;padding:8px">Sin incorporaciones cargadas.</div>`; return; }
+    el.innerHTML = data.map(p => vtItemRow(
+      escA(p.nombre), `${escA(p.condicion||'')}${p.pdf_url?' · 📄 PDF':''}`,
+      p.activo, `toggleVt('incorporaciones_vinoteca','${p.id}',${!p.activo},cargarIncorporacionesAdmin)`, `delVt('incorporaciones_vinoteca','${p.id}',cargarIncorporacionesAdmin)`,
+      p.imagen_url ? `<img src="${p.imagen_url}" style="width:38px;height:38px;border-radius:7px;object-fit:cover">` : ''
+    )).join('');
+  }
+
+  // ── E) Isla / Exhibiciones ─────────────────────────────────────────────────
+  async function guardarIslaAccion() {
+    const nombre = document.getElementById('ai-nombre').value.trim();
+    if (!nombre) { alert('Completá el nombre'); return; }
+    try {
+      const imagen_url = await subirArchivoVt('ai-img', 'isla');
+      const pdf_url    = await subirArchivoVt('ai-pdf', 'isla');
+      const { error } = await sb.from('acciones_isla').insert({
+        nombre,
+        descripcion: document.getElementById('ai-desc').value.trim() || null,
+        condicion:   document.getElementById('ai-cond').value.trim() || null,
+        imagen_url, pdf_url, activo: true,
+      });
+      if (error) throw error;
+      ['ai-nombre','ai-desc','ai-cond','ai-img','ai-pdf'].forEach(id => document.getElementById(id).value='');
+      cargarIslaAdmin();
+    } catch (e) { alert('Error: ' + (e.message || e)); }
+  }
+  async function cargarIslaAdmin() {
+    const el = document.getElementById('ai-list');
+    const { data } = await sb.from('acciones_isla').select('*').order('created_at', { ascending:false });
+    if (!data || !data.length) { el.innerHTML = `<div style="font-size:12px;color:#999;padding:8px">Sin acciones de isla cargadas.</div>`; return; }
+    el.innerHTML = data.map(p => vtItemRow(
+      escA(p.nombre), escA(p.condicion||''),
+      p.activo, `toggleVt('acciones_isla','${p.id}',${!p.activo},cargarIslaAdmin)`, `delVt('acciones_isla','${p.id}',cargarIslaAdmin)`,
+      p.imagen_url ? `<img src="${p.imagen_url}" style="width:38px;height:38px;border-radius:7px;object-fit:cover">` : ''
+    )).join('');
+  }
+
+  // ── Helpers genéricos toggle/delete ────────────────────────────────────────
+  async function toggleVt(tabla, id, activo, reload) {
+    await sb.from(tabla).update({ activo }).eq('id', id);
+    reload();
+  }
+  async function delVt(tabla, id, reload) {
+    if (!confirm('¿Eliminar este registro?')) return;
+    await sb.from(tabla).delete().eq('id', id);
+    reload();
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // GESTIÓN DE CHECKLISTS
+  // ════════════════════════════════════════════════════════════════════════════
+
+  let _clCanal    = 'restaurante';
+  let _clSecs     = [];   // secciones cargadas
+  let _clItems    = {};   // { seccion_id: [items] }
+  let _clPlanes   = {};   // { seccion_id: [planes] }
+  let _clTablesOk = null; // null=sin verificar, true/false
+  let _clModal    = {};   // estado del modal activo
+
+  // ── Copiar SQL ─────────────────────────────────────────────────────────────
+  function copiarSqlChecklist() {
+    navigator.clipboard.writeText(document.getElementById('cl-sql-code').textContent)
+      .then(() => alert('SQL copiado. Pegalo en Supabase → SQL Editor y ejecutá.'));
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  async function initChecklistAdmin() {
+    // Verificar si las tablas existen
+    const { error } = await sb.from('checklist_secciones').select('id').limit(1);
+    _clTablesOk = !error;
+    if (!_clTablesOk) {
+      document.getElementById('cl-secciones-list').innerHTML = `
+        <div style="text-align:center;padding:32px 20px;color:var(--text3)">
+          <div style="font-size:32px;margin-bottom:8px">🗄️</div>
+          <div style="font-size:14px;font-weight:600;color:var(--azul);margin-bottom:6px">Tablas no creadas todavía</div>
+          <div style="font-size:12px">Ejecutá el SQL del banner de arriba en Supabase → SQL Editor.<br>Luego usá el botón "⬆️ Migrar datos existentes" para cargar los checklists actuales.</div>
+        </div>`;
+      return;
+    }
+    await cargarChecklistAdmin(_clCanal);
+  }
+
+  // ── Selector de canal ──────────────────────────────────────────────────────
+  async function selCanal(canal) {
+    _clCanal = canal;
+    document.querySelectorAll('.cl-canal-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`clbtn-${canal}`)?.classList.add('active');
+    if (_clTablesOk) await cargarChecklistAdmin(canal);
+  }
+
+  // ── Cargar secciones + items + planes de un canal ──────────────────────────
+  async function cargarChecklistAdmin(canal) {
+    const listEl = document.getElementById('cl-secciones-list');
+    listEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3)"><span class="sp"></span> Cargando…</div>';
+
+    const [secsRes, itemsRes, planesRes] = await Promise.all([
+      sb.from('checklist_secciones').select('*').eq('canal', canal).order('orden'),
+      sb.from('checklist_items').select('*').order('orden'),
+      sb.from('checklist_planes').select('*').order('created_at'),
+    ]);
+
+    _clSecs = secsRes.data || [];
+    _clItems = {}; _clPlanes = {};
+    (itemsRes.data || []).forEach(i => { if (!_clItems[i.seccion_id]) _clItems[i.seccion_id] = []; _clItems[i.seccion_id].push(i); });
+    (planesRes.data || []).forEach(p => { if (!_clPlanes[p.seccion_id]) _clPlanes[p.seccion_id] = []; _clPlanes[p.seccion_id].push(p); });
+
+    renderChecklistAdmin();
+  }
+
+  // ── Render UI ──────────────────────────────────────────────────────────────
+  function renderChecklistAdmin() {
+    const listEl = document.getElementById('cl-secciones-list');
+    if (!_clSecs.length) {
+      listEl.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px">Sin secciones para este canal. Usá "➕ Agregar nueva sección" o migrá los datos.</div>`;
+      return;
+    }
+    listEl.innerHTML = _clSecs.map((sec, idx) => renderSeccionCard(sec, idx)).join('');
+  }
+
+  function renderSeccionCard(sec, idx) {
+    const items  = _clItems[sec.id]  || [];
+    const planes = _clPlanes[sec.id] || [];
+    const esEspecial = sec.especial ? `<span style="font-size:9px;background:rgba(203,184,106,.3);color:#8A5E00;padding:1px 6px;border-radius:10px;font-weight:700;text-transform:uppercase;margin-left:4px">${esc(sec.especial)}</span>` : '';
+
+    const itemsHtml = items.map((it, j) => `
+      <div class="cl-item-row${it.activo ? '' : ' inactivo'}" id="cl-item-${it.id}">
+        <span class="cl-item-num">${j+1}.</span>
+        <div class="cl-item-text">
+          <div class="cl-item-texto">${esc(it.texto)}</div>
+          ${it.descripcion ? `<div class="cl-item-det">${esc(it.descripcion)}</div>` : ''}
+        </div>
+        <div class="cl-item-acts">
+          <button class="cl-btn-icon" title="Subir"   onclick="clMoverItem('${it.id}','up')"   ${j===0?'style="opacity:.3;pointer-events:none"':''}>↑</button>
+          <button class="cl-btn-icon" title="Bajar"   onclick="clMoverItem('${it.id}','down')" ${j===items.length-1?'style="opacity:.3;pointer-events:none"':''}>↓</button>
+          <button class="cl-btn-icon" title="Editar"  onclick="clEditarItem('${it.id}')">✏️</button>
+          <button class="cl-btn-icon" title="${it.activo?'Desactivar':'Activar'}" onclick="clToggleItem('${it.id}',${!it.activo})">${it.activo?'✅':'❌'}</button>
+          <button class="cl-btn-icon" title="Eliminar" onclick="clEliminarItem('${it.id}')" style="color:#B91C1C">🗑</button>
+        </div>
+      </div>`).join('');
+
+    const planesHtml = planes.map(pl => `
+      <div class="cl-plan-card${pl.activo?'':'" style="opacity:.4"'}">
+        <span class="cl-plan-pill">${esc(pl.condicion||'Plan')}</span>
+        <div class="cl-plan-info">
+          <div class="cl-plan-nombre">${esc(pl.nombre)}</div>
+          ${pl.descripcion ? `<div class="cl-plan-desc">${esc(pl.descripcion.slice(0,80))}${pl.descripcion.length>80?'…':''}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:2px;flex-shrink:0">
+          <button class="cl-btn-icon" onclick="clEditarPlan('${pl.id}')">✏️</button>
+          <button class="cl-btn-icon" onclick="clEliminarPlan('${pl.id}')" style="color:#B91C1C">🗑</button>
+        </div>
+      </div>`).join('');
+
+    return `
+      <div class="cl-sec-card${sec.activa?'':' inactiva'}" id="cl-sec-card-${sec.id}">
+        <div class="cl-sec-header" onclick="clToggleBody('${sec.id}')">
+          <div class="cl-sec-icon" style="background:${sec.icono_bg||'#EAF2FB'};color:${sec.icono_color||'#1A5C9A'}">${sec.icono||'📋'}</div>
+          <div style="flex:1;min-width:0">
+            <div class="cl-sec-titulo">${esc(sec.nombre)}${esEspecial}</div>
+            <div class="cl-sec-sub">${esc(sec.descripcion||'')} · ${items.length} ítems${planes.length?` · ${planes.length} plan${planes.length!==1?'es':''}`:''}${sec.activa?'':' · INACTIVA'}</div>
+          </div>
+          <div class="cl-sec-actions" onclick="event.stopPropagation()">
+            <button class="cl-btn-icon" title="Subir"    onclick="clMoverSec('${sec.id}','up')"   ${idx===0?'style="opacity:.3;pointer-events:none"':''}>↑</button>
+            <button class="cl-btn-icon" title="Bajar"    onclick="clMoverSec('${sec.id}','down')" ${idx===_clSecs.length-1?'style="opacity:.3;pointer-events:none"':''}>↓</button>
+            <button class="cl-btn-icon" title="Editar"   onclick="clEditarSec('${sec.id}')">✏️</button>
+            <button class="cl-btn-icon" title="${sec.activa?'Desactivar':'Activar'}" onclick="clToggleSec('${sec.id}',${!sec.activa})">${sec.activa?'✅':'❌'}</button>
+            <button class="cl-btn-icon" title="Eliminar" onclick="clEliminarSec('${sec.id}')" style="color:#B91C1C">🗑</button>
+            <span style="color:var(--text3);padding:0 2px">▾</span>
+          </div>
+        </div>
+        <div class="cl-sec-body" id="cl-body-${sec.id}">
+          ${planes.length ? `
+            <div class="cl-items-label">Planes / Promociones <button class="cl-add-btn" onclick="clNuevoPlan('${sec.id}')">➕ Plan</button></div>
+            ${planesHtml}` : `
+            <div style="margin-bottom:8px"><button class="cl-add-btn" onclick="clNuevoPlan('${sec.id}')">➕ Agregar plan</button></div>`}
+
+          <div class="cl-items-label" style="margin-top:10px">
+            Ítems del checklist
+            <button class="cl-add-btn" onclick="clNuevoItem('${sec.id}')">➕ Ítem</button>
+          </div>
+          ${itemsHtml || '<div style="font-size:11px;color:var(--text3);padding:4px 0">Sin ítems todavía.</div>'}
+        </div>
+      </div>`;
+  }
+
+  function clToggleBody(secId) {
+    const body = document.getElementById(`cl-body-${secId}`);
+    if (body) body.classList.toggle('open');
+  }
+
+  // ── Modal genérico ─────────────────────────────────────────────────────────
+  function clAbrirModal(titulo, bodyHtml, onSave) {
+    document.getElementById('cl-modal-title').textContent  = titulo;
+    document.getElementById('cl-modal-body').innerHTML     = bodyHtml;
+    document.getElementById('cl-modal-status').textContent = '';
+    _clModal.onSave = onSave;
+    document.getElementById('cl-modal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+  function clCerrarModal() {
+    document.getElementById('cl-modal').style.display = 'none';
+    document.body.style.overflow = '';
+    _clModal = {};
+  }
+  async function clGuardarModal() {
+    const btn = document.getElementById('cl-modal-save');
+    const st  = document.getElementById('cl-modal-status');
+    btn.disabled = true; st.textContent = 'Guardando…';
+    try {
+      await _clModal.onSave();
+      st.textContent = '✅ Guardado';
+      setTimeout(() => { clCerrarModal(); cargarChecklistAdmin(_clCanal); }, 600);
+    } catch(e) {
+      st.textContent = '❌ Error: ' + (e.message || e);
+      btn.disabled = false;
+    }
+  }
+  document.getElementById('cl-modal').addEventListener('click', e => { if (e.target === document.getElementById('cl-modal')) clCerrarModal(); });
+
+  // ── SECCIONES CRUD ─────────────────────────────────────────────────────────
+  function clNuevaSeccion() {
+    const body = `
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Nombre de la sección</label><input class="form-input" id="cm-nombre" type="text" placeholder="Ej: Incorporaciones"></div>
+        <div class="form-group form-full"><label>Descripción / subtítulo</label><input class="form-input" id="cm-desc" type="text" placeholder="Ej: Sumar nuevos productos a la carta"></div>
+        <div class="form-group"><label>Ícono (emoji)</label><input class="form-input" id="cm-icono" type="text" value="📋" style="font-size:20px;text-align:center"></div>
+        <div class="form-group"><label>Código (para progreso)</label><input class="form-input" id="cm-codigo" type="text" placeholder="Ej: s_nueva (sin espacios)"></div>
+        <div class="form-group form-full"><label>Intro / explicación</label><textarea class="form-input" id="cm-intro" rows="2" placeholder="Texto introductorio visible al vendedor"></textarea></div>
+        <div class="form-group form-full"><label>Especial (si aplica)</label>
+          <select class="form-input" id="cm-especial">
+            <option value="">— Ninguna —</option>
+            <option value="acciones_mensuales">acciones_mensuales</option>
+            <option value="vidriera">vidriera</option>
+            <option value="heladera">heladera</option>
+            <option value="gondola_vinos">gondola_vinos</option>
+            <option value="gondola_spirits">gondola_spirits</option>
+            <option value="incorporaciones">incorporaciones</option>
+            <option value="materiales">materiales</option>
+            <option value="fechas">fechas</option>
+          </select>
+        </div>
+      </div>`;
+    clAbrirModal('➕ Nueva sección', body, async () => {
+      const nombre = document.getElementById('cm-nombre').value.trim();
+      if (!nombre) throw new Error('El nombre es obligatorio');
+      const maxOrden = _clSecs.length ? Math.max(..._clSecs.map(s => s.orden)) + 1 : 0;
+      const { error } = await sb.from('checklist_secciones').insert({
+        canal: _clCanal,
+        codigo: document.getElementById('cm-codigo').value.trim() || null,
+        nombre,
+        descripcion: document.getElementById('cm-desc').value.trim() || null,
+        icono: document.getElementById('cm-icono').value.trim() || '📋',
+        intro: document.getElementById('cm-intro').value.trim() || null,
+        especial: document.getElementById('cm-especial').value || null,
+        orden: maxOrden,
+        activa: true,
+      });
+      if (error) throw error;
+    });
+  }
+
+  function clEditarSec(id) {
+    const sec = _clSecs.find(s => s.id === id);
+    if (!sec) return;
+    const body = `
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Nombre</label><input class="form-input" id="cm-nombre" type="text" value="${esc(sec.nombre)}"></div>
+        <div class="form-group form-full"><label>Descripción</label><input class="form-input" id="cm-desc" type="text" value="${esc(sec.descripcion||'')}"></div>
+        <div class="form-group"><label>Ícono</label><input class="form-input" id="cm-icono" type="text" value="${esc(sec.icono||'📋')}" style="font-size:20px;text-align:center"></div>
+        <div class="form-group"><label>Color fondo ícono</label><input class="form-input" id="cm-ibg" type="color" value="${sec.icono_bg||'#EAF2FB'}"></div>
+        <div class="form-group"><label>Color ícono</label><input class="form-input" id="cm-icolor" type="color" value="${sec.icono_color||'#1A5C9A'}"></div>
+        <div class="form-group"><label>Código</label><input class="form-input" id="cm-codigo" type="text" value="${esc(sec.codigo||'')}"></div>
+        <div class="form-group form-full"><label>Intro</label><textarea class="form-input" id="cm-intro" rows="2">${esc(sec.intro||'')}</textarea></div>
+        <div class="form-group form-full"><label>PDF de propuestas (URL) — ej: Vidrieras</label><input class="form-input" id="cm-pdf" type="text" placeholder="https://…/propuestas.pdf (vacío = sin PDF)" value="${esc(sec.pdf_url||'')}"></div>
+        <div class="form-group form-full"><label>Especial</label>
+          <select class="form-input" id="cm-especial">
+            <option value="" ${!sec.especial?'selected':''}>— Ninguna —</option>
+            <option value="acciones_mensuales"  ${sec.especial==='acciones_mensuales'?'selected':''}>acciones_mensuales</option>
+            <option value="vidriera"            ${sec.especial==='vidriera'?'selected':''}>vidriera</option>
+            <option value="heladera"            ${sec.especial==='heladera'?'selected':''}>heladera</option>
+            <option value="gondola_vinos"       ${sec.especial==='gondola_vinos'?'selected':''}>gondola_vinos</option>
+            <option value="gondola_spirits"     ${sec.especial==='gondola_spirits'?'selected':''}>gondola_spirits</option>
+            <option value="incorporaciones"     ${sec.especial==='incorporaciones'?'selected':''}>incorporaciones</option>
+            <option value="materiales"          ${sec.especial==='materiales'?'selected':''}>materiales</option>
+            <option value="fechas"              ${sec.especial==='fechas'?'selected':''}>fechas</option>
+          </select>
+        </div>
+      </div>`;
+    clAbrirModal('✏️ Editar sección', body, async () => {
+      const nombre = document.getElementById('cm-nombre').value.trim();
+      if (!nombre) throw new Error('El nombre es obligatorio');
+      const { error } = await sb.from('checklist_secciones').update({
+        nombre,
+        descripcion: document.getElementById('cm-desc').value.trim() || null,
+        icono:    document.getElementById('cm-icono').value.trim() || '📋',
+        icono_bg: document.getElementById('cm-ibg').value,
+        icono_color: document.getElementById('cm-icolor').value,
+        codigo:   document.getElementById('cm-codigo').value.trim() || null,
+        intro:    document.getElementById('cm-intro').value.trim() || null,
+        pdf_url:  document.getElementById('cm-pdf').value.trim() || null,
+        especial: document.getElementById('cm-especial').value || null,
+      }).eq('id', id);
+      if (error) throw error;
+    });
+  }
+
+  async function clToggleSec(id, activa) {
+    await sb.from('checklist_secciones').update({ activa }).eq('id', id);
+    cargarChecklistAdmin(_clCanal);
+  }
+
+  async function clEliminarSec(id) {
+    const sec = _clSecs.find(s => s.id === id);
+    if (!confirm(`¿Eliminar sección "${sec?.nombre}"? Se eliminarán también sus ítems y planes.`)) return;
+    await sb.from('checklist_secciones').delete().eq('id', id);
+    cargarChecklistAdmin(_clCanal);
+  }
+
+  async function clMoverSec(id, dir) {
+    const idx = _clSecs.findIndex(s => s.id === id);
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= _clSecs.length) return;
+    const a = _clSecs[idx], b = _clSecs[swapIdx];
+    await Promise.all([
+      sb.from('checklist_secciones').update({ orden: b.orden }).eq('id', a.id),
+      sb.from('checklist_secciones').update({ orden: a.orden }).eq('id', b.id),
+    ]);
+    cargarChecklistAdmin(_clCanal);
+  }
+
+  // ── ITEMS CRUD ─────────────────────────────────────────────────────────────
+  function clNuevoItem(secId) {
+    const body = `
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Texto del ítem *</label><input class="form-input" id="ci-texto" type="text" placeholder="Ej: Revisé el stock en bodega"></div>
+        <div class="form-group form-full"><label>Descripción / ayuda</label><input class="form-input" id="ci-desc" type="text" placeholder="Ej: Stock físico vs. lo que venden activamente"></div>
+      </div>`;
+    clAbrirModal('➕ Nuevo ítem', body, async () => {
+      const texto = document.getElementById('ci-texto').value.trim();
+      if (!texto) throw new Error('El texto es obligatorio');
+      const items = _clItems[secId] || [];
+      const maxOrden = items.length ? Math.max(...items.map(i => i.orden)) + 1 : 0;
+      const { error } = await sb.from('checklist_items').insert({
+        seccion_id: secId,
+        texto,
+        descripcion: document.getElementById('ci-desc').value.trim() || null,
+        orden: maxOrden,
+        activo: true,
+      });
+      if (error) throw error;
+    });
+  }
+
+  function clEditarItem(id) {
+    let item;
+    Object.values(_clItems).forEach(arr => { const f = arr.find(i => i.id === id); if (f) item = f; });
+    if (!item) return;
+    const body = `
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Texto *</label><input class="form-input" id="ci-texto" type="text" value="${esc(item.texto)}"></div>
+        <div class="form-group form-full"><label>Descripción / ayuda</label><input class="form-input" id="ci-desc" type="text" value="${esc(item.descripcion||'')}"></div>
+      </div>`;
+    clAbrirModal('✏️ Editar ítem', body, async () => {
+      const texto = document.getElementById('ci-texto').value.trim();
+      if (!texto) throw new Error('El texto es obligatorio');
+      const { error } = await sb.from('checklist_items').update({
+        texto,
+        descripcion: document.getElementById('ci-desc').value.trim() || null,
+      }).eq('id', id);
+      if (error) throw error;
+    });
+  }
+
+  async function clToggleItem(id, activo) {
+    await sb.from('checklist_items').update({ activo }).eq('id', id);
+    cargarChecklistAdmin(_clCanal);
+  }
+
+  async function clEliminarItem(id) {
+    if (!confirm('¿Eliminar este ítem del checklist?')) return;
+    await sb.from('checklist_items').delete().eq('id', id);
+    cargarChecklistAdmin(_clCanal);
+  }
+
+  async function clMoverItem(id, dir) {
+    let secId, items;
+    Object.entries(_clItems).forEach(([sid, arr]) => { if (arr.find(i => i.id === id)) { secId = sid; items = arr; } });
+    if (!items) return;
+    const idx = items.findIndex(i => i.id === id);
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= items.length) return;
+    const a = items[idx], b = items[swapIdx];
+    await Promise.all([
+      sb.from('checklist_items').update({ orden: b.orden }).eq('id', a.id),
+      sb.from('checklist_items').update({ orden: a.orden }).eq('id', b.id),
+    ]);
+    cargarChecklistAdmin(_clCanal);
+  }
+
+  // ── PLANES CRUD ────────────────────────────────────────────────────────────
+  // ── Subida de PDF de plan ──────────────────────────────────────────────────
+  let _cpPdfFile = null;
+
+  function _cpPdfChange(e) {
+    _cpPdfFile = e.target.files[0];
+    const lbl = document.getElementById('cp-pdf-label');
+    if (lbl) lbl.textContent = _cpPdfFile ? '📄 ' + _cpPdfFile.name : '📄 Subir PDF del plan';
+  }
+
+  async function _subirPdfPlan() {
+    if (!_cpPdfFile) return null;
+    const path = `planes_pdf/${Date.now()}_${_cpPdfFile.name.replace(/\s/g,'_')}`;
+    const { error } = await sb.storage.from('Activaciones').upload(path, _cpPdfFile, { upsert: false });
+    if (error) throw new Error('Error al subir PDF: ' + error.message);
+    return sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+  }
+
+  function _planPdfField(pdfUrl) {
+    return `
+      <div class="form-group form-full">
+        <label>PDF del plan (opcional)</label>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="upload-area" style="padding:9px 12px;flex:1;min-width:0;position:relative">
+            <input type="file" id="cp-pdf-file" accept="application/pdf" onchange="_cpPdfChange(event)"
+                   style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+            <div id="cp-pdf-label" style="font-size:12px;color:var(--text3)">📄 Subir PDF del plan</div>
+          </div>
+          ${pdfUrl ? `<a href="${esc(pdfUrl)}" target="_blank" rel="noopener"
+            style="font-size:11px;font-weight:700;color:#1F447F;white-space:nowrap;text-decoration:none;
+                   background:rgba(31,68,127,.08);padding:6px 12px;border-radius:20px;border:1.5px solid rgba(31,68,127,.2)">
+            📄 Ver PDF actual ↗
+          </a>` : ''}
+        </div>
+        ${pdfUrl ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">Subir un nuevo PDF reemplazará el actual.</div>` : ''}
+      </div>`;
+  }
+
+  function clNuevoPlan(secId) {
+    _cpPdfFile = null;
+    const body = `
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Nombre del plan *</label><input class="form-input" id="cp-nombre" type="text" placeholder="Ej: Doña Paula — Plan copa de la casa"></div>
+        <div class="form-group"><label>Condición / badge</label><input class="form-input" id="cp-cond" type="text" placeholder="Ej: 1+1, 3 meses, 2+1"></div>
+        <div class="form-group"><label>Proveedor / bodega</label><input class="form-input" id="cp-prov" type="text" placeholder="Ej: Doña Paula, Peñaflor"></div>
+        <div class="form-group form-full"><label>Descripción completa</label><textarea class="form-input" id="cp-desc" rows="3" placeholder="Descripción detallada del plan, condiciones, vigencia…"></textarea></div>
+        <div class="form-group form-full"><label>Líneas participantes (separadas por coma)</label><input class="form-input" id="cp-lineas" type="text" placeholder="Ej: Alma Mora, Don David, Fond de Cave"></div>
+        <div class="form-group"><label>Fecha inicio</label><input class="form-input" id="cp-inicio" type="date"></div>
+        <div class="form-group"><label>Fecha fin</label><input class="form-input" id="cp-fin" type="date"></div>
+        ${_planPdfField(null)}
+      </div>`;
+    clAbrirModal('➕ Nuevo plan', body, async () => {
+      const nombre = document.getElementById('cp-nombre').value.trim();
+      if (!nombre) throw new Error('El nombre es obligatorio');
+      const lineas  = document.getElementById('cp-lineas').value.split(',').map(l => l.trim()).filter(Boolean);
+      const pdf_url = await _subirPdfPlan();
+      const payload = {
+        seccion_id: secId, nombre,
+        condicion:   document.getElementById('cp-cond').value.trim()  || null,
+        proveedor:   document.getElementById('cp-prov').value.trim()  || null,
+        descripcion: document.getElementById('cp-desc').value.trim()  || null,
+        lineas_participantes: lineas.length ? lineas : null,
+        fecha_inicio: document.getElementById('cp-inicio').value || null,
+        fecha_fin:    document.getElementById('cp-fin').value    || null,
+        activo: true,
+      };
+      if (pdf_url) payload.pdf_url = pdf_url;
+      const { error } = await sb.from('checklist_planes').insert(payload);
+      if (error) throw error;
+    });
+  }
+
+  function clEditarPlan(id) {
+    _cpPdfFile = null;
+    let plan;
+    Object.values(_clPlanes).forEach(arr => { const f = arr.find(p => p.id === id); if (f) plan = f; });
+    if (!plan) return;
+    const lineas = (plan.lineas_participantes || []).join(', ');
+    const body = `
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Nombre *</label><input class="form-input" id="cp-nombre" type="text" value="${esc(plan.nombre)}"></div>
+        <div class="form-group"><label>Condición / badge</label><input class="form-input" id="cp-cond" type="text" value="${esc(plan.condicion||'')}"></div>
+        <div class="form-group"><label>Proveedor</label><input class="form-input" id="cp-prov" type="text" value="${esc(plan.proveedor||'')}"></div>
+        <div class="form-group form-full"><label>Descripción</label><textarea class="form-input" id="cp-desc" rows="3">${esc(plan.descripcion||'')}</textarea></div>
+        <div class="form-group form-full"><label>Líneas participantes</label><input class="form-input" id="cp-lineas" type="text" value="${esc(lineas)}"></div>
+        <div class="form-group"><label>Fecha inicio</label><input class="form-input" id="cp-inicio" type="date" value="${plan.fecha_inicio||''}"></div>
+        <div class="form-group"><label>Fecha fin</label><input class="form-input" id="cp-fin" type="date" value="${plan.fecha_fin||''}"></div>
+        ${_planPdfField(plan.pdf_url||null)}
+      </div>`;
+    clAbrirModal('✏️ Editar plan', body, async () => {
+      const nombre = document.getElementById('cp-nombre').value.trim();
+      if (!nombre) throw new Error('El nombre es obligatorio');
+      const lineas  = document.getElementById('cp-lineas').value.split(',').map(l => l.trim()).filter(Boolean);
+      const nuevoPdf = await _subirPdfPlan();
+      const payload = {
+        nombre,
+        condicion:   document.getElementById('cp-cond').value.trim()  || null,
+        proveedor:   document.getElementById('cp-prov').value.trim()  || null,
+        descripcion: document.getElementById('cp-desc').value.trim()  || null,
+        lineas_participantes: lineas.length ? lineas : null,
+        fecha_inicio: document.getElementById('cp-inicio').value || null,
+        fecha_fin:    document.getElementById('cp-fin').value    || null,
+      };
+      // Solo actualizar pdf_url si se subió uno nuevo
+      if (nuevoPdf) payload.pdf_url = nuevoPdf;
+      const { error } = await sb.from('checklist_planes').update(payload).eq('id', id);
+      // Si falla por pdf_url no existir aún, reintentar sin él
+      if (error?.message?.includes('pdf_url')) {
+        delete payload.pdf_url;
+        const { error: e2 } = await sb.from('checklist_planes').update(payload).eq('id', id);
+        if (e2) throw e2;
+      } else if (error) throw error;
+    });
+  }
+
+  async function clEliminarPlan(id) {
+    if (!confirm('¿Eliminar este plan?')) return;
+    await sb.from('checklist_planes').delete().eq('id', id);
+    cargarChecklistAdmin(_clCanal);
+  }
+
+  // ── MIGRACIÓN de datos hardcodeados a Supabase ────────────────────────────
+  async function migrarChecklistsASupabase() {
+    // DESACTIVADO a propósito: insertaba secciones planas duplicadas y rompía la estructura
+    // madre/hija. No reactivar sin reescribir con upsert por (canal,codigo) + parent_id.
+    alert('La migración está deshabilitada: rompía la estructura de secciones. No se ejecuta.');
+    return;
+    const btn = document.getElementById('cl-migrar-btn');
+    const st  = document.getElementById('cl-migrar-status');
+    if (!confirm('¿Migrar los checklists actuales (restaurante + vinoteca) a Supabase? Si ya existen datos, se omitirán duplicados.')) return;
+    btn.disabled = true; st.textContent = 'Migrando…';
+
+    // Datos hardcodeados de _checklist-data.js (accesibles globalmente)
+    const canales = ['restaurante', 'vinoteca'];
+    let secCount = 0, itemCount = 0, planCount = 0;
+
+    try {
+      for (const canal of canales) {
+        const cl = CHECKLISTS[canal];
+        if (!cl) continue;
+        for (let si = 0; si < cl.secciones.length; si++) {
+          const sec = cl.secciones[si];
+          // Insertar sección
+          const { data: secData, error: secErr } = await sb.from('checklist_secciones').insert({
+            canal,
+            codigo:      sec.id,
+            nombre:      sec.titulo,
+            descripcion: sec.subtitulo || null,
+            icono:       sec.icono || '📋',
+            icono_bg:    sec.iconoBg || '#EAF2FB',
+            icono_color: sec.iconoColor || '#1A5C9A',
+            especial:    sec.especial || null,
+            intro:       sec.intro || null,
+            orden:       si,
+            activa:      true,
+          }).select('id').single();
+          if (secErr) { console.warn('Sec error', secErr); continue; }
+          secCount++;
+          const secId = secData.id;
+
+          // Insertar items
+          for (let ii = 0; ii < (sec.items||[]).length; ii++) {
+            const item = sec.items[ii];
+            const { error: itErr } = await sb.from('checklist_items').insert({
+              seccion_id:  secId,
+              texto:       item.texto,
+              descripcion: item.detalle || null,
+              orden:       ii,
+              activo:      true,
+            });
+            if (!itErr) itemCount++;
+          }
+
+          // Insertar planes
+          for (const pl of (sec.planes||[])) {
+            const { error: plErr } = await sb.from('checklist_planes').insert({
+              seccion_id:           secId,
+              nombre:               pl.titulo,
+              condicion:            pl.pill || null,
+              proveedor:            pl.tags?.[0] || null,
+              descripcion:          pl.desc || null,
+              lineas_participantes: pl.tags || null,
+              activo:               true,
+            });
+            if (!plErr) planCount++;
+          }
+        }
+      }
+      st.textContent = `✅ Migrado: ${secCount} secciones, ${itemCount} ítems, ${planCount} planes`;
+      btn.disabled = false;
+      _clTablesOk = true;
+      await cargarChecklistAdmin(_clCanal);
+    } catch(e) {
+      st.textContent = '❌ Error: ' + e.message;
+      btn.disabled = false;
+    }
+  }
+
+  if(sessionStorage.getItem('admin_auth')==='1') cargarDatos();
+</script>
+</body>
+</html>

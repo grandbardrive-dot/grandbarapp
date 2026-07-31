@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Panel Supervisor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --azul:#1F447F; --azul-dk:#172f5a; --dorado:#CBB86A;
+  --dorado-lt:rgba(203,184,106,.15); --crema:#F1EDE8;
+  --surface:#fff; --surface2:#f7f5f2;
+  --border:rgba(31,68,127,.13); --border-strong:rgba(31,68,127,.28);
+  --text:#1A1814; --text2:#5a5650; --text3:#9E9B96;
+  --green:#2D6A4F; --green-lt:#EAF4EE;
+  --red:#B91C1C; --red-lt:#FEF2F2;
+  --radius:12px; --radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--crema);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ── Auth ── */
+#auth-overlay{position:fixed;inset:0;background:var(--azul);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;padding:24px;gap:20px}
+#auth-overlay img{height:48px;object-fit:contain}
+.auth-card{background:var(--surface);border-radius:var(--radius);border-top:4px solid var(--dorado);padding:28px;width:100%;max-width:340px;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.auth-card h2{font-family:Georgia,serif;font-size:20px;font-weight:normal;color:var(--azul);margin-bottom:4px}
+.auth-card p{font-size:13px;color:var(--text2);margin-bottom:22px}
+.auth-input{width:100%;padding:11px 13px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);font-family:system-ui,sans-serif;font-size:14px;background:var(--surface);color:var(--text);outline:none;margin-bottom:10px;transition:border-color .15s}
+.auth-input:focus{border-color:var(--azul)}
+.auth-btn{width:100%;padding:13px;background:var(--azul);color:#fff;border:none;border-radius:var(--radius-sm);font-family:system-ui,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s}
+.auth-btn:hover{background:var(--azul-dk)}
+.auth-error{font-size:12px;color:#B91C1C;margin-top:10px;display:none}
+.auth-back{font-size:12px;color:rgba(255,255,255,.5);text-decoration:none;cursor:pointer;background:none;border:none;font-family:system-ui,sans-serif}
+
+/* ── Top bar ── */
+.top-bar{background:#1F447F;border-bottom:3px solid var(--dorado);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.top-bar-logo{height:50px;object-fit:contain}
+.sup-info{text-align:right}
+.sup-nombre{font-size:13px;font-weight:600;color:#fff}
+.sup-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:20px;margin-top:2px}
+.liga-ON{background:var(--dorado);color:var(--azul)}
+.liga-OFF{background:rgba(255,255,255,.2);color:#fff}
+.btn-logout{background:none;border:none;color:rgba(255,255,255,.4);font-size:12px;cursor:pointer;font-family:system-ui,sans-serif;padding:4px}
+
+/* ── Summary strip ── */
+.summary-strip{background:var(--azul-dk);border-bottom:1px solid rgba(255,255,255,.1);padding:10px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px}
+.sum-block{text-align:center;padding:6px 4px}
+.sum-val{font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:#fff;line-height:1}
+.sum-label{font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+
+/* ── Tabs ── */
+.tabs-wrap{background:var(--azul);border-bottom:1px solid rgba(255,255,255,.1)}
+.tabs{display:flex;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab-btn{flex-shrink:0;padding:11px 14px;background:none;border:none;border-bottom:3px solid transparent;color:rgba(255,255,255,.5);font-family:system-ui,sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.tab-btn.active{color:#fff;border-bottom-color:var(--dorado)}
+
+/* ── Main ── */
+.main{max-width:520px;margin:0 auto;padding:14px 14px 80px}
+
+/* ── Vendedor cards ── */
+.vend-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid transparent;border-radius:var(--radius);padding:13px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-left-color .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent}
+.vend-card:hover{border-left-color:var(--dorado);box-shadow:0 3px 16px rgba(31,68,127,.1)}
+.vend-avatar{width:40px;height:40px;border-radius:50%;background:var(--azul);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
+.vend-info{flex:1;min-width:0}
+.vend-nombre{font-size:14px;font-weight:600;color:var(--azul)}
+.vend-meta{font-size:11px;color:var(--text3);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.vend-right{text-align:right;flex-shrink:0}
+.vend-pts{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--azul)}
+.vend-fecha{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* ── Ranking ── */
+.rank-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.rank-head{display:grid;grid-template-columns:30px 1fr 60px 60px;gap:6px;padding:8px 14px;background:var(--dorado-lt);border-bottom:2px solid var(--dorado)}
+.rank-head span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--azul)}
+.rank-row{display:grid;grid-template-columns:30px 1fr 60px 60px;gap:6px;padding:11px 14px;border-bottom:1px solid var(--border);align-items:center}
+.rank-row:last-child{border-bottom:none}
+.rank-row.yo{background:rgba(203,184,106,.1)}
+.rank-pos{font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:var(--text3)}
+.rank-nombre{font-size:13px;font-weight:600;color:var(--text)}
+.rank-nombre small{display:block;font-size:10px;color:var(--text3);font-weight:400}
+.rank-pts{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--azul);text-align:right}
+.rank-pts-mes{font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);text-align:right}
+
+/* ── 5T cobertura ── */
+.cov-header{display:grid;gap:4px;padding:8px 12px;background:var(--dorado-lt);border-bottom:2px solid var(--dorado);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--azul)}
+.cov-row{display:grid;gap:4px;padding:10px 12px;border-bottom:1px solid var(--border);align-items:center;font-size:12px}
+.cov-row:last-child{border-bottom:none}
+.marca-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block}
+.dot-green{background:var(--green)}
+.dot-gray{background:#d4d0ca}
+.cov-pct{font-family:'DM Mono',monospace;font-weight:700;font-size:13px;color:var(--azul)}
+
+/* ── Sin visitar ── */
+.alerta-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:var(--radius);padding:13px 14px;margin-bottom:8px}
+.alerta-cliente{font-size:14px;font-weight:600;color:var(--text)}
+.alerta-meta{font-size:11px;color:var(--text3);margin-top:3px;display:flex;gap:8px}
+.alerta-dias{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--red)}
+.alerta-vend{font-size:11px;color:var(--text2)}
+
+/* ── Detalle vendedor overlay ── */
+#detalle-overlay{position:fixed;inset:0;background:var(--crema);z-index:200;overflow-y:auto;display:none;flex-direction:column}
+#detalle-overlay.open{display:flex}
+.det-topbar{background:var(--azul);border-bottom:3px solid var(--dorado);padding:0 14px;display:flex;align-items:center;gap:10px;min-height:56px;position:sticky;top:0;z-index:10;flex-shrink:0}
+.btn-det-back{background:rgba(255,255,255,.12);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.det-title{font-size:14px;font-weight:600;color:#fff;flex:1}
+.det-main{max-width:520px;margin:0 auto;padding:14px 14px 60px;width:100%}
+.det-hero{background:var(--azul);border-radius:var(--radius);padding:16px;margin-bottom:12px;border-bottom:3px solid var(--dorado);display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.det-stat{text-align:center}
+.det-stat-val{font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:#fff}
+.det-stat-label{font-size:9px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.det-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.det-section-title{padding:11px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);border-bottom:1px solid var(--border);background:var(--surface2)}
+.det-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px}
+.det-item:last-child{border-bottom:none}
+.det-item-label{flex:1;color:var(--text)}
+.det-item-sub{font-size:11px;color:var(--text3)}
+.det-item-val{font-family:'DM Mono',monospace;font-weight:700;color:var(--azul);flex-shrink:0}
+.det-alerta{border-left:3px solid var(--red)}
+.det-empty{padding:20px;text-align:center;color:var(--text3);font-size:13px;font-style:italic}
+.rank-badge{background:var(--azul);color:#fff;font-family:'DM Mono',monospace;font-size:22px;font-weight:700;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rank-badge.top1{background:#C9A227}
+.rank-badge.top2{background:#909090}
+.rank-badge.top3{background:#CD7F32}
+
+/* ── Owner dashboard ── */
+#owner-app{display:none;flex-direction:column;min-height:100vh;background:var(--crema)}
+.ow-gold-badge{display:inline-block;background:var(--dorado);color:var(--azul);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;padding:2px 9px;border-radius:20px}
+.ow-kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.ow-kpi{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--dorado);border-radius:var(--radius);padding:14px}
+.ow-kpi-val{font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--azul);line-height:1}
+.ow-kpi-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+.ow-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.ow-cmp{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+.ow-cmp-hdr{font-size:12px;font-weight:700;color:var(--azul);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.ow-cmp-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border)}
+.ow-cmp-row:last-child{border-bottom:none}
+.ow-cmp-num{font-family:'DM Mono',monospace;font-weight:700;color:var(--azul)}
+.ow-top3{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.ow-top3-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px}
+.ow-top3-pos{font-family:'DM Mono',monospace;font-size:18px;font-weight:700;width:28px;text-align:center;flex-shrink:0}
+.ow-top3-info{flex:1}
+.ow-top3-nombre{font-size:13px;font-weight:600;color:var(--azul)}
+.ow-top3-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.ow-top3-val{font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--azul)}
+.ow-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:15px;margin-bottom:12px}
+.ow-chart-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px}
+.ow-chart-wrap{position:relative;height:200px}
+.ow-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px;padding-left:2px}
+.ow-alerta{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:var(--radius);padding:11px 13px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ow-alerta-info{flex:1;min-width:0}
+.ow-alerta-nombre{font-size:13px;font-weight:600;color:var(--text)}
+.ow-alerta-meta{font-size:11px;color:var(--text3)}
+.ow-conv-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.ow-conv-row:last-child{border-bottom:none}
+.ow-torneo-cat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
+.ow-torneo-cat-hdr{background:var(--dorado-lt);border-bottom:2px solid var(--dorado);padding:9px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--azul)}
+.ow-5t-grid{display:grid;grid-template-columns:1fr auto auto auto auto auto;gap:4px;align-items:center;padding:9px 13px;border-bottom:1px solid var(--border);font-size:12px}
+.ow-5t-hdr{background:var(--dorado-lt);border-bottom:2px solid var(--dorado)}
+
+/* ── Visita detalle overlay ── */
+#visita-overlay{position:fixed;inset:0;background:var(--crema);z-index:300;overflow-y:auto;display:none;flex-direction:column}
+#visita-overlay.open{display:flex}
+.vd-hero{background:var(--azul);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;border-bottom:3px solid var(--dorado)}
+.vd-hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:10px}
+.vd-hero-info{flex:1;min-width:0}
+.vd-cliente{font-family:Georgia,serif;font-size:17px;color:#fff;margin-bottom:3px}
+.vd-meta{font-size:11px;color:rgba(255,255,255,.55)}
+.vd-pct{font-family:'DM Mono',monospace;font-size:34px;font-weight:700;color:#fff;flex-shrink:0}
+.vd-pbar{height:6px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden}
+.vd-pbar-fill{height:100%;background:var(--dorado);border-radius:4px;transition:width .5s}
+
+/* Galería evidencias */
+.evidence-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:12px 14px}
+.evidence-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;cursor:pointer;background:var(--surface2);-webkit-tap-highlight-color:transparent}
+.evidence-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s}
+.evidence-thumb:active img{transform:scale(.97)}
+.evidence-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);padding:3px 6px;font-size:9px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+
+/* Checklist items en detalle */
+.cl-section{border-bottom:1px solid var(--border)}
+.cl-sec-header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2)}
+.cl-sec-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.cl-sec-name{flex:1;font-size:13px;font-weight:600;color:var(--azul)}
+.cl-sec-counter{font-family:'DM Mono',monospace;font-size:11px;font-weight:700}
+.cl-sec-counter.all-done{color:var(--green)}
+.cl-sec-counter.partial{color:var(--text3)}
+.cl-item{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;background:var(--surface);border-top:1px solid var(--border)}
+.cl-check{width:18px;height:18px;border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center}
+.cl-check.done{background:var(--azul);border:none}
+.cl-check.todo{background:var(--surface2);border:1.5px solid var(--border-strong)}
+.cl-item-text{font-size:12px;line-height:1.4}
+.cl-item-text.done{color:var(--text3);text-decoration:line-through}
+.cl-item-text.todo{color:var(--text)}
+.cl-obs{padding:7px 14px;background:rgba(203,184,106,.1);border-top:1px solid var(--border);font-size:11px;color:var(--text2);font-style:italic}
+
+/* Modal foto fullscreen */
+#foto-sup-modal{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:400;display:none;align-items:center;justify-content:center;padding:16px}
+#foto-sup-modal.open{display:flex}
+#foto-sup-modal img{max-width:100%;max-height:85vh;border-radius:8px;object-fit:contain}
+.foto-modal-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.foto-modal-label{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+
+/* ── Misc ── */
+.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px;padding-left:2px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3);font-size:14px}
+.spinner-center{text-align:center;padding:40px;color:var(--text3)}
+.sp{display:inline-block;width:20px;height:20px;border:2.5px solid var(--border);border-top-color:var(--azul);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.badge-alert{background:var(--red-lt);color:var(--red);font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0}
+.badge-ok{background:var(--green-lt);color:var(--green);font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0}
+</style>
+<style id="_bg-fondo">
+/* Fondo de pantalla GrandBar */
+body::before { content:""; position:fixed; inset:0; z-index:-1; background:url("fondoo.jpg.jpg") center/cover no-repeat; filter:brightness(0.5); transform:scale(1.05); }
+body { background:transparent !important; }
+:root { --crema:rgba(241,237,232,0.08) !important; --surface:rgba(255,255,255,0.95) !important; --surface2:rgba(247,245,242,0.95) !important; }
+</style>
+</head>
+<body>
+
+<!-- ── Auth overlay ── -->
+<div id="auth-overlay">
+  <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar">
+  <div class="auth-card">
+    <h2>Panel Supervisor</h2>
+    <p>Ingresá tu código y contraseña.</p>
+    <input class="auth-input" id="sup-codigo" type="text" placeholder="Código (ej: SUP001)"
+           autocomplete="off" autocorrect="off" style="text-transform:uppercase"
+           onkeydown="if(event.key==='Enter')document.getElementById('sup-pass').focus()">
+    <input class="auth-input" id="sup-pass" type="password" placeholder="Contraseña"
+           onkeydown="if(event.key==='Enter')loginSup()">
+    <button class="auth-btn" onclick="loginSup()">Ingresar</button>
+    <div class="auth-error" id="auth-error">Código o contraseña incorrectos.</div>
+  </div>
+  <button class="auth-back" onclick="window.location.href='index.html'">← Volver al login de vendedores</button>
+</div>
+
+<!-- ── App ── -->
+<div id="app" style="display:none">
+  <div class="top-bar">
+    <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" class="top-bar-logo" alt="GrandBar">
+    <div id="sup-avatar" class="avatar-vend avatar-vend--md"></div>
+    <div class="sup-info">
+      <div class="sup-nombre" id="sup-nombre"></div>
+      <span class="sup-badge" id="sup-liga-badge"></span>
+    </div>
+    <button class="btn-logout" onclick="logout()">Salir</button>
+  </div>
+
+  <div class="perfil-hero">
+    <div id="sup-avatar-xl" class="avatar-vend avatar-vend--xl"></div>
+    <div class="perfil-info">
+      <div class="perfil-nombre" id="perfil-sup-nombre">…</div>
+      <div class="perfil-sub" id="perfil-sup-sub">Supervisor</div>
+    </div>
+  </div>
+
+  <div class="summary-strip" id="summary-strip">
+    <div class="sum-block"><div class="sum-val" id="sum-visitas">–</div><div class="sum-label">Visitas mes</div></div>
+    <div class="sum-block"><div class="sum-val" id="sum-clientes">–</div><div class="sum-label">Clientes únicos</div></div>
+    <div class="sum-block"><div class="sum-val" id="sum-puntos">–</div><div class="sum-label">Pts torneo</div></div>
+  </div>
+
+  <div class="tabs-wrap">
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-equipo"      onclick="showTab('equipo')">Equipo</button>
+      <button class="tab-btn"        id="tab-ranking"     onclick="showTab('ranking')">Ranking torneo</button>
+      <button class="tab-btn"        id="tab-5t"          onclick="showTab('5t')">Cobertura 5T</button>
+      <button class="tab-btn"        id="tab-sinvisitar"  onclick="showTab('sinvisitar')">Sin visitar</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="content-equipo"><div class="spinner-center"><span class="sp"></span></div></div>
+    <div id="content-ranking"    style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
+    <div id="content-5t"         style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
+    <div id="content-sinvisitar" style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
+  </div>
+</div>
+
+<!-- ── Detalle vendedor ── -->
+<div id="detalle-overlay">
+  <div class="det-topbar">
+    <button class="btn-det-back" onclick="cerrarDetalle()">←</button>
+    <span class="det-title" id="det-titulo">Detalle</span>
+  </div>
+  <div class="det-main" id="det-main"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script src="_avatar.js"></script>
+<script src="_sucursales.js"></script>
+<script src="_torneo.js"></script>
+<script src="_checklist-data.js"></script>
+<script src="_acciones-render.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── State ───────────────────────────────────────────────────────────────────
+let supervisor = JSON.parse(sessionStorage.getItem('supervisor') || 'null');
+let miVendedores  = [];
+let allVisitas    = [];  // visitas del mes
+let allTorneo     = [];  // torneo_registros del torneo
+let allClientes   = [];  // clientes de la cartera
+let ultimasVisitas = {}; // cliente_id → fecha más reciente (global)
+let tabsLoaded    = {};
+
+const ASIGNACIONES = {
+  'SUP001': ['029','039','007','025'],
+  'SUP002': ['024','015','027'],
+  'SUP003': ['006','010','017','041','043'],
+};
+
+// ── Auth — esperar a que el DOM esté completo antes de restaurar sesión ───────
+document.addEventListener('DOMContentLoaded', () => { if (supervisor) mostrarApp(); });
+
+async function loginSup() {
+  const codigo = document.getElementById('sup-codigo').value.trim().toUpperCase();
+  const pass   = document.getElementById('sup-pass').value.trim();
+  if (!codigo || !pass) return;
+
+  // Acceso especial del dueño — sin consulta a Supabase
+  if (codigo === 'OWNER001' && pass === 'grandbar2026') {
+    supervisor = { id:'owner', nombre:'Fernando', codigo:'OWNER001', liga:'OWNER' };
+    sessionStorage.setItem('supervisor', JSON.stringify(supervisor));
+    mostrarApp();
+    return;
+  }
+
+  const { data, error } = await sb
+    .from('supervisores')
+    .select('*')
+    .eq('codigo', codigo)
+    .maybeSingle();
+
+  if (error || !data || data.password !== pass) {
+    document.getElementById('auth-error').style.display = 'block';
+    return;
+  }
+
+  supervisor = data;
+  sessionStorage.setItem('supervisor', JSON.stringify(data));
+  mostrarApp();
+}
+
+function mostrarApp() {
+  document.getElementById('auth-overlay').style.display = 'none';
+
+  // Owner → dashboard ejecutivo
+  if (supervisor.codigo === 'OWNER001') {
+    document.getElementById('owner-app').style.display = 'flex';
+    loadOwnerData();
+    return;
+  }
+
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('sup-nombre').textContent = supervisor.nombre;
+  // Avatar del supervisor: encabezado (md) + perfil hero (xl). Reutilizable para el futuro camino/vestidor.
+  pintarAvatarVendedor(document.getElementById('sup-avatar'),    supervisor.codigo, supervisor.nombre);
+  pintarAvatarVendedor(document.getElementById('sup-avatar-xl'), supervisor.codigo, supervisor.nombre);
+  document.getElementById('perfil-sup-nombre').textContent = supervisor.nombre;
+  document.getElementById('perfil-sup-sub').textContent = supervisor.codigo === 'OWNER001' ? 'Owner' : `Supervisor · ${supervisor.codigo||''}`;
+  const lb = document.getElementById('sup-liga-badge');
+  if (supervisor.liga === 'AMBAS') {
+    lb.textContent = '🏔 San Luis';
+    lb.className   = 'sup-badge';
+    lb.style.cssText = 'background:rgba(255,255,255,.2);color:#fff';
+  } else {
+    lb.textContent = `Liga ${supervisor.liga}`;
+    lb.className   = `sup-badge liga-${supervisor.liga}`;
+  }
+  cargarTodo();
+}
+
+function logout() {
+  sessionStorage.removeItem('supervisor');
+  window.location.href = 'index.html';
+}
+
+// ── Carga principal ───────────────────────────────────────────────────────────
+async function cargarTodo() {
+  // 1. Cargar vendedores del supervisor
+  const { data: svData } = await sb
+    .from('supervisor_vendedores')
+    .select('vendedores(id, nombre, codigo, zona)')
+    .eq('supervisor_id', supervisor.id);
+
+  miVendedores = svData?.map(sv => sv.vendedores).filter(Boolean) || [];
+
+  // Auto-asignar si no hay vendedores asignados
+  if (!miVendedores.length) {
+    await autoAsignar();
+    const { data: svData2 } = await sb
+      .from('supervisor_vendedores')
+      .select('vendedores(id, nombre, codigo, zona)')
+      .eq('supervisor_id', supervisor.id);
+    miVendedores = svData2?.map(sv => sv.vendedores).filter(Boolean) || [];
+  }
+
+  if (!miVendedores.length) {
+    document.getElementById('content-equipo').innerHTML =
+      `<div class="empty-state">No hay vendedores asignados a este supervisor.</div>`;
+    return;
+  }
+
+  const vendIds  = miVendedores.map(v => v.id);
+  const mesActual = getMesActual();
+  const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+
+  // 2. Cargar en paralelo
+  const [visitasRes, torneoRes, clientesRes, ultimasRes] = await Promise.all([
+    // Visitas del mes actual
+    sb.from('visitas')
+      .select('id, vendedor_id, cliente_id, fecha, porcentaje_total, clientes(id, nombre, tipo, codigo_cliente, direccion)')
+      .in('vendedor_id', vendIds)
+      .gte('fecha', inicioMes)
+      .order('fecha', { ascending: false }),
+
+    // Registros del torneo
+    sb.from('torneo_registros')
+      .select('vendedor_id, puntos, mes, tipo, detalle')
+      .eq('torneo_id', TORNEO_ID)
+      .in('vendedor_id', vendIds),
+
+    // Todos los clientes de la cartera
+    sb.from('clientes')
+      .select('id, nombre, codigo_cliente, tipo, vendedor_id')
+      .in('vendedor_id', vendIds)
+      .order('nombre'),
+
+    // Última visita histórica por cliente
+    sb.from('visitas')
+      .select('cliente_id, fecha')
+      .in('vendedor_id', vendIds)
+      .order('fecha', { ascending: false }),
+  ]);
+
+  allVisitas  = visitasRes.data  || [];
+  allTorneo   = torneoRes.data   || [];
+  allClientes = clientesRes.data || [];
+
+  // Mapear última visita por cliente
+  (ultimasRes.data || []).forEach(v => {
+    if (!ultimasVisitas[v.cliente_id]) ultimasVisitas[v.cliente_id] = v.fecha;
+  });
+
+  // 3. Summary
+  const clientesUnicos = new Set(allVisitas.map(v => v.cliente_id)).size;
+  const puntosTotal    = allTorneo.filter(r => r.mes === mesActual).reduce((s, r) => s + r.puntos, 0);
+  document.getElementById('sum-visitas').textContent  = allVisitas.length;
+  document.getElementById('sum-clientes').textContent = clientesUnicos;
+  document.getElementById('sum-puntos').textContent   = puntosTotal;
+
+  // 4. Renderizar tab inicial
+  showTab('equipo');
+}
+
+async function autoAsignar() {
+  const codigos = ASIGNACIONES[supervisor.codigo] || [];
+  if (!codigos.length) return;
+  const { data: vends } = await sb.from('vendedores').select('id,codigo').in('codigo', codigos);
+  if (!vends?.length) return;
+  await sb.from('supervisor_vendedores')
+    .upsert(vends.map(v => ({ supervisor_id: supervisor.id, vendedor_id: v.id })),
+            { onConflict: 'supervisor_id,vendedor_id', ignoreDuplicates: true });
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function showTab(tab) {
+  ['equipo','ranking','5t','sinvisitar'].forEach(t => {
+    document.getElementById(`content-${t}`).style.display = t === tab ? 'block' : 'none';
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+  });
+  if (!tabsLoaded[tab]) { tabsLoaded[tab] = true; renderTab(tab); }
+}
+
+function renderTab(tab) {
+  if (tab === 'equipo')      renderEquipo();
+  if (tab === 'ranking')     renderRanking();
+  if (tab === '5t')          renderCobertura5T();
+  if (tab === 'sinvisitar')  renderSinVisitar();
+}
+
+// ── Tab: Equipo ───────────────────────────────────────────────────────────────
+function renderEquipo() {
+  const mes = getMesActual();
+  const el = document.getElementById('content-equipo');
+
+  if (!miVendedores.length) {
+    el.innerHTML = `<div class="empty-state">Sin vendedores asignados.</div>`; return;
+  }
+
+  el.innerHTML = `<div class="section-title">${miVendedores.length} vendedores</div>` +
+    miVendedores.map(v => {
+      const visitas = allVisitas.filter(vi => vi.vendedor_id === v.id);
+      const puntos  = allTorneo.filter(r => r.vendedor_id === v.id && r.mes === mes).reduce((s,r)=>s+r.puntos,0);
+      const ultima  = visitas[0]?.fecha;
+      const iniciales = v.nombre.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+      return `<div class="vend-card" onclick="abrirDetalle('${v.id}')">
+        <div class="vend-avatar">${iniciales}</div>
+        <div class="vend-info">
+          <div class="vend-nombre">${esc(v.nombre)}</div>
+          <div class="vend-meta">
+            <span>📋 ${visitas.length} visita${visitas.length!==1?'s':''}</span>
+            <span>🏆 ${puntos} pts</span>
+          </div>
+        </div>
+        <div class="vend-right">
+          <div class="vend-pts">${puntos} pts</div>
+          <div class="vend-fecha">${ultima ? fmtFecha(ultima) : 'Sin visitas'}</div>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+// ── Tab: Ranking torneo ───────────────────────────────────────────────────────
+async function renderRanking() {
+  const el   = document.getElementById('content-ranking');
+  const mes  = getMesActual();
+  const liga = supervisor.liga;
+  const esAmbas = liga === 'AMBAS';
+
+  const { data: todos } = await sb
+    .from('torneo_registros')
+    .select('vendedor_id, puntos, mes, clientes(tipo), vendedores(id, nombre, codigo)')
+    .eq('torneo_id', TORNEO_ID);
+
+  if (!todos) { el.innerHTML = `<div class="empty-state">Error al cargar ranking.</div>`; return; }
+
+  const mapa = {};
+  todos.forEach(r => {
+    const codVend = r.vendedores?.codigo;
+    // San Luis supervisor: ver solo vendedores SL
+    if (esAmbas && getSucursal(codVend) !== 'San Luis') return;
+    // Mendoza supervisors: filtrar por liga del cliente
+    if (!esAmbas && getLiga(r.clientes?.tipo) !== liga) return;
+    const vid = r.vendedor_id;
+    if (!mapa[vid]) mapa[vid] = { vend: r.vendedores, mes: 0, total: 0 };
+    mapa[vid].total += r.puntos;
+    if (r.mes === mes) mapa[vid].mes += r.puntos;
+  });
+
+  const rows = Object.values(mapa).sort((a,b) => b.total - a.total);
+  const misIds = new Set(miVendedores.map(v => v.id));
+  const titulo = esAmbas ? 'San Luis' : `Liga ${liga}`;
+
+  if (!rows.length) {
+    el.innerHTML = `<div class="rank-card"><div style="padding:32px;text-align:center;color:var(--text3)">Sin registros en ${titulo}.</div></div>`;
+    return;
+  }
+
+  const medallas = ['🥇','🥈','🥉'];
+  el.innerHTML = `<div class="section-title">Ranking — ${titulo} · ${nombreMes(mes)}</div>
+    <div class="rank-card">
+      <div class="rank-head">
+        <span>#</span><span>Vendedor</span>
+        <span style="text-align:right">${nombreMes(mes)}</span>
+        <span style="text-align:right">Total</span>
+      </div>
+      ${rows.map((r,i) => {
+        const esEquipo = misIds.has(r.vend?.id);
+        return `<div class="rank-row${esEquipo?' yo':''}">
+          <span class="rank-pos">${i<3?medallas[i]:i+1}</span>
+          <div class="rank-nombre">${esc(r.vend?.nombre||'—')}${esEquipo?'<small>← Tu equipo</small>':''}</div>
+          <span class="rank-pts-mes">${r.mes}</span>
+          <span class="rank-pts">${r.total}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── Helpers compartidos 5T (nueva estructura: 1 hoja, match por nombre) ──────
+const _MARCAS_5T_SUP = [
+  { nombre:'Aperol',         col:'aperol'         },
+  { nombre:'Bulldog',        col:'bulldog'         },
+  { nombre:'Campari',        col:'campari'         },
+  { nombre:'Cinzano',        col:'cinzano'         },
+  { nombre:'Cynar',          col:'cynar'           },
+  { nombre:'Skyy Infussion', col:'skyy infussion'  },
+];
+let _sheet5TSupCache = null;
+
+function _normStr5T(s) {
+  return String(s??'').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function _splitCSV5T(line) {
+  const r=[]; let cur='',q=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){q=!q;}
+    else if(ch===','&&!q){r.push(cur.trim());cur='';}
+    else cur+=ch;
+  }
+  r.push(cur.trim()); return r;
+}
+
+// Parsea el CSV y devuelve un Map: codNormalizado → { aperol:bool, campari:bool, ... }
+function _parseSheet5T(text) {
+  text = text.replace(/^﻿/,'');
+  const lines = text.split(/\r?\n/).filter(l=>l.trim());
+  if (lines.length < 2) return new Map();
+  const header = _splitCSV5T(lines[0]).map(h=>h.toLowerCase().trim());
+  const colIdx = {};
+  _MARCAS_5T_SUP.forEach(m => {
+    const i = header.findIndex(h => h === m.col);
+    if (i >= 0) colIdx[m.col] = i;
+  });
+  const mapa = new Map();
+  for (let i=1; i<lines.length; i++) {
+    const cols = _splitCSV5T(lines[i]);
+    // Normalizar código: quitar ceros a la izquierda
+    const cod = String(cols[0]??'').trim().replace(/^0+/,'') || '0';
+    if (!cod || cod === '0') continue;
+    const entry = {};
+    _MARCAS_5T_SUP.forEach(m => {
+      const ci = colIdx[m.col];
+      entry[m.col] = ci !== undefined ? cols[ci] === '1' : false;
+    });
+    mapa.set(cod, entry);
+  }
+  return mapa;
+}
+
+async function _getSheet5T() {
+  if (_sheet5TSupCache !== null) return _sheet5TSupCache;
+  const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRki8X-1_-X8TCp3hHWWiFuLDFXAsh58vyMAiRhaoShCg1my2PPCGRdv-pT0TFtjFsI98viBKDC4hxo/pub?output=csv';
+  try {
+    const r = await fetch(`${SHEET_BASE}&gid=0`);
+    _sheet5TSupCache = r.ok ? _parseSheet5T(await r.text()) : new Map();
+  } catch { _sheet5TSupCache = new Map(); }
+  return _sheet5TSupCache;
+}
+
+// Normalizar código: quitar ceros a la izquierda (00103 → 103)
+function _normCod5T(s) {
+  return String(s ?? '').trim().replace(/^0+/, '') || '0';
+}
+
+// Busca un cliente por código normalizado en el mapa
+function _buscarCliente5T(mapa, codigoCrudo) {
+  const cod = _normCod5T(codigoCrudo);
+  if (mapa.has(cod)) return mapa.get(cod);
+  return null;
+}
+
+// ── Tab: Cobertura 5T ─────────────────────────────────────────────────────────
+async function renderCobertura5T() {
+  const el = document.getElementById('content-5t');
+  el.innerHTML = `<div class="spinner-center"><span class="sp"></span> Cargando datos de Google Sheets…</div>`;
+
+  const mapa = await _getSheet5T();
+  const MARCAS = _MARCAS_5T_SUP;
+
+  // Por vendedor: cuántos clientes tienen cada marca
+  const vendStats = miVendedores.map(v => {
+    const clientes = allClientes.filter(c => c.vendedor_id === v.id);
+    const marcasData = MARCAS.map(m => {
+      let total = 0, cumple = 0;
+      clientes.forEach(c => {
+        const datos = _buscarCliente5T(mapa, c.codigo_cliente);
+        if (datos !== null) { total++; if (datos[m.col]) cumple++; }
+      });
+      return { total, cumple };
+    });
+    return { vendedor: v, clientes: clientes.length, marcas: marcasData };
+  });
+
+  const totales = MARCAS.map((m, mi) => {
+    let total = 0, cumple = 0;
+    vendStats.forEach(vs => { total += vs.marcas[mi].total; cumple += vs.marcas[mi].cumple; });
+    return { total, cumple };
+  });
+
+  const cols = `34px 1fr ${MARCAS.map(()=>'44px').join(' ')}`;
+
+  el.innerHTML = `
+    <div class="section-title">Clientes en plan 5T — ${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][new Date().getMonth()]} ${new Date().getFullYear()}</div>
+    <div class="det-section">
+      <div class="cov-header" style="grid-template-columns:${cols}">
+        <span></span><span>Vendedor</span>
+        ${MARCAS.map(m=>`<span style="text-align:center;font-size:9px">${m.nombre.split(' ')[0]}</span>`).join('')}
+      </div>
+      ${vendStats.map(vs => `
+        <div class="cov-row" style="grid-template-columns:${cols}">
+          <span style="font-size:11px;color:var(--text3)">${vs.clientes}</span>
+          <span style="font-size:12px;font-weight:600;color:var(--azul)">${esc(vs.vendedor.nombre.split(' ')[0])}</span>
+          ${vs.marcas.map(md => `
+            <span style="text-align:center">
+              <span class="marca-dot ${md.cumple>0?'dot-green':'dot-gray'}"></span>
+              <span style="font-size:10px;font-family:'DM Mono',monospace;display:block">${md.cumple}/${md.total}</span>
+            </span>`).join('')}
+        </div>`).join('')}
+      <div class="cov-row" style="grid-template-columns:${cols};background:var(--dorado-lt)">
+        <span></span>
+        <span style="font-size:11px;font-weight:700;color:var(--azul)">TOTAL</span>
+        ${totales.map(t => `
+          <span style="text-align:center">
+            <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--azul)">${t.cumple}/${t.total}</span>
+          </span>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── Tab: Sin visitar ──────────────────────────────────────────────────────────
+function renderSinVisitar() {
+  const el  = document.getElementById('content-sinvisitar');
+  const HOY = new Date();
+  const DIAS_ALERTA = 15;
+
+  const sinVisitar = allClientes.map(c => {
+    const ultima = ultimasVisitas[c.id];
+    const dias   = ultima
+      ? Math.floor((HOY - new Date(ultima)) / 86400000)
+      : 9999;
+    const vend   = miVendedores.find(v => v.id === c.vendedor_id);
+    return { ...c, dias, ultima, vend };
+  }).filter(c => c.dias >= DIAS_ALERTA)
+    .sort((a,b) => b.dias - a.dias);
+
+  if (!sinVisitar.length) {
+    el.innerHTML = `<div class="empty-state">✅ Todos los clientes tuvieron visita en los últimos 15 días.</div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="section-title">${sinVisitar.length} clientes sin visita en +${DIAS_ALERTA} días</div>` +
+    sinVisitar.map(c => `
+      <div class="alerta-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div>
+            <div class="alerta-cliente">${esc(c.nombre)}</div>
+            <div class="alerta-meta">
+              <span>${esc(c.vend?.nombre || '—')}</span>
+              <span>·</span>
+              <span>${c.ultima ? 'Última: ' + fmtFechaLarga(c.ultima) : 'Sin visitas'}</span>
+            </div>
+          </div>
+          <span class="alerta-dias">${c.dias === 9999 ? 'Nunca' : c.dias + 'd'}</span>
+        </div>
+      </div>`).join('');
+}
+
+// ── Detalle vendedor ──────────────────────────────────────────────────────────
+async function abrirDetalle(vendId) {
+  const v   = miVendedores.find(x => x.id === vendId);
+  if (!v) return;
+  const mes = getMesActual();
+  const HOY = new Date();
+
+  document.getElementById('det-titulo').textContent = v.nombre;
+  document.getElementById('det-main').innerHTML = `<div class="spinner-center"><span class="sp"></span></div>`;
+  document.getElementById('detalle-overlay').classList.add('open');
+
+  // Data ya cargada en memoria
+  const visitas  = allVisitas.filter(vi => vi.vendedor_id === vendId);
+  const torneo   = allTorneo.filter(r => r.vendedor_id === vendId);
+  const clientes = allClientes.filter(c => c.vendedor_id === vendId);
+
+  const mesRegs     = torneo.filter(r => r.mes === mes);
+  const puntosTotal = torneo.reduce((s,r)=>s+r.puntos,0);
+  const puntosMes   = mesRegs.reduce((s,r)=>s+r.puntos,0);
+  const volPts      = torneo.filter(r=>r.tipo==='volumen').reduce((s,r)=>s+r.puntos,0);
+  const cobPts      = torneo.filter(r=>r.tipo==='cobertura').reduce((s,r)=>s+r.puntos,0);
+  const actPts      = torneo.filter(r=>r.tipo==='activacion').reduce((s,r)=>s+r.puntos,0);
+
+  // Ranking del vendedor en su liga / sucursal
+  const { data: rankData } = await sb
+    .from('torneo_registros')
+    .select('vendedor_id, puntos, clientes(tipo), vendedores(codigo)')
+    .eq('torneo_id', TORNEO_ID);
+
+  const ligaVend = supervisor.liga;
+  const esAmbas  = ligaVend === 'AMBAS';
+  const mapaRank = {};
+  (rankData||[]).forEach(r => {
+    if (esAmbas) {
+      if (getSucursal(r.vendedores?.codigo) !== 'San Luis') return;
+    } else {
+      if (getLiga(r.clientes?.tipo) !== ligaVend) return;
+    }
+    if (!mapaRank[r.vendedor_id]) mapaRank[r.vendedor_id] = 0;
+    mapaRank[r.vendedor_id] += r.puntos;
+  });
+  const sorted  = Object.entries(mapaRank).sort((a,b)=>b[1]-a[1]);
+  const rankPos = sorted.findIndex(([id])=>id===vendId) + 1;
+  const rankClass = rankPos===1?'top1':rankPos===2?'top2':rankPos===3?'top3':'';
+
+  // Clientes sin visita 15+ días
+  const alertas = clientes.filter(c => {
+    const ultima = ultimasVisitas[c.id];
+    const dias   = ultima ? Math.floor((HOY-new Date(ultima))/86400000) : 9999;
+    return dias >= 15;
+  });
+
+  document.getElementById('det-main').innerHTML = `
+    <div class="det-hero">
+      <div class="det-stat"><div class="det-stat-val">${visitas.length}</div><div class="det-stat-label">Visitas mes</div></div>
+      <div class="det-stat"><div class="det-stat-val">${puntosMes}</div><div class="det-stat-label">Pts ${nombreMes(mes)}</div></div>
+      <div class="det-stat"><div class="det-stat-val">${puntosTotal}</div><div class="det-stat-label">Pts total</div></div>
+    </div>
+
+    ${rankPos > 0 ? `<div class="det-section" style="margin-bottom:10px">
+      <div class="det-section-title">Posición en ranking — Liga ${ligaVend}</div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px">
+        <div class="rank-badge ${rankClass}">${rankPos}</div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--azul)">${puntosTotal} pts acumulados</div>
+          <div style="font-size:12px;color:var(--text3)">Posición ${rankPos} de ${sorted.length} en ${esAmbas ? 'San Luis' : 'Liga ' + ligaVend}</div>
+        </div>
+      </div>
+    </div>` : ''}
+
+    <div class="det-section">
+      <div class="det-section-title">Torneo Doña Paula — Desglose acumulado</div>
+      <div class="det-item"><span class="det-item-label">📦 Volumen</span><span class="det-item-val">${fmtPts(volPts)}</span></div>
+      <div class="det-item"><span class="det-item-label">🎯 Cobertura</span><span class="det-item-val">${fmtPts(cobPts)}</span></div>
+      <div class="det-item"><span class="det-item-label">⚡ Activaciones</span><span class="det-item-val">${fmtPts(actPts)}</span></div>
+    </div>
+
+    <div class="det-section">
+      <div class="det-section-title">Visitas del mes — ${nombreMes(mes)}</div>
+      ${visitas.length === 0
+        ? `<div class="det-empty">Sin visitas registradas este mes.</div>`
+        : visitas.slice(0, 20).map(vi => `
+          <div class="det-item" onclick="abrirVisitaDetalle('${vi.id}')"
+               style="cursor:pointer;-webkit-tap-highlight-color:transparent" >
+            <div style="flex:1;min-width:0">
+              <div class="det-item-label">${esc(vi.clientes?.nombre||'—')}</div>
+              <div class="det-item-sub">${fmtFechaLarga(vi.fecha)}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+              <span class="det-item-val">${vi.porcentaje_total}%</span>
+              <span style="color:var(--text3);font-size:14px">›</span>
+            </div>
+          </div>`).join('')}
+    </div>
+
+    ${alertas.length > 0 ? `<div class="det-section">
+      <div class="det-section-title" style="color:var(--red)">⚠️ Clientes sin visita +15 días (${alertas.length})</div>
+      ${alertas.map(c => {
+        const ultima = ultimasVisitas[c.id];
+        const dias   = ultima ? Math.floor((HOY-new Date(ultima))/86400000) : 9999;
+        return `<div class="det-item det-alerta">
+          <div>
+            <div class="det-item-label">${esc(c.nombre)}</div>
+            <div class="det-item-sub">${ultima ? 'Última: '+fmtFechaLarga(ultima) : 'Sin visitas registradas'}</div>
+          </div>
+          <span class="badge-alert">${dias===9999?'Nunca':dias+'d'}</span>
+        </div>`;
+      }).join('')}
+    </div>` : `<div class="det-section">
+      <div class="det-section-title">Cobertura de clientes</div>
+      <div class="det-item"><span class="det-item-label">Todos al día ✅</span><span class="badge-ok">OK</span></div>
+    </div>`}`;
+}
+
+function cerrarDetalle() {
+  document.getElementById('detalle-overlay').classList.remove('open');
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function capitalize(s) { return String(s||'').charAt(0).toUpperCase() + String(s||'').slice(1); }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// OWNER EXECUTIVE DASHBOARD
+// ══════════════════════════════════════════════════════════════════════════════
+
+let OD = { vendedores:[], visitas:[], torneo:[], clientes:[], ultVis:{} };
+let owTabsLoaded = {};
+let owCharts = {};
+
+// ── Carga global ──────────────────────────────────────────────────────────────
+async function loadOwnerData() {
+  const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+
+  const [vR, visR, tR, cR, uvR] = await Promise.all([
+    sb.from('vendedores').select('id,nombre,codigo,zona').order('nombre'),
+    sb.from('visitas').select('id,vendedor_id,cliente_id,fecha,porcentaje_total,progreso,clientes(id,nombre,tipo,codigo_cliente),vendedores(id,nombre,codigo)')
+      .gte('fecha', inicioMes).order('fecha', { ascending:false }),
+    sb.from('torneo_registros').select('vendedor_id,puntos,mes,tipo,detalle,clientes(tipo),vendedores(id,nombre,codigo)')
+      .eq('torneo_id', TORNEO_ID),
+    sb.from('clientes').select('id,nombre,tipo,codigo_cliente,vendedor_id'),
+    sb.from('visitas').select('cliente_id,fecha').order('fecha', { ascending:false }),
+  ]);
+
+  OD.vendedores = vR.data   || [];
+  OD.visitas    = visR.data || [];
+  OD.torneo     = tR.data   || [];
+  OD.clientes   = cR.data   || [];
+
+  const seen = new Set();
+  (uvR.data||[]).forEach(v => { if (!seen.has(v.cliente_id)) { seen.add(v.cliente_id); OD.ultVis[v.cliente_id]=v.fecha; } });
+
+  showOwnerTab('resumen');
+}
+
+// ── Tab routing ───────────────────────────────────────────────────────────────
+function showOwnerTab(tab) {
+  ['resumen','vendedores','torneo','stats','5t'].forEach(t => {
+    document.getElementById(`ow-${t}`).style.display = t === tab ? 'block' : 'none';
+    document.getElementById(`ow-t-${t}`).classList.toggle('active', t === tab);
+  });
+  if (!owTabsLoaded[tab]) { owTabsLoaded[tab]=true; renderOwnerTab(tab); }
+}
+function renderOwnerTab(t) {
+  if (t==='resumen')    renderOwResumen();
+  if (t==='vendedores') renderOwVendedores();
+  if (t==='torneo')     renderOwTorneo();
+  if (t==='stats')      renderOwStats();
+  if (t==='5t')         renderOw5T();
+}
+
+// ── Tab 1: Resumen ────────────────────────────────────────────────────────────
+function renderOwResumen() {
+  const el  = document.getElementById('ow-resumen');
+  const mes = getMesActual();
+  const hoy = new Date().toISOString().slice(0,10);
+
+  const totalVis     = OD.visitas.length;
+  const activosHoy   = new Set(OD.visitas.filter(v=>v.fecha.slice(0,10)===hoy).map(v=>v.vendedor_id)).size;
+  const clientesUniq = new Set(OD.visitas.map(v=>v.cliente_id)).size;
+  const avgPct       = totalVis ? Math.round(OD.visitas.reduce((s,v)=>s+(v.porcentaje_total||0),0)/totalVis) : 0;
+
+  // Comparativa por sucursal
+  function sucursalStats(suc) {
+    const vVends = OD.vendedores.filter(v=>getSucursal(v.codigo)===suc).map(v=>v.id);
+    const vis    = OD.visitas.filter(v=>vVends.includes(v.vendedor_id));
+    const pts    = OD.torneo.filter(r=>vVends.includes(r.vendedor_id)&&r.mes===mes).reduce((s,r)=>s+r.puntos,0);
+    return { vis:vis.length, pts, clientes:new Set(vis.map(v=>v.cliente_id)).size };
+  }
+  const mza = sucursalStats('Mendoza');
+  const sl  = sucursalStats('San Luis');
+
+  // Top 3 por visitas
+  const visitasPorVend = {};
+  OD.visitas.forEach(v=>{ if(!visitasPorVend[v.vendedor_id])visitasPorVend[v.vendedor_id]={vend:v.vendedores,count:0,pctSum:0}; visitasPorVend[v.vendedor_id].count++; visitasPorVend[v.vendedor_id].pctSum+=(v.porcentaje_total||0); });
+  const top3 = Object.values(visitasPorVend).sort((a,b)=>b.count-a.count).slice(0,3);
+
+  el.innerHTML = `
+    <div class="ow-kpi-grid">
+      <div class="ow-kpi"><div class="ow-kpi-val">${totalVis}</div><div class="ow-kpi-lbl">Visitas del mes</div></div>
+      <div class="ow-kpi"><div class="ow-kpi-val">${activosHoy}</div><div class="ow-kpi-lbl">Vendedores activos hoy</div></div>
+      <div class="ow-kpi"><div class="ow-kpi-val">${clientesUniq}</div><div class="ow-kpi-lbl">Clientes visitados</div></div>
+      <div class="ow-kpi"><div class="ow-kpi-val">${avgPct}%</div><div class="ow-kpi-lbl">% promedio checklist</div></div>
+    </div>
+
+    <div class="ow-sec-title">Comparativa por sucursal</div>
+    <div class="ow-compare">
+      <div class="ow-cmp">
+        <div class="ow-cmp-hdr">🍇 Mendoza</div>
+        <div class="ow-cmp-row"><span>Visitas</span><span class="ow-cmp-num">${mza.vis}</span></div>
+        <div class="ow-cmp-row"><span>Pts torneo</span><span class="ow-cmp-num">${mza.pts}</span></div>
+        <div class="ow-cmp-row"><span>Clientes</span><span class="ow-cmp-num">${mza.clientes}</span></div>
+      </div>
+      <div class="ow-cmp">
+        <div class="ow-cmp-hdr">🏔 San Luis</div>
+        <div class="ow-cmp-row"><span>Visitas</span><span class="ow-cmp-num">${sl.vis}</span></div>
+        <div class="ow-cmp-row"><span>Pts torneo</span><span class="ow-cmp-num">${sl.pts}</span></div>
+        <div class="ow-cmp-row"><span>Clientes</span><span class="ow-cmp-num">${sl.clientes}</span></div>
+      </div>
+    </div>
+
+    <div class="ow-sec-title">🥇 Top 3 vendedores del mes</div>
+    <div class="ow-top3">
+      ${top3.map((r,i)=>`
+        <div class="ow-top3-row">
+          <div class="ow-top3-pos">${['🥇','🥈','🥉'][i]}</div>
+          <div class="ow-top3-info">
+            <div class="ow-top3-nombre">${esc(r.vend?.nombre||'—')}</div>
+            <div class="ow-top3-meta">${getSucursal(r.vend?.codigo)} · prom. ${Math.round(r.pctSum/r.count)}%</div>
+          </div>
+          <div class="ow-top3-val">${r.count} vis.</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// ── Tab 2: Vendedores ─────────────────────────────────────────────────────────
+function renderOwVendedores() {
+  const el  = document.getElementById('ow-vendedores');
+  const mes = getMesActual();
+  if (!OD.vendedores.length) { el.innerHTML='<div class="empty-state">Sin vendedores.</div>'; return; }
+
+  const grupos = {
+    'Mendoza': OD.vendedores.filter(v=>getSucursal(v.codigo)==='Mendoza'),
+    'San Luis': OD.vendedores.filter(v=>getSucursal(v.codigo)==='San Luis'),
+  };
+
+  el.innerHTML = Object.entries(grupos).map(([suc, vends]) => `
+    <div class="ow-sec-title">${suc==='Mendoza'?'🍇':'🏔'} ${suc}</div>
+    ${vends.map(v=>{
+      const vis  = OD.visitas.filter(vi=>vi.vendedor_id===v.id);
+      const pts  = OD.torneo.filter(r=>r.vendedor_id===v.id&&r.mes===mes).reduce((s,r)=>s+r.puntos,0);
+      const ini  = v.nombre.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+      const ult  = vis[0]?.fecha;
+      return `<div class="vend-card" onclick="abrirDetalle('${v.id}')">
+        <div class="vend-avatar">${ini}</div>
+        <div class="vend-info">
+          <div class="vend-nombre">${esc(v.nombre)}</div>
+          <div class="vend-meta"><span>📋 ${vis.length} vis.</span><span>🏆 ${pts} pts</span></div>
+        </div>
+        <div class="vend-right">
+          <div class="vend-pts">${pts} pts</div>
+          <div class="vend-fecha">${ult?fmtFecha(ult):'Sin visitas'}</div>
+        </div>
+      </div>`;
+    }).join('')}
+  `).join('');
+}
+
+// ── Tab 3: Torneo ─────────────────────────────────────────────────────────────
+function renderOwTorneo() {
+  const el  = document.getElementById('ow-torneo');
+  const mes = getMesActual();
+
+  // Ranking unificado
+  const mapa = {};
+  OD.torneo.forEach(r=>{
+    const vid=r.vendedor_id;
+    if(!mapa[vid])mapa[vid]={vend:r.vendedores,total:0,mesPts:0,vol:0,cob:0,act:0,suc:getSucursal(r.vendedores?.codigo)};
+    mapa[vid].total+=r.puntos; if(r.mes===mes)mapa[vid].mesPts+=r.puntos;
+    if(r.tipo==='volumen')mapa[vid].vol+=r.puntos;
+    if(r.tipo==='cobertura')mapa[vid].cob+=r.puntos;
+    if(r.tipo==='activacion')mapa[vid].act+=r.puntos;
+  });
+  const rows = Object.values(mapa).sort((a,b)=>b.total-a.total);
+
+  // Top por categoría
+  const topVol  = rows.sort((a,b)=>b.vol -a.vol )[0];
+  const topCob  = [...rows].sort((a,b)=>b.cob -a.cob )[0];
+  const topAct  = [...rows].sort((a,b)=>b.act -a.act )[0];
+  const rowsSorted = [...rows].sort((a,b)=>b.total-a.total);
+
+  const medals = ['🥇','🥈','🥉'];
+  const rankHtml = rowsSorted.slice(0,15).map((r,i)=>`
+    <div class="rank-row" style="background:${r.suc==='San Luis'?'rgba(31,68,127,.04)':''}">
+      <span class="rank-pos">${i<3?medals[i]:i+1}</span>
+      <div class="rank-nombre">${esc(r.vend?.nombre||'—')}<small>${r.suc}</small></div>
+      <span class="rank-pts-mes">${r.mesPts}</span>
+      <span class="rank-pts">${r.total}</span>
+    </div>`).join('');
+
+  el.innerHTML = `
+    <div class="ow-sec-title">Top por categoría</div>
+    <div class="ow-kpi-grid" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="ow-kpi"><div class="ow-kpi-val" style="font-size:13px">${esc(topVol?.vend?.nombre||'—')}</div><div class="ow-kpi-lbl">📦 Volumen</div></div>
+      <div class="ow-kpi"><div class="ow-kpi-val" style="font-size:13px">${esc(topCob?.vend?.nombre||'—')}</div><div class="ow-kpi-lbl">🎯 Cobertura</div></div>
+      <div class="ow-kpi"><div class="ow-kpi-val" style="font-size:13px">${esc(topAct?.vend?.nombre||'—')}</div><div class="ow-kpi-lbl">⚡ Activaciones</div></div>
+    </div>
+
+    <div class="ow-sec-title">Ranking completo — ${nombreMes(mes)}</div>
+    <div class="rank-card">
+      <div class="rank-head" style="grid-template-columns:30px 1fr 60px 60px">
+        <span>#</span><span>Vendedor</span><span style="text-align:right">${nombreMes(mes)}</span><span style="text-align:right">Total</span>
+      </div>
+      ${rankHtml}
+    </div>`;
+}
+
+// ── Tab 4: Estadísticas ───────────────────────────────────────────────────────
+async function renderOwStats() {
+  const el = document.getElementById('ow-stats');
+  const HOY = new Date();
+
+  // 1. Visitas por semana (últimas 4 semanas)
+  const weeks = [0,0,0,0];
+  const weekLabels = [];
+  for (let w=3; w>=0; w--) {
+    const d = new Date(HOY); d.setDate(d.getDate() - w*7);
+    weekLabels.push(`Sem ${4-w}`);
+  }
+  OD.visitas.forEach(v=>{
+    const diff = Math.floor((HOY - new Date(v.fecha))/86400000);
+    const wi   = Math.min(3, Math.floor(diff/7));
+    weeks[3-wi]++;
+  });
+
+  // 2. Secciones más/menos completadas
+  const SEC_NAMES = {
+    s0:'Preparación',s1:'Incorporación',s_acciones_mensuales:'Acciones mes',
+    s2:'Rotación',s3:'Fechas esp.',s4:'Precio',s5:'Nuevos prod.',
+    s6:'Aperitivos',s7:'Copa',s8:'Café',s9:'Materiales',s10:'Partners',
+    vt1:'Vidrieras',vt2:'Heladera',vt3:'Góndola vinos',vt4:'Incorporaciones',
+    vt5:'Spirits',vt6:'Materiales',vt7:'Fechas',vt8:'Partners'
+  };
+  const secStats = {};
+  OD.visitas.forEach(v=>{
+    Object.entries(v.progreso||{}).forEach(([sid,sd])=>{
+      const checks=(sd.checks||[]);
+      if(!checks.length||!SEC_NAMES[sid])return;
+      if(!secStats[sid])secStats[sid]={done:0,total:0,name:SEC_NAMES[sid]};
+      secStats[sid].done +=checks.filter(Boolean).length;
+      secStats[sid].total+=checks.length;
+    });
+  });
+  const secData = Object.values(secStats)
+    .map(s=>({name:s.name,pct:s.total?Math.round(s.done/s.total*100):0}))
+    .sort((a,b)=>b.pct-a.pct).slice(0,10);
+
+  // 3. Clientes sin visita 15+ días
+  const alertas = OD.clientes.map(c=>{
+    const ult=OD.ultVis[c.id];
+    const dias=ult?Math.floor((HOY-new Date(ult))/86400000):9999;
+    return {...c,dias,ult};
+  }).filter(c=>c.dias>=15).sort((a,b)=>b.dias-a.dias).slice(0,10);
+
+  // 4. Compromisos conversion
+  const { data:comps } = await sb.from('compromisos').select('estado');
+  const compTotal=comps?.length||0;
+  const compEjec =(comps||[]).filter(c=>c.estado==='ejecutado').length;
+  const compPend =(comps||[]).filter(c=>c.estado==='pendiente').length;
+  const compAtr  =(comps||[]).filter(c=>c.estado==='atrasado').length;
+  const tasa     = compTotal ? Math.round(compEjec/compTotal*100) : 0;
+
+  el.innerHTML = `
+    <div class="ow-chart-card">
+      <div class="ow-chart-title">Visitas por semana — últimas 4 semanas</div>
+      <div class="ow-chart-wrap"><canvas id="ow-ch-sem"></canvas></div>
+    </div>
+
+    <div class="ow-chart-card">
+      <div class="ow-chart-title">Secciones del checklist — % promedio completado</div>
+      <div class="ow-chart-wrap" style="height:280px"><canvas id="ow-ch-sec"></canvas></div>
+    </div>
+
+    <div class="ow-chart-card">
+      <div class="ow-chart-title">Tasa de conversión de compromisos</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+        <div><div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:var(--green)">${compEjec}</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Ejecutados</div></div>
+        <div><div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:#8A5E00">${compPend}</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Pendientes</div></div>
+        <div><div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:var(--red)">${compAtr}</div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Atrasados</div></div>
+      </div>
+      <div style="margin-top:10px;background:var(--surface2);border-radius:20px;height:8px;overflow:hidden">
+        <div style="height:100%;width:${tasa}%;background:var(--green);border-radius:20px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">Tasa de ejecución: ${tasa}%</div>
+    </div>
+
+    <div class="ow-sec-title">⚠️ Clientes sin visita +15 días (${alertas.length})</div>
+    ${alertas.map(c=>`
+      <div class="ow-alerta">
+        <div class="ow-alerta-info">
+          <div class="ow-alerta-nombre">${esc(c.nombre)}</div>
+          <div class="ow-alerta-meta">${c.ult?'Última: '+fmtFechaLarga(c.ult):'Sin visitas'}</div>
+        </div>
+        <span class="badge-alert">${c.dias===9999?'Nunca':c.dias+'d'}</span>
+      </div>`).join('')}`;
+
+  // Render charts después de que el DOM exista
+  requestAnimationFrame(()=>{
+    // Chart 1: visitas por semana
+    const ctx1 = document.getElementById('ow-ch-sem')?.getContext('2d');
+    if (ctx1) {
+      if (owCharts['sem']) owCharts['sem'].destroy();
+      owCharts['sem'] = new Chart(ctx1, {
+        type:'line',
+        data:{
+          labels:weekLabels,
+          datasets:[{ label:'Visitas', data:weeks, borderColor:'#1F447F', backgroundColor:'rgba(31,68,127,.1)', tension:.4, fill:true, pointBackgroundColor:'#CBB86A', pointBorderColor:'#CBB86A', pointRadius:5 }]
+        },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{stepSize:1}}} }
+      });
+    }
+    // Chart 2: secciones
+    const ctx2 = document.getElementById('ow-ch-sec')?.getContext('2d');
+    if (ctx2 && secData.length) {
+      if (owCharts['sec']) owCharts['sec'].destroy();
+      owCharts['sec'] = new Chart(ctx2, {
+        type:'bar',
+        data:{
+          labels:secData.map(s=>s.name),
+          datasets:[{ label:'% completado', data:secData.map(s=>s.pct), backgroundColor:secData.map((_,i)=>i<3?'#CBB86A':'rgba(31,68,127,.55)'), borderRadius:4 }]
+        },
+        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,max:100}} }
+      });
+    }
+  });
+}
+
+// ── Tab 5: Cobertura 5T (Owner dashboard) ─────────────────────────────────────
+async function renderOw5T() {
+  const el = document.getElementById('ow-5t');
+  el.innerHTML = '<div class="spinner-center"><span class="sp"></span> Cargando datos de Google Sheets…</div>';
+
+  const mapa  = await _getSheet5T();
+  const MARCAS = _MARCAS_5T_SUP;
+
+  // Stats por vendedor
+  const vendStats = OD.vendedores.map(v => {
+    const clts = OD.clientes.filter(c => c.vendedor_id === v.id);
+    const marcas = MARCAS.map(m => {
+      let tot=0, ok=0;
+      clts.forEach(c => {
+        const d = _buscarCliente5T(mapa, c.codigo_cliente);
+        if (d !== null) { tot++; if (d[m.col]) ok++; }
+      });
+      return { tot, ok };
+    });
+    return { vend:v, clts:clts.length, marcas, suc:getSucursal(v.codigo) };
+  });
+
+  // Global %
+  const globalTot = OD.clientes.length;
+  const globalCumple = OD.clientes.filter(c => {
+    const d = _buscarCliente5T(mapa, c.codigo_cliente);
+    return d && MARCAS.some(m => d[m.col]);
+  }).length;
+  const globalPct = globalTot ? Math.round(globalCumple / globalTot * 100) : 0;
+
+  el.innerHTML=`
+    <div class="ow-kpi-grid" style="grid-template-columns:1fr 1fr">
+      <div class="ow-kpi"><div class="ow-kpi-val">${globalPct}%</div><div class="ow-kpi-lbl">Cobertura ${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][new Date().getMonth()]}</div></div>
+      <div class="ow-kpi"><div class="ow-kpi-val">${globalCumple}/${globalTot}</div><div class="ow-kpi-lbl">Clientes con cobertura</div></div>
+    </div>
+
+    <div class="ow-sec-title">Por vendedor — ${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][new Date().getMonth()]} ${new Date().getFullYear()}</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px">
+      <div class="ow-5t-grid ow-5t-hdr" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--azul)">
+        <span>Vendedor</span>
+        ${MARCAS.map(m=>`<span style="text-align:center;font-size:9px">${m.nombre.split(' ')[0]}</span>`).join('')}
+      </div>
+      ${vendStats.map(vs=>`
+        <div class="ow-5t-grid">
+          <span style="font-size:12px;font-weight:600;color:var(--azul)">${esc(vs.vend.nombre.split(' ')[0])} <span style="font-size:10px;color:var(--text3)">${vs.suc==='San Luis'?'🏔':'🍇'}</span></span>
+          ${vs.marcas.map(m=>`<span style="text-align:center"><span style="display:block;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:${m.ok>0?'var(--green)':'var(--text3)'}">${m.ok}/${m.tot}</span></span>`).join('')}
+        </div>`).join('')}
+    </div>`;
+}
+function fmtFecha(iso) {
+  return new Date(iso).toLocaleDateString('es-AR',{day:'numeric',month:'short'});
+}
+function fmtFechaLarga(iso) {
+  return new Date(iso).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'});
+}
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Detalle de visita individual ──────────────────────────────────────────────
+
+async function abrirVisitaDetalle(visitaId) {
+  const overlay = document.getElementById('visita-overlay');
+  const mainEl  = document.getElementById('vd-main');
+  overlay.classList.add('open');
+  mainEl.innerHTML = '<div style="text-align:center;padding:40px"><span class="sp"></span></div>';
+
+  // Cargar visita completa (con progreso)
+  const { data: visita } = await sb
+    .from('visitas')
+    .select('*, clientes(id, nombre, tipo, codigo_cliente), vendedores(nombre)')
+    .eq('id', visitaId)
+    .single();
+
+  if (!visita) {
+    mainEl.innerHTML = '<div style="padding:24px;color:var(--text3)">Error al cargar la visita.</div>';
+    return;
+  }
+
+  document.getElementById('vd-titulo').textContent =
+    `${visita.clientes?.nombre || '—'} · ${fmtFechaLarga(visita.fecha)}`;
+
+  const clienteId  = visita.cliente_id;
+  const vendedorId = visita.vendedor_id;
+
+  // Cargar datos relacionados en paralelo
+  // Fotos: sin filtro de fecha para evitar problemas de timezone — se muestran todas
+  // las evidencias de este vendedor+cliente, ordenadas por recencia
+  const [compRes, torneoRes, vidRes, compEvidRes] = await Promise.all([
+    // Compromisos de este vendedor+cliente (los más recientes)
+    sb.from('compromisos').select('*')
+      .eq('cliente_id', clienteId)
+      .eq('vendedor_id', vendedorId)
+      .order('created_at', { ascending: false })
+      .limit(20),
+
+    // Fotos del torneo de este vendedor+cliente (todas, sin filtro de fecha)
+    sb.from('torneo_registros').select('*')
+      .eq('cliente_id', clienteId)
+      .eq('vendedor_id', vendedorId)
+      .not('foto_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(20),
+
+    // Evidencias de vidriera del cliente
+    sb.from('acuerdos_vidriera').select('foto_url, bodega, tipo')
+      .eq('cliente_id', clienteId)
+      .not('foto_url', 'is', null),
+
+    // Compromisos con foto de evidencia
+    sb.from('compromisos').select('foto_evidencia_url, descripcion')
+      .eq('cliente_id', clienteId)
+      .eq('vendedor_id', vendedorId)
+      .not('foto_evidencia_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(10),
+  ]);
+
+  const compromisos   = compRes.data    || [];
+  const torneoRegs    = torneoRes.data  || [];
+  const vidEvidencias = vidRes.data     || [];
+  const compEvidencias= compEvidRes.data|| [];
+
+  // Armar galería de evidencias
+  const evidencias = [
+    ...torneoRegs.filter(r => r.foto_url).map(r => ({
+      url: r.foto_url,
+      label: typeof labelRegistro === 'function' ? labelRegistro(r) : r.tipo
+    })),
+    ...vidEvidencias.map(v => ({
+      url: v.foto_url,
+      label: `Vidriera ${v.bodega === 'dona_paula' ? 'Doña Paula' : v.bodega}`
+    })),
+    ...compEvidencias.map(c => ({
+      url: c.foto_evidencia_url,
+      label: c.descripcion
+    })),
+  ];
+
+  await renderVisitaDetalle(visita, compromisos, torneoRegs, evidencias);
+}
+
+function cerrarVisitaDetalle() {
+  document.getElementById('visita-overlay').classList.remove('open');
+}
+
+async function renderVisitaDetalle(visita, compromisos, torneoRegs, evidencias) {
+  const mainEl  = document.getElementById('vd-main');
+  const pct     = visita.porcentaje_total || 0;
+  const checklist = typeof getChecklist === 'function' ? getChecklist(visita.clientes?.tipo) : null;
+  const progreso  = visita.progreso || {};
+  const mesPts    = torneoRegs.reduce((s, r) => s + (r.puntos || 0), 0);
+
+  // ── 1. Hero con % y barra ──────────────────────────────────────────────────
+  const heroHtml = `
+    <div class="vd-hero">
+      <div class="vd-hero-top">
+        <div class="vd-hero-info">
+          <div class="vd-cliente">${esc(visita.clientes?.nombre || '—')}</div>
+          <div class="vd-meta">${fmtFechaLarga(visita.fecha)} · ${esc(visita.vendedores?.nombre || '')} · ${capitalize(visita.clientes?.tipo || '')}</div>
+        </div>
+        <div class="vd-pct">${pct}%</div>
+      </div>
+      <div class="vd-pbar"><div class="vd-pbar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+
+  // ── Acciones mensuales vigentes ────────────────────────────────────────────
+  const hoyStr = new Date().toISOString().slice(0,10);
+  const { data: accionesData } = await sb.from('acciones_mensuales').select('*')
+    .eq('activa', true).lte('fecha_inicio', hoyStr).gte('fecha_fin', hoyStr);
+  const TCMAP = { restaurante:'restaurantes', vinoteca:'vinotecas', hotel:'hoteles', evento:'eventos', bar:'bar', disco:'discos', autoservicio:'autoservicios' };
+  const canalTipo = TCMAP[visita.clientes?.tipo] || visita.clientes?.tipo || '';
+  const accionesFilt = (accionesData||[]).filter(a => (a.aplica_a||[]).some(x=>x===canalTipo||x==='todos'));
+  const accionesSupHtml = accionesFilt.length
+    ? `<div class="det-section" style="margin-bottom:10px">
+         <div class="det-section-title">⭐ Acciones mensuales activas</div>
+         <div style="padding:12px 14px">${renderAccionesGrupo(accionesFilt)}</div>
+       </div>`
+    : '';
+
+  // ── 2. Evidencias ──────────────────────────────────────────────────────────
+  const evidenciasHtml = evidencias.length ? `
+    <div class="det-section" style="margin-bottom:10px">
+      <div class="det-section-title">📷 Evidencias (${evidencias.length})</div>
+      <div class="evidence-grid">
+        ${evidencias.map(e => `
+          <div class="evidence-thumb" onclick="abrirFotoModal('${esc(e.url)}','${esc(e.label)}')">
+            <img src="${esc(e.url)}" alt="${esc(e.label)}" loading="lazy"
+                 onerror="this.parentElement.style.display='none'">
+            <div class="evidence-label">${esc(e.label)}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  // ── 3. Checklist completo ──────────────────────────────────────────────────
+  const checklistHtml = checklist ? renderChecklistDetalle(checklist, progreso) : '';
+
+  // ── 4. Compromisos generados ───────────────────────────────────────────────
+  const ESTADO_STYLE = {
+    pendiente: 'background:#FDF5E0;color:#5C3D00',
+    ejecutado: 'background:#EAF4EE;color:#1B4332',
+    atrasado:  'background:#FEF2F2;color:#B91C1C',
+  };
+  const compHtml = compromisos.length ? `
+    <div class="det-section" style="margin-bottom:10px">
+      <div class="det-section-title">📋 Compromisos generados (${compromisos.length})</div>
+      ${compromisos.map(c => `
+        <div class="det-item">
+          <div style="flex:1;min-width:0">
+            <div class="det-item-label">${esc(c.descripcion)}</div>
+            <div class="det-item-sub">${esc(c.seccion)} · 🗓 ${c.fecha_ejecucion}</div>
+          </div>
+          <span style="${ESTADO_STYLE[c.estado]||''};font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap">${c.estado}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  // ── 5. Torneo ──────────────────────────────────────────────────────────────
+  const torneoHtml = torneoRegs.length ? `
+    <div class="det-section" style="margin-bottom:10px">
+      <div class="det-section-title">🏆 Torneo Doña Paula — esta visita</div>
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
+        <span style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--azul)">+${mesPts} pts</span>
+      </div>
+      ${torneoRegs.map(r => `
+        <div class="det-item">
+          <span class="det-item-label">${esc(typeof labelRegistro==='function' ? labelRegistro(r) : r.tipo)}</span>
+          <span class="det-item-val">+${r.puntos} pt${r.puntos!==1?'s':''}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  // ── Observaciones generales de la visita ──────────────────────────────────
+  const obsHtml = visita.observaciones ? `
+    <div class="det-section" style="margin-bottom:10px">
+      <div class="det-section-title">💬 Observaciones generales</div>
+      <div style="padding:12px 14px;font-size:13px;color:var(--text2);line-height:1.5;font-style:italic">"${esc(visita.observaciones)}"</div>
+    </div>` : '';
+
+  // ── Acompañantes ──────────────────────────────────────────────────────────
+  const ACOMP_LABEL = { supervisor:'👤 Supervisor', lucia_caff:'👤 Lucía Kaf', facu_caff:'👤 Facu Kaf' };
+  const acompList = visita.progreso?.acompanantes || [];
+  const acompHtml = acompList.length ? `
+    <div class="det-section" style="margin-bottom:10px">
+      <div class="det-section-title">👥 Acompañantes en la visita</div>
+      ${acompList.map(a => `
+        <div class="det-item">
+          <span class="det-item-label">${ACOMP_LABEL[a] || esc(a)}</span>
+          <span class="badge-ok">Presente</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  // ── Duración y horarios ────────────────────────────────────────────────────
+  const durMin = visita.duracion_minutos;
+  const durHtml = (visita.hora_inicio || visita.hora_fin || durMin !== undefined) ? `
+    <div class="det-section" style="margin-bottom:10px">
+      <div class="det-section-title">⏱️ Tiempos de visita</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px">
+        ${visita.hora_inicio ? `<div style="background:var(--surface2);border-radius:8px;padding:7px 12px">
+          <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Inicio</div>
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--azul)">${fmtFechaLarga(visita.hora_inicio)}</div>
+        </div>` : ''}
+        ${visita.hora_fin ? `<div style="background:var(--surface2);border-radius:8px;padding:7px 12px">
+          <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Fin</div>
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--azul)">${fmtFechaLarga(visita.hora_fin)}</div>
+        </div>` : ''}
+        ${durMin !== null && durMin !== undefined ? `<div style="background:var(--surface2);border-radius:8px;padding:7px 12px;display:flex;align-items:center;gap:8px">
+          <div>
+            <div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Duración</div>
+            <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:var(--azul)">${durMin} min</div>
+          </div>
+          ${durMin < 5  ? `<span class="badge-alert">⚠️ Visita corta</span>` : ''}
+          ${durMin > 60 ? `<span class="badge-ok">⏱️ Visita extensa</span>` : ''}
+        </div>` : ''}
+      </div>
+    </div>` : '';
+
+  mainEl.innerHTML = heroHtml + durHtml + evidenciasHtml + accionesSupHtml + obsHtml + acompHtml + checklistHtml + compHtml + torneoHtml;
+}
+
+function renderChecklistDetalle(checklist, progreso) {
+  if (!checklist?.secciones?.length) return '';
+
+  let totalItems = 0, doneItems = 0;
+  checklist.secciones.forEach(sec => {
+    const checks = progreso[sec.id]?.checks || [];
+    sec.items.forEach((_, i) => { totalItems++; if (checks[i]) doneItems++; });
+  });
+
+  const seccionesHtml = checklist.secciones.map(sec => {
+    const secProg = progreso[sec.id] || {};
+    const checks  = secProg.checks || [];
+    const secDone = sec.items.filter((_, i) => checks[i] === true).length;
+    const allDone = secDone === sec.items.length && sec.items.length > 0;
+
+    const itemsHtml = sec.items.map((item, i) => {
+      const ok = checks[i] === true;
+      return `<div class="cl-item">
+        <div class="cl-check ${ok ? 'done' : 'todo'}">
+          ${ok ? `<svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+            <path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>` : ''}
+        </div>
+        <div class="cl-item-text ${ok ? 'done' : 'todo'}">${esc(item.texto)}</div>
+      </div>`;
+    }).join('');
+
+    const obsHtml = secProg.obs
+      ? `<div class="cl-obs">💬 ${esc(secProg.obs)}</div>`
+      : '';
+
+    return `<div class="cl-section">
+      <div class="cl-sec-header">
+        <div class="cl-sec-icon" style="background:${sec.iconoBg};color:${sec.iconoColor}">${sec.icono}</div>
+        <div class="cl-sec-name">${esc(sec.titulo)}</div>
+        <span class="cl-sec-counter ${allDone ? 'all-done' : 'partial'}">${secDone}/${sec.items.length}</span>
+      </div>
+      ${itemsHtml}
+      ${obsHtml}
+    </div>`;
+  }).join('');
+
+  return `<div class="det-section" style="margin-bottom:10px">
+    <div class="det-section-title">✅ Checklist completo — ${doneItems}/${totalItems} acciones</div>
+    ${seccionesHtml}
+  </div>`;
+}
+
+// ── Modal foto ────────────────────────────────────────────────────────────────
+function abrirFotoModal(url, label) {
+  document.getElementById('foto-sup-img').src    = url;
+  document.getElementById('foto-sup-label').textContent = label || '';
+  document.getElementById('foto-sup-modal').classList.add('open');
+}
+function cerrarFotoModal() {
+  document.getElementById('foto-sup-modal').classList.remove('open');
+}
+</script>
+<!-- ── Owner Executive Dashboard ── -->
+<div id="owner-app">
+  <div class="top-bar">
+    <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" class="top-bar-logo" alt="GrandBar">
+    <div style="text-align:right;margin-right:6px">
+      <div style="font-size:13px;font-weight:700;color:#fff">Fernando</div>
+      <span class="ow-gold-badge">Vista ejecutiva</span>
+    </div>
+    <button class="btn-logout" onclick="logout()">Salir</button>
+  </div>
+
+  <div class="tabs-wrap">
+    <div class="tabs" style="overflow-x:auto">
+      <button class="tab-btn active" id="ow-t-resumen"    onclick="showOwnerTab('resumen')">📊 Resumen</button>
+      <button class="tab-btn"        id="ow-t-vendedores" onclick="showOwnerTab('vendedores')">👥 Vendedores</button>
+      <button class="tab-btn"        id="ow-t-torneo"     onclick="showOwnerTab('torneo')">🏆 Torneo</button>
+      <button class="tab-btn"        id="ow-t-stats"      onclick="showOwnerTab('stats')">📈 Estadísticas</button>
+      <button class="tab-btn"        id="ow-t-5t"         onclick="showOwnerTab('5t')">🍷 Cobertura 5T</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="ow-resumen">   <div class="spinner-center"><span class="sp"></span></div></div>
+    <div id="ow-vendedores" style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
+    <div id="ow-torneo"     style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
+    <div id="ow-stats"      style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
+    <div id="ow-5t"         style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
+  </div>
+</div>
+
+<!-- ── Overlay detalle de visita ── -->
+<div id="visita-overlay">
+  <div class="det-topbar" style="position:sticky;top:0;z-index:10;flex-shrink:0">
+    <button class="btn-det-back" onclick="cerrarVisitaDetalle()">←</button>
+    <span class="det-title" id="vd-titulo">Detalle de visita</span>
+  </div>
+  <div id="vd-main" style="max-width:520px;margin:0 auto;padding:14px 14px 60px;width:100%"></div>
+</div>
+
+<!-- ── Modal foto fullscreen ── -->
+<div id="foto-sup-modal" onclick="cerrarFotoModal()">
+  <button class="foto-modal-close" onclick="cerrarFotoModal()">✕</button>
+  <img id="foto-sup-img" src="" alt="Evidencia">
+  <div class="foto-modal-label" id="foto-sup-label"></div>
+</div>
+</body>
+</html>
