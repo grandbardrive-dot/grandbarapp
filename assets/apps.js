@@ -33,19 +33,9 @@ const APPS = [
   // ---------- Ventas ----------
   {
     id: "vendedores",
-    name: "App Vendedores",
-    desc: "Rutas, clientes, checklists y pedidos en la calle.",
-    icon: "🧭",
-    area: "ventas",
-    roles: ["admin", "ventas"],
-    status: "live",
-    url: "#",
-  },
-  {
-    id: "vendedores-admin",
-    name: "Admin Manual Vendedores",
-    desc: "Panel de administración del manual y herramientas de venta.",
-    icon: "🛠️",
+    name: "Manual de Vendedores",
+    desc: "Manual, herramientas de venta y panel de administración.",
+    icon: "📘",
     area: "ventas",
     roles: ["admin", "ventas", "compras"],
     status: "live",
@@ -147,18 +137,6 @@ const APPS = [
     area: "reportes",
     roles: ["admin", "direccion", "reportes", "compras", "cliente"],
     status: "live",
-    url: "#",
-  },
-
-  // ---------- En construcción ----------
-  {
-    id: "phone-shop",
-    name: "Phone Shop",
-    desc: "Catálogo de iPhones con stock parseado desde WhatsApp.",
-    icon: "📱",
-    area: "ventas",
-    roles: ["admin", "ventas"],
-    status: "soon",
     url: "#",
   },
 ];
