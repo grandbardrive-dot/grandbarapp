@@ -61,17 +61,6 @@ const APPS = [
     status: "live",
     url: "https://catalogosgrandbar.netlify.app",
   },
-  {
-    id: "catalogo-admin",
-    name: "Cargar al Catálogo",
-    desc: "Panel admin para subir y editar acciones de los catálogos.",
-    icon: "⬆️",
-    area: "ventas",
-    roles: ["admin", "ventas", "marketing", "compras"],
-    status: "live",
-    url: "https://catalogosgrandbar.netlify.app/admin.html",
-  },
-
   // =================== MARKETING ===================
   {
     id: "placas-diseno",
