@@ -33,7 +33,7 @@ const APPS = [
   {
     id: "vendedores",
     name: "Manual de Vendedores",
-    desc: "Manual, herramientas de venta y panel de administración.",
+    desc: "Manual, herramientas de venta y panel admin. Incluye el recolector de propuestas de proveedores (Luci aprueba o rechaza).",
     icon: "📘",
     area: "ventas",
     roles: ["admin", "ventas", "compras"],
@@ -95,16 +95,8 @@ const APPS = [
   },
 
   // =================== COMPRAS ===================
-  {
-    id: "propuestas",
-    name: "Recolector de Propuestas",
-    desc: "Buzón para juntar propuestas de acciones de proveedores.",
-    icon: "📥",
-    area: "compras",
-    roles: ["admin", "ventas", "marketing", "compras"],
-    status: "live",
-    url: "#",
-  },
+  // Nota: el "Recolector de Propuestas" NO es módulo suelto: vive DENTRO
+  // del Manual de Vendedores (proveedores cargan propuestas, Luci aprueba).
   {
     id: "reco",
     name: "Reco (Recompra)",
