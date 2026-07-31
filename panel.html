@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrandBar Hub — Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/app.css" />
+</head>
+<body>
+
+  <!-- ===== Topbar ===== -->
+  <header class="topbar">
+    <div class="logo brand-mark">
+      <span class="b1">Grand<span class="gold">Bar</span></span><span class="hub">Hub</span>
+    </div>
+    <div class="spacer"></div>
+    <label class="searchbox">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" type="search" placeholder="Buscar módulo…" autocomplete="off" />
+    </label>
+    <div class="user-chip" id="userChip" title="Cambiar rol (demo)">
+      <div>
+        <div class="u-name" id="uName">Equipo GrandBar</div>
+        <div class="u-role" id="uRole">Administrador</div>
+      </div>
+      <div class="avatar" id="uAvatar">GB</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="hero">
+      <div>
+        <h1>Hola 👋 Toda la operación, un solo lugar.</h1>
+        <p id="heroSub">Elegí un módulo para empezar.</p>
+      </div>
+    </div>
+
+    <!-- Filtros por área -->
+    <nav class="filters" id="filters"></nav>
+
+    <!-- Grilla de módulos -->
+    <div id="content"></div>
+
+    <footer class="foot">
+      <span>© 2026 GrandBar Distribuciones · GrandBar Hub</span>
+      <span>Versión 1.0.0 · Uso interno</span>
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase-config.js"></script>
+  <script src="assets/auth.js"></script>
+  <script src="assets/apps.js"></script>
+  <script>
+    // Etiquetas legibles de cada rol.
+    const ROLE_LABEL = {
+      admin: "Administrador", ventas: "Ventas", marketing: "Marketing",
+      administracion: "Administración", compras: "Compras", mayorista: "Mayorista",
+      deposito: "Depósito", reportes: "Reportes", cliente: "Cliente",
+    };
+    // Para el modo demo: rotar entre estos roles al clickear el chip.
+    const roleOrder = ["admin", "ventas", "compras", "marketing", "cliente"];
+
+    let currentRole = "admin";
+    let currentUser = "Equipo GrandBar";
+    let currentArea = "all";
+    let query = "";
+
+    // ---- Render ----
+    const content = document.getElementById("content");
+    const filters = document.getElementById("filters");
+
+    function visibleApps() {
+      return APPS.filter(a =>
+        (a.roles.includes("*") || a.roles.includes(currentRole)) &&
+        (currentArea === "all" || a.area === currentArea) &&
+        (query === "" ||
+          (a.name + " " + a.desc).toLowerCase().includes(query.toLowerCase()))
+      );
+    }
+
+    function cardHTML(a) {
+      const soon = a.status === "soon";
+      const href = soon || a.url === "#" ? "#" : a.url;
+      const external = href.startsWith("http") ? ' target="_blank" rel="noopener"' : "";
+      const tag = soon
+        ? '<span class="soon">Próximamente</span>'
+        : (a.url === "#" ? '<span class="soon">Sin conectar</span>' : '<span>Activo</span>');
+      return `
+        <a class="card ${soon ? "is-soon" : ""}" href="${href}"${external}>
+          <div class="ico">${a.icon}</div>
+          <h3>${a.name}</h3>
+          <p>${a.desc}</p>
+          <div class="tag">${tag}</div>
+          <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>`;
+    }
+
+    function render() {
+      // filtros
+      const areas = ["all", ...Object.keys(AREAS)];
+      filters.innerHTML = areas.map(k => {
+        const label = k === "all" ? "Todos" : AREAS[k];
+        // ocultar áreas sin apps para el rol actual
+        if (k !== "all") {
+          const has = APPS.some(a =>
+            (a.roles.includes("*") || a.roles.includes(currentRole)) && a.area === k);
+          if (!has) return "";
+        }
+        return `<button class="chip ${currentArea === k ? "active" : ""}" data-area="${k}">${label}</button>`;
+      }).join("");
+
+      // contenido agrupado por área
+      const apps = visibleApps();
+      if (apps.length === 0) {
+        content.innerHTML = `<div class="empty">No hay módulos para mostrar con este filtro.</div>`;
+        return;
+      }
+      let html = "";
+      const groups = currentArea === "all" ? Object.keys(AREAS) : [currentArea];
+      for (const g of groups) {
+        const inGroup = apps.filter(a => a.area === g);
+        if (!inGroup.length) continue;
+        html += `<div class="section-title">${AREAS[g]}</div>`;
+        html += `<div class="grid">${inGroup.map(cardHTML).join("")}</div>`;
+      }
+      content.innerHTML = html;
+    }
+
+    function initials(name) {
+      return name.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "GB";
+    }
+
+    function applyRole() {
+      document.getElementById("uName").textContent = currentUser;
+      document.getElementById("uRole").textContent = ROLE_LABEL[currentRole] || currentRole;
+      document.getElementById("uAvatar").textContent = initials(currentUser);
+      if (!GBAuth.configured) localStorage.setItem("gb_role", currentRole);
+      render();
+    }
+
+    // ---- Eventos ----
+    filters.addEventListener("click", e => {
+      const btn = e.target.closest(".chip");
+      if (!btn) return;
+      currentArea = btn.dataset.area;
+      render();
+    });
+
+    document.getElementById("search").addEventListener("input", e => {
+      query = e.target.value;
+      render();
+    });
+
+    // Click en el chip de usuario:
+    //  - modo demo (sin Supabase): rota el rol para probar la vista de cada área.
+    //  - modo real: cierra sesión.
+    document.getElementById("userChip").addEventListener("click", () => {
+      if (GBAuth.configured) {
+        if (confirm("¿Cerrar sesión?")) GBAuth.signOut();
+      } else {
+        const i = roleOrder.indexOf(currentRole);
+        currentRole = roleOrder[(i + 1) % roleOrder.length];
+        currentArea = "all";
+        applyRole();
+      }
+    });
+
+    // ---- Arranque: exige sesión y carga el rol real ----
+    (async function init() {
+      const s = await GBAuth.requireAuth();      // redirige al login si no hay sesión
+      if (!s) return;
+      currentRole = s.demo ? (localStorage.getItem("gb_role") || "admin") : s.role;
+      currentUser = s.nombre || "Equipo GrandBar";
+      document.getElementById("userChip").title =
+        GBAuth.configured ? "Cerrar sesión" : "Cambiar rol (demo)";
+      applyRole();
+    })();
+  </script>
+</body>
+</html>

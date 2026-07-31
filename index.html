@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrandBar Hub — Ingresar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/app.css" />
+</head>
+<body>
+  <div class="login">
+
+    <!-- Panel de marca -->
+    <aside class="login__aside">
+      <div class="logo brand-mark">
+        <span class="b1">Grand<span class="gold">Bar</span></span>
+        <span class="b2">Distribuciones</span>
+      </div>
+      <div>
+        <h2>Toda la operación. <span class="gold">Un solo lugar.</span></h2>
+        <p class="lead">Conectamos ventas, compras, logística y finanzas para que todo funcione mejor.</p>
+        <div class="feats">
+          <div class="feat"><span class="fi">👥</span>Equipos conectados</div>
+          <div class="feat"><span class="fi">📊</span>Información en tiempo real</div>
+          <div class="feat"><span class="fi">🛡️</span>Segura y confiable</div>
+        </div>
+      </div>
+      <div style="color:var(--muted-2);font-size:12px;">© 2026 GrandBar Distribuciones · Versión 1.0.0</div>
+    </aside>
+
+    <!-- Panel de login -->
+    <section class="login__panel">
+      <form class="login__card" id="loginForm" novalidate>
+        <div class="logo brand-mark">
+          <span class="b1">Grand<span class="gold">Bar</span></span>
+          <span class="b2">Distribuciones</span>
+        </div>
+        <div class="divider-star">✦</div>
+        <div class="hub-badge">Hub</div>
+        <p class="sub">Ingresá para continuar en GrandBar Hub.</p>
+
+        <div class="field">
+          <label for="email">Usuario o email</label>
+          <div class="input">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <input id="email" type="text" placeholder="ej. usuario@grandbar.com.ar" autocomplete="username" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="pass">Contraseña</label>
+          <div class="input">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <input id="pass" type="password" placeholder="Ingresá tu contraseña" autocomplete="current-password" />
+            <button type="button" class="eye" id="toggleEye" aria-label="Mostrar contraseña">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <a href="#" class="forgot">¿Olvidaste tu contraseña?</a>
+
+        <button type="submit" class="btn btn--gold">
+          Ingresar
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+
+        <div class="or">O continuá con</div>
+        <button type="button" class="btn btn--ghost">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 11c2 0 3.5-2 3.5-4.5S14 2 12 2 8.5 4 8.5 6.5 10 11 12 11Zm0 0c-1 4-1 7 0 11m0-11c1 4 1 7 0 11"/></svg>
+          Ingresar con huella
+        </button>
+
+        <div class="login__note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;color:var(--gold)"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-4Z"/></svg>
+          <span>Aplicación interna de GrandBar. Uso exclusivo para personal autorizado.</span>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase-config.js"></script>
+  <script src="assets/auth.js"></script>
+  <script>
+    // Mostrar/ocultar contraseña
+    document.getElementById("toggleEye").addEventListener("click", () => {
+      const p = document.getElementById("pass");
+      p.type = p.type === "password" ? "text" : "password";
+    });
+
+    const form = document.getElementById("loginForm");
+    const btn  = form.querySelector(".btn--gold");
+
+    // Si Supabase todavía no está configurado, avisamos que es modo demo.
+    if (!GBAuth.configured) {
+      const note = document.querySelector(".sub");
+      note.innerHTML += ' <span style="color:var(--gold)">(modo demo — entrás sin validar)</span>';
+    }
+
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const pass  = document.getElementById("pass").value;
+      btn.disabled = true; btn.style.opacity = ".7";
+      const r = await GBAuth.signIn(email, pass);
+      if (r.ok) {
+        window.location.href = "panel.html";
+      } else {
+        btn.disabled = false; btn.style.opacity = "1";
+        alert("No pudimos ingresar: " + (r.error || "revisá email y contraseña."));
+      }
+    });
+  </script>
+</body>
+</html>

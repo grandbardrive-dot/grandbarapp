@@ -1,0 +1,10 @@
+# Deploy de GrandBar Hub en Netlify
+# Sitio estático: la raíz del proyecto es lo que se publica.
+[build]
+  publish = "."
+
+# La app entra por el login (index.html) automáticamente.
+[[redirects]]
+  from = "/hub"
+  to = "/panel.html"
+  status = 200
