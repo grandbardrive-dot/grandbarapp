@@ -51,6 +51,27 @@ const APPS = [
     url: "#",
   },
 
+  {
+    id: "catalogo",
+    name: "Catálogo de Acciones",
+    desc: "Ver las acciones y promos vigentes por marca.",
+    icon: "📖",
+    area: "ventas",
+    roles: ["admin", "ventas", "marketing"],
+    status: "live",
+    url: "https://catalogosgrandbar.netlify.app",
+  },
+  {
+    id: "catalogo-admin",
+    name: "Cargar al Catálogo",
+    desc: "Panel admin para subir y editar acciones de los catálogos.",
+    icon: "⬆️",
+    area: "ventas",
+    roles: ["admin", "ventas", "marketing", "compras"],
+    status: "live",
+    url: "https://catalogosgrandbar.netlify.app/admin.html",
+  },
+
   // =================== MARKETING ===================
   {
     id: "placas-diseno",
@@ -61,26 +82,6 @@ const APPS = [
     roles: ["admin", "marketing", "compras"],
     status: "soon",
     url: "#",
-  },
-  {
-    id: "catalogo",
-    name: "Catálogo de Acciones",
-    desc: "Ver las acciones y promos vigentes por marca.",
-    icon: "📖",
-    area: "marketing",
-    roles: ["admin", "ventas", "marketing"],
-    status: "live",
-    url: "https://catalogosgrandbar.netlify.app",
-  },
-  {
-    id: "catalogo-admin",
-    name: "Cargar al Catálogo",
-    desc: "Panel admin para subir y editar acciones de los catálogos.",
-    icon: "⬆️",
-    area: "marketing",
-    roles: ["admin", "marketing", "compras"],
-    status: "live",
-    url: "https://catalogosgrandbar.netlify.app/admin.html",
   },
   {
     id: "materiales",
