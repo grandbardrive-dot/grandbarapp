@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrandBar Hub — Clientes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --navy:#0d2230; --navy-2:#123043; --cream:#f6f1e8; --card:#ffffff;
+      --ink:#1b2a32; --muted:#6d7d85; --line:#e7ded0; --line-2:#ece4d6;
+      --green:#2f6f5e; --green-d:#245647; --green-soft:#e8f1ea;
+      --gold:#c0912f; --gold-d:#a97c22; --gold-soft:#f7efdc;
+      --radius:16px;
+      --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%}
+    body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    .app{display:flex;min-height:100vh}
+
+    /* Sidebar */
+    .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+    .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+    .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+    .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+    .sb-nav{display:flex;flex-direction:column;gap:3px}
+    .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+    .sb-nav a:hover{background:var(--navy-2);color:#fff}
+    .sb-nav a.active{background:var(--gold);color:#241a06;font-weight:600}
+    .sb-nav svg{width:19px;height:19px;flex:none;opacity:.9}
+    .sb-foot{margin-top:auto;display:flex;flex-direction:column;gap:12px;padding-top:16px}
+    .sb-support{display:flex;align-items:center;gap:11px;background:var(--navy-2);border-radius:12px;padding:12px}
+    .sb-support .t{font-size:13px;font-weight:600}.sb-support .s{font-size:11px;color:#9db0ba}
+    .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px}
+    .sb-user .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy)}
+    .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+
+    .main{flex:1;min-width:0;display:flex;flex-direction:column}
+    .topbar{display:flex;align-items:center;gap:14px;padding:16px 26px;background:var(--card);border-bottom:1px solid var(--line)}
+    .topbar .burger{display:none;background:none;border:0;cursor:pointer;color:var(--ink)}
+    .topbar .htxt h1{font-size:20px;margin:0;font-weight:800}
+    .topbar .htxt p{margin:0;font-size:13px;color:var(--muted)}
+    .topbar .spacer{flex:1}
+    .search{display:flex;align-items:center;gap:9px;background:var(--cream);border:1px solid var(--line);border-radius:999px;padding:9px 16px;min-width:250px;color:var(--muted)}
+    .search input{border:0;background:transparent;outline:none;font:inherit;font-size:14px;width:100%;color:var(--ink)}
+    .bell{position:relative;color:var(--muted)}
+    .bell .dot{position:absolute;top:-4px;right:-4px;background:var(--gold);color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:16px;height:16px;display:grid;place-items:center}
+    .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy);font-size:13px}
+
+    .content{padding:24px 26px 40px;max-width:1200px;width:100%;margin:0 auto}
+
+    /* Stats */
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+    .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:14px}
+    .stat .ic{width:46px;height:46px;border-radius:12px;background:var(--navy);color:#fff;display:grid;place-items:center;flex:none}
+    .stat.gold .ic{background:var(--gold)}
+    .stat .l{font-size:13px;color:var(--muted)}
+    .stat .v{font-size:24px;font-weight:800;line-height:1.1}
+    .stat .sub{font-size:12px;color:var(--green);font-weight:600}
+    .stat .sub.pend{color:var(--muted)}
+
+    .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+    .pill{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer}
+    .toolbar .spacer{flex:1}
+
+    .layout{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;align-items:start}
+
+    /* Lista */
+    .list{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+    .crow{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line-2);cursor:pointer;transition:background .12s}
+    .crow:last-child{border-bottom:0}
+    .crow:hover{background:#faf7f0}
+    .crow.sel{background:var(--gold-soft);box-shadow:inset 3px 0 0 var(--gold)}
+    .crow .n{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+    .crow .nm{font-weight:600;font-size:14px}
+    .crow .meta{font-size:12px;color:var(--muted);margin-top:2px}
+    .crow .right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+    .crow .lv{font-size:11px;color:var(--muted)}
+    .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:var(--green-soft);color:var(--green-d)}
+    .list-foot{padding:12px 16px;font-size:12px;color:var(--muted);text-align:center}
+
+    /* Detalle */
+    .detail{background:var(--card);border:1px solid var(--line);border-radius:14px;position:sticky;top:16px;overflow:hidden}
+    .d-head{padding:20px;display:flex;gap:14px;align-items:flex-start;border-bottom:1px solid var(--line-2)}
+    .d-head .num{width:44px;height:44px;border-radius:50%;background:var(--navy);color:#fff;font-weight:700;display:grid;place-items:center;flex:none}
+    .d-head .nm{font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .d-head .sub{font-size:13px;color:var(--muted);margin-top:2px}
+    .d-actions{display:flex;gap:16px;margin-left:auto}
+    .d-act{text-align:center;font-size:11px;color:var(--muted);cursor:pointer}
+    .d-act .ci{width:34px;height:34px;border-radius:10px;background:var(--cream);border:1px solid var(--line);display:grid;place-items:center;color:var(--green);margin:0 auto 4px}
+    .d-body{padding:20px}
+    .d-tabs{display:flex;gap:20px;border-bottom:1px solid var(--line-2);padding:0 20px}
+    .d-tab{padding:12px 0;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer}
+    .d-tab.on{color:var(--gold-d);border-color:var(--gold)}
+    .d-block{margin-bottom:18px}
+    .d-block h4{font-size:13px;font-weight:700;margin:0 0 12px;color:var(--ink)}
+    .kv{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+    .kv .k{font-size:11px;color:var(--muted)}
+    .kv .v{font-size:13px;font-weight:600;margin-top:2px}
+    .kv .v.pend{color:var(--muted);font-weight:500}
+    .addr{display:flex;gap:12px;align-items:stretch}
+    .addr .t{flex:1;font-size:13px;line-height:1.5}
+    .addr .mini{width:120px;height:74px;border-radius:10px;flex:none;background:
+      repeating-linear-gradient(0deg,#eef2ee 0 15px,#e6ebe6 15px 16px),
+      repeating-linear-gradient(90deg,#eef2ee 0 15px,#e6ebe6 15px 16px);
+      display:grid;place-items:center;color:var(--green)}
+    .comm-note{font-size:11px;color:var(--muted);background:var(--cream);border:1px dashed var(--line);border-radius:8px;padding:8px 10px;margin-top:4px}
+    .btn-visit{width:100%;margin-top:6px;background:linear-gradient(180deg,var(--gold),var(--gold-d));color:#241a06;border:0;cursor:pointer;font:inherit;font-weight:700;padding:14px;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:8px}
+    .d-empty{padding:60px 24px;text-align:center;color:var(--muted)}
+
+    .bottomnav{display:none}
+    [hidden]{display:none!important}
+
+    @media(max-width:960px){
+      .sidebar{display:none}
+      .topbar .burger{display:block}
+      .search{display:none}
+      .stats{grid-template-columns:1fr}
+      .layout{grid-template-columns:1fr}
+      .detail{position:static}
+      .content{padding:16px 16px 90px}
+      .bottomnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--navy);border-top:1px solid var(--navy-2);padding:8px 6px;justify-content:space-around;z-index:30}
+      .bottomnav a{display:flex;flex-direction:column;align-items:center;gap:3px;color:#8ba1aa;font-size:10px;font-weight:600;padding:4px 8px}
+      .bottomnav a.active{color:var(--gold)}
+      .bottomnav svg{width:20px;height:20px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav">
+      <a href="panel.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg> Inicio</a>
+      <a href="#" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg> Clientes</a>
+      <a href="planificador-ia.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg> Planificador de ruta IA</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg> Agenda</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg> Tareas</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg> Pedidos</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4"/></svg> Herramientas de venta</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg> Reportes</a>
+    </nav>
+    <div class="sb-foot">
+      <div class="sb-support"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7fd8bf" stroke-width="2"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="2" y="14" width="4" height="6" rx="1"/><rect x="18" y="14" width="4" height="6" rx="1"/></svg><div><div class="t">Soporte</div><div class="s">Estamos para ayudarte</div></div></div>
+      <div class="sb-user"><div class="av" id="avSb">JP</div><div><div class="t" id="uName">Vendedor</div><div class="s" id="uMail">—</div></div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="burger"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <div class="htxt"><h1>Clientes</h1><p>Gestioná tus clientes y su información.</p></div>
+      <div class="spacer"></div>
+      <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="q" placeholder="Buscar cliente…" autocomplete="off"/></label>
+      <div class="bell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">3</span></div>
+      <div class="av" id="avTop">JP</div>
+    </header>
+
+    <div class="content">
+      <div class="stats">
+        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Clientes asignados</div><div class="v" id="stCount">—</div><div class="sub" id="stCountSub">Activos</div></div></div>
+        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas esta semana</div><div class="v">—</div><div class="sub pend">Pendiente de conectar</div></div></div>
+        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas del mes</div><div class="v">—</div><div class="sub pend">Se conecta con Cuenta Corriente</div></div></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="pill">Todos los clientes <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</div>
+        <div class="spacer"></div>
+        <div class="pill" id="sortBtn">Ordenar: Nombre A-Z <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+      </div>
+
+      <div class="layout">
+        <div class="list" id="list"></div>
+        <div class="detail" id="detail"><div class="d-empty">Elegí un cliente para ver su ficha.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="bottomnav">
+  <a href="panel.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Inicio</a>
+  <a href="#" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>Clientes</a>
+  <a href="planificador-ia.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Ruta IA</a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Agenda</a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Más</a>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+  const MANUAL = { url:"https://fzaxwuuodseyyinveknn.supabase.co", key:"sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk" };
+
+  const DEMO = [
+    {nombre:"1130 drinks", tipo:"vinoteca", direccion:"Avellaneda 1130 - Guaymallén", codigo_cliente:"V-01130"},
+    {nombre:"3er Tiempo", tipo:"vinoteca", direccion:"Colon 1951 - Guaymallén", codigo_cliente:"V-00231"},
+    {nombre:"A tu Salud Minimarket", tipo:"autoservicio", direccion:"Bandera de los Andes 4315 - Guaymallén", codigo_cliente:"A-00045"},
+    {nombre:"Aldeni Vinoteca", tipo:"vinoteca", direccion:"Tomas Godoy Cruz 4100 - Guaymallén", codigo_cliente:"V-00512"},
+    {nombre:"Atahualpa", tipo:"vinoteca", direccion:"Manuel Molina 276 - Guaymallén", codigo_cliente:"V-00688"},
+  ];
+
+  let CLIENTES = [], vendedorNombre = "Vendedor", ultimaVisita = {}, sel = -1;
+  const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : "";
+  const initials = n => (n||"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "V";
+
+  function fmtFecha(iso){ if(!iso) return null; const d=new Date(iso); return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+
+  function renderList(filter){
+    const q = (filter||"").toLowerCase();
+    const rows = CLIENTES
+      .map((c,i)=>({c,i}))
+      .filter(({c}) => !q || (c.nombre+" "+c.direccion+" "+c.tipo).toLowerCase().includes(q));
+    document.getElementById("list").innerHTML = rows.map(({c,i})=>{
+      const lv = ultimaVisita[c.id] ? `Última visita<br>${fmtFecha(ultimaVisita[c.id])}` : "";
+      return `<div class="crow ${i===sel?'sel':''}" onclick="selCliente(${i})">
+        <div class="n">${i+1}</div>
+        <div><div class="nm">${c.nombre}</div><div class="meta">${cap(c.tipo)}${c.direccion? ' · '+c.direccion:''}</div></div>
+        <div class="right"><div class="lv">${lv}</div><span class="badge">Activo</span></div>
+      </div>`;
+    }).join("") + `<div class="list-foot">${rows.length} de ${CLIENTES.length} clientes</div>`;
+  }
+
+  function selCliente(i){
+    sel = i; renderList(document.getElementById("q").value);
+    const c = CLIENTES[i];
+    const lv = ultimaVisita[c.id];
+    document.getElementById("detail").innerHTML = `
+      <div class="d-head">
+        <div class="num">${i+1}</div>
+        <div>
+          <div class="nm">${c.nombre} <span class="badge">Activo</span></div>
+          <div class="sub">${cap(c.tipo)} · ${c.direccion||"—"}</div>
+        </div>
+        <div class="d-actions">
+          <div class="d-act"><div class="ci"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8.1 9.5a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2Z"/></svg></div>Llamar</div>
+          <div class="d-act"><div class="ci"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg></div>Cómo llegar</div>
+        </div>
+      </div>
+      <div class="d-tabs"><div class="d-tab on">Resumen</div><div class="d-tab">Historial</div><div class="d-tab">Documentos</div><div class="d-tab">Notas</div></div>
+      <div class="d-body">
+        <div class="d-block">
+          <h4>Información general</h4>
+          <div class="kv">
+            <div><div class="k">Tipo de cliente</div><div class="v">${cap(c.tipo)||"—"}</div></div>
+            <div><div class="k">Teléfono</div><div class="v ${c.whatsapp?'':'pend'}">${c.whatsapp||"—"}</div></div>
+            <div><div class="k">Código</div><div class="v">${c.codigo_cliente||"—"}</div></div>
+            <div><div class="k">Email</div><div class="v pend">—</div></div>
+            <div><div class="k">CUIT</div><div class="v pend">—</div></div>
+            <div><div class="k">Vendedor asignado</div><div class="v">${vendedorNombre}</div></div>
+          </div>
+        </div>
+        <div class="d-block">
+          <h4>Dirección</h4>
+          <div class="addr">
+            <div class="t">${c.direccion||"—"}<br><span style="color:var(--muted)">Mendoza, Argentina</span></div>
+            <div class="mini"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg></div>
+          </div>
+        </div>
+        <div class="d-block">
+          <h4>Datos comerciales</h4>
+          <div class="kv">
+            <div><div class="k">Condición de venta</div><div class="v pend">—</div></div>
+            <div><div class="k">Saldo actual</div><div class="v pend">—</div></div>
+            <div><div class="k">Límite de crédito</div><div class="v pend">—</div></div>
+            <div><div class="k">Compras (30 días)</div><div class="v pend">—</div></div>
+          </div>
+          <div class="comm-note">Los datos comerciales se conectan con el sistema de Cuenta Corriente (próxima etapa).</div>
+        </div>
+        <div class="d-block">
+          <h4>Última visita</h4>
+          <div class="v ${lv?'':'pend'}">${lv? fmtFecha(lv) : "Sin visitas registradas"}</div>
+        </div>
+        <button class="btn-visit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M12 11v4M10 13h4"/></svg> Agregar visita</button>
+      </div>`;
+  }
+  window.selCliente = selCliente;
+
+  document.getElementById("q").addEventListener("input", e=>{ sel=-1; renderList(e.target.value); });
+
+  function setUser(nombre, mail){
+    vendedorNombre = nombre || "Vendedor";
+    document.getElementById("uName").textContent = vendedorNombre;
+    document.getElementById("uMail").textContent = mail || "Vendedor";
+    document.getElementById("avSb").textContent = initials(vendedorNombre);
+    document.getElementById("avTop").textContent = initials(vendedorNombre);
+  }
+
+  async function load(){
+    // Demo por defecto
+    CLIENTES = DEMO;
+    document.getElementById("stCount").textContent = CLIENTES.length;
+    renderList("");
+    try{
+      if(!window.supabase) return;
+      const hub = supabase.createClient(HUB.url, HUB.key);
+      const { data:{ session } } = await hub.auth.getSession();
+      if(!session) return;
+      const { data: perfil } = await hub.from("usuarios").select("nombre, codigo_vendedor").eq("id", session.user.id).maybeSingle();
+      if(!perfil || !perfil.codigo_vendedor) return;
+
+      const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
+      const { data: vend } = await man.from("vendedores").select("id,nombre,codigo").eq("codigo", perfil.codigo_vendedor).maybeSingle();
+      if(!vend) return;
+      const { data: cli } = await man.from("clientes")
+        .select("id,nombre,tipo,direccion,codigo_cliente,whatsapp").eq("vendedor_id", vend.id).order("nombre");
+      if(!cli || !cli.length){ setUser(perfil.nombre||vend.nombre, session.user.email); return; }
+
+      CLIENTES = cli;
+      setUser(perfil.nombre || vend.nombre, session.user.email);
+      document.getElementById("stCount").textContent = cli.length;
+
+      // Última visita por cliente (si la tabla lo permite)
+      try{
+        const ids = cli.map(c=>c.id);
+        const { data: vis } = await man.from("visitas").select("cliente_id,fecha").in("cliente_id", ids);
+        (vis||[]).forEach(v=>{ if(!ultimaVisita[v.cliente_id] || v.fecha > ultimaVisita[v.cliente_id]) ultimaVisita[v.cliente_id]=v.fecha; });
+      }catch(e){}
+
+      sel=-1; renderList("");
+    }catch(e){ /* queda demo */ }
+  }
+  document.addEventListener("DOMContentLoaded", load);
+</script>
+</body>
+</html>

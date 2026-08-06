@@ -44,6 +44,16 @@ const APPS = [
 
   // =================== VENTAS ===================
   {
+    id: "clientes",
+    name: "Mis Clientes",
+    desc: "Tu cartera de clientes: ficha, dirección, historial y visitas.",
+    icon: "👥",
+    area: "ventas",
+    roles: ["admin", "ventas"],
+    status: "live",
+    url: "clientes-hub.html",
+  },
+  {
     id: "vendedores",
     name: "Manual de Vendedores",
     desc: "Manual, herramientas de venta y panel admin. Incluye el recolector de propuestas de proveedores (Luci aprueba o rechaza).",
