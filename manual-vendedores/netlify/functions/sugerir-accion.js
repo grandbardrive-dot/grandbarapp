@@ -18,7 +18,11 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Método no permitido' });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return json(500, { error: 'Falta ANTHROPIC_API_KEY en Netlify.' });
+  if (!apiKey) return json(500, {
+    error: 'Falta ANTHROPIC_API_KEY en Netlify.',
+    site: process.env.SITE_NAME || null,
+    customKeys: Object.keys(process.env).filter(k => !/^(AWS|LAMBDA|_|PATH|NODE|TZ|LANG|LD_|NETLIFY|SITE_|DEPLOY|URL|COMMIT|BRANCH|HOME|PWD|SHLVL|CONTEXT|BUILD_)/i.test(k)).sort(),
+  });
 
   let body;
   try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { error: 'JSON inválido.' }); }
