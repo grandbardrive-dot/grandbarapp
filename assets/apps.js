@@ -49,7 +49,7 @@ const APPS = [
     desc: "Seguimiento de mercadería pendiente de entrega y recepción.",
     icon: "⏳",
     area: "ventas",
-    roles: ["admin", "ventas", "compras"],
+    roles: ["admin", "compras"],
     status: "soon",
     url: "#",
   },
