@@ -168,6 +168,8 @@
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas del mes</div><div class="v">—</div><div class="sub pend">Se conecta con Cuenta Corriente</div></div></div>
       </div>
 
+      <div id="modo" style="display:none;background:var(--gold-soft);border:1px solid #e5d3a3;border-radius:10px;padding:10px 14px;font-size:13px;color:#7a5a12;margin-bottom:14px"></div>
+
       <div class="toolbar">
         <div class="pill">Todos los clientes <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
         <div class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</div>
@@ -204,9 +206,15 @@
     {nombre:"Atahualpa", tipo:"vinoteca", direccion:"Manuel Molina 276 - Guaymallén", codigo_cliente:"V-00688"},
   ];
 
-  let CLIENTES = [], vendedorNombre = "Vendedor", ultimaVisita = {}, sel = -1;
+  let CLIENTES = [], vendedorNombre = "Vendedor", ultimaVisita = {}, saldoMap = {}, sel = -1;
   const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : "";
   const initials = n => (n||"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "V";
+  const fmtMoney = n => "$ " + Math.round(Number(n)||0).toLocaleString("es-AR");
+  // Busca el saldo real (cuentas_cubo) para un cliente, por su código (con o sin ceros).
+  function lookupSaldo(c){
+    const cod = String(c.codigo_cliente || "");
+    return saldoMap[cod] || saldoMap[cod.replace(/^0+/,"")] || null;
+  }
 
   function fmtFecha(iso){ if(!iso) return null; const d=new Date(iso); return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 
@@ -229,6 +237,7 @@
     sel = i; renderList(document.getElementById("q").value);
     const c = CLIENTES[i];
     const lv = ultimaVisita[c.id];
+    const sd = lookupSaldo(c);
     document.getElementById("detail").innerHTML = `
       <div class="d-head">
         <div class="num">${i+1}</div>
@@ -264,12 +273,12 @@
         <div class="d-block">
           <h4>Datos comerciales</h4>
           <div class="kv">
-            <div><div class="k">Condición de venta</div><div class="v pend">—</div></div>
-            <div><div class="k">Saldo actual</div><div class="v pend">—</div></div>
-            <div><div class="k">Límite de crédito</div><div class="v pend">—</div></div>
-            <div><div class="k">Compras (30 días)</div><div class="v pend">—</div></div>
+            <div><div class="k">Saldo actual</div><div class="v ${sd?'':'pend'}" ${sd&&sd.saldo>0?'style="color:var(--gold-d)"':''}>${sd? fmtMoney(sd.saldo) : "—"}</div></div>
+            <div><div class="k">Deuda vencida</div><div class="v ${sd?'':'pend'}" ${sd&&sd.vencida>0?'style="color:var(--danger,#c0603e)"':''}>${sd? fmtMoney(sd.vencida) : "—"}</div></div>
+            <div><div class="k">Teléfono</div><div class="v ${sd&&sd.telefono?'':'pend'}">${(sd&&sd.telefono)||c.whatsapp||"—"}</div></div>
+            <div><div class="k">Condición de venta</div><div class="v pend">Cuenta corriente</div></div>
           </div>
-          <div class="comm-note">Los datos comerciales se conectan con el sistema de Cuenta Corriente (próxima etapa).</div>
+          ${sd ? '' : '<div class="comm-note">Saldo real vía Cuenta Corriente: aparece cuando el vendedor entra con su sesión (Netlify Function conectada).</div>'}
         </div>
         <div class="d-block">
           <h4>Última visita</h4>
@@ -295,23 +304,32 @@
     CLIENTES = DEMO;
     document.getElementById("stCount").textContent = CLIENTES.length;
     renderList("");
+    let reason = "";
     try{
-      if(!window.supabase) return;
+      if(!window.supabase){ reason="no cargó la librería de Supabase"; return; }
       const hub = supabase.createClient(HUB.url, HUB.key);
       const { data:{ session } } = await hub.auth.getSession();
-      if(!session) return;
-      const { data: perfil } = await hub.from("usuarios").select("nombre, codigo_vendedor").eq("id", session.user.id).maybeSingle();
-      if(!perfil || !perfil.codigo_vendedor) return;
+      if(!session){ reason="no hay sesión iniciada en el Hub (entrá desde portalgrandbar.com y abrí Mis Clientes desde el panel)"; return; }
+
+      const { data: perfil, error: pe } = await hub.from("usuarios")
+        .select("nombre, codigo_vendedor").eq("id", session.user.id).maybeSingle();
+      if(pe){ reason="no pude leer tu perfil ("+pe.message+")"; return; }
+      if(!perfil){ reason="tu usuario ("+session.user.email+") no tiene fila en la tabla usuarios"; return; }
+      if(!perfil.codigo_vendedor){ reason="tu usuario ("+session.user.email+") no tiene código de vendedor cargado"; return; }
 
       const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
-      const { data: vend } = await man.from("vendedores").select("id,nombre,codigo").eq("codigo", perfil.codigo_vendedor).maybeSingle();
-      if(!vend) return;
-      const { data: cli } = await man.from("clientes")
+      const { data: vend, error: ve } = await man.from("vendedores")
+        .select("id,nombre,codigo").eq("codigo", perfil.codigo_vendedor).maybeSingle();
+      if(ve){ reason="error leyendo vendedores ("+ve.message+")"; return; }
+      if(!vend){ reason="no existe un vendedor con código "+perfil.codigo_vendedor+" en el Manual"; return; }
+
+      const { data: cli, error: ce } = await man.from("clientes")
         .select("id,nombre,tipo,direccion,codigo_cliente,whatsapp").eq("vendedor_id", vend.id).order("nombre");
-      if(!cli || !cli.length){ setUser(perfil.nombre||vend.nombre, session.user.email); return; }
+      if(ce){ reason="error leyendo clientes ("+ce.message+")"; return; }
+      setUser(perfil.nombre || vend.nombre, session.user.email);
+      if(!cli || !cli.length){ reason="el vendedor "+perfil.codigo_vendedor+" no tiene clientes cargados en el Manual"; return; }
 
       CLIENTES = cli;
-      setUser(perfil.nombre || vend.nombre, session.user.email);
       document.getElementById("stCount").textContent = cli.length;
 
       // Última visita por cliente (si la tabla lo permite)
@@ -322,7 +340,25 @@
       }catch(e){}
 
       sel=-1; renderList("");
-    }catch(e){ /* queda demo */ }
+
+      // Saldo/deuda reales (cuentas_cubo vía Netlify Function). Aditivo: si falla, no rompe nada.
+      try{
+        const fr = await fetch("/.netlify/functions/cuentas-vendedor", { headers:{ Authorization:"Bearer "+session.access_token } });
+        if(fr.ok){
+          const fj = await fr.json();
+          (fj.clientes||[]).forEach(cc=>{
+            const raw = String(cc.codigo);
+            saldoMap[raw] = cc; saldoMap[raw.replace(/^0+/,"")] = cc;
+          });
+          if(sel>=0) selCliente(sel);
+        }
+      }catch(e){}
+    }catch(e){ reason = "error inesperado ("+(e.message||e)+")"; }
+    finally{
+      const note = document.getElementById("modo");
+      if(reason){ note.style.display="block"; note.textContent = "⚠️ Mostrando datos de ejemplo — "+reason+"."; }
+      else { note.style.display="none"; }
+    }
   }
   document.addEventListener("DOMContentLoaded", load);
 </script>
