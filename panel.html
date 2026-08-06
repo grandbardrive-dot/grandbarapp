@@ -82,13 +82,21 @@
       );
     }
 
+    // Resuelve el destino de un módulo según el rol activo.
+    // Si el módulo define urlByRole[rol], gana sobre url (default).
+    function urlForRole(a) {
+      if (a.urlByRole && a.urlByRole[currentRole]) return a.urlByRole[currentRole];
+      return a.url;
+    }
+
     function cardHTML(a) {
       const soon = a.status === "soon";
-      const href = soon || a.url === "#" ? "#" : a.url;
+      const target = urlForRole(a);
+      const href = soon || target === "#" ? "#" : target;
       const external = href.startsWith("http") ? ' target="_blank" rel="noopener"' : "";
       const tag = soon
         ? '<span class="soon">Próximamente</span>'
-        : (a.url === "#" ? '<span class="soon">Sin conectar</span>' : '<span>Activo</span>');
+        : (target === "#" ? '<span class="soon">Sin conectar</span>' : '<span>Activo</span>');
       return `
         <a class="card ${soon ? "is-soon" : ""}" href="${href}"${external}>
           <div class="ico">${a.icon}</div>
