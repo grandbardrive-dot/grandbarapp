@@ -203,7 +203,7 @@
             <div class="donut" style="background:conic-gradient(var(--gold) 64%, #ece4d6 0)"><div class="inner">64%</div></div>
           </div>
           <div class="rs-row">
-            <div><div class="rs-lbl">Ventas</div><div class="rs-big">$ 8.450.000</div><div class="rs-lbl" style="color:var(--green)">↑ 12,5% vs semana anterior</div></div>
+            <div><div class="rs-lbl">Ventas</div><div class="rs-big" id="rsVentas">$ 8.450.000</div><div class="rs-lbl" id="rsVentasSub" style="color:var(--green)">↑ 12,5% vs semana anterior</div></div>
             <svg class="spark" viewBox="0 0 90 36"><polyline points="0,28 15,24 30,26 45,18 60,20 75,10 90,6" fill="none" stroke="var(--gold)" stroke-width="2"/></svg>
           </div>
           <div class="rs-row">
@@ -288,8 +288,11 @@
         if(parseInt(p[0],10) === cod){ monto = parseMonto(p[2]); break; }
       }
       if(monto != null){
-        document.getElementById("stVentas").textContent = "$ " + Math.round(monto).toLocaleString("es-AR");
+        const fmt = "$ " + Math.round(monto).toLocaleString("es-AR");
+        document.getElementById("stVentas").textContent = fmt;
         document.getElementById("stVentasSub").textContent = "Se actualiza a diario";
+        const rv = document.getElementById("rsVentas"); if(rv) rv.textContent = fmt;
+        const rvs = document.getElementById("rsVentasSub"); if(rvs){ rvs.textContent = "Total acumulado"; rvs.style.color = "var(--muted)"; }
       }
     }catch(e){ /* si falla, queda el valor base */ }
   }
