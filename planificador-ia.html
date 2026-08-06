@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root{
       --navy:#0d2230; --navy-2:#123043; --cream:#f6f1e8; --card:#ffffff;
@@ -261,23 +262,7 @@
           <!-- Mapa -->
           <div class="panel">
             <div class="panel-h"><span class="t">Mapa</span><span class="lnk">Mendoza</span></div>
-            <div class="map">
-              <span class="tag">Recorrido optimizado</span>
-              <svg viewBox="0 0 400 340" preserveAspectRatio="xMidYMid slice">
-                <polyline points="70,60 120,90 100,150 170,180 150,240 230,250 250,180 320,210 300,280"
-                  fill="none" stroke="#2f6f5e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-                <g font-family="Inter" font-size="11" font-weight="700" fill="#fff">
-                  <circle cx="70" cy="60" r="12" fill="#2f6f5e"/><text x="70" y="64" text-anchor="middle">1</text>
-                  <circle cx="120" cy="90" r="12" fill="#2f6f5e"/><text x="120" y="94" text-anchor="middle">2</text>
-                  <circle cx="100" cy="150" r="12" fill="#2f6f5e"/><text x="100" y="154" text-anchor="middle">3</text>
-                  <circle cx="170" cy="180" r="12" fill="#2f6f5e"/><text x="170" y="184" text-anchor="middle">4</text>
-                  <circle cx="150" cy="240" r="12" fill="#2f6f5e"/><text x="150" y="244" text-anchor="middle">5</text>
-                  <circle cx="230" cy="250" r="12" fill="#2f6f5e"/><text x="230" y="254" text-anchor="middle">6</text>
-                  <circle cx="250" cy="180" r="12" fill="#2f6f5e"/><text x="250" y="184" text-anchor="middle">7</text>
-                  <circle cx="320" cy="210" r="12" fill="#2f6f5e"/><text x="320" y="214" text-anchor="middle">8</text>
-                </g>
-              </svg>
-            </div>
+            <div id="lmap" style="height:360px;width:100%;border-radius:0 0 14px 14px"></div>
           </div>
         </div>
 
@@ -324,6 +309,7 @@
   <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Más</a>
 </nav>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // Bases: Hub (identidad/rol) + Manual (clientes del vendedor).
@@ -373,10 +359,31 @@
     }, 520);
   }
   function toggleMapMobile(){
-    document.querySelector(".map").scrollIntoView({behavior:"smooth", block:"center"});
+    document.getElementById("lmap").scrollIntoView({behavior:"smooth", block:"center"});
   }
 
-  // ---- Etapa 2a: traer los clientes REALES del vendedor logueado ----
+  // ---- Etapa 2b: clientes reales CON coordenadas + mapa + ruta optimizada ----
+  let mapa = null;
+  const haversine = (a,b)=>{
+    const R=6371, toRad=x=>x*Math.PI/180;
+    const dLat=toRad(b.lat-a.lat), dLng=toRad(b.lng-a.lng);
+    const s=Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(s));
+  };
+  const kmRuta = pts => { let k=0; for(let i=1;i<pts.length;i++) k+=haversine(pts[i-1],pts[i]); return k; };
+  function vecinoMasCercano(pts){
+    if(pts.length<2) return pts.slice();
+    const rem=pts.slice(), route=[rem.shift()];
+    while(rem.length){
+      const last=route[route.length-1]; let bi=0,bd=Infinity;
+      rem.forEach((p,i)=>{const d=haversine(last,p); if(d<bd){bd=d;bi=i;}});
+      route.push(rem.splice(bi,1)[0]);
+    }
+    return route;
+  }
+  const fmtDur = min => { const h=Math.floor(min/60), m=Math.round(min%60); return h?`${h}h ${m}m`:`${m}m`; };
+  const horaDesde = min => { const t=new Date(2025,0,1,8,45); t.setMinutes(t.getMinutes()+Math.round(min)); return t.toTimeString().slice(0,5); };
+
   function toRealMode(nombre, clientes){
     document.getElementById("intro").hidden = true;
     document.getElementById("loading").hidden = true;
@@ -388,49 +395,97 @@
       document.querySelectorAll(".sb-user .av, .topbar .av").forEach(e=>e.textContent = ini);
     }
 
-    document.querySelector("#result .result-head h2").textContent = "Tus clientes asignados";
-    document.querySelector("#result .result-head .date").textContent = clientes.length + " clientes en tu cartera";
-    document.querySelector(".summary").style.display = "none";
+    const geo = clientes.filter(c => typeof c.lat === "number" && typeof c.lng === "number");
+    if(!geo.length){ // sin coords → mostrar solo la lista
+      document.querySelector(".summary").style.display = "none";
+      document.querySelectorAll(".compare, .factors, .actions").forEach(e=>e.style.display = "none");
+      document.getElementById("stops").innerHTML = clientes.map((c,i)=>`<div class="stop"><div class="time"></div><div class="num">${i+1}</div><div><div class="nm">${c.nombre||"—"}</div></div><div class="dur"></div></div>`).join("");
+      return;
+    }
+
+    // Ruta del día: clúster cercano al primer cliente, orden optimizado (vecino más cercano).
+    let daySet = geo.slice();
+    if(geo.length > 12){
+      const start = geo[0];
+      const cerca = geo.slice(1).map(c=>({c,d:haversine(start,c)})).sort((a,b)=>a.d-b.d).slice(0,11).map(x=>x.c);
+      daySet = [start, ...cerca];
+    }
+    const ruta = vecinoMasCercano(daySet);
+    const kmOpt = kmRuta(ruta), kmSin = kmRuta(daySet);
+    const durMin = (kmOpt/25)*60 + ruta.length*15;
+    const ahorroPct = kmSin>0 ? Math.round((1-kmOpt/kmSin)*100) : 0;
+
+    document.querySelector("#result .result-head h2").textContent = "Tu ruta optimizada para hoy";
+    document.querySelector("#result .result-head .date").textContent = geo.length + " clientes con ubicación · " + clientes.length + " en tu cartera";
+    const sv = document.querySelectorAll(".summary .s-val");
+    if(sv[0]) sv[0].textContent = ruta.length;
+    if(sv[1]) sv[1].textContent = kmOpt.toFixed(0) + " km";
+    if(sv[2]) sv[2].textContent = fmtDur(durMin);
+    document.querySelector(".summary").style.display = "";
 
     const b = document.querySelector(".banner");
-    b.querySelector(".bt").textContent = "Clientes reales cargados";
-    b.querySelector(".bs").textContent = "Estos son tus clientes del Manual. La ruta optimizada y el mapa llegan cuando geocodifiquemos las direcciones.";
+    b.querySelector(".bt").textContent = "Ruta optimizada con IA";
+    b.querySelector(".bs").textContent = `Ordenamos ${ruta.length} visitas cercanas para recorrer ${kmOpt.toFixed(0)} km` + (ahorroPct>0?` (${ahorroPct}% menos que sin ordenar).`:".");
 
-    document.querySelector(".panel-h .t").textContent = "Tus clientes";
-    document.getElementById("stops").innerHTML = clientes.map((c,i)=>`
-      <div class="stop">
-        <div class="time"></div>
+    document.querySelector(".panel-h .t").textContent = "Tu recorrido de hoy";
+    let acum=0;
+    document.getElementById("stops").innerHTML = ruta.map((c,i)=>{
+      if(i>0) acum += (haversine(ruta[i-1],c)/25)*60 + 15;
+      return `<div class="stop">
+        <div class="time">${horaDesde(acum)}</div>
         <div class="num">${i+1}</div>
-        <div><div class="nm">${c.nombre||"—"}</div><div class="meta">${[c.tipo,c.direccion].filter(Boolean).join(" · ")}</div></div>
+        <div><div class="nm">${c.nombre||"—"}</div><div class="meta">${[c.direccion,c.localidad].filter(Boolean).join(" · ")}</div></div>
         <div class="dur"></div>
-      </div>`).join("");
-    document.querySelector(".foot-note").textContent = clientes.length + " clientes asignados a tu código.";
+      </div>`;
+    }).join("");
+    document.querySelector(".foot-note").textContent = `${ruta.length} paradas · ${geo.length} clientes geolocalizados`;
 
-    document.querySelectorAll(".compare, .factors, .actions").forEach(e=>e.style.display = "none");
-    const tag = document.querySelector(".map .tag"); if(tag) tag.textContent = "Mapa disponible al geocodificar (próximo)";
-    const svg = document.querySelector(".map svg"); if(svg) svg.style.opacity = ".2";
+    document.querySelectorAll(".compare, .factors, .actions").forEach(e=>e.style.display = "");
+    const rtOld = document.querySelector(".rt.old"), rtNew = document.querySelector(".rt.new");
+    if(rtOld){ rtOld.querySelector(".km").textContent = kmSin.toFixed(0)+" km"; rtOld.querySelector(".tm").textContent = fmtDur((kmSin/25)*60 + ruta.length*15); }
+    if(rtNew){ rtNew.querySelector(".km").textContent = kmOpt.toFixed(0)+" km"; rtNew.querySelector(".tm").textContent = fmtDur(durMin); }
+    const saving = document.querySelector(".saving");
+    if(saving) saving.textContent = `Ahorro estimado: ${(kmSin-kmOpt).toFixed(0)} km menos` + (ahorroPct>0?` · ${ahorroPct}% menos recorrido`:"");
+
+    const btnNav = document.querySelector(".btn-nav");
+    if(btnNav) btnNav.onclick = ()=>{
+      const pts = ruta.map(c=>`${c.lat},${c.lng}`);
+      const dest = pts.pop();
+      window.open("https://www.google.com/maps/dir/?api=1&destination="+dest + (pts.length?"&waypoints="+pts.join("|"):"") + "&travelmode=driving", "_blank");
+    };
+    const btnGhost = document.querySelector(".btn-ghost");
+    if(btnGhost) btnGhost.onclick = ()=> toRealMode(nombre, clientes);
+
+    dibujarMapa(geo, ruta);
+  }
+
+  function dibujarMapa(geo, ruta){
+    try{
+      if(typeof L === "undefined" || !geo.length) return;
+      if(mapa){ mapa.remove(); mapa = null; }
+      mapa = L.map("lmap",{ zoomControl:true });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{ maxZoom:19, attribution:"© OpenStreetMap" }).addTo(mapa);
+      geo.forEach(c=> L.circleMarker([c.lat,c.lng],{ radius:4, color:"#245647", weight:1, fillColor:"#2f6f5e", fillOpacity:.5 }).addTo(mapa).bindPopup(c.nombre));
+      const latlng = ruta.map(c=>[c.lat,c.lng]);
+      L.polyline(latlng,{ color:"#2f6f5e", weight:4, opacity:.9 }).addTo(mapa);
+      ruta.forEach((c,i)=> L.marker([c.lat,c.lng],{ icon:L.divIcon({ className:"", html:`<div style="background:#2f6f5e;color:#fff;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 12px Inter;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)">${i+1}</div>`, iconSize:[26,26], iconAnchor:[13,13] }) }).addTo(mapa).bindPopup(`${i+1}. ${c.nombre}`));
+      mapa.fitBounds(latlng, { padding:[30,30] });
+      setTimeout(()=>mapa.invalidateSize(), 250);
+    }catch(e){ /* si el mapa falla, el resto sigue */ }
   }
 
   async function loadReal(){
     try{
-      if(!window.supabase) return;                          // sin librería → demo
+      if(!window.supabase) return;
       const hub = supabase.createClient(HUB.url, HUB.key);
       const { data:{ session } } = await hub.auth.getSession();
-      if(!session) return;                                  // no logueado → demo
-      const { data: perfil } = await hub.from("usuarios")
-        .select("nombre, codigo_vendedor").eq("id", session.user.id).maybeSingle();
-      if(!perfil || !perfil.codigo_vendedor) return;        // sin código mapeado → demo
-
-      const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
-      const { data: vend } = await man.from("vendedores")
-        .select("id, nombre, codigo").eq("codigo", perfil.codigo_vendedor).maybeSingle();
-      if(!vend) return;
-      const { data: cli } = await man.from("clientes")
-        .select("nombre, tipo, direccion, codigo_cliente").eq("vendedor_id", vend.id).order("nombre");
-      if(!cli || !cli.length) return;
-
-      toRealMode(perfil.nombre || vend.nombre, cli);
-    }catch(e){ /* cualquier fallo → queda el modo demo */ }
+      if(!session) return;                       // no logueado → demo
+      const r = await fetch("/.netlify/functions/cuentas-vendedor", { headers:{ Authorization:"Bearer "+session.access_token } });
+      if(!r.ok) return;
+      const j = await r.json();
+      if(!j.clientes || !j.clientes.length) return;
+      toRealMode(j.nombre || "Vendedor", j.clientes);
+    }catch(e){ /* cualquier fallo → queda el demo */ }
   }
   document.addEventListener("DOMContentLoaded", loadReal);
 </script>
