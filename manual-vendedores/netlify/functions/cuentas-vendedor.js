@@ -54,9 +54,32 @@ exports.handler = async (event) => {
       '&select=codigo,nombre,saldo,vencida,telefono&order=nombre.asc';
     const cRes = await fetch(q, { headers: { apikey: service, Authorization: 'Bearer ' + service } });
     if (!cRes.ok) return json(502, { error: 'Error leyendo cuentas_cubo: ' + (await cRes.text()).slice(0, 200) });
-    const clientes = await cRes.json();
+    let clientes = await cRes.json();
+    if (!Array.isArray(clientes)) clientes = [];
 
-    return json(200, { codigo, nombre: perfil.nombre || null, clientes: Array.isArray(clientes) ? clientes : [] });
+    // 4) Coordenadas + dirección desde clientes_geo (Supabase del Hub, service role).
+    //    OJO: clientes_geo.codigo quedó numérico (sin ceros) → cruzamos por número.
+    const hubService = process.env.HUB_SERVICE_ROLE;
+    if (hubService && clientes.length) {
+      const nums = [...new Set(clientes.map(c => parseInt(c.codigo, 10)).filter(n => !isNaN(n)))];
+      const geoMap = {};
+      // De a lotes de 300 para no armar URLs gigantes.
+      for (let i = 0; i < nums.length; i += 300) {
+        const lote = nums.slice(i, i + 300);
+        const gRes = await fetch(HUB_URL + '/rest/v1/clientes_geo?select=codigo,direccion,localidad,lat,lng,geo_status&codigo=in.(' + lote.join(',') + ')', {
+          headers: { apikey: hubService, Authorization: 'Bearer ' + hubService },
+        });
+        const gArr = await gRes.json().catch(() => []);
+        if (Array.isArray(gArr)) for (const g of gArr) geoMap[g.codigo] = g;
+      }
+      clientes = clientes.map(c => {
+        const g = geoMap[parseInt(c.codigo, 10)];
+        return g ? { ...c, direccion: g.direccion, localidad: g.localidad, lat: g.lat, lng: g.lng, geo: g.geo_status } : c;
+      });
+    }
+
+    const conCoords = clientes.filter(c => c.lat != null).length;
+    return json(200, { codigo, nombre: perfil.nombre || null, con_coords: conCoords, clientes });
   } catch (e) {
     return json(500, { error: (e && e.message) || String(e) });
   }
