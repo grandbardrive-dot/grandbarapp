@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrandBar Hub — Planificador de ruta IA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --navy:#0d2230; --navy-2:#123043; --cream:#f6f1e8; --card:#ffffff;
+      --ink:#1b2a32; --muted:#6d7d85; --line:#e7ded0; --line-2:#ece4d6;
+      --green:#2f6f5e; --green-d:#245647; --green-soft:#e8f1ea;
+      --gold:#c0912f; --gold-d:#a97c22;
+      --danger:#c0603e;
+      --radius:16px; --radius-sm:11px;
+      --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%}
+    body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+
+    .app{display:flex;min-height:100vh}
+
+    /* ---------- Sidebar ---------- */
+    .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+    .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+    .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+    .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+    .sb-nav{display:flex;flex-direction:column;gap:3px}
+    .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+    .sb-nav a:hover{background:var(--navy-2);color:#fff}
+    .sb-nav a.active{background:var(--green);color:#fff;font-weight:600}
+    .sb-nav svg{width:19px;height:19px;flex:none;opacity:.9}
+    .sb-foot{margin-top:auto;display:flex;flex-direction:column;gap:12px;padding-top:16px}
+    .sb-support{display:flex;align-items:center;gap:11px;background:var(--navy-2);border-radius:12px;padding:12px}
+    .sb-support .t{font-size:13px;font-weight:600}.sb-support .s{font-size:11px;color:#9db0ba}
+    .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px}
+    .sb-user .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy)}
+    .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+
+    /* ---------- Main ---------- */
+    .main{flex:1;min-width:0;display:flex;flex-direction:column}
+    .topbar{display:flex;align-items:center;gap:14px;padding:16px 26px;background:var(--card);border-bottom:1px solid var(--line)}
+    .topbar .burger{display:none;background:none;border:0;cursor:pointer;color:var(--ink)}
+    .topbar h1{font-size:18px;margin:0;font-weight:700}
+    .topbar .spacer{flex:1}
+    .topbar .bell{position:relative;color:var(--muted)}
+    .topbar .bell .dot{position:absolute;top:-4px;right:-4px;background:var(--gold);color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:16px;height:16px;display:grid;place-items:center}
+    .topbar .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy);font-size:13px}
+
+    .content{padding:26px;max-width:1120px;width:100%;margin:0 auto}
+
+    /* ---------- Intro (estado inicial) ---------- */
+    .intro{background:var(--navy);color:#eaf1f4;border-radius:var(--radius);padding:34px;text-align:center;position:relative;overflow:hidden}
+    .intro .orb{width:74px;height:74px;border-radius:50%;background:rgba(47,111,94,.25);border:1px solid rgba(255,255,255,.12);display:grid;place-items:center;margin:0 auto 18px}
+    .intro h2{font-size:24px;margin:0 0 8px;font-weight:800}
+    .intro p{color:#a9bcc4;margin:0 auto 22px;max-width:44ch;font-size:15px;line-height:1.55}
+    .btn-plan{background:linear-gradient(180deg,var(--gold),var(--gold-d));color:#241a06;border:0;cursor:pointer;font:inherit;font-weight:700;font-size:15px;padding:15px 26px;border-radius:12px;display:inline-flex;align-items:center;gap:10px}
+    .btn-plan:hover{filter:brightness(1.05)}
+    .benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}
+    .benefit{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;text-align:left}
+    .benefit .bt{font-weight:600;font-size:14px;margin:8px 0 3px}
+    .benefit .bs{font-size:12px;color:#a9bcc4;line-height:1.4}
+    .benefit svg{color:#7fd8bf}
+
+    /* ---------- Loading ---------- */
+    .loading{background:var(--navy);color:#eaf1f4;border-radius:var(--radius);padding:40px 34px;text-align:center}
+    .loading .spark{font-size:40px;margin-bottom:10px}
+    .loading h2{font-size:20px;margin:0 0 24px;font-weight:700}
+    .steps{max-width:340px;margin:0 auto;text-align:left;display:flex;flex-direction:column;gap:14px}
+    .step{display:flex;align-items:center;gap:12px;font-size:14px;color:#8ba1aa;opacity:.5;transition:.3s}
+    .step.done{opacity:1;color:#eaf1f4}
+    .step .ck{width:22px;height:22px;border-radius:50%;border:2px solid #3a5460;flex:none;display:grid;place-items:center;color:transparent}
+    .step.done .ck{background:var(--green);border-color:var(--green);color:#fff}
+
+    /* ---------- Result ---------- */
+    .result-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+    .result-head h2{font-size:26px;margin:0 0 4px;font-weight:800}
+    .result-head .date{color:var(--muted);font-size:14px}
+    .summary{display:flex;gap:26px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 22px}
+    .summary .s-val{font-size:22px;font-weight:800}
+    .summary .s-lbl{font-size:12px;color:var(--muted)}
+
+    .banner{display:flex;align-items:center;gap:14px;background:var(--green-soft);border:1px solid #cfe3d6;border-radius:14px;padding:16px 20px;margin:18px 0}
+    .banner .ico{width:38px;height:38px;border-radius:10px;background:#fff;display:grid;place-items:center;color:var(--green);flex:none}
+    .banner .bt{font-weight:700;color:var(--green-d);font-size:15px}
+    .banner .bs{font-size:13px;color:#3f6a5c;line-height:1.45}
+    .banner .check{margin-left:auto;color:var(--green);flex:none}
+
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+    .panel-h{display:flex;justify-content:space-between;align-items:center;padding:15px 18px;border-bottom:1px solid var(--line-2)}
+    .panel-h .t{font-weight:700;font-size:14px}
+    .panel-h .lnk{color:var(--green);font-size:12px;font-weight:600;cursor:pointer}
+
+    .stops{padding:6px 0}
+    .stop{display:grid;grid-template-columns:64px 26px 1fr auto;align-items:center;gap:10px;padding:11px 18px}
+    .stop .time{font-size:12px;color:var(--muted);font-weight:600;text-align:right}
+    .stop .num{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+    .stop .nm{font-weight:600;font-size:14px}
+    .stop .meta{font-size:12px;color:var(--muted)}
+    .stop .dur{font-size:12px;color:var(--muted);font-weight:600}
+    .stop.lunch{background:#fbf4e6}
+    .stop.lunch .num{background:var(--gold)}
+    .stop.lunch .nm{color:var(--gold-d)}
+    .foot-note{padding:12px 18px;border-top:1px solid var(--line-2);font-size:12px;color:var(--muted)}
+
+    /* Mapa placeholder */
+    .map{position:relative;min-height:340px;background:
+      linear-gradient(0deg,rgba(0,0,0,.02),rgba(0,0,0,.02)),
+      repeating-linear-gradient(0deg,#eef2ee 0 39px,#e6ebe6 39px 40px),
+      repeating-linear-gradient(90deg,#eef2ee 0 39px,#e6ebe6 39px 40px);
+      display:flex;align-items:center;justify-content:center}
+    .map svg{width:100%;height:100%;position:absolute;inset:0}
+    .map .tag{position:absolute;left:12px;top:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted);font-weight:600}
+
+    .compare{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-top:18px}
+    .compare-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .compare-h .t{font-weight:700;font-size:15px}
+    .compare-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:stretch}
+    .rt{border-radius:12px;padding:16px}
+    .rt.old{background:#f7f3ec;border:1px solid var(--line)}
+    .rt.new{background:var(--green-soft);border:1px solid #cfe3d6}
+    .rt .l{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px}
+    .rt.new .l{color:var(--green-d)}
+    .rt .km{font-size:26px;font-weight:800}
+    .rt.new .km{color:var(--green-d)}
+    .rt .tm{font-size:13px;color:var(--muted);margin-top:2px}
+    .arrow-mid{display:grid;place-items:center;color:var(--green)}
+    .saving{margin-top:14px;background:var(--green-d);color:#eafaf3;border-radius:10px;padding:11px 16px;font-size:13px;font-weight:600;text-align:center}
+
+    .factors{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-top:18px}
+    .factors .t{font-weight:700;font-size:15px;margin-bottom:16px}
+    .factor-row{display:grid;grid-template-columns:repeat(7,1fr);gap:12px}
+    .factor{text-align:center;font-size:11px;color:var(--muted);line-height:1.3}
+    .factor .fi{width:42px;height:42px;border-radius:11px;background:var(--green-soft);color:var(--green);display:grid;place-items:center;margin:0 auto 8px}
+
+    .actions{display:flex;justify-content:flex-end;gap:12px;margin-top:22px}
+    .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:11px;padding:12px 20px;font:inherit;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+    .btn-ghost:hover{border-color:var(--green)}
+    .btn-nav{background:var(--green);border:0;color:#fff;border-radius:11px;padding:12px 22px;font:inherit;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+    .btn-nav:hover{background:var(--green-d)}
+
+    /* Bottom nav (mobile) */
+    .bottomnav{display:none}
+
+    [hidden]{display:none!important}
+
+    @media(max-width:900px){
+      .sidebar{display:none}
+      .topbar .burger{display:block}
+      .cols{grid-template-columns:1fr}
+      .benefits{grid-template-columns:1fr}
+      .factor-row{grid-template-columns:repeat(4,1fr);row-gap:16px}
+      .content{padding:16px 16px 90px}
+      .summary{width:100%}
+      .bottomnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--navy);border-top:1px solid var(--navy-2);padding:8px 6px;justify-content:space-around;z-index:30}
+      .bottomnav a{display:flex;flex-direction:column;align-items:center;gap:3px;color:#8ba1aa;font-size:10px;font-weight:600;padding:4px 8px}
+      .bottomnav a.active{color:var(--gold)}
+      .bottomnav svg{width:20px;height:20px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav">
+      <a href="panel.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg> Inicio</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg> Clientes</a>
+      <a href="#" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.5 2 0-14L9 6l6 2 5.5-2 0 14L15 22z"/><path d="M9 6v14M15 8v14"/></svg> Planificador de ruta IA</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg> Agenda</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg> Tareas</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg> Pedidos</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4"/></svg> Herramientas de venta</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg> Reportes</a>
+    </nav>
+    <div class="sb-foot">
+      <div class="sb-support">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7fd8bf" stroke-width="2"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="2" y="14" width="4" height="6" rx="1"/><rect x="18" y="14" width="4" height="6" rx="1"/></svg>
+        <div><div class="t">Soporte</div><div class="s">Estamos para ayudarte</div></div>
+      </div>
+      <div class="sb-user"><div class="av">JP</div><div><div class="t">Juan Pérez</div><div class="s">Vendedor</div></div></div>
+    </div>
+  </aside>
+
+  <!-- ============ Main ============ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="burger"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <h1>Planificador de ruta IA ✦</h1>
+      <div class="spacer"></div>
+      <div class="bell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">3</span></div>
+      <div class="av">JP</div>
+    </header>
+
+    <div class="content">
+
+      <!-- ---- Estado inicial ---- -->
+      <section class="intro" id="intro">
+        <div class="orb"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#7fd8bf" stroke-width="1.8"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
+        <h2>Planificamos tu mejor ruta</h2>
+        <p>La IA organiza tu día para que visites más clientes en menos tiempo.</p>
+        <button class="btn-plan" onclick="planificar()">✦ Planificar mi día</button>
+        <div class="benefits">
+          <div class="benefit"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg><div class="bt">Menos kilómetros</div><div class="bs">Optimizamos distancias y tiempos.</div></div>
+          <div class="benefit"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg><div class="bt">Más clientes visitados</div><div class="bs">Priorizamos según potencial y frecuencia.</div></div>
+          <div class="benefit"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><div class="bt">Mejor organización</div><div class="bs">Agenda inteligente y flexible.</div></div>
+        </div>
+      </section>
+
+      <!-- ---- Optimizando ---- -->
+      <section class="loading" id="loading" hidden>
+        <div class="spark">✦</div>
+        <h2>Optimizando tu ruta…</h2>
+        <div class="steps" id="steps">
+          <div class="step"><span class="ck">✓</span> Analizando clientes asignados</div>
+          <div class="step"><span class="ck">✓</span> Calculando mejores recorridos</div>
+          <div class="step"><span class="ck">✓</span> Considerando tráfico y distancias</div>
+          <div class="step"><span class="ck">✓</span> Priorizando oportunidades</div>
+          <div class="step"><span class="ck">✓</span> Generando agenda optimizada</div>
+        </div>
+      </section>
+
+      <!-- ---- Resultado ---- -->
+      <section id="result" hidden>
+        <div class="result-head">
+          <div>
+            <h2>Tu ruta optimizada para hoy</h2>
+            <div class="date">Martes, 20 de mayo de 2025</div>
+          </div>
+          <div class="summary">
+            <div><div class="s-val">8</div><div class="s-lbl">Visitas planificadas</div></div>
+            <div><div class="s-val">87 km</div><div class="s-lbl">Recorrido total</div></div>
+            <div><div class="s-val">3h 42m</div><div class="s-lbl">Duración estimada</div></div>
+          </div>
+        </div>
+
+        <div class="banner">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg></div>
+          <div>
+            <div class="bt">Ruta optimizada con IA</div>
+            <div class="bs">Reordenamos tus visitas para que recorras 39% menos kilómetros y ahorres aproximadamente 1h 15m.</div>
+          </div>
+          <span class="check"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg></span>
+        </div>
+
+        <div class="cols">
+          <!-- Ruta -->
+          <div class="panel">
+            <div class="panel-h"><span class="t">Tu recorrido de hoy</span><span class="lnk" onclick="toggleMapMobile()">Ver en mapa</span></div>
+            <div class="stops" id="stops"></div>
+            <div class="foot-note">Finalización estimada: 16:10 hs</div>
+          </div>
+          <!-- Mapa -->
+          <div class="panel">
+            <div class="panel-h"><span class="t">Mapa</span><span class="lnk">Mendoza</span></div>
+            <div class="map">
+              <span class="tag">Recorrido optimizado</span>
+              <svg viewBox="0 0 400 340" preserveAspectRatio="xMidYMid slice">
+                <polyline points="70,60 120,90 100,150 170,180 150,240 230,250 250,180 320,210 300,280"
+                  fill="none" stroke="#2f6f5e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+                <g font-family="Inter" font-size="11" font-weight="700" fill="#fff">
+                  <circle cx="70" cy="60" r="12" fill="#2f6f5e"/><text x="70" y="64" text-anchor="middle">1</text>
+                  <circle cx="120" cy="90" r="12" fill="#2f6f5e"/><text x="120" y="94" text-anchor="middle">2</text>
+                  <circle cx="100" cy="150" r="12" fill="#2f6f5e"/><text x="100" y="154" text-anchor="middle">3</text>
+                  <circle cx="170" cy="180" r="12" fill="#2f6f5e"/><text x="170" y="184" text-anchor="middle">4</text>
+                  <circle cx="150" cy="240" r="12" fill="#2f6f5e"/><text x="150" y="244" text-anchor="middle">5</text>
+                  <circle cx="230" cy="250" r="12" fill="#2f6f5e"/><text x="230" y="254" text-anchor="middle">6</text>
+                  <circle cx="250" cy="180" r="12" fill="#2f6f5e"/><text x="250" y="184" text-anchor="middle">7</text>
+                  <circle cx="320" cy="210" r="12" fill="#2f6f5e"/><text x="320" y="214" text-anchor="middle">8</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comparación -->
+        <div class="compare">
+          <div class="compare-h"><span class="t">Comparación de rutas</span><span class="lnk" style="color:var(--green);font-size:12px;font-weight:600">¿Cómo lo calculamos?</span></div>
+          <div class="compare-grid">
+            <div class="rt old"><div class="l">Ruta sin optimizar</div><div class="km">143 km</div><div class="tm">5h 01m</div></div>
+            <div class="arrow-mid"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+            <div class="rt new"><div class="l">Ruta con IA</div><div class="km">87 km</div><div class="tm">3h 42m</div></div>
+          </div>
+          <div class="saving">Ahorro estimado: 56 km menos · 1h 19m menos · 39% menos recorrido</div>
+        </div>
+
+        <!-- Factores -->
+        <div class="factors">
+          <div class="t">Factores considerados por la IA</div>
+          <div class="factor-row">
+            <div class="factor"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg></div>Ubicación de clientes</div>
+            <div class="factor"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>Frecuencia de visita</div>
+            <div class="factor"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6"/></svg></div>Historial de compras</div>
+            <div class="factor"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>Deuda pendiente</div>
+            <div class="factor"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>Promociones activas</div>
+            <div class="factor"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>Tráfico y distancias</div>
+            <div class="factor"><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>Horarios de atención</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn-ghost" onclick="planificar()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0-2 6"/><path d="M20 5v6h-6"/></svg> Replanificar ruta</button>
+          <button class="btn-nav"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8-8 18-2-8z"/></svg> Iniciar navegación</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom nav mobile -->
+<nav class="bottomnav">
+  <a href="panel.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Inicio</a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>Clientes</a>
+  <a href="#" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Ruta IA</a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Agenda</a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Más</a>
+</nav>
+
+<script>
+  const RUTA = [
+    {t:"08:45", nm:"Café del Centro", meta:"Cafetería · Av. San Martín 1234", dur:"15m"},
+    {t:"09:30", nm:"Bodega Don Ignacio", meta:"Restaurante · Belgrano 789", dur:"22m"},
+    {t:"10:20", nm:"La Esquina", meta:"Bar · Sarmiento 456", dur:"18m"},
+    {t:"11:15", nm:"Pausa almuerzo", meta:"", dur:"45m", lunch:true},
+    {t:"12:00", nm:"BeerHaus", meta:"Cervecería · Aristides 321", dur:"17m"},
+    {t:"12:45", nm:"El Parador", meta:"Restaurante · Mitre 1122", dur:"16m"},
+    {t:"13:30", nm:"Lo de Ricky", meta:"Bar · Godoy Cruz 654", dur:"14m"},
+    {t:"14:15", nm:"Café Club", meta:"Cafetería · España 987", dur:"10m"},
+    {t:"15:00", nm:"Bierlin Bar", meta:"Bar · Paso de los Andes 234", dur:""},
+  ];
+  function renderStops(){
+    let n=0;
+    document.getElementById("stops").innerHTML = RUTA.map(s=>{
+      const num = s.lunch ? "🍽" : (++n);
+      return `<div class="stop ${s.lunch?'lunch':''}">
+        <div class="time">${s.t}</div>
+        <div class="num">${num}</div>
+        <div><div class="nm">${s.nm}</div>${s.meta?`<div class="meta">${s.meta}</div>`:''}</div>
+        <div class="dur">${s.dur}</div>
+      </div>`;
+    }).join("");
+  }
+  renderStops();
+
+  function planificar(){
+    document.getElementById("intro").hidden = true;
+    document.getElementById("result").hidden = true;
+    const load = document.getElementById("loading");
+    load.hidden = false;
+    window.scrollTo({top:0,behavior:"smooth"});
+    const steps = document.querySelectorAll("#steps .step");
+    steps.forEach(s=>s.classList.remove("done"));
+    let i=0;
+    const iv = setInterval(()=>{
+      if(i<steps.length){ steps[i].classList.add("done"); i++; }
+      else{
+        clearInterval(iv);
+        setTimeout(()=>{ load.hidden = true; document.getElementById("result").hidden = false; }, 450);
+      }
+    }, 520);
+  }
+  function toggleMapMobile(){
+    document.querySelector(".map").scrollIntoView({behavior:"smooth", block:"center"});
+  }
+</script>
+</body>
+</html>

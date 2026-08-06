@@ -20,6 +20,7 @@
      cliente        → clientes externos
    =========================================================== */
 const AREAS = {
+  copiloto:       "Copiloto IA",
   ventas:         "Ventas",
   marketing:      "Marketing",
   compras:        "Compras",
@@ -29,6 +30,18 @@ const AREAS = {
 };
 
 const APPS = [
+  // =================== COPILOTO IA ===================
+  {
+    id: "planificador-ia",
+    name: "Planificador de Ruta IA",
+    desc: "La IA arma tu día: menos km, más clientes. Ruta optimizada, mapa y navegación.",
+    icon: "✦",
+    area: "copiloto",
+    roles: ["admin", "ventas"],
+    status: "live",
+    url: "planificador-ia.html",
+  },
+
   // =================== VENTAS ===================
   {
     id: "vendedores",
