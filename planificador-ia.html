@@ -324,7 +324,12 @@
   <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Más</a>
 </nav>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  // Bases: Hub (identidad/rol) + Manual (clientes del vendedor).
+  const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+  const MANUAL = { url:"https://fzaxwuuodseyyinveknn.supabase.co", key:"sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk" };
+
   const RUTA = [
     {t:"08:45", nm:"Café del Centro", meta:"Cafetería · Av. San Martín 1234", dur:"15m"},
     {t:"09:30", nm:"Bodega Don Ignacio", meta:"Restaurante · Belgrano 789", dur:"22m"},
@@ -370,6 +375,64 @@
   function toggleMapMobile(){
     document.querySelector(".map").scrollIntoView({behavior:"smooth", block:"center"});
   }
+
+  // ---- Etapa 2a: traer los clientes REALES del vendedor logueado ----
+  function toRealMode(nombre, clientes){
+    document.getElementById("intro").hidden = true;
+    document.getElementById("loading").hidden = true;
+    document.getElementById("result").hidden = false;
+
+    if(nombre){
+      const ini = nombre.split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+      document.querySelectorAll(".sb-user .t").forEach(e=>e.textContent = nombre);
+      document.querySelectorAll(".sb-user .av, .topbar .av").forEach(e=>e.textContent = ini);
+    }
+
+    document.querySelector("#result .result-head h2").textContent = "Tus clientes asignados";
+    document.querySelector("#result .result-head .date").textContent = clientes.length + " clientes en tu cartera";
+    document.querySelector(".summary").style.display = "none";
+
+    const b = document.querySelector(".banner");
+    b.querySelector(".bt").textContent = "Clientes reales cargados";
+    b.querySelector(".bs").textContent = "Estos son tus clientes del Manual. La ruta optimizada y el mapa llegan cuando geocodifiquemos las direcciones.";
+
+    document.querySelector(".panel-h .t").textContent = "Tus clientes";
+    document.getElementById("stops").innerHTML = clientes.map((c,i)=>`
+      <div class="stop">
+        <div class="time"></div>
+        <div class="num">${i+1}</div>
+        <div><div class="nm">${c.nombre||"—"}</div><div class="meta">${[c.tipo,c.direccion].filter(Boolean).join(" · ")}</div></div>
+        <div class="dur"></div>
+      </div>`).join("");
+    document.querySelector(".foot-note").textContent = clientes.length + " clientes asignados a tu código.";
+
+    document.querySelectorAll(".compare, .factors, .actions").forEach(e=>e.style.display = "none");
+    const tag = document.querySelector(".map .tag"); if(tag) tag.textContent = "Mapa disponible al geocodificar (próximo)";
+    const svg = document.querySelector(".map svg"); if(svg) svg.style.opacity = ".2";
+  }
+
+  async function loadReal(){
+    try{
+      if(!window.supabase) return;                          // sin librería → demo
+      const hub = supabase.createClient(HUB.url, HUB.key);
+      const { data:{ session } } = await hub.auth.getSession();
+      if(!session) return;                                  // no logueado → demo
+      const { data: perfil } = await hub.from("usuarios")
+        .select("nombre, codigo_vendedor").eq("id", session.user.id).maybeSingle();
+      if(!perfil || !perfil.codigo_vendedor) return;        // sin código mapeado → demo
+
+      const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
+      const { data: vend } = await man.from("vendedores")
+        .select("id, nombre, codigo").eq("codigo", perfil.codigo_vendedor).maybeSingle();
+      if(!vend) return;
+      const { data: cli } = await man.from("clientes")
+        .select("nombre, tipo, direccion, codigo_cliente").eq("vendedor_id", vend.id).order("nombre");
+      if(!cli || !cli.length) return;
+
+      toRealMode(perfil.nombre || vend.nombre, cli);
+    }catch(e){ /* cualquier fallo → queda el modo demo */ }
+  }
+  document.addEventListener("DOMContentLoaded", loadReal);
 </script>
 </body>
 </html>
