@@ -180,7 +180,11 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--crema);colo
 
 /* Checklist items en detalle */
 .cl-section{border-bottom:1px solid var(--border)}
-.cl-sec-header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2)}
+.cl-sec-header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.cl-sec-chevron{color:var(--text3);font-size:11px;flex-shrink:0;transition:transform .2s;margin-left:2px}
+.cl-sec-header.open .cl-sec-chevron{transform:rotate(180deg)}
+.cl-sec-body{display:none}
+.cl-sec-body.open{display:block}
 .cl-sec-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
 .cl-sec-name{flex:1;font-size:13px;font-weight:600;color:var(--azul)}
 .cl-sec-counter{font-family:'DM Mono',monospace;font-size:11px;font-weight:700}
@@ -216,6 +220,15 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--crema);colo
 body::before { content:""; position:fixed; inset:0; z-index:-1; background:url("fondoo.jpg.jpg") center/cover no-repeat; filter:brightness(0.5); transform:scale(1.05); }
 body { background:transparent !important; }
 :root { --crema:rgba(241,237,232,0.08) !important; --surface:rgba(255,255,255,0.95) !important; --surface2:rgba(247,245,242,0.95) !important; }
+/* Los overlays a pantalla completa (detalle de vendedor y de visita) deben ser OPACOS.
+   Como --crema quedó casi transparente para dejar ver el fondo detrás de las tarjetas del
+   listado, estos overlays se transparentaban y se veía el listado de atrás "superpuesto".
+   Les damos un fondo propio opaco (misma estética oscura del fondo). */
+#detalle-overlay, #visita-overlay {
+  background-color:#14231a !important;
+  background-image:linear-gradient(rgba(15,25,12,.55),rgba(15,25,12,.55)), url("fondoo.jpg.jpg");
+  background-size:cover; background-position:center; background-repeat:no-repeat; background-attachment:fixed;
+}
 </style>
 </head>
 <body>
@@ -1487,14 +1500,20 @@ function renderChecklistDetalle(checklist, progreso) {
       ? `<div class="cl-obs">💬 ${esc(secProg.obs)}</div>`
       : '';
 
+    // Por defecto: las secciones completas se pliegan (para acortar la lista) y las que
+    // tienen pendientes quedan abiertas. Tocar el título abre/cierra.
+    const abierta = !allDone;
     return `<div class="cl-section">
-      <div class="cl-sec-header">
+      <div class="cl-sec-header${abierta ? ' open' : ''}" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
         <div class="cl-sec-icon" style="background:${sec.iconoBg};color:${sec.iconoColor}">${sec.icono}</div>
         <div class="cl-sec-name">${esc(sec.titulo)}</div>
         <span class="cl-sec-counter ${allDone ? 'all-done' : 'partial'}">${secDone}/${sec.items.length}</span>
+        <span class="cl-sec-chevron">▾</span>
       </div>
-      ${itemsHtml}
-      ${obsHtml}
+      <div class="cl-sec-body${abierta ? ' open' : ''}">
+        ${itemsHtml}
+        ${obsHtml}
+      </div>
     </div>`;
   }).join('');
 

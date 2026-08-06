@@ -567,7 +567,8 @@ async function getChecklistDynamic(tipo) {
     const secIds = secciones.map(s => s.id);
     const [itemsRes, planesRes] = await Promise.all([
       sb.from('checklist_items').select('*').in('seccion_id', secIds).eq('activo', true).order('orden'),
-      sb.from('checklist_planes').select('*').in('seccion_id', secIds).eq('activo', true).order('created_at'),
+      // Traemos todos los planes activos: un plan puede aparecer en varias secciones (columna `secciones`).
+      sb.from('checklist_planes').select('*').eq('activo', true).order('created_at'),
     ]);
 
     const itemsPorSec  = {};
@@ -576,9 +577,16 @@ async function getChecklistDynamic(tipo) {
       if (!itemsPorSec[i.seccion_id])  itemsPorSec[i.seccion_id]  = [];
       itemsPorSec[i.seccion_id].push(i);
     });
+    const secIdSet = new Set(secIds);
     (planesRes.data || []).forEach(p => {
-      if (!planesPorSec[p.seccion_id]) planesPorSec[p.seccion_id] = [];
-      planesPorSec[p.seccion_id].push(p);
+      // Un plan puede tener varias secciones (columna `secciones`); si no, usa seccion_id.
+      // Solo lo agrupamos en las secciones que pertenecen a este canal.
+      const secs = (Array.isArray(p.secciones) && p.secciones.length) ? p.secciones : (p.seccion_id ? [p.seccion_id] : []);
+      secs.forEach(sid => {
+        if (!secIdSet.has(sid)) return;
+        if (!planesPorSec[sid]) planesPorSec[sid] = [];
+        planesPorSec[sid].push(p);
+      });
     });
 
     const base = CHECKLISTS[canal] || CHECKLISTS['restaurante'];

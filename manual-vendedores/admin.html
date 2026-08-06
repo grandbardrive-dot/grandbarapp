@@ -283,14 +283,14 @@ body { background:transparent !important; }
 <style>
   /* ── Pantalla de bienvenida (selección de perfil) ── */
   /* Fondo crema SÓLIDO (en admin.html --crema es translúcido por la foto de fondo; acá lo forzamos opaco para que se lea) */
-  #welcome{position:fixed;inset:0;z-index:1000;background:#F1EDE8;display:flex;flex-direction:column;overflow:auto}
+  #welcome{position:fixed;inset:0;z-index:1000;background:#F1EDE8;display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto}
   .wl-bar{background:var(--azul);border-bottom:3px solid var(--dorado);display:flex;align-items:center;justify-content:space-between;padding:0 26px;height:74px;flex:none}
   .wl-logo{height:46px;object-fit:contain}
   .wl-help{display:inline-flex;align-items:center;gap:7px;color:rgba(255,255,255,.85);text-decoration:none;font-size:14px;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit}
   .wl-help svg{width:19px;height:19px}
   .wl-help:hover{color:#fff}
 
-  .wl-body{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 22px 56px;text-align:center;overflow:hidden}
+  .wl-body{flex:1 0 auto;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 22px 56px;text-align:center;overflow:visible}
   /* adornos */
   .wl-dots{position:absolute;background-image:radial-gradient(var(--dorado) 1.6px,transparent 1.7px);background-size:17px 17px;opacity:.32;pointer-events:none}
   .wl-dots.tl{top:16px;left:34px;width:120px;height:74px}
@@ -377,6 +377,13 @@ body { background:transparent !important; }
         <div class="wl-role">Gestora Comercial</div>
         <div class="wl-cdiv"></div>
         <p class="wl-desc">Cargá promociones, acciones, programas, materiales POP y contenido para los vendedores.</p>
+        <div style="width:100%;text-align:left;margin-bottom:2px">
+          <label for="wl-pass-input" style="display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);margin-bottom:5px">Contraseña</label>
+          <input id="wl-pass-input" type="password" autocomplete="current-password" placeholder="Ingresá la contraseña"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();entrarPanel('comercial');}"
+            style="width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--azul);font:inherit;font-size:14px;outline:none;box-sizing:border-box" />
+          <div id="wl-pass-err" style="color:#b3261e;font-size:12px;margin-top:6px;min-height:1em"></div>
+        </div>
         <button class="wl-btn" onclick="entrarPanel('comercial')">Entrar
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -1027,6 +1034,17 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
 <script>
   // Entrada por perfil (sin contraseña). Guarda el perfil elegido.
   function entrarPanel(perfil) {
+    // Solo el panel comercial (Luciana) pide contraseña; Marketing entra directo.
+    if (perfil === 'comercial') {
+      const inp = document.getElementById('wl-pass-input');
+      const err = document.getElementById('wl-pass-err');
+      if (!inp || inp.value !== ADMIN_PASSWORD) {
+        if (err) err.textContent = 'Contraseña incorrecta.';
+        if (inp) { inp.focus(); inp.select(); }
+        return;
+      }
+      if (err) err.textContent = '';
+    }
     sessionStorage.setItem('admin_auth','1');
     sessionStorage.setItem('admin_perfil', perfil);   // 'comercial' | 'marketing'
     if (perfil === 'comercial') { window.location.href = 'admin-comercial.html'; return; }
@@ -1048,8 +1066,8 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
   // Enlaces directos desde el panel comercial (?tab=acciones, etc.) o sesión ya iniciada → saltear bienvenida
   (function(){
     const tabPedida = new URLSearchParams(location.search).get('tab');
-    if (tabPedida || sessionStorage.getItem('admin_auth')==='1') {
-      sessionStorage.setItem('admin_auth','1');
+    // Solo entra si ya hay sesión válida (no se auto-autoriza por ?tab=).
+    if (sessionStorage.getItem('admin_auth')==='1') {
       document.getElementById('welcome').style.display='none';
       document.getElementById('app').style.display='block';
       if (tabPedida) window.addEventListener('load', ()=>{ try{ showAdminTab(tabPedida); adminTabsLoaded[tabPedida]=true; }catch(e){} });

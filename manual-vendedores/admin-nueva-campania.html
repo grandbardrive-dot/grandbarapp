@@ -16,6 +16,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
   a{color:inherit;text-decoration:none}
+  @keyframes sp{to{transform:rotate(360deg)}}
   .layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
   .main-col{display:grid;grid-template-columns:1fr 320px;min-width:0}
   @media (max-width:1180px){ .main-col{grid-template-columns:1fr} .rail{display:none} }
@@ -201,7 +202,7 @@
 <script src="_admin-sidebar.js"></script>
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
-  sessionStorage.setItem('admin_auth','1'); sessionStorage.setItem('admin_perfil','comercial');
+  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');} sessionStorage.setItem('admin_perfil','comercial');
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const CANAL_GRUPOS=[
     { id:'on',  label:'ON TRADE',  ico:'🍽️', desc:'Restaurantes, Bares, Discotecas, Hoteles, Eventos y Catering.', subs:[['restaurantes','Restaurantes'],['bares','Bares'],['discos','Discotecas'],['hoteles','Hoteles'],['eventos','Eventos y Catering']] },
@@ -213,15 +214,19 @@
   function canalesChecklist(){ const s=new Set(); st.canales.forEach(c=>{ if(c==='vinotecas')s.add('vinoteca'); else if(c==='autoservicios')s.add('autoservicio'); else s.add('restaurante'); }); return s; }
   const PASOS=['Proveedor','Producto','Canales','Ubicaciones','Promoción','Materiales','Revisión'];
 
-  let paso=1, PROV=[], PROD=[], SECS=[];
+  let paso=1, PROV=[], PROD=[], SECS=[], MAT=[]; const BRANDS={};
+  let _matVerTodos=false;
   let editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
   let prodPage=1, prodCat='', prodQ='';
-  const st={ proveedor:null, producto:null, canales:[], ubicaciones:[], mecanica:'', precioReg:'', precioAcc:'', fechaIni:'', fechaFin:'' };
+  const st={ proveedor:null, productos:[], canales:[], ubicaciones:[], mecanica:'', precioReg:'', precioAcc:'', fechaIni:'', fechaFin:'', materiales:[] };
 
   async function cargar(){
     try{ PROV=(await sb.from('proveedores').select('*').order('nombre')).data||[]; }catch(e){}
     try{ PROD=(await sb.from('productos').select('*').order('nombre')).data||[]; }catch(e){}
     try{ SECS=(await sb.from('checklist_secciones').select('id,codigo,nombre,canal,parent_id,orden,icono,icono_bg,icono_color,activa').eq('activa',true).order('orden')).data||[]; }catch(e){}
+    // Materiales que Marketing cargó y marcó como visibles para Luciana (con stock y proveedor/línea).
+    try{ MAT=(await sb.from('materials_with_stock').select('id,name,processed_image_url,original_image_url,unit_type,supplier_id,brand_id,stock_actual').eq('is_active',true).eq('visible_to_luciana',true).order('name')).data||[]; }catch(e){}
+    try{ (await sb.from('brands').select('id,name')).data?.forEach(b=>BRANDS[b.id]=b.name); }catch(e){}
 
     // Modo edición: cargar la campaña y precompletar el asistente
     if(editId){
@@ -229,7 +234,12 @@
         const {data:row}=await sb.from('acciones_mensuales').select('*').eq('id',editId).single();
         if(row){
           st.proveedor = PROV.find(p=>p.nombre===row.proveedor) || (row.proveedor?{id:null,nombre:row.proveedor}:null);
-          st.producto  = PROD.find(p=>(row.sku&&p.sku===row.sku)||p.nombre===row.producto) || (row.producto?{id:null,nombre:row.producto,categoria:row.categoria,imagen_url:row.imagen_url,sku:row.sku}:null);
+          if(Array.isArray(row.productos)&&row.productos.length){
+            st.productos = row.productos.map(mp=> PROD.find(p=>(mp.id&&p.id===mp.id)||(mp.sku&&p.sku===mp.sku)||p.nombre===mp.nombre) || {id:mp.id||null,nombre:mp.nombre,categoria:mp.categoria,imagen_url:mp.imagen_url,sku:mp.sku});
+          } else {
+            const uno = PROD.find(p=>(row.sku&&p.sku===row.sku)||p.nombre===row.producto) || (row.producto?{id:null,nombre:row.producto,categoria:row.categoria,imagen_url:row.imagen_url,sku:row.sku}:null);
+            st.productos = uno?[uno]:[];
+          }
           st.canales   = Array.isArray(row.aplica_a)?row.aplica_a.slice():[];
           st.ubicaciones = (row.seccion_checklist||'').split(',').map(s=>s.trim()).filter(Boolean);
           st.mecanica  = row.accion||'';
@@ -237,6 +247,7 @@
           st.precioAcc = row.precio_accionado!=null?String(row.precio_accionado):'';
           st.fechaIni  = row.fecha_inicio||'';
           st.fechaFin  = row.fecha_fin||'';
+          st.materiales= Array.isArray(row.materiales)?row.materiales.slice():[];
           st._activa   = row.activa;
           document.getElementById('page-title-txt').textContent='Editar campaña';
           document.getElementById('page-sub').textContent='Modificá lo que quieras y guardá los cambios.';
@@ -266,7 +277,7 @@
     } else if(paso===2){
       const cats=[...new Set(PROD.map(p=>p.categoria).filter(Boolean))].sort();
       el.innerHTML=`
-        <div class="panel-top"><div><div class="panel-h">2. Seleccioná el producto</div><div class="panel-sub">Elegí el producto o marca que formará parte de la campaña.</div></div>
+        <div class="panel-top"><div><div class="panel-h">2. Seleccioná los productos</div><div class="panel-sub">Elegí uno o varios productos para esta campaña. Se van a mostrar juntos en la misma acción.</div></div>
           <div class="search"><input id="q2" type="text" placeholder="Buscar producto…" value="${esc(prodQ)}" oninput="prodQ=this.value;prodPage=1;renderProdGrid()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg></div></div>
         <div class="cats" id="prod-cats">
           <button class="cat-chip ${prodCat===''?'on':''}" onclick="prodCat='';prodPage=1;renderPaso()">Todos</button>
@@ -310,29 +321,56 @@
         ${cards}
         <div class="foot-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>Si no elegís ninguna, la campaña va a la sección “Acciones Mensuales” general de cada canal.</div>`;
     } else if(paso===5){
-      el.innerHTML=`<div class="panel-h">5. Configurá la promoción</div><div class="panel-sub">Definí la mecánica, precios y vigencia de la campaña.</div>
+      el.innerHTML=`<div class="panel-h">5. Configurá la promoción</div><div class="panel-sub">Definí la mecánica y los precios. Las fechas son opcionales: si las dejás vacías, la campaña queda vigente sin límite de tiempo.</div>
         <div class="form-grid">
           <div class="fld"><label>Mecánica</label><input id="f-mec" type="text" placeholder="Ej: 3+1, 20% OFF, 2+1" value="${esc(st.mecanica)}" oninput="st.mecanica=this.value;renderResumen()"></div>
           <div class="fld"><label>Precio regular ($)</label><input id="f-preg" type="number" placeholder="0" value="${esc(st.precioReg)}" oninput="st.precioReg=this.value;renderResumen()"></div>
           <div class="fld"><label>Precio accionado ($)</label><input id="f-pacc" type="number" placeholder="0" value="${esc(st.precioAcc)}" oninput="st.precioAcc=this.value;renderResumen()"></div>
           <div class="fld"><label>&nbsp;</label><div style="font-size:13px;color:var(--ink3);padding-top:11px">${pctOff()}</div></div>
-          <div class="fld"><label>Desde</label><input id="f-ini" type="date" value="${esc(st.fechaIni)}" oninput="st.fechaIni=this.value;renderResumen()"></div>
-          <div class="fld"><label>Hasta</label><input id="f-fin" type="date" value="${esc(st.fechaFin)}" oninput="st.fechaFin=this.value;renderResumen()"></div>
+          <div class="fld"><label>Desde <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><input id="f-ini" type="date" value="${esc(st.fechaIni)}" oninput="st.fechaIni=this.value;renderResumen()"></div>
+          <div class="fld"><label>Hasta <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><input id="f-fin" type="date" value="${esc(st.fechaFin)}" oninput="st.fechaFin=this.value;renderResumen()"></div>
         </div>`;
     } else if(paso===6){
-      el.innerHTML=`<div class="panel-h">6. Materiales (opcional)</div><div class="panel-sub">Podés vincular materiales POP para que los vendedores los vean sugeridos. Esto lo activamos en la próxima etapa.</div>
-        <div class="empty" style="border:1px dashed var(--line-2);border-radius:12px">🎁 Vinculación de materiales — próximamente.<br>Por ahora podés seguir sin materiales.</div>`;
+      const imgOf=m=>m.processed_image_url||m.original_image_url||'';
+      const provId=st.proveedor?.id||null, provNom=st.proveedor?.nombre||'';
+      const delProv = provId ? MAT.filter(m=>m.supplier_id===provId && Number(m.stock_actual||0)>0) : [];
+      const lista = _matVerTodos ? MAT : (delProv.length?delProv:MAT);
+      const cardHTML = m=>{
+        const on=st.materiales.some(x=>x.id===m.id), img=imgOf(m);
+        const linea=BRANDS[m.brand_id]||'', stock=Number(m.stock_actual||0);
+        return `<div class="pick ${on?'sel':''}" onclick="toggleMaterial('${m.id}')">
+          <div class="check">✓</div>
+          <div class="pick-photo ${img?'':'ph'}">${img?`<img src="${esc(img)}">`:'🎁'}</div>
+          <div class="pick-name">${esc(m.name)}</div>
+          <div class="pick-meta">${linea?esc(linea)+' · ':''}${stock} ${esc(m.unit_type||'u.')}</div>
+        </div>`;
+      };
+      let cuerpo;
+      if(!MAT.length){
+        cuerpo=`<div class="empty" style="border:1px dashed var(--line-2);border-radius:12px">No hay materiales disponibles.<br>Marketing los carga en <b>Materiales</b> y los marca visibles para Luciana.</div>`;
+      } else if(!provId){
+        cuerpo=`<div class="empty" style="border:1px dashed var(--line-2);border-radius:12px">Elegí el <b>proveedor</b> (paso 1) para ver los materiales que podés usar en esta acción.</div>`;
+      } else {
+        const banner = (!_matVerTodos && delProv.length)
+          ? `<div class="info-box" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>Materiales de <b>${esc(provNom)}</b> con stock que podés usar en esta acción. Tocá para vincular.</div>`
+          : (!_matVerTodos && !delProv.length ? `<div class="info-box" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>No hay materiales de <b>${esc(provNom)}</b> con stock. Te muestro todos los disponibles.</div>` : '');
+        const ideaBtn = delProv.length ? `<button class="btn sec" style="margin-bottom:12px" onclick="ideaMateriales()">💡 Sugerir idea con IA</button><div id="mat-idea" style="margin-bottom:12px"></div>` : '';
+        const toggle = (MAT.length>delProv.length && delProv.length) ? `<div class="foot-note" style="cursor:pointer;margin-top:12px" onclick="_matVerTodos=!_matVerTodos;renderPaso()">${_matVerTodos?'◂ Ver solo los de '+esc(provNom):'Ver todos los materiales ▸'}</div>` : '';
+        cuerpo = banner + ideaBtn + `<div class="card-grid" id="mat-grid">${lista.map(cardHTML).join('')}</div>` + toggle;
+      }
+      el.innerHTML=`<div class="panel-h">6. Materiales para esta acción (opcional)</div><div class="panel-sub">Materiales POP que el vendedor puede usar con esta acción. Podés vincular varios.</div>${cuerpo}`;
     } else if(paso===7){
       el.innerHTML=`<div class="panel-h">7. Revisá y publicá</div><div class="panel-sub">Confirmá que todo esté bien y publicá la campaña.</div>
         <div style="background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:6px">
           ${filaRev('Proveedor', st.proveedor?.nombre)}
-          ${filaRev('Producto', st.producto?.nombre)}
-          ${filaRev('Categoría', st.producto?.categoria)}
+          ${filaRev('Productos', st.productos.map(p=>p.nombre).join(', '))}
+          ${filaRev('Categoría', [...new Set(st.productos.map(p=>p.categoria).filter(Boolean))].join(', '))}
           ${filaRev('Canales', st.canales.map(c=>CANAL_LABELS[c]||c).join(', '))}
           ${filaRev('Ubicaciones', st.ubicaciones.length? ubicNombres().join(', '):'Acciones Mensuales (general)')}
           ${filaRev('Mecánica', st.mecanica)}
           ${filaRev('Precios', (st.precioReg||st.precioAcc)?`$${st.precioReg||'—'} → $${st.precioAcc||'—'}`:'')}
-          ${filaRev('Vigencia', (st.fechaIni||st.fechaFin)?`${st.fechaIni||'—'} a ${st.fechaFin||'—'}`:'')}
+          ${filaRev('Vigencia', (st.fechaIni||st.fechaFin)?`${st.fechaIni||'—'} a ${st.fechaFin||'—'}`:'Sin límite de tiempo')}
+          ${filaRev('Materiales', st.materiales.length? st.materiales.map(m=>m.name).join(', '):'')}
         </div>
         <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
           ${editId
@@ -366,7 +404,7 @@
         <div class="pick-name">${esc(p.nombre)}</div>
       </div>`).join('')+`</div>`;
   }
-  function elegirProv(id){ st.proveedor=PROV.find(p=>p.id===id); st.producto=null; renderProvGrid(); renderResumen(); }
+  function elegirProv(id){ st.proveedor=PROV.find(p=>p.id===id); st.productos=[]; renderProvGrid(); renderResumen(); }
 
   function renderProdGrid(){
     let lst=PROD.slice();
@@ -379,7 +417,7 @@
     const g=document.getElementById('prod-grid');
     if(!tot){ g.innerHTML=`<div class="empty">No hay productos${st.proveedor?' de '+esc(st.proveedor.nombre):''}${prodCat?' en '+esc(prodCat):''}.</div>`; document.getElementById('prod-pager').innerHTML=''; return; }
     g.innerHTML=`<div class="card-grid">`+vis.map(p=>`
-      <div class="pick ${st.producto?.id===p.id?'sel':''}" onclick="elegirProd('${p.id}')">
+      <div class="pick ${st.productos.some(x=>x.id===p.id)?'sel':''}" onclick="elegirProd('${p.id}')">
         <div class="check">✓</div>
         <div class="pick-photo ${p.imagen_url?'':'ph'}">${p.imagen_url?`<img src="${esc(p.imagen_url)}">`:'🍾'}</div>
         <div class="pick-name">${esc(p.nombre)}</div>
@@ -387,38 +425,60 @@
       </div>`).join('')+`</div>`;
     document.getElementById('prod-pager').innerHTML=`<div class="pager"><button ${prodPage<=1?'disabled':''} onclick="prodPage--;renderProdGrid()">‹</button> Mostrando ${(prodPage-1)*perPage+1} a ${Math.min(prodPage*perPage,tot)} de ${tot} <button ${prodPage>=pages?'disabled':''} onclick="prodPage++;renderProdGrid()">›</button></div>`;
   }
-  function elegirProd(id){ st.producto=PROD.find(p=>p.id===id); renderProdGrid(); renderResumen(); }
+  function elegirProd(id){ const i=st.productos.findIndex(x=>x.id===id);
+    if(i<0){ const p=PROD.find(x=>x.id===id); if(p) st.productos.push(p); }
+    else st.productos.splice(i,1);
+    renderProdGrid(); renderResumen(); }
   function toggleCanal(v){ const i=st.canales.indexOf(v); if(i<0)st.canales.push(v); else st.canales.splice(i,1); renderPaso(); renderResumen(); }
   function toggleGrupoCanal(gid){ const g=CANAL_GRUPOS.find(x=>x.id===gid); const keys=g.subs.map(s=>s[0]); const todos=keys.every(k=>st.canales.includes(k));
     if(todos) st.canales=st.canales.filter(k=>!keys.includes(k)); else keys.forEach(k=>{ if(!st.canales.includes(k))st.canales.push(k); });
     renderPaso(); renderResumen(); }
   function toggleUbic(cod){ const i=st.ubicaciones.indexOf(cod); if(i<0)st.ubicaciones.push(cod); else st.ubicaciones.splice(i,1); renderPaso(); renderResumen(); }
+  function toggleMaterial(id){ const i=st.materiales.findIndex(x=>x.id===id);
+    if(i<0){ const m=MAT.find(x=>x.id===id); if(m) st.materiales.push({id:m.id,name:m.name,img:m.processed_image_url||m.original_image_url||null}); }
+    else st.materiales.splice(i,1);
+    renderPaso(); renderResumen(); }
+  async function ideaMateriales(){
+    const provId=st.proveedor?.id; if(!provId) return;
+    const mats=MAT.filter(m=>m.supplier_id===provId && Number(m.stock_actual||0)>0).slice(0,14)
+      .map(m=>({nombre:m.name, linea:BRANDS[m.brand_id]||'', stock:Number(m.stock_actual||0)}));
+    const out=document.getElementById('mat-idea'); if(!out||!mats.length) return;
+    out.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--navy);font-weight:700"><span style="width:15px;height:15px;border:2.5px solid var(--line-2);border-top-color:var(--navy);border-radius:50%;display:inline-block;animation:sp .8s linear infinite"></span> Pensando una idea…</div>';
+    try{
+      const resp=await fetch('/.netlify/functions/sugerir-accion',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({proveedor:st.proveedor.nombre, canal:st.canales[0]||'', materiales:mats})});
+      const data=await resp.json().catch(()=>({}));
+      if(!resp.ok||!data.idea) throw new Error();
+      out.innerHTML=`<div style="background:linear-gradient(150deg,var(--navy),#16305a);color:#fff;border-radius:12px;padding:13px 15px;font-size:13px;line-height:1.5">✨ ${esc(data.idea)}</div>`;
+    }catch(e){ out.innerHTML='<div style="color:var(--red);font-size:12px">No se pudo generar la idea. Reintentá.</div>'; }
+  }
   function ubicNombres(){ return st.ubicaciones.map(c=>SECS.find(s=>s.codigo===c)?.nombre).filter(Boolean); }
 
   function renderResumen(){
     const foto=document.getElementById('r-foto');
-    if(st.producto?.imagen_url){ foto.className='rail-avatar'; foto.innerHTML=`<img src="${esc(st.producto.imagen_url)}">`; }
+    const p0=st.productos[0];
+    if(p0?.imagen_url){ foto.className='rail-avatar'; foto.innerHTML=`<img src="${esc(p0.imagen_url)}">`; }
     else if(st.proveedor?.logo_url){ foto.className='rail-avatar'; foto.innerHTML=`<img src="${esc(st.proveedor.logo_url)}">`; }
     else { foto.className='rail-avatar ph'; foto.textContent='📢'; }
-    document.getElementById('r-titulo').textContent = st.producto?.nombre || st.proveedor?.nombre || 'Nueva campaña';
+    document.getElementById('r-titulo').textContent = (st.productos.length>1? `${st.productos.length} productos` : p0?.nombre) || st.proveedor?.nombre || 'Nueva campaña';
     document.getElementById('r-sub').textContent = st.mecanica || 'Aún sin configurar';
     const rows=[
       ['🏷️','Proveedor', st.proveedor?.nombre],
-      ['📦','Producto', st.producto?.nombre],
+      ['📦','Producto', st.productos.map(p=>p.nombre).join(', ')],
       ['📡','Canales', st.canales.length? st.canales.map(c=>CANAL_LABELS[c]||c).join(', '):''],
       ['📍','Ubicaciones', st.ubicaciones.length? (ubicNombres().slice(0,2).join(', ')+(st.ubicaciones.length>2?` +${st.ubicaciones.length-2}`:'')): (algunoElegido()?'Acciones Mensuales (general)':'')],
       ['%','Promoción', st.mecanica],
+      ['🎁','Materiales', st.materiales.length? (st.materiales.length+' vinculado'+(st.materiales.length>1?'s':'')):''],
     ];
     document.getElementById('r-items').innerHTML=rows.map(([ic,k,v])=>`
       <div class="rsum"><div class="rsum-ico">${ic}</div><div><div class="rsum-k">${k}</div><div class="rsum-v ${v?'':'pend'}">${v?esc(v):'Sin definir'}</div></div></div>`).join('')
       + `<div class="rsum"><div class="rsum-ico">◔</div><div><div class="rsum-k">Estado</div><div class="rsum-v"><span class="estado-b">Borrador</span></div></div></div>`;
   }
-  function algunoElegido(){ return st.proveedor||st.producto||st.canales.length; }
+  function algunoElegido(){ return st.proveedor||st.productos.length||st.canales.length; }
 
   // navegación
   function validar(){
     if(paso===1&&!st.proveedor) return 'Elegí un proveedor.';
-    if(paso===2&&!st.producto) return 'Elegí un producto.';
+    if(paso===2&&!st.productos.length) return 'Elegí al menos un producto.';
     if(paso===3&&!st.canales.length) return 'Elegí al menos un canal.';
     return '';
   }
@@ -428,14 +488,15 @@
 
   async function guardar(activa){
     const msg=document.getElementById('guardar-msg');
-    if(!st.proveedor||!st.producto||!st.canales.length){ msg.style.color='#c0392b'; msg.textContent='Faltan datos: proveedor, producto y al menos un canal.'; return; }
+    if(!st.proveedor||!st.productos.length||!st.canales.length){ msg.style.color='#c0392b'; msg.textContent='Faltan datos: proveedor, al menos un producto y al menos un canal.'; return; }
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…';
     const row={
       proveedor: st.proveedor.nombre,
-      producto: st.producto.nombre,
-      categoria: st.producto.categoria||null,
-      imagen_url: st.producto.imagen_url||null,
-      sku: st.producto.sku||null,
+      producto: st.productos[0].nombre,
+      categoria: st.productos[0].categoria||null,
+      imagen_url: st.productos[0].imagen_url||null,
+      sku: st.productos[0].sku||null,
+      productos: st.productos.map(p=>({id:p.id||null,nombre:p.nombre,categoria:p.categoria||null,imagen_url:p.imagen_url||null,sku:p.sku||null})),
       aplica_a: st.canales,
       seccion_checklist: st.ubicaciones.length? st.ubicaciones.join(','):null,
       accion: st.mecanica||null,
@@ -443,12 +504,20 @@
       precio_accionado: st.precioAcc?Number(st.precioAcc):null,
       fecha_inicio: st.fechaIni||null,
       fecha_fin: st.fechaFin||null,
+      materiales: st.materiales,
       activa: !!activa
     };
+    const persistir=(r)=> editId
+      ? sb.from('acciones_mensuales').update(r).eq('id',editId)
+      : sb.from('acciones_mensuales').insert(r);
     try{
-      let error;
-      if(editId){ ({ error }=await sb.from('acciones_mensuales').update(row).eq('id',editId)); }
-      else      { ({ error }=await sb.from('acciones_mensuales').insert(row)); }
+      let { error }=await persistir(row);
+      // Fallback: si todavía no existe la columna "materiales", guardar sin ella
+      // (así crear/editar la acción no se rompe; el vínculo se activa al correr el SQL).
+      if(error && /materiales|productos/i.test(error.message||'')){
+        const { materiales, productos, ...rowLimpio }=row;
+        ({ error }=await persistir(rowLimpio));
+      }
       if(error) throw error;
       msg.style.color='var(--green)'; msg.textContent = editId?'✓ Cambios guardados. Redirigiendo…':(activa?'✓ Campaña publicada. Redirigiendo…':'✓ Borrador guardado. Redirigiendo…');
       setTimeout(()=>location.href='admin-campanias.html',1100);

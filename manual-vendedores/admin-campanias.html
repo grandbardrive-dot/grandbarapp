@@ -158,6 +158,35 @@
   .tip-p{font-size:12.5px;color:var(--ink2);margin:8px 0 12px;line-height:1.5}
   .tip-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer}
   .tip-link svg{width:14px;height:14px}
+
+  /* Detalle de campaña (modal) */
+  .det-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9998;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+  .det-overlay.open{display:flex}
+  .det{background:var(--surface);max-width:640px;width:100%;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.3);overflow:hidden;font-family:inherit}
+  .det-head{background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;padding:22px 24px;display:flex;align-items:center;gap:16px;position:relative}
+  .det-thumb{width:52px;height:64px;object-fit:cover;border-radius:9px;background:rgba(255,255,255,.12);flex:none;display:flex;align-items:center;justify-content:center;font-size:26px}
+  .det-htxt{flex:1;min-width:0}
+  .det-htxt h3{font-size:20px;font-weight:800;letter-spacing:-.01em;line-height:1.2}
+  .det-htxt .sub{font-size:13px;color:rgba(255,255,255,.72);margin-top:3px}
+  .det-badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:20px;background:rgba(255,255,255,.16);color:#fff;margin-top:8px}
+  .det-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .det-x{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.14);border:none;color:#fff;width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .det-x:hover{background:rgba(255,255,255,.26)}
+  .det-body{padding:8px 24px 4px;max-height:60vh;overflow-y:auto}
+  .det-row{display:flex;gap:16px;padding:13px 0;border-bottom:1px solid var(--line)}
+  .det-row:last-child{border-bottom:none}
+  .det-k{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);width:130px;flex:none;padding-top:2px}
+  .det-v{font-size:14px;color:var(--ink);font-weight:600;flex:1;min-width:0;line-height:1.45}
+  .det-v .chips{margin-top:0}
+  .det-v .muted{color:var(--ink3);font-weight:500}
+  .det-price{font-weight:800}
+  .det-price .old{color:var(--ink3);text-decoration:line-through;font-weight:600;margin-right:8px}
+  .det-price .new{color:var(--green)}
+  .det-foot{display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--line);background:var(--surface2)}
+  .det-btn{display:inline-flex;align-items:center;gap:8px;border-radius:11px;padding:11px 18px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--line-2);background:var(--surface);color:var(--ink2)}
+  .det-btn svg{width:16px;height:16px}
+  .det-btn.primary{background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none}
+  .det-btn.primary svg{color:var(--gold)}
 </style>
 </head>
 <body>
@@ -179,7 +208,7 @@
     <div class="sb-label">Ayuda</div>
     <nav class="sb-nav" style="padding-top:0">
       <button class="sb-item" onclick="alert('Guías y tutoriales — próximamente.')"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7v.4" stroke-linecap="round"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg><div><div class="sb-txt-main">Guías y tutoriales</div></div></button>
-      <button class="sb-item" onclick="alert('Soporte: escribí al equipo de GrandBar.')"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-1v-6h3M4 13v4a2 2 0 0 0 2 2h1v-6H4" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Soporte</div></div></button>
+      <button class="sb-item" onclick="abrirSoporte()"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-1v-6h3M4 13v4a2 2 0 0 0 2 2h1v-6H4" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Soporte</div></div></button>
     </nav>
     <div class="sb-spacer"></div>
     <div class="sb-help">
@@ -209,7 +238,10 @@
           <div class="page-title"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l11-4v10L3 13zM14 8.5a3 3 0 0 1 0 5M7 13v4a2 2 0 0 0 2 2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Campañas comerciales</div>
           <div class="page-sub">Gestioná todas las campañas, promociones y acciones que ven los vendedores en sus visitas.</div>
         </div>
-        <button class="btn-new" onclick="location.href='admin-nueva-campania.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nueva campaña</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-new" onclick="location.href='admin-nueva-campania.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nueva campaña</button>
+          <button class="btn-new" onclick="location.href='admin-nuevo-plan.html'" style="background:#fff;color:var(--navy);border:1px solid rgba(31,68,127,.22);box-shadow:0 1px 2px rgba(31,68,127,.05)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5M9.5 14h5M12 11.5v5" stroke-linecap="round"/></svg>Nuevo plan</button>
+        </div>
       </div>
 
       <div class="stats" id="stats"><div class="stat"><div class="stat-name">Cargando…</div></div></div>
@@ -236,6 +268,8 @@
         <div class="rail-h">Acciones rápidas</div>
         <div style="margin-top:8px">
           <div class="qa" onclick="location.href='admin-nueva-campania.html'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></div><div><div class="qa-t">Nueva campaña</div><div class="qa-d">Crear una nueva acción</div></div></div>
+          <div class="qa" onclick="location.href='admin-nuevo-plan.html'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5M9.5 14h5M12 11.5v5" stroke-linecap="round"/></svg></div><div><div class="qa-t">Nuevo plan</div><div class="qa-d">Cargar un plan o programa</div></div></div>
+          <div class="qa" onclick="location.href='admin-planes.html'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/><circle cx="2" cy="6" r="0.6" fill="currentColor"/></svg></div><div><div class="qa-t">Ver planes</div><div class="qa-d">Todos los planes cargados</div></div></div>
           <div class="qa" onclick="location.href='admin.html?tab=acciones'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8" stroke-linecap="round"/></svg></div><div><div class="qa-t">Duplicar campaña</div><div class="qa-d">Copia una campaña existente</div></div></div>
           <div class="qa" onclick="alert('Calendario de campañas — próximamente.')"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg></div><div><div class="qa-t">Ver calendario</div><div class="qa-d">Calendario de campañas</div></div></div>
           <div class="qa" onclick="location.href='admin.html?tab=vtadmin'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 8v8l8 4 8-4V8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><div class="qa-t">Materiales disponibles</div><div class="qa-d">Ver biblioteca de POP</div></div></div>
@@ -259,12 +293,32 @@
 
 <div id="fila-menu" class="fila-menu"></div>
 
+<!-- Detalle de campaña -->
+<div id="det-overlay" class="det-overlay" onclick="if(event.target===this)cerrarDetalle()">
+  <div class="det" role="dialog" aria-modal="true" aria-label="Detalle de campaña">
+    <div class="det-head">
+      <div class="det-thumb" id="det-thumb">🍾</div>
+      <div class="det-htxt">
+        <h3 id="det-titulo">—</h3>
+        <div class="sub" id="det-sub">—</div>
+        <span class="det-badge" id="det-estado">—</span>
+      </div>
+      <button class="det-x" onclick="cerrarDetalle()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="det-body" id="det-body"></div>
+    <div class="det-foot">
+      <button class="det-btn" onclick="cerrarDetalle()">Cerrar</button>
+      <button class="det-btn primary" onclick="editarDesdeDetalle()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16z" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke-linecap="round"/></svg>Editar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
 <script src="_admin-sidebar.js"></script>
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
-  sessionStorage.setItem('admin_auth','1'); if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
+  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');} if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
   const CANAL_LABEL={restaurantes:'Restaurantes',vinotecas:'Vinotecas',bares:'Bares',discos:'Discos',hoteles:'Hoteles',eventos:'Eventos',autoservicios:'Autoservicios',todos:'Todos'};
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const hoy=new Date(); hoy.setHours(0,0,0,0);
@@ -340,7 +394,7 @@
       const thumb=a.imagen_url?`<img class="camp-thumb" src="${esc(a.imagen_url)}" alt="">`:`<span class="camp-thumb ph">🍾</span>`;
       const cat=a.categoria?`<div><span class="cat-tag">${esc(a.categoria)}</span></div>`:'';
       const vig=(a.fecha_inicio||a.fecha_fin)?`${fmt(a.fecha_inicio)}<br>– ${fmt(a.fecha_fin)}`:'—';
-      return `<tr>
+      return `<tr style="cursor:pointer" onclick="verDetalle('${a.id}')">
         <td><div class="camp">${thumb}<div><div class="camp-n">${esc(a.producto||'—')}</div><div class="camp-t">${esc(a.accion||'Campaña')}</div>${cat}</div></div></td>
         <td>${a.proveedor?`<span class="prov">${esc(a.proveedor)}</span>`:'<span style="color:var(--ink3)">—</span>'}</td>
         <td><div class="chips">${canales||'<span style="color:var(--ink3)">—</span>'}</div></td>
@@ -391,6 +445,55 @@
   }
   document.addEventListener('click',()=>document.getElementById('fila-menu').classList.remove('open'));
 
+  // ─── Detalle de campaña (modal) ──────────────────────────────────────────
+  let _detId=null;
+  function filaDet(k,v){ return `<div class="det-row"><div class="det-k">${k}</div><div class="det-v">${v}</div></div>`; }
+  function verDetalle(id){
+    const a=CAMP.find(x=>x.id===id); if(!a)return;
+    _detId=id;
+    const e=estadoDe(a);
+    document.getElementById('det-thumb').innerHTML = a.imagen_url?`<img src="${esc(a.imagen_url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:9px">`:'🍾';
+    document.getElementById('det-titulo').textContent = a.producto||'—';
+    document.getElementById('det-sub').textContent = a.accion||'Campaña';
+    const badge=document.getElementById('det-estado'); badge.textContent=e.txt;
+
+    const prods = (Array.isArray(a.productos)&&a.productos.length)
+      ? a.productos.map(p=>esc(p.nombre)).join(', ')
+      : esc(a.producto||'—');
+    const canales = (a.aplica_a||[]).length
+      ? `<div class="chips">${(a.aplica_a||[]).map(c=>`<span class="chip">${esc(CANAL_LABEL[c]||c)}</span>`).join('')}</div>`
+      : '<span class="muted">—</span>';
+    const ubic = a.seccion_checklist
+      ? `<div class="chips">${String(a.seccion_checklist).split(',').filter(Boolean).map(u=>`<span class="chip">${esc(u.trim())}</span>`).join('')}</div>`
+      : '<span class="muted">—</span>';
+    const precios = (a.precio_regular!=null||a.precio_accionado!=null)
+      ? `<span class="det-price">${a.precio_regular!=null?`<span class="old">$${esc(a.precio_regular)}</span>`:''}${a.precio_accionado!=null?`<span class="new">$${esc(a.precio_accionado)}</span>`:''}</span>`
+      : '<span class="muted">Sin precio cargado</span>';
+    const vig = (a.fecha_inicio||a.fecha_fin)
+      ? `${fmt(a.fecha_inicio)} – ${fmt(a.fecha_fin)}`
+      : '<span class="muted">Sin límite de tiempo</span>';
+    const mats = (Array.isArray(a.materiales)&&a.materiales.length)
+      ? `<div class="chips">${a.materiales.map(m=>`<span class="chip">${esc(m.name||m.nombre||m)}</span>`).join('')}</div>`
+      : '<span class="muted">Sin materiales vinculados</span>';
+
+    document.getElementById('det-body').innerHTML =
+      filaDet('Proveedor', a.proveedor?esc(a.proveedor):'<span class="muted">—</span>')
+    + filaDet('Productos', prods)
+    + (a.categoria?filaDet('Categoría', esc(a.categoria)):'')
+    + filaDet('Canales', canales)
+    + filaDet('Ubicaciones', ubic)
+    + filaDet('Mecánica', a.accion?esc(a.accion):'<span class="muted">—</span>')
+    + filaDet('Precios', precios)
+    + filaDet('Vigencia', vig)
+    + filaDet('Materiales', mats)
+    + filaDet('Última edición', `${fmt(a.created_at)} <span class="muted">por Luciana</span>`);
+
+    document.getElementById('det-overlay').classList.add('open');
+  }
+  function cerrarDetalle(){ document.getElementById('det-overlay').classList.remove('open'); _detId=null; }
+  function editarDesdeDetalle(){ if(_detId) location.href='admin-nueva-campania.html?id='+_detId; }
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrarDetalle(); });
+
   async function refrescar(){
     const r=await sb.from('acciones_mensuales').select('*').order('created_at',{ascending:false});
     CAMP=r.data||[]; renderStats(); renderTopProv(); render();
@@ -432,5 +535,29 @@
     const rl = document.querySelector('.tb-user-role'); if (rl) rl.textContent = 'Trade Marketing';
   })();
 </script>
+<!-- Modal de Soporte (WhatsApp) -->
+<div id="soporteOverlay" onclick="if(event.target===this)cerrarSoporte()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div role="dialog" aria-modal="true" aria-label="Soporte" style="background:#fff;max-width:400px;width:100%;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:24px;font-family:inherit">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <h3 style="margin:0;font-size:19px;color:#0f172a;font-weight:800">Soporte</h3>
+      <button onclick="cerrarSoporte()" aria-label="Cerrar" style="border:0;background:transparent;font-size:24px;line-height:1;color:#64748b;cursor:pointer;padding:0 4px">&times;</button>
+    </div>
+    <p style="margin:0 0 18px;color:#475569;font-size:14px">Elegí con quién querés hablar por WhatsApp.</p>
+    <a href="https://wa.link/0khu1f" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;background:#25D366;color:#fff;font-weight:700;font-size:15px;padding:14px 16px;border-radius:12px;margin-bottom:12px">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm5.8 14.16c-.24.68-1.42 1.32-1.96 1.36-.5.05-.5.42-3.16-.66-2.66-1.08-4.32-3.83-4.45-4.01-.13-.18-1.06-1.41-1.06-2.69s.67-1.91.91-2.17c.24-.26.52-.33.7-.33h.5c.16 0 .38-.06.59.45.24.58.79 2 .86 2.14.07.14.12.31.02.49-.09.18-.14.29-.28.45-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.95 1.95 1.24 2.23 1.38.28.14.44.12.6-.07.18-.21.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.81.86.27.14.44.21.51.32.07.12.07.68-.17 1.34z"/></svg>
+      Soporte técnico
+    </a>
+    <a href="https://wa.link/yzp1z3" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;background:#25D366;color:#fff;font-weight:700;font-size:15px;padding:14px 16px;border-radius:12px">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm5.8 14.16c-.24.68-1.42 1.32-1.96 1.36-.5.05-.5.42-3.16-.66-2.66-1.08-4.32-3.83-4.45-4.01-.13-.18-1.06-1.41-1.06-2.69s.67-1.91.91-2.17c.24-.26.52-.33.7-.33h.5c.16 0 .38-.06.59.45.24.58.79 2 .86 2.14.07.14.12.31.02.49-.09.18-.14.29-.28.45-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.95 1.95 1.24 2.23 1.38.28.14.44.12.6-.07.18-.21.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.81.86.27.14.44.21.51.32.07.12.07.68-.17 1.34z"/></svg>
+      Soporte comercial
+    </a>
+  </div>
+</div>
+<script>
+  function abrirSoporte(){ document.getElementById('soporteOverlay').style.display='flex'; }
+  function cerrarSoporte(){ document.getElementById('soporteOverlay').style.display='none'; }
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') cerrarSoporte(); });
+</script>
+
 </body>
 </html>

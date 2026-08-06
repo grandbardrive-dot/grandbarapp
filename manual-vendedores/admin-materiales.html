@@ -119,6 +119,7 @@
   .bar-val{font-size:12px;font-weight:800}
   .mov-total{font-size:30px;font-weight:800;letter-spacing:-.02em}
   .empty-mini{padding:22px 10px;text-align:center;color:var(--ink3);font-size:12px;line-height:1.5}
+  @keyframes sp{to{transform:rotate(360deg)}}
 
   /* Rail */
   .rail{display:flex;flex-direction:column;gap:18px;position:sticky;top:18px}
@@ -197,8 +198,8 @@
               <div id="mov-chart"></div>
             </div>
             <div class="panel">
-              <div class="panel-h"><div class="panel-t">Efectividad materiales</div></div>
-              <div class="empty-mini">📊<br>Se activa en la Fase 4<br>(evaluación de materiales)</div>
+              <div class="panel-h"><div class="panel-t">💡 Ideas de acciones</div></div>
+              <div id="ideas-card"></div>
             </div>
           </div>
         </div>
@@ -208,8 +209,8 @@
           <div class="panel">
             <div class="panel-h"><div class="panel-t">Acciones rápidas</div></div>
             <div class="qa" onclick="location.href='admin-material-nuevo.html'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></div><div><div class="qa-t">Nuevo material</div><div class="qa-d">Crear una ficha con foto</div></div></div>
-            <div class="qa" onclick="proximamente('Registrar ingreso')"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20V6M6 12l6-6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><div class="qa-t">Registrar ingreso</div><div class="qa-d">Sumar unidades</div></div></div>
-            <div class="qa" onclick="proximamente('Registrar salida')"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v14M6 12l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><div class="qa-t">Registrar salida</div><div class="qa-d">Entregar material</div></div></div>
+            <div class="qa" onclick="abrirMovimiento('ingreso')"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20V6M6 12l6-6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><div class="qa-t">Registrar ingreso</div><div class="qa-d">Sumar unidades</div></div></div>
+            <div class="qa" onclick="abrirMovimiento('salida')"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v14M6 12l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><div class="qa-t">Registrar salida</div><div class="qa-d">Entregar material</div></div></div>
             <div class="qa" onclick="proximamente('Solicitudes')"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h10v18l-5-3-5 3z" stroke-linejoin="round"/></svg></div><div><div class="qa-t">Nueva solicitud</div><div class="qa-d">Pedir material</div></div></div>
             <div class="qa" onclick="proximamente('Generar QR')"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 14v.01M14 20v.01M20 20v.01M17 17v.01" stroke-linecap="round"/></svg></div><div><div class="qa-t">Generar QR</div><div class="qa-d">Etiqueta del material</div></div></div>
           </div>
@@ -251,7 +252,7 @@
 <script src="_config.js"></script>
 <script src="_admin-sidebar.js"></script>
 <script>
-  sessionStorage.setItem('admin_auth','1');
+  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');}
   if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','marketing');
   renderSidebar('materiales');
 
@@ -308,7 +309,7 @@
       <div class="kpi"><div class="kpi-top"><div class="kpi-ico ${c.c}"><svg viewBox="0 0 24 24">${c.ico}</svg></div><div class="kpi-name">${c.n}</div></div>
       <div class="kpi-num num">${c.v}</div><div class="kpi-foot">${c.foot}</div></div>`).join('');
 
-    renderRecientes(); renderDonut(); renderMov(); renderAlertas(); renderActividad();
+    renderRecientes(); renderDonut(); renderMov(); renderAlertas(); renderActividad(); renderIdeas();
   }
 
   function renderRecientes(){
@@ -390,10 +391,114 @@
   }
   function fechaRel(d){ if(!d) return ''; const diff=(Date.now()-new Date(d))/3600000; if(diff<1) return 'Hace minutos'; if(diff<24) return `Hace ${Math.floor(diff)} h`; const dd=Math.floor(diff/24); return dd===1?'Ayer':`Hace ${dd} días`; }
 
+  // ── 💡 Ideas de acciones con los materiales (lógica + IA) ──────────────────
+  let _ideasPorProv={};
+  function renderIdeas(){
+    const el=document.getElementById('ideas-card'); if(!el) return;
+    _ideasPorProv={};
+    MATS.forEach(m=>{ if(Number(m.stock_actual||0)>0 && m.supplier_id){ (_ideasPorProv[m.supplier_id]=_ideasPorProv[m.supplier_id]||[]).push(m); } });
+    const provs=Object.keys(_ideasPorProv).sort((a,b)=>_ideasPorProv[b].length-_ideasPorProv[a].length);
+    if(!provs.length){ el.innerHTML='<div class="empty-mini">Cargá materiales con stock y la IA te sugiere qué acción armar con ellos.</div>'; return; }
+    el.innerHTML=`
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:9px;line-height:1.45">Elegí un proveedor y la IA te sugiere una activación con sus materiales disponibles.</div>
+      <select id="ideas-prov" class="filt" style="width:100%;margin-bottom:9px">${provs.map(id=>`<option value="${id}">${esc(PROV[id]||'—')} · ${_ideasPorProv[id].length} material${_ideasPorProv[id].length===1?'':'es'}</option>`).join('')}</select>
+      <button class="btn pri" id="ideas-btn" style="width:100%;justify-content:center;padding:11px" onclick="generarIdea()">💡 Generar idea con IA</button>
+      <div id="ideas-out" style="margin-top:12px"></div>`;
+  }
+  async function generarIdea(){
+    const provId=document.getElementById('ideas-prov').value;
+    const out=document.getElementById('ideas-out'); const btn=document.getElementById('ideas-btn');
+    const mats=(_ideasPorProv[provId]||[]).slice(0,14).map(m=>({nombre:m.name, linea:BRANDS[m.brand_id]||'', stock:Number(m.stock_actual||0)}));
+    if(!mats.length) return;
+    btn.disabled=true; out.innerHTML='<div style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--navy);font-weight:700"><span style="width:16px;height:16px;border:2.5px solid var(--line-2);border-top-color:var(--navy);border-radius:50%;display:inline-block;animation:sp .8s linear infinite"></span> Pensando una idea…</div>';
+    try{
+      const resp=await fetch('/.netlify/functions/sugerir-accion',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({proveedor:PROV[provId]||'', materiales:mats})});
+      const data=await resp.json().catch(()=>({}));
+      if(!resp.ok||!data.idea) throw new Error(data.error||'error');
+      out.innerHTML=`<div style="background:linear-gradient(150deg,var(--navy),#0f2340);color:#fff;border-radius:13px;padding:14px 15px;font-size:13px;line-height:1.55">✨ ${esc(data.idea)}</div>`;
+    }catch(e){ out.innerHTML='<div style="color:var(--red);font-size:12px">No se pudo generar la idea. Probá de nuevo.</div>'; }
+    btn.disabled=false;
+  }
+
   // ── navegación vistas ──
   function verCatalogo(estado){ document.getElementById('view-dash').classList.add('hide'); document.getElementById('view-cat').classList.remove('hide'); if(estado){document.getElementById('f-estado').value=estado;} renderCat(); window.scrollTo({top:0}); }
   function verDash(){ document.getElementById('view-cat').classList.add('hide'); document.getElementById('view-dash').classList.remove('hide'); window.scrollTo({top:0}); }
   function proximamente(x){ alert(x+' — llega en la Fase 3 (movimientos y solicitudes).'); }
+
+  // ── Registrar ingreso / salida ──────────────────────────────────────────────
+  let _movTipo = 'ingreso';
+  function abrirMovimiento(tipo){
+    _movTipo = tipo;
+    const esIn = tipo==='ingreso';
+    document.getElementById('mov-title').textContent   = esIn ? 'Registrar ingreso' : 'Registrar salida';
+    document.getElementById('mov-nota-lbl').textContent= esIn ? 'Nota / remito (opcional)' : '¿A quién / para qué? (opcional)';
+    document.getElementById('mov-save').textContent    = esIn ? '✓ Registrar ingreso' : '✓ Registrar salida';
+    document.getElementById('mov-save').className      = 'mov-btn ' + (esIn ? 'pri-in' : 'pri-out');
+    const sel = document.getElementById('mov-mat');
+    sel.innerHTML = '<option value="">Elegí un material…</option>' +
+      MATS.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''))
+        .map(m=>`<option value="${m.id}">${esc(m.name||'(sin nombre)')}</option>`).join('');
+    document.getElementById('mov-cant').value='';
+    document.getElementById('mov-nota').value='';
+    document.getElementById('mov-foto').value=''; document.getElementById('mov-foto-n').textContent='Sin foto';
+    document.getElementById('mov-msg').textContent='';
+    document.getElementById('mov-save').disabled=false;
+    movStockHint();
+    document.getElementById('mov-modal').classList.add('open');
+  }
+  function cerrarMov(){ document.getElementById('mov-modal').classList.remove('open'); }
+  function movStockHint(){
+    const m = MATS.find(x=>x.id===document.getElementById('mov-mat').value);
+    const box = document.getElementById('mov-stock');
+    if(!m){ box.innerHTML=''; return; }
+    const s = Number(m.stock_actual||0), c = Math.floor(Number(document.getElementById('mov-cant').value||0));
+    if(_movTipo==='ingreso'){
+      box.innerHTML = `Stock actual: <b>${fmt(s)}</b>${c>0?` → quedará en <b>${fmt(s+c)}</b>`:''}`;
+    } else {
+      const r = s-c;
+      box.innerHTML = `Disponible: <b>${fmt(s)}</b>${c>0?` → quedará en <b style="color:${r<0?'var(--red)':'inherit'}">${fmt(r)}</b>`:''}`;
+    }
+  }
+  async function subirFotoMov(file){
+    const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+    const path=`movimientos/${Date.now()}-${Math.random().toString(36).slice(2,7)}.${ext}`;
+    const { error }=await sb.storage.from('Activaciones').upload(path,file,{upsert:false,contentType:file.type});
+    if(error) throw error;
+    return sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+  }
+  async function guardarMovimiento(){
+    const msg=document.getElementById('mov-msg'), save=document.getElementById('mov-save');
+    const matId=document.getElementById('mov-mat').value;
+    const cant=Math.floor(Number(document.getElementById('mov-cant').value||0));
+    const nota=document.getElementById('mov-nota').value.trim();
+    const foto=document.getElementById('mov-foto').files[0]||null;
+    if(!matId){ msg.style.color='var(--red)'; msg.textContent='Elegí un material.'; return; }
+    if(!(cant>0)){ msg.style.color='var(--red)'; msg.textContent='Poné una cantidad mayor a 0.'; return; }
+    save.disabled=true; msg.style.color='var(--ink2)'; msg.textContent='Guardando…';
+    try{
+      // Stock fresco justo antes de guardar (evita datos viejos)
+      const { data:mAct } = await sb.from('materials_with_stock').select('stock_actual').eq('id',matId).single();
+      const prev = Number(mAct?.stock_actual||0);
+      if(_movTipo==='salida' && cant>prev){ save.disabled=false; msg.style.color='var(--red)'; msg.textContent=`No hay suficiente stock. Disponible: ${fmt(prev)}.`; return; }
+      const resulting = _movTipo==='ingreso' ? prev+cant : prev-cant;
+      let evidence=null;
+      if(foto){ msg.textContent='Subiendo foto…'; evidence=await subirFotoMov(foto); }
+      const row={ material_id:matId, movement_type:_movTipo, quantity:cant, previous_stock:prev, resulting_stock:resulting,
+        notes:nota||null, evidence_image_url:evidence, created_by:(sessionStorage.getItem('admin_perfil')||'marketing') };
+      const { error }=await sb.from('material_stock_movements').insert(row);
+      if(error) throw error;
+      msg.style.color='var(--green)'; msg.textContent = _movTipo==='ingreso' ? '✓ Ingreso registrado.' : '✓ Salida registrada.';
+      // Refresco liviano (sin re-appendear filtros)
+      const [mR,mvR]=await Promise.all([
+        sb.from('materials_with_stock').select('*').eq('is_active',true).order('created_at',{ascending:false}),
+        sb.from('material_stock_movements').select('*').order('created_at',{ascending:false}).limit(400),
+      ]);
+      MATS=mR.data||MATS; MOVS=mvR.data||MOVS;
+      renderDash();
+      if(typeof renderCat==='function') renderCat();   // refrescar también la lista de materiales (stock por ficha)
+      setTimeout(cerrarMov, 900);
+    }catch(e){ save.disabled=false; msg.style.color='var(--red)'; msg.textContent='No se pudo: '+(e.message||e); }
+  }
   function verAlertas(){ const a=alertasData(); alert(`Alertas:\n• Stock bajo: ${a.bajo}\n• Sin movimiento +90d: ${a.sinMov}\n• Sin foto: ${a.sinFoto}`); }
 
   // ── Catálogo ──
@@ -429,5 +534,57 @@
 
   cargar();
 </script>
+<style>
+  .mov-back{position:fixed;inset:0;background:rgba(15,35,64,.5);z-index:900;display:none;align-items:center;justify-content:center;padding:18px}
+  .mov-back.open{display:flex}
+  .mov-card{background:var(--surface);border-radius:18px;width:100%;max-width:440px;box-shadow:0 24px 60px rgba(0,0,0,.3);overflow:hidden;max-height:92vh;display:flex;flex-direction:column}
+  .mov-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--navy);color:#fff;font-size:16px;font-weight:800}
+  .mov-x{background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:15px;cursor:pointer}
+  .mov-body{padding:18px 20px;overflow-y:auto}
+  .mov-lbl{display:block;font-size:12.5px;font-weight:700;color:var(--navy);margin:14px 0 5px}
+  .mov-lbl:first-child{margin-top:0}
+  .mov-in{width:100%;padding:11px 12px;border:1px solid var(--line-2);border-radius:10px;font:inherit;font-size:14.5px;color:var(--ink);background:#fff;outline:none;box-sizing:border-box}
+  .mov-in:focus{border-color:var(--gold)}
+  textarea.mov-in{resize:vertical;min-height:56px}
+  .mov-stock{font-size:12.5px;color:var(--ink2);margin-top:7px;padding:8px 11px;background:var(--surface2);border:1px solid var(--line);border-radius:9px}
+  .mov-stock:empty{display:none}
+  .mov-file{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
+  .mov-file input{display:none}
+  .mov-fbtn{background:var(--surface2);border:1px solid var(--line-2);color:var(--navy);border-radius:9px;padding:8px 13px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+  .mov-file-n{font-size:12px;color:var(--ink3)}
+  .mov-msg{margin-top:12px;font-size:13px;font-weight:700;min-height:1.1em}
+  .mov-msg:empty{margin-top:0}
+  .mov-acts{display:flex;gap:10px;margin-top:16px}
+  .mov-btn{flex:1;border:none;border-radius:11px;padding:13px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer}
+  .mov-btn.sec{background:var(--surface);border:1.5px solid var(--line-2);color:var(--navy);flex:0 0 auto;padding:13px 18px}
+  .mov-btn.pri-in{background:var(--green);color:#fff}
+  .mov-btn.pri-out{background:var(--navy);color:#fff}
+  .mov-btn:disabled{opacity:.6;cursor:default}
+</style>
+<div id="mov-modal" class="mov-back" onclick="if(event.target===this)cerrarMov()">
+  <div class="mov-card">
+    <div class="mov-head"><span id="mov-title">Registrar ingreso</span><button class="mov-x" onclick="cerrarMov()">✕</button></div>
+    <div class="mov-body">
+      <label class="mov-lbl">Material</label>
+      <select id="mov-mat" class="mov-in" onchange="movStockHint()"></select>
+      <div class="mov-stock" id="mov-stock"></div>
+      <label class="mov-lbl">Cantidad</label>
+      <input id="mov-cant" class="mov-in" type="number" min="1" step="1" inputmode="numeric" placeholder="0" oninput="movStockHint()">
+      <label class="mov-lbl" id="mov-nota-lbl">Nota (opcional)</label>
+      <textarea id="mov-nota" class="mov-in" placeholder="Ej: remito 1234 / entregado a Juan para BAR X"></textarea>
+      <label class="mov-lbl">Foto <span style="font-weight:400;color:var(--ink3)">(opcional)</span></label>
+      <div class="mov-file">
+        <input type="file" id="mov-foto" accept="image/*" onchange="document.getElementById('mov-foto-n').textContent=this.files[0]?this.files[0].name:'Sin foto'">
+        <button type="button" class="mov-fbtn" onclick="document.getElementById('mov-foto').click()">📷 Elegir foto</button>
+        <span class="mov-file-n" id="mov-foto-n">Sin foto</span>
+      </div>
+      <div class="mov-msg" id="mov-msg"></div>
+      <div class="mov-acts">
+        <button class="mov-btn sec" onclick="cerrarMov()">Cancelar</button>
+        <button class="mov-btn pri-in" id="mov-save" onclick="guardarMovimiento()">✓ Registrar</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

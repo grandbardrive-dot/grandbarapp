@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Nuevo plan</title>
+<style>
+  :root{ --azul:#1F447F; --azul-dk:#16305a; --dorado:#CBB86A; --bg:#F1EDE8; --surface:#fff;
+    --line:rgba(31,68,127,.12); --line-2:rgba(31,68,127,.22); --ink:#1F1B16; --ink2:#5f574c; --ink3:#9a9187; --green:#1a7f37; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .top{background:var(--azul);border-bottom:3px solid var(--dorado);padding:14px 20px;display:flex;align-items:center;gap:14px}
+  .top-back{background:rgba(255,255,255,.14);border:none;color:#fff;width:38px;height:38px;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
+  .top-t{color:#fff;font-size:17px;font-weight:800;flex:1}
+  .top-cancel{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+  .wrap{max-width:680px;margin:0 auto;padding:26px 18px 80px}
+  .lead{color:var(--ink2);font-size:14.5px;margin-bottom:20px;line-height:1.5}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 2px 4px rgba(31,68,127,.04),0 16px 40px rgba(31,68,127,.06)}
+  .fld{margin-bottom:18px}
+  .fld:last-child{margin-bottom:0}
+  label{display:block;font-size:13px;font-weight:700;color:var(--azul);margin-bottom:6px}
+  label .opt{color:var(--ink3);font-weight:400}
+  .hint{font-size:12px;color:var(--ink3);margin-top:5px;line-height:1.4}
+  input[type=text],select,textarea{width:100%;padding:12px 13px;border:1px solid var(--line-2);border-radius:11px;font:inherit;font-size:14.5px;color:var(--ink);background:#fff;outline:none;box-sizing:border-box}
+  input[type=text]:focus,select:focus,textarea:focus{border-color:var(--dorado);box-shadow:0 0 0 3px rgba(203,184,106,.18)}
+  textarea{resize:vertical;min-height:84px;line-height:1.5}
+  .secbox{border:1px solid var(--line-2);border-radius:11px;max-height:270px;overflow-y:auto;background:#fff;padding:6px}
+  .secbox .grp{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);padding:9px 8px 4px}
+  .secitem{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--ink)}
+  .secitem:hover{background:#F4F1EA}
+  .secitem input{width:17px;height:17px;accent-color:var(--azul);flex:none;cursor:pointer}
+  .secbox-load{padding:14px;color:var(--ink3);font-size:13px}
+  .sec-count{font-size:12px;color:var(--azul);font-weight:700;margin-top:6px}
+  .file-box{border:1.5px dashed var(--line-2);border-radius:12px;padding:16px;text-align:center;background:#FBF9F5}
+  .file-box input{display:none}
+  .file-btn{display:inline-flex;align-items:center;gap:8px;background:var(--azul);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--dorado)}
+  .file-name{font-size:12.5px;color:var(--ink2);margin-top:9px;word-break:break-all}
+  .actions{display:flex;gap:12px;margin-top:24px;flex-wrap:wrap}
+  .btn{border:none;border-radius:12px;padding:14px 24px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer}
+  .btn.pri{background:var(--azul);color:#fff;border-bottom:3px solid var(--dorado)}
+  .btn.pri:disabled{opacity:.6;cursor:default}
+  .btn.sec{background:transparent;color:var(--azul);border:1px solid var(--line-2)}
+  #msg{margin-top:14px;font-weight:700;font-size:13.5px;min-height:1.2em}
+  .req{color:#c0392b}
+</style>
+</head>
+<body>
+  <header class="top">
+    <button class="top-back" onclick="location.href='admin-campanias.html'" title="Volver">←</button>
+    <div class="top-t">Crear nuevo plan</div>
+    <button class="top-cancel" onclick="location.href='admin-campanias.html'">✕ Cancelar</button>
+  </header>
+
+  <div class="wrap">
+    <p class="lead">Cargá un plan o programa (ej: “Plan copa de la casa”) para que los vendedores lo vean en la sección que elijas, durante su visita.</p>
+    <div class="card">
+      <div class="fld">
+        <label>Título del plan <span class="req">*</span></label>
+        <input type="text" id="f-titulo" placeholder="Ej: Doña Paula — Plan copa de la casa" maxlength="120">
+      </div>
+
+      <div class="fld">
+        <label>¿En qué secciones aparece? <span class="req">*</span></label>
+        <div class="secbox" id="f-secbox"><div class="secbox-load">Cargando secciones…</div></div>
+        <div class="sec-count" id="sec-count"></div>
+        <div class="hint">Marcá una o varias secciones. El plan se muestra en todas las que elijas, en la visita del vendedor.</div>
+      </div>
+
+      <div class="fld">
+        <label>Proveedor / bodega <span class="opt">(opcional)</span></label>
+        <input type="text" id="f-proveedor" placeholder="Ej: Doña Paula" maxlength="80">
+      </div>
+
+      <div class="fld">
+        <label>Duración <span class="opt">(opcional)</span></label>
+        <input type="text" id="f-duracion" placeholder="Ej: 3 meses" maxlength="40">
+        <div class="hint">Se muestra como una etiqueta destacada al lado del título.</div>
+      </div>
+
+      <div class="fld">
+        <label>Detalle del plan <span class="opt">(opcional)</span></label>
+        <textarea id="f-detalle" placeholder="Breve descripción del plan: en qué consiste, qué incluye…"></textarea>
+      </div>
+
+      <div class="fld">
+        <label>Condiciones <span class="opt">(opcional)</span></label>
+        <textarea id="f-condiciones" placeholder="Una condición por línea. Ej:&#10;Copa de la casa&#10;3 meses de vigencia&#10;Sin mínimo de cajas"></textarea>
+        <div class="hint">Escribí una condición por línea. Se muestran como etiquetas.</div>
+      </div>
+
+      <div class="fld">
+        <label>PDF del plan <span class="opt">(opcional)</span></label>
+        <div class="file-box">
+          <input type="file" id="f-pdf" accept="application/pdf,.pdf">
+          <button type="button" class="file-btn" onclick="document.getElementById('f-pdf').click()">📄 Elegir PDF</button>
+          <div class="file-name" id="pdf-name">Ningún archivo elegido</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn pri" id="btn-guardar" onclick="guardarPlan()">✓ Publicar plan</button>
+        <button class="btn sec" onclick="location.href='admin-campanias.html'">Cancelar</button>
+      </div>
+      <div id="msg"></div>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script>
+  if(sessionStorage.getItem('admin_auth')!=='1'){ location.replace('admin.html'); }
+  if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
+
+  // Mostrar el nombre del PDF elegido
+  document.getElementById('f-pdf').addEventListener('change', function(){
+    document.getElementById('pdf-name').textContent = this.files[0] ? this.files[0].name : 'Ningún archivo elegido';
+  });
+
+  const editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
+  let planPdfActual = null;   // pdf_url existente (para conservarlo si no suben otro)
+
+  // Cargar las secciones como casillas (multi-selección), agrupadas por canal
+  async function cargarSecciones(){
+    const box = document.getElementById('f-secbox');
+    try{
+      const { data } = await sb.from('checklist_secciones')
+        .select('id,nombre,canal,activa').eq('activa',true).order('canal').order('nombre');
+      const secs = data || [];
+      if(!secs.length){ box.innerHTML = '<div class="secbox-load">No hay secciones cargadas</div>'; return; }
+      const porCanal = {};
+      secs.forEach(s=>{ (porCanal[s.canal||'otros'] = porCanal[s.canal||'otros'] || []).push(s); });
+      let html = '';
+      Object.keys(porCanal).sort().forEach(canal=>{
+        html += `<div class="grp">${(canal||'otros').toUpperCase()}</div>`;
+        porCanal[canal].forEach(s=>{ html += `<label class="secitem"><input type="checkbox" value="${s.id}" onchange="actualizarContadorSec()">${(s.nombre||'').replace(/</g,'&lt;')}</label>`; });
+      });
+      box.innerHTML = html;
+    }catch(e){ box.innerHTML = '<div class="secbox-load">Error al cargar secciones</div>'; }
+  }
+  function seccionesElegidas(){ return [...document.querySelectorAll('#f-secbox input[type=checkbox]:checked')].map(c=>c.value); }
+  function actualizarContadorSec(){
+    const n = seccionesElegidas().length;
+    document.getElementById('sec-count').textContent = n ? `${n} ${n>1?'secciones seleccionadas':'sección seleccionada'}` : '';
+  }
+
+  // Modo edición: precargar el plan existente
+  async function cargarPlan(id){
+    try{
+      const { data:p } = await sb.from('checklist_planes').select('*').eq('id',id).single();
+      if(!p) return;
+      document.getElementById('f-titulo').value    = p.nombre || '';
+      const secsSel = (Array.isArray(p.secciones)&&p.secciones.length) ? p.secciones : (p.seccion_id?[p.seccion_id]:[]);
+      document.querySelectorAll('#f-secbox input[type=checkbox]').forEach(c=>{ c.checked = secsSel.includes(c.value); });
+      actualizarContadorSec();
+      document.getElementById('f-proveedor').value = p.proveedor || '';
+      document.getElementById('f-duracion').value  = p.condicion || '';
+      document.getElementById('f-detalle').value   = p.descripcion || '';
+      document.getElementById('f-condiciones').value = (Array.isArray(p.lineas_participantes)?p.lineas_participantes:[]).join('\n');
+      planPdfActual = p.pdf_url || null;
+      if(planPdfActual) document.getElementById('pdf-name').innerHTML = 'PDF actual cargado — elegí otro solo si querés reemplazarlo';
+      document.querySelector('.top-t').textContent = 'Editar plan';
+      document.getElementById('btn-guardar').textContent = '✓ Guardar cambios';
+      document.title = 'GrandBar — Editar plan';
+    }catch(e){ /* si falla, queda como alta nueva */ }
+  }
+
+  (async function init(){
+    await cargarSecciones();
+    if(editId) await cargarPlan(editId);
+  })();
+
+  async function subirPDF(file){
+    const ext = (file.name.split('.').pop()||'pdf').toLowerCase();
+    const path = `planes/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const { error } = await sb.storage.from('Activaciones').upload(path, file, { upsert:false, contentType:file.type||'application/pdf' });
+    if(error) throw error;
+    return sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+  }
+
+  async function guardarPlan(){
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('btn-guardar');
+    const titulo   = document.getElementById('f-titulo').value.trim();
+    const secciones= seccionesElegidas();
+    const proveedor= document.getElementById('f-proveedor').value.trim();
+    const duracion = document.getElementById('f-duracion').value.trim();
+    const detalle  = document.getElementById('f-detalle').value.trim();
+    const condsTxt = document.getElementById('f-condiciones').value;
+    const pdfFile  = document.getElementById('f-pdf').files[0] || null;
+
+    if(!titulo){ msg.style.color='#c0392b'; msg.textContent='Poné un título para el plan.'; return; }
+    if(!secciones.length){ msg.style.color='#c0392b'; msg.textContent='Elegí al menos una sección.'; return; }
+
+    btn.disabled = true;
+    msg.style.color='var(--ink2)'; msg.textContent = pdfFile ? 'Subiendo PDF y guardando…' : 'Guardando…';
+
+    try{
+      let pdf_url = editId ? planPdfActual : null;   // en edición, conserva el PDF si no suben otro
+      if(pdfFile) pdf_url = await subirPDF(pdfFile);
+
+      const lineas = condsTxt.split('\n').map(s=>s.trim()).filter(Boolean);
+      const row = {
+        seccion_id: secciones[0],   // primera (compatibilidad)
+        secciones: secciones,       // todas las secciones donde aparece
+        nombre: titulo,
+        proveedor: proveedor || null,
+        condicion: duracion || null,
+        descripcion: detalle || null,
+        lineas_participantes: lineas,
+        pdf_url,
+      };
+      const persistir=(r)=> editId
+        ? sb.from('checklist_planes').update(r).eq('id', editId)
+        : sb.from('checklist_planes').insert(Object.assign({activo:true}, r));
+      let { error } = await persistir(row);
+      // Fallback: si todavía no existe la columna "secciones", guardar solo con seccion_id.
+      if(error && /secciones/i.test(error.message||'')){
+        const { secciones:_omit, ...rowSin } = row;
+        ({ error } = await persistir(rowSin));
+      }
+      if(error) throw error;
+
+      msg.style.color='var(--green)'; msg.textContent = editId ? '✓ Cambios guardados. Redirigiendo…' : '✓ Plan publicado. Redirigiendo…';
+      setTimeout(()=>location.href='admin-planes.html', 1100);
+    }catch(e){
+      btn.disabled = false;
+      msg.style.color='#c0392b'; msg.textContent='No se pudo guardar: '+(e.message||e);
+    }
+  }
+</script>
+</body>
+</html>

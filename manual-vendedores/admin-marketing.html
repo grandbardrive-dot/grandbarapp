@@ -32,7 +32,7 @@
   .sb-logo{padding:22px 22px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
   .sb-logo img{height:40px;object-fit:contain}
   .sb-nav{display:flex;flex-direction:column;gap:3px;padding:16px 12px}
-  .sb-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:rgba(255,255,255,.72);cursor:pointer;transition:background .15s,color .15s}
+  .sb-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:rgba(255,255,255,.72);cursor:pointer;transition:background .15s,color .15s;background:none;border:none;font-family:inherit;text-align:left;width:100%}
   .sb-item:hover{background:rgba(255,255,255,.07);color:#fff}
   .sb-item.active{background:rgba(255,255,255,.12);color:#fff}
   .sb-item.active .sb-ico{color:var(--gold)}
@@ -152,7 +152,7 @@
 <script src="_admin-sidebar.js"></script>
 <script>
   // Marca de sesión: perfil marketing
-  sessionStorage.setItem('admin_auth','1');
+  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');}
   sessionStorage.setItem('admin_perfil','marketing');
   renderSidebar('inicio');
 
@@ -160,7 +160,31 @@
   document.addEventListener('click', ()=> document.getElementById('perfil-menu').classList.remove('open'));
   function salir(){ sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil'); location.href='admin.html'; }
   function verGuias(){ alert('Guías y tutoriales — próximamente.'); }
-  function soporte(){ alert('Soporte: escribí al equipo de GrandBar.'); }
+  function soporte(){ abrirSoporte(); }
 </script>
+<!-- Modal de Soporte (WhatsApp) -->
+<div id="soporteOverlay" onclick="if(event.target===this)cerrarSoporte()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div role="dialog" aria-modal="true" aria-label="Soporte" style="background:#fff;max-width:400px;width:100%;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:24px;font-family:inherit">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <h3 style="margin:0;font-size:19px;color:#0f172a;font-weight:800">Soporte</h3>
+      <button onclick="cerrarSoporte()" aria-label="Cerrar" style="border:0;background:transparent;font-size:24px;line-height:1;color:#64748b;cursor:pointer;padding:0 4px">&times;</button>
+    </div>
+    <p style="margin:0 0 18px;color:#475569;font-size:14px">Elegí con quién querés hablar por WhatsApp.</p>
+    <a href="https://wa.link/0khu1f" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;background:#25D366;color:#fff;font-weight:700;font-size:15px;padding:14px 16px;border-radius:12px;margin-bottom:12px">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm5.8 14.16c-.24.68-1.42 1.32-1.96 1.36-.5.05-.5.42-3.16-.66-2.66-1.08-4.32-3.83-4.45-4.01-.13-.18-1.06-1.41-1.06-2.69s.67-1.91.91-2.17c.24-.26.52-.33.7-.33h.5c.16 0 .38-.06.59.45.24.58.79 2 .86 2.14.07.14.12.31.02.49-.09.18-.14.29-.28.45-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.95 1.95 1.24 2.23 1.38.28.14.44.12.6-.07.18-.21.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.81.86.27.14.44.21.51.32.07.12.07.68-.17 1.34z"/></svg>
+      Soporte técnico
+    </a>
+    <a href="https://wa.link/yzp1z3" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;background:#25D366;color:#fff;font-weight:700;font-size:15px;padding:14px 16px;border-radius:12px">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm5.8 14.16c-.24.68-1.42 1.32-1.96 1.36-.5.05-.5.42-3.16-.66-2.66-1.08-4.32-3.83-4.45-4.01-.13-.18-1.06-1.41-1.06-2.69s.67-1.91.91-2.17c.24-.26.52-.33.7-.33h.5c.16 0 .38-.06.59.45.24.58.79 2 .86 2.14.07.14.12.31.02.49-.09.18-.14.29-.28.45-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.95 1.95 1.24 2.23 1.38.28.14.44.12.6-.07.18-.21.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.81.86.27.14.44.21.51.32.07.12.07.68-.17 1.34z"/></svg>
+      Soporte comercial
+    </a>
+  </div>
+</div>
+<script>
+  function abrirSoporte(){ document.getElementById('soporteOverlay').style.display='flex'; }
+  function cerrarSoporte(){ document.getElementById('soporteOverlay').style.display='none'; }
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') cerrarSoporte(); });
+</script>
+
 </body>
 </html>

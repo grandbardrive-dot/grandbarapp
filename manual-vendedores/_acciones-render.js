@@ -205,6 +205,35 @@
 
     /* Sin acciones */
     .am-empty-cat { font-size:12px; color:#9E9B96; font-style:italic; padding:4px 0 8px; }
+
+    /* ── Entrega de materiales (solo en visita) ── */
+    .am-ent {
+      margin-top: 8px; padding: 9px 10px;
+      background: #F6F4EE; border: 1px dashed rgba(31,68,127,.25);
+      border-radius: 9px;
+    }
+    .am-ent-title {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: #1F447F; margin-bottom: 7px;
+    }
+    .am-ent-row {
+      display: flex; align-items: center; gap: 7px;
+      padding: 4px 0;
+    }
+    .am-ent-row + .am-ent-row { border-top: 1px solid rgba(31,68,127,.08); }
+    .am-ent-nombre { flex: 1; min-width: 0; font-size: 12px; color: #4a463f; line-height: 1.25; }
+    .am-ent-cant {
+      width: 56px; flex-shrink: 0; padding: 6px 7px;
+      border: 1px solid rgba(31,68,127,.25); border-radius: 7px;
+      font-size: 12px; font-family: inherit; text-align: center;
+    }
+    .am-ent-btn {
+      flex-shrink: 0; background: #1B4332; color: #fff; border: none;
+      border-radius: 7px; font-family: inherit; font-size: 11px; font-weight: 700;
+      padding: 7px 11px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .am-ent-btn:disabled { opacity: .6; cursor: default; }
+    .am-ent-done { font-size: 12px; font-weight: 700; color: #2D6A4F; padding: 3px 0; }
   `;
   document.head.appendChild(s);
 
@@ -240,10 +269,18 @@ const _amSeleccionadas = new Map();
 // Callbacks registrables desde visita.html
 let _amOnGuardar  = null;  // fn(seleccionadas[]) → Promise — llamado al "Guardar en visita"
 let _amClienteCtx = null;  // { nombre, telefono } del cliente actual
+let _amEntregaCtx = null;  // { sellerId, customerId, clienteNombre } — si está, las cards muestran "Entregué material"
 
-function amRegistrarCallbacks({ onGuardar, cliente }) {
+function amRegistrarCallbacks({ onGuardar, cliente, entrega }) {
   _amOnGuardar  = onGuardar  || null;
   _amClienteCtx = cliente    || null;
+  if (entrega !== undefined) _amEntregaCtx = entrega || null;
+}
+
+// Toast tolerante: usa el de la visita si existe; si no, alert.
+function _amToast(msg, type) {
+  if (typeof showToast === 'function') showToast(msg, type);
+  else alert(msg);
 }
 
 // ── Constantes ───────────────────────────────────────────────────────────────
@@ -383,8 +420,81 @@ function renderAccionCard(a, opts = {}) {
           <span class="am-precio-val">${precio}</span>
         </div>` : ''}
         ${btnHtml}
+        ${_amEntregaHtml(a)}
       </div>
     </div>`;
+}
+
+// ── Entrega de materiales vinculados a la campaña (solo contexto visita) ───────
+// Muestra cada material con un campo de cantidad y un botón "Entregué" que
+// descuenta del stock (registra un movimiento de salida/entrega).
+function _amEntregaHtml(a) {
+  if (!_amEntregaCtx) return '';
+  const mats = Array.isArray(a.materiales) ? a.materiales : [];
+  if (!mats.length) return '';
+  // En campañas multi-producto, la card se repite por producto: mostrar el bloque
+  // una sola vez (en la primera, __p0) para no duplicar la entrega.
+  if (a._grupoId && !String(a.id).endsWith('__p0')) return '';
+  const campId = a._grupoId || a.id;
+  const rows = mats.map(m => {
+    const mid = m.id || m.material_id;
+    if (!mid) return '';
+    const key = _amEsc(String(a.id) + '::' + mid);
+    return `
+      <div class="am-ent-row" id="am-ent-row-${key}">
+        <div class="am-ent-nombre">${_amEsc(m.name || m.nombre || 'Material')}</div>
+        <input class="am-ent-cant" id="am-ent-cant-${key}" type="number" min="1" placeholder="Cant.">
+        <button class="am-ent-btn" onclick="amEntregarMaterial('${_amEsc(mid)}','${_amEsc(campId)}','${key}',this)">Entregué</button>
+      </div>`;
+  }).join('');
+  if (!rows) return '';
+  return `<div class="am-ent">
+    <div class="am-ent-title">📦 Materiales — registrar entrega</div>
+    ${rows}
+  </div>`;
+}
+
+async function amEntregarMaterial(materialId, campaignId, key, btn) {
+  const inp  = document.getElementById('am-ent-cant-' + key);
+  const cant = Math.floor(Number((inp && inp.value) || 0));
+  if (!(cant > 0)) { _amToast('Poné una cantidad mayor a 0.', 'error'); return; }
+  const prevTxt = btn.textContent;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    // Stock fresco justo antes de descontar (evita datos viejos)
+    const { data: mAct, error: e1 } = await sb
+      .from('materials_with_stock').select('stock_actual').eq('id', materialId).single();
+    if (e1) throw e1;
+    const prev = Number(mAct?.stock_actual || 0);
+    if (cant > prev) {
+      _amToast('No hay stock suficiente. Disponible: ' + prev + '.', 'error');
+      btn.disabled = false; btn.textContent = prevTxt; return;
+    }
+    const resulting = prev - cant;
+    const nota = 'Entregado en visita' + (_amEntregaCtx && _amEntregaCtx.clienteNombre ? ' a ' + _amEntregaCtx.clienteNombre : '');
+    const rowFull = {
+      material_id: materialId, movement_type: 'entrega', quantity: cant,
+      previous_stock: prev, resulting_stock: resulting,
+      seller_id:   (_amEntregaCtx && _amEntregaCtx.sellerId)   || null,
+      customer_id: (_amEntregaCtx && _amEntregaCtx.customerId) || null,
+      campaign_id: campaignId || null,
+      notes: nota, created_by: 'vendedor'
+    };
+    let { error } = await sb.from('material_stock_movements').insert(rowFull);
+    if (error) {
+      // Fallback: reintentar sin columnas de contexto por si alguna faltara / no matchea tipo.
+      // Lo importante es que el stock igual se descuente.
+      const { seller_id, customer_id, campaign_id, ...rowMin } = rowFull;
+      ({ error } = await sb.from('material_stock_movements').insert(rowMin));
+    }
+    if (error) throw error;
+    const rowEl = document.getElementById('am-ent-row-' + key);
+    if (rowEl) rowEl.innerHTML = `<div class="am-ent-done">✓ Entregado ${cant} · stock ahora ${resulting}</div>`;
+    _amToast('✓ Entrega registrada — stock descontado.', 'success');
+  } catch (e) {
+    btn.disabled = false; btn.textContent = prevTxt;
+    _amToast('No se pudo registrar: ' + (e.message || e), 'error');
+  }
 }
 
 // ── Render resumen dinámico (contenedor ─────────────────────────────────────

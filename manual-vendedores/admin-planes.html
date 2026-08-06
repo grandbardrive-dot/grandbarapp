@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Planes</title>
+<style>
+  :root{ --azul:#1F447F; --azul-dk:#16305a; --dorado:#CBB86A; --bg:#F1EDE8; --surface:#fff;
+    --line:rgba(31,68,127,.12); --line-2:rgba(31,68,127,.22); --ink:#1F1B16; --ink2:#5f574c; --ink3:#9a9187;
+    --green:#1a7f37; --green-bg:rgba(26,127,55,.12); --red:#b3261e; --red-bg:rgba(179,38,30,.10); }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .top{background:var(--azul);border-bottom:3px solid var(--dorado);padding:14px 20px;display:flex;align-items:center;gap:14px}
+  .top-back{background:rgba(255,255,255,.14);border:none;color:#fff;width:38px;height:38px;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
+  .top-t{color:#fff;font-size:17px;font-weight:800;flex:1}
+  .top-new{display:inline-flex;align-items:center;gap:8px;background:var(--dorado);border:none;color:var(--azul-dk);border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:inherit}
+  .wrap{max-width:820px;margin:0 auto;padding:24px 18px 80px}
+  .lead{color:var(--ink2);font-size:14.5px;margin-bottom:18px;line-height:1.5}
+  .count{font-size:12.5px;color:var(--ink3);margin-bottom:14px;font-weight:600}
+  .cards{display:flex;flex-direction:column;gap:14px}
+  .plan{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 2px 4px rgba(31,68,127,.04),0 14px 34px rgba(31,68,127,.05)}
+  .plan.off{opacity:.62}
+  .plan-top{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .badge{flex:none;background:var(--green-bg);color:var(--green);font-size:11.5px;font-weight:800;padding:5px 11px;border-radius:20px;white-space:nowrap}
+  .plan-h{flex:1;min-width:180px}
+  .plan-tit{font-size:16px;font-weight:800;color:var(--azul);line-height:1.2}
+  .plan-meta{font-size:12.5px;color:var(--ink3);margin-top:3px}
+  .estado{flex:none;font-size:11px;font-weight:800;padding:4px 11px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em}
+  .estado.on{background:var(--green-bg);color:var(--green)}
+  .estado.no{background:var(--red-bg);color:var(--red)}
+  .plan-desc{font-size:13.5px;color:var(--ink2);line-height:1.5;margin-top:11px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .tag{background:#F4F1EA;border:1px solid var(--line);color:var(--ink2);font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:20px}
+  .pdf{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:7px 14px;background:var(--azul);color:#fff;border-radius:20px;font-size:12px;font-weight:700}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .act{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);background:#fff;color:var(--azul);border-radius:10px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+  .act:hover{background:#F4F1EA}
+  .act.danger{color:var(--red);border-color:rgba(179,38,30,.3)}
+  .act.danger:hover{background:var(--red-bg)}
+  .empty{text-align:center;padding:56px 20px;color:var(--ink3)}
+  .empty-ico{font-size:44px;margin-bottom:10px}
+  .empty a{color:var(--azul);font-weight:700;text-decoration:underline}
+  #msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--azul);color:#fff;padding:11px 20px;border-radius:12px;font-size:13.5px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;transition:opacity .2s;pointer-events:none}
+  #msg.show{opacity:1}
+</style>
+</head>
+<body>
+  <header class="top">
+    <button class="top-back" onclick="location.href='admin-campanias.html'" title="Volver">←</button>
+    <div class="top-t">Planes</div>
+    <button class="top-new" onclick="location.href='admin-nuevo-plan.html'">＋ Nuevo plan</button>
+  </header>
+
+  <div class="wrap">
+    <p class="lead">Todos los planes y programas que cargaste. Se muestran a los vendedores en la sección que elegiste, dentro de “Planes activos”.</p>
+    <div class="count" id="count"></div>
+    <div class="cards" id="cards"><div class="empty">Cargando planes…</div></div>
+  </div>
+  <div id="msg"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script>
+  if(sessionStorage.getItem('admin_auth')!=='1'){ location.replace('admin.html'); }
+  if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
+
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  let PLANES=[], SECMAP={};
+
+  function toast(t){ const m=document.getElementById('msg'); m.textContent=t; m.classList.add('show'); setTimeout(()=>m.classList.remove('show'),2200); }
+
+  async function cargar(){
+    try{
+      const [{data:planes},{data:secs}] = await Promise.all([
+        sb.from('checklist_planes').select('*').order('created_at',{ascending:false}),
+        sb.from('checklist_secciones').select('id,nombre,canal')
+      ]);
+      PLANES = planes||[];
+      SECMAP = {}; (secs||[]).forEach(s=>SECMAP[s.id]={nombre:s.nombre,canal:s.canal});
+    }catch(e){ document.getElementById('cards').innerHTML=`<div class="empty">No se pudieron cargar los planes.<br>${esc(e.message||e)}</div>`; return; }
+    render();
+  }
+
+  function render(){
+    const cont=document.getElementById('cards');
+    document.getElementById('count').textContent = PLANES.length ? `${PLANES.length} ${PLANES.length===1?'plan cargado':'planes cargados'}` : '';
+    if(!PLANES.length){
+      cont.innerHTML=`<div class="empty"><div class="empty-ico">📋</div>Todavía no cargaste ningún plan.<br><a href="admin-nuevo-plan.html">Crear el primero →</a></div>`;
+      return;
+    }
+    cont.innerHTML = PLANES.map(p=>{
+      const secIds = (Array.isArray(p.secciones)&&p.secciones.length) ? p.secciones : (p.seccion_id?[p.seccion_id]:[]);
+      const secNombres = secIds.map(id=>SECMAP[id]?.nombre).filter(Boolean);
+      const secTxt = secNombres.length ? secNombres.map(esc).join(', ') : '<i>sección no encontrada</i>';
+      const tags = (Array.isArray(p.lineas_participantes)?p.lineas_participantes:[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+      const activo = p.activo !== false;
+      return `<div class="plan ${activo?'':'off'}">
+        <div class="plan-top">
+          ${p.condicion?`<span class="badge">${esc(p.condicion)}</span>`:''}
+          <div class="plan-h">
+            <div class="plan-tit">${esc(p.nombre||'(sin título)')}</div>
+            <div class="plan-meta">${p.proveedor?esc(p.proveedor)+' · ':''}Aparece en: ${secTxt}</div>
+          </div>
+          <span class="estado ${activo?'on':'no'}">${activo?'Activo':'Inactivo'}</span>
+        </div>
+        ${p.descripcion?`<div class="plan-desc">${esc(p.descripcion)}</div>`:''}
+        ${tags?`<div class="tags">${tags}</div>`:''}
+        ${p.pdf_url?`<a class="pdf" href="${esc(p.pdf_url)}" target="_blank" rel="noopener">📄 Ver PDF</a>`:''}
+        <div class="acts">
+          <button class="act" onclick="editar('${p.id}')">✏️ Editar</button>
+          <button class="act" onclick="toggleActivo('${p.id}')">${activo?'⏸️ Desactivar':'▶️ Activar'}</button>
+          <button class="act danger" onclick="eliminar('${p.id}')">🗑️ Eliminar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function editar(id){ location.href='admin-nuevo-plan.html?id='+encodeURIComponent(id); }
+
+  async function toggleActivo(id){
+    const p=PLANES.find(x=>x.id===id); if(!p) return;
+    const nuevo = !(p.activo!==false);
+    try{
+      const { error }=await sb.from('checklist_planes').update({activo:nuevo}).eq('id',id);
+      if(error) throw error;
+      p.activo=nuevo; render(); toast(nuevo?'Plan activado':'Plan desactivado');
+    }catch(e){ toast('No se pudo: '+(e.message||e)); }
+  }
+
+  async function eliminar(id){
+    const p=PLANES.find(x=>x.id===id); if(!p) return;
+    if(!confirm(`¿Eliminar el plan "${p.nombre||''}"?\nEsta acción no se puede deshacer.`)) return;
+    try{
+      const { error }=await sb.from('checklist_planes').delete().eq('id',id);
+      if(error) throw error;
+      PLANES=PLANES.filter(x=>x.id!==id); render(); toast('Plan eliminado');
+    }catch(e){ toast('No se pudo eliminar: '+(e.message||e)); }
+  }
+
+  cargar();
+</script>
+</body>
+</html>

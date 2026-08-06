@@ -123,7 +123,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
 <script>
-  sessionStorage.setItem('admin_auth','1');
+  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');}
   if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','marketing');
   const esc = s => String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const UNIDADES = ['unidad','caja','kit','pack','juego','metro'];

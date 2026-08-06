@@ -142,7 +142,7 @@
     <div class="sb-label">Ayuda</div>
     <nav class="sb-nav" style="padding-top:0">
       <button class="sb-item" onclick="alert('Guías y tutoriales — próximamente.')"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7v.4" stroke-linecap="round"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg><div><div class="sb-txt-main">Guías y tutoriales</div></div></button>
-      <button class="sb-item" onclick="alert('Soporte: escribí al equipo de GrandBar.')"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-1v-6h3M4 13v4a2 2 0 0 0 2 2h1v-6H4" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Soporte</div></div></button>
+      <button class="sb-item" onclick="abrirSoporte()"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-1v-6h3M4 13v4a2 2 0 0 0 2 2h1v-6H4" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Soporte</div></div></button>
     </nav>
     <div class="sb-spacer"></div>
   </aside>
@@ -192,7 +192,7 @@
 <script src="_admin-sidebar.js"></script>
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
-  sessionStorage.setItem('admin_auth','1'); sessionStorage.setItem('admin_perfil','comercial');
+  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');} sessionStorage.setItem('admin_perfil','comercial');
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const hoy=new Date(); hoy.setHours(0,0,0,0);
   const fmt=d=>{if(!d)return '—';const x=new Date(d);return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear();};
@@ -347,5 +347,29 @@
 
   cargar();
 </script>
+<!-- Modal de Soporte (WhatsApp) -->
+<div id="soporteOverlay" onclick="if(event.target===this)cerrarSoporte()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div role="dialog" aria-modal="true" aria-label="Soporte" style="background:#fff;max-width:400px;width:100%;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:24px;font-family:inherit">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <h3 style="margin:0;font-size:19px;color:#0f172a;font-weight:800">Soporte</h3>
+      <button onclick="cerrarSoporte()" aria-label="Cerrar" style="border:0;background:transparent;font-size:24px;line-height:1;color:#64748b;cursor:pointer;padding:0 4px">&times;</button>
+    </div>
+    <p style="margin:0 0 18px;color:#475569;font-size:14px">Elegí con quién querés hablar por WhatsApp.</p>
+    <a href="https://wa.link/0khu1f" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;background:#25D366;color:#fff;font-weight:700;font-size:15px;padding:14px 16px;border-radius:12px;margin-bottom:12px">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm5.8 14.16c-.24.68-1.42 1.32-1.96 1.36-.5.05-.5.42-3.16-.66-2.66-1.08-4.32-3.83-4.45-4.01-.13-.18-1.06-1.41-1.06-2.69s.67-1.91.91-2.17c.24-.26.52-.33.7-.33h.5c.16 0 .38-.06.59.45.24.58.79 2 .86 2.14.07.14.12.31.02.49-.09.18-.14.29-.28.45-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.95 1.95 1.24 2.23 1.38.28.14.44.12.6-.07.18-.21.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.81.86.27.14.44.21.51.32.07.12.07.68-.17 1.34z"/></svg>
+      Soporte técnico
+    </a>
+    <a href="https://wa.link/yzp1z3" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;background:#25D366;color:#fff;font-weight:700;font-size:15px;padding:14px 16px;border-radius:12px">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm5.8 14.16c-.24.68-1.42 1.32-1.96 1.36-.5.05-.5.42-3.16-.66-2.66-1.08-4.32-3.83-4.45-4.01-.13-.18-1.06-1.41-1.06-2.69s.67-1.91.91-2.17c.24-.26.52-.33.7-.33h.5c.16 0 .38-.06.59.45.24.58.79 2 .86 2.14.07.14.12.31.02.49-.09.18-.14.29-.28.45-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.95 1.95 1.24 2.23 1.38.28.14.44.12.6-.07.18-.21.69-.8.87-1.08.18-.28.36-.23.6-.14.24.09 1.55.73 1.81.86.27.14.44.21.51.32.07.12.07.68-.17 1.34z"/></svg>
+      Soporte comercial
+    </a>
+  </div>
+</div>
+<script>
+  function abrirSoporte(){ document.getElementById('soporteOverlay').style.display='flex'; }
+  function cerrarSoporte(){ document.getElementById('soporteOverlay').style.display='none'; }
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') cerrarSoporte(); });
+</script>
+
 </body>
 </html>

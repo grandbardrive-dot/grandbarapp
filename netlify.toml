@@ -2,6 +2,8 @@
 # Sitio estático: la raíz del proyecto es lo que se publica.
 [build]
   publish = "."
+  # Funciones serverless del manual de vendedores (IA de fotos y sugerencias).
+  functions = "manual-vendedores/netlify/functions"
 
 # La app entra por el login (index.html) automáticamente.
 [[redirects]]

@@ -1,0 +1,68 @@
+/* ============================================================
+   GrandBar · Catálogo · styles.css
+   ============================================================ */
+
+/* ---- Fuente Parginer ----
+   Dejá el archivo en /assets/fonts/Parginer_Regular.otf */
+@font-face {
+  font-family: 'Parginer';
+  src: url('/assets/fonts/Parginer_Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---- Variables de marca ---- */
+:root {
+  --gb-azul:   #1F447F;
+  --gb-dorado: #CBB86A;
+  --gb-crema:  #F1EDE8;
+
+  --gb-font: 'Parginer', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ---- Reset básico ---- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--gb-font);
+  color: var(--gb-azul);
+  background: var(--gb-crema);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+picture,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+ul,
+ol {
+  list-style: none;
+}
