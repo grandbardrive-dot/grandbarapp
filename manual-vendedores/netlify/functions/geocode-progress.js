@@ -17,5 +17,11 @@ exports.handler = async () => {
   const geocodificados = await cont('clientes_geo?select=codigo&lat=not.is.null');
   const pendientes = await cont('clientes_geo?select=codigo&geo_status=is.null');
   const sin_resultado = await cont('clientes_geo?select=codigo&lat=is.null&geo_status=not.is.null');
-  return json(200, { total, geocodificados, pendientes, sin_resultado });
+
+  // Muestra de 6 clientes geocodificados
+  const mr = await fetch(HUB_URL + '/rest/v1/clientes_geo?select=codigo,nombre,direccion,localidad,lat,lng,geo_status&lat=not.is.null&limit=6', {
+    headers: { apikey: srole, Authorization: 'Bearer ' + srole },
+  });
+  const muestra = await mr.json().catch(() => []);
+  return json(200, { total, geocodificados, pendientes, sin_resultado, muestra });
 };
