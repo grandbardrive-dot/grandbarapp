@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrandBar Hub — Posibles nuevos clientes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root{
+      --navy:#0d2230; --navy-2:#123043; --cream:#f6f1e8; --card:#ffffff;
+      --ink:#1b2a32; --muted:#6d7d85; --line:#e7ded0; --line-2:#ece4d6;
+      --green:#2f6f5e; --green-d:#245647; --green-soft:#e8f1ea;
+      --gold:#c0912f; --gold-d:#a97c22; --gold-soft:#f7efdc;
+      --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    }
+    *{box-sizing:border-box} html,body{margin:0;height:100%}
+    body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    .app{display:flex;min-height:100vh}
+    .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+    .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+    .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+    .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+    .sb-nav{display:flex;flex-direction:column;gap:3px}
+    .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+    .sb-nav a:hover{background:var(--navy-2);color:#fff}
+    .sb-nav a.active{background:var(--gold);color:#241a06;font-weight:600}
+    .sb-nav svg{width:19px;height:19px;flex:none;opacity:.9}
+    .sb-foot{margin-top:auto;padding-top:16px}
+    .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px}
+    .sb-user .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy)}
+    .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+
+    .main{flex:1;min-width:0}
+    .topbar{display:flex;align-items:center;gap:12px;padding:16px 26px;background:var(--card);border-bottom:1px solid var(--line)}
+    .topbar h1{font-size:18px;margin:0;font-weight:800}
+    .badge-canal{font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;background:var(--gold-soft);color:var(--gold-d)}
+    .content{padding:22px 26px 50px;max-width:1200px;margin:0 auto}
+
+    .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+    .btn{background:linear-gradient(180deg,var(--green),var(--green-d));color:#fff;border:0;cursor:pointer;font:inherit;font-weight:700;font-size:14px;padding:12px 20px;border-radius:11px;display:inline-flex;align-items:center;gap:8px}
+    .btn:hover{filter:brightness(1.05)} .btn:disabled{opacity:.6;cursor:default}
+    .bar .hint{font-size:13px;color:var(--muted)}
+
+    .cols{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+    .panel-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line-2)}
+    .panel-h .t{font-weight:700;font-size:14px}
+    #map{height:520px;width:100%}
+    .sug{padding:6px 0;max-height:520px;overflow:auto}
+    .sug-row{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line-2)}
+    .sug-row:last-child{border-bottom:0}
+    .sug-row .n{width:24px;height:24px;border-radius:50%;background:var(--gold);color:#241a06;font-size:12px;font-weight:700;display:grid;place-items:center}
+    .sug-row .nm{font-weight:600;font-size:14px}
+    .sug-row .meta{font-size:12px;color:var(--muted)}
+    .sug-row .go{color:var(--green);font-size:12px;font-weight:600;white-space:nowrap}
+    .empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:14px}
+    .aviso{background:var(--gold-soft);border:1px solid #e5d3a3;border-radius:10px;padding:10px 14px;font-size:13px;color:#7a5a12;margin-bottom:14px;display:none}
+    @media(max-width:900px){ .sidebar{display:none} .cols{grid-template-columns:1fr} #map{height:360px} .content{padding:16px} }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav">
+      <a href="inicio.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg> Inicio</a>
+      <a href="clientes-hub.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg> Clientes</a>
+      <a href="planificador-ia.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg> Planificador de ruta IA</a>
+      <a href="herramientas.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4"/></svg> Herramientas de venta</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg> Reportes</a>
+    </nav>
+    <div class="sb-foot"><div class="sb-user"><div class="av" id="av">V</div><div><div class="t" id="uName">Vendedor</div><div class="s">Vendedor</div></div></div></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>Posibles nuevos clientes ✦</h1>
+      <span class="badge-canal" id="canalBadge" style="display:none"></span>
+    </header>
+    <div class="content">
+      <div class="aviso" id="aviso"></div>
+      <div class="bar">
+        <button class="btn" id="btnBuscar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg> Buscar en esta zona</button>
+        <span class="hint">Movés el mapa a la zona que querés analizar y tocás el botón. Los <b style="color:var(--gold-d)">dorados</b> son posibles nuevos clientes; los <b style="color:var(--green-d)">verdes</b>, tus clientes actuales.</span>
+      </div>
+      <div class="cols">
+        <div class="panel"><div class="panel-h"><span class="t">Mapa</span><span class="t" id="zonaLbl" style="color:var(--muted);font-weight:500"></span></div><div id="map"></div></div>
+        <div class="panel"><div class="panel-h"><span class="t">Sugerencias</span><span class="t" id="sugCount" style="color:var(--muted);font-weight:500"></span></div><div class="sug" id="sug"><div class="empty">Tocá "Buscar en esta zona" para encontrar comercios que todavía no son tus clientes.</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+  const initials = n => (n||"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "V";
+  const CANAL_LBL = { on:"Canal ON", off:"Canal OFF", ambos:"Canal ON + OFF" };
+  let mapa, token, capaSug;
+
+  function avisar(txt){ const a=document.getElementById("aviso"); a.textContent=txt; a.style.display=txt?"block":"none"; }
+
+  async function init(){
+    if(!window.supabase) return;
+    const hub = supabase.createClient(HUB.url, HUB.key);
+    const { data:{ session } } = await hub.auth.getSession();
+    if(!session){ location.href="index.html"; return; }
+    token = session.access_token;
+
+    mapa = L.map("map").setView([-32.89,-68.84], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{ maxZoom:19, attribution:"© OpenStreetMap" }).addTo(mapa);
+
+    // Clientes actuales del vendedor (verde) + centrar mapa
+    try{
+      const r = await fetch("/.netlify/functions/cuentas-vendedor", { headers:{ Authorization:"Bearer "+token } });
+      const j = await r.json();
+      if(j.nombre){ document.getElementById("uName").textContent=j.nombre; document.getElementById("av").textContent=initials(j.nombre); }
+      const geo = (j.clientes||[]).filter(c=>typeof c.lat==="number");
+      geo.forEach(c=> L.circleMarker([c.lat,c.lng],{ radius:4, color:"#245647", weight:1, fillColor:"#2f6f5e", fillOpacity:.6 }).addTo(mapa).bindPopup(c.nombre+" (cliente)"));
+      if(geo.length) mapa.fitBounds(geo.map(c=>[c.lat,c.lng]),{ padding:[30,30], maxZoom:14 });
+    }catch(e){}
+    setTimeout(()=>mapa.invalidateSize(), 250);
+  }
+
+  async function buscar(){
+    const btn = document.getElementById("btnBuscar");
+    btn.disabled = true; btn.textContent = "Buscando…";
+    avisar("");
+    try{
+      const c = mapa.getCenter();
+      const b = mapa.getBounds();
+      const radius = Math.min(mapa.distance(c, b.getNorthEast()), 20000);
+      const r = await fetch("/.netlify/functions/nuevos-clientes", {
+        method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+token },
+        body: JSON.stringify({ lat:c.lat, lng:c.lng, radius })
+      });
+      const j = await r.json();
+      if(j.error==="sin_canal"){ avisar("Tu usuario no tiene canal (ON/OFF) cargado. Pedile a administración que lo configure."); return; }
+      if(j.error && !j.sugerencias){ avisar("No se pudo buscar: "+j.error); return; }
+      if(j.canal){ const badge=document.getElementById("canalBadge"); badge.textContent=CANAL_LBL[j.canal]||j.canal; badge.style.display="inline-block"; }
+
+      if(capaSug){ mapa.removeLayer(capaSug); }
+      capaSug = L.layerGroup().addTo(mapa);
+      const sug = j.sugerencias||[];
+      sug.forEach((s,i)=>{
+        if(typeof s.lat!=="number") return;
+        L.marker([s.lat,s.lng],{ icon:L.divIcon({ className:"", html:`<div style="background:#c0912f;color:#241a06;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 12px Inter;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)">${i+1}</div>`, iconSize:[26,26], iconAnchor:[13,13] }) }).addTo(capaSug).bindPopup(`<b>${s.nombre}</b><br>${s.direccion||""}`);
+      });
+      document.getElementById("sugCount").textContent = `${sug.length} posibles · ${j.ya_clientes} ya son clientes`;
+      document.getElementById("sug").innerHTML = sug.length ? sug.map((s,i)=>`
+        <div class="sug-row">
+          <div class="n">${i+1}</div>
+          <div><div class="nm">${s.nombre}</div><div class="meta">${s.direccion||""}${s.rating?" · ⭐ "+s.rating:""}</div></div>
+          <a class="go" href="https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}" target="_blank">Cómo llegar ›</a>
+        </div>`).join("") : `<div class="empty">No encontramos comercios nuevos en esta zona. Probá moviendo el mapa a otra área.</div>`;
+    }catch(e){ avisar("Error: "+(e.message||e)); }
+    finally{ btn.disabled=false; btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg> Buscar en esta zona'; }
+  }
+
+  document.getElementById("btnBuscar").addEventListener("click", buscar);
+  document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
