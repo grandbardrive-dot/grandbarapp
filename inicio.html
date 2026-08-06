@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrandBar Hub — Inicio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --navy:#0d2230; --navy-2:#123043; --cream:#f6f1e8; --card:#ffffff;
+      --ink:#1b2a32; --muted:#6d7d85; --line:#e7ded0; --line-2:#ece4d6;
+      --green:#2f6f5e; --green-d:#245647; --green-soft:#e8f1ea;
+      --gold:#c0912f; --gold-d:#a97c22; --gold-soft:#f7efdc;
+      --danger:#c0603e;
+      --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%}
+    body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    .app{display:flex;min-height:100vh}
+
+    /* Sidebar */
+    .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+    .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+    .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+    .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+    .sb-nav{display:flex;flex-direction:column;gap:3px}
+    .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+    .sb-nav a:hover{background:var(--navy-2);color:#fff}
+    .sb-nav a.active{background:var(--gold);color:#241a06;font-weight:600}
+    .sb-nav svg{width:19px;height:19px;flex:none;opacity:.9}
+    .sb-foot{margin-top:auto;display:flex;flex-direction:column;gap:12px;padding-top:16px}
+    .sb-support{display:flex;align-items:center;gap:11px;background:var(--navy-2);border-radius:12px;padding:12px}
+    .sb-support .t{font-size:13px;font-weight:600}.sb-support .s{font-size:11px;color:#9db0ba}
+    .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px;cursor:pointer}
+    .sb-user .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy)}
+    .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+
+    .main{flex:1;min-width:0;display:flex;flex-direction:column}
+    .content{padding:24px 30px 50px;max-width:1300px;width:100%;margin:0 auto}
+
+    .head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px}
+    .head h1{font-size:26px;margin:0 0 3px;font-weight:800}
+    .head p{margin:0;color:var(--muted);font-size:14px}
+    .head .right{display:flex;align-items:center;gap:16px}
+    .bell{position:relative;color:var(--muted)}
+    .bell .dot{position:absolute;top:-5px;right:-5px;background:var(--gold);color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:16px;height:16px;display:grid;place-items:center}
+    .av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy);font-size:14px}
+
+    /* Stat cards */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+    .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:14px}
+    .stat .ic{width:48px;height:48px;border-radius:12px;background:var(--navy);color:#fff;display:grid;place-items:center;flex:none}
+    .stat.gold .ic{background:var(--gold)}
+    .stat .l{font-size:13px;color:var(--muted)}
+    .stat .v{font-size:26px;font-weight:800;line-height:1.05;margin:2px 0}
+    .stat .sub{font-size:12px;font-weight:600;color:var(--green)}
+    .stat .sub.red{color:var(--danger)} .stat .sub.mut{color:var(--muted)}
+
+    .grid3{display:grid;grid-template-columns:1.35fr 1fr .95fr;gap:16px;margin-bottom:16px}
+    .grid2{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+    .card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .card-h .t{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+    .card-h .lnk{color:var(--green);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:3px}
+
+    /* Agenda */
+    .ag{display:flex;flex-direction:column}
+    .ag-row{display:grid;grid-template-columns:52px 16px 1fr auto auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line-2)}
+    .ag-row:last-child{border-bottom:0}
+    .ag-row .time{font-size:12px;color:var(--muted);font-weight:600}
+    .ag-row .dot{width:11px;height:11px;border-radius:50%;background:var(--navy)}
+    .ag-row.first .dot{background:var(--gold)}
+    .ag-row .nm{font-weight:600;font-size:14px}
+    .ag-row .meta{font-size:12px;color:var(--muted)}
+    .chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px}
+    .chip.ok{background:var(--green-soft);color:var(--green-d)}
+    .chip.pend{background:#eef1f3;color:var(--muted)}
+    .chev{color:var(--muted-2,#9aa)}
+    .cta-ruta{margin-top:14px;background:var(--gold-soft);border:1px solid #e5d3a3;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer}
+    .cta-ruta .t{font-weight:700;font-size:14px}.cta-ruta .s{font-size:12px;color:#7a5a12}
+    .cta-ruta .go{margin-left:auto;color:var(--gold-d)}
+
+    /* Resumen semanal */
+    .donut{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;flex:none}
+    .donut .inner{width:56px;height:56px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-weight:800;font-size:16px}
+    .rs-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-2)}
+    .rs-row:last-child{border-bottom:0}
+    .rs-big{font-size:22px;font-weight:800}
+    .rs-lbl{font-size:12px;color:var(--muted)}
+    .spark{width:90px;height:36px}
+
+    /* Avisos + herramientas */
+    .aviso{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--line-2);border-radius:11px;margin-bottom:10px}
+    .aviso .ai{width:34px;height:34px;border-radius:9px;background:var(--gold-soft);color:var(--gold-d);display:grid;place-items:center;flex:none}
+    .aviso .at{font-weight:600;font-size:13px}.aviso .as{font-size:12px;color:var(--muted);line-height:1.4}
+    .aviso .go{margin-left:auto;color:var(--muted);align-self:center}
+    .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .tool{text-align:center;font-size:11px;color:var(--muted);line-height:1.3;cursor:pointer}
+    .tool .ti{width:46px;height:46px;border-radius:12px;border:1px solid var(--line);display:grid;place-items:center;margin:0 auto 7px;color:var(--navy)}
+    .tool:hover .ti{border-color:var(--gold);color:var(--gold-d)}
+
+    /* Promos */
+    .promos{display:flex;gap:14px;overflow-x:auto;padding-bottom:4px}
+    .promo{flex:none;width:170px;height:150px;border-radius:12px;background:linear-gradient(160deg,#1c1c1c,#2a2a2a);color:#fff;padding:14px;display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden}
+    .promo .brand{font-weight:800;letter-spacing:.5px;font-size:15px}
+    .promo .deal{font-size:24px;font-weight:800;color:var(--gold)}
+    .promo .desc{font-size:10px;color:#cfc6b5;margin-top:2px}
+
+    /* Rendimiento */
+    .perf{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .perf .p-lbl{font-size:12px;color:var(--muted)}
+    .perf .p-val{font-size:20px;font-weight:800;margin:3px 0}
+    .perf .p-obj{font-size:11px;color:var(--muted)}
+    .bar{height:6px;border-radius:6px;background:#eee;margin-top:8px;overflow:hidden}
+    .bar span{display:block;height:100%;background:var(--gold)}
+
+    .bottomnav{display:none}
+
+    @media(max-width:1050px){
+      .grid3{grid-template-columns:1fr}
+      .grid2{grid-template-columns:1fr}
+      .stats{grid-template-columns:repeat(2,1fr)}
+    }
+    @media(max-width:800px){
+      .sidebar{display:none}
+      .content{padding:16px 16px 90px}
+      .stats{grid-template-columns:1fr}
+      .perf{grid-template-columns:repeat(2,1fr)}
+      .tools{grid-template-columns:repeat(4,1fr)}
+      .bottomnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--navy);border-top:1px solid var(--navy-2);padding:8px 6px;justify-content:space-around;z-index:30}
+      .bottomnav a{display:flex;flex-direction:column;align-items:center;gap:3px;color:#8ba1aa;font-size:10px;font-weight:600;padding:4px 8px}
+      .bottomnav a.active{color:var(--gold)}
+      .bottomnav svg{width:20px;height:20px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav">
+      <a href="inicio.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg> Inicio</a>
+      <a href="clientes-hub.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg> Clientes</a>
+      <a href="planificador-ia.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg> Planificador de ruta IA</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg> Agenda</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg> Tareas</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg> Pedidos</a>
+      <a href="manual-vendedores/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4"/></svg> Herramientas de venta</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg> Reportes</a>
+    </nav>
+    <div class="sb-foot">
+      <div class="sb-support"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7fd8bf" stroke-width="2"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="2" y="14" width="4" height="6" rx="1"/><rect x="18" y="14" width="4" height="6" rx="1"/></svg><div><div class="t">Soporte</div><div class="s">Estamos para ayudarte</div></div></div>
+      <div class="sb-user" id="logout" title="Cerrar sesión"><div class="av" id="avSb">E</div><div><div class="t" id="uName">Vendedor</div><div class="s">Vendedor</div></div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="content">
+      <div class="head">
+        <div>
+          <h1 id="greet">¡Hola! 👋</h1>
+          <p>Tenés un día importante por delante.</p>
+        </div>
+        <div class="right">
+          <div class="bell"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">3</span></div>
+          <div class="av" id="avTop">E</div>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stats">
+        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Clientes asignados</div><div class="v" id="stClientes">—</div><div class="sub" id="stClientesSub">Activos</div></div></div>
+        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas de hoy</div><div class="v">8</div><div class="sub mut">Próxima: 11:00 hs</div></div></div>
+        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg></div><div><div class="l">Tareas pendientes</div><div class="v">5</div><div class="sub red">2 vencen hoy</div></div></div>
+        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas del mes</div><div class="v">$ 8.450.000</div><div class="sub">+ 12,5% vs mes anterior</div></div></div>
+      </div>
+
+      <!-- Fila media -->
+      <div class="grid3">
+        <!-- Agenda -->
+        <div class="card">
+          <div class="card-h"><span class="t">📅 Tu agenda de hoy</span><a class="lnk" href="#">Ver agenda completa ›</a></div>
+          <div class="ag">
+            <div class="ag-row first"><div class="time">09:00</div><div class="dot"></div><div><div class="nm">3er Tiempo</div><div class="meta">Colon 1951 · Guaymallén</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
+            <div class="ag-row"><div class="time">11:00</div><div class="dot"></div><div><div class="nm">A tu Salud Minimarket</div><div class="meta">Bandera de los Andes 4315 · Guaymallén</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
+            <div class="ag-row"><div class="time">13:30</div><div class="dot"></div><div><div class="nm">Aldeni Vinoteca</div><div class="meta">Tomas Godoy Cruz 4100 · Guaymallén</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
+            <div class="ag-row"><div class="time">15:30</div><div class="dot"></div><div><div class="nm">Autoservicio Mitre</div><div class="meta">Mitre 2587 · Ciudad</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
+            <div class="ag-row"><div class="time">17:00</div><div class="dot"></div><div><div class="nm">Reportar visita</div><div class="meta">Cargar evidencia y completar tarea</div></div><span class="chip pend">Pendiente</span><span class="chev">›</span></div>
+          </div>
+          <a class="cta-ruta" href="planificador-ia.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-d)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg><div><div class="t">Iniciar ruta con IA</div><div class="s">Optimizar mi recorrido de hoy</div></div><span class="go">›</span></a>
+        </div>
+
+        <!-- Resumen semanal -->
+        <div class="card">
+          <div class="card-h"><span class="t">Resumen semanal</span><span class="lnk">Esta semana ▾</span></div>
+          <div class="rs-row">
+            <div><div class="rs-lbl">Visitas realizadas</div><div class="rs-big">32</div><div class="rs-lbl">de 50 planificadas</div></div>
+            <div class="donut" style="background:conic-gradient(var(--gold) 64%, #ece4d6 0)"><div class="inner">64%</div></div>
+          </div>
+          <div class="rs-row">
+            <div><div class="rs-lbl">Ventas</div><div class="rs-big">$ 8.450.000</div><div class="rs-lbl" style="color:var(--green)">↑ 12,5% vs semana anterior</div></div>
+            <svg class="spark" viewBox="0 0 90 36"><polyline points="0,28 15,24 30,26 45,18 60,20 75,10 90,6" fill="none" stroke="var(--gold)" stroke-width="2"/></svg>
+          </div>
+          <div class="rs-row">
+            <div><div class="rs-lbl">Nuevos clientes</div><div class="rs-big">3</div><div class="rs-lbl">esta semana</div></div>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cfc6b5" stroke-width="1.6"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+          </div>
+          <a class="lnk" href="#" style="margin-top:12px;display:inline-flex">Ver reporte completo ›</a>
+        </div>
+
+        <!-- Avisos + herramientas -->
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-h"><span class="t">Avisos importantes</span><a class="lnk" href="#">Ver todos</a></div>
+            <div class="aviso"><div class="ai"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg></div><div><div class="at">Nuevo producto destacado</div><div class="as">Conocé nuestras incorporaciones del mes.</div></div><span class="go">›</span></div>
+            <div class="aviso"><div class="ai"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div><div><div class="at">Promoción activa</div><div class="as">Aprovechá las acciones vigentes en vinos y aperitivos.</div></div><span class="go">›</span></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><span class="t">Herramientas rápidas</span></div>
+            <div class="tools">
+              <a class="tool" href="https://catalogosgrandbar.netlify.app" target="_blank"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v7l2-1.5L12 10V3M6 3h12v18H6z"/></svg></div>Catálogo de productos</a>
+              <a class="tool" href="#"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></div>Calculadora de rentabilidad</a>
+              <a class="tool" href="https://catalogosgrandbar.netlify.app" target="_blank"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>Promociones activas</a>
+              <a class="tool" href="#"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H4z"/><path d="M8 20h8"/></svg></div>Materiales de venta</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila inferior -->
+      <div class="grid2">
+        <div class="card">
+          <div class="card-h"><span class="t">Acciones y promociones activas</span><a class="lnk" href="https://catalogosgrandbar.netlify.app" target="_blank">Ver todas</a></div>
+          <div class="promos">
+            <div class="promo"><div class="brand">SALENTEIN</div><div class="deal">6 + 2</div><div class="desc">Comprás 6 y llevás 2 más</div></div>
+            <div class="promo"><div class="brand">PORTILLO</div><div class="deal">3 + 1</div><div class="desc">Comprás 3 y llevás 1 más</div></div>
+            <div class="promo"><div class="brand">APERITIVOS</div><div class="deal">2 + 1</div><div class="desc">En productos seleccionados</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="t">Tu rendimiento mensual</span><a class="lnk" href="#">Ver más</a></div>
+          <div class="perf">
+            <div><div class="p-lbl">Visitas</div><div class="p-val">68</div><div class="p-obj">Objetivo: 100</div><div class="bar"><span style="width:68%"></span></div></div>
+            <div><div class="p-lbl">Ventas</div><div class="p-val">$ 8,45M</div><div class="p-obj">Objetivo: $12M</div><div class="bar"><span style="width:70%"></span></div></div>
+            <div><div class="p-lbl">Nuevos clientes</div><div class="p-val">7</div><div class="p-obj">Objetivo: 15</div><div class="bar"><span style="width:47%"></span></div></div>
+            <div style="text-align:center"><div class="p-lbl">Indicador general</div><div class="donut" style="background:conic-gradient(var(--green) 72%, #ece4d6 0);margin:6px auto"><div class="inner" style="font-size:14px">72%</div></div><div class="p-obj" style="color:var(--green)">Buen progreso</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="bottomnav">
+  <a href="inicio.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Inicio</a>
+  <a href="clientes-hub.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>Clientes</a>
+  <a href="planificador-ia.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Ruta IA</a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Agenda</a>
+  <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Más</a>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script>
+  const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+  const MANUAL = { url:"https://fzaxwuuodseyyinveknn.supabase.co", key:"sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk" };
+  const firstName = n => (n||"").trim().split(/\s+/)[0] || "";
+  const initials = n => (n||"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "V";
+
+  let hub;
+  document.getElementById("logout").addEventListener("click", async ()=>{
+    if(confirm("¿Cerrar sesión?")){ try{ await hub.auth.signOut(); }catch(e){} location.href="index.html"; }
+  });
+
+  (async function(){
+    try{
+      if(!window.supabase){ return; }
+      hub = supabase.createClient(HUB.url, HUB.key);
+      const { data:{ session } } = await hub.auth.getSession();
+      if(!session){ location.href="index.html"; return; }   // portero
+
+      const { data: perfil } = await hub.from("usuarios").select("nombre, codigo_vendedor").eq("id", session.user.id).maybeSingle();
+      let nombre = perfil && perfil.nombre ? perfil.nombre : session.user.email;
+
+      if(perfil && perfil.codigo_vendedor){
+        const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
+        const { data: vend } = await man.from("vendedores").select("id, nombre").eq("codigo", perfil.codigo_vendedor).maybeSingle();
+        if(vend){
+          if(vend.nombre) nombre = vend.nombre;
+          const { count } = await man.from("clientes").select("id",{count:"exact",head:true}).eq("vendedor_id", vend.id);
+          if(count != null){
+            document.getElementById("stClientes").textContent = count;
+            document.getElementById("stClientesSub").textContent = "Activos " + count;
+          }
+        }
+      }
+      document.getElementById("greet").innerHTML = "¡Hola, " + firstName(nombre) + "! 👋";
+      document.getElementById("uName").textContent = nombre;
+      document.getElementById("avSb").textContent = initials(nombre);
+      document.getElementById("avTop").textContent = initials(nombre);
+    }catch(e){ /* si algo falla, queda el dashboard con valores base */ }
+  })();
+</script>
+</body>
+</html>

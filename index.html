@@ -107,7 +107,10 @@
       btn.disabled = true; btn.style.opacity = ".7";
       const r = await GBAuth.signIn(email, pass);
       if (r.ok) {
-        window.location.href = "panel.html";
+        // Landing por rol: el vendedor entra a su Inicio; el resto, al panel.
+        let destino = "panel.html";
+        try { const s = await GBAuth.getSession(); if (s && s.role === "ventas") destino = "inicio.html"; } catch (e) {}
+        window.location.href = destino;
       } else {
         btn.disabled = false; btn.style.opacity = "1";
         alert("No pudimos ingresar: " + (r.error || "revisá email y contraseña."));
