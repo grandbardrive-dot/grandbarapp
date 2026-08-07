@@ -317,8 +317,19 @@
 <script src="_admin-sidebar.js"></script>
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
-  // ── Estado de sesión: si no eligió perfil, mandarlo a la bienvenida ──
-  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');}
+  // ── Estado de sesión ──
+  // Confiar en el login del Hub: si ya está logueada en el Hub, entra SIN contraseña.
+  // Solo cae a la pantalla de contraseña si alguien abre esto sin sesión del Hub.
+  if(sessionStorage.getItem('admin_auth')!=='1'){
+    (async function(){
+      try{
+        const _hub = window.supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co','sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc');
+        const { data:{ session } } = await _hub.auth.getSession();
+        if(session){ sessionStorage.setItem('admin_auth','1'); sessionStorage.setItem('admin_perfil','comercial'); return; }
+      }catch(e){}
+      location.replace('admin.html');
+    })();
+  }
   sessionStorage.setItem('admin_perfil','comercial');
 
   const CANAL_LABEL = { restaurantes:'Restaurantes', vinotecas:'Vinotecas', bares:'Bares', discos:'Discos', hoteles:'Hoteles', eventos:'Eventos', autoservicios:'Autoservicios', todos:'Todos' };
