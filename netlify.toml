@@ -8,5 +8,5 @@
 # La app entra por el login (index.html) automáticamente.
 [[redirects]]
   from = "/hub"
-  to = "/panel.html"
+  to = "/hub.html"
   status = 200
