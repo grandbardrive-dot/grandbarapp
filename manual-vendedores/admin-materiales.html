@@ -400,19 +400,24 @@
     const provs=Object.keys(_ideasPorProv).sort((a,b)=>_ideasPorProv[b].length-_ideasPorProv[a].length);
     if(!provs.length){ el.innerHTML='<div class="empty-mini">Cargá materiales con stock y la IA te sugiere qué acción armar con ellos.</div>'; return; }
     el.innerHTML=`
-      <div style="font-size:12px;color:var(--ink3);margin-bottom:9px;line-height:1.45">Elegí un proveedor y la IA te sugiere una activación con sus materiales disponibles.</div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:9px;line-height:1.45">Elegí un proveedor y el canal, y la IA te sugiere una activación acorde con sus materiales.</div>
       <select id="ideas-prov" class="filt" style="width:100%;margin-bottom:9px">${provs.map(id=>`<option value="${id}">${esc(PROV[id]||'—')} · ${_ideasPorProv[id].length} material${_ideasPorProv[id].length===1?'':'es'}</option>`).join('')}</select>
+      <select id="ideas-canal" class="filt" style="width:100%;margin-bottom:9px">
+        <option value="on">On-trade — se consume en el local (bar, restaurante, hotel, disco)</option>
+        <option value="off">Off-trade — se compra para llevar (vinoteca, autoservicio, mayorista)</option>
+      </select>
       <button class="btn pri" id="ideas-btn" style="width:100%;justify-content:center;padding:11px" onclick="generarIdea()">💡 Generar idea con IA</button>
       <div id="ideas-out" style="margin-top:12px"></div>`;
   }
   async function generarIdea(){
     const provId=document.getElementById('ideas-prov').value;
+    const trade=(document.getElementById('ideas-canal')||{}).value||'';
     const out=document.getElementById('ideas-out'); const btn=document.getElementById('ideas-btn');
     const mats=(_ideasPorProv[provId]||[]).slice(0,14).map(m=>({nombre:m.name, linea:BRANDS[m.brand_id]||'', stock:Number(m.stock_actual||0)}));
     if(!mats.length) return;
     btn.disabled=true; out.innerHTML='<div style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--navy);font-weight:700"><span style="width:16px;height:16px;border:2.5px solid var(--line-2);border-top-color:var(--navy);border-radius:50%;display:inline-block;animation:sp .8s linear infinite"></span> Pensando una idea…</div>';
     try{
-      const resp=await fetch('/.netlify/functions/sugerir-accion',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({proveedor:PROV[provId]||'', materiales:mats})});
+      const resp=await fetch('/.netlify/functions/sugerir-accion',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({proveedor:PROV[provId]||'', materiales:mats, trade})});
       const data=await resp.json().catch(()=>({}));
       if(!resp.ok||!data.idea) throw new Error(data.error||'error');
       out.innerHTML=`<div style="background:linear-gradient(150deg,var(--navy),#0f2340);color:#fff;border-radius:13px;padding:14px 15px;font-size:13px;line-height:1.55">✨ ${esc(data.idea)}</div>`;
