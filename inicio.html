@@ -110,6 +110,24 @@
     .promo .deal{font-size:24px;font-weight:800;color:var(--gold)}
     .promo .desc{font-size:10px;color:#cfc6b5;margin-top:2px}
 
+    /* Modal materiales */
+    .mat-overlay{position:fixed;inset:0;background:rgba(13,34,56,.5);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+    .mat-overlay.open{display:flex}
+    .mat-modal{background:var(--card);border-radius:18px;width:100%;max-width:920px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px -30px rgba(0,0,0,.6)}
+    .mat-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--line)}
+    .mat-head h3{margin:0;font-size:18px;font-weight:800;display:flex;align-items:center;gap:9px}
+    .mat-head .x{background:none;border:0;cursor:pointer;color:var(--muted);padding:4px}
+    .mat-body{padding:18px 22px;overflow:auto}
+    .mat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
+    .mat-card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+    .mat-card .img{height:150px;background:#f6f4ef center/contain no-repeat;border-bottom:1px solid var(--line-2)}
+    .mat-card .info{padding:12px 14px}
+    .mat-card .nm{font-weight:700;font-size:14px;line-height:1.3}
+    .mat-card .st{font-size:12px;color:var(--muted);margin-top:5px}
+    .mat-card .st b{color:var(--green-d)}
+    .mat-card .agot{color:var(--coral,#d0603e)}
+    .mat-empty{text-align:center;color:var(--muted);padding:50px 20px}
+
     /* Rendimiento */
     .perf{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
     .perf .p-lbl{font-size:12px;color:var(--muted)}
@@ -227,7 +245,7 @@
               <a class="tool" id="lnkCatalogo" href="#" target="_blank"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v7l2-1.5L12 10V3M6 3h12v18H6z"/></svg></div>Catálogo de productos</a>
               <a class="tool" href="#"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></div>Calculadora de rentabilidad</a>
               <a class="tool" id="lnkPromos" href="#" target="_blank"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>Promociones activas</a>
-              <a class="tool" href="#"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H4z"/><path d="M8 20h8"/></svg></div>Materiales de venta</a>
+              <a class="tool" href="#" onclick="abrirMateriales();return false;"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H4z"/><path d="M8 20h8"/></svg></div>Materiales de venta</a>
             </div>
           </div>
         </div>
@@ -264,6 +282,17 @@
   <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Agenda</a>
   <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Más</a>
 </nav>
+
+<!-- Mini-catálogo de materiales (popup) -->
+<div class="mat-overlay" id="matOverlay">
+  <div class="mat-modal">
+    <div class="mat-head">
+      <h3><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4"/></svg> Materiales disponibles</h3>
+      <button class="x" onclick="cerrarMateriales()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="mat-body"><div id="matGrid"><div class="mat-empty">Cargando…</div></div></div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/supabase-config.js"></script>
@@ -357,6 +386,36 @@
       }).join("");
     }catch(e){}
   }
+
+  // Mini-catálogo de materiales (los que Marketing marcó visibles para vendedores).
+  async function abrirMateriales(){
+    const ov=document.getElementById("matOverlay"), grid=document.getElementById("matGrid");
+    ov.classList.add("open"); grid.innerHTML=`<div class="mat-empty">Cargando…</div>`;
+    try{
+      const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
+      const { data, error } = await man.from("materials_with_stock")
+        .select("id,name,description,processed_image_url,original_image_url,unit_type,stock_actual,is_active,visible_to_sellers")
+        .eq("is_active",true).eq("visible_to_sellers",true).order("name");
+      if(error){ grid.innerHTML=`<div class="mat-empty">No pude cargar los materiales.</div>`; return; }
+      const mats = data||[];
+      if(!mats.length){ grid.innerHTML=`<div class="mat-empty">📦 Todavía no hay materiales publicados para vendedores.<br><span style="font-size:12px">Marketing los marca como "visibles para vendedores" en su panel.</span></div>`; return; }
+      grid.innerHTML = `<div class="mat-grid">` + mats.map(m=>{
+        const img = m.processed_image_url || m.original_image_url;
+        const stock = Number(m.stock_actual)||0;
+        return `<div class="mat-card">
+          <div class="img" style="${img?`background-image:url('${img}')`:""}"></div>
+          <div class="info">
+            <div class="nm">${m.name||"—"}</div>
+            <div class="st ${stock>0?"":"agot"}">${stock>0?`Disponible: <b>${stock}</b>${m.unit_type?` ${m.unit_type}`:""}`:"Sin stock"}</div>
+          </div>
+        </div>`;
+      }).join("") + `</div>`;
+    }catch(e){ grid.innerHTML=`<div class="mat-empty">Error: ${e.message||e}</div>`; }
+  }
+  function cerrarMateriales(){ document.getElementById("matOverlay").classList.remove("open"); }
+  document.getElementById("matOverlay").addEventListener("click", e=>{ if(e.target.id==="matOverlay") cerrarMateriales(); });
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape") cerrarMateriales(); });
+  window.abrirMateriales=abrirMateriales; window.cerrarMateriales=cerrarMateriales;
 
   (async function(){
     try{
