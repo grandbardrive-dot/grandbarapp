@@ -224,9 +224,9 @@
           <div class="card">
             <div class="card-h"><span class="t">Herramientas rápidas</span></div>
             <div class="tools">
-              <a class="tool" href="https://catalogosgrandbar.netlify.app" target="_blank"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v7l2-1.5L12 10V3M6 3h12v18H6z"/></svg></div>Catálogo de productos</a>
+              <a class="tool" id="lnkCatalogo" href="#" target="_blank"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v7l2-1.5L12 10V3M6 3h12v18H6z"/></svg></div>Catálogo de productos</a>
               <a class="tool" href="#"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></div>Calculadora de rentabilidad</a>
-              <a class="tool" href="https://catalogosgrandbar.netlify.app" target="_blank"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>Promociones activas</a>
+              <a class="tool" id="lnkPromos" href="#" target="_blank"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>Promociones activas</a>
               <a class="tool" href="#"><div class="ti"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H4z"/><path d="M8 20h8"/></svg></div>Materiales de venta</a>
             </div>
           </div>
@@ -236,7 +236,7 @@
       <!-- Fila inferior -->
       <div class="grid2">
         <div class="card">
-          <div class="card-h"><span class="t">Acciones y promociones activas</span><a class="lnk" href="https://catalogosgrandbar.netlify.app" target="_blank">Ver todas</a></div>
+          <div class="card-h"><span class="t">Acciones y promociones activas</span><a class="lnk" id="lnkVerTodas" href="#" target="_blank">Ver todas</a></div>
           <div class="promos" id="promos">
             <div class="promo"><div class="brand">SALENTEIN</div><div class="deal">6 + 2</div><div class="desc">Comprás 6 y llevás 2 más</div></div>
             <div class="promo"><div class="brand">PORTILLO</div><div class="deal">3 + 1</div><div class="desc">Comprás 3 y llevás 1 más</div></div>
@@ -333,6 +333,11 @@
   async function cargarPromos(canal){
     try{
       const c = String(canal||"").toLowerCase();
+      // Enlaces del catálogo del cliente según el canal (nuevos dominios)
+      const catUrl = c==="off" ? "https://catalogooff.com" : "https://catalogoon.com";
+      const lc=document.getElementById("lnkCatalogo"); if(lc) lc.href=catUrl;
+      const lp=document.getElementById("lnkPromos");    if(lp) lp.href=catUrl;
+      const lv=document.getElementById("lnkVerTodas");  if(lv) lv.href=catUrl;
       const canales = c==="off" ? ["off","ambos"] : c==="on" ? ["on","ambos"] : ["on","off","ambos"];
       const cat = supabase.createClient(CATALOGO.url, CATALOGO.key, { auth:{ persistSession:false } });
       const { data } = await cat.from("catalogo_acciones")
