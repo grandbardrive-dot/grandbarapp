@@ -52,6 +52,7 @@
     .pago{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
     .pago .top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
     .pago .cli{font-weight:700;font-size:15px}
+    .codcli{font-size:11px;font-weight:700;color:var(--navy);background:#e6eef5;padding:2px 8px;border-radius:6px;margin-left:8px;white-space:nowrap}
     .pago .meta{font-size:12.5px;color:var(--muted);margin-top:3px;display:flex;gap:14px;flex-wrap:wrap}
     .pago .meta b{color:var(--ink)}
     .match{margin-top:12px;border-top:1px solid var(--line-2);padding-top:12px;display:flex;flex-direction:column;gap:8px}
@@ -136,7 +137,7 @@
     return `<div class="pago" data-id="${p.id}">
       <div class="top">
         <div>
-          <div class="cli">${p.cliente}</div>
+          <div class="cli">${p.cliente}${p.codigo?` <span class="codcli">Cód. ${p.codigo}</span>`:""}</div>
           <div class="meta">
             <span>Monto: <b>${fmtMoney(p.monto)}</b></span>
             ${p.concepto?`<span>Concepto: <b>${p.concepto}</b></span>`:""}
@@ -155,14 +156,14 @@
   function histCard(p){
     const e = p.estado==="aceptado" ? {t:"Aceptado ✓",cls:"e-ok"} : {t:"Rechazado",cls:"e-rej"};
     return `<div class="pago"><div class="top"><div>
-      <div class="cli">${p.cliente}</div>
+      <div class="cli">${p.cliente}${p.codigo?` <span class="codcli">Cód. ${p.codigo}</span>`:""}</div>
       <div class="meta"><span>Monto: <b>${fmtMoney(p.monto)}</b></span>${p.procesado_por?`<span>Vendedor: <b>${p.procesado_por}</b></span>`:""}<span>${fmtFecha(p.subido)}</span></div>
     </div><span class="chip-e ${e.cls}">${e.t}</span></div></div>`;
   }
   function reciboCard(r){
     return `<div class="rec">
       <div class="ri"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l3 3v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></div>
-      <div><div class="rc">${r.cliente}</div><div class="rm">${r.factura?`Factura ${r.factura} · `:""}${fmtFecha(r.fecha)}</div></div>
+      <div><div class="rc">${r.cliente}${r.codigo?` <span class="codcli">Cód. ${r.codigo}</span>`:""}</div><div class="rm">${r.factura?`Factura ${r.factura} · `:""}${fmtFecha(r.fecha)}</div></div>
       <div class="spacer"></div>
       ${r.recibo_url?`<a class="btn btn-ghost" href="${r.recibo_url}" target="_blank" rel="noopener">Ver recibo</a>`:""}
     </div>`;

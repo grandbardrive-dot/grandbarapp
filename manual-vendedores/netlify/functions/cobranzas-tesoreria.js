@@ -79,6 +79,12 @@ exports.handler = async (event) => {
     const cmap = {}; (Array.isArray(cl) ? cl : []).forEach(c => { cmap[c.id] = c; });
     const nombreDe = id => { const c = cmap[id] || {}; return c.comercio || c.nombre || '—'; };
 
+    // Vendedor asignado a cada cliente (de cuentas_cubo, el dato oficial del sistema)
+    const codigosCli = [...new Set(Object.values(cmap).map(c => c.codigo_cubo).filter(Boolean))];
+    const vc = codigosCli.length ? (await (await cob('cuentas_cubo?codigo=in.(' + qids(codigosCli) + ')&select=codigo,vendedor')).json()) : [];
+    const vmap = {}; (Array.isArray(vc) ? vc : []).forEach(x => { vmap[x.codigo] = x.vendedor; });
+    const vendedorDe = id => { const c = cmap[id] || {}; return (c.codigo_cubo && vmap[c.codigo_cubo]) || null; };
+
     // Movimientos del banco sin usar (para los matches de los procesados)
     const bm = await cob('banco_movimientos?usado_en=is.null&select=id,fecha,nombre,documento,credito&order=fecha.desc&limit=2000');
     const movs = (await bm.json()) || [];
@@ -87,14 +93,14 @@ exports.handler = async (event) => {
 
     const por_revisar = [], historial = [];
     (Array.isArray(comps) ? comps : []).forEach(c => {
-      const base = { id: c.id, cliente: nombreDe(c.cliente_id), codigo: (cmap[c.cliente_id] || {}).codigo_cubo || null, concepto: c.concepto, monto: c.monto, fecha_pago: c.fecha_pago, estado: c.estado, comprobante_url: c.archivo_url, procesado_por: c.procesado_por, procesado_at: c.procesado_at, subido: c.created_at };
+      const base = { id: c.id, cliente: nombreDe(c.cliente_id), vendedor: vendedorDe(c.cliente_id) || c.procesado_por || null, codigo: (cmap[c.cliente_id] || {}).codigo_cubo || null, concepto: c.concepto, monto: c.monto, fecha_pago: c.fecha_pago, estado: c.estado, comprobante_url: c.archivo_url, procesado_por: c.procesado_por, procesado_at: c.procesado_at, subido: c.created_at };
       if (c.estado === 'procesado') {
         const monto = c.monto != null ? Math.round(Number(c.monto)) : null;
         base.matches = (monto != null ? (byMonto[monto] || []) : []).slice(0, 3).map(m => ({ id: m.id, nombre: m.nombre, documento: m.documento, credito: m.credito, fecha: m.fecha }));
         por_revisar.push(base);
       } else { historial.push(base); }
     });
-    const recibos = (Array.isArray(recs) ? recs : []).map(r => ({ id: r.id, cliente: nombreDe(r.cliente_id), factura: r.factura, concepto: r.concepto, fecha: r.fecha_pago || r.created_at, recibo_url: r.archivo_url }));
+    const recibos = (Array.isArray(recs) ? recs : []).map(r => ({ id: r.id, cliente: nombreDe(r.cliente_id), codigo: (cmap[r.cliente_id] || {}).codigo_cubo || null, factura: r.factura, concepto: r.concepto, fecha: r.fecha_pago || r.created_at, recibo_url: r.archivo_url }));
 
     return json(200, { rol: perfil.rol, por_revisar, historial, recibos });
   } catch (e) {
