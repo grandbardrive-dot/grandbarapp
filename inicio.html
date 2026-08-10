@@ -237,7 +237,7 @@
       <div class="grid2">
         <div class="card">
           <div class="card-h"><span class="t">Acciones y promociones activas</span><a class="lnk" href="https://catalogosgrandbar.netlify.app" target="_blank">Ver todas</a></div>
-          <div class="promos">
+          <div class="promos" id="promos">
             <div class="promo"><div class="brand">SALENTEIN</div><div class="deal">6 + 2</div><div class="desc">Comprás 6 y llevás 2 más</div></div>
             <div class="promo"><div class="brand">PORTILLO</div><div class="deal">3 + 1</div><div class="desc">Comprás 3 y llevás 1 más</div></div>
             <div class="promo"><div class="brand">APERITIVOS</div><div class="deal">2 + 1</div><div class="desc">En productos seleccionados</div></div>
@@ -327,6 +327,32 @@
     }catch(e){}
   }
 
+  // Acciones y promociones = últimas 3 que cargó Luci al catálogo, según el CANAL del vendedor.
+  const CATALOGO = { url:"https://zlwnoqdxendsgbfvfyue.supabase.co", key:"sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4" };
+  const descMec = m => { const x=/(\d+)\s*\+\s*(\d+)/.exec(m||""); return x?`Comprás ${x[1]} y llevás ${x[2]} más`:(m||"Acción vigente"); };
+  async function cargarPromos(canal){
+    try{
+      const c = String(canal||"").toLowerCase();
+      const canales = c==="off" ? ["off","ambos"] : c==="on" ? ["on","ambos"] : ["on","off","ambos"];
+      const cat = supabase.createClient(CATALOGO.url, CATALOGO.key, { auth:{ persistSession:false } });
+      const { data } = await cat.from("catalogo_acciones")
+        .select("nombre_producto,mecanica,placa_url,imagen_url")
+        .eq("activo", true).in("canal", canales)
+        .order("created_at",{ ascending:false }).limit(3);
+      if(!data || !data.length) return; // sin acciones → queda el ejemplo
+      const cont = document.getElementById("promos"); if(!cont) return;
+      cont.innerHTML = data.map(a=>{
+        const img = a.placa_url || a.imagen_url;
+        const style = img ? ` style="background-image:linear-gradient(180deg,rgba(20,20,20,.35),rgba(20,20,20,.85)),url('${img}');background-size:cover;background-position:center"` : "";
+        return `<div class="promo"${style}>
+          <div class="brand">${(a.nombre_producto||"").toUpperCase()}</div>
+          ${a.mecanica?`<div class="deal">${a.mecanica}</div>`:""}
+          <div class="desc">${descMec(a.mecanica)}</div>
+        </div>`;
+      }).join("");
+    }catch(e){}
+  }
+
   (async function(){
     try{
       if(!window.supabase){ return; }
@@ -334,8 +360,9 @@
       const { data:{ session } } = await hub.auth.getSession();
       if(!session){ location.href="index.html"; return; }   // portero
 
-      const { data: perfil } = await hub.from("usuarios").select("nombre, codigo_vendedor").eq("id", session.user.id).maybeSingle();
+      const { data: perfil } = await hub.from("usuarios").select("nombre, codigo_vendedor, canal").eq("id", session.user.id).maybeSingle();
       let nombre = perfil && perfil.nombre ? perfil.nombre : session.user.email;
+      if(perfil && perfil.canal) cargarPromos(perfil.canal);
 
       if(perfil && perfil.codigo_vendedor){
         const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
