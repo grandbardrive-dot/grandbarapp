@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrandBar Hub — Tareas del equipo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --navy:#0d2230; --navy-2:#123043; --cream:#f6f1e8; --card:#ffffff;
+      --ink:#1b2a32; --muted:#6d7d85; --line:#e7ded0; --line-2:#ece4d6;
+      --green:#2f6f5e; --green-d:#245647; --green-soft:#e8f1ea;
+      --gold:#c0912f; --gold-d:#a97c22; --gold-soft:#f7efdc;
+      --danger:#c0603e; --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    }
+    *{box-sizing:border-box} html,body{margin:0;height:100%}
+    body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:720px;margin:0 auto;padding:22px 18px 90px}
+
+    .topbar{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    .back{width:40px;height:40px;border-radius:11px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+    .topbar h1{font-size:23px;margin:0;font-weight:800}
+    .topbar .who{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+    /* Guía */
+    .guide{background:var(--navy);color:#eaf1f4;border-radius:16px;padding:18px 20px;margin-bottom:18px}
+    .guide h3{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:8px}
+    .guide .sub{font-size:12.5px;color:#a9bcc6;margin-bottom:14px}
+    .steps{display:flex;flex-direction:column;gap:11px}
+    .step{display:flex;gap:12px;align-items:flex-start}
+    .step .n{width:26px;height:26px;border-radius:50%;background:var(--gold);color:var(--navy);font-weight:800;font-size:13px;display:grid;place-items:center;flex:none}
+    .step .tx{font-size:13.5px;line-height:1.4}.step .tx b{color:#fff}
+    .guide .hide{margin-top:14px;font-size:12.5px;color:var(--gold);cursor:pointer;font-weight:600}
+
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+    .card > h2{margin:0 0 18px;font-size:17px;font-weight:800}
+    .field{margin-bottom:20px}
+    .field > label{display:block;font-weight:700;font-size:15px;margin-bottom:3px}
+    .field .help{font-size:12.5px;color:var(--muted);margin-bottom:9px;line-height:1.4}
+    .field input[type=text], .field textarea, .field input[type=date]{
+      width:100%;border:1.5px solid var(--line);border-radius:11px;padding:13px 14px;font-family:inherit;font-size:15px;color:var(--ink);background:#fdfbf7}
+    .field textarea{min-height:90px;resize:vertical}
+    .field input:focus, .field textarea:focus{outline:none;border-color:var(--gold)}
+
+    .pick{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+    .opt{border:2px solid var(--line);border-radius:13px;padding:15px 14px;cursor:pointer;text-align:left;background:#fff;transition:all .15s}
+    .opt:hover{border-color:#d8c79a}
+    .opt.on{border-color:var(--gold);background:var(--gold-soft)}
+    .opt .ot{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:8px}
+    .opt .os{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
+
+    .vendedores{margin-top:12px;display:none;border:1.5px dashed var(--line);border-radius:12px;padding:6px}
+    .vendedores.show{display:block}
+    .vrow{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:9px;cursor:pointer}
+    .vrow:hover{background:var(--gold-soft)}
+    .vbox{width:22px;height:22px;border-radius:6px;border:2px solid #cbb98f;flex:none;display:grid;place-items:center}
+    .vrow.on .vbox{background:var(--green);border-color:var(--green)}
+    .vbox svg{width:13px;height:13px;color:#fff;opacity:0}.vrow.on .vbox svg{opacity:1}
+    .vrow .vn{font-size:14px;font-weight:600}
+
+    .datewrap{margin-top:12px;display:none}.datewrap.show{display:block}
+
+    .save{width:100%;background:var(--green);color:#fff;border:0;border-radius:13px;padding:16px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px}
+    .save:hover{background:var(--green-d)} .save:disabled{opacity:.55;cursor:default}
+    .note{font-size:12.5px;color:var(--muted);text-align:center;margin-top:10px}
+    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:13px 22px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .3s;z-index:80}
+    .toast.show{opacity:1}
+    .toast.err{background:var(--danger)}
+
+    /* Lista tareas activas */
+    .tarea{border:1px solid var(--line);border-radius:12px;padding:14px 15px;margin-bottom:10px;display:flex;gap:13px;align-items:flex-start}
+    .tarea .ti{flex:1;min-width:0}
+    .tarea .tt{font-weight:700;font-size:14.5px}
+    .tarea .td{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+    .tarea .meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+    .mchip{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:6px;background:#eef1f3;color:var(--muted)}
+    .mchip.g{background:var(--green-soft);color:var(--green-d)}
+    .mchip.gold{background:var(--gold-soft);color:var(--gold-d)}
+    .prog2{text-align:right;flex:none}
+    .prog2 .big{font-size:20px;font-weight:800;line-height:1}
+    .prog2 .lbl{font-size:10.5px;color:var(--muted)}
+    .del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:12px;margin-top:6px;text-decoration:underline}
+    .empty2{text-align:center;color:var(--muted);padding:26px 10px;font-size:13.5px}
+    .loading{color:var(--muted);font-size:13px;text-align:center;padding:20px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="back" onclick="location.href='tareas.html'" title="Volver">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+    <div><h1>Tareas del equipo</h1><div class="who" id="who">Cargando…</div></div>
+  </div>
+
+  <!-- Guía integrada -->
+  <div class="guide" id="guide">
+    <h3>👋 Cómo cargar una tarea</h3>
+    <div class="sub">Es muy fácil. Seguí estos 4 pasos y listo.</div>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><div class="tx"><b>Escribí qué hay que hacer.</b> Cortito y claro. Ej: "Relevar heladera de Coca en cada bar".</div></div>
+      <div class="step"><div class="n">2</div><div class="tx"><b>Explicá bien cómo.</b> Contales el paso a paso, así no quedan dudas.</div></div>
+      <div class="step"><div class="n">3</div><div class="tx"><b>Elegí a quién.</b> A todo tu equipo, o a vendedores puntuales.</div></div>
+      <div class="step"><div class="n">4</div><div class="tx"><b>Elegí cuándo.</b> Todos los días (se repite) o un día puntual. Después tocás <b>Guardar</b>.</div></div>
+    </div>
+    <div class="hide" onclick="document.getElementById('guide').style.display='none'">Entendido, ocultar guía ✕</div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="card">
+    <h2>Cargar una tarea nueva</h2>
+
+    <div class="field">
+      <label>1 · ¿Qué tiene que hacer?</label>
+      <div class="help">En una frase corta. Ej: "Sacar foto de la exhibición de vinos".</div>
+      <input type="text" id="fTitulo" maxlength="120" placeholder="Escribí la tarea…" oninput="validar()" />
+    </div>
+
+    <div class="field">
+      <label>2 · Explicá bien cómo <span style="font-weight:500;color:var(--muted);font-size:12px">(opcional pero recomendado)</span></label>
+      <div class="help">El paso a paso, así el vendedor no tiene dudas.</div>
+      <textarea id="fDesc" maxlength="600" placeholder="Ej: 1) Entrá al bar. 2) Sacá foto de la heladera. 3) Anotá cuántas botellas hay…"></textarea>
+    </div>
+
+    <div class="field">
+      <label>3 · ¿A quién se la mando?</label>
+      <div class="help">Elegí una opción.</div>
+      <div class="pick">
+        <div class="opt on" id="optEquipo" onclick="setAlcance('canal')">
+          <div class="ot">👥 A todo mi equipo</div>
+          <div class="os" id="optEquipoSub">Todos mis vendedores</div>
+        </div>
+        <div class="opt" id="optPunt" onclick="setAlcance('vendedores')">
+          <div class="ot">🎯 A vendedores puntuales</div>
+          <div class="os">Elijo yo a quién</div>
+        </div>
+      </div>
+      <div class="vendedores" id="vendBox"></div>
+    </div>
+
+    <div class="field">
+      <label>4 · ¿Cuándo?</label>
+      <div class="help">¿Es de todos los días o solo un día?</div>
+      <div class="pick">
+        <div class="opt on" id="optDiaria" onclick="setFrec('diaria')">
+          <div class="ot">🔁 Todos los días</div>
+          <div class="os">Se repite cada día hábil</div>
+        </div>
+        <div class="opt" id="optPuntual" onclick="setFrec('puntual')">
+          <div class="ot">📌 Un día puntual</div>
+          <div class="os">Solo la fecha que elijas</div>
+        </div>
+      </div>
+      <div class="datewrap" id="dateWrap">
+        <input type="date" id="fFecha" />
+      </div>
+    </div>
+
+    <button class="save" id="btnSave" onclick="guardar()" disabled>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M20 6L9 17l-5-5"/></svg>
+      Guardar tarea
+    </button>
+    <div class="note" id="destino">Se la va a ver todo tu equipo.</div>
+  </div>
+
+  <!-- Tareas activas + seguimiento -->
+  <div class="card">
+    <h2>Tus tareas activas · seguimiento de hoy</h2>
+    <div id="listaTareas"><div class="loading">Cargando…</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+  let hub, TOKEN=null, EQUIPO=[], SELEC=new Set(), ALCANCE='canal', FREC='diaria';
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function toast(msg, err){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(err?' err':''); setTimeout(()=>t.className='toast',2600); }
+
+  function setAlcance(a){
+    ALCANCE=a;
+    document.getElementById('optEquipo').classList.toggle('on', a==='canal');
+    document.getElementById('optPunt').classList.toggle('on', a==='vendedores');
+    document.getElementById('vendBox').classList.toggle('show', a==='vendedores');
+    actualizarDestino(); validar();
+  }
+  function setFrec(f){
+    FREC=f;
+    document.getElementById('optDiaria').classList.toggle('on', f==='diaria');
+    document.getElementById('optPuntual').classList.toggle('on', f==='puntual');
+    document.getElementById('dateWrap').classList.toggle('show', f==='puntual');
+    validar();
+  }
+  function toggleVend(cod){
+    if(SELEC.has(cod)) SELEC.delete(cod); else SELEC.add(cod);
+    document.querySelectorAll('.vrow').forEach(r=>{ if(r.dataset.cod===cod) r.classList.toggle('on', SELEC.has(cod)); });
+    actualizarDestino(); validar();
+  }
+  function actualizarDestino(){
+    const d = document.getElementById('destino');
+    if(ALCANCE==='canal') d.textContent = `Se la va a ver todo tu equipo (${EQUIPO.length} vendedores).`;
+    else d.textContent = SELEC.size ? `Se la van a ver ${SELEC.size} vendedor(es).` : 'Elegí al menos un vendedor.';
+  }
+  function validar(){
+    const ok = document.getElementById('fTitulo').value.trim().length>2 &&
+      (ALCANCE==='canal' || SELEC.size>0) &&
+      (FREC==='diaria' || document.getElementById('fFecha').value);
+    document.getElementById('btnSave').disabled = !ok;
+  }
+
+  function renderEquipo(){
+    const box=document.getElementById('vendBox');
+    document.getElementById('optEquipoSub').textContent = `Mis ${EQUIPO.length} vendedores`;
+    if(!EQUIPO.length){ box.innerHTML='<div style="padding:12px;color:var(--muted);font-size:13px">No encontré vendedores en tu equipo. Revisá región/canal en los usuarios.</div>'; return; }
+    box.innerHTML = EQUIPO.map(v=>`
+      <div class="vrow" data-cod="${esc(v.codigo)}" onclick="toggleVend('${esc(v.codigo)}')">
+        <div class="vbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></div>
+        <div class="vn">${esc(v.nombre||v.codigo)}</div>
+      </div>`).join('');
+  }
+
+  function renderTareas(tareas){
+    const cont=document.getElementById('listaTareas');
+    if(!tareas.length){ cont.innerHTML='<div class="empty2">Todavía no cargaste ninguna tarea. Usá el formulario de arriba 👆</div>'; return; }
+    const tot = ALCANCE==='canal'?EQUIPO.length:0;
+    cont.innerHTML = tareas.map(t=>{
+      const destinatarios = t.alcance==='vendedores' ? (Array.isArray(t.asignados)?t.asignados.length:0) : EQUIPO.length;
+      const alcanceTxt = t.alcance==='vendedores' ? `🎯 ${destinatarios} puntual(es)` : `👥 Todo el equipo`;
+      const frecTxt = t.frecuencia==='puntual' ? `📌 ${t.fecha||'un día'}` : '🔁 Todos los días';
+      return `<div class="tarea">
+        <div class="ti">
+          <div class="tt">${esc(t.titulo)}</div>
+          ${t.descripcion?`<div class="td">${esc(t.descripcion)}</div>`:''}
+          <div class="meta"><span class="mchip gold">${alcanceTxt}</span><span class="mchip">${frecTxt}</span></div>
+          <button class="del" onclick="desactivar('${t.id}')">Quitar tarea</button>
+        </div>
+        <div class="prog2"><div class="big">${t.completadas_hoy||0}${destinatarios?('/'+destinatarios):''}</div><div class="lbl">hicieron hoy</div></div>
+      </div>`;
+    }).join('');
+  }
+
+  async function cargar(){
+    const r = await fetch('/.netlify/functions/tareas?vista=supervisor', { headers:{ Authorization:'Bearer '+TOKEN } });
+    const d = await r.json();
+    if(!r.ok){ document.getElementById('who').textContent = d.error||'No autorizado'; document.getElementById('listaTareas').innerHTML='<div class="empty2">'+esc(d.error||'No autorizado')+'</div>'; return; }
+    EQUIPO = d.equipo||[];
+    const regTxt = d.region ? (d.region==='san_luis'?'San Luis':'Mendoza') : '';
+    const canTxt = d.canal ? (d.canal==='ambos'?'ambos canales':(d.canal.toUpperCase()+' Trade')) : '';
+    document.getElementById('who').textContent = `${esc(d.nombre||'Supervisor')} · ${canTxt}${regTxt?' · '+regTxt:''}`;
+    renderEquipo(); actualizarDestino(); renderTareas(d.tareas||[]);
+  }
+
+  async function guardar(){
+    const btn=document.getElementById('btnSave'); btn.disabled=true;
+    const body = {
+      accion:'crear',
+      titulo: document.getElementById('fTitulo').value.trim(),
+      descripcion: document.getElementById('fDesc').value.trim(),
+      alcance: ALCANCE, frecuencia: FREC,
+      fecha: FREC==='puntual' ? document.getElementById('fFecha').value : null,
+      asignados: ALCANCE==='vendedores' ? Array.from(SELEC) : [],
+    };
+    try{
+      const r = await fetch('/.netlify/functions/tareas', { method:'POST', headers:{ Authorization:'Bearer '+TOKEN, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json();
+      if(!r.ok){ toast(d.error||'No pude guardar', true); btn.disabled=false; return; }
+      toast('¡Tarea guardada! ✅');
+      document.getElementById('fTitulo').value=''; document.getElementById('fDesc').value='';
+      SELEC.clear(); setAlcance('canal'); setFrec('diaria'); document.getElementById('fFecha').value='';
+      document.querySelectorAll('.vrow').forEach(r=>r.classList.remove('on'));
+      cargar();
+    }catch(e){ toast('Error de conexión', true); btn.disabled=false; }
+  }
+
+  async function desactivar(id){
+    if(!confirm('¿Quitar esta tarea? Ya no le va a aparecer a los vendedores.')) return;
+    try{
+      await fetch('/.netlify/functions/tareas', { method:'POST', headers:{ Authorization:'Bearer '+TOKEN, 'Content-Type':'application/json' }, body: JSON.stringify({ accion:'desactivar', id }) });
+      toast('Tarea quitada'); cargar();
+    }catch(e){ toast('No pude quitar', true); }
+  }
+
+  document.getElementById('fFecha').addEventListener('change', validar);
+
+  (async ()=>{
+    hub = supabase.createClient(HUB.url, HUB.key);
+    const { data:{ session } } = await hub.auth.getSession();
+    if(!session){ location.href='index.html'; return; }
+    TOKEN = session.access_token;
+    cargar();
+  })();
+</script>
+</body>
+</html>
