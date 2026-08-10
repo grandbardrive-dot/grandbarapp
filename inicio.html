@@ -186,7 +186,7 @@
         <!-- Agenda -->
         <div class="card">
           <div class="card-h"><span class="t">📅 Tu agenda de hoy</span><a class="lnk" href="agenda.html">Ver agenda completa ›</a></div>
-          <div class="ag">
+          <div class="ag" id="agendaHoy">
             <div class="ag-row first"><div class="time">09:00</div><div class="dot"></div><div><div class="nm">3er Tiempo</div><div class="meta">Colon 1951 · Guaymallén</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
             <div class="ag-row"><div class="time">11:00</div><div class="dot"></div><div><div class="nm">A tu Salud Minimarket</div><div class="meta">Bandera de los Andes 4315 · Guaymallén</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
             <div class="ag-row"><div class="time">13:30</div><div class="dot"></div><div><div class="nm">Aldeni Vinoteca</div><div class="meta">Tomas Godoy Cruz 4100 · Guaymallén</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
@@ -303,6 +303,30 @@
     if(confirm("¿Cerrar sesión?")){ try{ await hub.auth.signOut(); }catch(e){} location.href="index.html"; }
   });
 
+  // Agenda de hoy = ruta sugerida con los CLIENTES REALES del vendedor (igual criterio que el Planificador).
+  async function cargarAgenda(token){
+    try{
+      const r = await fetch("/.netlify/functions/cuentas-vendedor", { headers:{ Authorization:"Bearer "+token } });
+      if(!r.ok) return;
+      const j = await r.json();
+      const geo = (j.clientes||[]).filter(c=> typeof c.lat==="number" && typeof c.lng==="number");
+      if(!geo.length) return; // sin coords → queda el ejemplo
+      const hav=(a,b)=>{const R=6371,t=x=>x*Math.PI/180;const dLat=t(b.lat-a.lat),dLng=t(b.lng-a.lng);const s=Math.sin(dLat/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));};
+      let day = geo.slice();
+      if(geo.length>6){ const s=geo[0]; const near=geo.slice(1).map(c=>({c,d:hav(s,c)})).sort((a,b)=>a.d-b.d).slice(0,5).map(x=>x.c); day=[s,...near]; }
+      const rem=day.slice(), route=[rem.shift()];
+      while(rem.length){ const last=route[route.length-1]; let bi=0,bd=1e9; rem.forEach((p,i)=>{const d=hav(last,p); if(d<bd){bd=d;bi=i;}}); route.push(rem.splice(bi,1)[0]); }
+      const horas=["09:00","10:30","12:00","13:30","15:00","16:30"];
+      const cont=document.getElementById("agendaHoy"); if(!cont) return;
+      cont.innerHTML = route.slice(0,5).map((c,i)=>`
+        <div class="ag-row ${i===0?'first':''}">
+          <div class="time">${horas[i]||""}</div><div class="dot"></div>
+          <div><div class="nm">${c.nombre||"—"}</div><div class="meta">${[c.direccion,c.localidad].filter(Boolean).join(" · ")}</div></div>
+          <span class="chip pend" style="background:var(--gold-soft);color:#8a6a1e">Sugerida</span><span class="chev">›</span>
+        </div>`).join("");
+    }catch(e){}
+  }
+
   (async function(){
     try{
       if(!window.supabase){ return; }
@@ -326,6 +350,7 @@
         }
       }
       if(perfil && perfil.codigo_vendedor) cargarVentas(perfil.codigo_vendedor);
+      cargarAgenda(session.access_token);
       document.getElementById("greet").innerHTML = "¡Hola, " + firstName(nombre) + "! 👋";
       document.getElementById("uName").textContent = nombre;
       document.getElementById("avSb").textContent = initials(nombre);
