@@ -56,6 +56,13 @@
     .empty .big{font-size:40px;margin-bottom:8px}
     .aviso{background:var(--gold-soft);border:1px solid #e5d3a3;border-radius:10px;padding:10px 14px;font-size:13px;color:#7a5a12;margin-bottom:14px;display:none}
     .count{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--coral);color:#fff}
+    .mes{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:22px 0 8px}
+    .mes:first-child{margin-top:6px}
+    .chip-e{font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;white-space:nowrap}
+    .e-pend{background:var(--gold-soft);color:#8a6a1e}
+    .e-proc{background:#e6eef5;color:#2f5f8f}
+    .e-ok{background:var(--green-soft);color:var(--green-d)}
+    .e-rej{background:var(--coral-soft);color:#96371f}
     @media(max-width:820px){ .sidebar{display:none} .content{padding:16px} .comp{grid-template-columns:1fr} }
   </style>
 </head>
@@ -107,30 +114,48 @@
 
   function avisar(t){ const a=document.getElementById("aviso"); a.textContent=t; a.style.display=t?"block":"none"; }
 
+  const ESTADO = {
+    pendiente: { t:"A procesar",   cls:"e-pend" },
+    procesado: { t:"En tesorería", cls:"e-proc" },
+    aceptado:  { t:"Confirmado ✓", cls:"e-ok" },
+    rechazado: { t:"Rechazado",    cls:"e-rej" },
+    revisado:  { t:"Revisado",     cls:"e-proc" },
+  };
+  const mesLabel = iso => { const d=new Date(iso); if(isNaN(d)) return "Sin fecha"; const m=d.toLocaleDateString("es-AR",{month:"long",year:"numeric"}); return m.charAt(0).toUpperCase()+m.slice(1); };
+
   function render(comps){
     const list = document.getElementById("list");
     const c = document.getElementById("count");
     if(!comps.length){
       c.style.display="none";
-      list.innerHTML = `<div class="empty"><div class="big">✅</div>No tenés comprobantes pendientes. ¡Al día!</div>`;
+      list.innerHTML = `<div class="empty"><div class="big">📭</div>Todavía no hay comprobantes de tus clientes.</div>`;
       return;
     }
-    c.style.display="inline-block"; c.textContent = comps.length;
-    list.innerHTML = comps.map(x=>`
-      <div class="comp" data-id="${x.id}">
+    const pend = comps.filter(x=>x.estado==="pendiente").length;
+    if(pend){ c.style.display="inline-block"; c.textContent = pend + " a procesar"; } else c.style.display="none";
+
+    let html="", curMes="";
+    comps.forEach(x=>{
+      const mes = mesLabel(x.subido);
+      if(mes!==curMes){ curMes=mes; html += `<div class="mes">${mes}</div>`; }
+      const e = ESTADO[x.estado] || { t:x.estado||"—", cls:"e-proc" };
+      html += `<div class="comp" data-id="${x.id}">
         <div>
           <div class="cli">${x.cliente}</div>
           <div class="meta">
             <span>Monto: <b>${fmtMoney(x.monto)}</b></span>
-            ${x.concepto?`<span>Concepto: <b>${x.concepto}</b></span>`:""}
-            <span>Subido: ${fmtFecha(x.subido)}</span>
+            ${x.concepto?`<span>${x.concepto}</span>`:""}
+            <span>${fmtFecha(x.subido)}</span>
           </div>
         </div>
         <div class="acts">
-          ${x.comprobante_url?`<a class="btn btn-ghost" href="${x.comprobante_url}" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Ver comprobante</a>`:""}
-          <button class="btn btn-ok" onclick="procesar('${x.id}', this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>Marcar procesado</button>
+          <span class="chip-e ${e.cls}">${e.t}</span>
+          ${x.comprobante_url?`<a class="btn btn-ghost" href="${x.comprobante_url}" target="_blank" rel="noopener">Ver</a>`:""}
+          ${x.estado==="pendiente"?`<button class="btn btn-ok" onclick="procesar('${x.id}', this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>Marcar procesado</button>`:""}
         </div>
-      </div>`).join("");
+      </div>`;
+    });
+    list.innerHTML = html;
   }
 
   async function cargar(){
@@ -152,11 +177,7 @@
       });
       const j = await r.json();
       if(!j.ok){ avisar("No se pudo procesar: "+(j.error||"")); btn.disabled=false; btn.textContent="Marcar procesado"; return; }
-      const row = document.querySelector(`.comp[data-id="${id}"]`);
-      if(row) row.remove();
-      const left = document.querySelectorAll(".comp").length;
-      if(!left) render([]);
-      else document.getElementById("count").textContent = left;
+      cargar(); // recarga: el comprobante queda en el historial como "En tesorería"
     }catch(e){ avisar("Error: "+(e.message||e)); btn.disabled=false; btn.textContent="Marcar procesado"; }
   }
   window.procesar = procesar;

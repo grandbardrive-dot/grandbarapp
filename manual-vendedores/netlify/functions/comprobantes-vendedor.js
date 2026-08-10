@@ -57,12 +57,13 @@ exports.handler = async (event) => {
     const idMap = {}; clientes.forEach(c => { idMap[c.id] = c; });
     const ids = clientes.map(c => c.id);
 
-    const cp = await cob('comprobantes?cliente_id=in.(' + q(ids) + ')&estado=eq.pendiente&tipo=eq.cliente&select=id,cliente_id,concepto,archivo_url,monto,fecha_pago,created_at&order=created_at.desc');
+    const cp = await cob('comprobantes?cliente_id=in.(' + q(ids) + ')&tipo=eq.cliente&select=id,cliente_id,concepto,archivo_url,monto,fecha_pago,estado,procesado_at,created_at&order=created_at.desc&limit=600');
     const comps = (await cp.json()) || [];
     const out = (Array.isArray(comps) ? comps : []).map(c => ({
       id: c.id,
       cliente: (idMap[c.cliente_id] && (idMap[c.cliente_id].comercio || idMap[c.cliente_id].nombre)) || '—',
       concepto: c.concepto, monto: c.monto, fecha_pago: c.fecha_pago,
+      estado: c.estado, procesado_at: c.procesado_at,
       comprobante_url: c.archivo_url, subido: c.created_at,
     }));
     return json(200, { codigo: cod, comprobantes: out });

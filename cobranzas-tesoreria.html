@@ -63,6 +63,15 @@
     .acts{display:flex;gap:9px;flex-wrap:wrap;margin-top:10px}
     .empty{text-align:center;color:var(--muted);padding:60px 20px;border:1px dashed var(--line);border-radius:14px;background:var(--card)}
     .empty .big{font-size:40px;margin-bottom:8px}
+    .sect{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:28px 0 12px;display:flex;align-items:center;gap:12px}
+    .sect::after{content:"";flex:1;height:1px;background:var(--line)}
+    .chip-e{font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;white-space:nowrap;flex:none}
+    .e-ok{background:var(--green-soft);color:var(--green-d)}
+    .e-rej{background:var(--coral-soft);color:#96371f}
+    .rec{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:10px}
+    .rec .ri{width:34px;height:34px;border-radius:9px;background:var(--gold-soft);color:var(--gold-d);display:grid;place-items:center;flex:none}
+    .rec .rc{font-weight:600;font-size:14px}.rec .rm{font-size:12px;color:var(--muted)}
+    .rec .spacer{flex:1}
     .aviso{border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none}
     .aviso.ok{background:var(--green-soft);color:var(--green-d);border:1px solid var(--green-bd)}
     .aviso.err{background:var(--coral-soft);color:#96371f;border:1px solid #f0bfb0}
@@ -114,38 +123,59 @@
 
   function avisar(t, ok){ const a=document.getElementById("aviso"); a.textContent=t; a.className="aviso "+(ok?"ok":"err"); a.style.display=t?"block":"none"; if(t) setTimeout(()=>{a.style.display="none";}, 6000); }
 
-  function render(pagos){
-    const list = document.getElementById("list");
-    if(!pagos.length){ list.innerHTML = `<div class="empty"><div class="big">✅</div>No hay pagos pendientes de revisión.</div>`; return; }
-    list.innerHTML = pagos.map(p=>{
-      const matchHtml = (p.matches&&p.matches.length)
-        ? p.matches.map(m=>`
-            <div class="mrow">
-              <span class="mi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg></span>
-              <span class="mt">Coincide con: <b>${m.nombre||"—"}</b> · ${fmtMoney(m.credito)} · ${fmtFecha(m.fecha)}${m.documento?` · Doc ${m.documento}`:""}</span>
-              <span class="spacer"></span>
-              <button class="btn btn-ok" onclick="aceptar('${p.id}','${m.id}',this)">Aceptar con esta</button>
-            </div>`).join("")
-        : `<div class="nomatch">Sin coincidencia automática en el banco (revisalo a mano).</div>`;
-      return `<div class="pago" data-id="${p.id}">
-        <div class="top">
-          <div>
-            <div class="cli">${p.cliente}</div>
-            <div class="meta">
-              <span>Monto: <b>${fmtMoney(p.monto)}</b></span>
-              ${p.concepto?`<span>Concepto: <b>${p.concepto}</b></span>`:""}
-              ${p.procesado_por?`<span>Procesado por: <b>${p.procesado_por}</b></span>`:""}
-            </div>
+  function pagoCard(p){
+    const matchHtml = (p.matches&&p.matches.length)
+      ? p.matches.map(m=>`
+          <div class="mrow">
+            <span class="mi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg></span>
+            <span class="mt">Coincide con: <b>${m.nombre||"—"}</b> · ${fmtMoney(m.credito)} · ${fmtFecha(m.fecha)}${m.documento?` · Doc ${m.documento}`:""}</span>
+            <span class="spacer"></span>
+            <button class="btn btn-ok" onclick="aceptar('${p.id}','${m.id}',this)">Aceptar con esta</button>
+          </div>`).join("")
+      : `<div class="nomatch">Sin coincidencia automática en el banco (revisalo a mano).</div>`;
+    return `<div class="pago" data-id="${p.id}">
+      <div class="top">
+        <div>
+          <div class="cli">${p.cliente}</div>
+          <div class="meta">
+            <span>Monto: <b>${fmtMoney(p.monto)}</b></span>
+            ${p.concepto?`<span>Concepto: <b>${p.concepto}</b></span>`:""}
+            ${p.procesado_por?`<span>Procesado por: <b>${p.procesado_por}</b></span>`:""}
           </div>
-          ${p.comprobante_url?`<a class="btn btn-ghost" href="${p.comprobante_url}" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Ver comprobante</a>`:""}
         </div>
-        <div class="match">${matchHtml}</div>
-        <div class="acts">
-          <button class="btn btn-ok" onclick="aceptar('${p.id}','',this)">Aceptar igual</button>
-          <button class="btn btn-rej" onclick="rechazar('${p.id}',this)">Rechazar</button>
-        </div>
-      </div>`;
-    }).join("");
+        ${p.comprobante_url?`<a class="btn btn-ghost" href="${p.comprobante_url}" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Ver comprobante</a>`:""}
+      </div>
+      <div class="match">${matchHtml}</div>
+      <div class="acts">
+        <button class="btn btn-ok" onclick="aceptar('${p.id}','',this)">Aceptar igual</button>
+        <button class="btn btn-rej" onclick="rechazar('${p.id}',this)">Rechazar</button>
+      </div>
+    </div>`;
+  }
+  function histCard(p){
+    const e = p.estado==="aceptado" ? {t:"Aceptado ✓",cls:"e-ok"} : {t:"Rechazado",cls:"e-rej"};
+    return `<div class="pago"><div class="top"><div>
+      <div class="cli">${p.cliente}</div>
+      <div class="meta"><span>Monto: <b>${fmtMoney(p.monto)}</b></span>${p.procesado_por?`<span>Vendedor: <b>${p.procesado_por}</b></span>`:""}<span>${fmtFecha(p.subido)}</span></div>
+    </div><span class="chip-e ${e.cls}">${e.t}</span></div></div>`;
+  }
+  function reciboCard(r){
+    return `<div class="rec">
+      <div class="ri"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l3 3v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></div>
+      <div><div class="rc">${r.cliente}</div><div class="rm">${r.factura?`Factura ${r.factura} · `:""}${fmtFecha(r.fecha)}</div></div>
+      <div class="spacer"></div>
+      ${r.recibo_url?`<a class="btn btn-ghost" href="${r.recibo_url}" target="_blank" rel="noopener">Ver recibo</a>`:""}
+    </div>`;
+  }
+  function render(data){
+    const list = document.getElementById("list");
+    const pr = data.por_revisar||[], hist = data.historial||[], recs = data.recibos||[];
+    let html = `<div class="sect">Por revisar (${pr.length})</div>`;
+    html += pr.length ? pr.map(pagoCard).join("") : `<div class="empty" style="padding:34px"><div class="big">✅</div>No hay pagos pendientes de revisión.</div>`;
+    if(hist.length){ html += `<div class="sect">Historial</div>` + hist.map(histCard).join(""); }
+    html += `<div class="sect">Recibos</div>`;
+    html += recs.length ? recs.map(reciboCard).join("") : `<div class="nomatch" style="padding:4px 2px">Todavía no llegaron recibos.</div>`;
+    list.innerHTML = html;
   }
 
   async function cargar(){
@@ -153,7 +183,7 @@
       const r = await fetch("/.netlify/functions/cobranzas-tesoreria", { headers:{ Authorization:"Bearer "+token } });
       const j = await r.json();
       if(j.error){ avisar("No pude cargar: "+j.error); return; }
-      render(j.pagos||[]);
+      render(j);
     }catch(e){ avisar("Error de conexión: "+(e.message||e)); }
   }
 
@@ -166,18 +196,16 @@
     btn.disabled=true; btn.textContent="…";
     const j = await accion({ accion:"aceptar", id, banco_mov_id: movId||undefined });
     if(!j.ok){ avisar("No se pudo aceptar: "+(j.error||"")); btn.disabled=false; return; }
-    document.querySelector(`.pago[data-id="${id}"]`)?.remove();
-    if(!document.querySelectorAll(".pago").length) render([]);
-    avisar("Pago aceptado ✓", true);
+    avisar("Pago aceptado ✓ — queda en el historial", true);
+    cargar();
   }
   async function rechazar(id, btn){
     if(!confirm("¿Rechazar este pago? El cliente lo verá como rechazado.")) return;
     btn.disabled=true;
     const j = await accion({ accion:"rechazar", id });
     if(!j.ok){ avisar("No se pudo rechazar"); btn.disabled=false; return; }
-    document.querySelector(`.pago[data-id="${id}"]`)?.remove();
-    if(!document.querySelectorAll(".pago").length) render([]);
-    avisar("Pago rechazado", true);
+    avisar("Pago rechazado — queda en el historial", true);
+    cargar();
   }
   window.aceptar=aceptar; window.rechazar=rechazar;
 

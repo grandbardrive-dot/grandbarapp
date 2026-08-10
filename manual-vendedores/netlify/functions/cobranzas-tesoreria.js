@@ -68,34 +68,35 @@ exports.handler = async (event) => {
       return json(400, { error: 'Acción inválida' });
     }
 
-    // GET → comprobantes procesados + sugerencia de match con el banco
-    const cp = await cob('comprobantes?estado=eq.procesado&tipo=eq.cliente&select=id,cliente_id,concepto,archivo_url,monto,fecha_pago,procesado_por,procesado_at,created_at&order=procesado_at.asc');
+    // GET → por revisar (procesado) + historial (aceptado/rechazado) + recibos
+    const cp = await cob('comprobantes?tipo=eq.cliente&estado=in.(procesado,aceptado,rechazado)&select=id,cliente_id,concepto,archivo_url,monto,fecha_pago,estado,procesado_por,procesado_at,created_at&order=created_at.desc&limit=300');
     const comps = (await cp.json()) || [];
-    if (!Array.isArray(comps) || !comps.length) return json(200, { pagos: [] });
+    const rc = await cob('comprobantes?tipo=eq.recibo&select=id,cliente_id,factura,archivo_url,fecha_pago,concepto,created_at&order=created_at.desc&limit=150');
+    const recs = (await rc.json()) || [];
 
-    const clienteIds = [...new Set(comps.map(c => c.cliente_id).filter(Boolean))];
+    const clienteIds = [...new Set([...(Array.isArray(comps) ? comps : []), ...(Array.isArray(recs) ? recs : [])].map(c => c.cliente_id).filter(Boolean))];
     const cl = clienteIds.length ? (await (await cob('clientes?id=in.(' + qids(clienteIds) + ')&select=id,nombre,comercio,codigo_cubo')).json()) : [];
     const cmap = {}; (Array.isArray(cl) ? cl : []).forEach(c => { cmap[c.id] = c; });
+    const nombreDe = id => { const c = cmap[id] || {}; return c.comercio || c.nombre || '—'; };
 
-    // Movimientos del banco sin usar
-    const bm = await cob('banco_movimientos?usado_en=is.null&select=id,fecha,nombre,documento,credito,detalle&order=fecha.desc&limit=2000');
+    // Movimientos del banco sin usar (para los matches de los procesados)
+    const bm = await cob('banco_movimientos?usado_en=is.null&select=id,fecha,nombre,documento,credito&order=fecha.desc&limit=2000');
     const movs = (await bm.json()) || [];
     const byMonto = {};
     (Array.isArray(movs) ? movs : []).forEach(m => { const k = Math.round(Number(m.credito) || 0); (byMonto[k] = byMonto[k] || []).push(m); });
 
-    const pagos = comps.map(c => {
-      const cli = cmap[c.cliente_id] || {};
-      const monto = c.monto != null ? Math.round(Number(c.monto)) : null;
-      const matches = (monto != null ? (byMonto[monto] || []) : []).slice(0, 3)
-        .map(m => ({ id: m.id, nombre: m.nombre, documento: m.documento, credito: m.credito, fecha: m.fecha }));
-      return {
-        id: c.id, cliente: cli.comercio || cli.nombre || '—', codigo: cli.codigo_cubo || null,
-        concepto: c.concepto, monto: c.monto, fecha_pago: c.fecha_pago,
-        comprobante_url: c.archivo_url, procesado_por: c.procesado_por, procesado_at: c.procesado_at,
-        matches,
-      };
+    const por_revisar = [], historial = [];
+    (Array.isArray(comps) ? comps : []).forEach(c => {
+      const base = { id: c.id, cliente: nombreDe(c.cliente_id), codigo: (cmap[c.cliente_id] || {}).codigo_cubo || null, concepto: c.concepto, monto: c.monto, fecha_pago: c.fecha_pago, estado: c.estado, comprobante_url: c.archivo_url, procesado_por: c.procesado_por, procesado_at: c.procesado_at, subido: c.created_at };
+      if (c.estado === 'procesado') {
+        const monto = c.monto != null ? Math.round(Number(c.monto)) : null;
+        base.matches = (monto != null ? (byMonto[monto] || []) : []).slice(0, 3).map(m => ({ id: m.id, nombre: m.nombre, documento: m.documento, credito: m.credito, fecha: m.fecha }));
+        por_revisar.push(base);
+      } else { historial.push(base); }
     });
-    return json(200, { rol: perfil.rol, pagos });
+    const recibos = (Array.isArray(recs) ? recs : []).map(r => ({ id: r.id, cliente: nombreDe(r.cliente_id), factura: r.factura, concepto: r.concepto, fecha: r.fecha_pago || r.created_at, recibo_url: r.archivo_url }));
+
+    return json(200, { rol: perfil.rol, por_revisar, historial, recibos });
   } catch (e) {
     return json(500, { error: (e && e.message) || String(e) });
   }
