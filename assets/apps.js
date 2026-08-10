@@ -187,6 +187,16 @@ const APPS = [
     url: "#",
   },
   {
+    id: "cobranzas-revision",
+    name: "Revisión de Cobranzas",
+    desc: "Comprobantes que cargaron los vendedores: cruzar con el banco y aceptar/rechazar.",
+    icon: "💳",
+    area: "administracion",
+    roles: ["admin", "administracion", "tesoreria"],
+    status: "live",
+    url: "cobranzas-tesoreria.html",
+  },
+  {
     id: "cobranzas",
     name: "Cobranzas",
     desc: "Reparto automático de pagos parciales, factura más atrasada primero.",

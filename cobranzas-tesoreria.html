@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrandBar Hub — Revisión de Cobranzas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --navy:#0d2238; --navy-2:#14304c; --cream:#f5f1e8; --card:#ffffff;
+      --ink:#1b2a32; --muted:#7a8891; --line:#e9e3d6; --line-2:#efe9dc;
+      --gold:#c9a13b; --gold-d:#a9852a; --gold-soft:#f7efda;
+      --green:#2f6f5e; --green-d:#245647; --green-soft:#e7f1ea; --green-bd:#bcdccd;
+      --coral:#d0603e; --coral-soft:#fbe9e4;
+      --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    }
+    *{box-sizing:border-box} html,body{margin:0;height:100%}
+    body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    .app{display:flex;min-height:100vh}
+    .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+    .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+    .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+    .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+    .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+    .sb-nav a:hover{background:var(--navy-2);color:#fff}
+    .sb-nav a.active{background:var(--gold);color:#2a2007;font-weight:600}
+    .sb-nav svg{width:19px;height:19px;flex:none;opacity:.9}
+    .sb-foot{margin-top:auto;padding-top:16px}
+    .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px;cursor:pointer}
+    .sb-user .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy)}
+    .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+
+    .main{flex:1;min-width:0}
+    .content{padding:26px 30px 60px;max-width:1040px;margin:0 auto}
+    .head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+    .head h1{font-size:24px;margin:0 0 4px;font-weight:800;display:flex;align-items:center;gap:10px}
+    .head p{margin:0;color:var(--muted);font-size:14px}
+    .btn{border:0;cursor:pointer;font:inherit;font-weight:600;font-size:13px;padding:11px 16px;border-radius:11px;display:inline-flex;align-items:center;gap:8px}
+    .btn-navy{background:var(--navy);color:#fff}.btn-navy:hover{background:var(--navy-2)}
+    .btn-ok{background:linear-gradient(180deg,var(--green),var(--green-d));color:#fff}.btn-ok:hover{filter:brightness(1.05)}
+    .btn-ghost{background:var(--cream);border:1px solid var(--line);color:var(--ink)}.btn-ghost:hover{border-color:var(--gold)}
+    .btn-rej{background:#fff;border:1px solid var(--line);color:var(--coral)}.btn-rej:hover{border-color:var(--coral)}
+    .btn:disabled{opacity:.6;cursor:default}
+
+    .bank{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:18px 0;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .bank .t{font-weight:700;font-size:14px}.bank .s{font-size:12.5px;color:var(--muted)}
+    .bank .spacer{flex:1}
+    .badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--gold);color:#2a2007}
+
+    .list{display:flex;flex-direction:column;gap:14px}
+    .pago{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+    .pago .top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
+    .pago .cli{font-weight:700;font-size:15px}
+    .pago .meta{font-size:12.5px;color:var(--muted);margin-top:3px;display:flex;gap:14px;flex-wrap:wrap}
+    .pago .meta b{color:var(--ink)}
+    .match{margin-top:12px;border-top:1px solid var(--line-2);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+    .mrow{display:flex;align-items:center;gap:12px;background:var(--green-soft);border:1px solid var(--green-bd);border-radius:10px;padding:9px 12px;flex-wrap:wrap}
+    .mrow .mi{color:var(--green-d);flex:none}
+    .mrow .mt{font-size:13px;color:var(--green-d)}.mrow .mt b{font-weight:700}
+    .mrow .spacer{flex:1}
+    .nomatch{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:10px}
+    .acts{display:flex;gap:9px;flex-wrap:wrap;margin-top:10px}
+    .empty{text-align:center;color:var(--muted);padding:60px 20px;border:1px dashed var(--line);border-radius:14px;background:var(--card)}
+    .empty .big{font-size:40px;margin-bottom:8px}
+    .aviso{border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none}
+    .aviso.ok{background:var(--green-soft);color:var(--green-d);border:1px solid var(--green-bd)}
+    .aviso.err{background:var(--coral-soft);color:#96371f;border:1px solid #f0bfb0}
+    @media(max-width:820px){ .sidebar{display:none} .content{padding:16px} }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav">
+      <a href="hub.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Panel</a>
+      <a href="cobranzas-tesoreria.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg> Revisión de Cobranzas</a>
+    </nav>
+    <div class="sb-foot"><div class="sb-user" id="userChip" title="Cerrar sesión"><div class="av" id="av">M</div><div><div class="t" id="uName">Tesorería</div><div class="s">Tesorería</div></div></div></div>
+  </aside>
+
+  <div class="main">
+    <div class="content">
+      <div class="head">
+        <div>
+          <h1><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg> Revisión de Cobranzas</h1>
+          <p>Pagos que los vendedores ya cargaron en Conquer, esperando tu revisión contra el banco.</p>
+        </div>
+      </div>
+
+      <div class="bank">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2"><path d="M3 10l9-6 9 6M4 10v9h16v-9M9 19v-5h6v5"/></svg>
+        <div><div class="t">Extracto del banco</div><div class="s">Subí el extracto del día (CSV) para que cruce solo cada pago.</div></div>
+        <div class="spacer"></div>
+        <input type="file" id="fileBank" accept=".csv,text/csv" style="display:none" />
+        <button class="btn btn-navy" onclick="document.getElementById('fileBank').click()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 9l5-5 5 5M12 4v12"/></svg> Subir extracto</button>
+      </div>
+
+      <div class="aviso" id="aviso"></div>
+      <div class="list" id="list"><div class="empty"><div class="big">⏳</div>Cargando…</div></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+  const initials = n => (n||"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "M";
+  const fmtMoney = n => n==null ? "—" : "$ " + Math.round(Number(n)).toLocaleString("es-AR");
+  const fmtFecha = v => { if(!v) return "—"; const d=new Date(v); return isNaN(d)? String(v) : d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"}); };
+  let token=null, hub=null;
+
+  function avisar(t, ok){ const a=document.getElementById("aviso"); a.textContent=t; a.className="aviso "+(ok?"ok":"err"); a.style.display=t?"block":"none"; if(t) setTimeout(()=>{a.style.display="none";}, 6000); }
+
+  function render(pagos){
+    const list = document.getElementById("list");
+    if(!pagos.length){ list.innerHTML = `<div class="empty"><div class="big">✅</div>No hay pagos pendientes de revisión.</div>`; return; }
+    list.innerHTML = pagos.map(p=>{
+      const matchHtml = (p.matches&&p.matches.length)
+        ? p.matches.map(m=>`
+            <div class="mrow">
+              <span class="mi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg></span>
+              <span class="mt">Coincide con: <b>${m.nombre||"—"}</b> · ${fmtMoney(m.credito)} · ${fmtFecha(m.fecha)}${m.documento?` · Doc ${m.documento}`:""}</span>
+              <span class="spacer"></span>
+              <button class="btn btn-ok" onclick="aceptar('${p.id}','${m.id}',this)">Aceptar con esta</button>
+            </div>`).join("")
+        : `<div class="nomatch">Sin coincidencia automática en el banco (revisalo a mano).</div>`;
+      return `<div class="pago" data-id="${p.id}">
+        <div class="top">
+          <div>
+            <div class="cli">${p.cliente}</div>
+            <div class="meta">
+              <span>Monto: <b>${fmtMoney(p.monto)}</b></span>
+              ${p.concepto?`<span>Concepto: <b>${p.concepto}</b></span>`:""}
+              ${p.procesado_por?`<span>Procesado por: <b>${p.procesado_por}</b></span>`:""}
+            </div>
+          </div>
+          ${p.comprobante_url?`<a class="btn btn-ghost" href="${p.comprobante_url}" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Ver comprobante</a>`:""}
+        </div>
+        <div class="match">${matchHtml}</div>
+        <div class="acts">
+          <button class="btn btn-ok" onclick="aceptar('${p.id}','',this)">Aceptar igual</button>
+          <button class="btn btn-rej" onclick="rechazar('${p.id}',this)">Rechazar</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  async function cargar(){
+    try{
+      const r = await fetch("/.netlify/functions/cobranzas-tesoreria", { headers:{ Authorization:"Bearer "+token } });
+      const j = await r.json();
+      if(j.error){ avisar("No pude cargar: "+j.error); return; }
+      render(j.pagos||[]);
+    }catch(e){ avisar("Error de conexión: "+(e.message||e)); }
+  }
+
+  async function accion(body){
+    const r = await fetch("/.netlify/functions/cobranzas-tesoreria", { method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+token }, body: JSON.stringify(body) });
+    return r.json();
+  }
+  async function aceptar(id, movId, btn){
+    if(!confirm("¿Aceptar este pago?" + (movId?" (con la transferencia coincidente)":""))) return;
+    btn.disabled=true; btn.textContent="…";
+    const j = await accion({ accion:"aceptar", id, banco_mov_id: movId||undefined });
+    if(!j.ok){ avisar("No se pudo aceptar: "+(j.error||"")); btn.disabled=false; return; }
+    document.querySelector(`.pago[data-id="${id}"]`)?.remove();
+    if(!document.querySelectorAll(".pago").length) render([]);
+    avisar("Pago aceptado ✓", true);
+  }
+  async function rechazar(id, btn){
+    if(!confirm("¿Rechazar este pago? El cliente lo verá como rechazado.")) return;
+    btn.disabled=true;
+    const j = await accion({ accion:"rechazar", id });
+    if(!j.ok){ avisar("No se pudo rechazar"); btn.disabled=false; return; }
+    document.querySelector(`.pago[data-id="${id}"]`)?.remove();
+    if(!document.querySelectorAll(".pago").length) render([]);
+    avisar("Pago rechazado", true);
+  }
+  window.aceptar=aceptar; window.rechazar=rechazar;
+
+  // ---- Parseo del extracto (CSV) ----
+  function parseCSVLine(line){ const o=[]; let c="",q=false; for(const ch of line){ if(ch==='"') q=!q; else if((ch===','||ch===';')&&!q){ o.push(c); c=""; } else c+=ch; } o.push(c); return o; }
+  function num(s){ if(s==null) return null; const n=parseFloat(String(s).replace(/[^\d,.-]/g,"").replace(/\./g,"").replace(",",".")); return isNaN(n)?null:n; }
+  function colIndex(headers, ...keys){ for(let i=0;i<headers.length;i++){ const h=headers[i].toLowerCase(); if(keys.some(k=>h.includes(k))) return i; } return -1; }
+
+  document.getElementById("fileBank").addEventListener("change", async (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    try{
+      const txt = await file.text();
+      const lines = txt.split(/\r?\n/).filter(l=>l.trim());
+      if(lines.length<2){ avisar("El archivo parece vacío."); return; }
+      const headers = parseCSVLine(lines[0]);
+      const iF=colIndex(headers,"fecha"), iH=colIndex(headers,"hora"), iC=colIndex(headers,"concepto"),
+            iD=colIndex(headers,"detalle","descrip"), iDeb=colIndex(headers,"débito","debito"), iCred=colIndex(headers,"crédito","credito");
+      const movs=[];
+      for(let li=1; li<lines.length; li++){
+        const p = parseCSVLine(lines[li]);
+        const detalle = iD>=0? p[iD] : "";
+        const credito = iCred>=0? num(p[iCred]) : null;
+        if(!credito) continue; // solo créditos (transferencias recibidas)
+        const nombreM = /NOMBRE:?\s*(.+?)(?:\s+DOCUMENTO|\s+DOCU|\s+DNI|\s+CUIT|$)/i.exec(detalle);
+        const docM = /(?:DOCUMENTO|DOCU|CUIT|DNI):?\s*([\d.]+)/i.exec(detalle);
+        const fecha = iF>=0? p[iF] : "";
+        movs.push({
+          fecha: (fecha||"").split("/").reverse().join("-").length===10 ? fecha.split("/").reverse().join("-") : (fecha||null),
+          hora: iH>=0? p[iH]:null, concepto: iC>=0? p[iC]:null, detalle,
+          nombre: nombreM? nombreM[1].trim():null, documento: docM? docM[1].replace(/\./g,""):null,
+          credito, debito: iDeb>=0? num(p[iDeb]):null,
+          hash: [(fecha||""),(credito||""),(detalle||"").slice(0,50)].join("|"),
+        });
+      }
+      if(!movs.length){ avisar("No encontré transferencias (créditos) en el archivo. ¿Es el extracto correcto?"); return; }
+      avisar("Subiendo "+movs.length+" movimientos…", true);
+      const j = await accion({ accion:"importar-banco", movimientos: movs });
+      if(!j.ok){ avisar("No pude cargar el extracto: "+(j.error||"")); return; }
+      avisar(movs.length+" movimientos cargados. Recalculando coincidencias…", true);
+      cargar();
+    }catch(err){ avisar("Error leyendo el archivo: "+(err.message||err)); }
+    finally{ e.target.value=""; }
+  });
+
+  document.getElementById("userChip").addEventListener("click", async ()=>{ if(confirm("¿Cerrar sesión?")){ try{ await hub.auth.signOut(); }catch(e){} location.href="index.html"; } });
+
+  (async function init(){
+    if(!window.supabase){ location.href="index.html"; return; }
+    hub = supabase.createClient(HUB.url, HUB.key);
+    const { data:{ session } } = await hub.auth.getSession();
+    if(!session){ location.href="index.html"; return; }
+    token = session.access_token;
+    try{
+      const { data:p } = await hub.from("usuarios").select("nombre,rol").eq("id", session.user.id).maybeSingle();
+      const n=(p&&p.nombre)||session.user.email;
+      document.getElementById("uName").textContent=n;
+      document.getElementById("av").textContent=initials(n);
+    }catch(e){}
+    cargar();
+  })();
+</script>
+</body>
+</html>
