@@ -191,6 +191,13 @@
         </div>
       </div>
 
+      <!-- Banner supervisor (solo si es supervisor) -->
+      <a id="supBanner" href="supervisor-equipo.html" style="display:none;align-items:center;gap:14px;background:var(--navy);color:#fff;border-radius:14px;padding:16px 20px;margin-bottom:18px">
+        <span style="width:44px;height:44px;border-radius:11px;background:var(--gold);color:var(--navy);display:grid;place-items:center;flex:none"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></span>
+        <span style="flex:1"><span style="font-weight:700;font-size:15px;display:block">Panel de supervisor · Mi equipo</span><span style="font-size:12.5px;color:#b9c6cd">Métricas del equipo, clientes por vendedor y tareas</span></span>
+        <span style="color:var(--gold);font-size:20px">›</span>
+      </a>
+
       <!-- Stat cards -->
       <div class="stats">
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Clientes asignados</div><div class="v" id="stClientes">—</div><div class="sub" id="stClientesSub">Activos</div></div></div>
@@ -424,9 +431,10 @@
       const { data:{ session } } = await hub.auth.getSession();
       if(!session){ location.href="index.html"; return; }   // portero
 
-      const { data: perfil } = await hub.from("usuarios").select("nombre, codigo_vendedor, canal").eq("id", session.user.id).maybeSingle();
+      const { data: perfil } = await hub.from("usuarios").select("nombre, codigo_vendedor, canal, es_supervisor").eq("id", session.user.id).maybeSingle();
       let nombre = perfil && perfil.nombre ? perfil.nombre : session.user.email;
       if(perfil && perfil.canal) cargarPromos(perfil.canal);
+      if(perfil && perfil.es_supervisor){ document.getElementById("supBanner").style.display = "flex"; }
 
       if(perfil && perfil.codigo_vendedor){
         const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
