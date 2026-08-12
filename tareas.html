@@ -103,15 +103,10 @@
     <div class="content">
       <div class="head">
         <div>
-          <h1>Tareas del día ✅</h1>
+          <h1 id="h1t">Tareas del día ✅</h1>
           <p id="sub">Estas son tus tareas de hoy. Tildá cada una cuando la termines.</p>
         </div>
-      </div>
-
-      <div class="sup-cta" id="supCta" onclick="location.href='supervisor-tareas.html'">
-        <div class="ci"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div>
-        <div><div class="t">Cargar tareas para tu equipo</div><div class="s">Sos supervisor — asigná y hacé seguimiento acá</div></div>
-        <span class="go">›</span>
+        <button id="btnNueva" onclick="abrirNueva()" style="display:none;background:var(--green);color:#fff;border:0;border-radius:11px;padding:11px 17px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap">+ Nueva tarea</button>
       </div>
 
       <div class="msg" id="msg"></div>
@@ -133,11 +128,36 @@
   <a href="agenda.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Agenda</a>
 </nav>
 
+<!-- Modal: nueva tarea personal (supervisor) -->
+<div id="ovN" style="position:fixed;inset:0;background:rgba(13,34,48,.45);display:none;align-items:center;justify-content:center;z-index:60;padding:16px">
+  <div style="background:#fff;border-radius:18px;width:100%;max-width:440px;max-height:92vh;overflow:auto;box-shadow:0 30px 80px -30px rgba(0,0,0,.6)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px">
+      <h3 style="margin:0;font-size:18px;font-weight:800">Nueva tarea propia</h3>
+      <button onclick="cerrarNueva()" style="background:none;border:0;cursor:pointer;color:var(--muted);font-size:20px">✕</button>
+    </div>
+    <div style="padding:0 20px 8px">
+      <div style="margin-bottom:15px"><label style="display:block;font-weight:700;font-size:13.5px;margin-bottom:6px">¿Qué tenés que hacer?</label>
+        <input id="nTit" maxlength="120" placeholder="Ej: Revisar exhibición en 5 bares" oninput="valN()" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font:inherit;font-size:14.5px;background:#fdfbf7"></div>
+      <div style="margin-bottom:15px"><label style="display:block;font-weight:700;font-size:13.5px;margin-bottom:6px">Detalle <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+        <textarea id="nDesc" maxlength="500" placeholder="Cómo, dónde, con qué objetivo…" style="width:100%;min-height:70px;resize:vertical;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font:inherit;font-size:14.5px;background:#fdfbf7"></textarea></div>
+      <div style="margin-bottom:15px"><label style="display:block;font-weight:700;font-size:13.5px;margin-bottom:6px">¿Cuándo?</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <div id="nFDia" onclick="setFrecN('diaria')" style="border:2px solid var(--gold);background:var(--gold-soft);color:var(--gold-d);border-radius:10px;padding:11px;text-align:center;cursor:pointer;font-weight:700;font-size:13px">🔁 Todos los días</div>
+          <div id="nFPun" onclick="setFrecN('puntual')" style="border:2px solid var(--line);border-radius:10px;padding:11px;text-align:center;cursor:pointer;font-weight:700;font-size:13px;color:var(--muted)">📌 Un día puntual</div>
+        </div>
+        <input type="date" id="nFecha" onchange="valN()" style="display:none;margin-top:10px;width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font:inherit;font-size:14.5px;background:#fdfbf7"></div>
+    </div>
+    <div style="padding:12px 20px 20px">
+      <button id="nSave" onclick="guardarPersonal()" disabled style="width:100%;background:var(--green);color:#fff;border:0;border-radius:11px;padding:14px;font:inherit;font-weight:800;font-size:15px;cursor:pointer">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/supervisor-nav.js"></script>
 <script>
   const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
-  let hub, TOKEN=null, TAREAS=[];
+  let hub, TOKEN=null, TAREAS=[], ES_SUP=false, frecN='diaria';
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
@@ -145,7 +165,9 @@
     const cont = document.getElementById('tlist');
     if(!TAREAS.length){
       document.getElementById('prog').style.display='none';
-      cont.innerHTML = '<div class="empty"><div class="big">🎉</div><b>No tenés tareas para hoy</b><div style="font-size:13px;margin-top:4px">Cuando tu supervisor cargue tareas, van a aparecer acá.</div></div>';
+      cont.innerHTML = ES_SUP
+        ? '<div class="empty"><div class="big">📝</div><b>Todavía no cargaste ninguna tarea propia</b><div style="font-size:13px;margin-top:4px">Tocá <b>+ Nueva tarea</b> para agregar tus responsabilidades del día.</div></div>'
+        : '<div class="empty"><div class="big">🎉</div><b>No tenés tareas para hoy</b><div style="font-size:13px;margin-top:4px">Cuando tu supervisor cargue tareas, van a aparecer acá.</div></div>';
       return;
     }
     const done = TAREAS.filter(t=>t.completada).length;
@@ -167,15 +189,35 @@
   async function toggle(id){
     const t = TAREAS.find(x=>x.id===id); if(!t) return;
     const nuevo = !t.completada; t.completada = nuevo; render(); // optimista
+    const accion = ES_SUP ? (nuevo?'completar-personal':'descompletar-personal') : (nuevo?'completar':'descompletar');
     try{
-      const r = await fetch('/.netlify/functions/tareas', { method:'POST', headers:{ Authorization:'Bearer '+TOKEN, 'Content-Type':'application/json' }, body: JSON.stringify({ accion: nuevo?'completar':'descompletar', id }) });
+      const r = await fetch('/.netlify/functions/tareas', { method:'POST', headers:{ Authorization:'Bearer '+TOKEN, 'Content-Type':'application/json' }, body: JSON.stringify({ accion, id }) });
       if(!r.ok){ t.completada = !nuevo; render(); }
     }catch(e){ t.completada = !nuevo; render(); }
   }
 
+  // --- Crear tarea propia (supervisor) ---
+  function abrirNueva(){ document.getElementById('nTit').value=''; document.getElementById('nDesc').value=''; document.getElementById('nFecha').value=''; setFrecN('diaria'); valN(); document.getElementById('ovN').style.display='flex'; }
+  function cerrarNueva(){ document.getElementById('ovN').style.display='none'; }
+  function setFrecN(f){ frecN=f;
+    document.getElementById('nFDia').style.cssText = 'border:2px solid '+(f==='diaria'?'var(--gold);background:var(--gold-soft);color:var(--gold-d)':'var(--line);color:var(--muted)')+';border-radius:10px;padding:11px;text-align:center;cursor:pointer;font-weight:700;font-size:13px';
+    document.getElementById('nFPun').style.cssText = 'border:2px solid '+(f==='puntual'?'var(--gold);background:var(--gold-soft);color:var(--gold-d)':'var(--line);color:var(--muted)')+';border-radius:10px;padding:11px;text-align:center;cursor:pointer;font-weight:700;font-size:13px';
+    document.getElementById('nFecha').style.display = f==='puntual'?'block':'none'; valN();
+  }
+  function valN(){ const ok = document.getElementById('nTit').value.trim().length>2 && (frecN==='diaria' || document.getElementById('nFecha').value); document.getElementById('nSave').disabled=!ok; }
+  async function guardarPersonal(){
+    const btn=document.getElementById('nSave'); btn.disabled=true;
+    const body={ accion:'crear-personal', titulo:document.getElementById('nTit').value.trim(), descripcion:document.getElementById('nDesc').value.trim()||null, frecuencia:frecN, fecha: frecN==='puntual'?document.getElementById('nFecha').value:null };
+    try{
+      const r=await fetch('/.netlify/functions/tareas',{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const d=await r.json(); if(!r.ok){ alert(d.error||'No pude guardar'); btn.disabled=false; return; }
+      cerrarNueva(); cargar();
+    }catch(e){ alert('Error de conexión'); btn.disabled=false; }
+  }
+
   async function cargar(){
     try{
-      const r = await fetch('/.netlify/functions/tareas', { headers:{ Authorization:'Bearer '+TOKEN } });
+      const r = await fetch('/.netlify/functions/tareas' + (ES_SUP?'?vista=personales':''), { headers:{ Authorization:'Bearer '+TOKEN } });
       const d = await r.json();
       if(!r.ok){ document.getElementById('msg').style.display='block'; document.getElementById('msg').textContent = d.error||'No pude cargar las tareas.'; return; }
       TAREAS = d.tareas||[]; render();
@@ -191,7 +233,12 @@
     const { data:u } = await hub.from('usuarios').select('nombre,es_supervisor').eq('id', session.user.id).maybeSingle();
     if(u){
       if(u.nombre){ document.getElementById('uName').textContent=u.nombre; const in0=u.nombre.trim()[0]||'V'; document.getElementById('avSb').textContent=in0.toUpperCase(); }
-      if(u.es_supervisor){ document.getElementById('supCta').style.display='flex'; }
+      if(u.es_supervisor){
+        ES_SUP = true;
+        document.getElementById('h1t').textContent = 'Mis tareas ✅';
+        document.getElementById('sub').textContent = 'Tus tareas y responsabilidades del día. Cargalas y tildá cuando las cumplas.';
+        document.getElementById('btnNueva').style.display = 'inline-flex';
+      }
     }
     document.getElementById('logout').onclick = async ()=>{ if(confirm('¿Cerrar sesión?')){ try{ await hub.auth.signOut(); }catch(e){} location.href='index.html'; } };
     cargar();

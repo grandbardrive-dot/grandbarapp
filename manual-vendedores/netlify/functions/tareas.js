@@ -67,6 +67,36 @@ exports.handler = async (event) => {
         await sb('tareas_completadas?tarea_id=eq.' + encodeURIComponent(b.id) + '&vendedor=eq.' + encodeURIComponent(cod) + '&fecha=eq.' + new Date().toISOString().slice(0, 10), { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
         return json(200, { ok: true });
       }
+
+      // --- Tareas PERSONALES del supervisor (sus propias responsabilidades) ---
+      // Se identifican por creado_por_id y la finalización se registra con vendedor = user.id.
+      if (b.accion === 'crear-personal') {
+        if (!perfil.es_supervisor) return json(403, { error: 'Solo supervisores.' });
+        if (!b.titulo) return json(400, { error: 'Falta el título.' });
+        const fila = {
+          titulo: b.titulo, descripcion: b.descripcion || null,
+          frecuencia: b.frecuencia === 'puntual' ? 'puntual' : 'diaria',
+          fecha: b.frecuencia === 'puntual' ? (b.fecha || null) : null,
+          alcance: 'personal', canal: null, region: null, asignados: [],
+          creado_por: perfil.nombre || user.email, creado_por_id: user.id,
+        };
+        const r = await sb('tareas', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) });
+        if (!r.ok) return json(502, { error: 'No pude crear: ' + (await r.text()).slice(0, 150) });
+        return json(200, { ok: true, tarea: (await r.json())[0] });
+      }
+      if (b.accion === 'completar-personal' && b.id) {
+        const r = await sb('tareas_completadas?on_conflict=tarea_id,vendedor,fecha', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify({ tarea_id: b.id, vendedor: user.id }) });
+        if (!r.ok) return json(502, { error: 'No pude marcar' });
+        return json(200, { ok: true });
+      }
+      if (b.accion === 'descompletar-personal' && b.id) {
+        await sb('tareas_completadas?tarea_id=eq.' + encodeURIComponent(b.id) + '&vendedor=eq.' + encodeURIComponent(user.id) + '&fecha=eq.' + new Date().toISOString().slice(0, 10), { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+        return json(200, { ok: true });
+      }
+      if (b.accion === 'borrar-personal' && b.id) {
+        await sb('tareas?id=eq.' + encodeURIComponent(b.id) + '&creado_por_id=eq.' + encodeURIComponent(user.id) + '&alcance=eq.personal', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ activa: false }) });
+        return json(200, { ok: true });
+      }
       return json(400, { error: 'Acción inválida' });
     }
 
@@ -94,6 +124,18 @@ exports.handler = async (event) => {
         return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
       }).filter(u => u.codigo_vendedor).map(u => ({ codigo: u.codigo_vendedor, nombre: u.nombre }));
       return json(200, { rol: 'supervisor', canal: perfil.canal, region: perfil.region, nombre: perfil.nombre, equipo, tareas: out });
+    }
+
+    // Tareas PERSONALES del supervisor (sus propias responsabilidades)
+    if (vista === 'personales') {
+      const hoyP = new Date().toISOString().slice(0, 10);
+      const r = await sb('tareas?alcance=eq.personal&creado_por_id=eq.' + encodeURIComponent(user.id) + '&activa=eq.true&select=*&order=created_at.desc');
+      const todas = await r.json();
+      const aplica = (Array.isArray(todas) ? todas : []).filter(t => !(t.frecuencia === 'puntual' && t.fecha !== hoyP));
+      const misComp = await sb('tareas_completadas?vendedor=eq.' + encodeURIComponent(user.id) + '&fecha=eq.' + hoyP + '&select=tarea_id');
+      const hechas = new Set((await misComp.json() || []).map(x => x.tarea_id));
+      const out = aplica.map(t => ({ id: t.id, titulo: t.titulo, descripcion: t.descripcion, frecuencia: t.frecuencia, completada: hechas.has(t.id) }));
+      return json(200, { rol: 'personal', tareas: out });
     }
 
     // Vendedor: tareas del día que le aplican
