@@ -64,6 +64,34 @@
     .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--green-d))}
 
     .loading,.empty{text-align:center;color:var(--muted);padding:40px 20px}
+    .vrow{cursor:pointer;transition:border-color .12s}.vrow:hover{border-color:var(--gold)}
+
+    /* Modal detalle de visita */
+    .vm-ov{position:fixed;inset:0;background:rgba(13,34,48,.5);display:none;align-items:center;justify-content:center;z-index:70;padding:16px}
+    .vm-ov.open{display:flex}
+    .vm{background:var(--cream);border-radius:18px;width:100%;max-width:560px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px -30px rgba(0,0,0,.6)}
+    .vm-top{background:var(--navy);color:#fff;padding:18px 22px;position:relative}
+    .vm-top .x{position:absolute;top:15px;right:18px;background:none;border:0;color:#cdd8de;cursor:pointer}
+    .vm-top h3{margin:0;font-size:18px;font-weight:800}
+    .vm-top .s{font-size:12.5px;color:#a9bcc6;margin-top:3px}
+    .vm-body{padding:16px 18px;overflow:auto;flex:1}
+    .vm-hero{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px 16px;margin-bottom:14px;display:flex;align-items:center;gap:16px}
+    .vm-pct{font-size:30px;font-weight:800;flex:none}
+    .vm-pct.hi{color:var(--green-d)}.vm-pct.mid{color:var(--gold-d)}.vm-pct.lo{color:var(--danger)}
+    .vm-hero .bar{flex:1;margin-top:0}
+    .vm-obs{background:var(--gold-soft);border:1px solid #e5d3a3;border-radius:11px;padding:12px 14px;font-size:13px;color:#6a5312;margin-bottom:14px;font-style:italic}
+    .cl-sec{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:9px;overflow:hidden}
+    .cl-h{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
+    .cl-ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:15px;flex:none;background:var(--cream)}
+    .cl-nm{font-weight:700;font-size:14px;flex:1}
+    .cl-cnt{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px}
+    .cl-cnt.full{background:var(--green-soft);color:var(--green-d)}.cl-cnt.part{background:#fdeae2;color:var(--danger)}
+    .cl-b{padding:0 14px 12px;display:none}.cl-b.open{display:block}
+    .cl-it{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
+    .cl-ck{width:19px;height:19px;border-radius:5px;flex:none;display:grid;place-items:center;margin-top:1px;border:2px solid #cbb98f}
+    .cl-ck.on{background:var(--green);border-color:var(--green)}
+    .cl-tx{font-size:13px;line-height:1.4}.cl-tx.on{color:var(--muted)}
+    .cl-secobs{font-size:12px;color:var(--muted);margin-top:6px;font-style:italic}
 
     /* Drawer */
     .overlay{position:fixed;inset:0;background:rgba(13,34,48,.4);opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
@@ -145,6 +173,15 @@
   <div class="dr-body" id="drBody"></div>
 </aside>
 
+<!-- Modal: detalle de una visita -->
+<div class="vm-ov" id="vmOv" onclick="if(event.target.id==='vmOv')cerrarVisita()">
+  <div class="vm">
+    <div class="vm-top"><button class="x" onclick="cerrarVisita()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <h3 id="vmTit">—</h3><div class="s" id="vmSub"></div></div>
+    <div class="vm-body" id="vmBody"></div>
+  </div>
+</div>
+
 <nav class="botnav">
   <a href="supervisor-equipo.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Equipo</a>
   <a href="supervisor-tareas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg>Tareas</a>
@@ -154,10 +191,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/supervisor-nav.js"></script>
+<script src="manual-vendedores/_checklist-data.js"></script>
 <script>
   const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const MANUAL = { url:"https://fzaxwuuodseyyinveknn.supabase.co", key:"sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk" };
-  let hub, TOKEN=null, VIS_BY_VEND={}, DATA=[], PERIODO='mes';
+  let hub, TOKEN=null, VIS_BY_VEND={}, VIS_BY_ID={}, DATA=[], PERIODO='mes';
   const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   function cambiarPeriodo(){ PERIODO=document.getElementById('periodo').value; cargar(); }
 
@@ -165,6 +203,8 @@
   const ini = n => (String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('')||'?').toUpperCase();
   const pct = n => (n==null?'—':Math.round(n)+'%');
   const fdate = f => { try{ return new Date(f).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'}); }catch(e){ return ''; } };
+  const fdateL = f => { try{ return new Date(f).toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'}); }catch(e){ return fdate(f); } };
+  const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : '';
 
   function render(){
     const g=document.getElementById('vgrid');
@@ -195,11 +235,41 @@
     document.getElementById('drBody').innerHTML = vis.length ? vis.map(x=>{
       const p = x.porcentaje_total; const cls = p>=70?'hi':(p!=null?'lo':'');
       const cn = (x.clientes && (x.clientes.nombre)) || 'Cliente';
-      return `<div class="vrow"><div><div class="nm">${esc(cn)}</div><div class="meta">${fdate(x.fecha)}</div></div><div class="pct ${cls}">${p!=null?Math.round(p)+'%':'—'}</div></div>`;
+      return `<div class="vrow" onclick="verVisita('${esc(x.id)}')"><div><div class="nm">${esc(cn)}</div><div class="meta">${fdate(x.fecha)} · ver detalle ›</div></div><div class="pct ${cls}">${p!=null?Math.round(p)+'%':'—'}</div></div>`;
     }).join('') : '<div class="empty">Sin visitas en este período.</div>';
   }
   function cerrar(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('drawer').classList.remove('open'); }
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrar(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(document.getElementById('vmOv').classList.contains('open')) cerrarVisita(); else cerrar(); } });
+
+  // Detalle de una visita (checklist completo + observaciones)
+  function verVisita(id){
+    const v = VIS_BY_ID[String(id)]; if(!v) return;
+    const p = v.porcentaje_total, tipo=(v.clientes&&v.clientes.tipo)||'', dir=(v.clientes&&v.clientes.direccion)||'';
+    document.getElementById('vmTit').textContent = (v.clientes&&v.clientes.nombre)||'Visita';
+    document.getElementById('vmSub').textContent = `${fdateL(v.fecha)}${tipo?' · '+cap(tipo):''}${dir?' · '+dir:''}`;
+    const pcls = p>=70?'hi':(p>=40?'mid':'lo');
+    const hero = `<div class="vm-hero"><div class="vm-pct ${pcls}">${p!=null?Math.round(p)+'%':'—'}</div><div style="flex:1"><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Checklist completado</div><div class="bar"><i style="width:${p||0}%"></i></div></div></div>`;
+    const obs = v.observaciones ? `<div class="vm-obs">💬 ${esc(v.observaciones)}</div>` : '';
+    const checklist = (typeof getChecklist==='function') ? getChecklist(tipo) : null;
+    const clHtml = renderChecklist(checklist, v.progreso||{});
+    document.getElementById('vmBody').innerHTML = hero + obs + (clHtml || '<div class="empty">Esta visita no tiene checklist detallado guardado.</div>');
+    document.getElementById('vmOv').classList.add('open');
+  }
+  function cerrarVisita(){ document.getElementById('vmOv').classList.remove('open'); }
+  function renderChecklist(checklist, progreso){
+    if(!checklist || !checklist.secciones || !checklist.secciones.length) return '';
+    let tot=0, done=0;
+    checklist.secciones.forEach(sec=>{ const ch=(progreso[sec.id]&&progreso[sec.id].checks)||[]; sec.items.forEach((_,i)=>{ tot++; if(ch[i]) done++; }); });
+    const secs = checklist.secciones.map(sec=>{
+      const sp = progreso[sec.id]||{}, ch = sp.checks||[];
+      const sd = sec.items.filter((_,i)=>ch[i]===true).length;
+      const full = sd===sec.items.length && sec.items.length>0;
+      const items = sec.items.map((it,i)=>{ const ok=ch[i]===true; return `<div class="cl-it"><div class="cl-ck ${ok?'on':''}">${ok?'<svg width="11" height="9" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div><div class="cl-tx ${ok?'on':''}">${esc(it.texto)}</div></div>`; }).join('');
+      const so = sp.obs ? `<div class="cl-secobs">💬 ${esc(sp.obs)}</div>` : '';
+      return `<div class="cl-sec"><div class="cl-h" onclick="this.nextElementSibling.classList.toggle('open')"><div class="cl-ic" style="background:${sec.iconoBg||'var(--cream)'};color:${sec.iconoColor||'inherit'}">${sec.icono||'•'}</div><div class="cl-nm">${esc(sec.titulo)}</div><span class="cl-cnt ${full?'full':'part'}">${sd}/${sec.items.length}</span></div><div class="cl-b ${full?'':'open'}">${items}${so}</div></div>`;
+    }).join('');
+    return `<div style="font-weight:800;font-size:14px;margin:4px 0 10px">✅ Checklist — ${done}/${tot} acciones</div>${secs}`;
+  }
 
   async function cargar(){
     // 1) Equipo del supervisor (del Hub: códigos + nombres consistentes)
@@ -237,7 +307,7 @@
     let visitas=[];
     if(vendIds.length){
       let q = man.from('visitas')
-        .select('id, vendedor_id, cliente_id, fecha, porcentaje_total, clientes(id,nombre,tipo)')
+        .select('id, vendedor_id, cliente_id, fecha, porcentaje_total, progreso, observaciones, clientes(id,nombre,tipo,codigo_cliente,direccion), vendedores(nombre)')
         .in('vendedor_id', vendIds);
       if(desde) q = q.gte('fecha', desde.toISOString());
       if(hasta) q = q.lt('fecha', hasta.toISOString());
@@ -247,13 +317,13 @@
 
     // 3) Agregar por código
     const agg = {}; codigos.forEach(c=>{ agg[c]={codigo:c, nombre:nombreDe[c]||c, visitas:0, clientesSet:new Set(), sumPct:0, nPct:0}; });
-    VIS_BY_VEND = {}; codigos.forEach(c=>VIS_BY_VEND[c]=[]);
+    VIS_BY_VEND = {}; codigos.forEach(c=>VIS_BY_VEND[c]=[]); VIS_BY_ID = {};
     let totClientes = new Set(), totSumPct=0, totNPct=0;
     visitas.forEach(x=>{
       const cod = idToCod[x.vendedor_id]; const a = agg[cod]; if(!a) return;
       a.visitas++; if(x.cliente_id){ a.clientesSet.add(x.cliente_id); totClientes.add(x.cliente_id); }
       if(x.porcentaje_total!=null){ a.sumPct+=Number(x.porcentaje_total); a.nPct++; totSumPct+=Number(x.porcentaje_total); totNPct++; }
-      VIS_BY_VEND[cod].push(x);
+      VIS_BY_VEND[cod].push(x); VIS_BY_ID[String(x.id)] = x;
     });
     DATA = codigos.map(c=>{ const a=agg[c]; return { codigo:c, nombre:a.nombre, visitas:a.visitas, clientes:a.clientesSet.size, promedio: a.nPct? a.sumPct/a.nPct : null }; })
       .sort((x,y)=> y.visitas - x.visitas);
