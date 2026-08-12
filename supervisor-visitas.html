@@ -249,10 +249,13 @@
     document.getElementById('vmSub').textContent = `${fdateL(v.fecha)}${tipo?' · '+cap(tipo):''}${dir?' · '+dir:''}`;
     const pcls = p>=70?'hi':(p>=40?'mid':'lo');
     const hero = `<div class="vm-hero"><div class="vm-pct ${pcls}">${p!=null?Math.round(p)+'%':'—'}</div><div style="flex:1"><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Checklist completado</div><div class="bar"><i style="width:${p||0}%"></i></div></div></div>`;
+    const pdf = v.resumen_pdf_url
+      ? `<a href="${esc(v.resumen_pdf_url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:9px;background:var(--navy);color:#fff;border-radius:11px;padding:13px;font-weight:700;font-size:14px;margin-bottom:14px;text-decoration:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg> Ver PDF de la visita</a>`
+      : `<div style="background:#f2eee4;color:var(--muted);border-radius:11px;padding:11px 14px;font-size:12.5px;margin-bottom:14px;text-align:center">Esta visita no tiene PDF guardado.</div>`;
     const obs = v.observaciones ? `<div class="vm-obs">💬 ${esc(v.observaciones)}</div>` : '';
     const checklist = (typeof getChecklist==='function') ? getChecklist(tipo) : null;
     const clHtml = renderChecklist(checklist, v.progreso||{});
-    document.getElementById('vmBody').innerHTML = hero + obs + (clHtml || '<div class="empty">Esta visita no tiene checklist detallado guardado.</div>');
+    document.getElementById('vmBody').innerHTML = hero + pdf + obs + (clHtml || '<div class="empty">Esta visita no tiene checklist detallado guardado.</div>');
     document.getElementById('vmOv').classList.add('open');
   }
   function cerrarVisita(){ document.getElementById('vmOv').classList.remove('open'); }
@@ -307,7 +310,7 @@
     let visitas=[];
     if(vendIds.length){
       let q = man.from('visitas')
-        .select('id, vendedor_id, cliente_id, fecha, porcentaje_total, progreso, observaciones, clientes(id,nombre,tipo,codigo_cliente,direccion), vendedores(nombre)')
+        .select('id, vendedor_id, cliente_id, fecha, porcentaje_total, progreso, observaciones, resumen_pdf_url, clientes(id,nombre,tipo,codigo_cliente,direccion), vendedores(nombre)')
         .in('vendedor_id', vendIds);
       if(desde) q = q.gte('fecha', desde.toISOString());
       if(hasta) q = q.lt('fecha', hasta.toISOString());
