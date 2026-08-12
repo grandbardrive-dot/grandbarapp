@@ -432,9 +432,10 @@
       if(!session){ location.href="index.html"; return; }   // portero
 
       const { data: perfil } = await hub.from("usuarios").select("nombre, codigo_vendedor, canal, es_supervisor").eq("id", session.user.id).maybeSingle();
+      // Los supervisores van a su panel de equipo, no a la pantalla de vendedor.
+      if(perfil && perfil.es_supervisor){ location.replace("supervisor-equipo.html"); return; }
       let nombre = perfil && perfil.nombre ? perfil.nombre : session.user.email;
       if(perfil && perfil.canal) cargarPromos(perfil.canal);
-      if(perfil && perfil.es_supervisor){ document.getElementById("supBanner").style.display = "flex"; }
 
       if(perfil && perfil.codigo_vendedor){
         const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });

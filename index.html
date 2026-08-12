@@ -107,9 +107,13 @@
       btn.disabled = true; btn.style.opacity = ".7";
       const r = await GBAuth.signIn(email, pass);
       if (r.ok) {
-        // Landing por rol: el vendedor entra a su Inicio; el resto, al panel (hub).
+        // Landing por rol: supervisor → su panel de equipo; vendedor → su Inicio; el resto → hub.
         let destino = "hub.html";
-        try { const s = await GBAuth.getSession(); if (s && s.role === "ventas") destino = "inicio.html"; } catch (e) {}
+        try {
+          const s = await GBAuth.getSession();
+          if (s && s.es_supervisor) destino = "supervisor-equipo.html";
+          else if (s && s.role === "ventas") destino = "inicio.html";
+        } catch (e) {}
         window.location.href = destino;
       } else {
         btn.disabled = false; btn.style.opacity = "1";

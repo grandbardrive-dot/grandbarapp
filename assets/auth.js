@@ -42,13 +42,14 @@
       // Buscar el rol en la tabla usuarios (id = auth.users.id)
       const { data: perfil } = await client
         .from("usuarios")
-        .select("nombre, rol")
+        .select("nombre, rol, es_supervisor")
         .eq("id", session.user.id)
         .single();
       return {
         user: session.user,
         role: perfil?.rol || "ventas",
         nombre: perfil?.nombre || session.user.email,
+        es_supervisor: !!perfil?.es_supervisor,
       };
     },
 
