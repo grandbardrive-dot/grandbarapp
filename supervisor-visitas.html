@@ -111,12 +111,20 @@
   <div class="main">
     <div class="content">
       <div class="head">
-        <div><h1>Visitas del equipo 📊</h1><p id="sub">Cargando visitas del mes…</p></div>
-        <div class="badge" id="badge"></div>
+        <div><h1>Visitas del equipo 📊</h1><p id="sub">Cargando visitas…</p></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <select id="periodo" onchange="cambiarPeriodo()" style="border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;font-size:13px;font-weight:600;background:var(--card);color:var(--ink);cursor:pointer">
+            <option value="mes">Este mes</option>
+            <option value="mespasado">Mes pasado</option>
+            <option value="3m">Últimos 3 meses</option>
+            <option value="todo">Todo el historial</option>
+          </select>
+          <div class="badge" id="badge"></div>
+        </div>
       </div>
 
       <div class="kpis">
-        <div class="kpi gold"><div class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg></div><div><div class="l">Visitas del mes</div><div class="v" id="kVis">—</div></div></div>
+        <div class="kpi gold"><div class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg></div><div><div class="l" id="kVisLbl">Visitas del mes</div><div class="v" id="kVis">—</div></div></div>
         <div class="kpi teal"><div class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div><div class="l">Clientes visitados</div><div class="v" id="kCli">—</div></div></div>
         <div class="kpi green"><div class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg></div><div><div class="l">Promedio checklist</div><div class="v" id="kPct">—</div></div></div>
         <div class="kpi"><div class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Vendedores</div><div class="v" id="kVend">—</div></div></div>
@@ -149,7 +157,9 @@
 <script>
   const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const MANUAL = { url:"https://fzaxwuuodseyyinveknn.supabase.co", key:"sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk" };
-  let hub, TOKEN=null, VIS_BY_VEND={}, DATA=[];
+  let hub, TOKEN=null, VIS_BY_VEND={}, DATA=[], PERIODO='mes';
+  const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  function cambiarPeriodo(){ PERIODO=document.getElementById('periodo').value; cargar(); }
 
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const ini = n => (String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('')||'?').toUpperCase();
@@ -180,13 +190,13 @@
     document.getElementById('overlay').classList.add('open');
     document.getElementById('drawer').classList.add('open');
     document.getElementById('drNombre').textContent = v.nombre||cod;
-    document.getElementById('drSub').textContent = `${v.visitas||0} visitas este mes · ${v.clientes||0} clientes · checklist ${pct(v.promedio)}`;
+    document.getElementById('drSub').textContent = `${v.visitas||0} visitas · ${v.clientes||0} clientes · checklist ${pct(v.promedio)}`;
     const vis = (VIS_BY_VEND[cod]||[]).slice().sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
     document.getElementById('drBody').innerHTML = vis.length ? vis.map(x=>{
       const p = x.porcentaje_total; const cls = p>=70?'hi':(p!=null?'lo':'');
       const cn = (x.clientes && (x.clientes.nombre)) || 'Cliente';
       return `<div class="vrow"><div><div class="nm">${esc(cn)}</div><div class="meta">${fdate(x.fecha)}</div></div><div class="pct ${cls}">${p!=null?Math.round(p)+'%':'—'}</div></div>`;
-    }).join('') : '<div class="empty">Sin visitas registradas este mes.</div>';
+    }).join('') : '<div class="empty">Sin visitas en este período.</div>';
   }
   function cerrar(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('drawer').classList.remove('open'); }
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrar(); });
@@ -216,12 +226,22 @@
     const idToCod = {}; (vends||[]).forEach(v=>{ idToCod[v.id]=String(v.codigo); });
     const vendIds = (vends||[]).map(v=>v.id);
 
-    const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    // Rango según el período elegido
+    const now = new Date(); let desde=null, hasta=null, periodoLbl='', kpiLbl='';
+    if(PERIODO==='mes'){ desde=new Date(now.getFullYear(),now.getMonth(),1); periodoLbl='en '+MESES[now.getMonth()]; kpiLbl='Visitas del mes'; }
+    else if(PERIODO==='mespasado'){ desde=new Date(now.getFullYear(),now.getMonth()-1,1); hasta=new Date(now.getFullYear(),now.getMonth(),1); periodoLbl='en '+MESES[desde.getMonth()]; kpiLbl='Visitas (mes pasado)'; }
+    else if(PERIODO==='3m'){ desde=new Date(now.getFullYear(),now.getMonth()-2,1); periodoLbl='en los últimos 3 meses'; kpiLbl='Visitas (3 meses)'; }
+    else { periodoLbl='(todo el historial)'; kpiLbl='Visitas totales'; }
+    document.getElementById('kVisLbl').textContent = kpiLbl;
+
     let visitas=[];
     if(vendIds.length){
-      const { data: vis } = await man.from('visitas')
+      let q = man.from('visitas')
         .select('id, vendedor_id, cliente_id, fecha, porcentaje_total, clientes(id,nombre,tipo)')
-        .in('vendedor_id', vendIds).gte('fecha', inicioMes).order('fecha',{ascending:false});
+        .in('vendedor_id', vendIds);
+      if(desde) q = q.gte('fecha', desde.toISOString());
+      if(hasta) q = q.lt('fecha', hasta.toISOString());
+      const { data: vis } = await q.order('fecha',{ascending:false});
       visitas = vis||[];
     }
 
@@ -243,8 +263,7 @@
     document.getElementById('kCli').textContent = totClientes.size;
     document.getElementById('kPct').textContent = totNPct? Math.round(totSumPct/totNPct)+'%' : '—';
     document.getElementById('kVend').textContent = codigos.length;
-    const mesNom = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][new Date().getMonth()];
-    document.getElementById('sub').textContent = `Visitas de tu equipo en ${mesNom}. Tocá un vendedor para ver el detalle.`;
+    document.getElementById('sub').textContent = `Visitas de tu equipo ${periodoLbl}. Tocá un vendedor para ver el detalle.`;
     render();
   }
 
