@@ -228,7 +228,7 @@
       const lv = ultimaVisita[c.id] ? `Última visita<br>${fmtFecha(ultimaVisita[c.id])}` : "";
       return `<div class="crow ${i===sel?'sel':''}" onclick="selCliente(${i})">
         <div class="n">${i+1}</div>
-        <div><div class="nm">${c.nombre}</div><div class="meta">${cap(c.tipo)}${c.direccion? ' · '+c.direccion:''}</div></div>
+        <div><div class="nm">${c.nombre}</div><div class="meta">${c.vendedor_nombre ? c.vendedor_nombre+(c.direccion?' · '+c.direccion:'') : cap(c.tipo)+(c.direccion? ' · '+c.direccion:'')}</div></div>
         <div class="right"><div class="lv">${lv}</div><span class="badge">Activo</span></div>
       </div>`;
     }).join("") + `<div class="list-foot">${rows.length} de ${CLIENTES.length} clientes</div>`;
@@ -261,7 +261,7 @@
             <div><div class="k">Código</div><div class="v">${c.codigo_cliente||"—"}</div></div>
             <div><div class="k">Email</div><div class="v pend">—</div></div>
             <div><div class="k">CUIT</div><div class="v pend">—</div></div>
-            <div><div class="k">Vendedor asignado</div><div class="v">${vendedorNombre}</div></div>
+            <div><div class="k">Vendedor asignado</div><div class="v">${c.vendedor_nombre || vendedorNombre}</div></div>
           </div>
         </div>
         <div class="d-block">
@@ -313,9 +313,25 @@
       if(!session){ reason="no hay sesión iniciada en el Hub (entrá desde portalgrandbar.com y abrí Mis Clientes desde el panel)"; return; }
 
       const { data: perfil, error: pe } = await hub.from("usuarios")
-        .select("nombre, codigo_vendedor").eq("id", session.user.id).maybeSingle();
+        .select("nombre, codigo_vendedor, es_supervisor").eq("id", session.user.id).maybeSingle();
       if(pe){ reason="no pude leer tu perfil ("+pe.message+")"; return; }
       if(!perfil){ reason="tu usuario ("+session.user.email+") no tiene fila en la tabla usuarios"; return; }
+
+      // Supervisor: ve todos los clientes de su equipo (cuentas_cubo vía Function), no una lista personal.
+      if(perfil.es_supervisor){
+        setUser(perfil.nombre || session.user.email, session.user.email);
+        const fr = await fetch("/.netlify/functions/supervisor-equipo?clientes=1", { headers:{ Authorization:"Bearer "+session.access_token } });
+        const fj = await fr.json();
+        if(!fr.ok){ reason="no pude cargar los clientes del equipo ("+(fj.error||fr.status)+")"; return; }
+        const team = fj.clientes || [];
+        CLIENTES = team.map(c=>({ id:String(c.codigo), nombre:c.nombre, tipo:"", direccion:c.direccion||c.localidad||"", codigo_cliente:String(c.codigo), whatsapp:c.telefono||"", vendedor_nombre:c.vendedor_nombre||"" }));
+        team.forEach(c=>{ const raw=String(c.codigo); const sd={saldo:c.saldo,vencida:c.vencida,telefono:c.telefono}; saldoMap[raw]=sd; saldoMap[raw.replace(/^0+/,"")]=sd; });
+        document.getElementById("stCount").textContent = CLIENTES.length;
+        const h1=document.querySelector(".htxt h1"); if(h1) h1.textContent="Clientes del equipo";
+        const hp=document.querySelector(".htxt p"); if(hp) hp.textContent="Todos los clientes de tus vendedores.";
+        sel=-1; renderList(""); reason=""; return;
+      }
+
       if(!perfil.codigo_vendedor){ reason="tu usuario ("+session.user.email+") no tiene código de vendedor cargado"; return; }
 
       const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
