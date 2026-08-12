@@ -137,6 +137,7 @@
       <div class="tabs">
         <div class="tab on" id="tabVend" onclick="setTab('vend')">Por vendedor</div>
         <div class="tab" id="tabCli" onclick="setTab('cli')">Todos los clientes</div>
+        <div class="tab" id="tabAgenda" onclick="setTab('agenda')">Agenda del equipo</div>
       </div>
 
       <div id="viewVend"><div class="vgrid" id="vgrid"><div class="loading">Cargando…</div></div></div>
@@ -144,6 +145,10 @@
       <div id="viewCli" style="display:none">
         <div class="toolbar"><input id="buscar" placeholder="Buscar cliente, vendedor o dirección…" oninput="renderClientes()" /></div>
         <div class="clist" id="clist"><div class="loading">Tocá la pestaña para cargar…</div></div>
+      </div>
+
+      <div id="viewAgenda" style="display:none">
+        <div class="clist" id="alist"><div class="loading">Tocá la pestaña para cargar…</div></div>
       </div>
     </div>
   </div>
@@ -154,6 +159,9 @@
   <div class="dr-top">
     <button class="dclose" onclick="cerrar()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <h3 id="drNombre">—</h3><div class="s" id="drSub"></div>
+    <a id="drAgenda" href="#" style="display:inline-flex;align-items:center;gap:7px;margin-top:12px;background:var(--gold);color:var(--navy);font-weight:700;font-size:13px;padding:9px 14px;border-radius:9px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg> Armar su agenda
+    </a>
   </div>
   <div class="dr-body" id="drBody"></div>
 </aside>
@@ -168,7 +176,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
   const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
-  let hub, TOKEN=null, EQUIPO=[], CLIENTES=null, TAB='vend';
+  let hub, TOKEN=null, EQUIPO=[], CLIENTES=null, AGENDA=null, TAB='vend';
 
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const fmt = n => { n=Number(n)||0; return '$ '+Math.round(n).toLocaleString('es-AR'); };
@@ -178,9 +186,28 @@
     TAB=t;
     document.getElementById('tabVend').classList.toggle('on', t==='vend');
     document.getElementById('tabCli').classList.toggle('on', t==='cli');
+    document.getElementById('tabAgenda').classList.toggle('on', t==='agenda');
     document.getElementById('viewVend').style.display = t==='vend'?'block':'none';
     document.getElementById('viewCli').style.display = t==='cli'?'block':'none';
+    document.getElementById('viewAgenda').style.display = t==='agenda'?'block':'none';
     if(t==='cli' && CLIENTES===null) cargarClientes();
+    if(t==='agenda' && AGENDA===null) cargarAgenda();
+  }
+
+  async function cargarAgenda(){
+    const cont=document.getElementById('alist'); cont.innerHTML='<div class="loading">Cargando agenda del equipo…</div>';
+    try{
+      const r=await fetch('/.netlify/functions/compromisos?equipo=1',{headers:{Authorization:'Bearer '+TOKEN}});
+      const d=await r.json(); AGENDA=d.equipo||[];
+      const nom={}; EQUIPO.forEach(v=>{ nom[String(v.codigo)]=v.nombre; });
+      if(!AGENDA.length){ cont.innerHTML='<div class="empty">Sin vendedores.</div>'; return; }
+      cont.innerHTML = AGENDA.map(a=>`
+        <div class="crow">
+          <div><div class="nm">${esc(nom[String(a.codigo)]||a.codigo)}</div>
+            <div class="meta">Hoy: <b>${a.hoy||0}</b> · Próximos: <b>${a.proximos||0}</b> · Pendientes: <b>${a.pendientes||0}</b></div></div>
+          <div class="col"><a href="agenda.html?vendedor=${encodeURIComponent(a.codigo)}" style="color:var(--gold-d);font-weight:700;font-size:13px;white-space:nowrap">Armar agenda ›</a></div>
+        </div>`).join('');
+    }catch(e){ cont.innerHTML='<div class="empty">Error cargando.</div>'; }
   }
 
   function renderEquipo(){
@@ -209,6 +236,7 @@
     const v = EQUIPO.find(x=>String(x.codigo)===String(cod))||{};
     document.getElementById('drNombre').textContent = v.nombre||cod;
     document.getElementById('drSub').textContent = `${v.clientes||0} clientes · Deuda vencida ${fmt(v.vencida)}`;
+    document.getElementById('drAgenda').href = 'agenda.html?vendedor='+encodeURIComponent(cod);
     document.getElementById('drBody').innerHTML='<div class="loading">Cargando clientes…</div>';
     try{
       const r = await fetch('/.netlify/functions/supervisor-equipo?vendedor='+encodeURIComponent(cod), { headers:{ Authorization:'Bearer '+TOKEN } });
