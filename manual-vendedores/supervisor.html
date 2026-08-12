@@ -326,8 +326,27 @@ const ASIGNACIONES = {
   'SUP003': ['006','010','017','041','043'],
 };
 
-// ── Auth — esperar a que el DOM esté completo antes de restaurar sesión ───────
-document.addEventListener('DOMContentLoaded', () => { if (supervisor) mostrarApp(); });
+// ── Auth — arranca desde la sesión del Hub (sin segundo login) ────────────────
+const HUB_SB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+document.addEventListener('DOMContentLoaded', bootstrapHub);
+async function bootstrapHub() {
+  try {
+    const hub = supabase.createClient(HUB_SB.url, HUB_SB.key);
+    const { data: { session } } = await hub.auth.getSession();
+    if (session) {
+      const { data: u } = await hub.from('usuarios').select('nombre, canal, region, es_supervisor').eq('id', session.user.id).maybeSingle();
+      if (u && u.es_supervisor) {
+        const reg = String(u.region || '').toLowerCase(), can = String(u.canal || '').toLowerCase();
+        const supCod = reg === 'san_luis' ? 'SUP003' : (can === 'off' ? 'SUP002' : (can === 'on' ? 'SUP001' : null));
+        if (supCod) {
+          const { data: srow } = await sb.from('supervisores').select('*').eq('codigo', supCod).maybeSingle();
+          if (srow) { supervisor = srow; sessionStorage.setItem('supervisor', JSON.stringify(srow)); mostrarApp(); return; }
+        }
+      }
+    }
+  } catch (e) { /* si falla, cae al login del Manual */ }
+  if (supervisor) mostrarApp(); // sesión previa del Manual (uso directo)
+}
 
 async function loginSup() {
   const codigo = document.getElementById('sup-codigo').value.trim().toUpperCase();
@@ -389,7 +408,7 @@ function mostrarApp() {
 
 function logout() {
   sessionStorage.removeItem('supervisor');
-  window.location.href = 'index.html';
+  window.location.href = '../supervisor-equipo.html';
 }
 
 // ── Carga principal ───────────────────────────────────────────────────────────
