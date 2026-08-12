@@ -53,6 +53,16 @@
     .pago .top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
     .pago .cli{font-weight:700;font-size:15px}
     .codcli{font-size:11px;font-weight:700;color:var(--navy);background:#e6eef5;padding:2px 8px;border-radius:6px;margin-left:8px;white-space:nowrap}
+    .btn-ia{background:#123043;color:#fff;border-color:#123043}
+    .ia-box{margin:6px 0 2px}
+    .ia-card{border:1px solid var(--line,#e7ded0);border-radius:11px;padding:12px 14px;font-size:13px;background:#fbfaf7}
+    .ia-card.ok{border-color:#8fbfad;background:#eef6f1}
+    .ia-card.warn{border-color:#e6b8a6;background:#fdeee7}
+    .ia-card .t{font-weight:800;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+    .ia-card .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px}
+    .ia-card .kv .k{color:#6d7d85}
+    .ia-alert{margin-top:8px;font-size:12.5px;color:#8a3b22;font-weight:600}
+    .ia-load{font-size:12.5px;color:#6d7d85;display:flex;align-items:center;gap:8px}
     .pago .meta{font-size:12.5px;color:var(--muted);margin-top:3px;display:flex;gap:14px;flex-wrap:wrap}
     .pago .meta b{color:var(--ink)}
     .match{margin-top:12px;border-top:1px solid var(--line-2);padding-top:12px;display:flex;flex-direction:column;gap:8px}
@@ -147,7 +157,9 @@
         ${p.comprobante_url?`<a class="btn btn-ghost" href="${p.comprobante_url}" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Ver comprobante</a>`:""}
       </div>
       <div class="match">${matchHtml}</div>
+      <div class="ia-box" id="ia-${p.id}"></div>
       <div class="acts">
+        ${p.comprobante_url?`<button class="btn btn-ia" onclick="analizarIA('${p.id}','${encodeURIComponent(p.comprobante_url)}',${p.monto!=null?p.monto:'null'},this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 20l1-5-4-3.5 5-.5z"/></svg> Analizar con IA</button>`:""}
         <button class="btn btn-ok" onclick="aceptar('${p.id}','',this)">Aceptar igual</button>
         <button class="btn btn-rej" onclick="rechazar('${p.id}',this)">Rechazar</button>
       </div>
@@ -208,7 +220,34 @@
     avisar("Pago rechazado — queda en el historial", true);
     cargar();
   }
-  window.aceptar=aceptar; window.rechazar=rechazar;
+  async function analizarIA(id, urlEnc, monto, btn){
+    const box = document.getElementById("ia-"+id); if(!box) return;
+    const url = decodeURIComponent(urlEnc);
+    btn.disabled=true;
+    box.innerHTML = `<div class="ia-card"><div class="ia-load"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 20l1-5-4-3.5 5-.5z"/></svg> Leyendo el comprobante con IA…</div></div>`;
+    try{
+      const r = await fetch("/.netlify/functions/analizar-comprobante", { method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer "+token }, body: JSON.stringify({ archivo_url:url, monto_declarado: monto }) });
+      const j = await r.json();
+      if(!r.ok || j.error){ box.innerHTML = `<div class="ia-card warn"><div class="t">⚠️ No se pudo analizar</div><div style="font-size:12.5px">${(j.error||"Error").toString().slice(0,160)}</div></div>`; btn.disabled=false; return; }
+      const d = j.datos||{};
+      const warn = j.coincide===false || j.datos?.legible===false || (j.alertas&&j.alertas.length);
+      const fila=(k,v)=> v!=null&&v!==""? `<div class="k">${k}</div><div>${String(v)}</div>`:"";
+      box.innerHTML = `<div class="ia-card ${warn?'warn':(j.coincide===true?'ok':'')}">
+        <div class="t">${warn?'⚠️ Revisar':(j.coincide===true?'✅ El monto coincide':'🔍 Lectura del comprobante')}</div>
+        <div class="kv">
+          ${fila("Monto en el comprobante", j.monto_detectado!=null? fmtMoney(j.monto_detectado) : "no detectado")}
+          ${fila("Monto declarado", j.monto_declarado!=null? fmtMoney(j.monto_declarado) : "—")}
+          ${fila("Fecha", d.fecha)}
+          ${fila("Banco", d.banco)}
+          ${fila("Titular / destino", d.titular_o_destinatario)}
+          ${fila("N° operación", d.nro_operacion)}
+        </div>
+        ${(j.alertas&&j.alertas.length)? j.alertas.map(a=>`<div class="ia-alert">• ${a}</div>`).join("") : ""}
+      </div>`;
+      btn.disabled=false;
+    }catch(e){ box.innerHTML = `<div class="ia-card warn"><div class="t">⚠️ Error de conexión</div></div>`; btn.disabled=false; }
+  }
+  window.aceptar=aceptar; window.rechazar=rechazar; window.analizarIA=analizarIA;
 
   // ---- Parseo del extracto (CSV) ----
   function parseCSVLine(line){ const o=[]; let c="",q=false; for(const ch of line){ if(ch==='"') q=!q; else if((ch===','||ch===';')&&!q){ o.push(c); c=""; } else c+=ch; } o.push(c); return o; }
