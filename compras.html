@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Compras</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  .badge-ia{background:var(--green-soft);color:var(--green-d);font-size:11px;font-weight:800;border-radius:20px;padding:3px 10px;display:inline-flex;align-items:center;gap:5px}
+  .plan{display:grid;grid-template-columns:.85fr 1.15fr;gap:16px}
+  .plan .bk{display:flex;flex-direction:column;gap:12px}
+  .plan .bk .l{font-size:11.5px;color:var(--muted)} .plan .bk .v{font-size:18px;font-weight:800}
+  .plan .bk .pc{font-size:11px;font-weight:800;color:var(--green-d)}
+  .note{background:var(--gold-soft);border:1px solid #e7d3a1;border-radius:11px;padding:11px 13px;font-size:12px;color:#6a5312;display:flex;gap:10px;align-items:center;margin-top:12px}
+  .prod .pr{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2)}
+  .prod .pr:last-child{border-bottom:0}
+  .prod .pn{font-weight:700;font-size:13px} .prod .ps{font-size:11.5px;color:var(--muted)}
+  .prod .pd{margin-left:auto;text-align:right}
+  .subtabs{display:flex;gap:16px;margin-bottom:8px;font-size:12px;font-weight:700}
+  .subtabs span{color:var(--muted);cursor:pointer;padding-bottom:5px;border-bottom:2px solid transparent}
+  .subtabs span.on{color:var(--danger);border-color:var(--danger)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+
+    <div class="dhead">
+      <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg></span>
+      <div><h1>Compras</h1><div class="sub">Control total de abastecimiento y gestión inteligente</div></div>
+      <span class="sp"></span>
+      <span class="pill">📅 20 de mayo, 2025</span>
+      <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</span>
+      <div class="ic-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">7</span></div>
+      <button class="acc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Acción rápida</button>
+    </div>
+
+    <div class="tabs">
+      <a class="on" href="#">Resumen</a><a href="proveedores.html">Proveedores</a><a href="#">Propuestas</a><a href="#">Órdenes de compra</a><a href="#">Stock y rotación</a><a href="#">Vencimientos</a><a href="#">Análisis</a><a href="#">Planificador IA</a>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></span><span class="lbl">Presupuesto disponible</span></div><div class="v">$84.200.000</div><div class="sub">Proyectado para el mes</div><a class="lnk" href="#">Ver detalle →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg></span><span class="lbl">Compras recomendadas (IA)</span></div><div class="v">$61.800.000</div><div class="sub">73% del presupuesto</div><a class="lnk" href="#">Ver plan →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--orange)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 12 3 4 7l8 4 8-4zM4 7v10l8 4 8-4V7"/></svg></span><span class="lbl">Órdenes de compra activas</span></div><div class="v">28</div><div class="sub">En tránsito: $18.750.000</div><a class="lnk" href="#">Ver órdenes →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><span class="lbl">Propuestas pendientes</span></div><div class="v">15</div><div class="sub">Por evaluar: $22.430.000</div><a class="lnk" href="#">Ver propuestas →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--gold)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19 19 5M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM20 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg></span><span class="lbl">Ahorro potencial (IA)</span></div><div class="v">$7.420.000</div><div class="sub">Vs. compras manuales</div><a class="lnk" href="#">Ver análisis →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></span><span class="lbl">Rotación promedio</span></div><div class="v">32 días</div><div class="sub up">▲ 5 días vs mes anterior</div><a class="lnk" href="#">Ver rotación →</a></div>
+    </div>
+
+    <div class="g-3">
+      <div class="card">
+        <div class="c-h"><div class="t">Plan de compras inteligente · Mayo</div><span class="badge-ia">✨ IA Activa</span></div>
+        <div class="plan">
+          <div class="bk">
+            <div style="font-size:12.5px;color:var(--muted)">La IA recomienda comprar en el momento y cantidad justos, optimizando stock y flujo de caja.</div>
+            <div><div class="l">Presupuesto disponible</div><div class="v">$84.200.000</div></div>
+            <div><div class="l">Compras recomendadas</div><div class="v">$61.800.000 <span class="pc">73%</span></div></div>
+            <div><div class="l">Reserva de caja sugerida</div><div class="v">$22.400.000 <span class="pc" style="color:var(--muted)">27%</span></div></div>
+          </div>
+          <div>
+            <svg viewBox="0 0 300 150" style="width:100%;height:130px">
+              <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--purple)" stop-opacity=".28"/><stop offset="1" stop-color="var(--purple)" stop-opacity="0"/></linearGradient></defs>
+              <path d="M0 110 C40 70 60 70 90 92 C120 114 150 40 190 55 C230 70 260 95 300 88 L300 150 L0 150 Z" fill="url(#ga)"/>
+              <path d="M0 110 C40 70 60 70 90 92 C120 114 150 40 190 55 C230 70 260 95 300 88" fill="none" stroke="var(--purple)" stroke-width="2.5"/>
+            </svg>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;font-size:10.5px;color:var(--muted);margin-top:4px">
+              <div><b style="display:block;color:var(--ink)">22%</b>Sem 1</div><div><b style="display:block;color:var(--ink)">15%</b>Sem 2</div><div><b style="display:block;color:var(--ink)">23%</b>Sem 3</div><div><b style="display:block;color:var(--ink)">13%</b>Sem 4</div>
+            </div>
+          </div>
+        </div>
+        <div class="note">💡 La IA prioriza productos críticos y de alta rotación en las primeras semanas, manteniendo siempre una reserva de caja mínima del 25%.</div>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Proyección de flujo de caja <small>Mayo 2025</small></div></div>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);margin-bottom:6px"><span>🟢 Ingresos</span><span>🔴 Egresos</span><span>🟣 Saldo</span></div>
+        <svg viewBox="0 0 300 150" style="width:100%;height:135px">
+          <polyline points="0,95 40,85 75,88 110,60 150,55 190,45 225,40 300,25" fill="none" stroke="var(--green)" stroke-width="2.3"/>
+          <polyline points="0,120 40,112 75,110 110,95 150,92 190,88 225,80 300,72" fill="none" stroke="var(--danger)" stroke-width="2.3"/>
+          <polyline points="0,130 40,128 75,126 110,120 150,118 190,116 225,112 300,108" fill="none" stroke="var(--purple)" stroke-width="2" stroke-dasharray="4 3"/>
+        </svg>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:10px">
+          <div><div style="font-size:11px;color:var(--muted)">Saldo proyectado al 31/05</div><div style="font-size:17px;font-weight:800">$22.400.000</div></div>
+          <div class="note" style="margin:0;font-size:11px">⚠️ Sin planificación IA, el saldo podría caer a <b style="color:var(--danger)">$7.200.000</b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Alertas de IA</div><span class="lnk">Ver todas (6)</span></div>
+        <div class="al"><span class="i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span><div><div class="tt">Riesgo de quiebre crítico</div><div class="ss">Jack Honey · 7 días de inventario</div></div><span class="r" style="color:var(--danger)">Crítico</span></div>
+        <div class="al"><span class="i" style="background:var(--amber-soft);color:var(--gold-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4z"/></svg></span><div><div class="tt">Sobre stock detectado</div><div class="ss">Fernet Branca · 152 días de inventario</div></div><span class="r" style="color:var(--gold-d)">Alto</span></div>
+        <div class="al"><span class="i" style="background:var(--amber-soft);color:var(--gold-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><div class="tt">Vencimientos próximos</div><div class="ss">Aperol · 24 unidades</div></div><span class="r">15 días</span></div>
+        <div class="al"><span class="i" style="background:var(--teal-soft);color:var(--teal)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-9M14 17H5"/><circle cx="8" cy="7" r="2"/><circle cx="16" cy="17" r="2"/></svg></span><div><div class="tt">Proveedor con demoras</div><div class="ss">3 órdenes afectadas</div></div><span class="r" style="color:var(--gold-d)">Medio</span></div>
+        <div class="al"><span class="i" style="background:var(--green-soft);color:var(--green-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg></span><div><div class="tt">Oportunidad comercial</div><div class="ss">Aperol 3+1 disponible</div></div><span class="r lnk">Ver</span></div>
+        <div class="al"><span class="i" style="background:var(--green-soft);color:var(--green-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7H4V5h11"/></svg></span><div><div class="tt">Nuevo ingreso confirmado</div><div class="ss">Jameson · 120 cajas</div></div><span class="r lnk">Ver</span></div>
+      </div>
+    </div>
+
+    <div class="g-321">
+      <div class="card">
+        <div class="c-h"><div class="t">Propuestas pendientes de evaluación <small>15 propuestas · $22.430.000</small></div></div>
+        <table class="t">
+          <tr><th>Proveedor</th><th>Propuesta</th><th>Productos</th><th>Monto</th><th>Recibida</th><th></th></tr>
+          <tr><td>Campari Group</td><td>Aperol 3+1</td><td>Aperol, Cynar, Campari</td><td>$8.750.000</td><td>20/05</td><td><button class="btn-sm">Evaluar</button></td></tr>
+          <tr><td>Pernod Ricard</td><td>Jameson Bono</td><td>Jameson, Ballantine's</td><td>$6.420.000</td><td>19/05</td><td><button class="btn-sm">Evaluar</button></td></tr>
+          <tr><td>Diageo</td><td>Black Label 4+2</td><td>Johnnie Walker</td><td>$3.890.000</td><td>18/05</td><td><button class="btn-sm">Evaluar</button></td></tr>
+          <tr><td>Peñaflor</td><td>Innovaciones ON</td><td>Varios</td><td>$2.980.000</td><td>17/05</td><td><button class="btn-sm">Evaluar</button></td></tr>
+          <tr><td>Salentein</td><td>Vinos Selección</td><td>Vinos varias líneas</td><td>$420.000</td><td>16/05</td><td><button class="btn-sm">Evaluar</button></td></tr>
+        </table>
+        <a class="lnk" href="#" style="margin-top:10px;display:inline-block">Ver todas las propuestas →</a>
+      </div>
+
+      <div class="card prod">
+        <div class="c-h"><div class="t">Productos críticos</div></div>
+        <div class="subtabs"><span class="on">Quiebre inminente</span><span>Sobre stock</span><span>Baja rotación</span></div>
+        <div class="pr"><div><div class="pn">Jack Honey</div></div><div class="pd"><div style="color:var(--danger);font-weight:800;font-size:12px">7 días</div><div class="ps">Stock: 18 cajas</div></div></div>
+        <div class="pr"><div><div class="pn">Fernet Branca</div></div><div class="pd"><div style="color:var(--danger);font-weight:800;font-size:12px">10 días</div><div class="ps">Stock: 35 cajas</div></div></div>
+        <div class="pr"><div><div class="pn">Gordon's Gin</div></div><div class="pd"><div style="color:var(--danger);font-weight:800;font-size:12px">12 días</div><div class="ps">Stock: 28 cajas</div></div></div>
+        <div class="pr"><div><div class="pn">Smirnoff</div></div><div class="pd"><div style="color:var(--gold-d);font-weight:800;font-size:12px">15 días</div><div class="ps">Stock: 42 cajas</div></div></div>
+        <div class="pr"><div><div class="pn">Aperol</div></div><div class="pd"><div style="color:var(--gold-d);font-weight:800;font-size:12px">16 días</div><div class="ps">Stock: 24 cajas</div></div></div>
+        <a class="lnk" href="#" style="margin-top:10px;display:inline-block">Ver análisis completo →</a>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Rotación por categoría <small>Mes actual</small></div><span class="lnk">Ver todas</span></div>
+        <div class="donut-wrap">
+          <div style="flex:1">
+            <table class="t"><tr><th>Categoría</th><th>Rotación</th><th>vs mes</th></tr>
+            <tr><td>Whisky</td><td><b>28 días</b></td><td class="down">↓ 4</td></tr>
+            <tr><td>Vinos</td><td><b>35 días</b></td><td class="up">↑ 3</td></tr>
+            <tr><td>Ginebra</td><td><b>31 días</b></td><td class="down">↓ 2</td></tr>
+            <tr><td>Aperitivos</td><td><b>24 días</b></td><td class="down">↓ 6</td></tr>
+            <tr><td>Espumantes</td><td><b>42 días</b></td><td class="up">↑ 5</td></tr>
+            <tr><td>Ron</td><td><b>27 días</b></td><td class="down">↓ 1</td></tr>
+            </table>
+          </div>
+          <svg width="104" height="104" viewBox="0 0 42 42" style="flex:none">
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#eee7d8" stroke-width="7"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--blue)" stroke-width="7" stroke-dasharray="30 70" stroke-dashoffset="25"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--purple)" stroke-width="7" stroke-dasharray="22 78" stroke-dashoffset="-5"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--gold)" stroke-width="7" stroke-dasharray="20 80" stroke-dashoffset="-27"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--green)" stroke-width="7" stroke-dasharray="28 72" stroke-dashoffset="-47"></circle>
+            <text x="21" y="20" text-anchor="middle" font-size="7" font-weight="800" fill="var(--ink)">32</text>
+            <text x="21" y="26" text-anchor="middle" font-size="3.2" fill="var(--muted)">días</text>
+          </svg>
+        </div>
+        <div class="up" style="text-align:center;font-size:11.5px;font-weight:700;margin-top:8px">▲ 5 días vs mes anterior</div>
+      </div>
+    </div>
+
+    <div class="ia-strip">
+      <div class="h"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg><span>IA Asistente de Compras<small>Preguntale sobre stock, proveedores, propuestas o recomendaciones…</small></span></div>
+      <span class="sp" style="flex:1"></span>
+      <span class="ia-chip">¿Qué productos debo comprar esta semana? →</span>
+      <span class="ia-chip">¿Qué proveedor tiene mejores condiciones para Aperol? →</span>
+      <span class="ia-chip">¿Qué productos tienen mayor riesgo de quiebre? →</span>
+    </div>
+
+    <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
+  </div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/dir-nav.js"></script>
+</body>
+</html>
