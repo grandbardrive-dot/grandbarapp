@@ -3975,10 +3975,9 @@ body { background:transparent !important; }
     const el = document.getElementById(`acm-${secId}`);
     if (!el) return;
 
-    // Si esta sección tiene widget de "ofertas por bodega", las campañas se muestran AHÍ
-    // (botón por proveedor → modal), no como tarjetas sueltas. Evitamos mostrarlas dos veces.
-    if (WIDGET_SUBSEC[secId] && WIDGET_SUBSEC[secId].tipo === 'ofertas') { el.innerHTML = ''; return; }
-
+    // Las campañas del panel se muestran SIEMPRE como tarjetas, también en las secciones
+    // con widget de "ofertas por bodega" (antes ahí quedaban escondidas detrás del botón
+    // del proveedor). El widget se ocupa de no repetirlas: ver cargarOfertasWidget.
     const filtradas = await _campaniasSeccion(secId);
     const esSeccionGeneral = buscarSec(secId)?.especial === 'acciones_mensuales';
 
@@ -4736,10 +4735,14 @@ body { background:transparent !important; }
   async function cargarOfertasWidget(subKey, secId) {
     const el = document.getElementById(`ofertas-bodegas-${secId}`);
     if (!el) return;
-    // 1) Campañas REALES cargadas desde el panel admin para esta sección (prioridad).
+    // Las campañas cargadas por el panel ya se ven como tarjetas en la sección, así que
+    // acá solo queda el listado de ofertas de ejemplo — y únicamente cuando la sección
+    // no tiene campañas, para no mostrar lo mismo dos veces.
     const reales = (await _campaniasSeccion(secId)).map(_campaniaAOferta);
-    // 2) Si todavía no hay campañas reales, mostramos los datos de ejemplo del subKey.
-    const ofertas = reales.length ? reales : await cargarOfertas(subKey);
+    reales.forEach(o => marcarOfrecido(o.producto, OFERTAS_SUB_LABEL[subKey] || subKey)); // Mejora 3
+    if (reales.length) { _ofertasData[subKey] = []; el.innerHTML = ''; return; }
+
+    const ofertas = await cargarOfertas(subKey);
     _ofertasData[subKey] = ofertas;
     ofertas.forEach(o => marcarOfrecido(o.producto, OFERTAS_SUB_LABEL[subKey] || subKey)); // Mejora 3
     if (!ofertas.length) { el.innerHTML = ''; return; }

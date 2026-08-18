@@ -322,6 +322,11 @@ const _AM_BOTTLE_SVG = `<svg width="28" height="44" viewBox="0 0 32 52" fill="no
   <rect x="8" y="32" width="16" height="1.5" rx="1" fill="#ccc8c2" opacity=".6"/>
 </svg>`;
 
+// Reemplaza una foto que no cargó por la botella de placeholder.
+function _amImgFallback(img) {
+  if (img && img.parentElement) img.parentElement.innerHTML = _AM_BOTTLE_SVG;
+}
+
 // ── Toggle selección de una acción ────────────────────────────────────────────
 function amToggle(id, accionJson) {
   const accion = typeof accionJson === 'string' ? JSON.parse(decodeURIComponent(accionJson)) : accionJson;
@@ -383,9 +388,11 @@ function renderAccionCard(a, opts = {}) {
   const subcat = a.subcategoria || (a.categoria === 'spirits' ? _amSpiritsSubcat(a.producto) : null);
   const yaAgregada = _amSeleccionadas.has(a.id);
 
+  // El fallback va por función: inline no se podía, el SVG tiene comillas dobles y
+  // cortaba el atributo onerror — se veía un `';">` suelto al lado del producto.
   const imgHtml = a.imagen_url
     ? `<img src="${_amEsc(a.imagen_url)}" alt="${_amEsc(a.producto)}" loading="lazy"
-            onerror="this.parentElement.innerHTML='${_AM_BOTTLE_SVG.replace(/'/g,"\\'")} ';">`
+            onerror="_amImgFallback(this)">`
     : `<div class="am-placeholder">${_AM_BOTTLE_SVG}<span>Sin imagen</span></div>`;
 
   // Payload para el toggle (serializado en data attribute)
@@ -556,7 +563,7 @@ function renderAccionesGrupo(acciones, opts = {}) {
             ${subGrupos[s.id].map(a => renderAccionCard(a, opts)).join('')}
           `).join('')}
           ${subsExtra.map(id => `
-            ${id === 'Spirits' ? '' : `<div class="am-subcat-sep">🥃 ${id}</div>`}
+            ${id === 'Spirits' && Object.keys(subGrupos).length === 1 ? '' : `<div class="am-subcat-sep">🥃 ${id === 'Spirits' ? 'Otros' : id}</div>`}
             ${subGrupos[id].map(a => renderAccionCard(a, opts)).join('')}
           `).join('')}`;
       }
