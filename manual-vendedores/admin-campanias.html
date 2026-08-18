@@ -423,7 +423,6 @@
   // y vuelve al login. No alcanza con borrar admin_auth: si queda la sesión del
   // Hub, con volver atrás se entra de nuevo.
   function cerrarSesion(){
-    if(!confirm('¿Cerrar sesión?')) return;
     sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil');
     try{
       localStorage.removeItem('gb_demo');
