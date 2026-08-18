@@ -111,7 +111,8 @@
         let destino = "hub.html";
         try {
           const s = await GBAuth.getSession();
-          if (s && s.es_supervisor) destino = "supervisor-equipo.html";
+          if (s && (s.role === "direccion" || s.role === "admin" || s.role === "duenio")) destino = "direccion.html";
+          else if (s && s.es_supervisor) destino = "supervisor-equipo.html";
           else if (s && s.role === "ventas") destino = "inicio.html";
         } catch (e) {}
         window.location.href = destino;
