@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Depósito</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  .mov{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center}
+  .mov .m{background:var(--cream);border-radius:11px;padding:12px 6px}
+  .mov .ic2{width:30px;height:30px;border-radius:8px;margin:0 auto 7px;display:grid;place-items:center;color:#fff}
+  .mov .l{font-size:11px;color:var(--muted)} .mov .v{font-size:18px;font-weight:800;margin:2px 0} .mov .s{font-size:10.5px;color:var(--muted)}
+  .ub .row{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:12px}
+  .ub .sw{width:10px;height:10px;border-radius:50%;flex:none} .ub .n{flex:1} .ub .p{width:36px;color:var(--muted);font-weight:600} .ub .m{font-weight:800;font-variant-numeric:tabular-nums}
+  .stack{height:12px;border-radius:6px;overflow:hidden;display:flex;margin:4px 0 10px}
+  .gauge{position:relative;width:150px;height:90px;margin:6px auto}
+  .prod .row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-2);font-size:12px}
+  .prod .row:last-child{border-bottom:0} .prod .lg{width:20px;text-align:center;flex:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+
+    <div class="dhead">
+      <span class="ic" style="background:var(--purple-soft);color:var(--purple)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 12 3 4 7l8 4 8-4zM4 7v10l8 4 8-4V7"/></svg></span>
+      <div><h1>Depósito</h1><div class="sub">Control de inventario, movimientos y operaciones logísticas</div></div>
+      <span class="sp"></span>
+      <span class="pill">📅 20 de mayo, 2025</span>
+      <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</span>
+      <div class="ic-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">7</span></div>
+      <button class="acc" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Acción rápida</button>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 12 3 4 7l8 4 8-4zM4 7v10l8 4 8-4V7"/></svg></span><span class="lbl">Valor total de inventario</span></div><div class="v">$1.248.560.000</div><div class="sub up">▲ 12,6% vs mes anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 12 3 4 7l8 4 8-4zM4 7v10l8 4 8-4V7"/></svg></span><span class="lbl">Productos en stock</span></div><div class="v">3.842</div><div class="sub">1.256 SKUs</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--danger)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><span class="lbl">Stock crítico</span></div><div class="v" style="color:var(--danger)">87</div><div class="sub">Productos con quiebre</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--orange)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span><span class="lbl">Diferencias de inventario</span></div><div class="v">$3.420.000</div><div class="sub">0,27% del inventario</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></span><span class="lbl">Pedidos en preparación</span></div><div class="v">56</div><div class="sub">Por despachar hoy</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="18.5" cy="18.5" r="2"/></svg></span><span class="lbl">Despachos del día</span></div><div class="v">28</div><div class="sub up">Cumplimiento 93%</div></div>
+    </div>
+
+    <div class="g-3">
+      <div class="card">
+        <div class="c-h"><div class="t">Estado de inventario <small>Resumen general</small></div></div>
+        <div class="donut-wrap">
+          <svg width="130" height="130" viewBox="0 0 42 42" style="flex:none">
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#eee7d8" stroke-width="6"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--green)" stroke-width="6" stroke-dasharray="70 30" stroke-dashoffset="25"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--gold)" stroke-width="6" stroke-dasharray="14 86" stroke-dashoffset="-45"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--danger)" stroke-width="6" stroke-dasharray="2 98" stroke-dashoffset="-59"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--purple)" stroke-width="6" stroke-dasharray="14 86" stroke-dashoffset="-61"></circle>
+            <text x="21" y="20" text-anchor="middle" font-size="5" font-weight="800" fill="var(--ink)">3.842</text>
+            <text x="21" y="26" text-anchor="middle" font-size="3" fill="var(--muted)">SKUs</text>
+          </svg>
+          <div class="leg">
+            <div class="l"><span class="sw" style="background:var(--green)"></span><span class="n">En stock óptimo</span><span class="m">2.680</span><span class="p">69,8%</span></div>
+            <div class="l"><span class="sw" style="background:var(--gold)"></span><span class="n">Stock bajo (7-15 días)</span><span class="m">542</span><span class="p">14,1%</span></div>
+            <div class="l"><span class="sw" style="background:var(--danger)"></span><span class="n">Stock crítico (≤7 días)</span><span class="m">87</span><span class="p">2,3%</span></div>
+            <div class="l"><span class="sw" style="background:var(--purple)"></span><span class="n">Sobre stock (>60 días)</span><span class="m">533</span><span class="p">13,9%</span></div>
+          </div>
+        </div>
+        <a class="lnk" href="#" style="margin-top:10px;display:inline-block">Ver análisis completo →</a>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Productos críticos <small>quiebre próximo</small></div><span class="lnk">Ver todos (87) →</span></div>
+        <table class="t">
+          <tr><th>Producto</th><th>Días stock</th><th>Actual</th><th>Mínimo</th><th>Estado</th></tr>
+          <tr><td>🥃 Jack Honey</td><td>5 días</td><td>18 cajas</td><td>36 cajas</td><td><span class="tag crit">Crítico</span></td></tr>
+          <tr><td>🍾 Fernet Branca 750ml</td><td>6 días</td><td>28 cajas</td><td>48 cajas</td><td><span class="tag crit">Crítico</span></td></tr>
+          <tr><td>🍸 Aperol 750ml</td><td>6 días</td><td>24 cajas</td><td>40 cajas</td><td><span class="tag crit">Crítico</span></td></tr>
+          <tr><td>🍸 Gordon's Gin</td><td>7 días</td><td>26 cajas</td><td>42 cajas</td><td><span class="tag bajo">Bajo</span></td></tr>
+          <tr><td>🍶 Smirnoff Vodka</td><td>7 días</td><td>30 cajas</td><td>60 cajas</td><td><span class="tag bajo">Bajo</span></td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Mercadería pendiente de ingreso</div><span class="lnk">Ver todos (24) →</span></div>
+        <table class="t">
+          <tr><th>Proveedor</th><th>Producto</th><th>Fecha est.</th><th>Estado</th><th>Unidades</th></tr>
+          <tr><td>Campari Group</td><td>Aperol</td><td>22/05</td><td><span class="tag tr">En tránsito</span></td><td>120 cajas</td></tr>
+          <tr><td>Pernod Ricard</td><td>Jameson</td><td>23/05</td><td><span class="tag tr">En tránsito</span></td><td>80 cajas</td></tr>
+          <tr><td>Peñaflor</td><td>Vinos varios</td><td>24/05</td><td><span class="tag ok">Confirmado</span></td><td>200 cajas</td></tr>
+          <tr><td>Diageo</td><td>Johnnie Walker</td><td>25/05</td><td><span class="tag ok">Confirmado</span></td><td>100 cajas</td></tr>
+          <tr><td>Salentein</td><td>Vinos Selección</td><td>26/05</td><td><span class="tag ok">Confirmado</span></td><td>60 cajas</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="g-3">
+      <div class="card">
+        <div class="c-h"><div class="t">Movimientos del día <small>Hoy, 20 de mayo</small></div><span class="lnk">Ver todos →</span></div>
+        <div class="mov">
+          <div class="m"><div class="ic2" style="background:var(--green)">↓</div><div class="l">Ingresos</div><div class="v">56</div><div class="s">$18.450.000</div></div>
+          <div class="m"><div class="ic2" style="background:var(--danger)">↑</div><div class="l">Egresos</div><div class="v">74</div><div class="s">$22.180.000</div></div>
+          <div class="m"><div class="ic2" style="background:var(--purple)">⇄</div><div class="l">Transferencias</div><div class="v">12</div><div class="s">$2.320.000</div></div>
+          <div class="m"><div class="ic2" style="background:var(--gold)">⊙</div><div class="l">Ajustes</div><div class="v">3</div><div class="s">$180.000</div></div>
+        </div>
+      </div>
+
+      <div class="card ub">
+        <div class="c-h"><div class="t">Ubicación de inventario <small>Por estado de almacén</small></div></div>
+        <div class="stack"><span style="width:48%;background:var(--green)"></span><span style="width:28%;background:var(--teal)"></span><span style="width:16%;background:var(--orange)"></span><span style="width:8%;background:var(--purple)"></span></div>
+        <div class="row"><span class="sw" style="background:var(--green)"></span><span class="n">Depósito Maipú</span><span class="p">48%</span><span class="m">$598.120.000</span></div>
+        <div class="row"><span class="sw" style="background:var(--teal)"></span><span class="n">Depósito San Luis</span><span class="p">28%</span><span class="m">$348.450.000</span></div>
+        <div class="row"><span class="sw" style="background:var(--orange)"></span><span class="n">Depósito Centro</span><span class="p">16%</span><span class="m">$199.840.000</span></div>
+        <div class="row"><span class="sw" style="background:var(--purple)"></span><span class="n">Depósito Eventos</span><span class="p">8%</span><span class="m">$102.150.000</span></div>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Vencimientos próximos <small>Próximos 30 días</small></div><span class="lnk">Ver todos (15) →</span></div>
+        <table class="t">
+          <tr><th>Producto</th><th>Lote</th><th>Vence</th><th>Unid.</th><th>Estado</th></tr>
+          <tr><td>Jägermeister</td><td>JAG2405</td><td>28/05</td><td>24</td><td><span class="tag crit">Crítico</span></td></tr>
+          <tr><td>Ramazzotti</td><td>RAM2403</td><td>05/06</td><td>36</td><td><span class="tag alto">Alto</span></td></tr>
+          <tr><td>Beefeater Gin</td><td>BEE2404</td><td>12/06</td><td>48</td><td><span class="tag medio">Medio</span></td></tr>
+          <tr><td>Cynar 750ml</td><td>CYN2402</td><td>18/06</td><td>30</td><td><span class="tag bajo">Bajo</span></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="g-3">
+      <div class="card">
+        <div class="c-h"><div class="t">Preparación de pedidos <small>Órdenes en proceso</small></div><span class="lnk">Ver todas (56) →</span></div>
+        <table class="t">
+          <tr><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Estado</th><th>Prod.</th><th>Tiempo</th></tr>
+          <tr><td>ON-000215</td><td>La Esquina</td><td>Nicolás García</td><td><span class="tag tr">En preparación</span></td><td>24</td><td>45 min</td></tr>
+          <tr><td>OFF-000184</td><td>Bodegas del Plata</td><td>Carolina Heluani</td><td><span class="tag tr">En preparación</span></td><td>18</td><td>30 min</td></tr>
+          <tr><td>MAY-000089</td><td>Beer Haus</td><td>Ángeles Laurito</td><td><span class="tag medio">Picking</span></td><td>32</td><td>60 min</td></tr>
+          <tr><td>ON-000216</td><td>Café del Centro</td><td>Juan Pablo Mollar</td><td><span class="tag alto">Verificación</span></td><td>15</td><td>20 min</td></tr>
+          <tr><td>OFF-000185</td><td>Don Ignacio Restó</td><td>Pablo Cofano</td><td><span class="tag ok">Listo p/ despacho</span></td><td>27</td><td>—</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Despachos del día <small>Progreso de entregas</small></div></div>
+        <div class="donut-wrap">
+          <svg width="130" height="130" viewBox="0 0 42 42" style="flex:none">
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#eee7d8" stroke-width="6"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--blue)" stroke-width="6" stroke-dasharray="93 7" stroke-dashoffset="25"></circle>
+            <text x="21" y="20" text-anchor="middle" font-size="7" font-weight="800" fill="var(--ink)">93%</text>
+            <text x="21" y="26" text-anchor="middle" font-size="3" fill="var(--muted)">Cumplimiento</text>
+          </svg>
+          <div class="leg">
+            <div class="l"><span class="n">Programados</span><span class="m">30</span></div>
+            <div class="l"><span class="n">Completados</span><span class="m" style="color:var(--green-d)">28</span></div>
+            <div class="l"><span class="n">En camino</span><span class="m" style="color:var(--blue)">2</span></div>
+            <div class="l"><span class="n">Pendientes</span><span class="m">—</span></div>
+          </div>
+        </div>
+        <a class="lnk" href="#" style="margin-top:10px;display:inline-block">Ver detalle de entregas →</a>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Alertas de IA <small>Recomendaciones inteligentes</small></div></div>
+        <div class="al"><span class="i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><div><div class="tt">Riesgo de quiebre en 12 productos esta semana</div><div class="ss">Impacto estimado en ventas: $8.450.000</div></div><span class="r lnk">›</span></div>
+        <div class="al"><span class="i" style="background:var(--amber-soft);color:var(--gold-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 12 3 4 7l8 4 8-4zM4 7v10l8 4 8-4V7"/></svg></span><div><div class="tt">Sobre stock detectado en 18 productos</div><div class="ss">Valor inmovilizado: $85.200.000</div></div><span class="r lnk">›</span></div>
+        <div class="al"><span class="i" style="background:var(--purple-soft);color:var(--purple)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7H4V5h11"/></svg></span><div><div class="tt">Diferencias de inventario superiores al promedio</div><div class="ss">Recomendamos auditoría en Depósito Maipú</div></div><span class="r lnk">›</span></div>
+        <div class="al"><span class="i" style="background:var(--green-soft);color:var(--green-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg></span><div><div class="tt">Oportunidad: 6 productos con alta rotación para adelantar compra</div><div class="ss">Ahorro potencial: $12.300.000</div></div><span class="r lnk">›</span></div>
+      </div>
+    </div>
+
+    <div class="ia-strip">
+      <div class="h"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg><span>IA Asistente de Depósito<small>Analizando inventario, rotación y movimientos en tiempo real</small></span></div>
+      <span class="sp" style="flex:1"></span>
+      <span class="ia-chip">¿Qué productos tienen mayor riesgo de quiebre? →</span>
+      <span class="ia-chip">¿Qué productos están sobre stock? →</span>
+      <span class="ia-chip">¿Cuál es el valor de inventario por bodega? →</span>
+    </div>
+
+    <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
+  </div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/dir-nav.js"></script>
+</body>
+</html>

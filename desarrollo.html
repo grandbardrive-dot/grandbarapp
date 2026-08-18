@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Desarrollo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  .kpi .spark{margin-top:8px}
+  .rm{display:grid;grid-template-columns:1fr 130px;gap:14px}
+  .bars{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:end;height:180px;padding-top:6px}
+  .bars .col{display:flex;flex-direction:column;align-items:center;gap:5px;height:100%}
+  .bars .bar{width:38px;flex:1;display:flex;flex-direction:column;justify-content:flex-end;border-radius:6px;overflow:hidden;background:#eee7d8}
+  .bars .seg{width:100%} .bars .lb{font-size:10.5px;color:var(--muted);text-align:center} .bars .pc{font-size:11px;font-weight:800;color:var(--green-d)}
+  .rm .tot .r{padding:7px 0;border-bottom:1px solid var(--line-2)} .rm .tot .r:last-child{border-bottom:0}
+  .rm .tot .l{font-size:11px;color:var(--muted)} .rm .tot .v{font-size:16px;font-weight:800}
+  .funnel{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .funnel .f{color:#fff;font-weight:800;font-size:14px;text-align:center;padding:9px 0;clip-path:polygon(6% 0,94% 0,84% 100%,16% 100%)}
+  .frow{display:flex;align-items:center;gap:10px;justify-content:space-between;font-size:11.5px;padding:3px 0}
+  .init .row{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line-2)}
+  .init .row:last-child{border-bottom:0} .init .ic3{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:none;background:var(--cream)}
+  .init .nm{font-weight:700;font-size:12.5px} .init .ss{font-size:11px;color:var(--muted)}
+  .init .track{width:120px;height:6px;background:#eee7d8;border-radius:4px;overflow:hidden}.init .track>i{display:block;height:100%}
+  .init .pc{width:34px;text-align:right;font-weight:800;font-size:12px}
+  .subtabs{display:flex;gap:16px;margin-bottom:6px;font-size:12px;font-weight:700}
+  .subtabs span{color:var(--muted);padding-bottom:5px;border-bottom:2px solid transparent;cursor:pointer} .subtabs span.on{color:var(--gold-d);border-color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+
+    <div class="dhead">
+      <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></span>
+      <div><h1>Desarrollo</h1><div class="sub">Estrategia, proyectos y crecimiento del negocio</div></div>
+      <span class="sp"></span>
+      <span class="pill">📅 20 de mayo, 2025</span>
+      <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</span>
+      <div class="ic-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">7</span></div>
+      <button class="acc" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Acción rápida</button>
+    </div>
+
+    <div class="tabs">
+      <a class="on" href="#">Resumen</a><a href="#">Proyectos</a><a href="#">Nuevas oportunidades</a><a href="#">Innovación</a><a href="#">Análisis de mercado</a><a href="#">KPIs estratégicos</a><a href="#">Documentos</a>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--navy)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></span><span class="lbl">Proyectos activos</span></div><div class="v">12</div><div class="sub up">▲ 2 vs mes anterior</div><svg class="spark" width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline points="0,18 15,14 30,16 45,10 60,13 75,8 90,11 105,6 120,9" fill="none" stroke="var(--navy)" stroke-width="1.8"/></svg></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--gold)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-9M14 17H5"/><circle cx="8" cy="7" r="2"/><circle cx="16" cy="17" r="2"/></svg></span><span class="lbl">Iniciativas estratégicas</span></div><div class="v">8</div><div class="sub up">▲ 1 vs mes anterior</div><svg class="spark" width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline points="0,16 15,17 30,12 45,14 60,9 75,11 90,7 105,10 120,6" fill="none" stroke="var(--gold)" stroke-width="1.8"/></svg></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></span><span class="lbl">Oportunidades en análisis</span></div><div class="v">23</div><div class="sub up">▲ 4 vs mes anterior</div><svg class="spark" width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline points="0,18 15,15 30,17 45,12 60,14 75,9 90,12 105,7 120,8" fill="none" stroke="var(--purple)" stroke-width="1.8"/></svg></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.4-1.1 1.8-2.5 2.5s-2.5 1.1-2.5 2.5a2.5 2.5 0 0 0 5 0"/></svg></span><span class="lbl">Inversión proyectada 2025</span></div><div class="v">$152.400.000</div><div class="sub up">▲ 18,6% vs plan anual</div><svg class="spark" width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline points="0,20 15,17 30,15 45,13 60,11 75,10 90,8 105,7 120,5" fill="none" stroke="var(--green)" stroke-width="1.8"/></svg></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--orange)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span><span class="lbl">ROI promedio proyectos</span></div><div class="v">28,4%</div><div class="sub up">▲ 5,2 p.p. vs mes anterior</div><svg class="spark" width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline points="0,17 15,15 30,16 45,12 60,13 75,10 90,11 105,8 120,7" fill="none" stroke="var(--orange)" stroke-width="1.8"/></svg></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--teal)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></span><span class="lbl">Cumplimiento de objetivos</span></div><div class="v">76%</div><div class="sub up">▲ 8 p.p. vs mes anterior</div><svg class="spark" width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline points="0,18 15,16 30,15 45,13 60,12 75,10 90,9 105,8 120,6" fill="none" stroke="var(--teal)" stroke-width="1.8"/></svg></div>
+    </div>
+
+    <div class="g-3">
+      <div class="card">
+        <div class="c-h"><div class="t">Roadmap de proyectos 2025 <small>Progreso por trimestre</small></div></div>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);margin-bottom:6px"><span>🟢 Completado</span><span>🔵 En progreso</span><span>⚪ Pendiente</span></div>
+        <div class="rm">
+          <div class="bars">
+            <div class="col"><div class="bar"><span class="seg" style="background:#e6ddcb;height:18%"></span><span class="seg" style="background:var(--blue);height:20%"></span><span class="seg" style="background:var(--green);height:62%"></span></div><div class="pc">82%</div><div class="lb">Q1<br>Ene-Mar</div></div>
+            <div class="col"><div class="bar"><span class="seg" style="background:#e6ddcb;height:36%"></span><span class="seg" style="background:var(--blue);height:22%"></span><span class="seg" style="background:var(--green);height:42%"></span></div><div class="pc">64%</div><div class="lb">Q2<br>Abr-Jun</div></div>
+            <div class="col"><div class="bar"><span class="seg" style="background:#e6ddcb;height:62%"></span><span class="seg" style="background:var(--blue);height:14%"></span><span class="seg" style="background:var(--green);height:24%"></span></div><div class="pc">38%</div><div class="lb">Q3<br>Jul-Sep</div></div>
+            <div class="col"><div class="bar"><span class="seg" style="background:#e6ddcb;height:78%"></span><span class="seg" style="background:var(--blue);height:12%"></span><span class="seg" style="background:var(--green);height:10%"></span></div><div class="pc">15%</div><div class="lb">Q4<br>Oct-Dic</div></div>
+          </div>
+          <div class="tot">
+            <div class="r"><div class="l">Total proyectos</div><div class="v">24</div></div>
+            <div class="r"><div class="l">Completados</div><div class="v">7 <small style="color:var(--green-d);font-size:11px">(29%)</small></div></div>
+            <div class="r"><div class="l">En progreso</div><div class="v">10 <small style="color:var(--blue);font-size:11px">(42%)</small></div></div>
+            <div class="r"><div class="l">Pendientes</div><div class="v">7 <small style="color:var(--muted);font-size:11px">(29%)</small></div></div>
+          </div>
+        </div>
+        <a class="lnk" href="#" style="margin-top:10px;display:inline-block">Ver roadmap completo →</a>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Pipeline de oportunidades <small>Por etapa del proceso</small></div><span class="lnk">Ver todas (23) →</span></div>
+        <div class="funnel">
+          <div class="f" style="background:var(--navy);width:100%">23</div>
+          <div class="f" style="background:var(--blue);width:82%">12</div>
+          <div class="f" style="background:#5a55b8;width:64%">7</div>
+          <div class="f" style="background:var(--purple);width:46%">7</div>
+          <div class="f" style="background:var(--gold);width:30%">3</div>
+        </div>
+        <div style="margin-top:10px">
+          <div class="frow"><span>Detectadas</span><b>$98.500.000</b></div>
+          <div class="frow"><span>En evaluación</span><b>$56.200.000</b></div>
+          <div class="frow"><span>Propuesta enviada</span><b>$32.800.000</b></div>
+          <div class="frow"><span>Negociación</span><b>$18.900.000</b></div>
+          <div class="frow"><span>Ganadas (este mes)</span><b style="color:var(--green-d)">$9.300.000</b></div>
+        </div>
+      </div>
+
+      <div class="card init">
+        <div class="c-h"><div class="t">Iniciativas estratégicas <small>Estado actual</small></div><span class="lnk">Ver todas (8) →</span></div>
+        <div class="row"><span class="ic3" style="color:var(--green-d)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5 8 12 8 12s8-7 8-12a8 8 0 0 0-8-8z"/></svg></span><div style="flex:1"><div class="nm">Expansión a San Juan</div><div class="ss">Desarrollo de canal ON y OFF</div></div><span class="track"><i style="width:72%;background:var(--green)"></i></span><span class="pc">72%</span></div>
+        <div class="row"><span class="ic3" style="color:var(--blue)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg></span><div style="flex:1"><div class="nm">E-commerce B2B</div><div class="ss">Plataforma de ventas online</div></div><span class="track"><i style="width:58%;background:var(--blue)"></i></span><span class="pc">58%</span></div>
+        <div class="row"><span class="ic3" style="color:var(--purple)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span><div style="flex:1"><div class="nm">Programa Fidelización Clientes</div><div class="ss">Desarrollo e implementación</div></div><span class="track"><i style="width:45%;background:var(--purple)"></i></span><span class="pc">45%</span></div>
+        <div class="row"><span class="ic3" style="color:var(--orange)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.4-1.1 1.8-2.5 2.5s-2.5 1.1-2.5 2.5a2.5 2.5 0 0 0 5 0"/></svg></span><div style="flex:1"><div class="nm">Optimización de Márgenes</div><div class="ss">Análisis y renegociación proveedores</div></div><span class="track"><i style="width:80%;background:var(--orange)"></i></span><span class="pc">80%</span></div>
+      </div>
+    </div>
+
+    <div class="g-3">
+      <div class="card">
+        <div class="c-h"><div class="t">Análisis de mercado <small>Tendencias relevantes</small></div></div>
+        <div class="subtabs"><span class="on">Categorías</span><span>Canales</span><span>Clientes</span><span>Competencia</span></div>
+        <table class="t">
+          <tr><th>Categoría</th><th>Crecimiento</th><th>Participación</th><th>Tendencia</th></tr>
+          <tr><td>Gin</td><td class="up">▲ 24,8%</td><td>18,2%</td><td><svg width="50" height="18" viewBox="0 0 50 18"><polyline points="0,14 12,10 25,11 38,5 50,3" fill="none" stroke="var(--green)" stroke-width="1.8"/></svg></td></tr>
+          <tr><td>Whisky</td><td class="up">▲ 16,3%</td><td>22,7%</td><td><svg width="50" height="18" viewBox="0 0 50 18"><polyline points="0,12 12,10 25,11 38,7 50,6" fill="none" stroke="var(--green)" stroke-width="1.8"/></svg></td></tr>
+          <tr><td>Vinos</td><td class="up">▲ 8,9%</td><td>28,4%</td><td><svg width="50" height="18" viewBox="0 0 50 18"><polyline points="0,10 12,11 25,9 38,10 50,8" fill="none" stroke="var(--green)" stroke-width="1.8"/></svg></td></tr>
+          <tr><td>Aperitivos</td><td class="up">▲ 31,2%</td><td>12,1%</td><td><svg width="50" height="18" viewBox="0 0 50 18"><polyline points="0,15 12,11 25,9 38,5 50,2" fill="none" stroke="var(--green)" stroke-width="1.8"/></svg></td></tr>
+          <tr><td>Ron</td><td class="up">▲ 5,7%</td><td>8,6%</td><td><svg width="50" height="18" viewBox="0 0 50 18"><polyline points="0,11 12,10 25,11 38,9 50,9" fill="none" stroke="var(--green)" stroke-width="1.8"/></svg></td></tr>
+        </table>
+        <a class="lnk" href="#" style="margin-top:8px;display:inline-block">Ver análisis completo →</a>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Proyectos en progreso</div><span class="lnk">Ver todos →</span></div>
+        <table class="t">
+          <tr><th>Proyecto</th><th>Responsable</th><th>Avance</th><th>Fin est.</th><th>Estado</th></tr>
+          <tr><td>Nuevas marcas Premium</td><td>Luciana P.</td><td><b>75%</b></td><td>30/06</td><td><span class="tag tr">En progreso</span></td></tr>
+          <tr><td>App Fuerza de Ventas</td><td>Franco R.</td><td><b>60%</b></td><td>15/07</td><td><span class="tag tr">En progreso</span></td></tr>
+          <tr><td>Centro de Distribución SL</td><td>Diego S.</td><td><b>45%</b></td><td>15/08</td><td><span class="tag tr">En progreso</span></td></tr>
+          <tr><td>Automatización Reportes</td><td>Brenda M.</td><td><b>70%</b></td><td>30/06</td><td><span class="tag tr">En progreso</span></td></tr>
+          <tr><td>Programa Trade Marketing</td><td>María del M.</td><td><b>30%</b></td><td>30/09</td><td><span class="tag tr">En progreso</span></td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Resultados de iniciativas <small>Comparación vs objetivo anual</small></div></div>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);margin-bottom:6px"><span>🟡 Objetivo</span><span>🔵 Real</span></div>
+        <div style="display:grid;grid-template-columns:1fr 100px;gap:12px;align-items:center">
+          <svg viewBox="0 0 260 150" style="width:100%;height:140px">
+            <line x1="0" y1="20" x2="260" y2="20" stroke="var(--line-2)"/><line x1="0" y1="70" x2="260" y2="70" stroke="var(--line-2)"/><line x1="0" y1="120" x2="260" y2="120" stroke="var(--line-2)"/>
+            <polyline points="0,110 24,95 48,80 72,70 96,62 120,52 144,44 168,36 192,28 216,22 240,18 260,16" fill="none" stroke="var(--gold)" stroke-width="2" stroke-dasharray="4 3"/>
+            <polyline points="0,110 24,92 48,78 72,66 96,58 120,50 144,48" fill="none" stroke="var(--blue)" stroke-width="2.4"/>
+            <circle cx="144" cy="48" r="3" fill="var(--blue)"/>
+            <g font-size="7" fill="var(--muted)"><text x="0" y="140">Ene</text><text x="60" y="140">Abr</text><text x="120" y="140">Jul</text><text x="180" y="140">Oct</text><text x="235" y="140">Dic</text></g>
+          </svg>
+          <div>
+            <div style="font-size:11px;color:var(--muted)">Cumplimiento</div><div style="font-size:22px;font-weight:800">76%</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px">Objetivo anual</div><div style="font-weight:800">100%</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px">Proyección cierre año</div><div style="font-weight:800;color:var(--green-d)">92%</div>
+          </div>
+        </div>
+        <a class="lnk" href="#" style="margin-top:8px;display:inline-block">Ver reporte detallado →</a>
+      </div>
+    </div>
+
+    <div class="ia-strip">
+      <div class="h"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg><span>IA Asistente de Desarrollo<small>Insights y recomendaciones basadas en datos</small></span></div>
+      <span class="sp" style="flex:1"></span>
+      <span class="ia-chip">📈 La categoría Gin tiene el mayor crecimiento →</span>
+      <span class="ia-chip">📍 San Juan muestra alto potencial →</span>
+      <span class="ia-chip">🛒 E-commerce B2B puede aumentar las ventas +18% →</span>
+      <span class="ia-chip">🎯 3 proyectos tienen riesgo de retraso →</span>
+    </div>
+
+    <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
+  </div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/dir-nav.js"></script>
+</body>
+</html>
