@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Marketing</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  .camp .row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2);font-size:12px}
+  .camp .row:last-of-type{border-bottom:0}
+  .camp .lg{width:34px;height:34px;border-radius:8px;background:var(--cream);flex:none;display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--gold-d)}
+  .camp .nm{font-weight:700;font-size:12.5px} .camp .ss{font-size:10.5px;color:var(--muted)}
+  .camp .col{width:78px;color:var(--muted)} .camp .rd{width:44px;text-align:right;font-weight:800;color:var(--green-d)}
+  .act .row{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2)}
+  .act .row:last-child{border-bottom:0} .act .i{width:30px;height:30px;border-radius:8px;background:var(--purple-soft);color:var(--purple);display:grid;place-items:center;flex:none}
+  .act .nm{font-weight:700;font-size:12.5px} .act .ss{font-size:11px;color:var(--muted)} .act .tm{margin-left:auto;font-size:10.5px;color:var(--muted);white-space:nowrap}
+  .topc .row{display:flex;align-items:center;gap:9px;padding:7px 0}
+  .topc .rk{width:16px;color:var(--muted);font-weight:800;font-size:12px}
+  .topc .lg{width:30px;height:30px;border-radius:7px;background:var(--cream);flex:none}
+  .topc .nm{font-size:12px;font-weight:600} .topc .dd{font-size:10px;color:var(--muted)}
+  .topc .track{flex:1;height:6px;background:#eee7d8;border-radius:4px;overflow:hidden;min-width:50px}.topc .track>i{display:block;height:100%;background:var(--purple)}
+  .topc .vv{width:56px;text-align:right;font-weight:800;font-size:11.5px}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+  .cal .d{background:var(--cream);border-radius:9px;padding:6px 5px;min-height:96px}
+  .cal .dh{font-size:10px;color:var(--muted);font-weight:700;margin-bottom:5px}
+  .cal .ev{font-size:9.5px;font-weight:700;border-radius:5px;padding:3px 5px;margin-bottom:4px;color:#fff}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+
+    <div class="dhead">
+      <span class="ic" style="background:var(--purple-soft);color:var(--purple)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8-8 18-2-8z"/></svg></span>
+      <div><h1>Marketing</h1><div class="sub">Gestión de comunicación, campañas y contenido</div></div>
+      <span class="sp"></span>
+      <span class="pill">📅 20 de mayo, 2025</span>
+      <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</span>
+      <div class="ic-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">7</span></div>
+      <button class="acc" style="background:var(--purple);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Acción rápida</button>
+    </div>
+
+    <div class="tabs">
+      <a class="on" href="#">Resumen</a><a href="#">Campañas</a><a href="#">Contenido</a><a href="#">Diseño y placas</a><a href="#">Redes sociales</a><a href="#">Email & WhatsApp</a><a href="#">Promociones</a><a href="#">Calendario</a>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></span><span class="lbl">Campañas activas</span></div><div class="v">5</div><div class="sub up">▲ 2 vs mes anterior</div><div class="bar-prog"><i style="width:62%;background:var(--purple)"></i></div><a class="lnk" href="#" style="color:var(--purple)">Ver campañas →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg></span><span class="lbl">Piezas de contenido</span></div><div class="v">18</div><div class="sub up">▲ 6 vs mes anterior</div><div class="bar-prog"><i style="width:72%;background:var(--green)"></i></div><a class="lnk" href="#">Ver contenido →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--orange)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span><span class="lbl">Placas en proceso</span></div><div class="v">12</div><div class="sub down">5 urgentes</div><div class="bar-prog"><i style="width:40%;background:var(--orange)"></i></div><a class="lnk" href="#" style="color:var(--orange)">Ver diseño →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><span class="lbl">Publicaciones programadas</span></div><div class="v">24</div><div class="sub">Esta semana</div><div class="bar-prog"><i style="width:80%;background:var(--blue)"></i></div><a class="lnk" href="#" style="color:var(--blue)">Ver calendario →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--danger)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></span><span class="lbl">Alcance total (30 días)</span></div><div class="v">1.248.000</div><div class="sub up">▲ 18,6% vs mes anterior</div><div class="bar-prog"><i style="width:70%;background:var(--danger)"></i></div><a class="lnk" href="#" style="color:var(--danger)">Ver análisis →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.4-1.1 1.8-2.5 2.5s-2.5 1.1-2.5 2.5a2.5 2.5 0 0 0 5 0"/></svg></span><span class="lbl">ROI de campañas</span></div><div class="v">4,2x</div><div class="sub up">▲ 0,8x vs mes anterior</div><div class="bar-prog"><i style="width:84%;background:var(--green)"></i></div><a class="lnk" href="#">Ver rendimiento →</a></div>
+    </div>
+
+    <div class="g-3">
+      <div class="card camp">
+        <div class="c-h"><div class="t">Campañas activas</div><span class="lnk">Ver todas →</span></div>
+        <div class="row" style="color:var(--muted);font-size:10.5px;font-weight:700;border-bottom:1px solid var(--line)"><span class="lg" style="background:none"></span><span style="flex:1">Campaña</span><span class="col">Estado</span><span class="col">Fin</span><span class="col">Presupuesto</span><span class="rd">Rend.</span></div>
+        <div class="row"><span class="lg">DÍA</span><div style="flex:1"><div class="nm">Día del Amigo</div><div class="ss">Promociones especiales</div></div><span class="col"><span class="tag ok">Activa</span></span><span class="col">31/05</span><span class="col">$1.250.000</span><span class="rd">4,8x</span></div>
+        <div class="row"><span class="lg">APE</span><div style="flex:1"><div class="nm">Aperol + Campari</div><div class="ss">Combo y sorteo</div></div><span class="col"><span class="tag ok">Activa</span></span><span class="col">31/05</span><span class="col">$980.000</span><span class="rd">3,6x</span></div>
+        <div class="row"><span class="lg">JH</span><div style="flex:1"><div class="nm">Jack Honey</div><div class="ss">Lanzamiento</div></div><span class="col"><span class="tag ok">Activa</span></span><span class="col">30/05</span><span class="col">$750.000</span><span class="rd">5,1x</span></div>
+        <div class="row"><span class="lg">GIN</span><div style="flex:1"><div class="nm">Semana del Gin Tonic</div><div class="ss">Gordon's & Beefeater</div></div><span class="col"><span class="tag tr">Programada</span></span><span class="col">07/06</span><span class="col">$600.000</span><span class="rd">—</span></div>
+        <div class="row"><span class="lg">PÑ</span><div style="flex:1"><div class="nm">Peñaflor Innovaciones</div><div class="ss">Línea exclusiva OFF</div></div><span class="col"><span class="tag bajo">En diseño</span></span><span class="col">15/06</span><span class="col">$520.000</span><span class="rd">—</span></div>
+      </div>
+
+      <div class="card act">
+        <div class="c-h"><div class="t">Actividad de marketing <small>Últimos 7 días</small></div></div>
+        <div class="row"><span class="i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7H4V5h11"/></svg></span><div><div class="nm">Pieza aprobada</div><div class="ss">Placa Aperol + Campari</div></div><span class="tm">Hace 2h</span></div>
+        <div class="row"><span class="i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M10 9l5 3-5 3z"/></svg></span><div><div class="nm">Nuevo reel publicado</div><div class="ss">Jack Honey – Lanzamiento</div></div><span class="tm">Hace 6h</span></div>
+        <div class="row"><span class="i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4v-5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5h-2M6 14h12v8H6z"/></svg></span><div><div class="nm">Placa enviada a impresión</div><div class="ss">Día del Amigo – Vinotecas</div></div><span class="tm">Hace 1 día</span></div>
+        <div class="row"><span class="i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8-8 18-2-8z"/></svg></span><div><div class="nm">Campaña activada</div><div class="ss">Aperol + Campari en Instagram</div></div><span class="tm">Hace 2 días</span></div>
+        <div class="row"><span class="i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg></span><div><div class="nm">Contenido aprobado</div><div class="ss">Historias – Gin Tonic Week</div></div><span class="tm">Hace 2 días</span></div>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Pendientes urgentes</div><span class="lnk">Ver todos (12) →</span></div>
+        <div class="al"><span class="i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><div><div class="tt">Diseño de placa Jack Daniel's</div><div class="ss">Fecha límite: Hoy</div></div><span class="tag crit">Urgente</span></div>
+        <div class="al"><span class="i" style="background:var(--amber-soft);color:var(--gold-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7H4V5h11"/></svg></span><div><div class="tt">Aprobación de campaña Día del Amigo</div><div class="ss">Fecha límite: Mañana</div></div><span class="tag alto">Alta</span></div>
+        <div class="al"><span class="i" style="background:var(--amber-soft);color:var(--gold-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/></svg></span><div><div class="tt">Enviar placas a sucursales</div><div class="ss">Fecha límite: 22/05</div></div><span class="tag medio">Media</span></div>
+        <div class="al"><span class="i" style="background:var(--purple-soft);color:var(--purple)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/></svg></span><div><div class="tt">Contenido para redes – Semana del Gin</div><div class="ss">Fecha límite: 23/05</div></div><span class="tag medio">Media</span></div>
+        <div class="al"><span class="i" style="background:var(--green-soft);color:var(--green-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></span><div><div class="tt">Revisión de presupuesto mensual</div><div class="ss">Fecha límite: 25/05</div></div><span class="tag ok">Baja</span></div>
+      </div>
+    </div>
+
+    <div class="g-3">
+      <div class="card">
+        <div class="c-h"><div class="t">Rendimiento de campañas <small>Últimos 30 días</small></div><span class="lnk">Ver reporte completo →</span></div>
+        <div class="donut-wrap">
+          <svg width="130" height="130" viewBox="0 0 42 42" style="flex:none">
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#eee7d8" stroke-width="6"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--purple)" stroke-width="6" stroke-dasharray="33 67" stroke-dashoffset="25"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--danger)" stroke-width="6" stroke-dasharray="25 75" stroke-dashoffset="-8"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--green)" stroke-width="6" stroke-dasharray="20 80" stroke-dashoffset="-33"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--gold)" stroke-width="6" stroke-dasharray="13 87" stroke-dashoffset="-53"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--blue)" stroke-width="6" stroke-dasharray="8 92" stroke-dashoffset="-66"></circle>
+            <text x="21" y="20" text-anchor="middle" font-size="4.6" font-weight="800" fill="var(--ink)">1.248.000</text>
+            <text x="21" y="26" text-anchor="middle" font-size="3" fill="var(--muted)">Alcance total</text>
+          </svg>
+          <div class="leg">
+            <div class="l"><span class="sw" style="background:var(--purple)"></span><span class="n">Día del Amigo</span><span class="m">420.000</span><span class="p">33%</span></div>
+            <div class="l"><span class="sw" style="background:var(--danger)"></span><span class="n">Aperol + Campari</span><span class="m">312.000</span><span class="p">25%</span></div>
+            <div class="l"><span class="sw" style="background:var(--green)"></span><span class="n">Jack Honey</span><span class="m">256.000</span><span class="p">20%</span></div>
+            <div class="l"><span class="sw" style="background:var(--gold)"></span><span class="n">Semana del Gin</span><span class="m">164.000</span><span class="p">13%</span></div>
+            <div class="l"><span class="sw" style="background:var(--blue)"></span><span class="n">Otros</span><span class="m">96.000</span><span class="p">8%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card topc">
+        <div class="c-h"><div class="t">Top contenido <small>por alcance · Últimos 30 días</small></div><span class="lnk">Ver más →</span></div>
+        <div class="row"><span class="rk">1</span><span class="lg"></span><div style="flex:1"><div class="nm">Reel Jack Honey</div><div class="dd">23/04</div></div><span class="track"><i style="width:100%"></i></span><span class="vv">128.000</span></div>
+        <div class="row"><span class="rk">2</span><span class="lg"></span><div style="flex:1"><div class="nm">Promo Día del Amigo</div><div class="dd">18/04</div></div><span class="track"><i style="width:87%"></i></span><span class="vv">112.000</span></div>
+        <div class="row"><span class="rk">3</span><span class="lg"></span><div style="flex:1"><div class="nm">Aperol + Campari</div><div class="dd">05/05</div></div><span class="track"><i style="width:76%"></i></span><span class="vv">98.000</span></div>
+        <div class="row"><span class="rk">4</span><span class="lg"></span><div style="flex:1"><div class="nm">Gin Tonic Week</div><div class="dd">10/05</div></div><span class="track"><i style="width:59%"></i></span><span class="vv">76.000</span></div>
+        <div class="row"><span class="rk">5</span><span class="lg"></span><div style="flex:1"><div class="nm">Peñaflor Innovaciones</div><div class="dd">30/04</div></div><span class="track"><i style="width:50%"></i></span><span class="vv">64.000</span></div>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Calendario de publicaciones</div><span class="lnk">Ver calendario completo →</span></div>
+        <div class="cal">
+          <div class="d"><div class="dh">Lun 20</div><div class="ev" style="background:var(--purple)">10:00 IG</div><div class="ev" style="background:var(--green)">15:00 WA</div></div>
+          <div class="d"><div class="dh">Mar 21</div><div class="ev" style="background:var(--danger)">11:30 IG</div></div>
+          <div class="d"><div class="dh">Mié 22</div><div class="ev" style="background:var(--blue)">10:00 FB</div></div>
+          <div class="d"><div class="dh">Jue 23</div><div class="ev" style="background:var(--purple)">12:00 IG</div><div class="ev" style="background:var(--gold)">18:00 IG</div></div>
+          <div class="d"><div class="dh">Vie 24</div><div class="ev" style="background:var(--purple)">10:30 IG</div></div>
+          <div class="d"><div class="dh">Sáb 25</div><div class="ev" style="background:var(--green)">12:00 WA</div></div>
+          <div class="d"><div class="dh">Dom 26</div><div class="ev" style="background:var(--danger)">11:00 IG</div></div>
+        </div>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:10px"><span>🟣 Instagram</span><span>🔵 Facebook</span><span>🟢 WhatsApp</span></div>
+      </div>
+    </div>
+
+    <div class="ia-strip">
+      <div class="h"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg><span>IA Asistente de Marketing<small>Recomendaciones inteligentes para mejorar resultados</small></span></div>
+      <span class="sp" style="flex:1"></span>
+      <span class="ia-chip">📈 Aumentar inversión en Reels →</span>
+      <span class="ia-chip">🗓️ Mejor día para publicar: viernes 18:00 →</span>
+      <span class="ia-chip">🏆 Campaña con mejor ROI: Jack Honey 5,1x →</span>
+      <span class="ia-chip">👥 Público con mayor interacción: Hombres 25-34 Mendoza →</span>
+    </div>
+
+    <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
+  </div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/dir-nav.js"></script>
+</body>
+</html>
