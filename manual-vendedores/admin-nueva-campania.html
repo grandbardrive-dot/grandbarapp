@@ -598,6 +598,11 @@
   async function guardar(activa){
     const msg=document.getElementById('guardar-msg');
     if(!st.proveedor||!st.productos.length||!st.canales.length){ msg.style.color='#c0392b'; msg.textContent='Faltan datos: proveedor, al menos un producto y al menos un canal.'; return; }
+    // La mecánica es lo que el vendedor ve en la tarjeta. Puede ir vacía si al menos hay
+    // un precio accionado (acción de solo precio), pero no las dos cosas vacías.
+    const mecanica=(st.mecanica||'').trim();
+    if(!mecanica && !st.precioAcc){ msg.style.color='#c0392b';
+      msg.textContent='Falta la mecánica de la promoción (ej: 3+1, 20% OFF) o, al menos, el precio accionado. Volvé al paso 5 y completá alguno de los dos.'; return; }
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…';
     const row={
       proveedor: st.proveedor.nombre,
@@ -608,7 +613,7 @@
       productos: st.productos.map(p=>({id:p.id||null,nombre:p.nombre,categoria:p.categoria||null,imagen_url:p.imagen_url||null,sku:p.sku||null})),
       aplica_a: st.canales,
       seccion_checklist: st.ubicaciones.length? st.ubicaciones.join(','):null,
-      accion: st.mecanica||null,
+      accion: mecanica,   // la columna es NOT NULL: nunca mandar null
       precio_regular: st.precioReg?Number(st.precioReg):null,
       precio_accionado: st.precioAcc?Number(st.precioAcc):null,
       fecha_inicio: st.fechaIni||null,
@@ -630,7 +635,17 @@
       if(error) throw error;
       msg.style.color='var(--green)'; msg.textContent = editId?'✓ Cambios guardados. Redirigiendo…':(activa?'✓ Campaña publicada. Redirigiendo…':'✓ Borrador guardado. Redirigiendo…');
       setTimeout(()=>location.href='admin-campanias.html',1100);
-    }catch(e){ msg.style.color='#c0392b'; msg.textContent='No se pudo guardar: '+(e.message||e); }
+    }catch(e){
+      // Traducir los errores de Postgres más comunes: el mensaje crudo ("null value in
+      // column ... violates not-null constraint") no le dice nada a quien carga la campaña.
+      const m=String(e.message||e);
+      const campo=(m.match(/column "([^"]+)"/)||[])[1];
+      const NOMBRE={accion:'la mecánica de la promoción (paso 5)', producto:'el producto (paso 2)', proveedor:'el proveedor (paso 1)'};
+      msg.style.color='#c0392b';
+      msg.textContent = /not-null/.test(m)&&campo
+        ? 'Falta completar '+(NOMBRE[campo]||`el campo "${campo}"`)+'.'
+        : 'No se pudo guardar: '+m;
+    }
   }
 
   cargar();
