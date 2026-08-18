@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Vendedores</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  .kpis5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+  .split{display:grid;grid-template-columns:1fr 400px;gap:16px}
+  .rtabs{display:flex;gap:16px;font-size:12.5px;font-weight:700;border-bottom:1px solid var(--line);margin-bottom:12px}
+  .rtabs span{padding-bottom:8px;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer}.rtabs span.on{color:var(--gold-d);border-color:var(--gold)}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+  .fsel{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-size:11.5px;font-weight:600;color:var(--ink)}
+  .search{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 11px;display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}
+  .search input{border:0;outline:0;background:none;font:inherit;flex:1;color:var(--ink)}
+  .vd .av{width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:800;flex:none}
+  .vd .track{width:64px;height:6px;background:#eee7d8;border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle}.vd .track>i{display:block;height:100%}
+  .draw .prof{display:flex;gap:12px;margin-bottom:14px}
+  .draw .pav{width:64px;height:64px;border-radius:12px;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:20px;font-weight:800;flex:none}
+  .draw .pi{font-size:11.5px;color:var(--muted);line-height:1.55}
+  .monthbox{background:var(--cream);border-radius:12px;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+  .monthbox .l{font-size:10px;color:var(--muted)} .monthbox .v{font-size:15px;font-weight:800} .monthbox .d{font-size:10px;font-weight:700}
+  .drow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+  .bars2{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;align-items:end;height:90px}
+  .bars2 .b{background:var(--blue);border-radius:4px 4px 0 0;width:100%} .bars2 .lb{font-size:9px;color:var(--muted);text-align:center;margin-top:3px}
+  .g3d{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .g3d .l{font-size:10.5px;color:var(--muted)} .g3d .v{font-weight:700;font-size:12px}
+  @media(max-width:1150px){ .kpis5{grid-template-columns:1fr 1fr} .split{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+
+    <div class="dhead">
+      <span class="ic" style="background:var(--purple-soft);color:var(--purple)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 2.7-6 6-6M15 8a3 3 0 1 0 0 6M22 20c0-3.3-2.7-6-6-6"/></svg></span>
+      <div><h1>Vendedores</h1><div class="sub">Gestión y rendimiento del equipo comercial</div></div>
+      <span class="sp"></span>
+      <span class="pill">📅 20 de mayo, 2025</span>
+      <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</span>
+      <button class="acc" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Nuevo vendedor</button>
+    </div>
+
+    <div class="kpis5">
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-3.3 2.7-6 6-6M15 8a3 3 0 1 0 0 6M22 20c0-3.3-2.7-6-6-6"/></svg></span><span class="lbl">Vendedores activos</span></div><div class="v">14</div><div class="sub up">▲ 7,7% vs. mes anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></span><span class="lbl">Ventas del equipo (mes)</span></div><div class="v">$1.248.560.000</div><div class="sub up">▲ 12,4% vs. mes anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--gold)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3"/></svg></span><span class="lbl">Cumplimiento promedio</span></div><div class="v">92%</div><div class="sub up">▲ 5,2 p.p. vs. mes anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></span><span class="lbl">Nuevos clientes (mes)</span></div><div class="v">28</div><div class="sub up">▲ 16,7% vs. mes anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--danger)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><span class="lbl">En riesgo</span></div><div class="v">2</div><a class="lnk" href="#" style="color:var(--danger)">Ver vendedores en riesgo →</a></div>
+    </div>
+
+    <div class="split">
+      <div class="card vd">
+        <div class="rtabs"><span class="on">Todos los vendedores</span><span>Por zona / canal</span></div>
+        <div class="filters"><span class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Buscar vendedor, zona, canal…"></span><span class="fsel">Zona: Todas ▾</span><span class="fsel">Canal: Todos ▾</span><span class="fsel">Estado: Todos ▾</span></div>
+        <table class="t">
+          <tr><th>Vendedor</th><th>Zona</th><th>Canal</th><th>Clientes</th><th>Ventas (12M)</th><th>Cumpl.</th><th>Nuevos</th><th>Estado</th></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">CH</span><div><b>Carolina Heluani</b><div class="ss" style="font-size:10px;color:var(--muted)">ID: VEN-001</div></div></div></td><td>Mendoza</td><td>ON</td><td>152</td><td>$245.600.000</td><td><b>105%</b> <span class="track"><i style="width:100%;background:var(--green)"></i></span></td><td>8</td><td><span class="tag ok">Activo</span></td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">DS</span><div><b>Diego Sebastianelli</b><div class="ss" style="font-size:10px;color:var(--muted)">ID: VEN-002</div></div></div></td><td>Mendoza</td><td>OFF</td><td>98</td><td>$198.430.000</td><td><b>98%</b> <span class="track"><i style="width:98%;background:var(--green)"></i></span></td><td>6</td><td><span class="tag ok">Activo</span></td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">FF</span><div><b>Franco Fernández</b><div class="ss" style="font-size:10px;color:var(--muted)">ID: VEN-003</div></div></div></td><td>San Luis</td><td>ON</td><td>87</td><td>$153.200.000</td><td><b>93%</b> <span class="track"><i style="width:93%;background:var(--green)"></i></span></td><td>5</td><td><span class="tag ok">Activo</span></td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">DP</span><div><b>Daniel Pérez</b><div class="ss" style="font-size:10px;color:var(--muted)">ID: VEN-004</div></div></div></td><td>San Luis</td><td>OFF</td><td>76</td><td>$98.700.000</td><td><b>85%</b> <span class="track"><i style="width:85%;background:var(--gold)"></i></span></td><td>4</td><td><span class="tag alto">En riesgo</span></td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">JM</span><div><b>Juan Pablo Mollar</b><div class="ss" style="font-size:10px;color:var(--muted)">ID: VEN-005</div></div></div></td><td>Mendoza</td><td>ON</td><td>68</td><td>$86.600.000</td><td><b>90%</b> <span class="track"><i style="width:90%;background:var(--green)"></i></span></td><td>3</td><td><span class="tag ok">Activo</span></td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">EG</span><div><b>Exequiel Giménez</b><div class="ss" style="font-size:10px;color:var(--muted)">ID: VEN-006</div></div></div></td><td>Mendoza</td><td>OFF</td><td>65</td><td>$81.200.000</td><td><b>82%</b> <span class="track"><i style="width:82%;background:var(--gold)"></i></span></td><td>2</td><td><span class="tag alto">En riesgo</span></td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">LJ</span><div><b>Lucas Juárez</b><div class="ss" style="font-size:10px;color:var(--muted)">ID: VEN-007</div></div></div></td><td>San Luis</td><td>ON</td><td>59</td><td>$72.400.000</td><td><b>88%</b> <span class="track"><i style="width:88%;background:var(--green)"></i></span></td><td>3</td><td><span class="tag ok">Activo</span></td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">NG</span><div><b>Nicolás García</b><div class="ss" style="font-size:10px;color:var(--muted)">ID: VEN-008</div></div></div></td><td>Mendoza</td><td>ON</td><td>54</td><td>$58.900.000</td><td><b>91%</b> <span class="track"><i style="width:91%;background:var(--green)"></i></span></td><td>2</td><td><span class="tag ok">Activo</span></td></tr>
+        </table>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:11.5px;color:var(--muted)"><span>Mostrando 1 a 8 de 14 vendedores</span><span><span class="fsel" style="background:var(--navy);color:#fff">1</span> <span class="fsel">2</span></span></div>
+      </div>
+
+      <div class="card draw">
+        <div class="c-h"><div class="t">Carolina Heluani <span class="tag ok" style="margin-left:6px">Activo</span></div></div>
+        <div class="rtabs" style="font-size:11px;gap:10px"><span class="on">Resumen</span><span>Clientes</span><span>Ventas</span><span>Rendimiento</span><span>Actividades</span></div>
+        <div class="prof">
+          <span class="pav">CH</span>
+          <div class="pi">📧 carolina.heluani@grandbar.com.ar<br>📞 261 555-2233<br>Antigüedad: 2 años 8 meses<br>Supervisor: <b style="color:var(--ink)">Fernando (Director)</b><br>Zona: <b style="color:var(--ink)">Mendoza</b> · Canal: <b style="color:var(--ink)">ON</b></div>
+        </div>
+        <div class="monthbox">
+          <div><div class="l">Ventas (mes)</div><div class="v">$24.560.000</div><div class="d up">▲ 14,6% vs abr</div></div>
+          <div><div class="l">Cumplimiento</div><div class="v">105%</div><div class="d up">▲ 8 p.p. vs abr</div></div>
+          <div><div class="l">Nuevos clientes</div><div class="v">2</div><div class="d up">▲ 100% vs abr</div></div>
+        </div>
+        <div class="drow">
+          <div>
+            <div class="t" style="font-weight:800;font-size:12.5px;margin-bottom:6px">Rendimiento <small style="font-weight:500;color:var(--muted)">últimos 6 meses</small></div>
+            <div class="bars2"><span class="b" style="height:45%"></span><span class="b" style="height:60%"></span><span class="b" style="height:50%"></span><span class="b" style="height:75%"></span><span class="b" style="height:70%"></span><span class="b" style="height:90%"></span></div>
+            <div style="display:grid;grid-template-columns:repeat(6,1fr)"><span class="lb">Dic</span><span class="lb">Ene</span><span class="lb">Feb</span><span class="lb">Mar</span><span class="lb">Abr</span><span class="lb">May</span></div>
+          </div>
+          <div>
+            <div class="t" style="font-weight:800;font-size:12.5px;margin-bottom:6px">Top categorías <small style="font-weight:500;color:var(--muted)">12M</small></div>
+            <div class="donut-wrap">
+              <svg width="82" height="82" viewBox="0 0 42 42" style="flex:none">
+                <circle cx="21" cy="21" r="15.9" fill="none" stroke="#eee7d8" stroke-width="7"></circle>
+                <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--navy)" stroke-width="7" stroke-dasharray="46 54" stroke-dashoffset="25"></circle>
+                <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--green)" stroke-width="7" stroke-dasharray="18 82" stroke-dashoffset="-21"></circle>
+                <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--purple)" stroke-width="7" stroke-dasharray="14 86" stroke-dashoffset="-39"></circle>
+                <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--gold)" stroke-width="7" stroke-dasharray="10 90" stroke-dashoffset="-53"></circle>
+              </svg>
+              <div class="leg" style="font-size:10px">
+                <div class="l"><span class="sw" style="background:var(--navy)"></span><span class="n">Vinos</span><span class="p">46%</span></div>
+                <div class="l"><span class="sw" style="background:var(--green)"></span><span class="n">Ginebra</span><span class="p">18%</span></div>
+                <div class="l"><span class="sw" style="background:var(--purple)"></span><span class="n">Whisky</span><span class="p">14%</span></div>
+                <div class="l"><span class="sw" style="background:var(--gold)"></span><span class="n">Aperitivos</span><span class="p">10%</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="g3d">
+          <div><div class="l">Clientes visitados</div><div class="v">48 / 52 <span class="up">92%</span></div><a class="lnk" href="#">Ver detalle →</a></div>
+          <div><div class="l">Tareas próximas</div><div class="v" style="font-size:11px">Visita Vinoteca Don Julián<br>Hoy 15:30</div><a class="lnk" href="#">Ver agenda →</a></div>
+          <div><div class="l">Última actividad</div><div class="v" style="font-size:11px">Pedido cargado<br>Hoy 09:18</div><a class="lnk" href="#">Ver historial →</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ia-strip" style="margin-top:16px">
+      <div class="h"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg><span>IA Asistente de Vendedores<small>Insights y recomendaciones basadas en datos del equipo</small></span></div>
+      <span class="sp" style="flex:1"></span>
+      <span class="ia-chip">🏆 Excelente rendimiento: Carolina y Diego superaron el objetivo →</span>
+      <span class="ia-chip">⚠️ Atención: Daniel y Exequiel en riesgo →</span>
+      <span class="ia-chip">📈 Oportunidad: zona San Luis OFF +18% en nuevos clientes →</span>
+    </div>
+
+    <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
+  </div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/dir-nav.js"></script>
+</body>
+</html>

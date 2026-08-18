@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Reportes</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  .search{flex:1;min-width:180px;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px}
+  .search input{border:0;outline:0;background:none;font:inherit;flex:1;color:var(--ink)}
+  .kpis5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+  .ent .row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line-2);font-size:12px}
+  .ent .row:last-child{border-bottom:0} .ent .ar{flex:1;font-weight:600;display:flex;align-items:center;gap:7px}
+  .ent .c{width:56px;text-align:center;color:var(--muted)} .ent .track{width:70px;height:6px;background:#eee7d8;border-radius:4px;overflow:hidden}.ent .track>i{display:block;height:100%}
+  .pend .row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-2)}
+  .pend .row:last-of-type{border-bottom:0} .pend .av{width:32px;height:32px;border-radius:50%;background:var(--cream);display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--gold-d);flex:none}
+  .pend .nm{font-weight:700;font-size:12.5px} .pend .ss{font-size:11px;color:var(--muted)}
+  .pend .chip{background:var(--cream);border-radius:7px;padding:4px 9px;font-size:11px;font-weight:600}
+  .grid-main{display:grid;grid-template-columns:1fr 300px;gap:16px}
+  .rtabs{display:flex;gap:16px;font-size:12.5px;font-weight:700;border-bottom:1px solid var(--line);margin-bottom:12px}
+  .rtabs span{padding-bottom:8px;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer}.rtabs span.on{color:var(--gold-d);border-color:var(--gold)}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .fsel{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-size:11.5px;font-weight:600;color:var(--ink)}
+  .rt .ft{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;color:#fff;font-size:9px;font-weight:800;flex:none}
+  .drop{border:2px dashed var(--line);border-radius:14px;padding:22px 14px;text-align:center;color:var(--muted)}
+  .drop .btn{background:var(--navy);color:#fff;border:0;border-radius:9px;padding:8px 16px;font:inherit;font-weight:700;font-size:12px;margin-top:10px;cursor:pointer}
+  .recos .r{display:flex;gap:9px;font-size:11.5px;padding:7px 0;color:var(--ink)}
+  @media(max-width:1100px){ .kpis5{grid-template-columns:1fr 1fr} .grid-main{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+
+    <div class="dhead">
+      <span class="ic" style="background:var(--purple-soft);color:var(--purple)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span>
+      <div><h1>Reportes</h1><div class="sub">Repositorio central de reportes diarios, semanales y mensuales</div></div>
+      <span class="sp"></span>
+      <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Buscar reportes, personas, áreas o palabras clave…"></div>
+      <span class="pill">📅 20 de mayo, 2025</span>
+      <div class="ic-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">7</span></div>
+      <button class="acc" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg> Subir reporte</button>
+    </div>
+
+    <div class="kpis5">
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--navy)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></span><span class="lbl">Reportes esperados (mayo)</span></div><div class="v">21</div><div class="sub">100% del plan</div><a class="lnk" href="#">Ver plan de entregas →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7H4V5h11"/></svg></span><span class="lbl">Reportes recibidos</span></div><div class="v">18</div><div class="sub">85,7% del total</div><a class="lnk" href="#">Ver recibidos →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--orange)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="lbl">Pendientes de entrega</span></div><div class="v">3</div><div class="sub">14,3% del total</div><a class="lnk" href="#" style="color:var(--orange)">Ver pendientes →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></span><span class="lbl">Alertas detectadas por IA</span></div><div class="v">5</div><div class="sub">Cambios relevantes</div><a class="lnk" href="#" style="color:var(--purple)">Ver análisis IA →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg></span><span class="lbl">Descargas este mes</span></div><div class="v">56</div><div class="sub up">▲ 18% vs abr.</div><a class="lnk" href="#">Ver actividad →</a></div>
+    </div>
+
+    <div class="g-3">
+      <div class="card ent">
+        <div class="c-h"><div class="t">Entrega de reportes <small>Estado por área · Mayo 2025</small></div></div>
+        <div class="row" style="color:var(--muted);font-size:10.5px;font-weight:700;border-bottom:1px solid var(--line)"><span class="ar">Área</span><span class="c">Esper.</span><span class="c">Recib.</span><span class="c">Pend.</span><span class="c">Cumpl.</span><span class="c">Estado</span></div>
+        <div class="row"><span class="ar">🔵 Ventas Mendoza ON</span><span class="c">5</span><span class="c">5</span><span class="c">0</span><span class="c"><span class="track"><i style="width:100%;background:var(--green)"></i></span></span><span class="c"><span class="tag ok">Al día</span></span></div>
+        <div class="row"><span class="ar">🔵 Ventas Mendoza OFF</span><span class="c">5</span><span class="c">4</span><span class="c">1</span><span class="c"><span class="track"><i style="width:80%;background:var(--gold)"></i></span></span><span class="c"><span class="tag medio">En riesgo</span></span></div>
+        <div class="row"><span class="ar">🟠 Ventas San Luis</span><span class="c">4</span><span class="c">3</span><span class="c">1</span><span class="c"><span class="track"><i style="width:75%;background:var(--gold)"></i></span></span><span class="c"><span class="tag medio">En riesgo</span></span></div>
+        <div class="row"><span class="ar">🟢 Compras</span><span class="c">2</span><span class="c">2</span><span class="c">0</span><span class="c"><span class="track"><i style="width:100%;background:var(--green)"></i></span></span><span class="c"><span class="tag ok">Al día</span></span></div>
+        <div class="row"><span class="ar">🟣 Administración</span><span class="c">2</span><span class="c">2</span><span class="c">0</span><span class="c"><span class="track"><i style="width:100%;background:var(--green)"></i></span></span><span class="c"><span class="tag ok">Al día</span></span></div>
+        <div class="row"><span class="ar">📦 Depósito</span><span class="c">2</span><span class="c">1</span><span class="c">1</span><span class="c"><span class="track"><i style="width:50%;background:var(--danger)"></i></span></span><span class="c"><span class="tag crit">Crítico</span></span></div>
+        <div class="row"><span class="ar">🟣 Marketing</span><span class="c">1</span><span class="c">1</span><span class="c">0</span><span class="c"><span class="track"><i style="width:100%;background:var(--green)"></i></span></span><span class="c"><span class="tag ok">Al día</span></span></div>
+        <a class="lnk" href="#" style="margin-top:10px;display:inline-block">Ver detalle por persona →</a>
+      </div>
+
+      <div class="card pend">
+        <div class="c-h"><div class="t">Reportes pendientes <small>Entrega vencida o próxima a vencer</small></div><span class="lnk">Ver todos (3) →</span></div>
+        <div class="row"><span class="av">FR</span><div style="flex:1"><div class="nm">Franco Roldán</div><div class="ss">Ventas Mendoza OFF</div></div><span class="chip">Reporte diario</span><div style="text-align:right"><div class="tag crit">Vencido</div><div class="ss">18/05/2025</div></div></div>
+        <div class="row"><span class="av">JJ</span><div style="flex:1"><div class="nm">Juan Pablo Fransó</div><div class="ss">Ventas Mendoza OFF</div></div><span class="chip">Reporte semanal</span><div style="text-align:right"><div class="tag alto">Vence hoy</div><div class="ss">20/05/2025</div></div></div>
+        <div class="row"><span class="av">DP</span><div style="flex:1"><div class="nm">Daniel Pérez</div><div class="ss">Ventas San Luis</div></div><span class="chip">Reporte mensual</span><div style="text-align:right"><div class="ss">2 días</div><div class="ss">22/05/2025</div></div></div>
+        <a class="lnk" href="#" style="margin-top:10px;display:inline-block">Enviar recordatorios →</a>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Análisis IA · Cambios relevantes <small>Comparación con el período anterior</small></div></div>
+        <div class="al"><span class="i"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg></span><div><div class="tt">Ventas totales · Mendoza ON</div><div class="ss">Disminuyó 12,4% vs abril · Impacto: -$18.450.000</div></div><span class="r lnk">Ver</span></div>
+        <div class="al"><span class="i" style="background:var(--green-soft);color:var(--green-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span><div><div class="tt">Rotación de Gin</div><div class="ss">Aumentó 18,7% vs abril · Excelente performance en vinotecas</div></div><span class="r lnk">Ver</span></div>
+        <div class="al"><span class="i" style="background:var(--amber-soft);color:var(--gold-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><div><div class="tt">Días de inventario · Whisky</div><div class="ss">Subió a 52 días (objetivo: 30) · Sobre stock en 3 productos</div></div><span class="r lnk">Ver</span></div>
+        <a class="lnk" href="#" style="margin-top:10px;display:inline-block">Ver todas las alertas IA →</a>
+      </div>
+    </div>
+
+    <div class="grid-main">
+      <div class="card">
+        <div class="rtabs"><span class="on">Todos los reportes</span><span>Diarios</span><span>Semanales</span><span>Mensuales</span><span>Anuales</span></div>
+        <div class="filters"><span class="fsel">Mayo 2025 ▾</span><span class="fsel">Área ▾</span><span class="fsel">Tipo de reporte ▾</span><span class="fsel">Persona ▾</span><span class="fsel">Estado ▾</span><span class="fsel">Más filtros</span></div>
+        <table class="t rt">
+          <tr><th>Reporte</th><th>Área</th><th>Tipo</th><th>Período</th><th>Responsable</th><th>Estado</th><th>IA</th></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:var(--green)">XLS</span><div><b>Ventas_Diario_MzaON_20-05.xlsx</b><div class="ss" style="font-size:10px;color:var(--muted)">1.2 MB</div></div></div></td><td><span class="tag tr">Ventas Mza ON</span></td><td>Diario</td><td>20/05/2025</td><td>Carolina Heluani</td><td><span class="tag ok">Recibido</span></td><td class="up">2 cambios</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:var(--danger)">PDF</span><div><b>Compras_Semanal_19-05.pdf</b><div class="ss" style="font-size:10px;color:var(--muted)">850 KB</div></div></div></td><td><span class="tag ok">Compras</span></td><td>Semanal</td><td>12-18/05</td><td>Luciana Pérez</td><td><span class="tag ok">Recibido</span></td><td class="up">1 cambio</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:var(--green)">XLS</span><div><b>Stock_Deposito_19-05.xlsx</b><div class="ss" style="font-size:10px;color:var(--muted)">2.4 MB</div></div></div></td><td><span class="tag bajo">Depósito</span></td><td>Diario</td><td>19/05/2025</td><td>Andrea Molina</td><td><span class="tag ok">Recibido</span></td><td class="up">3 cambios</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:var(--danger)">PDF</span><div><b>Reporte_Mensual_Ventas_SL.pdf</b><div class="ss" style="font-size:10px;color:var(--muted)">3.1 MB</div></div></div></td><td><span class="tag alto">Ventas San Luis</span></td><td>Mensual</td><td>Abril 2025</td><td>Franco Fernández</td><td><span class="tag ok">Recibido</span></td><td class="up">4 cambios</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:var(--green)">XLS</span><div><b>Marketing_Campañas_Abril.xlsx</b><div class="ss" style="font-size:10px;color:var(--muted)">1.6 MB</div></div></div></td><td><span class="tag" style="background:var(--purple-soft);color:var(--purple)">Marketing</span></td><td>Mensual</td><td>Abril 2025</td><td>María del Mar</td><td><span class="tag ok">Recibido</span></td><td class="up">1 cambio</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:#9aa">XLS</span><div><b>Ventas_Diario_MzaOFF_18-05.xlsx</b><div class="ss" style="font-size:10px;color:var(--muted)">1.1 MB</div></div></div></td><td><span class="tag tr">Ventas Mza OFF</span></td><td>Diario</td><td>18/05/2025</td><td>Franco Roldán</td><td><span class="tag crit">Pendiente</span></td><td>—</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:#9aa">PDF</span><div><b>Ventas_SanLuis_Semanal_19-05.pdf</b><div class="ss" style="font-size:10px;color:var(--muted)">900 KB</div></div></div></td><td><span class="tag alto">Ventas San Luis</span></td><td>Semanal</td><td>12-19/05</td><td>Daniel Pérez</td><td><span class="tag medio">Pendiente</span></td><td>—</td></tr>
+        </table>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:11.5px;color:var(--muted)"><span>Mostrando 1 a 7 de 7 reportes</span><span><span class="fsel">Anterior</span> <span class="fsel" style="background:var(--navy);color:#fff">1</span> <span class="fsel">Siguiente</span></span></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <div class="c-h"><div class="t">Subí tu reporte</div></div>
+          <div class="drop">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+            <div style="margin-top:8px;font-size:12px">Arrastrá y soltá tu archivo aquí</div>
+            <button class="btn">Seleccionar archivo</button>
+            <div style="font-size:10.5px;margin-top:10px">Formatos: Excel, PDF, CSV (Máx. 50MB)</div>
+          </div>
+        </div>
+        <div class="card recos">
+          <div class="c-h"><div class="t">Recomendaciones de IA</div></div>
+          <div class="r">💡 Subí tus reportes antes de las 10hs para mejor análisis.</div>
+          <div class="r">🏷️ Usá nombres descriptivos para facilitar búsquedas.</div>
+          <div class="r">📅 Incluí el período en el nombre del archivo.</div>
+          <a class="lnk" href="#" style="margin-top:8px;display:inline-block">Ver guía completa →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="ia-strip" style="margin-top:16px">
+      <div class="h"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg><span>IA Asistente de Reportes<small>Preguntale a la IA sobre los reportes de la empresa</small></span></div>
+      <span class="sp" style="flex:1"></span>
+      <span class="ia-chip">¿Qué áreas tienen más reportes pendientes? →</span>
+      <span class="ia-chip">Mostrame los cambios más importantes del mes →</span>
+      <span class="ia-chip">¿Cómo evolucionaron las ventas vs mes anterior? →</span>
+    </div>
+
+    <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
+  </div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/dir-nav.js"></script>
+</body>
+</html>
