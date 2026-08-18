@@ -52,10 +52,13 @@ exports.handler = async (event) => {
         const cur = (await (await sb('reuniones?id=eq.' + encodeURIComponent(b.id) + '&select=usuario_id')).json())[0];
         if (!cur) return json(404, { error: 'No existe.' });
         const esMia = String(cur.usuario_id) === String(user.id);
-        // El usuario destino puede confirmar/realizar; Dirección puede todo.
-        if (!isDir && !(esMia && ['confirmada', 'realizada'].includes(est))) return json(403, { error: 'No autorizado.' });
-        if (!['programada', 'confirmada', 'realizada', 'cancelada'].includes(est)) return json(400, { error: 'Estado inválido.' });
-        await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ estado: est }) });
+        // El usuario destino puede confirmar / marcar realizada / rechazar (no asistir); Dirección puede todo.
+        if (!isDir && !(esMia && ['confirmada', 'realizada', 'rechazada'].includes(est))) return json(403, { error: 'No autorizado.' });
+        if (!['programada', 'confirmada', 'realizada', 'cancelada', 'rechazada'].includes(est)) return json(400, { error: 'Estado inválido.' });
+        if (est === 'rechazada' && esMia && !isDir && !String(b.motivo || '').trim()) return json(400, { error: 'Poné el motivo por el que no podés asistir.' });
+        const patch = { estado: est };
+        if (b.motivo !== undefined) patch.respuesta = String(b.motivo || '').trim() || null;
+        await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
         return json(200, { ok: true });
       }
 

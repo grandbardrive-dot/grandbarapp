@@ -238,7 +238,7 @@
   let TOKEN=null;
   const $=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const estBadge={programada:['tag tr','Programada'],confirmada:['tag ok','Confirmada'],realizada:['tag ok','Realizada'],cancelada:['tag','Cancelada']};
+  const estBadge={programada:['tag tr','Programada'],confirmada:['tag ok','Confirmada'],realizada:['tag ok','Realizada'],cancelada:['tag','Cancelada'],rechazada:['tag alto','No asiste']};
 
   function abrir(){ $('rov').style.display='flex'; $('rMsg').textContent=''; }
   function cerrar(){ $('rov').style.display='none'; }
@@ -262,7 +262,7 @@
         const f=new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
         return `<div style="display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line-2)">
           <div style="text-align:center;min-width:40px"><div style="font-weight:800;font-size:12px">${f}</div><div style="font-size:10px;color:#6d7d85">${x.hora?esc(x.hora.slice(0,5)):''}</div></div>
-          <div style="flex:1"><div style="font-weight:700;font-size:12.5px">${esc(x.titulo)}</div><div style="font-size:11px;color:#6d7d85">${esc(x.destinatario)}${x.lugar?' · '+esc(x.lugar):''}</div></div>
+          <div style="flex:1"><div style="font-weight:700;font-size:12.5px">${esc(x.titulo)}</div><div style="font-size:11px;color:#6d7d85">${esc(x.destinatario)}${x.lugar?' · '+esc(x.lugar):''}</div>${(x.estado==='rechazada'&&x.respuesta)?'<div style="font-size:11px;color:#c0603e;font-weight:600">No asiste: '+esc(x.respuesta)+'</div>':''}</div>
           <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="${b[0]}">${b[1]}</span><button data-del="${x.id}" style="background:none;border:0;color:#c0603e;font-size:10.5px;cursor:pointer">Cancelar</button></div>
         </div>`;
       }).join('');

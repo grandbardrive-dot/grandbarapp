@@ -15,11 +15,14 @@ create table if not exists public.reuniones (
   fecha             date not null,
   hora              time,
   lugar             text,
-  estado            text default 'programada',    -- programada / confirmada / realizada / cancelada
+  estado            text default 'programada',    -- programada / confirmada / realizada / cancelada / rechazada
+  respuesta         text,                         -- motivo del usuario si no puede asistir
   creado_por        uuid,                         -- Fernando
   creado_por_nombre text,
   created_at        timestamptz default now()
 );
+-- si la tabla ya existía sin la columna:
+alter table public.reuniones add column if not exists respuesta text;
 alter table public.reuniones enable row level security;   -- solo el service role (las Functions) accede
 create index if not exists reuniones_usuario_idx on public.reuniones(usuario_id, fecha);
 
