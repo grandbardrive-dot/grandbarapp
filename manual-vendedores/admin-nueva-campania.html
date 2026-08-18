@@ -147,6 +147,14 @@
   .sec-hname{flex:1;font-size:12px;font-weight:800;letter-spacing:.04em;color:var(--navy)}
   .sec-count{font-size:11px;font-weight:700;color:var(--ink3)}
   .sec-body{padding:6px 15px 12px}
+  /* Paso 4 — barra de filtro + secciones agrupadas por canal */
+  .ubic-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:11px 14px}
+  .ubic-note{flex:1;min-width:230px;font-size:12.5px;color:var(--ink2);line-height:1.5}
+  .canal-group+.canal-group{margin-top:24px}
+  .canal-title{display:flex;align-items:center;gap:9px;margin-top:18px;font-size:11.5px;font-weight:800;letter-spacing:.06em;color:var(--navy)}
+  .canal-title .canal-sub{font-weight:600;letter-spacing:0;font-size:11.5px;color:var(--ink3)}
+  .canal-title .canal-line{flex:1;height:1px;background:var(--line)}
+  .canal-empty{font-size:12.5px;color:var(--ink3);background:var(--surface2);border:1px dashed var(--line-2);border-radius:12px;padding:14px;margin-top:12px}
 </style>
 </head>
 <body>
@@ -211,11 +219,87 @@
   ];
   const CANAL_LABELS={}; CANAL_GRUPOS.forEach(g=>g.subs.forEach(([v,l])=>CANAL_LABELS[v]=l));
   // canales que implican cada checklist (para el paso 4)
-  function canalesChecklist(){ const s=new Set(); st.canales.forEach(c=>{ if(c==='vinotecas')s.add('vinoteca'); else if(c==='autoservicios')s.add('autoservicio'); else s.add('restaurante'); }); return s; }
+  function canalChecklistDe(c){ return c==='vinotecas' ? 'vinoteca' : (c==='autoservicios'||c==='kioscos' ? 'autoservicio' : 'restaurante'); }
+  function canalesChecklist(){ const s=new Set(); st.canales.forEach(c=>s.add(canalChecklistDe(c))); return s; }
+  // Los canales elegidos, agrupados por el manual (hoja) al que pertenecen. El paso 4
+  // muestra un bloque por manual: así "VINOS" de restaurante y "VINOS" de vinoteca
+  // dejan de verse como dos secciones repetidas sin explicación.
+  const CHK_INFO={ restaurante:{ico:'🍽️',label:'ON TRADE',orden:0}, vinoteca:{ico:'🍾',label:'VINOTECAS',orden:1}, autoservicio:{ico:'🏪',label:'AUTOSERVICIOS',orden:2} };
+  function gruposChecklist(){
+    const m=new Map();
+    st.canales.forEach(c=>{ const k=canalChecklistDe(c); if(!m.has(k))m.set(k,[]); m.get(k).push(CANAL_LABELS[c]||c); });
+    return [...m.entries()]
+      .map(([canal,labels])=>({canal,labels,...(CHK_INFO[canal]||{ico:'📋',label:canal,orden:9})}))
+      .sort((a,b)=>a.orden-b.orden);
+  }
+
+  // ── Filtro del paso 4 por categoría de la campaña ──────────────────────────
+  // Cada sección del manual habla de una categoría concreta. Si la campaña es de
+  // Spirits no tiene sentido ofrecer "Góndola de Vinos" ni "Vino por copa".
+  // 'general' = sirve para cualquier categoría · 'interno' = parte del recorrido
+  // de la visita, no es un lugar donde publicar campañas.
+  const TEMA_SEC={
+    // restaurante
+    vinos:'vinos', s1:'vinos', s_acciones_mensuales:'vinos', s7:'vinos', s10:'vinos',
+    spirits:'spirits', sp_incorp:'spirits', sp_mensuales:'spirits', sp_aperitivos:'spirits', sp_campari:'spirits',
+    s0:'interno', cierre:'interno',
+    // vinoteca
+    vt_m_vinos:'vinos', vt_gondola_vinos:'vinos', vt_incorporaciones:'vinos', vt_acciones_mensuales:'vinos', vt_partners:'vinos',
+    vt_m_spirits:'spirits', vt_gondola_spirits:'spirits',
+    vt_heladera:'general',   // en la heladera entran cervezas, blancos y spirits
+    vt_cierre:'interno',
+  };
+  const TEMA_NOM={ vinos:'Vinos', spirits:'Spirits' };
+  const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+
+  // Categorías de esta campaña: por los productos elegidos y, si todavía no eligió
+  // ninguno, por el catálogo del proveedor. Set vacío = no filtrar.
+  function temasCampania(){
+    let cats=st.productos.map(p=>p.categoria).filter(Boolean);
+    if(!cats.length && st.proveedor?.id) cats=PROD.filter(p=>p.proveedor_id===st.proveedor.id).map(p=>p.categoria).filter(Boolean);
+    const t=new Set();
+    cats.forEach(c=>{ const n=norm(c);
+      if(n.includes('vino')||n.includes('espumante')||n.includes('bodega')) t.add('vinos');
+      else if(n.includes('spirit')||n.includes('aperitiv')||n.includes('licor')) t.add('spirits');
+      else t.add('general');
+    });
+    return t;
+  }
+  // Secciones de una marca puntual (Planes Campari, Café Segafreddo…): solo se
+  // ofrecen si la campaña es de ese proveedor.
+  // Palabras que son de la categoría, no de una marca ("Partners con bodegas" no es
+  // la sección de "Bodega La Rural").
+  const MARCA_STOP=['bodega','bodegas','grupo','finca','casa','vinos','vino','spirits'];
+  function marcasManual(){
+    const s=new Set(['segafreddo']);
+    PROV.forEach(p=>{ const k=norm(p.nombre).split(' ')[0]; if(k.length>=5 && !MARCA_STOP.includes(k)) s.add(k); });
+    return s;
+  }
+  function marcaSeccion(sec){ const t=norm(sec.nombre+' '+(sec.codigo||'')); return [...marcasManual()].find(m=>t.includes(m))||null; }
+  function temaSeccion(sec,madre){
+    if(TEMA_SEC[sec.codigo]) return TEMA_SEC[sec.codigo];
+    if(madre && TEMA_SEC[madre.codigo]) return TEMA_SEC[madre.codigo];
+    const n=norm(sec.nombre+' '+(madre?madre.nombre:''));
+    if(n.includes('vino')||n.includes('bodega')) return 'vinos';
+    if(n.includes('spirit')||n.includes('aperitiv')) return 'spirits';
+    return 'general';
+  }
+  // ¿Se ofrece esta ubicación para la campaña que se está armando?
+  function ubicAplica(sec,madre){
+    if(st.ubicaciones.includes(sec.codigo)) return true;   // ya elegida: nunca se esconde
+    if(_ubicVerTodas) return true;
+    const tema=temaSeccion(sec,madre);
+    if(tema==='interno') return false;
+    const marca=(madre?marcaSeccion(madre):null)||marcaSeccion(sec);
+    if(marca && !norm(st.proveedor?.nombre||'').includes(marca)) return false;
+    const temas=temasCampania();
+    if(!temas.size) return true;
+    return tema==='general'||temas.has(tema);
+  }
   const PASOS=['Proveedor','Producto','Canales','Ubicaciones','Promoción','Materiales','Revisión'];
 
   let paso=1, PROV=[], PROD=[], SECS=[], MAT=[]; const BRANDS={};
-  let _matVerTodos=false;
+  let _matVerTodos=false, _ubicVerTodas=false;
   let editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
   let prodPage=1, prodCat='', prodQ='';
   const st={ proveedor:null, productos:[], canales:[], ubicaciones:[], mecanica:'', precioReg:'', precioAcc:'', fechaIni:'', fechaFin:'', materiales:[] };
@@ -301,23 +385,48 @@
         <div class="chan-grid">${gruposHtml}</div>
         <div class="foot-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V8l7-5 7 5v13" stroke-linecap="round" stroke-linejoin="round"/></svg>Vas a poder elegir las ubicaciones específicas dentro de cada canal en el siguiente paso.</div>`;
     } else if(paso===4){
-      const cc=canalesChecklist();
-      const madres=SECS.filter(s=>!s.parent_id && cc.has(s.canal)).sort((a,b)=>(a.orden||0)-(b.orden||0));
-      let cards='';
-      if(!madres.length){ cards='<div class="empty">Elegí al menos un canal en el paso anterior para ver sus secciones.</div>'; }
+      const grupos=gruposChecklist();
+      let ocultas=0, cards='';
+      if(!grupos.length){ cards='<div class="empty">Elegí al menos un canal en el paso anterior para ver sus secciones.</div>'; }
       else{
-        cards='<div class="sec-grid">'+madres.map(m=>{
-          const hijas=SECS.filter(s=>s.parent_id===m.id).sort((a,b)=>(a.orden||0)-(b.orden||0));
-          const items=hijas.length?hijas:[m];
-          const sel=items.filter(x=>st.ubicaciones.includes(x.codigo)).length;
-          const rows=items.map(x=>{ const on=st.ubicaciones.includes(x.codigo); const nom=hijas.length?x.nombre:'Toda la sección';
-            return `<div class="chk ${on?'on':''}" onclick="toggleUbic('${x.codigo}')"><span class="box">${on?'✓':''}</span>${esc(nom)}</div>`; }).join('');
-          return `<div class="sec-card"><div class="sec-head"><div class="sec-hico" style="background:${m.icono_bg||'#EAF2FB'};color:${m.icono_color||'#1F447F'}">${m.icono||'📋'}</div><div class="sec-hname">${esc(m.nombre)}</div><div class="sec-count">${sel}/${items.length}</div></div><div class="sec-body">${rows}</div></div>`;
-        }).join('')+'</div>';
+        cards=grupos.map(g=>{
+          const madres=SECS.filter(s=>!s.parent_id && s.canal===g.canal).sort((a,b)=>(a.orden||0)-(b.orden||0));
+          const cardsCanal=madres.map(m=>{
+            const hijas=SECS.filter(s=>s.parent_id===m.id).sort((a,b)=>(a.orden||0)-(b.orden||0));
+            const todos=hijas.length?hijas:[m];
+            const items=todos.filter(x=>ubicAplica(x,hijas.length?m:null));
+            ocultas+=todos.length-items.length;
+            if(!items.length) return '';
+            const sel=items.filter(x=>st.ubicaciones.includes(x.codigo)).length;
+            const rows=items.map(x=>{ const on=st.ubicaciones.includes(x.codigo); const nom=hijas.length?x.nombre:'Toda la sección';
+              return `<div class="chk ${on?'on':''}" onclick="toggleUbic('${x.codigo}')"><span class="box">${on?'✓':''}</span>${esc(nom)}</div>`; }).join('');
+            return `<div class="sec-card"><div class="sec-head"><div class="sec-hico" style="background:${m.icono_bg||'#EAF2FB'};color:${m.icono_color||'#1F447F'}">${m.icono||'📋'}</div><div class="sec-hname">${esc(m.nombre)}</div><div class="sec-count">${sel}/${items.length}</div></div><div class="sec-body">${rows}</div></div>`;
+          }).filter(Boolean).join('');
+          const cuerpo = cardsCanal
+            ? `<div class="sec-grid">${cardsCanal}</div>`
+            : `<div class="canal-empty">${madres.length
+                ? 'Ninguna sección de este manual aplica a la categoría de la campaña. Va a aparecer en las <b>Acciones Mensuales</b> generales del canal.'
+                : 'Este manual todavía no tiene secciones cargadas. La campaña va a aparecer en las <b>acciones generales</b> del canal.'}</div>`;
+          return `<div class="canal-group">
+            <div class="canal-title"><span>${g.ico}</span>${g.label}<span class="canal-sub">${esc(g.labels.join(' · '))}</span><span class="canal-line"></span></div>
+            ${cuerpo}</div>`;
+        }).join('');
       }
+      const temas=temasCampania();
+      const temaTxt=[...temas].filter(t=>t!=='general').map(t=>TEMA_NOM[t]||t).join(' y ');
+      const provNom4=st.proveedor?.nombre||'';
+      const barra=(grupos.length && (temaTxt||ocultas||_ubicVerTodas)) ? `<div class="ubic-bar">
+          <div class="ubic-note">${_ubicVerTodas
+            ? 'Estás viendo <b>todas</b> las secciones del manual, incluidas las que no son de la categoría de esta campaña.'
+            : `${temaTxt
+                ? `Te muestro las ubicaciones de <b>${esc(temaTxt)}</b>${provNom4?`, la categoría de <b>${esc(provNom4)}</b>`:''}.`
+                : `Te muestro las ubicaciones generales, las que sirven para cualquier categoría.`}${ocultas?` Hay <b>${ocultas}</b> ${ocultas===1?'ubicación que no aplica y está oculta':'ubicaciones que no aplican y están ocultas'}.`:''}`}</div>
+          <button class="cat-chip" onclick="_ubicVerTodas=!_ubicVerTodas;renderPaso()">${_ubicVerTodas?'◂ Filtrar por el proveedor':'Ver todas las secciones ▸'}</button>
+        </div>` : '';
       el.innerHTML=`
-        <div class="panel-top"><div><div class="panel-h">4. ¿Dónde querés publicar este contenido?</div><div class="panel-sub">Seleccioná las secciones del manual donde querés que se muestre la campaña.</div></div>
+        <div class="panel-top"><div><div class="panel-h">4. ¿Dónde querés publicar este contenido?</div><div class="panel-sub">Seleccioná las secciones del manual donde querés que se muestre la campaña. Están agrupadas por canal.</div></div>
           <div class="info-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>Podés seleccionar una o varias ubicaciones. El contenido se muestra solo en las secciones que elijas.</div></div>
+        ${barra}
         ${cards}
         <div class="foot-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>Si no elegís ninguna, la campaña va a la sección “Acciones Mensuales” general de cada canal.</div>`;
     } else if(paso===5){
