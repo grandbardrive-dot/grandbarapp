@@ -367,8 +367,10 @@
       const box=document.getElementById('dirReuniones'); if(!box||!rows.length) return;
       const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
       box.style.display='block';
+      const quien=(rows.find(x=>x.creado_por_nombre && !/@/.test(x.creado_por_nombre))||{}).creado_por_nombre;
+      const quienN=quien?esc(String(quien).split(/\s+/)[0]):'Dirección';
       box.innerHTML='<div style="background:linear-gradient(120deg,#12303f,#1a2f5a);color:#fff;border-radius:14px;padding:13px 15px">'
-        +'<div style="font-weight:800;font-size:13.5px;margin-bottom:8px">📌 Dirección te programó '+(rows.length>1?rows.length+' reuniones':'una reunión')+'</div>'
+        +'<div style="font-weight:800;font-size:13.5px;margin-bottom:8px">📌 '+quienN+' te programó '+(rows.length>1?rows.length+' reuniones':'una reunión')+'</div>'
         +rows.slice(0,6).map(x=>{
           const f=new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{weekday:'short',day:'2-digit',month:'2-digit'});
           const conf=x.estado==='confirmada'||x.estado==='realizada';
