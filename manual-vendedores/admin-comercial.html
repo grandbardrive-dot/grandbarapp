@@ -235,8 +235,7 @@
         <svg class="tb-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div class="menu" id="perfil-menu">
-        <button onclick="location.href='admin.html?tab=acciones'">⚙️ Panel clásico</button>
-        <button onclick="location.href='/hub.html'">↩️ Volver al Hub</button>
+        <button onclick="cerrarSesion()">🚪 Cerrar sesión</button>
       </div>
     </header>
 
@@ -440,7 +439,18 @@
   // ── acciones de UI ──
   function toggleMenu(ev){ ev.stopPropagation(); document.getElementById('perfil-menu').classList.toggle('open'); }
   document.addEventListener('click', ()=> document.getElementById('perfil-menu').classList.remove('open'));
-  function salir(){ sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil'); location.href='admin.html'; }
+  // Cierra la sesión del panel y también la del Hub (token de Supabase Auth),
+  // y vuelve al login. No alcanza con borrar admin_auth: si queda la sesión del
+  // Hub, con volver atrás se entra de nuevo.
+  function cerrarSesion(){
+    if(!confirm('¿Cerrar sesión?')) return;
+    sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil');
+    try{
+      localStorage.removeItem('gb_demo');
+      Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k));
+    }catch(e){}
+    location.href='/index.html';
+  }
   function verGuias(){ alert('Guías y tutoriales — próximamente.'); }
   function soporte(){ abrirSoporte(); }
   function verNotificaciones(){ const n=contarPorVencer(); alert(n?`Tenés ${n} campaña(s) que vencen en los próximos 7 días.`:'No hay novedades por ahora.'); }
