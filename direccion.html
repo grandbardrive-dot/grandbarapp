@@ -304,12 +304,8 @@
   </div></div>
 </div>
 
-<div id="notifPanel" style="display:none;position:fixed;top:64px;right:24px;width:344px;max-height:72vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 44px -12px rgba(0,0,0,.32);z-index:60">
-  <div style="padding:12px 15px;border-bottom:1px solid var(--line);font-weight:800;font-size:14px;position:sticky;top:0;background:#fff">🔔 Notificaciones</div>
-  <div id="notifBody"><div style="padding:22px;text-align:center;color:var(--muted);font-size:13px">Cargando…</div></div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/dir-notif.js"></script>
 <script>
   const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const ini = n => (String(n||'F').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('')||'F').toUpperCase();
@@ -345,36 +341,7 @@
       }
     }catch(e){}
 
-    // ---- Notificaciones (campanita) ----
-    try{
-      const r = await fetch('/.netlify/functions/notificaciones',{headers:{Authorization:'Bearer '+TOKEN}});
-      if(r.ok){
-        const d = await r.json();
-        const items = d.notificaciones||[];
-        const seen = localStorage.getItem('gb_notif_seen') || '';
-        const nuevas = items.filter(x=>String(x.ts||'') > seen).length;
-        const dot = document.getElementById('notifDot');
-        if(nuevas>0){ dot.textContent = nuevas>9?'9+':nuevas; dot.style.display='grid'; }
-        const panel = document.getElementById('notifPanel');
-        const body = document.getElementById('notifBody');
-        body.innerHTML = items.length ? items.map(x=>{
-          const nueva = String(x.ts||'') > seen;
-          const f = x.ts ? new Date(x.ts).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
-          return `<a class="nt-item${nueva?' nueva':''}" href="${esc(x.link||'#')}"><span class="nt-ic">${esc(x.icon||'•')}</span><div><div class="nt-t">${esc(x.titulo||'')}</div><div class="nt-s">${esc(x.detalle||'')}</div><div class="nt-f">${f}</div></div></a>`;
-        }).join('') : '<div style="padding:22px;text-align:center;color:var(--muted);font-size:13px">No hay novedades.</div>';
-        document.getElementById('btnNotif').onclick = (e)=>{
-          e.stopPropagation();
-          const open = panel.style.display==='block';
-          panel.style.display = open?'none':'block';
-          if(!open){ // marcar como visto
-            const top = items[0] ? String(items[0].ts||'') : new Date().toISOString();
-            localStorage.setItem('gb_notif_seen', top);
-            dot.style.display='none';
-          }
-        };
-        document.addEventListener('click',(e)=>{ if(panel.style.display==='block' && !panel.contains(e.target) && e.target.id!=='btnNotif'){ panel.style.display='none'; } });
-      }
-    }catch(e){}
+    // (La campanita y la lupa las maneja assets/dir-notif.js — compartido en todo el panel)
 
     // ---- Resumen real de toda la empresa (con filtro de sucursal) ----
     const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
