@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Mis reportes</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;--gold:#c0912f;--gold-d:#a97c22;--green:#2f8f6e;--green-d:#256f54;--green-s:#e6f2ec;--danger:#c0603e;--danger-s:#fbe9e4;--amber:#c99a2e;--amber-s:#f8efd6;--navy:#0d2230;--font:'Inter',system-ui,sans-serif}
+  *{box-sizing:border-box} body{margin:0;font-family:var(--font);background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .top{background:var(--navy);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+  .top a.back{color:#cdd9e0;text-decoration:none;font-size:20px;line-height:1}
+  .top h1{font-size:16px;margin:0;font-weight:800} .top .sub{font-size:11px;color:#8fa3ad}
+  .wrap{max-width:720px;margin:0 auto;padding:16px 14px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 16px;margin-bottom:16px}
+  .card h2{font-size:15px;margin:0 0 12px}
+  label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 4px}
+  input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;background:#fff;color:var(--ink)}
+  textarea{min-height:120px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{background:var(--gold);color:#241a06;border:0;border-radius:11px;padding:12px 16px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;width:100%;margin-top:14px}
+  .btn:disabled{opacity:.6}
+  .rep{border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:11px}
+  .rep .h{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .rep .ti{font-weight:800;font-size:14px;flex:1}
+  .rep .me{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+  .rep .co{font-size:13px;white-space:pre-wrap;color:#33454d;background:var(--cream);border-radius:10px;padding:10px;margin-bottom:8px}
+  .rep .lk{font-size:12.5px;font-weight:700;color:var(--green-d);text-decoration:none}
+  .badge{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .b-pend{background:#eef0f1;color:#6b7b83} .b-aprob{background:var(--green-s);color:var(--green-d)} .b-rech{background:var(--danger-s);color:var(--danger)} .b-rev{background:var(--amber-s);color:var(--gold-d)}
+  .devo{border-left:3px solid var(--gold);background:var(--gold-s,#f7efdc);border-radius:0 10px 10px 0;padding:9px 12px;font-size:12.5px;margin-top:6px}
+  .devo b{color:var(--gold-d)}
+  .del{margin-left:auto;background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:24px}
+  .msg{font-size:12.5px;font-weight:700;margin-top:8px;min-height:16px}
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="back" href="inicio.html">‹</a>
+    <div><h1>Mis reportes</h1><div class="sub" id="sub">Cargá tus reportes para que Fernando los revise</div></div>
+  </div>
+  <div class="wrap">
+    <div class="card">
+      <h2>➕ Nuevo reporte</h2>
+      <label>Título</label>
+      <input id="titulo" placeholder="Ej: Ventas del día — Mendoza ON" maxlength="120">
+      <div class="row2">
+        <div><label>Tipo</label><select id="tipo"><option value="diario">Diario</option><option value="semanal">Semanal</option><option value="mensual">Mensual</option><option value="puntual">Puntual</option></select></div>
+        <div><label>Período</label><input id="periodo" placeholder="Ej: 18/08 o Semana 18-24"></div>
+      </div>
+      <label>Reporte</label>
+      <textarea id="contenido" placeholder="Escribí acá el reporte: qué se hizo, números, novedades, pendientes…"></textarea>
+      <label>Enlace (opcional)</label>
+      <input id="enlace" placeholder="Link a Drive / PDF / planilla (opcional)">
+      <button class="btn" id="enviar">Enviar a Dirección</button>
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>📋 Enviados</h2>
+      <div id="lista"><div class="empty">Cargando…</div></div>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
+const FN='/.netlify/functions/reportes';
+let hub, TOKEN;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const badge={pendiente:['b-pend','Pendiente'],aprobado:['b-aprob','Aprobado ✓'],rechazado:['b-rech','Rechazado'],revision:['b-rev','Pide cambios']};
+
+async function cargar(){
+  try{
+    const r=await fetch(FN,{headers:{Authorization:'Bearer '+TOKEN}});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    const L=$('lista');
+    if(!d.reportes.length){ L.innerHTML='<div class="empty">Todavía no cargaste reportes.</div>'; return; }
+    L.innerHTML=d.reportes.map(x=>{
+      const bd=badge[x.estado]||badge.pendiente;
+      const fecha=new Date(x.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'});
+      return `<div class="rep">
+        <div class="h"><span class="ti">${esc(x.titulo)}</span><span class="badge ${bd[0]}">${bd[1]}</span></div>
+        <div class="me">${esc(x.area||'')} · ${esc(x.tipo)}${x.periodo?' · '+esc(x.periodo):''} · ${fecha}</div>
+        ${x.contenido?`<div class="co">${esc(x.contenido)}</div>`:''}
+        ${x.enlace?`<a class="lk" href="${esc(x.enlace)}" target="_blank" rel="noopener">🔗 Ver enlace</a>`:''}
+        ${x.devolucion?`<div class="devo"><b>Devolución de Dirección:</b><br>${esc(x.devolucion)}</div>`:''}
+        ${x.estado==='pendiente'?`<button class="del" data-del="${x.id}">Eliminar</button>`:''}
+      </div>`;
+    }).join('');
+    L.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>borrar(b.dataset.del));
+  }catch(e){ $('lista').innerHTML='<div class="empty">No pude cargar: '+esc(e.message)+'</div>'; }
+}
+
+async function borrar(id){
+  if(!confirm('¿Eliminar este reporte?')) return;
+  await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'borrar',id})});
+  cargar();
+}
+
+$('enviar').onclick=async()=>{
+  const titulo=$('titulo').value.trim(), contenido=$('contenido').value.trim(), enlace=$('enlace').value.trim();
+  if(!titulo){ $('msg').style.color='var(--danger)'; $('msg').textContent='Poné un título.'; return; }
+  if(!contenido && !enlace){ $('msg').style.color='var(--danger)'; $('msg').textContent='Escribí el reporte o pegá un enlace.'; return; }
+  $('enviar').disabled=true; $('msg').style.color='var(--muted)'; $('msg').textContent='Enviando…';
+  try{
+    const body={accion:'crear',titulo,tipo:$('tipo').value,periodo:$('periodo').value.trim(),contenido,enlace};
+    const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    $('titulo').value='';$('periodo').value='';$('contenido').value='';$('enlace').value='';
+    $('msg').style.color='var(--green-d)'; $('msg').textContent='✓ Enviado a Dirección';
+    cargar();
+  }catch(e){ $('msg').style.color='var(--danger)'; $('msg').textContent=e.message; }
+  finally{ $('enviar').disabled=false; }
+};
+
+(async()=>{
+  hub=supabase.createClient(HUB.url,HUB.key);
+  const {data:{session}}=await hub.auth.getSession();
+  if(!session){ location.href='index.html'; return; }
+  TOKEN=session.access_token;
+  const {data:u}=await hub.from('usuarios').select('nombre').eq('id',session.user.id).maybeSingle();
+  if(u&&u.nombre) $('sub').textContent=u.nombre+' · reportes para Dirección';
+  cargar();
+})();
+</script>
+</body>
+</html>

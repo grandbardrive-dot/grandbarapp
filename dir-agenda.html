@@ -46,7 +46,7 @@
       <span class="pill">‹ 19 - 25 mayo, 2025 ›</span>
       <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</span>
       <div class="ic-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">3</span></div>
-      <button class="acc" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Nueva actividad</button>
+      <button class="acc" id="btnReunion" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Programar reunión</button>
     </div>
 
     <div class="kpis5">
@@ -115,6 +115,10 @@
       </div>
 
       <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <div class="c-h"><div class="t">Reuniones que programaste</div><span class="lnk" id="btnReunion2" style="cursor:pointer">+ Nueva</span></div>
+          <div id="reuList"><div style="color:var(--muted);font-size:12.5px;padding:14px 0;text-align:center">Cargando…</div></div>
+        </div>
         <div class="card">
           <div class="c-h"><div class="t">Mayo 2025</div><span>‹ ›</span></div>
           <div class="mcal">
@@ -204,7 +208,95 @@
     <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
   </div></div>
 </div>
+<div id="rov" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:50;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:90vh;overflow:auto;padding:20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><b style="font-size:16px;flex:1">Programar reunión</b><button id="rX" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6d7d85">×</button></div>
+    <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:8px 0 4px">Usuario</label>
+    <select id="rUser" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit"><option value="">Cargando usuarios…</option></select>
+    <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Título</label>
+    <input id="rTit" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit" placeholder="Ej: Revisión de objetivos del mes" maxlength="120">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div><label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Fecha</label><input id="rFecha" type="date" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:9px;font:inherit"></div>
+      <div><label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Hora</label><input id="rHora" type="time" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:9px;font:inherit"></div>
+      <div><label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Tipo</label><select id="rTipo" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:9px;font:inherit"><option value="reunion">Reunión</option><option value="llamada">Llamada</option><option value="visita">Visita</option><option value="capacitacion">Capacitación</option></select></div>
+    </div>
+    <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Lugar (opcional)</label>
+    <input id="rLugar" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit" placeholder="Oficina Central / Videollamada…">
+    <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Detalle (opcional)</label>
+    <textarea id="rDet" style="width:100%;min-height:70px;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit"></textarea>
+    <button class="acc" id="rGuardar" style="background:var(--gold);color:#241a06;border:0;border-radius:11px;padding:12px;font:inherit;font-weight:800;width:100%;margin-top:14px;cursor:pointer">Programar y avisar al usuario</button>
+    <div id="rMsg" style="font-size:12.5px;font-weight:700;margin-top:8px;min-height:16px"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/dir-nav.js"></script>
+<script>
+(function(){
+  const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
+  const FN='/.netlify/functions/reuniones';
+  let TOKEN=null;
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const estBadge={programada:['tag tr','Programada'],confirmada:['tag ok','Confirmada'],realizada:['tag ok','Realizada'],cancelada:['tag','Cancelada']};
+
+  function abrir(){ $('rov').style.display='flex'; $('rMsg').textContent=''; }
+  function cerrar(){ $('rov').style.display='none'; }
+
+  async function cargarUsuarios(){
+    try{
+      const r=await fetch(FN+'?usuarios=1',{headers:{Authorization:'Bearer '+TOKEN}});
+      const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+      $('rUser').innerHTML='<option value="">— Elegí un usuario —</option>'+d.usuarios.map(u=>`<option value="${u.id}">${esc(u.nombre||u.email)}${u.canal?' ('+esc(u.canal)+')':''}</option>`).join('');
+    }catch(e){ $('rUser').innerHTML='<option value="">Error: '+esc(e.message)+'</option>'; }
+  }
+
+  async function cargarLista(){
+    try{
+      const r=await fetch(FN+'?admin=1',{headers:{Authorization:'Bearer '+TOKEN}});
+      const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+      const hoy=new Date().toISOString().slice(0,10);
+      const rows=(d.reuniones||[]).filter(x=>x.fecha>=hoy);
+      if(!rows.length){ $('reuList').innerHTML='<div style="color:#6d7d85;font-size:12.5px;padding:14px 0;text-align:center">No hay reuniones próximas. Programá una con “+ Nueva”.</div>'; return; }
+      $('reuList').innerHTML=rows.slice(0,12).map(x=>{const b=estBadge[x.estado]||estBadge.programada;
+        const f=new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+        return `<div style="display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line-2)">
+          <div style="text-align:center;min-width:40px"><div style="font-weight:800;font-size:12px">${f}</div><div style="font-size:10px;color:#6d7d85">${x.hora?esc(x.hora.slice(0,5)):''}</div></div>
+          <div style="flex:1"><div style="font-weight:700;font-size:12.5px">${esc(x.titulo)}</div><div style="font-size:11px;color:#6d7d85">${esc(x.destinatario)}${x.lugar?' · '+esc(x.lugar):''}</div></div>
+          <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="${b[0]}">${b[1]}</span><button data-del="${x.id}" style="background:none;border:0;color:#c0603e;font-size:10.5px;cursor:pointer">Cancelar</button></div>
+        </div>`;
+      }).join('');
+      $('reuList').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{ if(!confirm('¿Borrar esta reunión?'))return; await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'borrar',id:b.dataset.del})}); cargarLista(); });
+    }catch(e){ $('reuList').innerHTML='<div style="color:#c0603e;font-size:12px;padding:12px 0;text-align:center">'+esc(e.message)+'</div>'; }
+  }
+
+  $('rGuardar').onclick=async()=>{
+    const usuario_id=$('rUser').value, titulo=$('rTit').value.trim();
+    if(!usuario_id){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent='Elegí un usuario.'; return; }
+    if(!titulo){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent='Poné un título.'; return; }
+    if(!$('rFecha').value){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent='Elegí la fecha.'; return; }
+    $('rGuardar').disabled=true; $('rMsg').style.color='#6d7d85'; $('rMsg').textContent='Programando…';
+    try{
+      const body={accion:'crear',usuario_id,titulo,tipo:$('rTipo').value,fecha:$('rFecha').value,hora:$('rHora').value||null,lugar:$('rLugar').value.trim(),detalle:$('rDet').value.trim()};
+      const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+      $('rTit').value='';$('rLugar').value='';$('rDet').value='';
+      $('rMsg').style.color='#256f54'; $('rMsg').textContent='✓ Programada. Al usuario le aparece en su agenda.';
+      cargarLista(); setTimeout(cerrar,900);
+    }catch(e){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent=e.message; }
+    finally{ $('rGuardar').disabled=false; }
+  };
+
+  $('btnReunion').onclick=abrir; var b2=$('btnReunion2'); if(b2) b2.onclick=abrir;
+  $('rX').onclick=cerrar; $('rov').addEventListener('click',e=>{if(e.target.id==='rov')cerrar();});
+
+  (async()=>{
+    const hub=supabase.createClient(HUB.url,HUB.key);
+    const {data:{session}}=await hub.auth.getSession();
+    if(!session) return; TOKEN=session.access_token;
+    cargarUsuarios(); cargarLista();
+  })();
+})();
+</script>
 </body>
 </html>

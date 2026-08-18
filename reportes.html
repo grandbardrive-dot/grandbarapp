@@ -46,8 +46,8 @@
 
     <div class="kpis5">
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--navy)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></span><span class="lbl">Reportes esperados (mayo)</span></div><div class="v">21</div><div class="sub">100% del plan</div><a class="lnk" href="#">Ver plan de entregas →</a></div>
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7H4V5h11"/></svg></span><span class="lbl">Reportes recibidos</span></div><div class="v">18</div><div class="sub">85,7% del total</div><a class="lnk" href="#">Ver recibidos →</a></div>
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--orange)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="lbl">Pendientes de entrega</span></div><div class="v">3</div><div class="sub">14,3% del total</div><a class="lnk" href="#" style="color:var(--orange)">Ver pendientes →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7H4V5h11"/></svg></span><span class="lbl">Reportes recibidos</span></div><div class="v" id="kpiTotal">—</div><div class="sub">Total cargados</div><a class="lnk" href="#">Ver recibidos →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--orange)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="lbl">Pendientes de revisar</span></div><div class="v" id="kpiPend">—</div><div class="sub">Sin devolución aún</div><a class="lnk" href="#" style="color:var(--orange)">Ver pendientes →</a></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></span><span class="lbl">Alertas detectadas por IA</span></div><div class="v">5</div><div class="sub">Cambios relevantes</div><a class="lnk" href="#" style="color:var(--purple)">Ver análisis IA →</a></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M8 11l4 4 4-4M4 21h16"/></svg></span><span class="lbl">Descargas este mes</span></div><div class="v">56</div><div class="sub up">▲ 18% vs abr.</div><a class="lnk" href="#">Ver actividad →</a></div>
     </div>
@@ -85,19 +85,8 @@
 
     <div class="grid-main">
       <div class="card">
-        <div class="rtabs"><span class="on">Todos los reportes</span><span>Diarios</span><span>Semanales</span><span>Mensuales</span><span>Anuales</span></div>
-        <div class="filters"><span class="fsel">Mayo 2025 ▾</span><span class="fsel">Área ▾</span><span class="fsel">Tipo de reporte ▾</span><span class="fsel">Persona ▾</span><span class="fsel">Estado ▾</span><span class="fsel">Más filtros</span></div>
-        <table class="t rt">
-          <tr><th>Reporte</th><th>Área</th><th>Tipo</th><th>Período</th><th>Responsable</th><th>Estado</th><th>IA</th></tr>
-          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:var(--green)">XLS</span><div><b>Ventas_Diario_MzaON_20-05.xlsx</b><div class="ss" style="font-size:10px;color:var(--muted)">1.2 MB</div></div></div></td><td><span class="tag tr">Ventas Mza ON</span></td><td>Diario</td><td>20/05/2025</td><td>Carolina Heluani</td><td><span class="tag ok">Recibido</span></td><td class="up">2 cambios</td></tr>
-          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:var(--danger)">PDF</span><div><b>Compras_Semanal_19-05.pdf</b><div class="ss" style="font-size:10px;color:var(--muted)">850 KB</div></div></div></td><td><span class="tag ok">Compras</span></td><td>Semanal</td><td>12-18/05</td><td>Luciana Pérez</td><td><span class="tag ok">Recibido</span></td><td class="up">1 cambio</td></tr>
-          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:var(--green)">XLS</span><div><b>Stock_Deposito_19-05.xlsx</b><div class="ss" style="font-size:10px;color:var(--muted)">2.4 MB</div></div></div></td><td><span class="tag bajo">Depósito</span></td><td>Diario</td><td>19/05/2025</td><td>Andrea Molina</td><td><span class="tag ok">Recibido</span></td><td class="up">3 cambios</td></tr>
-          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:var(--danger)">PDF</span><div><b>Reporte_Mensual_Ventas_SL.pdf</b><div class="ss" style="font-size:10px;color:var(--muted)">3.1 MB</div></div></div></td><td><span class="tag alto">Ventas San Luis</span></td><td>Mensual</td><td>Abril 2025</td><td>Franco Fernández</td><td><span class="tag ok">Recibido</span></td><td class="up">4 cambios</td></tr>
-          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:var(--green)">XLS</span><div><b>Marketing_Campañas_Abril.xlsx</b><div class="ss" style="font-size:10px;color:var(--muted)">1.6 MB</div></div></div></td><td><span class="tag" style="background:var(--purple-soft);color:var(--purple)">Marketing</span></td><td>Mensual</td><td>Abril 2025</td><td>María del Mar</td><td><span class="tag ok">Recibido</span></td><td class="up">1 cambio</td></tr>
-          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:#9aa">XLS</span><div><b>Ventas_Diario_MzaOFF_18-05.xlsx</b><div class="ss" style="font-size:10px;color:var(--muted)">1.1 MB</div></div></div></td><td><span class="tag tr">Ventas Mza OFF</span></td><td>Diario</td><td>18/05/2025</td><td>Franco Roldán</td><td><span class="tag crit">Pendiente</span></td><td>—</td></tr>
-          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="ft" style="background:#9aa">PDF</span><div><b>Ventas_SanLuis_Semanal_19-05.pdf</b><div class="ss" style="font-size:10px;color:var(--muted)">900 KB</div></div></div></td><td><span class="tag alto">Ventas San Luis</span></td><td>Semanal</td><td>12-19/05</td><td>Daniel Pérez</td><td><span class="tag medio">Pendiente</span></td><td>—</td></tr>
-        </table>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:11.5px;color:var(--muted)"><span>Mostrando 1 a 7 de 7 reportes</span><span><span class="fsel">Anterior</span> <span class="fsel" style="background:var(--navy);color:#fff">1</span> <span class="fsel">Siguiente</span></span></div>
+        <div class="rtabs" id="repTabs"><span class="on" data-estado="">Todos</span><span data-estado="pendiente">Pendientes</span><span data-estado="revision">Con cambios pedidos</span><span data-estado="aprobado">Aprobados</span><span data-estado="rechazado">Rechazados</span></div>
+        <div id="repBody"><div style="text-align:center;color:var(--muted);padding:26px;font-size:13px">Cargando reportes…</div></div>
       </div>
 
       <div style="display:flex;flex-direction:column;gap:16px">
@@ -131,7 +120,87 @@
     <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
   </div></div>
 </div>
+<div id="ov" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:50;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><b id="mTit" style="font-size:16px;flex:1"></b><button id="mX" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6d7d85">×</button></div>
+    <div id="mMeta" style="font-size:11.5px;color:#6d7d85;margin-bottom:10px"></div>
+    <div id="mCont" style="font-size:13.5px;white-space:pre-wrap;background:#f5f1e8;border-radius:10px;padding:12px;margin-bottom:10px"></div>
+    <div id="mLink" style="margin-bottom:12px"></div>
+    <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin-bottom:5px">Devolución para el usuario</label>
+    <textarea id="mDevo" style="width:100%;min-height:90px;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit;font-size:13.5px" placeholder="Escribí tu devolución / comentarios…"></textarea>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="acc" id="mAprob" style="background:#2f8f6e;color:#fff;border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:800;cursor:pointer">✓ Aprobar</button>
+      <button class="acc" id="mRev" style="background:#c99a2e;color:#241a06;border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:800;cursor:pointer">↺ Pedir cambios</button>
+      <button class="acc" id="mRech" style="background:#c0603e;color:#fff;border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:800;cursor:pointer">✕ Rechazar</button>
+      <span style="flex:1"></span>
+      <span id="mMsg" style="font-size:12px;font-weight:700;align-self:center"></span>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/dir-nav.js"></script>
+<script>
+(function(){
+  const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
+  const FN='/.netlify/functions/reportes';
+  let TOKEN=null, DATA=[], filtro='', abierto=null;
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const badge={pendiente:['tag crit','Pendiente'],aprobado:['tag ok','Aprobado'],rechazado:['tag alto','Rechazado'],revision:['tag medio','Cambios pedidos']};
+
+  function pintar(){
+    const rows=DATA.filter(r=>!filtro||r.estado===filtro);
+    if(!rows.length){ $('repBody').innerHTML='<div style="text-align:center;color:#6d7d85;padding:26px;font-size:13px">No hay reportes'+(filtro?' en este estado.':' cargados todavía.')+'</div>'; return; }
+    $('repBody').innerHTML='<table class="t rt"><tr><th>Reporte</th><th>Área</th><th>Tipo</th><th>Período</th><th>Autor</th><th>Fecha</th><th>Estado</th></tr>'+
+      rows.map(r=>{const b=badge[r.estado]||badge.pendiente;const f=new Date(r.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+        return `<tr style="cursor:pointer" data-id="${r.id}"><td><b>${esc(r.titulo)}</b></td><td><span class="tag tr">${esc(r.area||'—')}</span></td><td>${esc(r.tipo)}</td><td>${esc(r.periodo||'—')}</td><td>${esc(r.autor_nombre||'—')}</td><td>${f}</td><td><span class="${b[0]}">${b[1]}</span></td></tr>`;
+      }).join('')+'</table>';
+    $('repBody').querySelectorAll('[data-id]').forEach(tr=>tr.onclick=()=>abrir(tr.dataset.id));
+  }
+
+  function abrir(id){
+    const r=DATA.find(x=>x.id===id); if(!r) return; abierto=r;
+    $('mTit').textContent=r.titulo;
+    $('mMeta').textContent=(r.autor_nombre||'')+' · '+(r.area||'')+' · '+r.tipo+(r.periodo?' · '+r.periodo:'');
+    $('mCont').textContent=r.contenido||'(sin texto)';
+    $('mLink').innerHTML=r.enlace?`<a href="${esc(r.enlace)}" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:#256f54">🔗 Ver enlace adjunto</a>`:'';
+    $('mDevo').value=r.devolucion||''; $('mMsg').textContent='';
+    $('ov').style.display='flex';
+  }
+  function cerrar(){ $('ov').style.display='none'; abierto=null; }
+
+  async function revisar(estado){
+    if(!abierto) return;
+    $('mMsg').style.color='#6d7d85'; $('mMsg').textContent='Guardando…';
+    try{
+      const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'revisar',id:abierto.id,estado,devolucion:$('mDevo').value.trim()})});
+      const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+      cerrar(); cargar();
+    }catch(e){ $('mMsg').style.color='#c0603e'; $('mMsg').textContent=e.message; }
+  }
+
+  async function cargar(){
+    try{
+      const r=await fetch(FN+'?admin=1',{headers:{Authorization:'Bearer '+TOKEN}});
+      const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+      DATA=d.reportes||[];
+      if($('kpiTotal')) $('kpiTotal').textContent=d.conteo.total;
+      if($('kpiPend')) $('kpiPend').textContent=d.conteo.pendiente;
+      pintar();
+    }catch(e){ $('repBody').innerHTML='<div style="text-align:center;color:#c0603e;padding:26px;font-size:13px">No pude cargar: '+esc(e.message)+'</div>'; }
+  }
+
+  $('repTabs').querySelectorAll('span').forEach(s=>s.onclick=()=>{ $('repTabs').querySelectorAll('span').forEach(x=>x.classList.remove('on')); s.classList.add('on'); filtro=s.dataset.estado||''; pintar(); });
+  $('mX').onclick=cerrar; $('ov').addEventListener('click',e=>{if(e.target.id==='ov')cerrar();});
+  $('mAprob').onclick=()=>revisar('aprobado'); $('mRev').onclick=()=>revisar('revision'); $('mRech').onclick=()=>revisar('rechazado');
+
+  (async()=>{
+    const hub=supabase.createClient(HUB.url,HUB.key);
+    const {data:{session}}=await hub.auth.getSession();
+    if(!session) return; TOKEN=session.access_token; cargar();
+  })();
+})();
+</script>
 </body>
 </html>

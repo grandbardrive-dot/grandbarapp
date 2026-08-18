@@ -23,6 +23,7 @@
       { href: "supervisor-visitas.html", label: "Visitas del equipo", short: "Visitas", icon: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>' },
       { href: "agenda.html",            label: "Agenda",              short: "Agenda",  icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>' },
       { href: "tareas.html",            label: "Mis tareas",          short: "Mis tareas", icon: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/>' },
+      { href: "mis-reportes.html",      label: "Mis reportes",        short: "Reportes", icon: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/>' },
     ];
     const svg = (ic, extra) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"${extra || ""}>${ic}</svg>`;
 
