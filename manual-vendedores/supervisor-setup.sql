@@ -35,7 +35,7 @@ insert into supervisores (nombre, codigo, liga, password) values
 on conflict (codigo) do nothing;
 
 -- Asignación de vendedores
--- SUP001 (ON)  → 029 Nicolas Garcia, 039 Carolina Heluani, 007 Franco Roldan, 025 Pablo Cofano
+-- SUP001 (ON)  → 029 Nicolas Garcia, 039 Carolina Heluani, 007 Angeles Laurito, 025 Pablo Cofano
 -- SUP002 (OFF) → 024 Juan Pablo Fransó, 015 Facundo Ojer, 027 Exequiel Gimenez
 insert into supervisor_vendedores (supervisor_id, vendedor_id)
 select s.id, v.id
