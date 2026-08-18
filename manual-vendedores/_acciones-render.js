@@ -544,11 +544,20 @@ function renderAccionesGrupo(acciones, opts = {}) {
           if (!subGrupos[sub]) subGrupos[sub] = [];
           subGrupos[sub].push(a);
         });
+        // Subcategorías que no están en AM_SPIRITS_SUBS (el fallback 'Spirits' de
+        // _amSpiritsSubcat, o una marca que todavía no está en la lista): van al final.
+        // Antes se perdían en silencio — se veía el separador "Spirits" y ninguna tarjeta.
+        const subsConocidas = AM_SPIRITS_SUBS.map(s => s.id);
+        const subsExtra = Object.keys(subGrupos).filter(id => !subsConocidas.includes(id));
         return `
           <div class="am-cat-sep">${cat.label}</div>
           ${AM_SPIRITS_SUBS.filter(s => subGrupos[s.id]?.length).map(s => `
             <div class="am-subcat-sep">${s.label}</div>
             ${subGrupos[s.id].map(a => renderAccionCard(a, opts)).join('')}
+          `).join('')}
+          ${subsExtra.map(id => `
+            ${id === 'Spirits' ? '' : `<div class="am-subcat-sep">🥃 ${id}</div>`}
+            ${subGrupos[id].map(a => renderAccionCard(a, opts)).join('')}
           `).join('')}`;
       }
       return `

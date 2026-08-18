@@ -3945,8 +3945,15 @@ body { background:transparent !important; }
 
     // 2) Sección general "Acciones Mensuales": catch-all → TODO lo del bucket general
     //    (garantiza que ninguna acción cargada quede sin verse en ningún lado).
+    //    Además recoge las "huérfanas": campañas asignadas a secciones que ESTE canal no
+    //    tiene (ej. una acción para autoservicios puesta en "Aperitivos", que solo existe
+    //    en restaurantes). Antes no se veían en ningún lado.
     const esGeneral = buscarSec(secId)?.especial === 'acciones_mensuales';
-    if (esGeneral) return _expandirCampanias(porCanal.filter(a => asignadaAqui(a) || enBucketGeneral(a)));
+    if (esGeneral) {
+      const idsHoja = new Set(seccionesHoja(checklist).map(s => s.id));
+      const huerfana = a => { const p = partes(a); return p.length > 0 && !p.some(c => idsHoja.has(c)); };
+      return _expandirCampanias(porCanal.filter(a => asignadaAqui(a) || enBucketGeneral(a) || huerfana(a)));
+    }
 
     // 3) Cualquier otra sección específica: solo las asignadas explícitamente a ella.
     return _expandirCampanias(porCanal.filter(asignadaAqui));
