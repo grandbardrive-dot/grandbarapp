@@ -193,7 +193,7 @@
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></span><span class="lbl">Ventas del día</span></div><div class="v">$8.450.000</div><div class="sub up">▲ +14% vs ayer</div></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><span class="lbl">Cobranzas del día</span></div><div class="v">$2.380.000</div><div class="sub mut">91% del objetivo</div><div class="bar-prog"><i style="width:91%"></i></div></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--orange)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 12 3 4 7l8 4 8-4zM4 7v10l8 4 8-4V7"/></svg></span><span class="lbl">Pedidos pendientes</span></div><div class="v">37</div><div class="sub down">12 urgentes</div></div>
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--navy)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><span class="lbl">Clientes visitados</span></div><div class="v">124</div><div class="sub mut">68% del total</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--navy)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><span class="lbl">Visitas del mes</span></div><div class="v" id="kpiVisMes">—</div><div class="sub mut" id="kpiVisHoy">Hoy: —</div></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--teal)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg></span><span class="lbl">Mercadería comprometida</span></div><div class="v">$18.400.000</div><div class="sub mut">En pedidos confirmados</div></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--gold)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19 19 5M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM20 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg></span><span class="lbl">Margen promedio</span></div><div class="v">28,4%</div><div class="sub up">▲ +2,7% vs mes anterior</div></div>
     </div>
@@ -227,7 +227,7 @@
         <div class="c-h"><div class="t">Alertas importantes</div><span class="badge-n">7</span></div>
         <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span><div><div class="tt">Stock crítico</div><div class="ss">5 productos</div></div><span class="go">›</span></div>
         <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><div class="tt">Vencimientos próximos</div><div class="ss">7 productos</div></div><span class="go">›</span></div>
-        <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3.1a4 4 0 0 1 0 7.8M22 21c0-3.3-2.7-6-6-6M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><div><div class="tt">Clientes en riesgo</div><div class="ss">12 clientes</div></div><span class="go">›</span></div>
+        <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3.1a4 4 0 0 1 0 7.8M22 21c0-3.3-2.7-6-6-6M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><div><div class="tt">Clientes con deuda vencida</div><div class="ss" id="alRiesgo">—</div></div><span class="go">›</span></div>
         <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4z"/></svg></span><div><div class="tt">Mercadería lenta</div><div class="ss">18 productos</div></div><span class="go">›</span></div>
         <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><div><div class="tt">Acciones por vencer</div><div class="ss">9 acciones</div></div><span class="go">›</span></div>
       </div>
@@ -236,9 +236,9 @@
     <!-- Áreas de la empresa -->
     <div class="c-h" style="margin:4px 2px 10px"><div class="t" style="font-size:16px">Áreas de la empresa</div></div>
     <div class="areas">
-      <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v">8.2M</div><div class="l">Ventas del mes</div></div><div><div class="v">124</div><div class="l">Visitas hoy</div></div><div><div class="v">82</div><div class="l">Pedidos</div></div><div><div class="v">12</div><div class="l">Pendientes</div></div></div><a class="en" href="supervisor-equipo.html">Entrar →</a></div>
+      <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v" id="vtVend">—</div><div class="l">Vendedores</div></div><div><div class="v" id="vtVisHoy">—</div><div class="l">Visitas hoy</div></div><div><div class="v" id="vtVisMes">—</div><div class="l">Visitas del mes</div></div><div><div class="v" id="vtClientes">—</div><div class="l">Clientes</div></div></div><a class="en" href="dir-vendedores.html">Entrar →</a></div>
       <div class="area"><div class="ah"><span class="ai">📦</span> Compras</div><div class="st"><div><div class="v">15</div><div class="l">Propuestas nuevas</div></div><div><div class="v">4</div><div class="l">Proveedores esperado</div></div><div><div class="v">8</div><div class="l">Acciones por aprobar</div></div></div><a class="en" href="#">Entrar →</a></div>
-      <div class="area"><div class="ah"><span class="ai">🗂️</span> Administración</div><div class="st"><div><div class="v">$18M</div><div class="l">Cuenta corriente</div></div><div><div class="v">91%</div><div class="l">Cobranza</div></div><div><div class="v">34</div><div class="l">Clientes vencidos</div></div><div><div class="v">6</div><div class="l">Por vencer hoy</div></div></div><a class="en" href="cobranzas-tesoreria.html">Entrar →</a></div>
+      <div class="area"><div class="ah"><span class="ai">🗂️</span> Administración</div><div class="st"><div><div class="v" id="adCC">—</div><div class="l">Cuenta corriente</div></div><div><div class="v" id="adVenc">—</div><div class="l">Deuda vencida</div></div><div><div class="v" id="adCliVenc">—</div><div class="l">Clientes vencidos</div></div><div><div class="v" id="adClientes">—</div><div class="l">Clientes activos</div></div></div><a class="en" href="administracion.html">Entrar →</a></div>
       <div class="area"><div class="ah"><span class="ai">🎯</span> Marketing</div><div class="st"><div><div class="v">12</div><div class="l">Placas pendientes</div></div><div><div class="v">5</div><div class="l">Campañas activas</div></div><div><div class="v">8</div><div class="l">Reels por aprobar</div></div><div><div class="v">2</div><div class="l">Diseños en curso</div></div></div><a class="en" href="#">Entrar →</a></div>
       <div class="area"><div class="ah"><span class="ai">🏭</span> Depósito</div><div class="st"><div><div class="v">7</div><div class="l">Vencimientos</div></div><div><div class="v">2</div><div class="l">Diferencias</div></div><div><div class="v">98%</div><div class="l">Inventario correcto</div></div><div><div class="v">3</div><div class="l">Recepciones hoy</div></div></div><a class="en" href="#">Entrar →</a></div>
       <div class="area"><div class="ah"><span class="ai">💻</span> Desarrollo</div><div class="st"><div><div class="v">14</div><div class="l">Tareas activas</div></div><div><div class="v">3</div><div class="l">Bugs</div></div><div><div class="v">6</div><div class="l">Mejoras IA</div></div><div><div class="v">1</div><div class="l">Actualización</div></div></div><a class="en" href="#">Entrar →</a></div>
@@ -284,13 +284,9 @@
       </div>
 
       <div class="card top5">
-        <div class="c-h"><div class="t" style="font-size:14px">Top 5 vendedores <span style="font-weight:500;color:var(--muted);font-size:12px">(mes)</span></div></div>
-        <div class="t5"><span class="rk">1</span><span class="nm">Nicolás García</span><span class="track"><i style="width:100%"></i></span><span class="amt">$5.450.000</span></div>
-        <div class="t5"><span class="rk">2</span><span class="nm">Carolina Heluani</span><span class="track"><i style="width:89%"></i></span><span class="amt">$4.870.000</span></div>
-        <div class="t5"><span class="rk">3</span><span class="nm">Ángeles Laurito</span><span class="track"><i style="width:76%"></i></span><span class="amt">$4.120.000</span></div>
-        <div class="t5"><span class="rk">4</span><span class="nm">Juan Pablo Mollar</span><span class="track"><i style="width:68%"></i></span><span class="amt">$3.680.000</span></div>
-        <div class="t5"><span class="rk">5</span><span class="nm">Pablo Coffano</span><span class="track"><i style="width:57%"></i></span><span class="amt">$3.120.000</span></div>
-        <div style="margin-top:8px"><a class="lnk" href="supervisor-equipo.html">Ver ranking completo ›</a></div>
+        <div class="c-h"><div class="t" style="font-size:14px">Top vendedores <span style="font-weight:500;color:var(--muted);font-size:12px">(por cartera)</span></div></div>
+        <div id="top5list"><div class="t5"><span class="nm" style="color:var(--muted)">Cargando…</span></div></div>
+        <div style="margin-top:8px"><a class="lnk" href="dir-vendedores.html">Ver ranking completo ›</a></div>
       </div>
 
       <div class="card">
@@ -377,6 +373,30 @@
           }
         };
         document.addEventListener('click',(e)=>{ if(panel.style.display==='block' && !panel.contains(e.target) && e.target.id!=='btnNotif'){ panel.style.display='none'; } });
+      }
+    }catch(e){}
+
+    // ---- Resumen real de toda la empresa ----
+    try{
+      const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+      const fmtInt=n=>Number(n||0).toLocaleString('es-AR');
+      const fmtM=n=>{ n=Number(n||0); if(Math.abs(n)>=1e6) return '$'+(n/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M'; if(Math.abs(n)>=1e3) return '$'+Math.round(n/1e3)+'K'; return '$'+Math.round(n); };
+      const r = await fetch('/.netlify/functions/direccion-resumen',{headers:{Authorization:'Bearer '+TOKEN}});
+      if(r.ok){
+        const d = await r.json();
+        if(d.cobranzas){
+          const c=d.cobranzas;
+          set('adCC',fmtM(c.saldo)); set('adVenc',fmtM(c.vencida)); set('adCliVenc',fmtInt(c.clientesVencidos)); set('adClientes',fmtInt(c.clientes));
+          set('vtVend',fmtInt(c.vendedores)); set('vtClientes',fmtInt(c.clientes));
+          set('alRiesgo',fmtInt(c.clientesVencidos)+' clientes');
+        }
+        if(d.visitas){ set('vtVisHoy',fmtInt(d.visitas.hoy)); set('vtVisMes',fmtInt(d.visitas.mes)); set('kpiVisMes',fmtInt(d.visitas.mes)); set('kpiVisHoy','Hoy: '+fmtInt(d.visitas.hoy)); }
+        if(Array.isArray(d.ranking) && d.ranking.length){
+          const max=Math.max(...d.ranking.map(v=>v.saldo||0),1);
+          document.getElementById('top5list').innerHTML=d.ranking.map((v,i)=>`<div class="t5"><span class="rk">${i+1}</span><span class="nm">${esc(v.nombre||v.codigo)}</span><span class="track"><i style="width:${Math.round((v.saldo/max)*100)}%"></i></span><span class="amt">${fmtM(v.saldo)}</span></div>`).join('');
+        } else if(document.getElementById('top5list')){
+          document.getElementById('top5list').innerHTML='<div class="t5"><span class="nm" style="color:var(--muted)">Sin datos de cartera</span></div>';
+        }
       }
     }catch(e){}
   })();
