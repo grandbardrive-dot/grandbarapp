@@ -667,7 +667,9 @@ function seccionesHoja(cl) {
     // se cuenta a sí misma si tiene ítems, y siempre a sus hijas con ítems.
     if (s.items && s.items.length) out.push(s);
     if (s.subsecciones && s.subsecciones.length) {
-      s.subsecciones.forEach(ss => { if (ss.items && ss.items.length) out.push(ss); });
+      // También las hijas SIN ítems: una subsección recién creada desde el panel todavía
+      // no tiene checklist, pero igual tiene que poder recibir campañas.
+      s.subsecciones.forEach(ss => out.push(ss));
     } else if (!(s.items && s.items.length)) {
       out.push(s); // sección sin ítems ni subsecciones (raro): empujar igual por compatibilidad
     }
