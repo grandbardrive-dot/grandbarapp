@@ -30,7 +30,7 @@
     const nav = document.querySelector(".sb-nav");
     if (nav) nav.innerHTML = items.map(it => `<a href="${it.href}" class="${it.href === page ? "active" : ""}">${svg(it.icon)} ${it.label}</a>`).join("");
 
-    const bot = document.querySelector(".botnav");
+    const bot = document.querySelector(".botnav, .bottomnav");
     if (bot) {
       const b = [items[0], items[1], items[3], items[4]];
       bot.innerHTML = b.map(it => `<a href="${it.href}" class="${it.href === page ? "active" : ""}">${svg(it.icon)}${it.short}</a>`).join("");
