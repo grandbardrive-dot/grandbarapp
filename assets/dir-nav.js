@@ -12,7 +12,6 @@
     {h:'dir-clientes.html',l:'Clientes',i:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>'},
     {h:'dir-vendedores.html',l:'Vendedores',i:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/>'},
     {h:'proveedores.html',l:'Proveedores',i:'<circle cx="8" cy="7" r="2"/><circle cx="16" cy="17" r="2"/><path d="M20 7h-9M14 17H5"/>'},
-    {h:'productos.html',l:'Productos',i:'<path d="M20 7 12 3 4 7l8 4 8-4zM4 7v10l8 4 8-4V7"/>'},
     {h:'dir-agenda.html',l:'Agenda',i:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>'},
     {h:'configuracion.html',l:'Configuración',i:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1 2 2 0 1 1-4 0A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3.6 15a2 2 0 1 1 0-4A1.6 1.6 0 0 0 5 8"/>'}
   ];

@@ -50,6 +50,9 @@
   .selsuc .l{font-size:10px;color:var(--muted)} .selsuc .v{font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:8px}
   .ic-btn{width:40px;height:40px;border-radius:11px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;color:var(--muted);cursor:pointer;position:relative}
   .ic-btn .dot{position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;font-size:9.5px;font-weight:800;border-radius:50%;width:16px;height:16px;display:grid;place-items:center}
+  .nt-item{display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line-2);align-items:flex-start;color:var(--ink)}
+  .nt-item:last-child{border-bottom:0} .nt-item:hover{background:var(--cream)} .nt-item.nueva{background:#fbf7ee}
+  .nt-ic{font-size:16px;flex:none;line-height:1.2} .nt-t{font-weight:700;font-size:12.8px} .nt-s{font-size:11.5px;color:var(--muted);margin-top:2px} .nt-f{font-size:10.5px;color:var(--muted);margin-top:3px}
   .acc{background:var(--gold);color:#241a06;border:0;border-radius:11px;padding:10px 15px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
 
   /* KPI row */
@@ -162,7 +165,6 @@
       <a href="dir-clientes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg> Clientes</a>
       <a href="dir-vendedores.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg> Vendedores</a>
       <a href="proveedores.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-9M14 17H5M4 7h.01M4 17h.01"/><circle cx="8" cy="7" r="2"/><circle cx="16" cy="17" r="2"/></svg> Proveedores</a>
-      <a href="productos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 12 3 4 7l8 4 8-4zM4 7v10l8 4 8-4V7"/></svg> Productos</a>
       <a href="dir-agenda.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg> Agenda</a>
       <a href="configuracion.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1l-.4-2.5H10l-.4 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L5.6 11a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6c.1-.3.1-.7.1-1z"/></svg> Configuración</a>
     </nav>
@@ -182,7 +184,7 @@
       <span class="sp"></span>
       <div class="selsuc"><div class="l">Sucursal</div><div class="v">Todas las sucursales <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div></div>
       <div class="ic-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
-      <div class="ic-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">7</span></div>
+      <div class="ic-btn" id="btnNotif" style="position:relative"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot" id="notifDot" style="display:none">0</span></div>
       <button class="acc"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Acción rápida</button>
     </div>
 
@@ -199,14 +201,13 @@
     <!-- IA + Agenda + Alertas -->
     <div class="row3">
       <div class="card">
-        <div class="c-h"><div class="t"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-d)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg> IA Recomienda</div></div>
-        <div class="ia-sub">Estas son tus 3 prioridades de hoy</div>
+        <div class="c-h"><div class="t"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-d)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg> Señales para tu decisión</div></div>
+        <div class="ia-sub">Lectura ejecutiva de la empresa — para que decidas, no para que lo hagas vos</div>
         <div class="ia-grid">
           <div>
-            <div class="ia-item red"><span class="ia-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></span><div><div class="tt">4 clientes importantes sin visita</div><div class="ss">Hace más de 35 días que no reciben visita.</div></div><span class="sp"></span><button class="ia-btn">Ver clientes</button></div>
-            <div class="ia-item yel"><span class="ia-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 12 3 4 7l8 4 8-4zM4 7v10l8 4 8-4V7"/></svg></span><div><div class="tt">Stock de Jack Honey en riesgo</div><div class="ss">Alcanza para 9 días al ritmo actual.</div></div><span class="sp"></span><button class="ia-btn">Ver detalle</button></div>
-            <div class="ia-item grn"><span class="ia-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg></span><div><div class="tt">Propuesta de Campari Group</div><div class="ss">Alta probabilidad de aumentar el margen.</div></div><span class="sp"></span><button class="ia-btn">Ver propuesta</button></div>
-            <a class="lnk" href="#" style="color:var(--green-d);font-size:12.5px;font-weight:700">Ver todas las recomendaciones ›</a>
+            <div class="ia-item red"><span class="ia-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></span><div><div class="tt">Cobranza vencida en zona de atención</div><div class="ss">El 12% de la cuenta corriente está vencido (+60 días). Conviene definir política con Administración.</div></div><span class="sp"></span><button class="ia-btn" onclick="location.href='administracion.html'">Ver Administración</button></div>
+            <div class="ia-item yel"><span class="ia-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span><div><div class="tt">Margen por debajo del plan en OFF</div><div class="ss">El canal OFF Mendoza cerró 2,3 pts abajo del objetivo del mes.</div></div><span class="sp"></span><button class="ia-btn" onclick="location.href='reportes.html'">Ver Reportes</button></div>
+            <div class="ia-item grn"><span class="ia-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></span><div><div class="tt">Oportunidad estratégica: categoría Gin</div><div class="ss">Gin creciendo +24,8% interanual. Decisión: reforzar portfolio y compra.</div></div><span class="sp"></span><button class="ia-btn" onclick="location.href='desarrollo.html'">Ver Desarrollo</button></div>
           </div>
           <div>
             <div class="ia-mini"><div class="k">🟢 Oportunidad detectada</div><div class="big up">+12%</div><div class="d">en ventas de vinos premium<br>vs semana anterior</div></div>
@@ -216,12 +217,9 @@
       </div>
 
       <div class="card">
-        <div class="c-h"><div class="t">📅 Agenda de hoy</div><span class="lnk">Ver completa ›</span></div>
-        <div class="ag">
-          <div class="ag-row"><span class="h">09:00</span><span class="dot"></span><div><div class="nm">Reunión Compras</div><div class="pl">Sala 2</div></div></div>
-          <div class="ag-row"><span class="h">10:30</span><span class="dot"></span><div><div class="nm">Revisión Cashflow</div><div class="pl">Oficina Dirección</div></div></div>
-          <div class="ag-row"><span class="h">12:00</span><span class="dot"></span><div><div class="nm">Llamada con Campari Group</div><div class="pl">Virtual</div></div></div>
-          <div class="ag-row"><span class="h">15:00</span><span class="dot"></span><div><div class="nm">Presentación Marketing</div><div class="pl">Sala Reuniones</div></div></div>
+        <div class="c-h"><div class="t">📅 Agenda de hoy</div><a class="lnk" href="dir-agenda.html">Ver completa ›</a></div>
+        <div class="ag" id="agHoy">
+          <div class="ag-row" style="color:var(--muted)"><span>Cargando…</span></div>
         </div>
       </div>
 
@@ -310,6 +308,11 @@
   </div></div>
 </div>
 
+<div id="notifPanel" style="display:none;position:fixed;top:64px;right:24px;width:344px;max-height:72vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 44px -12px rgba(0,0,0,.32);z-index:60">
+  <div style="padding:12px 15px;border-bottom:1px solid var(--line);font-weight:800;font-size:14px;position:sticky;top:0;background:#fff">🔔 Notificaciones</div>
+  <div id="notifBody"><div style="padding:22px;text-align:center;color:var(--muted);font-size:13px">Cargando…</div></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
   const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
@@ -329,6 +332,53 @@
     document.getElementById('greet').textContent = 'Buen día, ' + nombre + ' 👋';
     if(u&&u.nombre){ document.getElementById('meName').textContent=u.nombre.split(/\s+/)[0]; document.getElementById('avSb').textContent=ini(u.nombre); }
     document.getElementById('logout').onclick = async ()=>{ if(confirm('¿Cerrar sesión?')){ try{ await hub.auth.signOut(); }catch(e){} location.href='index.html'; } };
+
+    const TOKEN = session.access_token;
+    const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+    // ---- Agenda de hoy (reuniones reales de Dirección) ----
+    try{
+      const r = await fetch('/.netlify/functions/reuniones?admin=1',{headers:{Authorization:'Bearer '+TOKEN}});
+      const box = document.getElementById('agHoy');
+      if(r.ok && box){
+        const d = await r.json();
+        const hoy = new Date().toISOString().slice(0,10);
+        const rows = (d.reuniones||[]).filter(x=>x.fecha===hoy && x.estado!=='cancelada').sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
+        if(!rows.length){ box.innerHTML='<div class="ag-row" style="color:var(--muted)"><span>No tenés reuniones agendadas para hoy.</span></div>'; }
+        else box.innerHTML = rows.map(x=>`<div class="ag-row"><span class="h">${x.hora?esc(x.hora.slice(0,5)):'--:--'}</span><span class="dot"></span><div><div class="nm">${esc(x.titulo)} · ${esc(x.destinatario||'')}</div><div class="pl">${esc(x.lugar||x.tipo||'')}${x.estado==='confirmada'?' · ✓ confirmada':x.estado==='rechazada'?' · no asiste':''}</div></div></div>`).join('');
+      }
+    }catch(e){}
+
+    // ---- Notificaciones (campanita) ----
+    try{
+      const r = await fetch('/.netlify/functions/notificaciones',{headers:{Authorization:'Bearer '+TOKEN}});
+      if(r.ok){
+        const d = await r.json();
+        const items = d.notificaciones||[];
+        const seen = localStorage.getItem('gb_notif_seen') || '';
+        const nuevas = items.filter(x=>String(x.ts||'') > seen).length;
+        const dot = document.getElementById('notifDot');
+        if(nuevas>0){ dot.textContent = nuevas>9?'9+':nuevas; dot.style.display='grid'; }
+        const panel = document.getElementById('notifPanel');
+        const body = document.getElementById('notifBody');
+        body.innerHTML = items.length ? items.map(x=>{
+          const nueva = String(x.ts||'') > seen;
+          const f = x.ts ? new Date(x.ts).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+          return `<a class="nt-item${nueva?' nueva':''}" href="${esc(x.link||'#')}"><span class="nt-ic">${esc(x.icon||'•')}</span><div><div class="nt-t">${esc(x.titulo||'')}</div><div class="nt-s">${esc(x.detalle||'')}</div><div class="nt-f">${f}</div></div></a>`;
+        }).join('') : '<div style="padding:22px;text-align:center;color:var(--muted);font-size:13px">No hay novedades.</div>';
+        document.getElementById('btnNotif').onclick = (e)=>{
+          e.stopPropagation();
+          const open = panel.style.display==='block';
+          panel.style.display = open?'none':'block';
+          if(!open){ // marcar como visto
+            const top = items[0] ? String(items[0].ts||'') : new Date().toISOString();
+            localStorage.setItem('gb_notif_seen', top);
+            dot.style.display='none';
+          }
+        };
+        document.addEventListener('click',(e)=>{ if(panel.style.display==='block' && !panel.contains(e.target) && e.target.id!=='btnNotif'){ panel.style.display='none'; } });
+      }
+    }catch(e){}
   })();
 </script>
 </body>
