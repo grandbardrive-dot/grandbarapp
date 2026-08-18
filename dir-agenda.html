@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Agenda</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  .kpis5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+  .grid-a{display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:16px}
+  .wtabs{display:flex;gap:6px;background:var(--cream);border-radius:9px;padding:3px}
+  .wtabs span{padding:5px 14px;border-radius:7px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}.wtabs span.on{background:var(--card);color:var(--ink)}
+  .board{overflow-x:auto}
+  .brow{display:grid;grid-template-columns:150px repeat(7,minmax(96px,1fr));gap:6px;margin-bottom:6px}
+  .bhead{font-size:10.5px;color:var(--muted);text-align:center;font-weight:700;padding:4px 0}
+  .bhead b{display:block;font-size:14px;color:var(--ink)} .bhead.on b{color:var(--gold-d)}
+  .vc{display:flex;gap:8px;align-items:center;padding:6px}
+  .vc .av{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:9px;font-weight:800;flex:none}
+  .vc .nm{font-size:11.5px;font-weight:700;line-height:1.2} .vc .ss{font-size:9.5px;color:var(--muted)}
+  .ev{border-radius:8px;padding:5px 6px;font-size:9.5px;border-left:3px solid var(--green);background:var(--green-soft)}
+  .ev .tm{font-weight:800} .ev .ty{font-weight:700} .ev .lo{color:var(--muted)}
+  .ev.reu{border-color:var(--orange);background:var(--orange-soft)} .ev.seg{border-color:var(--purple);background:var(--purple-soft)} .ev.rep{border-color:#9aa;background:#f0f0f0}
+  .ev.none{background:none;border:0;color:#ccc;text-align:center}
+  .mcal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:11px;text-align:center}
+  .mcal .h{color:var(--muted);font-weight:700;font-size:9.5px;padding:2px} .mcal .d{padding:5px 0;border-radius:6px} .mcal .d.on{background:var(--navy);color:#fff;font-weight:800} .mcal .d.mut{color:#ccc}
+  .tk .row{display:flex;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line-2)}
+  .tk .row:last-of-type{border-bottom:0} .tk .nm{font-size:12px;font-weight:700} .tk .ss{font-size:10.5px;color:var(--muted)}
+  .prox .row{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid var(--line-2)}
+  .prox .row:last-child{border-bottom:0} .prox .tm{font-size:10.5px;color:var(--muted);white-space:nowrap;width:74px}
+  .prox .nm{font-size:12px;font-weight:700} .prox .lo{font-size:10.5px;color:var(--muted)}
+  .cmp .row{display:flex;align-items:center;gap:10px;padding:7px 0} .cmp .nm{width:130px;font-size:12px;font-weight:600}
+  .cmp .track{flex:1;height:7px;background:#eee7d8;border-radius:4px;overflow:hidden}.cmp .track>i{display:block;height:100%} .cmp .pc{width:36px;text-align:right;font-weight:800;font-size:12px}
+  @media(max-width:1150px){ .kpis5{grid-template-columns:1fr 1fr} .grid-a{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+
+    <div class="dhead">
+      <span class="ic" style="background:var(--purple-soft);color:var(--purple)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
+      <div><h1>Agenda</h1><div class="sub">Planificación y seguimiento de actividades del equipo comercial</div></div>
+      <span class="sp"></span>
+      <span class="pill">‹ 19 - 25 mayo, 2025 ›</span>
+      <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</span>
+      <div class="ic-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">3</span></div>
+      <button class="acc" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Nueva actividad</button>
+    </div>
+
+    <div class="kpis5">
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><span class="lbl">Actividades programadas</span></div><div class="v">126</div><div class="sub up">▲ 18% vs. semana anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--gold)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><span class="lbl">Visitas programadas</span></div><div class="v">98</div><div class="sub up">▲ 14% vs. semana anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/></svg></span><span class="lbl">Actividades completadas</span></div><div style="display:flex;align-items:center;gap:10px"><div><div class="v">82</div><div class="sub">66% del total</div></div><svg width="46" height="46" viewBox="0 0 42 42" style="flex:none;margin-left:auto"><circle cx="21" cy="21" r="15.9" fill="none" stroke="#eee7d8" stroke-width="6"/><circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--green)" stroke-width="6" stroke-dasharray="65 35" stroke-dashoffset="25"/><text x="21" y="24" text-anchor="middle" font-size="8" font-weight="800" fill="var(--ink)">65%</text></svg></div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 6v6c0 5 8 10 8 10s8-5 8-10V6z"/></svg></span><span class="lbl">Cumplimiento semanal</span></div><div class="v">68%</div><div class="sub up">▲ 9 p.p. vs. semana anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="lbl">Actividades pendientes</span></div><div class="v">44</div><a class="lnk" href="#" style="color:var(--blue)">Ver pendientes →</a></div>
+    </div>
+
+    <div class="grid-a">
+      <div class="card">
+        <div class="c-h"><div class="t">Vista semanal</div><div style="display:flex;gap:10px;align-items:center"><div class="wtabs"><span class="on">Semana</span><span>Día</span><span>Lista</span></div><span class="fsel" style="background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-size:11.5px;font-weight:600">Equipo completo ▾</span></div></div>
+        <div class="board">
+          <div class="brow">
+            <div class="bhead"></div>
+            <div class="bhead">Lun<b>19</b></div><div class="bhead on">Mar<b>20</b></div><div class="bhead">Mié<b>21</b></div><div class="bhead">Jue<b>22</b></div><div class="bhead">Vie<b>23</b></div><div class="bhead">Sáb<b>24</b></div><div class="bhead">Dom<b>25</b></div>
+          </div>
+          <div class="brow">
+            <div class="vc"><span class="av">CH</span><div><div class="nm">Carolina Heluani</div><div class="ss">Mendoza ON · 12 act.</div></div></div>
+            <div class="ev"><div class="tm">09:00</div><div class="ty">Visita</div><div class="lo">La Esquina · Godoy Cruz</div></div>
+            <div class="ev"><div class="tm">10:30</div><div class="ty">Visita</div><div class="lo">Brindis Bar · Luján</div></div>
+            <div class="ev reu"><div class="tm">14:00</div><div class="ty">Reunión</div><div class="lo">Plan comercial</div></div>
+            <div class="ev"><div class="tm">09:30</div><div class="ty">Visita</div><div class="lo">Hotel Diplomatic</div></div>
+            <div class="ev seg"><div class="tm">15:00</div><div class="ty">Seguim.</div><div class="lo">Alto Belgrano</div></div>
+            <div class="ev none">—</div><div class="ev none">—</div>
+          </div>
+          <div class="brow">
+            <div class="vc"><span class="av">DS</span><div><div class="nm">Diego Sebastianelli</div><div class="ss">Mendoza OFF · 10 act.</div></div></div>
+            <div class="ev"><div class="tm">09:00</div><div class="ty">Visita</div><div class="lo">Don Julián · Maipú</div></div>
+            <div class="ev"><div class="tm">11:00</div><div class="ty">Visita</div><div class="lo">Kiosco 33 · Maipú</div></div>
+            <div class="ev rep"><div class="tm">15:00</div><div class="ty">Reportes</div><div class="lo">Cierre semanal</div></div>
+            <div class="ev"><div class="tm">10:00</div><div class="ty">Visita</div><div class="lo">Vino & Co · Chacras</div></div>
+            <div class="ev"><div class="tm">12:30</div><div class="ty">Visita</div><div class="lo">Autoserv. Norte</div></div>
+            <div class="ev none">—</div><div class="ev none">—</div>
+          </div>
+          <div class="brow">
+            <div class="vc"><span class="av">FF</span><div><div class="nm">Franco Fernández</div><div class="ss">San Luis ON · 9 act.</div></div></div>
+            <div class="ev"><div class="tm">11:30</div><div class="ty">Visita</div><div class="lo">Parrilla del Sol</div></div>
+            <div class="ev"><div class="tm">12:30</div><div class="ty">Visita</div><div class="lo">Rest. El Faro</div></div>
+            <div class="ev reu"><div class="tm">16:00</div><div class="ty">Reunión</div><div class="lo">Con supervisor</div></div>
+            <div class="ev"><div class="tm">09:30</div><div class="ty">Visita</div><div class="lo">Hotel Potrero</div></div>
+            <div class="ev seg"><div class="tm">11:00</div><div class="ty">Seguim.</div><div class="lo">Event. Privado</div></div>
+            <div class="ev none">—</div><div class="ev none">—</div>
+          </div>
+          <div class="brow">
+            <div class="vc"><span class="av">DP</span><div><div class="nm">Daniel Pérez</div><div class="ss">San Luis OFF · 8 act.</div></div></div>
+            <div class="ev"><div class="tm">13:00</div><div class="ty">Visita</div><div class="lo">Maxi Kiosco</div></div>
+            <div class="ev"><div class="tm">11:00</div><div class="ty">Visita</div><div class="lo">Súper Centro</div></div>
+            <div class="ev rep"><div class="tm">15:30</div><div class="ty">Reportes</div><div class="lo">Control stock</div></div>
+            <div class="ev"><div class="tm">12:00</div><div class="ty">Visita</div><div class="lo">Kiosco Express</div></div>
+            <div class="ev"><div class="tm">14:30</div><div class="ty">Visita</div><div class="lo">Autoserv. Sur</div></div>
+            <div class="ev none">—</div><div class="ev none">—</div>
+          </div>
+          <div class="brow">
+            <div class="vc"><span class="av">JM</span><div><div class="nm">Juan Pablo Mollar</div><div class="ss">Mendoza ON · 11 act.</div></div></div>
+            <div class="ev"><div class="tm">09:00</div><div class="ty">Visita</div><div class="lo">Araüjn Resto</div></div>
+            <div class="ev"><div class="tm">10:30</div><div class="ty">Visita</div><div class="lo">Bodega Trapiche</div></div>
+            <div class="ev reu"><div class="tm">15:00</div><div class="ty">Reunión</div><div class="lo">Plan mensual</div></div>
+            <div class="ev"><div class="tm">11:00</div><div class="ty">Visita</div><div class="lo">Metías Resto</div></div>
+            <div class="ev seg"><div class="tm">16:00</div><div class="ty">Seguim.</div><div class="lo">La Marchigiana</div></div>
+            <div class="ev none">—</div><div class="ev none">—</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:11px;color:var(--muted);margin-top:10px;align-items:center"><a class="lnk" href="#">Ver todos los vendedores →</a><span style="flex:1"></span><span>🟢 Visita</span><span>🟠 Reunión</span><span>🟣 Seguimiento</span><span>⚪ Reportes</span></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <div class="c-h"><div class="t">Mayo 2025</div><span>‹ ›</span></div>
+          <div class="mcal">
+            <div class="h">L</div><div class="h">M</div><div class="h">M</div><div class="h">J</div><div class="h">V</div><div class="h">S</div><div class="h">D</div>
+            <div class="d mut">28</div><div class="d mut">29</div><div class="d mut">30</div><div class="d">1</div><div class="d">2</div><div class="d">3</div><div class="d">4</div>
+            <div class="d">5</div><div class="d">6</div><div class="d">7</div><div class="d">8</div><div class="d">9</div><div class="d">10</div><div class="d">11</div>
+            <div class="d">12</div><div class="d">13</div><div class="d">14</div><div class="d">15</div><div class="d">16</div><div class="d">17</div><div class="d">18</div>
+            <div class="d">19</div><div class="d on">20</div><div class="d">21</div><div class="d">22</div><div class="d">23</div><div class="d">24</div><div class="d">25</div>
+            <div class="d">26</div><div class="d">27</div><div class="d">28</div><div class="d">29</div><div class="d">30</div><div class="d">31</div><div class="d mut">1</div>
+          </div>
+        </div>
+        <div class="card tk">
+          <div class="c-h"><div class="t">Tareas pendientes</div><span class="lnk">Ver todas (16) →</span></div>
+          <div class="row"><span class="i" style="width:26px;height:26px;border-radius:7px;background:var(--danger-soft);color:var(--danger);display:grid;place-items:center;flex:none">⚑</span><div style="flex:1"><div class="nm">Enviar propuesta comercial</div><div class="ss">La Esquina Resto Bar</div></div><div style="text-align:right"><span class="tag alto">Alta</span><div class="ss">20/05</div></div></div>
+          <div class="row"><span class="i" style="width:26px;height:26px;border-radius:7px;background:var(--amber-soft);color:var(--gold-d);display:grid;place-items:center;flex:none">⚑</span><div style="flex:1"><div class="nm">Seguimiento post visita</div><div class="ss">Vinoteca Don Julián</div></div><div style="text-align:right"><span class="tag medio">Media</span><div class="ss">20/05</div></div></div>
+          <div class="row"><span class="i" style="width:26px;height:26px;border-radius:7px;background:var(--danger-soft);color:var(--danger);display:grid;place-items:center;flex:none">⚑</span><div style="flex:1"><div class="nm">Revisar stock crítico</div><div class="ss">Kiosco 33</div></div><div style="text-align:right"><span class="tag alto">Alta</span><div class="ss">21/05</div></div></div>
+          <div class="row"><span class="i" style="width:26px;height:26px;border-radius:7px;background:var(--amber-soft);color:var(--gold-d);display:grid;place-items:center;flex:none">⚑</span><div style="flex:1"><div class="nm">Cargar pedidos del día</div><div class="ss">Autoservicio Norte</div></div><div style="text-align:right"><span class="tag medio">Media</span><div class="ss">21/05</div></div></div>
+        </div>
+        <div class="card prox">
+          <div class="c-h"><div class="t">Próximas actividades</div></div>
+          <div class="row"><span class="tm">Hoy 10:30</span><div><div class="nm">Visita: Brindis Bar</div><div class="lo">📍 Luján de Cuyo, Mendoza</div></div></div>
+          <div class="row"><span class="tm">Hoy 11:00</span><div><div class="nm">Visita: Kiosco 33</div><div class="lo">📍 Maipú, Mendoza</div></div></div>
+          <div class="row"><span class="tm">Hoy 14:00</span><div><div class="nm">Reunión: Plan comercial</div><div class="lo">📍 Oficina Central</div></div></div>
+          <div class="row"><span class="tm">Mañana 09:30</span><div><div class="nm">Visita: Hotel Diplomatic</div><div class="lo">📍 Mendoza</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g-3">
+      <div class="card cmp">
+        <div class="c-h"><div class="t">Cumplimiento por vendedor <small>Esta semana</small></div></div>
+        <div class="row"><span class="nm">Carolina Heluani</span><span class="track"><i style="width:78%;background:var(--green)"></i></span><span class="pc">78%</span></div>
+        <div class="row"><span class="nm">Diego Sebastianelli</span><span class="track"><i style="width:71%;background:var(--green)"></i></span><span class="pc">71%</span></div>
+        <div class="row"><span class="nm">Franco Fernández</span><span class="track"><i style="width:65%;background:var(--gold)"></i></span><span class="pc">65%</span></div>
+        <div class="row"><span class="nm">Daniel Pérez</span><span class="track"><i style="width:62%;background:var(--gold)"></i></span><span class="pc">62%</span></div>
+        <div class="row"><span class="nm">Juan Pablo Mollar</span><span class="track"><i style="width:59%;background:var(--danger)"></i></span><span class="pc">59%</span></div>
+        <a class="lnk" href="#" style="margin-top:8px;display:inline-block">Ver reporte completo →</a>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Actividades por tipo <small>Esta semana</small></div></div>
+        <div class="donut-wrap">
+          <svg width="120" height="120" viewBox="0 0 42 42" style="flex:none">
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#eee7d8" stroke-width="6"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--green)" stroke-width="6" stroke-dasharray="62 38" stroke-dashoffset="25"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--orange)" stroke-width="6" stroke-dasharray="14 86" stroke-dashoffset="-37"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--purple)" stroke-width="6" stroke-dasharray="12 88" stroke-dashoffset="-51"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--blue)" stroke-width="6" stroke-dasharray="8 92" stroke-dashoffset="-63"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#9aa" stroke-width="6" stroke-dasharray="4 96" stroke-dashoffset="-71"></circle>
+            <text x="21" y="20" text-anchor="middle" font-size="6" font-weight="800" fill="var(--ink)">126</text>
+            <text x="21" y="26" text-anchor="middle" font-size="3" fill="var(--muted)">Total</text>
+          </svg>
+          <div class="leg">
+            <div class="l"><span class="sw" style="background:var(--green)"></span><span class="n">Visitas</span><span class="m">78</span><span class="p">62%</span></div>
+            <div class="l"><span class="sw" style="background:var(--orange)"></span><span class="n">Reuniones</span><span class="m">18</span><span class="p">14%</span></div>
+            <div class="l"><span class="sw" style="background:var(--purple)"></span><span class="n">Seguimientos</span><span class="m">15</span><span class="p">12%</span></div>
+            <div class="l"><span class="sw" style="background:var(--blue)"></span><span class="n">Reportes / Admin.</span><span class="m">10</span><span class="p">8%</span></div>
+            <div class="l"><span class="sw" style="background:#9aa"></span><span class="n">Otros</span><span class="m">5</span><span class="p">4%</span></div>
+          </div>
+        </div>
+        <a class="lnk" href="#" style="margin-top:8px;display:inline-block">Ver análisis detallado →</a>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t">Carga de actividades <small>Últimas 4 semanas</small></div></div>
+        <div style="display:flex;gap:12px;font-size:11px;color:var(--muted);margin-bottom:4px"><span>🟢 Programadas</span><span>🟣 Completadas</span><span>🟠 Pendientes</span></div>
+        <svg viewBox="0 0 300 150" style="width:100%;height:140px">
+          <line x1="0" y1="30" x2="300" y2="30" stroke="var(--line-2)"/><line x1="0" y1="80" x2="300" y2="80" stroke="var(--line-2)"/><line x1="0" y1="120" x2="300" y2="120" stroke="var(--line-2)"/>
+          <polyline points="0,55 100,42 200,28 300,38" fill="none" stroke="var(--green)" stroke-width="2.4"/>
+          <polyline points="0,90 100,82 200,72 300,68" fill="none" stroke="var(--purple)" stroke-width="2.4"/>
+          <polyline points="0,118 100,110 200,112 300,105" fill="none" stroke="var(--orange)" stroke-width="2.4"/>
+          <g font-size="8" fill="var(--muted)"><text x="0" y="142">28 Abr</text><text x="90" y="142">5 May</text><text x="185" y="142">12 May</text><text x="255" y="142">19 May</text></g>
+        </svg>
+        <a class="lnk" href="#" style="margin-top:6px;display:inline-block">Ver evolución completa →</a>
+      </div>
+    </div>
+
+    <div class="ia-strip">
+      <div class="h"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg><span>IA Asistente de Agenda<small>Insights y recomendaciones basadas en datos</small></span></div>
+      <span class="sp" style="flex:1"></span>
+      <span class="ia-chip">🗺️ Optimización de rutas: ahorrá 2,5 hs de viaje →</span>
+      <span class="ia-chip">📊 El martes tenés 35% más de carga que el promedio →</span>
+      <span class="ia-chip">📍 Hay 12 clientes sin visita en los últimos 30 días →</span>
+      <span class="ia-chip">⚠️ 2 vendedores por debajo del 60% de cumplimiento →</span>
+    </div>
+
+    <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
+  </div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/dir-nav.js"></script>
+</body>
+</html>

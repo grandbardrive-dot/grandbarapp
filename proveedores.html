@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Proveedores</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  .kpis6{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+  .split{display:grid;grid-template-columns:1fr 400px;gap:16px;margin-bottom:16px}
+  .rtabs{display:flex;gap:16px;font-size:12.5px;font-weight:700;border-bottom:1px solid var(--line);margin-bottom:12px;flex-wrap:wrap}
+  .rtabs span{padding-bottom:8px;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer}.rtabs span.on{color:var(--gold-d);border-color:var(--gold)}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+  .fsel{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-size:11.5px;font-weight:600;color:var(--ink)}
+  .search{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 11px;display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}
+  .search input{border:0;outline:0;background:none;font:inherit;flex:1;color:var(--ink)}
+  .pv .av{width:30px;height:30px;border-radius:7px;background:var(--cream);display:grid;place-items:center;font-size:9px;font-weight:800;color:var(--gold-d);flex:none}
+  .pv .track{width:52px;height:6px;background:#eee7d8;border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle}.pv .track>i{display:block;height:100%}
+  .stars{color:var(--gold);font-size:11px}
+  .draw .prof{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+  .draw .pav{width:52px;height:52px;border-radius:12px;background:var(--cream);display:grid;place-items:center;font-size:16px;font-weight:800;color:var(--gold-d);flex:none}
+  .gg{display:grid;grid-template-columns:1fr;gap:8px;font-size:12px;margin-bottom:14px}
+  .gg .r{display:flex;justify-content:space-between;gap:10px}.gg .l{color:var(--muted)} .gg .v{font-weight:600;text-align:right}
+  .perf{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .perf .m{background:var(--cream);border-radius:11px;padding:10px} .perf .l{font-size:10px;color:var(--muted)} .perf .v{font-size:15px;font-weight:800} .perf .d{font-size:10px;font-weight:700}
+  .bars2{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-items:end;height:70px;margin:8px 0}
+  .bars2 .b{background:var(--blue);border-radius:2px;width:100%}
+  @media(max-width:1150px){ .kpis6{grid-template-columns:repeat(3,1fr)} .split{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+
+    <div class="dhead">
+      <span class="ic" style="background:var(--purple-soft);color:var(--purple)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="7" r="2"/><circle cx="16" cy="17" r="2"/><path d="M20 7h-9M14 17H5"/></svg></span>
+      <div><h1>Proveedores</h1><div class="sub">Gestión de proveedores y análisis de desempeño</div></div>
+      <span class="sp"></span>
+      <span class="pill">📅 20 de mayo, 2025</span>
+      <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</span>
+      <button class="acc" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Nuevo proveedor</button>
+    </div>
+
+    <div class="kpis6">
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="7" r="2"/><circle cx="16" cy="17" r="2"/><path d="M20 7h-9M14 17H5"/></svg></span><span class="lbl">Proveedores activos</span></div><div class="v">156</div><div class="sub up">▲ 8,3% vs. mes anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></span><span class="lbl">Compras totales (mes)</span></div><div class="v">$1.248.560.000</div><div class="sub up">▲ 12,6% vs. mes anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--gold)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4zM3 6h18"/></svg></span><span class="lbl">Órdenes de compra</span></div><div class="v">243</div><div class="sub up">▲ 9,1% vs. mes anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg></span><span class="lbl">Cumplimiento promedio</span></div><div class="v">92%</div><div class="sub up">▲ 4,2 p.p. vs. mes anterior</div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--danger)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></span><span class="lbl">Proveedores en riesgo</span></div><div class="v">7</div><a class="lnk" href="#" style="color:var(--danger)">Ver detalle →</a></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:#9aa"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 6 10-6"/></svg></span><span class="lbl">Proveedores inactivos</span></div><div class="v">18</div><a class="lnk" href="#">Ver detalle →</a></div>
+    </div>
+
+    <div class="split">
+      <div class="card pv">
+        <div class="rtabs"><span class="on">Todos los proveedores</span><span>Activos</span><span>En riesgo</span><span>Inactivos</span><span>Evaluación</span><span>Contratos</span></div>
+        <div class="filters"><span class="search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Buscar proveedor, CUIT, categoría…"></span><span class="fsel">Categoría ▾</span><span class="fsel">Estado ▾</span><span class="fsel">Evaluación ▾</span></div>
+        <table class="t">
+          <tr><th>Proveedor</th><th>Categoría</th><th>Estado</th><th>Eval.</th><th>Cumpl.</th><th>Compras (12M)</th><th>Órd.</th></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">PR</span><div><b>Pernod Ricard Argentina</b><div class="ss" style="font-size:10px;color:var(--muted)">Bebidas</div></div></div></td><td><span class="tag tr">Destilados</span></td><td><span class="tag ok">Activo</span></td><td>4,8 <span class="stars">★★★★★</span></td><td><b>96%</b> <span class="track"><i style="width:96%;background:var(--green)"></i></span></td><td>$245.600.000</td><td>32</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">CG</span><div><b>Campari Group</b><div class="ss" style="font-size:10px;color:var(--muted)">Bebidas</div></div></div></td><td><span class="tag bajo">Aperitivos</span></td><td><span class="tag ok">Activo</span></td><td>4,6 <span class="stars">★★★★★</span></td><td><b>94%</b> <span class="track"><i style="width:94%;background:var(--green)"></i></span></td><td>$198.430.000</td><td>28</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">SA</span><div><b>Salentein S.A.</b><div class="ss" style="font-size:10px;color:var(--muted)">Bodegas</div></div></div></td><td><span class="tag tr">Vinos</span></td><td><span class="tag ok">Activo</span></td><td>4,7 <span class="stars">★★★★★</span></td><td><b>97%</b> <span class="track"><i style="width:97%;background:var(--green)"></i></span></td><td>$153.200.000</td><td>26</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">TR</span><div><b>Trapiche S.A.</b><div class="ss" style="font-size:10px;color:var(--muted)">Bodegas</div></div></div></td><td><span class="tag tr">Vinos</span></td><td><span class="tag ok">Activo</span></td><td>4,4 <span class="stars">★★★★☆</span></td><td><b>91%</b> <span class="track"><i style="width:91%;background:var(--green)"></i></span></td><td>$121.800.000</td><td>20</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">PÑ</span><div><b>Peñaflor S.A.</b><div class="ss" style="font-size:10px;color:var(--muted)">Bodegas</div></div></div></td><td><span class="tag tr">Vinos</span></td><td><span class="tag ok">Activo</span></td><td>4,5 <span class="stars">★★★★☆</span></td><td><b>93%</b> <span class="track"><i style="width:93%;background:var(--green)"></i></span></td><td>$118.750.000</td><td>18</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">AR</span><div><b>Arcor S.A.I.C.</b><div class="ss" style="font-size:10px;color:var(--muted)">Alimentos</div></div></div></td><td><span class="tag ok">Alimentos</span></td><td><span class="tag alto">En riesgo</span></td><td>3,2 <span class="stars">★★★☆☆</span></td><td><b>72%</b> <span class="track"><i style="width:72%;background:var(--gold)"></i></span></td><td>$68.200.000</td><td>12</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">DA</span><div><b>Directv Argentina S.A.</b><div class="ss" style="font-size:10px;color:var(--muted)">Servicios</div></div></div></td><td><span class="tag" style="background:var(--purple-soft);color:var(--purple)">Servicios</span></td><td><span class="tag ok">Activo</span></td><td>4,1 <span class="stars">★★★★☆</span></td><td><b>90%</b> <span class="track"><i style="width:90%;background:var(--green)"></i></span></td><td>$45.300.000</td><td>9</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">EC</span><div><b>Embalajes del Cuyo</b><div class="ss" style="font-size:10px;color:var(--muted)">Embalajes</div></div></div></td><td><span class="tag ok">Embalajes</span></td><td><span class="tag ok">Activo</span></td><td>4,3 <span class="stars">★★★★☆</span></td><td><b>93%</b> <span class="track"><i style="width:93%;background:var(--green)"></i></span></td><td>$32.600.000</td><td>11</td></tr>
+          <tr><td><div style="display:flex;gap:9px;align-items:center"><span class="av">DA</span><div><b>Distribuidora Andina S.R.L.</b><div class="ss" style="font-size:10px;color:var(--muted)">Varios</div></div></div></td><td><span class="tag bajo">Varios</span></td><td><span class="tag" style="background:#eee;color:#888">Inactivo</span></td><td>2,5 <span class="stars">★★☆☆☆</span></td><td><b>40%</b> <span class="track"><i style="width:40%;background:var(--danger)"></i></span></td><td>$0</td><td>0</td></tr>
+        </table>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:11.5px;color:var(--muted)"><span>Mostrando 1 a 10 de 156 proveedores</span><span><span class="fsel" style="background:var(--navy);color:#fff">1</span> <span class="fsel">2</span> <span class="fsel">3</span> … <span class="fsel">16</span></span></div>
+      </div>
+
+      <div class="card draw">
+        <div class="c-h"><div class="t">Salentein S.A. <span class="tag ok" style="margin-left:6px">Activo</span></div></div>
+        <div class="rtabs" style="font-size:11px;gap:10px"><span class="on">Resumen</span><span>Información</span><span>Desempeño</span><span>Productos</span><span>Historial</span></div>
+        <div class="prof"><span class="pav">SA</span><div style="font-size:11px;color:var(--muted)">Proveedor de vinos · Bodegas</div></div>
+        <div class="gg">
+          <div class="r"><span class="l">CUIT</span><span class="v">30-70788001-8</span></div>
+          <div class="r"><span class="l">Contacto</span><span class="v">comercial@salentein.com</span></div>
+          <div class="r"><span class="l">Teléfono</span><span class="v">261 498-2600</span></div>
+          <div class="r"><span class="l">Dirección</span><span class="v">Acceso Este Lateral Sur 650, Luján de Cuyo</span></div>
+          <div class="r"><span class="l">Categoría</span><span class="v">Vinos</span></div>
+          <div class="r"><span class="l">Comprador asignado</span><span class="v">Luciana Pérez</span></div>
+        </div>
+        <div class="perf">
+          <div class="m"><div class="l">Cumplimiento</div><div class="v">97%</div><div class="d up">▲ 4 p.p.</div></div>
+          <div class="m"><div class="l">Calidad</div><div class="v">4,7 / 5</div><div class="d up">▲ 0,2</div></div>
+          <div class="m"><div class="l">Entregas a tiempo</div><div class="v">96%</div><div class="d up">▲ 5 p.p.</div></div>
+          <div class="m"><div class="l">Respuesta</div><div class="v">24 hs</div><div class="d up">▼ 4 hs</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="t" style="font-weight:800;font-size:12.5px">Compras (12 meses)</div><div style="font-weight:800">$153.200.000 <span class="up" style="font-size:11px">▲ 12,6%</span></div></div>
+        <div class="bars2"><span class="b" style="height:30%"></span><span class="b" style="height:45%"></span><span class="b" style="height:75%"></span><span class="b" style="height:55%"></span><span class="b" style="height:50%"></span><span class="b" style="height:48%"></span><span class="b" style="height:52%"></span><span class="b" style="height:60%"></span><span class="b" style="height:70%"></span><span class="b" style="height:65%"></span><span class="b" style="height:80%"></span><span class="b" style="height:95%"></span></div>
+        <div class="t" style="font-weight:800;font-size:12.5px;margin:8px 0 6px">Últimas órdenes de compra</div>
+        <table class="t">
+          <tr><th>OC</th><th>Fecha</th><th>Estado</th><th>Monto</th></tr>
+          <tr><td>OC-000245</td><td>19/05</td><td><span class="tag ok">Entregada</span></td><td>$24.560.000</td></tr>
+          <tr><td>OC-000237</td><td>12/05</td><td><span class="tag ok">Entregada</span></td><td>$18.430.000</td></tr>
+          <tr><td>OC-000228</td><td>02/05</td><td><span class="tag tr">En tránsito</span></td><td>$15.320.000</td></tr>
+        </table>
+        <a class="lnk" href="#" style="margin-top:10px;display:inline-block">Ver todas las órdenes →</a>
+      </div>
+    </div>
+
+    <div class="g-3">
+      <div class="card">
+        <div class="c-h"><div class="t">Análisis de categorías <small>12M</small></div></div>
+        <div class="donut-wrap">
+          <svg width="120" height="120" viewBox="0 0 42 42" style="flex:none">
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#eee7d8" stroke-width="6"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--navy)" stroke-width="6" stroke-dasharray="45 55" stroke-dashoffset="25"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--danger)" stroke-width="6" stroke-dasharray="25 75" stroke-dashoffset="-20"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--gold)" stroke-width="6" stroke-dasharray="12 88" stroke-dashoffset="-45"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--green)" stroke-width="6" stroke-dasharray="8 92" stroke-dashoffset="-57"></circle>
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--blue)" stroke-width="6" stroke-dasharray="10 90" stroke-dashoffset="-65"></circle>
+          </svg>
+          <div class="leg">
+            <div class="l"><span class="sw" style="background:var(--navy)"></span><span class="n">Vinos</span><span class="p">45%</span><span class="m">$561.850.000</span></div>
+            <div class="l"><span class="sw" style="background:var(--danger)"></span><span class="n">Destilados</span><span class="p">25%</span><span class="m">$312.140.000</span></div>
+            <div class="l"><span class="sw" style="background:var(--gold)"></span><span class="n">Aperitivos</span><span class="p">12%</span><span class="m">$149.860.000</span></div>
+            <div class="l"><span class="sw" style="background:var(--green)"></span><span class="n">Alimentos</span><span class="p">8%</span><span class="m">$99.520.000</span></div>
+            <div class="l"><span class="sw" style="background:var(--blue)"></span><span class="n">Otros</span><span class="p">10%</span><span class="m">$125.190.000</span></div>
+          </div>
+        </div>
+        <a class="lnk" href="#" style="margin-top:10px;display:inline-block">Ver análisis completo →</a>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t" style="color:var(--danger)">⚠️ Proveedores en riesgo</div></div>
+        <table class="t">
+          <tr><th>Proveedor</th><th>Motivo</th><th>Impacto</th></tr>
+          <tr><td>Arcor S.A.I.C.</td><td>Incumplimientos recurrentes</td><td><span class="tag alto">Alto</span></td></tr>
+          <tr><td>Distribuidora Andina S.R.L.</td><td>Sin compras en +90 días</td><td><span class="tag medio">Medio</span></td></tr>
+          <tr><td>Bodega del Fin del Mundo</td><td>Problemas de calidad</td><td><span class="tag medio">Medio</span></td></tr>
+        </table>
+        <a class="lnk" href="#" style="margin-top:10px;display:inline-block">Ver todos en riesgo →</a>
+      </div>
+
+      <div class="card">
+        <div class="c-h"><div class="t"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" style="vertical-align:-2px"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg> IA Asistente de Proveedores</div></div>
+        <div class="al" style="border:0"><span class="i" style="background:var(--green-soft);color:var(--green-d)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg></span><div><div class="tt">Oportunidad de consolidación</div><div class="ss">Podrías consolidar compras de vinos con Salentein, Trapiche y Peñaflor. Ahorro potencial: $8.400.000</div></div></div>
+        <a class="lnk" href="#" style="margin-top:6px;display:inline-block">Ver recomendación →</a>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px">
+          <span class="ia-chip">¿Qué proveedores tienen más incumplimientos? →</span>
+          <span class="ia-chip">Comparar rendimiento de proveedores de vinos →</span>
+          <span class="ia-chip">¿Qué productos tienen mayor variación de precio? →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
+  </div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/dir-nav.js"></script>
+</body>
+</html>
