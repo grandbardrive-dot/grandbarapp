@@ -32,10 +32,11 @@ exports.handler = async (event) => {
       const eqRes = await sb('usuarios?rol=eq.ventas&select=codigo_vendedor,canal,region');
       const pc = String(perfil.canal || '').toLowerCase(), preg = String(perfil.region || '').toLowerCase();
       return (await eqRes.json() || []).filter(u => {
+        if (!u.codigo_vendedor) return false;
         if (preg && u.region && String(u.region).toLowerCase() !== preg) return false;
         const uc = String(u.canal || '').toLowerCase();
         return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
-      }).map(u => String(u.codigo_vendedor)).filter(Boolean);
+      }).map(u => String(u.codigo_vendedor)).filter(x => x && x !== 'null');
     }
     // ¿Puede tocar la agenda de este vendedor?
     async function puede(vendCod) {
