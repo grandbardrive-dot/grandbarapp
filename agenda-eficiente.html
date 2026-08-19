@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Agenda Eficiente</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;--gold:#c0912f;--gold-d:#a97c22;--gold-s:#f7efdc;--green:#2f8f6e;--green-d:#256f54;--green-s:#e6f2ec;--danger:#c0603e;--danger-s:#fbe9e4;--amber:#c99a2e;--amber-s:#f8efd6;--navy:#0d2230;--blue:#3f6f9c;--font:'Inter',system-ui,sans-serif}
+  *{box-sizing:border-box} body{margin:0;font-family:var(--font);background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .top{background:var(--navy);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+  .top a.back{color:#cdd9e0;text-decoration:none;font-size:22px;line-height:1}
+  .top h1{font-size:16px;margin:0;font-weight:800} .top .sub{font-size:11px;color:#8fa3ad}
+  .tabs{display:flex;gap:4px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:52px;z-index:4;overflow-x:auto}
+  .tabs button{flex:1;min-width:90px;border:0;background:none;padding:12px 8px;font:inherit;font-size:13px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+  .tabs button.on{color:var(--gold-d);border-color:var(--gold)}
+  .wrap{max-width:720px;margin:0 auto;padding:16px 14px 70px}
+  .pane{display:none} .pane.on{display:block}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+  .hint{background:var(--gold-s);border:1px solid #e7d3a1;border-radius:11px;padding:10px 12px;font-size:12.5px;color:#6a5312;margin-bottom:14px}
+  .search{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;margin-bottom:12px}
+  .cl{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line2)}
+  .cl:last-child{border-bottom:0} .cl .nm{flex:1;font-weight:600;font-size:13.5px}
+  .cl .cod{font-size:10.5px;color:var(--muted)}
+  .fsel{border:1px solid var(--line);border-radius:9px;padding:7px 9px;font:inherit;font-size:12.5px;background:#fff}
+  .fsel.semanal{border-color:var(--green);color:var(--green-d)} .fsel.quincenal{border-color:var(--blue);color:var(--blue)} .fsel.mensual{border-color:var(--gold);color:var(--gold-d)}
+  .mnav{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:12px}
+  .mnav button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:16px}
+  .mnav .lbl{font-weight:800;font-size:15px;min-width:150px;text-align:center;text-transform:capitalize}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .cal .h{font-size:10px;color:var(--muted);font-weight:700;text-align:center;padding:2px}
+  .day{aspect-ratio:1;border:1px solid var(--line);border-radius:9px;padding:4px;cursor:pointer;display:flex;flex-direction:column;background:#fff}
+  .day.mut{background:#faf7f0;color:#ccc;cursor:default;border-color:transparent}
+  .day .n{font-size:12px;font-weight:700} .day.today .n{color:var(--gold-d)}
+  .day .cnt{margin-top:auto;font-size:10px;font-weight:800;color:#fff;background:var(--green);border-radius:20px;padding:1px 6px;align-self:flex-start}
+  .day.tiene{border-color:var(--green)}
+  .banner{border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:14px;font-weight:600}
+  .b-bor{background:#eef1f3;color:#5a6b73} .b-env{background:var(--amber-s);color:var(--gold-d)} .b-apr{background:var(--green-s);color:var(--green-d)} .b-cam{background:var(--danger-s);color:var(--danger)}
+  .btn{border:0;border-radius:11px;padding:13px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;width:100%}
+  .btn.gold{background:var(--gold);color:#241a06} .btn.green{background:var(--green);color:#fff} .btn:disabled{opacity:.5}
+  .hoy{display:flex;align-items:center;gap:11px;padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px}
+  .hoy.done{background:var(--green-s);border-color:#bfe0d0}
+  .chk{width:26px;height:26px;border-radius:8px;border:2px solid #c9b98f;flex:none;display:grid;place-items:center;cursor:pointer}
+  .hoy.done .chk{background:var(--green);border-color:var(--green)} .chk svg{width:15px;height:15px;color:#fff;opacity:0}.hoy.done .chk svg{opacity:1}
+  .hoy .nm{flex:1;font-weight:700;font-size:14px} .hoy .tm{font-size:11.5px;color:var(--muted)}
+  .ov{display:none;position:fixed;inset:0;background:rgba(13,34,48,.5);z-index:30;align-items:flex-end;justify-content:center}
+  .ov.open{display:flex}
+  .sheet{background:#fff;width:100%;max-width:720px;max-height:82vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px}
+  .sheet h3{margin:0 0 4px;font-size:16px} .sheet .s{font-size:12px;color:var(--muted);margin-bottom:12px}
+  .pick{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line2)}
+  .pick .nm{flex:1;font-size:13.5px;font-weight:600} .pick .fr{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--gold-s);color:var(--gold-d)}
+  .pbox{width:24px;height:24px;border-radius:7px;border:2px solid #c9b98f;flex:none;display:grid;place-items:center;cursor:pointer}
+  .pick.on .pbox{background:var(--green);border-color:var(--green)} .pbox svg{width:13px;height:13px;color:#fff;opacity:0}.pick.on .pbox svg{opacity:1}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:22px}
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 20px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:90}
+  .toast.show{opacity:1} .toast.err{background:var(--danger)}
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="back" href="inicio.html">‹</a>
+    <div><h1>Agenda Eficiente</h1><div class="sub" id="sub">Cargando…</div></div>
+  </div>
+  <div class="tabs">
+    <button data-t="hoy" class="on">📆 Hoy</button>
+    <button data-t="cat">🏷️ Categorizar</button>
+    <button data-t="mes">🗓️ Mensual</button>
+    <button data-t="env">📤 Envío</button>
+  </div>
+  <div class="wrap">
+
+    <!-- HOY -->
+    <div class="pane on" id="pHoy">
+      <div class="hint">Estas son tus visitas planificadas para hoy. Tocá <b>Iniciar visitas</b> para abrir el manual y registrar cada una.</div>
+      <div id="hoyList"><div class="empty">Cargando…</div></div>
+      <button class="btn green" id="btnIniciar" style="margin-top:6px">▶ Iniciar visitas (manual)</button>
+    </div>
+
+    <!-- CATEGORIZAR -->
+    <div class="pane" id="pCat">
+      <div class="hint"><b>Paso 1.</b> Categorizá cada cliente por su frecuencia de visita. Se hace una vez y queda guardado.</div>
+      <input class="search" id="catSearch" placeholder="Buscar cliente…">
+      <div class="card"><div id="catList"><div class="empty">Cargando clientes…</div></div></div>
+    </div>
+
+    <!-- MENSUAL -->
+    <div class="pane" id="pMes">
+      <div class="hint"><b>Paso 2.</b> Tocá un día y elegí qué clientes vas a visitar ese día. Cuando termines, mandásela al supervisor en la pestaña <b>Envío</b>.</div>
+      <div class="mnav"><button id="mPrev">‹</button><div class="lbl" id="mLbl">—</div><button id="mNext">›</button></div>
+      <div class="card">
+        <div class="cal" id="calH"></div>
+        <div class="cal" id="cal" style="margin-top:5px"></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);text-align:center">Total de visitas planificadas este mes: <b id="mTot">0</b></div>
+    </div>
+
+    <!-- ENVÍO -->
+    <div class="pane" id="pEnv">
+      <div id="envBanner" class="banner b-bor">Estado: borrador</div>
+      <div class="card">
+        <div style="font-size:13.5px;margin-bottom:10px">Cuando tengas la agenda del mes lista, enviásela a tu supervisor para que la valide.</div>
+        <button class="btn gold" id="btnEnviar">📤 Enviar agenda al supervisor</button>
+      </div>
+      <div id="envNota"></div>
+    </div>
+
+  </div>
+
+  <!-- Modal día -->
+  <div class="ov" id="ov">
+    <div class="sheet">
+      <h3 id="ovTit">Visitas del día</h3>
+      <div class="s" id="ovSub">Elegí los clientes a visitar</div>
+      <input class="search" id="ovSearch" placeholder="Buscar cliente…">
+      <div id="ovList"></div>
+      <button class="btn green" id="ovSave" style="margin-top:12px">Guardar día</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
+const FN='/.netlify/functions/agenda-eficiente';
+const MAN='manual-vendedores/index.html';
+let hub, TOKEN, MES=new Date().toISOString().slice(0,7), CLIENTES=[], PLAN=[], ENVIO={estado:'borrador'}, ovFecha=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const FRLBL={semanal:'Semanal',quincenal:'Quincenal',mensual:'Mensual'};
+function toast(m,e){const t=$('toast');t.textContent=m;t.className='toast show'+(e?' err':'');setTimeout(()=>t.className='toast',2400);}
+const chkSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg>';
+
+// -------- Tabs --------
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  const t=b.dataset.t;
+  $('pHoy').classList.toggle('on',t==='hoy'); $('pCat').classList.toggle('on',t==='cat');
+  $('pMes').classList.toggle('on',t==='mes'); $('pEnv').classList.toggle('on',t==='env');
+  if(t==='hoy') cargarHoy();
+  if(t==='cat') { if(!CLIENTES.length) cargarClientes(); }
+  if(t==='mes'||t==='env') cargarPlan();
+});
+
+// -------- Categorizar --------
+async function cargarClientes(){
+  try{
+    const r=await fetch(FN+'?vista=clientes',{headers:{Authorization:'Bearer '+TOKEN}});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    CLIENTES=d.clientes||[]; pintaCat();
+  }catch(e){ $('catList').innerHTML='<div class="empty">'+esc(e.message)+'</div>'; }
+}
+function pintaCat(){
+  const q=($('catSearch').value||'').toLowerCase();
+  const arr=CLIENTES.filter(c=>!q||(c.nombre||'').toLowerCase().includes(q)||String(c.codigo).includes(q));
+  if(!arr.length){ $('catList').innerHTML='<div class="empty">Sin clientes.</div>'; return; }
+  $('catList').innerHTML=arr.map(c=>`<div class="cl"><div><div class="nm">${esc(c.nombre||('Cliente '+c.codigo))}</div><div class="cod">Cód ${esc(c.codigo)}</div></div>
+    <select class="fsel ${c.frecuencia||''}" data-cod="${esc(c.codigo)}">
+      <option value="">Frecuencia…</option>
+      <option value="semanal"${c.frecuencia==='semanal'?' selected':''}>Semanal</option>
+      <option value="quincenal"${c.frecuencia==='quincenal'?' selected':''}>Quincenal</option>
+      <option value="mensual"${c.frecuencia==='mensual'?' selected':''}>Mensual</option>
+    </select></div>`).join('');
+  $('catList').querySelectorAll('select').forEach(s=>s.onchange=async()=>{
+    const cod=s.dataset.cod, cli=CLIENTES.find(x=>String(x.codigo)===cod);
+    if(!s.value) return;
+    s.className='fsel '+s.value;
+    try{
+      await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'frecuencia',cliente_codigo:cod,cliente_nombre:cli?cli.nombre:'',frecuencia:s.value})});
+      if(cli) cli.frecuencia=s.value; toast('Guardado ✓');
+    }catch(e){ toast('No se guardó',true); }
+  });
+}
+$('catSearch').oninput=pintaCat;
+
+// -------- Mensual --------
+async function cargarPlan(){
+  try{
+    const r=await fetch(FN+'?vista=plan&mes='+MES,{headers:{Authorization:'Bearer '+TOKEN}});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    PLAN=d.plan||[]; ENVIO=d.envio||{estado:'borrador'};
+    pintaCal(); pintaEnv();
+  }catch(e){ toast(e.message,true); }
+}
+function pintaCal(){
+  const [y,m]=MES.split('-').map(Number);
+  $('mLbl').textContent=MESES[m-1]+' '+y;
+  $('calH').innerHTML=['L','M','M','J','V','S','D'].map(d=>`<div class="h">${d}</div>`).join('');
+  const first=new Date(y,m-1,1), off=(first.getDay()+6)%7, dias=new Date(y,m,0).getDate();
+  const hoy=new Date().toISOString().slice(0,10);
+  const cntBy={}; PLAN.forEach(p=>{cntBy[p.fecha]=(cntBy[p.fecha]||0)+1;});
+  let html='';
+  for(let i=0;i<off;i++) html+='<div class="day mut"></div>';
+  for(let d=1;d<=dias;d++){
+    const iso=MES+'-'+String(d).padStart(2,'0'); const n=cntBy[iso]||0;
+    html+=`<div class="day ${n?'tiene':''} ${iso===hoy?'today':''}" data-f="${iso}"><div class="n">${d}</div>${n?`<span class="cnt">${n}</span>`:''}</div>`;
+  }
+  $('cal').innerHTML=html;
+  $('cal').querySelectorAll('.day[data-f]').forEach(el=>el.onclick=()=>abrirDia(el.dataset.f));
+  $('mTot').textContent=PLAN.length;
+}
+$('mPrev').onclick=()=>{ let[y,m]=MES.split('-').map(Number); m--; if(m<1){m=12;y--;} MES=y+'-'+String(m).padStart(2,'0'); cargarPlan(); };
+$('mNext').onclick=()=>{ let[y,m]=MES.split('-').map(Number); m++; if(m>12){m=1;y++;} MES=y+'-'+String(m).padStart(2,'0'); cargarPlan(); };
+
+function abrirDia(fecha){
+  if(!CLIENTES.length){ cargarClientes().then(()=>abrirDia(fecha)); return; }
+  ovFecha=fecha;
+  const [y,m,d]=fecha.split('-').map(Number);
+  $('ovTit').textContent='Visitas del '+d+' de '+MESES[m-1];
+  const asignados=new Set(PLAN.filter(p=>p.fecha===fecha).map(p=>String(p.cliente_codigo)));
+  $('ovSearch').value='';
+  window._ovAsign=asignados;
+  pintaOv();
+  $('ov').classList.add('open');
+}
+function pintaOv(){
+  const q=($('ovSearch').value||'').toLowerCase();
+  const asign=window._ovAsign;
+  const arr=CLIENTES.filter(c=>!q||(c.nombre||'').toLowerCase().includes(q)||String(c.codigo).includes(q));
+  $('ovList').innerHTML=arr.map(c=>`<div class="pick ${asign.has(String(c.codigo))?'on':''}" data-cod="${esc(c.codigo)}"><div class="pbox">${chkSvg}</div><div class="nm">${esc(c.nombre||('Cliente '+c.codigo))}</div>${c.frecuencia?`<span class="fr">${FRLBL[c.frecuencia]}</span>`:''}</div>`).join('')||'<div class="empty">Sin clientes</div>';
+  $('ovList').querySelectorAll('.pick').forEach(p=>p.onclick=()=>{ const cod=p.dataset.cod; if(asign.has(cod))asign.delete(cod);else asign.add(cod); p.classList.toggle('on'); });
+}
+$('ovSearch').oninput=pintaOv;
+$('ov').onclick=e=>{ if(e.target.id==='ov') $('ov').classList.remove('open'); };
+$('ovSave').onclick=async()=>{
+  const asign=window._ovAsign;
+  const clientes=CLIENTES.filter(c=>asign.has(String(c.codigo))).map(c=>({codigo:c.codigo,nombre:c.nombre}));
+  $('ovSave').disabled=true;
+  try{
+    await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'plan-dia',fecha:ovFecha,clientes})});
+    $('ov').classList.remove('open'); toast('Día guardado ✓'); cargarPlan();
+  }catch(e){ toast('No se guardó',true); } finally{ $('ovSave').disabled=false; }
+};
+
+// -------- Envío --------
+function pintaEnv(){
+  const map={borrador:['b-bor','Borrador — todavía no la enviaste'],enviada:['b-env','Enviada — esperando que el supervisor la valide'],aprobada:['b-apr','✓ Aprobada por tu supervisor'],cambios:['b-cam','Te pidió cambios — revisá la nota']};
+  const st=map[ENVIO.estado]||map.borrador;
+  const b=$('envBanner'); b.className='banner '+st[0]; b.textContent='Estado: '+st[1];
+  $('btnEnviar').textContent=ENVIO.estado==='aprobada'?'Reenviar (hacer cambios)':'📤 Enviar agenda al supervisor';
+  $('envNota').innerHTML=ENVIO.nota_supervisor?`<div class="card"><b>Nota del supervisor:</b><br>${esc(ENVIO.nota_supervisor)}</div>`:'';
+}
+$('btnEnviar').onclick=async()=>{
+  if(!PLAN.length){ toast('Primero armá la agenda del mes',true); return; }
+  $('btnEnviar').disabled=true;
+  try{
+    await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'enviar',mes:MES})});
+    ENVIO.estado='enviada'; pintaEnv(); toast('Enviada al supervisor ✓');
+  }catch(e){ toast('No se pudo enviar',true); } finally{ $('btnEnviar').disabled=false; }
+};
+
+// -------- Hoy --------
+async function cargarHoy(){
+  try{
+    const hoy=new Date().toISOString().slice(0,10);
+    const r=await fetch(FN+'?vista=dia&fecha='+hoy,{headers:{Authorization:'Bearer '+TOKEN}});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    const vis=d.visitas||[];
+    if(!vis.length){ $('hoyList').innerHTML='<div class="empty">No tenés visitas planificadas para hoy.<br>Armalas en la pestaña <b>Mensual</b>.</div>'; return; }
+    $('hoyList').innerHTML=vis.map(v=>`<div class="hoy ${v.estado==='visitado'?'done':''}" data-id="${v.id}">
+      <div class="chk" data-id="${v.id}">${chkSvg}</div>
+      <div><div class="nm">${esc(v.cliente_nombre||('Cliente '+v.cliente_codigo))}</div><div class="tm">${v.estado==='visitado'?('✓ Visitado'+(v.duracion_min?' · '+v.duracion_min+' min':'')):'Pendiente'}</div></div>
+    </div>`).join('');
+    $('hoyList').querySelectorAll('.chk').forEach(ch=>ch.onclick=()=>toggleVisita(ch.dataset.id,vis));
+  }catch(e){ $('hoyList').innerHTML='<div class="empty">'+esc(e.message)+'</div>'; }
+}
+async function toggleVisita(id,vis){
+  const v=vis.find(x=>String(x.id)===String(id)); if(!v) return;
+  const marcar=v.estado!=='visitado';
+  let min=null;
+  if(marcar){ const t=prompt('¿Cuántos minutos duró la visita? (opcional)'); if(t===null) return; min=t.trim()?parseInt(t,10):null; }
+  try{
+    await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:marcar?'marcar':'desmarcar',id,duracion_min:min})});
+    v.estado=marcar?'visitado':'pendiente'; v.duracion_min=min; cargarHoy();
+  }catch(e){ toast('No se guardó',true); }
+}
+$('btnIniciar').onclick=()=>{ location.href=MAN; };
+
+// -------- Init --------
+(async()=>{
+  hub=supabase.createClient(HUB.url,HUB.key);
+  const {data:{session}}=await hub.auth.getSession();
+  if(!session){ location.href='index.html'; return; }
+  TOKEN=session.access_token;
+  const {data:u}=await hub.from('usuarios').select('nombre').eq('id',session.user.id).maybeSingle();
+  $('sub').textContent=(u&&u.nombre?u.nombre:'Vendedor')+' · visitas planificadas';
+  cargarHoy();
+})();
+</script>
+</body>
+</html>
