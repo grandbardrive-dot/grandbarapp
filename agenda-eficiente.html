@@ -51,6 +51,9 @@
   .pick .nm{flex:1;font-size:13.5px;font-weight:600} .pick .fr{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--gold-s);color:var(--gold-d)}
   .pbox{width:24px;height:24px;border-radius:7px;border:2px solid #c9b98f;flex:none;display:grid;place-items:center;cursor:pointer}
   .pick.on .pbox{background:var(--green);border-color:var(--green)} .pbox svg{width:13px;height:13px;color:#fff;opacity:0}.pick.on .pbox svg{opacity:1}
+  .frcs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .frc{border:1px solid var(--line);background:#fff;border-radius:20px;padding:6px 12px;font:inherit;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
+  .frc.on{background:var(--gold-s);border-color:var(--gold);color:var(--gold-d)}
   .empty{text-align:center;color:var(--muted);font-size:13px;padding:22px}
   .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 20px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:90}
   .toast.show{opacity:1} .toast.err{background:var(--danger)}
@@ -110,7 +113,14 @@
   <div class="ov" id="ov">
     <div class="sheet">
       <h3 id="ovTit">Visitas del día</h3>
-      <div class="s" id="ovSub">Elegí los clientes a visitar</div>
+      <div class="s" id="ovSub">Filtrá por frecuencia y elegí los clientes a visitar</div>
+      <div class="frcs" id="ovFiltros">
+        <button class="frc on" data-fr="">Todos</button>
+        <button class="frc" data-fr="semanal">Semanal</button>
+        <button class="frc" data-fr="quincenal">Quincenal</button>
+        <button class="frc" data-fr="mensual">Mensual</button>
+        <button class="frc" data-fr="__none">Sin categorizar</button>
+      </div>
       <input class="search" id="ovSearch" placeholder="Buscar cliente…">
       <div id="ovList"></div>
       <button class="btn green" id="ovSave" style="margin-top:12px">Guardar día</button>
@@ -124,7 +134,7 @@
 const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
 const FN='/.netlify/functions/agenda-eficiente';
 const MAN='manual-vendedores/index.html';
-let hub, TOKEN, MES=new Date().toISOString().slice(0,7), CLIENTES=[], PLAN=[], ENVIO={estado:'borrador'}, ovFecha=null;
+let hub, TOKEN, MES=new Date().toISOString().slice(0,7), CLIENTES=[], PLAN=[], ENVIO={estado:'borrador'}, ovFecha=null, ovFrec='';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -210,6 +220,7 @@ function abrirDia(fecha){
   $('ovTit').textContent='Visitas del '+d+' de '+MESES[m-1];
   const asignados=new Set(PLAN.filter(p=>p.fecha===fecha).map(p=>String(p.cliente_codigo)));
   $('ovSearch').value='';
+  ovFrec=''; $('ovFiltros').querySelectorAll('.frc').forEach(x=>x.classList.toggle('on',x.dataset.fr===''));
   window._ovAsign=asignados;
   pintaOv();
   $('ov').classList.add('open');
@@ -217,11 +228,21 @@ function abrirDia(fecha){
 function pintaOv(){
   const q=($('ovSearch').value||'').toLowerCase();
   const asign=window._ovAsign;
-  const arr=CLIENTES.filter(c=>!q||(c.nombre||'').toLowerCase().includes(q)||String(c.codigo).includes(q));
+  const arr=CLIENTES.filter(c=>{
+    if(ovFrec==='__none'){ if(c.frecuencia) return false; }
+    else if(ovFrec && c.frecuencia!==ovFrec) return false;
+    if(q && !((c.nombre||'').toLowerCase().includes(q)||String(c.codigo).includes(q))) return false;
+    return true;
+  });
   $('ovList').innerHTML=arr.map(c=>`<div class="pick ${asign.has(String(c.codigo))?'on':''}" data-cod="${esc(c.codigo)}"><div class="pbox">${chkSvg}</div><div class="nm">${esc(c.nombre||('Cliente '+c.codigo))}</div>${c.frecuencia?`<span class="fr">${FRLBL[c.frecuencia]}</span>`:''}</div>`).join('')||'<div class="empty">Sin clientes</div>';
   $('ovList').querySelectorAll('.pick').forEach(p=>p.onclick=()=>{ const cod=p.dataset.cod; if(asign.has(cod))asign.delete(cod);else asign.add(cod); p.classList.toggle('on'); });
 }
 $('ovSearch').oninput=pintaOv;
+$('ovFiltros').querySelectorAll('.frc').forEach(b=>b.onclick=()=>{
+  ovFrec=b.dataset.fr;
+  $('ovFiltros').querySelectorAll('.frc').forEach(x=>x.classList.toggle('on',x===b));
+  pintaOv();
+});
 $('ov').onclick=e=>{ if(e.target.id==='ov') $('ov').classList.remove('open'); };
 $('ovSave').onclick=async()=>{
   const asign=window._ovAsign;
