@@ -46,3 +46,20 @@ create table if not exists public.agenda_plan_envio (
   unique (vendedor, mes)
 );
 alter table public.agenda_plan_envio enable row level security;
+
+-- 4) Agenda PRIVADA del supervisor (visitas que se copia para seguimiento)
+--    Es privada: el vendedor NO se entera.
+create table if not exists public.agenda_supervisor (
+  id             uuid primary key default gen_random_uuid(),
+  supervisor_id  uuid not null,                 -- auth id del supervisor
+  fecha          date not null,
+  hora           time,
+  cliente_codigo text,
+  cliente_nombre text,
+  vendedor       text,                          -- codigo del vendedor (referencia)
+  vendedor_nombre text,
+  nota           text,
+  created_at     timestamptz default now()
+);
+alter table public.agenda_supervisor enable row level security;
+create index if not exists agenda_sup_idx on public.agenda_supervisor(supervisor_id, fecha);

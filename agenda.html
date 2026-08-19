@@ -219,7 +219,7 @@
   const params = new URLSearchParams(location.search);
   const VEND_PARAM = params.get('vendedor'); // supervisor viendo a un vendedor
   let hub, TOKEN=null, PERFIL=null, PUEDE_EDITAR=true, ES_PROPIA=true;
-  let COMP=[], REUN=[], selDate=new Date(), weekStart=null, tipoSel='visita', editId=null;
+  let COMP=[], REUN=[], MISUP=[], selDate=new Date(), weekStart=null, tipoSel='visita', editId=null;
 
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const iso = d => { const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); };
@@ -234,6 +234,7 @@
     const hoyIso = iso(new Date()), selIso = iso(selDate);
     const cnt = {}; COMP.forEach(c=>{ cnt[c.fecha]=(cnt[c.fecha]||0)+1; });
     REUN.forEach(r=>{ if(r.estado!=='cancelada'&&r.estado!=='rechazada') cnt[r.fecha]=(cnt[r.fecha]||0)+1; });
+    MISUP.forEach(m=>{ cnt[m.fecha]=(cnt[m.fecha]||0)+1; });
     let html='';
     for(let i=0;i<7;i++){
       const d=new Date(weekStart); d.setDate(d.getDate()+i); const di=iso(d);
@@ -250,9 +251,11 @@
     const list = COMP.filter(c=>c.fecha===selIso).sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
     const reunDia = REUN.filter(r=>r.fecha===selIso && r.estado!=='cancelada').sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
     const cont=document.getElementById('clist');
-    if(!list.length && !reunDia.length){ cont.innerHTML=`<div class="empty">No hay nada agendado para este día.${PUEDE_EDITAR?'<br>Tocá <b>+ Nuevo</b> para agregar.':''}</div>`; return; }
+    const misupDia = MISUP.filter(m=>m.fecha===selIso).sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
+    if(!list.length && !reunDia.length && !misupDia.length){ cont.innerHTML=`<div class="empty">No hay nada agendado para este día.${PUEDE_EDITAR?'<br>Tocá <b>+ Nuevo</b> para agregar.':''}</div>`; return; }
     const reunHTML = reunDia.map(reunItemHTML).join('');
-    cont.innerHTML = reunHTML + list.map(c=>{
+    const misupHTML = misupDia.map(misupItemHTML).join('');
+    cont.innerHTML = reunHTML + misupHTML + list.map(c=>{
       const hora = c.hora ? String(c.hora).slice(0,5) : 'Sin hora';
       const by = c.creado_por_rol==='supervisor' ? `<div class="cby">📌 Cargado por <b>${esc(c.creado_por||'tu supervisor')}</b></div>` : '';
       return `<div class="citem ${c.tipo} ${c.estado==='completado'?'done':''}">
@@ -359,6 +362,7 @@
     renderWeek(); renderDay();
     cargar();
     cargarReunionesDir();
+    if(PERFIL && PERFIL.es_supervisor) cargarMiAgendaSup();
   })();
 
   async function cargarReunionesDir(){
@@ -428,6 +432,31 @@
       toast(estado==='confirmada'?'Reunión confirmada ✅':'Aviso enviado a Dirección');
       await cargarReunionesDir();
     }catch(e){ toast('Error de conexión',true); }
+  }
+
+  // ----- Agenda privada del supervisor (seguimiento) -----
+  function misupItemHTML(x){
+    const hora = x.hora ? String(x.hora).slice(0,5) : 'Seguimiento';
+    return `<div class="citem" style="border-left:4px solid #3f6f9c;background:#eef3f7">
+      <div class="ccheck" style="visibility:hidden"></div>
+      <div class="cbody">
+        <div class="ctop"><span class="chora">${hora}</span><span class="ctipo" style="background:#dbe7f0;color:#2c5a80">🔎 Seguimiento (privado)</span><button onclick="quitarMiSup('${x.id}')" style="margin-left:auto;background:none;border:0;color:#c0603e;font-size:11px;cursor:pointer">Quitar</button></div>
+        <div class="cname">${esc(x.cliente_nombre||'(cliente)')}</div>
+        ${x.vendedor_nombre?`<div class="cobj">Vendedor: ${esc(x.vendedor_nombre)}</div>`:''}
+      </div></div>`;
+  }
+  async function quitarMiSup(id){
+    if(!confirm('¿Quitar esta visita de tu agenda?')) return;
+    try{
+      await fetch('/.netlify/functions/agenda-eficiente',{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'mi-agenda-del',id})});
+      MISUP=MISUP.filter(x=>String(x.id)!==String(id)); renderWeek(); renderDay();
+    }catch(e){ toast('No se pudo',true); }
+  }
+  async function cargarMiAgendaSup(){
+    try{
+      const r=await fetch('/.netlify/functions/agenda-eficiente?vista=mi-agenda',{headers:{Authorization:'Bearer '+TOKEN}});
+      if(!r.ok) return; const d=await r.json(); MISUP=d.items||[]; renderWeek(); renderDay();
+    }catch(e){}
   }
 </script>
 </body>

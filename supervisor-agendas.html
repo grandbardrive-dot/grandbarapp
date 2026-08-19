@@ -44,8 +44,15 @@
   .ov.open{display:flex}
   .sheet{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:84vh;overflow:auto;padding:18px}
   .daygrp{margin-bottom:12px} .daygrp .dh{font-weight:800;font-size:13px;margin-bottom:5px;text-transform:capitalize}
-  .cli{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line-2);font-size:13px}
-  .cli .dot{width:8px;height:8px;border-radius:50%;background:#cbb98f} .cli.ok .dot{background:var(--green)}
+  .cli{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line-2);font-size:13px}
+  .cli .dot{width:8px;height:8px;border-radius:50%;background:#cbb98f;flex:none} .cli.ok .dot{background:var(--green)}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:12px}
+  .cal .h{font-size:10px;color:var(--muted);font-weight:700;text-align:center}
+  .cday{aspect-ratio:1;border:1px solid var(--line);border-radius:9px;padding:4px;display:flex;flex-direction:column;cursor:pointer;background:#fff}
+  .cday.mut{background:#faf7f0;border-color:transparent;cursor:default} .cday.tiene{border-color:var(--green)} .cday.sel{background:var(--gold-s);border-color:var(--gold)}
+  .cday .n{font-size:11px;font-weight:700} .cday .cnt{margin-top:auto;font-size:9px;font-weight:800;color:#fff;background:var(--green);border-radius:20px;padding:0 5px;align-self:flex-start}
+  .addb{border:1px solid var(--green);background:#fff;color:var(--green-d);border-radius:8px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;margin-left:auto;white-space:nowrap}
+  .addb.done{background:var(--green);color:#fff;border-color:var(--green);cursor:default}
   .botnav{display:none}
   .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 20px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:90}
   .toast.show{opacity:1}.toast.err{background:var(--danger)}
@@ -121,18 +128,56 @@ async function revisar(vend,estado){
     toast(estado==='aprobada'?'Agenda aprobada ✓':'Le pediste cambios'); cargar();
   }catch(e){ toast('No se pudo',true); }
 }
+let VER={cod:'',nom:'',plan:[],byF:{},mi:new Set(),sel:null};
 async function verAgenda(vend,nom){
+  VER={cod:vend,nom,plan:[],byF:{},mi:new Set(),sel:null};
   $('ovTit').textContent='Agenda de '+nom; $('ovBody').innerHTML='<div class="empty">Cargando…</div>'; $('ov').classList.add('open');
   try{
-    const r=await fetch(FN+'?vista=plan&vendedor='+encodeURIComponent(vend)+'&mes='+MES,{headers:{Authorization:'Bearer '+TOKEN}});
-    const d=await r.json(); const plan=d.plan||[];
-    if(!plan.length){ $('ovBody').innerHTML='<div class="empty">Sin visitas cargadas este mes.</div>'; return; }
-    const byF={}; plan.forEach(p=>{(byF[p.fecha]=byF[p.fecha]||[]).push(p);});
-    $('ovBody').innerHTML=Object.keys(byF).sort().map(f=>{
-      const [y,m,dd]=f.split('-').map(Number);
-      return `<div class="daygrp"><div class="dh">${dd} de ${MESES[m-1]}</div>${byF[f].map(p=>`<div class="cli ${p.estado==='visitado'?'ok':''}"><span class="dot"></span><span style="flex:1">${esc(p.cliente_nombre||('Cliente '+p.cliente_codigo))}</span>${p.estado==='visitado'?'<span style="font-size:11px;color:var(--green-d);font-weight:700">✓'+(p.duracion_min?' '+p.duracion_min+'m':'')+'</span>':''}</div>`).join('')}</div>`;
-    }).join('');
+    const [y,m]=MES.split('-').map(Number);
+    const ini=MES+'-01', fin=MES+'-'+String(new Date(y,m,0).getDate()).padStart(2,'0');
+    const [rp,rm]=await Promise.all([
+      fetch(FN+'?vista=plan&vendedor='+encodeURIComponent(vend)+'&mes='+MES,{headers:{Authorization:'Bearer '+TOKEN}}),
+      fetch(FN+'?vista=mi-agenda&desde='+ini+'&hasta='+fin,{headers:{Authorization:'Bearer '+TOKEN}})
+    ]);
+    const dp=await rp.json(); VER.plan=dp.plan||[];
+    VER.plan.forEach(p=>{(VER.byF[p.fecha]=VER.byF[p.fecha]||[]).push(p);});
+    const dm=await rm.json(); (dm.items||[]).forEach(it=>VER.mi.add(miKey(it.fecha,it.cliente_codigo,it.vendedor)));
+    if(!VER.plan.length){ $('ovBody').innerHTML='<div class="empty">Sin visitas cargadas este mes.</div>'; return; }
+    pintaVer();
   }catch(e){ $('ovBody').innerHTML='<div class="empty">Error</div>'; }
+}
+const miKey=(f,c,v)=>f+'|'+(c||'')+'|'+(v||'');
+function pintaVer(){
+  const [y,m]=MES.split('-').map(Number);
+  const first=new Date(y,m-1,1), off=(first.getDay()+6)%7, dias=new Date(y,m,0).getDate();
+  let cal='<div class="cal">'+['L','M','M','J','V','S','D'].map(d=>`<div class="h">${d}</div>`).join('')+'</div><div class="cal">';
+  for(let i=0;i<off;i++) cal+='<div class="cday mut"></div>';
+  for(let d=1;d<=dias;d++){ const iso=MES+'-'+String(d).padStart(2,'0'); const n=(VER.byF[iso]||[]).length;
+    cal+=`<div class="cday ${n?'tiene':''} ${VER.sel===iso?'sel':''}" data-f="${iso}"><div class="n">${d}</div>${n?`<span class="cnt">${n}</span>`:''}</div>`; }
+  cal+='</div>';
+  let det='';
+  if(VER.sel){
+    const [yy,mm,dd]=VER.sel.split('-').map(Number);
+    const list=VER.byF[VER.sel]||[];
+    det='<div style="font-weight:800;font-size:14px;margin:6px 0 8px">'+dd+' de '+MESES[mm-1]+'</div>';
+    det+= list.length? list.map(p=>{
+      const key=miKey(p.fecha,p.cliente_codigo,VER.cod); const added=VER.mi.has(key);
+      return `<div class="cli ${p.estado==='visitado'?'ok':''}"><span class="dot"></span><span style="flex:1">${esc(p.cliente_nombre||('Cliente '+p.cliente_codigo))}${p.estado==='visitado'?' <span style="font-size:11px;color:var(--green-d)">✓'+(p.duracion_min?' '+p.duracion_min+'m':'')+'</span>':''}</span>`
+        + (added?`<button class="addb done">✓ En mi agenda</button>`:`<button class="addb" data-add="${esc(p.cliente_codigo)}" data-nom="${esc(p.cliente_nombre||'')}" data-f="${p.fecha}">+ Mi agenda</button>`)
+        + `</div>`;
+    }).join('') : '<div class="empty">Sin visitas ese día.</div>';
+  } else {
+    det='<div class="empty" style="padding:14px">Tocá un día para ver las visitas y sumarlas a tu agenda.</div>';
+  }
+  $('ovBody').innerHTML=cal+det;
+  $('ovBody').querySelectorAll('.cday[data-f]').forEach(el=>el.onclick=()=>{ VER.sel=el.dataset.f; pintaVer(); });
+  $('ovBody').querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>agregarMi(b.dataset.f,b.dataset.add,b.dataset.nom));
+}
+async function agregarMi(fecha,cod,nom){
+  try{
+    await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'mi-agenda-add',fecha,cliente_codigo:cod,cliente_nombre:nom,vendedor:VER.cod,vendedor_nombre:VER.nom})});
+    VER.mi.add(miKey(fecha,cod,VER.cod)); pintaVer(); toast('Agregada a tu agenda (privado) ✓');
+  }catch(e){ toast('No se pudo',true); }
 }
 $('ov').onclick=e=>{ if(e.target.id==='ov') $('ov').classList.remove('open'); };
 $('mPrev').onclick=()=>{ let[y,m]=MES.split('-').map(Number); m--; if(m<1){m=12;y--;} MES=y+'-'+String(m).padStart(2,'0'); cargar(); };

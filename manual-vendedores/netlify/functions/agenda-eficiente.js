@@ -105,6 +105,25 @@ exports.handler = async (event) => {
         return json(200, { ok: true });
       }
 
+      // Supervisor: copia una visita del vendedor a SU agenda privada (no avisa al vendedor)
+      if (b.accion === 'mi-agenda-add') {
+        if (!perfil.es_supervisor) return json(403, { error: 'Solo supervisores.' });
+        if (!b.fecha || !b.cliente_nombre) return json(400, { error: 'Faltan datos.' });
+        const fila = {
+          supervisor_id: user.id, fecha: b.fecha, hora: b.hora || null,
+          cliente_codigo: b.cliente_codigo || null, cliente_nombre: b.cliente_nombre || null,
+          vendedor: b.vendedor || null, vendedor_nombre: b.vendedor_nombre || null, nota: b.nota || null,
+        };
+        const r = await sb('agenda_supervisor', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) });
+        if (!r.ok) return json(502, { error: 'No pude agregar: ' + (await r.text()).slice(0, 150) });
+        return json(200, { ok: true, item: (await r.json())[0] });
+      }
+      if (b.accion === 'mi-agenda-del' && b.id) {
+        if (!perfil.es_supervisor) return json(403, { error: 'No autorizado.' });
+        await sb('agenda_supervisor?id=eq.' + encodeURIComponent(b.id) + '&supervisor_id=eq.' + encodeURIComponent(user.id), { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+        return json(200, { ok: true });
+      }
+
       if (b.accion === 'marcar' || b.accion === 'desmarcar') {
         if (!b.id) return json(400, { error: 'Falta id.' });
         const cur = (await (await sb('agenda_plan?id=eq.' + encodeURIComponent(b.id) + '&select=vendedor')).json())[0];
@@ -136,6 +155,16 @@ exports.handler = async (event) => {
       (plan || []).forEach(p => { const a = agg[String(p.vendedor)]; if (a) { a.visitas++; if (p.estado === 'visitado') a.visitadas++; } });
       const equipo = codes.map(c => ({ codigo: c, nombre: nombres[c] || c, estado: (envioDe[c] && envioDe[c].estado) || 'borrador', nota: envioDe[c] && envioDe[c].nota_supervisor, visitas: agg[c].visitas, visitadas: agg[c].visitadas }));
       return json(200, { equipo, mes });
+    }
+
+    // Agenda privada del supervisor
+    if (vista === 'mi-agenda') {
+      if (!perfil.es_supervisor) return json(403, { error: 'Solo supervisores.' });
+      let path = 'agenda_supervisor?supervisor_id=eq.' + encodeURIComponent(user.id) + '&select=*&order=fecha.asc,hora.asc&limit=1000';
+      if (qp.desde) path += '&fecha=gte.' + qp.desde;
+      if (qp.hasta) path += '&fecha=lte.' + qp.hasta;
+      const rows = await (await sb(path)).json();
+      return json(200, { items: Array.isArray(rows) ? rows : [] });
     }
 
     // Clientes del vendedor + su frecuencia
