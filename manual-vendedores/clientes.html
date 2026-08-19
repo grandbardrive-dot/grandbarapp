@@ -366,7 +366,38 @@ body { background:transparent !important; }
       row.appendChild(btn);
     });
     filtrar();
+    renderRuta();        // Ruta de hoy (Agenda Eficiente) si viene desde el Hub
     cargarCampari5T();   // no bloqueante: agrega los llamadores "Sin Campari" cuando llega el Sheet
+  }
+
+  // ── Ruta de hoy: viene de la Agenda Eficiente (localStorage gb_ruta_manual) ──
+  function renderRuta() {
+    let raw = null; try { raw = JSON.parse(localStorage.getItem('gb_ruta_manual') || 'null'); } catch (e) {}
+    const host = document.getElementById('list-container');
+    let card = document.getElementById('ruta-hoy');
+    const hoy = new Date().toISOString().slice(0, 10);
+    if (!raw || raw.fecha !== hoy || !Array.isArray(raw.clientes) || !raw.clientes.length) { if (card) card.remove(); return; }
+    if (!card) { card = document.createElement('div'); card.id = 'ruta-hoy'; host.parentNode.insertBefore(card, host); }
+    const byCod = {}; todosClientes.forEach(c => { byCod[normCod5T(c.codigo_cliente)] = c; });
+    const items = raw.clientes.map(r => {
+      const c = byCod[normCod5T(r.codigo)];
+      const done = c && ultimasVisitas[c.id] && String(ultimasVisitas[c.id].fecha).slice(0, 10) === hoy;
+      return { nom: (c ? c.nombre : (r.nombre || r.codigo)), c, done: !!done };
+    });
+    const hechas = items.filter(i => i.done).length;
+    const nextIdx = items.findIndex(i => !i.done && i.c);
+    const row = (inner) => `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid rgba(255,255,255,.1)">${inner}</div>`;
+    card.innerHTML = `<div style="background:#0d2230;color:#fff;border-radius:14px;padding:14px 16px;margin:0 0 16px">
+      <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px">🗺️ Ruta de hoy · ${hechas}/${items.length} visitadas<button id="ruta-salir" style="margin-left:auto;background:none;border:0;color:#CBB86A;font:inherit;font-size:12px;cursor:pointer">Salir de la ruta</button></div>
+      ${items.map((i, idx) => {
+        if (i.done) return row(`<span style="color:#8fe3bf">✓ ${esc(i.nom)}</span>`);
+        if (!i.c)   return row(`<span style="flex:1;color:#b9c7d0">${esc(i.nom)}</span><span style="font-size:11px;color:#8fa3ad">no está en tu lista</span>`);
+        const next = idx === nextIdx;
+        return row(`<span style="flex:1">${esc(i.nom)}</span><button class="ruta-go" data-id="${i.c.id}" style="background:${next ? '#CBB86A' : 'transparent'};color:${next ? '#241a06' : '#fff'};border:1px solid ${next ? '#CBB86A' : 'rgba(255,255,255,.35)'};border-radius:9px;padding:7px 13px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">${next ? '▶ Iniciar' : 'Iniciar'}</button>`);
+      }).join('')}
+    </div>`;
+    card.querySelectorAll('.ruta-go').forEach(b => b.onclick = () => sel(b.dataset.id));
+    const salir = document.getElementById('ruta-salir'); if (salir) salir.onclick = () => { localStorage.removeItem('gb_ruta_manual'); card.remove(); };
   }
 
   function filtrar() {
