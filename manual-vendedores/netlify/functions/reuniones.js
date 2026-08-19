@@ -44,6 +44,11 @@ exports.handler = async (event) => {
         };
         const r = await sb('reuniones', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) });
         if (!r.ok) return json(502, { error: 'No pude crear: ' + (await r.text()).slice(0, 160) });
+        // aviso al usuario en su campanita
+        try {
+          const quien = (perfil.nombre && !/@/.test(perfil.nombre)) ? String(perfil.nombre).split(/\s+/)[0] : 'Dirección';
+          await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ destinatario_id: b.usuario_id, icono: '📌', titulo: quien + ' te programó una reunión', detalle: fila.titulo + ' · ' + fila.fecha + (fila.hora ? ' ' + String(fila.hora).slice(0, 5) : ''), link: 'agenda.html' }) });
+        } catch (e) {}
         return json(200, { ok: true, reunion: (await r.json())[0] });
       }
 

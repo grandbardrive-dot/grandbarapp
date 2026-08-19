@@ -31,9 +31,24 @@ exports.handler = async (event) => {
 
     const sb = (path) => fetch(HUB_URL + '/rest/v1/' + path, { headers: { apikey: srole, Authorization: 'Bearer ' + srole } });
     const perfil = (await (await sb('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=rol')).json())[0] || {};
-    if (!DIR_ROLES.includes(String(perfil.rol || '').toLowerCase())) return json(403, { error: 'Solo Dirección.' });
+    const isDir = DIR_ROLES.includes(String(perfil.rol || '').toLowerCase());
 
     const notifs = [];
+
+    // 0) Notificaciones propias (tabla) — para CUALQUIER usuario
+    try {
+      const rows = await (await sb('notificaciones?destinatario_id=eq.' + encodeURIComponent(user.id) + '&select=*&order=created_at.desc&limit=60')).json();
+      (Array.isArray(rows) ? rows : []).forEach(r => notifs.push({
+        id: 'nt-' + r.id, icon: r.icono || '🔔', tipo: 'evento',
+        titulo: r.titulo, detalle: r.detalle || '', ts: r.created_at, link: r.link || '#',
+      }));
+    } catch (e) {}
+
+    // El resto (agregados) es sólo para Dirección
+    if (!isDir) {
+      notifs.sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')));
+      return json(200, { notificaciones: notifs.slice(0, 60) });
+    }
 
     // 1) Reportes pendientes de revisar
     try {

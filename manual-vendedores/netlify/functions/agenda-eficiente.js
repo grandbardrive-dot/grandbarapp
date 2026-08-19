@@ -50,6 +50,24 @@ exports.handler = async (event) => {
       if (perfil.es_supervisor) return (await equipoCodigos()).includes(String(cod));
       return false;
     }
+    async function notificar(destId, n) {
+      if (!destId) return;
+      try { await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ destinatario_id: destId, icono: n.icono || '🔔', titulo: n.titulo, detalle: n.detalle || null, link: n.link || null }) }); } catch (e) {}
+    }
+    // supervisores del equipo del vendedor actual (por region+canal)
+    async function supervisoresDe() {
+      const rows = await (await sb('usuarios?es_supervisor=eq.true&select=id,canal,region')).json();
+      const pc = String(perfil.canal || '').toLowerCase(), preg = String(perfil.region || '').toLowerCase();
+      return (rows || []).filter(u => {
+        if (preg && u.region && String(u.region).toLowerCase() !== preg) return false;
+        const uc = String(u.canal || '').toLowerCase();
+        return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
+      }).map(u => u.id);
+    }
+    async function idDeVendedor(cod) {
+      const u = (await (await sb('usuarios?codigo_vendedor=eq.' + encodeURIComponent(cod) + '&select=id&limit=1')).json())[0];
+      return u ? u.id : null;
+    }
     // vendedor sobre el que se opera
     const qp = event.queryStringParameters || {};
     async function vendObjetivo(bodyVend) {
@@ -92,6 +110,9 @@ exports.handler = async (event) => {
         if (!b.mes) return json(400, { error: 'Falta el mes.' });
         const fila = { vendedor: vend, mes: b.mes, estado: 'enviada', updated_at: new Date().toISOString() };
         await sb('agenda_plan_envio?on_conflict=vendedor,mes', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(fila) });
+        // avisar a los supervisores del equipo
+        const sups = await supervisoresDe();
+        await Promise.all(sups.map(id => notificar(id, { icono: '🗓️', titulo: (perfil.nombre || 'Un vendedor') + ' te envió su agenda mensual', detalle: 'Para revisar y aprobar · ' + b.mes, link: 'supervisor-agendas.html' })));
         return json(200, { ok: true });
       }
 
@@ -102,6 +123,10 @@ exports.handler = async (event) => {
         if (!est || !b.mes) return json(400, { error: 'Datos incompletos.' });
         const fila = { vendedor: vend, mes: b.mes, estado: est, nota_supervisor: b.nota || null, revisado_por: perfil.nombre || user.email, updated_at: new Date().toISOString() };
         await sb('agenda_plan_envio?on_conflict=vendedor,mes', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(fila) });
+        // avisar al vendedor
+        const vid = await idDeVendedor(vend);
+        if (est === 'aprobada') await notificar(vid, { icono: '✅', titulo: (perfil.nombre || 'Tu supervisor') + ' aprobó tu agenda', detalle: 'Mes ' + b.mes, link: 'agenda-eficiente.html' });
+        else await notificar(vid, { icono: '📝', titulo: (perfil.nombre || 'Tu supervisor') + ' te pidió cambios en la agenda', detalle: b.nota ? b.nota : 'Revisá tu agenda mensual', link: 'agenda-eficiente.html' });
         return json(200, { ok: true });
       }
 
