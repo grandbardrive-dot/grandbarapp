@@ -106,7 +106,7 @@ async function cargar(){
       const pct=v.visitas?Math.round((v.visitadas/v.visitas)*100):0;
       return `<div class="vcard">
         <div class="vtop"><span class="vav">${ini(v.nombre)}</span><div><div class="vn">${esc(v.nombre)}</div><div class="vs">Cód ${esc(v.codigo)} · ${v.visitas} visitas planificadas</div></div><span class="badge ${b[0]}">${b[1]}</span></div>
-        ${v.visitas?`<div class="prog"><i style="width:${pct}%"></i></div><div class="vs">${v.visitadas} de ${v.visitas} visitas realizadas (${pct}%)</div>`:'<div class="vs">Todavía no cargó visitas este mes.</div>'}
+        ${v.visitas?`<div class="prog"><i style="width:${pct}%"></i></div><div class="vs">${v.visitadas} de ${v.visitas} visitas realizadas (${pct}%)${v.no_visitadas?` · <span style="color:var(--danger)">${v.no_visitadas} no realizadas</span>`:''}</div>`:'<div class="vs">Todavía no cargó visitas este mes.</div>'}
         <div class="acts">
           <button class="btn ghost" data-ver="${esc(v.codigo)}" data-nom="${esc(v.nombre)}">Ver agenda</button>
           <button class="btn green" data-apr="${esc(v.codigo)}">✓ Aprobar</button>
@@ -162,7 +162,10 @@ function pintaVer(){
     det='<div style="font-weight:800;font-size:14px;margin:6px 0 8px">'+dd+' de '+MESES[mm-1]+'</div>';
     det+= list.length? list.map(p=>{
       const key=miKey(p.fecha,p.cliente_codigo,VER.cod); const added=VER.mi.has(key);
-      return `<div class="cli ${p.estado==='visitado'?'ok':''}"><span class="dot"></span><span style="flex:1">${esc(p.cliente_nombre||('Cliente '+p.cliente_codigo))}${p.estado==='visitado'?' <span style="font-size:11px;color:var(--green-d)">✓'+(p.duracion_min?' '+p.duracion_min+'m':'')+'</span>':''}</span>`
+      const estHtml = p.estado==='visitado' ? ' <span style="font-size:11px;color:var(--green-d)">✓'+(p.duracion_min!=null?' '+p.duracion_min+'m':'')+'</span>'
+        : p.estado==='no_visitada' ? ' <span style="font-size:11px;color:var(--danger)">✕ no realizada</span>' : '';
+      const motivo = (p.estado==='no_visitada'&&p.motivo)?`<div style="font-size:11px;color:var(--danger);margin-top:2px">Motivo: ${esc(p.motivo)}</div>`:'';
+      return `<div class="cli ${p.estado==='visitado'?'ok':''}"><span class="dot" style="${p.estado==='no_visitada'?'background:var(--danger)':''}"></span><div style="flex:1"><div>${esc(p.cliente_nombre||('Cliente '+p.cliente_codigo))}${estHtml}</div>${motivo}</div>`
         + (added?`<button class="addb done">✓ En mi agenda</button>`:`<button class="addb" data-add="${esc(p.cliente_codigo)}" data-nom="${esc(p.cliente_nombre||'')}" data-f="${p.fecha}">+ Mi agenda</button>`)
         + `</div>`;
     }).join('') : '<div class="empty">Sin visitas ese día.</div>';

@@ -74,7 +74,7 @@
 
     <!-- HOY -->
     <div class="pane on" id="pHoy">
-      <div class="hint">Estas son tus visitas planificadas para hoy. Tocá <b>Iniciar visitas</b> para abrir el manual y registrar cada una.</div>
+      <div class="hint">Estas son tus visitas planificadas para hoy. Tocá <b>Iniciar visitas</b> para abrir el manual; cada visita que cerrás en el manual se tilda sola acá con su tiempo. Si no pudiste ir a alguna, tocá <b>No pude visitar</b>.</div>
       <div id="hoyList"><div class="empty">Cargando…</div></div>
       <button class="btn green" id="btnIniciar" style="margin-top:6px">▶ Iniciar visitas (manual)</button>
     </div>
@@ -107,6 +107,19 @@
       <div id="envNota"></div>
     </div>
 
+  </div>
+
+  <!-- Modal No pude visitar -->
+  <div class="ov" id="nov">
+    <div class="sheet">
+      <h3 id="novTit">No pude visitar</h3>
+      <div class="s">Contá por qué no pudiste y, si querés, reasignala a otro día. Esto le llega a tu supervisor.</div>
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin:4px 0 4px">Motivo</label>
+      <textarea id="novMotivo" class="search" style="min-height:80px;resize:vertical" placeholder="Ej: el local estaba cerrado / no había nadie / falta de tiempo…"></textarea>
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 4px">Reasignar a otro día (opcional)</label>
+      <input id="novFecha" type="date" class="search">
+      <button class="btn gold" id="novSave" style="margin-top:12px">Guardar y avisar al supervisor</button>
+    </div>
   </div>
 
   <!-- Modal día -->
@@ -272,31 +285,44 @@ $('btnEnviar').onclick=async()=>{
 };
 
 // -------- Hoy --------
+let HOY=[];
 async function cargarHoy(){
   try{
     const hoy=new Date().toISOString().slice(0,10);
     const r=await fetch(FN+'?vista=dia&fecha='+hoy,{headers:{Authorization:'Bearer '+TOKEN}});
     const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
-    const vis=d.visitas||[];
-    if(!vis.length){ $('hoyList').innerHTML='<div class="empty">No tenés visitas planificadas para hoy.<br>Armalas en la pestaña <b>Mensual</b>.</div>'; return; }
-    $('hoyList').innerHTML=vis.map(v=>`<div class="hoy ${v.estado==='visitado'?'done':''}" data-id="${v.id}">
-      <div class="chk" data-id="${v.id}">${chkSvg}</div>
-      <div><div class="nm">${esc(v.cliente_nombre||('Cliente '+v.cliente_codigo))}</div><div class="tm">${v.estado==='visitado'?('✓ Visitado'+(v.duracion_min?' · '+v.duracion_min+' min':'')):'Pendiente'}</div></div>
-    </div>`).join('');
-    $('hoyList').querySelectorAll('.chk').forEach(ch=>ch.onclick=()=>toggleVisita(ch.dataset.id,vis));
+    HOY=d.visitas||[];
+    if(!HOY.length){ $('hoyList').innerHTML='<div class="empty">No tenés visitas planificadas para hoy.<br>Armalas en la pestaña <b>Mensual</b>.</div>'; return; }
+    $('hoyList').innerHTML=HOY.map(v=>{
+      if(v.estado==='visitado'){
+        return `<div class="hoy done"><div class="chk">${chkSvg}</div><div style="flex:1"><div class="nm">${esc(v.cliente_nombre||('Cliente '+v.cliente_codigo))}</div><div class="tm">✓ Visitado${v.duracion_min!=null?' · '+v.duracion_min+' min':''}</div></div></div>`;
+      }
+      if(v.estado==='no_visitada'){
+        return `<div class="hoy" style="background:#fbe9e4;border-color:#e7cfc6"><div class="chk" style="border-color:#c0603e;background:#c0603e"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M6 6l12 12M18 6L6 18"/></svg></div><div style="flex:1"><div class="nm">${esc(v.cliente_nombre||('Cliente '+v.cliente_codigo))}</div><div class="tm" style="color:#c0603e">No realizada — ${esc(v.motivo||'')}</div></div></div>`;
+      }
+      return `<div class="hoy"><div class="chk" style="border-style:dashed"></div><div style="flex:1"><div class="nm">${esc(v.cliente_nombre||('Cliente '+v.cliente_codigo))}</div><div class="tm">Pendiente</div></div><button class="btn" style="width:auto;background:#fff;color:#c0603e;border:1px solid #e7cfc6;padding:8px 12px;font-size:12px" data-nov="${v.id}" data-nom="${esc(v.cliente_nombre||'')}">No pude visitar</button></div>`;
+    }).join('');
+    $('hoyList').querySelectorAll('[data-nov]').forEach(b=>b.onclick=()=>abrirNoVisita(b.dataset.nov,b.dataset.nom));
   }catch(e){ $('hoyList').innerHTML='<div class="empty">'+esc(e.message)+'</div>'; }
 }
-async function toggleVisita(id,vis){
-  const v=vis.find(x=>String(x.id)===String(id)); if(!v) return;
-  const marcar=v.estado!=='visitado';
-  let min=null;
-  if(marcar){ const t=prompt('¿Cuántos minutos duró la visita? (opcional)'); if(t===null) return; min=t.trim()?parseInt(t,10):null; }
+let novId=null;
+function abrirNoVisita(id,nom){ novId=id; $('novTit').textContent='No pude visitar a '+(nom||'este cliente'); $('novMotivo').value=''; $('novFecha').value=''; $('nov').classList.add('open'); }
+$('nov').onclick=e=>{ if(e.target.id==='nov') $('nov').classList.remove('open'); };
+$('novSave').onclick=async()=>{
+  const motivo=$('novMotivo').value.trim();
+  if(!motivo){ toast('Poné el motivo',true); return; }
+  $('novSave').disabled=true;
   try{
-    await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:marcar?'marcar':'desmarcar',id,duracion_min:min})});
-    v.estado=marcar?'visitado':'pendiente'; v.duracion_min=min; cargarHoy();
-  }catch(e){ toast('No se guardó',true); }
-}
-$('btnIniciar').onclick=()=>{ location.href=MAN; };
+    await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'no-visita',id:novId,motivo,reasignar_fecha:$('novFecha').value||null})});
+    $('nov').classList.remove('open'); toast('Avisado al supervisor ✓'); cargarHoy();
+  }catch(e){ toast('No se pudo',true); } finally{ $('novSave').disabled=false; }
+};
+$('btnIniciar').onclick=()=>{
+  // pasa la ruta (clientes pendientes en orden) al manual
+  const pend=HOY.filter(v=>v.estado!=='visitado'&&v.estado!=='no_visitada').map(v=>({codigo:v.cliente_codigo,nombre:v.cliente_nombre}));
+  try{ localStorage.setItem('gb_ruta_manual', JSON.stringify({fecha:new Date().toISOString().slice(0,10),clientes:pend})); }catch(e){}
+  location.href=MAN;
+};
 
 // -------- Init --------
 (async()=>{

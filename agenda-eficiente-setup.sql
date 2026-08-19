@@ -25,12 +25,14 @@ create table if not exists public.agenda_plan (
   fecha          date not null,
   cliente_codigo text not null,
   cliente_nombre text,
-  estado         text default 'pendiente',      -- pendiente / visitado
+  estado         text default 'pendiente',      -- pendiente / visitado / no_visitada
   visitado_at    timestamptz,
   duracion_min   int,
+  motivo         text,                           -- por qué no se pudo visitar
   created_at     timestamptz default now()
 );
 alter table public.agenda_plan enable row level security;
+alter table public.agenda_plan add column if not exists motivo text;  -- si la tabla ya existía
 create index if not exists agenda_plan_vm_idx on public.agenda_plan(vendedor, mes);
 create index if not exists agenda_plan_vf_idx on public.agenda_plan(vendedor, fecha);
 

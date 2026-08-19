@@ -12,7 +12,38 @@
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
+const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
+const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 const FREC = ['semanal', 'quincenal', 'mensual'];
+
+// Cruce con el manual: visitas registradas (con cronómetro) por un vendedor en un rango.
+// Devuelve un mapa "codigo|YYYY-MM-DD" -> { duracion } (matchea por código crudo y numérico).
+async function visitasManual(codVend, desdeISO, hastaISO) {
+  const man = (path) => fetch(MAN_URL + '/rest/v1/' + path, { headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON } });
+  const map = {};
+  try {
+    const v = (await (await man('vendedores?codigo=eq.' + encodeURIComponent(codVend) + '&select=id&limit=1')).json())[0];
+    if (!v) return map;
+    let q = 'visitas?vendedor_id=eq.' + encodeURIComponent(v.id) + '&select=cliente_id,duracion_minutos,fecha,clientes(codigo_cliente)&order=fecha.desc&limit=3000';
+    if (desdeISO) q += '&fecha=gte.' + desdeISO;
+    if (hastaISO) q += '&fecha=lt.' + hastaISO;
+    const rows = await (await man(q)).json();
+    (Array.isArray(rows) ? rows : []).forEach(r => {
+      const cod = r.clientes && r.clientes.codigo_cliente; if (cod == null || !r.fecha) return;
+      const dia = String(r.fecha).slice(0, 10);
+      const info = { duracion: r.duracion_minutos != null ? r.duracion_minutos : null };
+      const raw = String(cod), numKey = String(parseInt(cod, 10));
+      if (!map[raw + '|' + dia]) map[raw + '|' + dia] = info;
+      if (numKey !== 'NaN' && !map[numKey + '|' + dia]) map[numKey + '|' + dia] = info;
+    });
+  } catch (e) {}
+  return map;
+}
+function visitaDia(map, cod, fecha) {
+  if (cod == null || !fecha) return null;
+  const d = String(fecha).slice(0, 10);
+  return map[String(cod) + '|' + d] || map[String(parseInt(cod, 10)) + '|' + d] || null;
+}
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const qv = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
@@ -149,6 +180,24 @@ exports.handler = async (event) => {
         return json(200, { ok: true });
       }
 
+      // Vendedor: no pudo visitar (motivo + reasignar a otro día) -> avisa al supervisor
+      if (b.accion === 'no-visita') {
+        if (!b.id) return json(400, { error: 'Falta id.' });
+        const cur = (await (await sb('agenda_plan?id=eq.' + encodeURIComponent(b.id) + '&select=*')).json())[0];
+        if (!cur || String(perfil.codigo_vendedor) !== String(cur.vendedor)) return json(403, { error: 'No autorizado.' });
+        if (!String(b.motivo || '').trim()) return json(400, { error: 'Poné el motivo.' });
+        await sb('agenda_plan?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'no_visitada', motivo: String(b.motivo).trim() }) });
+        let reasignTxt = '';
+        if (b.reasignar_fecha) {
+          const nueva = { vendedor: cur.vendedor, mes: String(b.reasignar_fecha).slice(0, 7), fecha: b.reasignar_fecha, cliente_codigo: cur.cliente_codigo, cliente_nombre: cur.cliente_nombre, estado: 'pendiente' };
+          await sb('agenda_plan', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(nueva) });
+          reasignTxt = ' · reasignada al ' + b.reasignar_fecha;
+        }
+        const sups = await supervisoresDe();
+        await Promise.all(sups.map(id => notificar(id, { icono: '⚠️', titulo: (perfil.nombre || 'Un vendedor') + ' no pudo visitar a ' + (cur.cliente_nombre || 'un cliente'), detalle: String(b.motivo).trim() + reasignTxt, link: 'supervisor-agendas.html' })));
+        return json(200, { ok: true });
+      }
+
       if (b.accion === 'marcar' || b.accion === 'desmarcar') {
         if (!b.id) return json(400, { error: 'Falta id.' });
         const cur = (await (await sb('agenda_plan?id=eq.' + encodeURIComponent(b.id) + '&select=vendedor')).json())[0];
@@ -175,10 +224,20 @@ exports.handler = async (event) => {
       (await (await sb('usuarios?codigo_vendedor=in.(' + qv(codes) + ')&select=codigo_vendedor,nombre')).json() || []).forEach(u => { nombres[String(u.codigo_vendedor)] = u.nombre; });
       const envios = await (await sb('agenda_plan_envio?vendedor=in.(' + qv(codes) + ')&mes=eq.' + mes + '&select=vendedor,estado,nota_supervisor,updated_at')).json();
       const envioDe = {}; (envios || []).forEach(e => { envioDe[String(e.vendedor)] = e; });
-      const plan = await (await sb('agenda_plan?vendedor=in.(' + qv(codes) + ')&mes=eq.' + mes + '&select=vendedor,estado')).json();
-      const agg = {}; codes.forEach(c => { agg[c] = { visitas: 0, visitadas: 0 }; });
-      (plan || []).forEach(p => { const a = agg[String(p.vendedor)]; if (a) { a.visitas++; if (p.estado === 'visitado') a.visitadas++; } });
-      const equipo = codes.map(c => ({ codigo: c, nombre: nombres[c] || c, estado: (envioDe[c] && envioDe[c].estado) || 'borrador', nota: envioDe[c] && envioDe[c].nota_supervisor, visitas: agg[c].visitas, visitadas: agg[c].visitadas }));
+      const plan = await (await sb('agenda_plan?vendedor=in.(' + qv(codes) + ')&mes=eq.' + mes + '&select=vendedor,cliente_codigo,fecha,estado')).json();
+      const porV = {}; codes.forEach(c => { porV[c] = []; });
+      (plan || []).forEach(p => { const a = porV[String(p.vendedor)]; if (a) a.push(p); });
+      const [ey, em] = mes.split('-').map(Number);
+      const hastaMes = (em === 12 ? (ey + 1) + '-01' : ey + '-' + String(em + 1).padStart(2, '0')) + '-01T00:00:00';
+      const agg = {};
+      for (const c of codes) {
+        const entries = porV[c];
+        const mman = entries.length ? await visitasManual(c, mes + '-01T00:00:00', hastaMes) : {};
+        let vis = 0, nov = 0;
+        entries.forEach(p => { if (visitaDia(mman, p.cliente_codigo, p.fecha)) vis++; else if (p.estado === 'no_visitada') nov++; });
+        agg[c] = { visitas: entries.length, visitadas: vis, no_visitadas: nov };
+      }
+      const equipo = codes.map(c => ({ codigo: c, nombre: nombres[c] || c, estado: (envioDe[c] && envioDe[c].estado) || 'borrador', nota: envioDe[c] && envioDe[c].nota_supervisor, visitas: agg[c].visitas, visitadas: agg[c].visitadas, no_visitadas: agg[c].no_visitadas }));
       return json(200, { equipo, mes });
     }
 
@@ -203,13 +262,19 @@ exports.handler = async (event) => {
       return json(200, { vendedor: vend, clientes });
     }
 
-    // Agenda del día
+    // Agenda del día (con cruce al manual)
     if (vista === 'dia') {
       const vend = await vendObjetivo();
       if (!(await puede(vend))) return json(403, { error: 'No autorizado.' });
       const fecha = qp.fecha || new Date().toISOString().slice(0, 10);
       const rows = await (await sb('agenda_plan?vendedor=eq.' + encodeURIComponent(vend) + '&fecha=eq.' + encodeURIComponent(fecha) + '&select=*&order=cliente_nombre.asc')).json();
-      return json(200, { vendedor: vend, fecha, visitas: Array.isArray(rows) ? rows : [] });
+      const mman = await visitasManual(vend, fecha + 'T00:00:00', fecha + 'T23:59:59');
+      const visitas = (Array.isArray(rows) ? rows : []).map(p => {
+        const mv = visitaDia(mman, p.cliente_codigo, fecha);
+        if (mv) return { ...p, estado: 'visitado', duracion_min: mv.duracion, desde_manual: true };
+        return p;
+      });
+      return json(200, { vendedor: vend, fecha, visitas });
     }
 
     // Plan mensual (default)
@@ -219,7 +284,14 @@ exports.handler = async (event) => {
     const rows = await (await sb('agenda_plan?vendedor=eq.' + encodeURIComponent(vend) + '&mes=eq.' + mes + '&select=*&order=fecha.asc')).json();
     const envio = (await (await sb('agenda_plan_envio?vendedor=eq.' + encodeURIComponent(vend) + '&mes=eq.' + mes + '&select=estado,nota_supervisor,revisado_por,updated_at')).json())[0] || { estado: 'borrador' };
     const frec = await (await sb('agenda_frecuencia?vendedor=eq.' + encodeURIComponent(vend) + '&select=cliente_codigo,frecuencia')).json();
-    return json(200, { vendedor: vend, mes, plan: Array.isArray(rows) ? rows : [], envio, frecuencias: (frec || []).length, es_propia: String(perfil.codigo_vendedor) === String(vend), puede_editar: String(perfil.codigo_vendedor) === String(vend) });
+    const [py, pm] = mes.split('-').map(Number);
+    const hastaMes = (pm === 12 ? (py + 1) + '-01' : py + '-' + String(pm + 1).padStart(2, '0')) + '-01T00:00:00';
+    const mman = await visitasManual(vend, mes + '-01T00:00:00', hastaMes);
+    const plan = (Array.isArray(rows) ? rows : []).map(p => {
+      const mv = visitaDia(mman, p.cliente_codigo, p.fecha);
+      return mv ? { ...p, estado: 'visitado', duracion_min: mv.duracion } : p;
+    });
+    return json(200, { vendedor: vend, mes, plan, envio, frecuencias: (frec || []).length, es_propia: String(perfil.codigo_vendedor) === String(vend), puede_editar: String(perfil.codigo_vendedor) === String(vend) });
   } catch (e) {
     return json(500, { error: (e && e.message) || String(e) });
   }
