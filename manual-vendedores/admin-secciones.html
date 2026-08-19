@@ -416,17 +416,26 @@
     await cargar();
   }
 
-  // Reordenar: intercambia el orden con la hermana de al lado.
+  // Reordenar. NO se intercambian los dos números de orden: hay secciones viejas que
+  // comparten el mismo (ej. dos con orden 4) y ahí el intercambio no cambiaba nada.
+  // Se mueve la sección de lugar y se renumera toda la lista 0,1,2,… así el orden
+  // queda sin empates y el manual del vendedor lo respeta.
   async function mover(id, dir){
     const s=SECS.find(x=>x.id===id); if(!s) return;
     const hermanas = s.parent_id ? hijas(SECS.find(x=>x.id===s.parent_id)) : madres();
-    const i=hermanas.findIndex(x=>x.id===id), j=i+dir;
-    if(i<0||j<0||j>=hermanas.length) return;
-    const a=hermanas[i], b=hermanas[j];
-    await Promise.all([
-      sb.from('checklist_secciones').update({ orden: b.orden||0 }).eq('id', a.id),
-      sb.from('checklist_secciones').update({ orden: a.orden||0 }).eq('id', b.id),
-    ]);
+    const i=hermanas.findIndex(x=>x.id===id);
+    if(i<0) return;
+    // Si la sección se ve en el manual, saltea las ocultas: si no, el vendedor no nota
+    // el movimiento (se habría cambiado de lugar con una sección que él no ve).
+    let j=i+dir;
+    if(s.activa!==false){ while(j>=0 && j<hermanas.length && hermanas[j].activa===false) j+=dir; }
+    if(j<0||j>=hermanas.length) return;
+    const arr=hermanas.slice();
+    arr.splice(j,0,arr.splice(i,1)[0]);
+    const cambios=arr.map((x,k)=> (x.orden===k ? null : sb.from('checklist_secciones').update({orden:k}).eq('id',x.id))).filter(Boolean);
+    const res=await Promise.all(cambios);
+    const err=res.find(r=>r&&r.error);
+    if(err){ alert('No se pudo reordenar: '+err.error.message); }
     await cargar();
   }
 
