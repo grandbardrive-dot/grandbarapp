@@ -10,6 +10,7 @@
     {h:'desarrollo.html',l:'Desarrollo',i:'<path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>'},
     {h:'reportes.html',l:'Reportes',i:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>'},
     {h:'dir-clientes.html',l:'Clientes',i:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>'},
+    {h:'leads-asignar.html',l:'Leads',i:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>'},
     {h:'dir-vendedores.html',l:'Vendedores',i:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/>'},
     {h:'proveedores.html',l:'Proveedores',i:'<circle cx="8" cy="7" r="2"/><circle cx="16" cy="17" r="2"/><path d="M20 7h-9M14 17H5"/>'},
     {h:'dir-agenda.html',l:'Agenda',i:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>'},

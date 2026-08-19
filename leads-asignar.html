@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Leads (asignar)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--navy:#0d2230;--navy-2:#123043;--cream:#f6f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line-2:#ece4d6;--green:#2f8f6e;--green-d:#256f54;--green-s:#e6f2ec;--gold:#c0912f;--gold-d:#a97c22;--gold-s:#f7efdc;--danger:#c0603e;--blue:#3f6f9c;--blue-s:#e6eef6;--amber-s:#f8efd6;--font:'Inter',system-ui,sans-serif}
+  *{box-sizing:border-box} html,body{margin:0} body{font-family:var(--font);color:var(--ink);background:var(--cream)}
+  a{color:inherit;text-decoration:none}
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+  .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;line-height:1;padding:6px 10px}
+  .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+  .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+  .sb-nav{display:flex;flex-direction:column;gap:3px}
+  .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+  .sb-nav a:hover{background:var(--navy-2);color:#fff} .sb-nav a.active{background:var(--gold);color:#241a06;font-weight:600}
+  .sb-nav svg{width:19px;height:19px;flex:none;opacity:.9}
+  .sb-foot{margin-top:auto;padding-top:16px} .sb-user{display:flex;align-items:center;gap:11px;cursor:pointer}
+  .sb-user .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy)}
+  .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+  .main{flex:1;min-width:0} .content{padding:22px 24px 80px;max-width:900px;margin:0 auto}
+  .head{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+  .head h1{font-size:23px;margin:0 0 2px;font-weight:800} .head p{margin:0;color:var(--muted);font-size:13px}
+  .head .sp{flex:1}
+  .btn{border:0;border-radius:10px;padding:10px 15px;font:inherit;font-weight:800;font-size:13px;cursor:pointer}
+  .btn.gold{background:var(--gold);color:#241a06} .btn.green{background:var(--green);color:#fff} .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink);font-weight:700}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tabs button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:8px 15px;font:inherit;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
+  .tabs button.on{background:var(--gold-s);border-color:var(--gold);color:var(--gold-d)}
+  .lead{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+  .lh{display:flex;align-items:center;gap:10px;margin-bottom:4px} .lh .nm{font-weight:800;font-size:15px;flex:1}
+  .badge{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px}
+  .b-asig{background:var(--blue-s);color:var(--blue)} .b-cont{background:var(--amber-s);color:var(--gold-d)} .b-conv{background:var(--green-s);color:var(--green-d)} .b-desc{background:#eef0f1;color:#6b7b83} .b-nuevo{background:#eef0f1;color:#6b7b83}
+  .meta{font-size:12px;color:var(--muted);margin-bottom:8px} .msg{font-size:12.5px;background:var(--cream);border-radius:9px;padding:8px 10px;margin-bottom:9px}
+  .asig{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  select{border:1px solid var(--line);border-radius:9px;padding:9px 11px;font:inherit;font-size:13px;background:#fff}
+  .empty{text-align:center;color:var(--muted);padding:30px;font-size:14px}
+  .ov{display:none;position:fixed;inset:0;background:rgba(13,34,48,.5);z-index:40;align-items:center;justify-content:center;padding:16px}
+  .ov.open{display:flex} .sheet{background:#fff;border-radius:16px;max-width:460px;width:100%;padding:18px}
+  .sheet label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:8px 0 4px}
+  .sheet input,.sheet textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;font:inherit;font-size:14px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .botnav{display:none}
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 20px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:90}
+  .toast.show{opacity:1}.toast.err{background:var(--danger)}
+  @media(max-width:820px){ .sidebar{display:none} .content{padding:16px 14px 80px}
+    .botnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--navy);padding:8px 6px;justify-content:space-around;z-index:30}
+    .botnav a{display:flex;flex-direction:column;align-items:center;gap:3px;color:#9db0ba;font-size:10px;font-weight:600;flex:1} .botnav a.active{color:var(--gold)} .botnav svg{width:21px;height:21px} }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav"></nav>
+    <div class="sb-foot"><div class="sb-user" id="logout"><div class="av" id="avSb">S</div><div><div class="t" id="uName">Supervisor</div><div class="s">Supervisor</div></div></div></div>
+  </aside>
+  <div class="main"><div class="content">
+    <div class="head"><div><h1>Leads 🎯</h1><p>Derivá los leads nuevos a tus vendedores y seguí su avance.</p></div><span class="sp"></span><button class="btn gold" id="btnNuevo">+ Nuevo lead</button></div>
+    <div class="tabs"><button data-t="sin" class="on">Sin asignar <span id="cSin"></span></button><button data-t="eq">Asignados (equipo)</button></div>
+    <div id="lista"><div class="empty">Cargando…</div></div>
+  </div></div>
+  <nav class="botnav"></nav>
+</div>
+
+<div class="ov" id="ov"><div class="sheet">
+  <div style="display:flex;align-items:center;margin-bottom:8px"><b style="flex:1;font-size:16px">Nuevo lead (manual)</b><button onclick="document.getElementById('ov').classList.remove('open')" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6d7d85">×</button></div>
+  <label>Nombre</label><input id="fNom" placeholder="Nombre del contacto">
+  <div class="row2"><div><label>Teléfono</label><input id="fTel" placeholder="Ej: 2615551234"></div><div><label>Email</label><input id="fMail" placeholder="opcional"></div></div>
+  <div class="row2"><div><label>Zona</label><input id="fZona" placeholder="opcional"></div><div><label>Canal</label><input id="fCanal" placeholder="on / off"></div></div>
+  <label>Mensaje / consulta</label><textarea id="fMsg" style="min-height:70px" placeholder="opcional"></textarea>
+  <button class="btn green" id="fSave" style="width:100%;margin-top:12px">Crear lead</button>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/supervisor-nav.js"></script>
+<script src="assets/notif.js"></script>
+<script>
+const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
+const FN='/.netlify/functions/leads';
+let hub, TOKEN, TAB='sin', EQUIPO=[];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ini=n=>(String(n||'S').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('')||'S').toUpperCase();
+const badge={nuevo:['b-nuevo','Nuevo'],asignado:['b-asig','Asignado'],contactado:['b-cont','Contactado'],convertido:['b-conv','Convertido'],descartado:['b-desc','Descartado']};
+function toast(m,e){const t=$('toast');t.textContent=m;t.className='toast show'+(e?' err':'');setTimeout(()=>t.className='toast',2400);}
+const nombreDe=cod=>{const v=EQUIPO.find(x=>String(x.codigo)===String(cod));return v?v.nombre:cod;};
+
+async function cargar(){
+  $('lista').innerHTML='<div class="empty">Cargando…</div>';
+  try{
+    const vista=TAB==='sin'?'sin_asignar':'equipo';
+    const r=await fetch(FN+'?vista='+vista,{headers:{Authorization:'Bearer '+TOKEN}});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    EQUIPO=d.equipo||[];
+    if(d.sin_asignar!=null) $('cSin').textContent='('+d.sin_asignar+')';
+    const leads=d.leads||[];
+    if(!leads.length){ $('lista').innerHTML='<div class="empty">'+(TAB==='sin'?'No hay leads sin asignar. 🎉':'Todavía no hay leads asignados.')+'</div>'; return; }
+    const opts='<option value="">— Elegí vendedor —</option>'+EQUIPO.map(v=>`<option value="${esc(v.codigo)}">${esc(v.nombre)}</option>`).join('');
+    $('lista').innerHTML=leads.map(l=>{
+      const b=badge[l.estado]||badge.nuevo; const f=new Date(l.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+      return `<div class="lead">
+        <div class="lh"><span class="nm">${esc(l.nombre||'Sin nombre')}</span><span class="badge ${b[0]}">${b[1]}</span></div>
+        <div class="meta">${l.telefono?esc(l.telefono)+' · ':''}${l.zona?esc(l.zona)+' · ':''}${l.canal?esc(l.canal)+' · ':''}${esc(l.origen||'')} · ${f}${l.vendedor?' · 👤 '+esc(nombreDe(l.vendedor)):''}</div>
+        ${l.mensaje?`<div class="msg">${esc(l.mensaje)}</div>`:''}
+        ${l.nota?`<div class="meta">📝 ${esc(l.nota)}</div>`:''}
+        ${TAB==='sin'?`<div class="asig"><select data-sel="${l.id}">${opts}</select><button class="btn green" data-asig="${l.id}">Asignar</button></div>`:''}
+      </div>`;
+    }).join('');
+    $('lista').querySelectorAll('[data-asig]').forEach(b=>b.onclick=()=>asignar(b.dataset.asig));
+  }catch(e){ $('lista').innerHTML='<div class="empty">'+esc(e.message)+'</div>'; }
+}
+async function asignar(id){
+  const sel=$('lista').querySelector('[data-sel="'+id+'"]'); const vend=sel?sel.value:'';
+  if(!vend){ toast('Elegí un vendedor',true); return; }
+  try{
+    await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'asignar',id,vendedor:vend})});
+    toast('Asignado y avisado ✓'); cargar();
+  }catch(e){ toast('No se pudo',true); }
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{ document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b)); TAB=b.dataset.t; cargar(); });
+$('btnNuevo').onclick=()=>$('ov').classList.add('open');
+$('ov').onclick=e=>{ if(e.target.id==='ov') $('ov').classList.remove('open'); };
+$('fSave').onclick=async()=>{
+  if(!$('fNom').value.trim() && !$('fTel').value.trim()){ toast('Poné nombre o teléfono',true); return; }
+  try{
+    await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'crear',nombre:$('fNom').value.trim(),telefono:$('fTel').value.trim(),email:$('fMail').value.trim(),zona:$('fZona').value.trim(),canal:$('fCanal').value.trim(),mensaje:$('fMsg').value.trim()})});
+    ['fNom','fTel','fMail','fZona','fCanal','fMsg'].forEach(x=>$(x).value=''); $('ov').classList.remove('open'); toast('Lead creado ✓'); TAB='sin'; cargar();
+  }catch(e){ toast('No se pudo',true); }
+};
+
+(async()=>{
+  hub=supabase.createClient(HUB.url,HUB.key);
+  const {data:{session}}=await hub.auth.getSession();
+  if(!session){ location.href='index.html'; return; }
+  TOKEN=session.access_token;
+  const {data:u}=await hub.from('usuarios').select('nombre,rol,es_supervisor').eq('id',session.user.id).maybeSingle();
+  const dir=['direccion','admin','duenio'].includes(String(u&&u.rol||'').toLowerCase());
+  if(u&&!u.es_supervisor&&!dir){ location.href='inicio.html'; return; }
+  if(u&&u.nombre){ $('uName').textContent=u.nombre; $('avSb').textContent=ini(u.nombre); }
+  $('logout').onclick=async()=>{ if(confirm('¿Cerrar sesión?')){ try{await hub.auth.signOut();}catch(e){} location.href='index.html'; } };
+  cargar();
+})();
+</script>
+</body>
+</html>

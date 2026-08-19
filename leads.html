@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Leads</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;--gold:#c0912f;--gold-d:#a97c22;--green:#2f8f6e;--green-d:#256f54;--green-s:#e6f2ec;--danger:#c0603e;--danger-s:#fbe9e4;--amber:#c99a2e;--amber-s:#f8efd6;--blue:#3f6f9c;--blue-s:#e6eef6;--navy:#0d2230;--font:'Inter',system-ui,sans-serif}
+  *{box-sizing:border-box} body{margin:0;font-family:var(--font);background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .top{background:var(--navy);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+  .top a.back{color:#cdd9e0;text-decoration:none;font-size:22px;line-height:1}
+  .top h1{font-size:16px;margin:0;font-weight:800} .top .sub{font-size:11px;color:#8fa3ad}
+  .tabsf{display:flex;gap:6px;overflow-x:auto;padding:12px 14px 0;max-width:720px;margin:0 auto}
+  .tabsf button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:7px 13px;font:inherit;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
+  .tabsf button.on{background:var(--gold-s,#f7efdc);border-color:var(--gold);color:var(--gold-d)}
+  .wrap{max-width:720px;margin:0 auto;padding:14px 14px 70px}
+  .lead{background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px;margin-bottom:12px}
+  .lead .h{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+  .lead .nm{font-weight:800;font-size:15px;flex:1}
+  .badge{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .b-asig{background:var(--blue-s);color:var(--blue)} .b-cont{background:var(--amber-s);color:var(--gold-d)} .b-conv{background:var(--green-s);color:var(--green-d)} .b-desc{background:#eef0f1;color:#6b7b83} .b-nuevo{background:#eef0f1;color:#6b7b83}
+  .meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .msg{font-size:13px;background:var(--cream);border-radius:10px;padding:9px 11px;margin-bottom:9px;white-space:pre-wrap}
+  .contact{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .cbtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--ink)}
+  .cbtn.wa{background:#e8f6ee;border-color:#bfe0cd;color:#1f7a4d}
+  .acts{display:flex;gap:7px;flex-wrap:wrap}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:var(--ink)}
+  .btn.g{background:var(--green);color:#fff;border-color:var(--green)} .btn.a{background:#fff;color:var(--gold-d);border-color:#e7d3a1} .btn.r{background:#fff;color:var(--danger);border-color:#e7cfc6}
+  .nota{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:12.5px;margin-top:8px}
+  .empty{text-align:center;color:var(--muted);font-size:13px;padding:30px}
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 20px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:90}
+  .toast.show{opacity:1}.toast.err{background:var(--danger)}
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="back" href="inicio.html">‹</a>
+    <div><h1>Leads</h1><div class="sub" id="sub">Contactos nuevos para convertir en clientes</div></div>
+  </div>
+  <div class="tabsf" id="tabs">
+    <button data-f="" class="on">Todos</button>
+    <button data-f="asignado">Nuevos</button>
+    <button data-f="contactado">Contactados</button>
+    <button data-f="convertido">Convertidos</button>
+    <button data-f="descartado">Descartados</button>
+  </div>
+  <div class="wrap"><div id="lista"><div class="empty">Cargando…</div></div></div>
+  <div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/notif.js"></script>
+<script>
+const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
+const FN='/.netlify/functions/leads';
+let hub, TOKEN, LEADS=[], filtro='';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const soloNum=s=>String(s||'').replace(/[^0-9]/g,'');
+const badge={nuevo:['b-nuevo','Nuevo'],asignado:['b-asig','Nuevo'],contactado:['b-cont','Contactado'],convertido:['b-conv','Convertido'],descartado:['b-desc','Descartado']};
+function toast(m,e){const t=$('toast');t.textContent=m;t.className='toast show'+(e?' err':'');setTimeout(()=>t.className='toast',2400);}
+
+function pinta(){
+  const arr=LEADS.filter(l=>!filtro||l.estado===filtro||(filtro==='asignado'&&(l.estado==='asignado'||l.estado==='nuevo')));
+  if(!arr.length){ $('lista').innerHTML='<div class="empty">No tenés leads'+(filtro?' en este estado':' asignados todavía')+'.</div>'; return; }
+  $('lista').innerHTML=arr.map(l=>{
+    const b=badge[l.estado]||badge.nuevo;
+    const tel=soloNum(l.telefono);
+    const f=new Date(l.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+    return `<div class="lead">
+      <div class="h"><span class="nm">${esc(l.nombre||'Sin nombre')}</span><span class="badge ${b[0]}">${b[1]}</span></div>
+      <div class="meta">${l.zona?esc(l.zona)+' · ':''}${l.canal?esc(l.canal)+' · ':''}${esc(l.origen||'')} · ${f}</div>
+      ${l.mensaje?`<div class="msg">${esc(l.mensaje)}</div>`:''}
+      <div class="contact">
+        ${tel?`<a class="cbtn wa" href="https://wa.me/${tel}" target="_blank" rel="noopener">💬 WhatsApp</a><a class="cbtn" href="tel:${tel}">📞 ${esc(l.telefono)}</a>`:''}
+        ${l.email?`<a class="cbtn" href="mailto:${esc(l.email)}">✉️ ${esc(l.email)}</a>`:''}
+      </div>
+      <div class="acts">
+        ${l.estado!=='contactado'?`<button class="btn a" data-est="contactado" data-id="${l.id}">Marcar contactado</button>`:''}
+        ${l.estado!=='convertido'?`<button class="btn g" data-est="convertido" data-id="${l.id}">✓ Convertido</button>`:''}
+        ${l.estado!=='descartado'?`<button class="btn r" data-est="descartado" data-id="${l.id}">Descartar</button>`:''}
+      </div>
+      <input class="nota" data-nota="${l.id}" placeholder="Nota / seguimiento…" value="${esc(l.nota||'')}">
+    </div>`;
+  }).join('');
+  $('lista').querySelectorAll('[data-est]').forEach(b=>b.onclick=()=>setEstado(b.dataset.id,b.dataset.est));
+  $('lista').querySelectorAll('[data-nota]').forEach(inp=>inp.onchange=()=>guardarNota(inp.dataset.nota,inp.value));
+}
+async function setEstado(id,estado){
+  const nota=($('lista').querySelector('[data-nota="'+id+'"]')||{}).value;
+  try{
+    await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'estado',id,estado,nota})});
+    const l=LEADS.find(x=>x.id===id); if(l){ l.estado=estado; if(nota!==undefined) l.nota=nota; } pinta(); toast('Actualizado ✓');
+  }catch(e){ toast('No se pudo',true); }
+}
+async function guardarNota(id,nota){
+  const l=LEADS.find(x=>x.id===id); const estado=l?l.estado:'contactado';
+  try{ await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'estado',id,estado,nota})}); if(l) l.nota=nota; toast('Nota guardada ✓'); }catch(e){ toast('No se pudo',true); }
+}
+$('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('tabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); filtro=b.dataset.f; pinta(); });
+
+async function cargar(){
+  try{
+    const r=await fetch(FN,{headers:{Authorization:'Bearer '+TOKEN}});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    LEADS=d.leads||[]; pinta();
+  }catch(e){ $('lista').innerHTML='<div class="empty">'+esc(e.message)+'</div>'; }
+}
+(async()=>{
+  hub=supabase.createClient(HUB.url,HUB.key);
+  const {data:{session}}=await hub.auth.getSession();
+  if(!session){ location.href='index.html'; return; }
+  TOKEN=session.access_token;
+  const {data:u}=await hub.from('usuarios').select('nombre').eq('id',session.user.id).maybeSingle();
+  if(u&&u.nombre) $('sub').textContent=u.nombre+' · tus leads';
+  cargar();
+})();
+</script>
+</body>
+</html>
