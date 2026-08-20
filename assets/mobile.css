@@ -16,7 +16,7 @@
   /* Solo las páginas que reciben la barra móvil dejan lugar para ella:
      las que ya son "de celular" (Leads, Agenda Eficiente, Reportes) no llevan barra
      y no tienen que quedar con un hueco arriba. */
-  body.gb-has-mtop { padding-top: 54px; }
+  body.gb-has-mtop { padding-top: 48px; }
 
   /* — Layout: de columnas a una sola — */
   .app, .layout { display: block !important; }
@@ -25,12 +25,12 @@
 
   /* — Barra superior del celular (la inyecta mobile-nav.js) — */
   #gb-mtop {
-    position: fixed; top: 0; left: 0; right: 0; height: 54px; z-index: 9700;
+    position: fixed; top: 0; left: 0; right: 0; height: 48px; z-index: 9700;
     background: #0d2230; color: #fff; display: flex; align-items: center; gap: 12px;
     padding: 0 12px; box-shadow: 0 2px 12px rgba(0,0,0,.18);
   }
   #gb-mburger {
-    width: 40px; height: 40px; flex: none; border: 0; border-radius: 10px;
+    width: 36px; height: 36px; flex: none; border: 0; border-radius: 9px;
     background: rgba(255,255,255,.10); color: #fff; display: grid; place-items: center; cursor: pointer;
   }
   #gb-mburger svg { width: 20px; height: 20px; }
@@ -49,10 +49,26 @@
   }
   body.gb-drawer-open .sidebar, body.gb-drawer-open .sb { transform: none; }
 
-  /* — Grillas fijas → una columna — */
-  .stats, .kpis, .grid2, .grid3, .g-2, .g-3, .g-321, .cards, .cols, .row2,
-  .stat-grid, .card-grid, .grid-2, .grid-3, .metrics { grid-template-columns: 1fr !important; }
-  .tools, .quick, .accesos { grid-template-columns: repeat(2, 1fr) !important; }
+  /* — Grillas fijas — */
+  /* Las tarjetas de números son chicas: entran de a dos y así se ve mucho más
+     contenido sin scrollear. Las que llevan listas o gráficos van a una columna. */
+  .stats, .kpis, .metrics, .stat-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+  .grid2, .grid3, .g-2, .g-3, .g-321, .cards, .cols, .row2, .card-grid,
+  .grid-2, .grid-3 { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .tools, .quick, .accesos { grid-template-columns: repeat(4, 1fr) !important; }
+
+  /* — Todo más compacto: entra bastante más en pantalla — */
+  .stat, .kpi { padding: 12px 13px !important; gap: 9px !important; flex-direction: column !important; align-items: flex-start !important; }
+  .stat .ic, .kpi .ic { width: 34px !important; height: 34px !important; border-radius: 9px !important; }
+  .stat .ic svg, .kpi .ic svg { width: 17px !important; height: 17px !important; }
+  .stat .v, .kpi .v, .stat-num { font-size: 21px !important; }
+  .stat .l, .kpi .l { font-size: 11.5px !important; }
+  .stat .sub, .kpi .sub { font-size: 11px !important; }
+  .card, .panel { padding: 14px 15px !important; margin-bottom: 12px; }
+  .card-h { margin-bottom: 10px !important; }
+  .card-h .t { font-size: 14px !important; }
+  .head { margin-bottom: 14px !important; }
+  .head p { font-size: 12.5px !important; }
 
   /* — Tablas: scroll horizontal propio en vez de romper la página — */
   .gb-tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -2px; }
@@ -72,8 +88,8 @@
   .bottomnav { z-index: 9600; }
 }
 
-/* Pantallas muy chicas: un respiro más */
+/* Pantallas muy chicas: un poco menos de margen para ganar ancho útil */
 @media (max-width: 420px) {
   .content, .wrap { padding: 12px 10px 96px !important; }
-  .tools, .quick, .accesos { grid-template-columns: 1fr !important; }
+  .stat .v, .kpi .v { font-size: 20px !important; }
 }
