@@ -58,7 +58,7 @@
   /* .row2 son pares de campos cortos en los formularios (Fecha + Hora): entran
      perfecto de a dos, apilarlos solo alarga la ventana. */
   .row2 { gap: 9px !important; }
-  .tools, .quick, .accesos { grid-template-columns: repeat(4, 1fr) !important; }
+  .tools, .quick, .accesos { grid-template-columns: repeat(2, 1fr) !important; }
 
   /* — Todo más compacto: entra bastante más en pantalla — */
   .stat, .kpi { padding: 12px 13px !important; gap: 9px !important; flex-direction: column !important; align-items: flex-start !important; }
