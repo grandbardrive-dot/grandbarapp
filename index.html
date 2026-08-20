@@ -79,7 +79,7 @@
         <div class="or" id="faceOr" style="display:none">O continuá con</div>
         <button type="button" class="btn btn--ghost" id="btnFaceID" style="display:none">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg>
-          Ingresar con Face ID
+          <span id="bioLbl">Ingresar con biometría</span>
         </button>
         <div id="faceMsg" style="font-size:12px;color:var(--danger,#c0603e);text-align:center;margin-top:8px;min-height:14px"></div>
 
@@ -112,6 +112,10 @@
       note.innerHTML += ' <span style="color:var(--gold)">(modo demo — entrás sin validar)</span>';
     }
 
+    // Etiqueta biométrica según el dispositivo
+    function esIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+    const BIO = esIOS() ? "Face ID" : "huella";
+
     // Landing por rol
     async function destino() {
       let d = "hub.html";
@@ -132,6 +136,7 @@
           const hay = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
           if (!hay) return;
         }
+        document.getElementById("bioLbl").textContent = "Ingresar con " + BIO;
         document.getElementById("faceOr").style.display = "";
         document.getElementById("btnFaceID").style.display = "";
       } catch (e) {}
@@ -160,7 +165,7 @@
         // Ofrecer activar Face ID para la próxima (una sola vez por dispositivo)
         try {
           if (GBAuth.configured && window.GBPasskey && GBPasskey.disponible() && localStorage.getItem("gb_passkey") !== "1") {
-            if (confirm("¿Activar el ingreso con Face ID para la próxima vez?")) {
+            if (confirm("¿Activar el ingreso con " + BIO + " para la próxima vez?")) {
               await GBPasskey.enrolar(GBAuth.client);
             } else {
               localStorage.setItem("gb_passkey", "no");
