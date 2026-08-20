@@ -42,69 +42,7 @@
     });
   }
 
-  // ── Menú del usuario (abajo del sidebar) → Cerrar sesión ───────────────────
-  // Antes, tocar el nombre disparaba un confirm() del navegador. Ahora despliega
-  // un menú, igual que el panel de administración.
-  const HUB = { url:'https://xqhyemccbwmzxqzkrtwa.supabase.co', key:'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
-  async function cerrarSesion() {
-    try {
-      const cfg = window.GB_SUPABASE || HUB;
-      const url = cfg.SUPABASE_URL || HUB.url, key = cfg.SUPABASE_ANON_KEY || HUB.key;
-      if (window.supabase) await window.supabase.createClient(url, key).auth.signOut();
-    } catch (e) {}
-    try {
-      localStorage.removeItem('gb_demo'); localStorage.removeItem('gb_role');
-      Object.keys(localStorage).filter(k => /^sb-.*-auth-token/.test(k)).forEach(k => localStorage.removeItem(k));
-    } catch (e) {}
-    location.href = 'index.html';
-  }
-
-  // El menú se cuelga del <body>, NO adentro del elemento que se toca: varias páginas
-  // escriben las iniciales/el nombre con textContent sobre ese mismo nodo y eso borraba
-  // el menú (por eso no se desplegaba en el avatar de arriba).
-  function montarMenu(el, haciaAbajo) {
-    el.removeAttribute('title');
-    el.style.cursor = 'pointer';
-
-    const menu = document.createElement('div');
-    menu.setAttribute('data-hub-menu', '');
-    menu.style.cssText = 'display:none;position:fixed;min-width:180px;background:#fff;border-radius:11px;'
-      + 'box-shadow:0 14px 34px -10px rgba(0,0,0,.45);padding:5px;z-index:9500;white-space:nowrap';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = '🚪 Cerrar sesión';
-    btn.style.cssText = 'display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;'
-      + 'border-radius:8px;font-size:13.5px;font-family:inherit;color:#1b2a32;cursor:pointer';
-    btn.addEventListener('mouseenter', () => btn.style.background = '#f4f1ea');
-    btn.addEventListener('mouseleave', () => btn.style.background = 'none');
-    btn.addEventListener('click', e => { e.stopPropagation(); cerrarSesion(); });
-    menu.appendChild(btn);
-    document.body.appendChild(menu);
-
-    function ubicar() {
-      const r = el.getBoundingClientRect();
-      menu.style.left = Math.round(Math.min(r.left, window.innerWidth - 200)) + 'px';
-      menu.style.top = haciaAbajo ? Math.round(r.bottom + 8) + 'px'
-                                  : Math.round(r.top - menu.offsetHeight - 8) + 'px';
-    }
-    el.addEventListener('click', e => {
-      e.stopPropagation();
-      const abierto = menu.style.display === 'block';
-      document.querySelectorAll('[data-hub-menu]').forEach(m => m.style.display = 'none');
-      if (!abierto) { menu.style.display = 'block'; ubicar(); }
-    });
-    window.addEventListener('resize', () => { if (menu.style.display === 'block') ubicar(); });
-    document.addEventListener('click', () => { menu.style.display = 'none'; });
-  }
-
-  function menuUsuario() {
-    // El bloque del usuario abajo del sidebar…
-    document.querySelectorAll('.sb-user').forEach(el => montarMenu(el, false));
-    // …y el avatar de arriba a la derecha, que hasta ahora no hacía nada.
-    document.querySelectorAll('#avTop, .head .right .av, .topbar .av').forEach(el => montarMenu(el, true));
-  }
-
-  function iniciar() { pintar(); menuUsuario(); }
+  function iniciar() { pintar(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
   else iniciar();
 })();
