@@ -76,11 +76,12 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </button>
 
-        <div class="or">O continuá con</div>
-        <button type="button" class="btn btn--ghost">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 11c2 0 3.5-2 3.5-4.5S14 2 12 2 8.5 4 8.5 6.5 10 11 12 11Zm0 0c-1 4-1 7 0 11m0-11c1 4 1 7 0 11"/></svg>
-          Ingresar con huella
+        <div class="or" id="faceOr" style="display:none">O continuá con</div>
+        <button type="button" class="btn btn--ghost" id="btnFaceID" style="display:none">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg>
+          Ingresar con Face ID
         </button>
+        <div id="faceMsg" style="font-size:12px;color:var(--danger,#c0603e);text-align:center;margin-top:8px;min-height:14px"></div>
 
         <div class="login__note">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;color:var(--gold)"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-4Z"/></svg>
@@ -94,6 +95,7 @@
 <script src="assets/auth-persist.js?v=1"></script>
   <script src="assets/supabase-config.js"></script>
   <script src="assets/auth.js"></script>
+  <script src="assets/passkey.js"></script>
   <script>
     // Mostrar/ocultar contraseña
     document.getElementById("toggleEye").addEventListener("click", () => {
@@ -110,6 +112,44 @@
       note.innerHTML += ' <span style="color:var(--gold)">(modo demo — entrás sin validar)</span>';
     }
 
+    // Landing por rol
+    async function destino() {
+      let d = "hub.html";
+      try {
+        const s = await GBAuth.getSession();
+        if (s && (s.role === "direccion" || s.role === "admin" || s.role === "duenio")) d = "direccion.html";
+        else if (s && s.es_supervisor) d = "supervisor-equipo.html";
+        else if (s && s.role === "ventas") d = "inicio.html";
+      } catch (e) {}
+      return d;
+    }
+
+    // Mostrar el botón Face ID solo si hay autenticador biométrico (Face ID / Touch ID)
+    (async function () {
+      try {
+        if (!(GBAuth.configured && window.GBPasskey && GBPasskey.disponible())) return;
+        if (PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+          const hay = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+          if (!hay) return;
+        }
+        document.getElementById("faceOr").style.display = "";
+        document.getElementById("btnFaceID").style.display = "";
+      } catch (e) {}
+    })();
+
+    // Login con Face ID
+    document.getElementById("btnFaceID").addEventListener("click", async () => {
+      const fb = document.getElementById("btnFaceID"), msg = document.getElementById("faceMsg");
+      msg.textContent = ""; fb.disabled = true; fb.style.opacity = ".7";
+      try {
+        await GBPasskey.login(GBAuth.client);
+        window.location.href = await destino();
+      } catch (e) {
+        fb.disabled = false; fb.style.opacity = "1";
+        msg.textContent = (e && e.message) ? e.message : "No se pudo con Face ID. Entrá con tu contraseña.";
+      }
+    });
+
     form.addEventListener("submit", async e => {
       e.preventDefault();
       const email = document.getElementById("email").value.trim();
@@ -117,15 +157,17 @@
       btn.disabled = true; btn.style.opacity = ".7";
       const r = await GBAuth.signIn(email, pass);
       if (r.ok) {
-        // Landing por rol: supervisor → su panel de equipo; vendedor → su Inicio; el resto → hub.
-        let destino = "hub.html";
+        // Ofrecer activar Face ID para la próxima (una sola vez por dispositivo)
         try {
-          const s = await GBAuth.getSession();
-          if (s && (s.role === "direccion" || s.role === "admin" || s.role === "duenio")) destino = "direccion.html";
-          else if (s && s.es_supervisor) destino = "supervisor-equipo.html";
-          else if (s && s.role === "ventas") destino = "inicio.html";
-        } catch (e) {}
-        window.location.href = destino;
+          if (GBAuth.configured && window.GBPasskey && GBPasskey.disponible() && localStorage.getItem("gb_passkey") !== "1") {
+            if (confirm("¿Activar el ingreso con Face ID para la próxima vez?")) {
+              await GBPasskey.enrolar(GBAuth.client);
+            } else {
+              localStorage.setItem("gb_passkey", "no");
+            }
+          }
+        } catch (e) { /* si falla el enrolamiento, seguimos igual */ }
+        window.location.href = await destino();
       } else {
         btn.disabled = false; btn.style.opacity = "1";
         alert("No pudimos ingresar: " + (r.error || "revisá email y contraseña."));
