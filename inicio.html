@@ -200,8 +200,8 @@
       <!-- Stat cards -->
       <div class="stats">
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Clientes asignados</div><div class="v" id="stClientes">—</div><div class="sub" id="stClientesSub">Activos</div></div></div>
-        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas de hoy</div><div class="v">8</div><div class="sub mut">Próxima: 11:00 hs</div></div></div>
-        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg></div><div><div class="l">Tareas pendientes</div><div class="v">5</div><div class="sub red">2 vencen hoy</div></div></div>
+        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas de hoy</div><div class="v" id="stVisitas">—</div><div class="sub mut" id="stVisitasSub">Cargando…</div></div></div>
+        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg></div><div><div class="l">Tareas pendientes</div><div class="v" id="stTareas">—</div><div class="sub mut" id="stTareasSub">Cargando…</div></div></div>
         <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas del mes</div><div class="v" id="stVentas">$ 8.450.000</div><div class="sub" id="stVentasSub">+ 12,5% vs mes anterior</div></div></div>
       </div>
 
@@ -224,8 +224,8 @@
         <div class="card">
           <div class="card-h"><span class="t">Resumen semanal</span><span class="lnk">Esta semana ▾</span></div>
           <div class="rs-row">
-            <div><div class="rs-lbl">Visitas realizadas</div><div class="rs-big">32</div><div class="rs-lbl">de 50 planificadas</div></div>
-            <div class="donut" style="background:conic-gradient(var(--gold) 64%, #ece4d6 0)"><div class="inner">64%</div></div>
+            <div><div class="rs-lbl">Visitas realizadas</div><div class="rs-big" id="rsVisitas">—</div><div class="rs-lbl" id="rsVisitasSub">de la agenda</div></div>
+            <div class="donut" id="rsDonut" style="background:conic-gradient(var(--gold) 0%, #ece4d6 0)"><div class="inner">0%</div></div>
           </div>
           <div class="rs-row">
             <div><div class="rs-lbl">Ventas</div><div class="rs-big" id="rsVentas">$ 8.450.000</div><div class="rs-lbl" id="rsVentasSub" style="color:var(--green)">↑ 12,5% vs semana anterior</div></div>
@@ -344,12 +344,93 @@
       while(rem.length){ const last=route[route.length-1]; let bi=0,bd=1e9; rem.forEach((p,i)=>{const d=hav(last,p); if(d<bd){bd=d;bi=i;}}); route.push(rem.splice(bi,1)[0]); }
       const horas=["09:00","10:30","12:00","13:30","15:00","16:30"];
       const cont=document.getElementById("agendaHoy"); if(!cont) return;
+      if(cont.dataset.real === "1") return;   // ya la llenó la agenda de verdad
+      cont.dataset.ruta = "1";
       cont.innerHTML = route.slice(0,5).map((c,i)=>`
         <div class="ag-row ${i===0?'first':''}">
           <div class="time">${horas[i]||""}</div><div class="dot"></div>
           <div><div class="nm">${c.nombre||"—"}</div><div class="meta">${[c.direccion,c.localidad].filter(Boolean).join(" · ")}</div></div>
           <span class="chip pend" style="background:var(--gold-soft);color:#8a6a1e">Sugerida</span><span class="chev">›</span>
         </div>`).join("");
+    }catch(e){}
+  }
+
+  // ── Sincronización con la Agenda ────────────────────────────────────────────
+  // "Visitas de hoy", el listado del día y "Visitas realizadas" del resumen semanal
+  // estaban escritos a mano en la maqueta (8 visitas, 32 de 50…). Ahora salen de los
+  // compromisos reales que carga el vendedor en Agenda.
+  const escTxt = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const capTxt = s => { s = String(s||""); return s.charAt(0).toUpperCase()+s.slice(1); };
+  const isoFecha = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const TIPO_ICONO = { visita:'🏪', reunion:'👥', llamada:'📞', tarea:'✅' };
+
+  async function cargarAgendaReal(token){
+    try{
+      const r = await fetch("/.netlify/functions/compromisos", { headers:{ Authorization:"Bearer "+token } });
+      if(!r.ok) return;
+      const j = await r.json();
+      const comp = j.compromisos || [];
+      const hoy = isoFecha(new Date());
+      const deHoy = comp.filter(c => c.fecha === hoy).sort((a,b)=>(a.hora||'99:99').localeCompare(b.hora||'99:99'));
+
+      // Tarjeta "Visitas de hoy": las visitas agendadas para hoy + la próxima por hora.
+      const visitas = deHoy.filter(c => (c.tipo||'visita') === 'visita');
+      const elV = document.getElementById("stVisitas"), elVS = document.getElementById("stVisitasSub");
+      if(elV) elV.textContent = visitas.length;
+      if(elVS){
+        const ahora = new Date().toTimeString().slice(0,5);
+        const prox = deHoy.find(c => c.estado !== 'completado' && c.hora && c.hora >= ahora) || deHoy.find(c => c.estado !== 'completado');
+        elVS.textContent = prox ? (prox.hora ? "Próxima: "+prox.hora+" hs" : "Próxima: "+(prox.cliente_nombre||"sin hora"))
+                                : (deHoy.length ? "Todo completado ✓" : "Sin visitas agendadas");
+      }
+
+      // Listado del día: si hay compromisos cargados, mandan ellos; si no, queda la
+      // ruta sugerida por cercanía (que es una propuesta, no una agenda).
+      const cont = document.getElementById("agendaHoy");
+      if(cont && deHoy.length){
+        cont.dataset.real = "1";
+        cont.innerHTML = deHoy.slice(0,5).map((c,i)=>`
+          <div class="ag-row ${i===0?'first':''}">
+            <div class="time">${c.hora||"—"}</div><div class="dot"></div>
+            <div><div class="nm">${(TIPO_ICONO[c.tipo]||'')} ${escTxt(c.cliente_nombre||"Sin cliente")}</div>
+                 <div class="meta">${escTxt(c.objetivo||capTxt(c.tipo||"visita"))}</div></div>
+            <span class="chip ${c.estado==='completado'?'ok':'pend'}">${c.estado==='completado'?'Hecha':'Agendada'}</span><span class="chev">›</span>
+          </div>`).join("");
+      }
+
+      // Resumen semanal: realizadas vs agendadas de la semana en curso (lunes a domingo).
+      const hoyD = new Date(); const dow = (hoyD.getDay()+6)%7;          // 0 = lunes
+      const lunes = new Date(hoyD); lunes.setDate(hoyD.getDate()-dow);
+      const domingo = new Date(lunes); domingo.setDate(lunes.getDate()+6);
+      const desde = isoFecha(lunes), hasta = isoFecha(domingo);
+      const semana = comp.filter(c => c.fecha >= desde && c.fecha <= hasta);
+      const hechas = semana.filter(c => c.estado === 'completado').length;
+      const elS = document.getElementById("rsVisitas"), elSS = document.getElementById("rsVisitasSub"), elD = document.getElementById("rsDonut");
+      if(elS) elS.textContent = hechas;
+      if(elSS) elSS.textContent = "de " + semana.length + " agendadas";
+      if(elD){
+        const pct = semana.length ? Math.round(hechas/semana.length*100) : 0;
+        elD.style.background = `conic-gradient(var(--gold) ${pct}%, #ece4d6 0)`;
+        elD.querySelector(".inner").textContent = pct + "%";
+      }
+    }catch(e){}
+  }
+
+  // Tarjeta "Tareas pendientes": tareas sin completar y cuántas son de hoy.
+  async function cargarTareas(token){
+    try{
+      const r = await fetch("/.netlify/functions/tareas", { headers:{ Authorization:"Bearer "+token } });
+      if(!r.ok) return;
+      const j = await r.json();
+      const tareas = j.tareas || [];
+      const pend = tareas.filter(t => !t.completada);
+      const hoy = pend.filter(t => t.frecuencia === 'diaria' || t.fecha === isoFecha(new Date()));
+      const elT = document.getElementById("stTareas"), elTS = document.getElementById("stTareasSub");
+      if(elT) elT.textContent = pend.length;
+      if(elTS){
+        elTS.textContent = pend.length ? (hoy.length + (hoy.length===1?" vence hoy":" vencen hoy")) : "Todo al día ✓";
+        elTS.className = "sub " + (hoy.length ? "red" : "mut");
+      }
     }catch(e){}
   }
 
@@ -439,7 +520,16 @@
         }
       }
       if(perfil && perfil.codigo_vendedor) cargarVentas(perfil.codigo_vendedor);
-      cargarAgenda(session.access_token);
+      cargarAgenda(session.access_token);        // ruta sugerida (si no hay nada agendado)
+      cargarAgendaReal(session.access_token);    // agenda real: tarjetas + listado del día
+      cargarTareas(session.access_token);
+      // Si no hubo ni agenda ni ruta sugerida, no dejar el ejemplo de la maqueta.
+      setTimeout(()=>{
+        const c=document.getElementById("agendaHoy");
+        if(c && !c.dataset.real && !c.dataset.ruta){
+          c.innerHTML = `<div style="padding:18px 4px;color:var(--muted);font-size:13px">No tenés nada agendado para hoy.<br>Entrá a <b>Agenda</b> y agregá tu primera visita.</div>`;
+        }
+      }, 4000);
       document.getElementById("greet").innerHTML = "¡Hola, " + firstName(nombre) + "! 👋";
       document.getElementById("uName").textContent = nombre;
       document.getElementById("avSb").textContent = initials(nombre);
