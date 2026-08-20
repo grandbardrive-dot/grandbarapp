@@ -1,0 +1,14 @@
+{
+  "name": "GrandBar Hub",
+  "short_name": "GrandBar",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0d2230",
+  "theme_color": "#0d2230",
+  "icons": [
+    { "src": "/assets/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/assets/favicon.svg", "type": "image/svg+xml", "sizes": "any" }
+  ]
+}
