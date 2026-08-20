@@ -42,6 +42,55 @@
     });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', pintar);
-  else pintar();
+  // ── Menú del usuario (abajo del sidebar) → Cerrar sesión ───────────────────
+  // Antes, tocar el nombre disparaba un confirm() del navegador. Ahora despliega
+  // un menú, igual que el panel de administración.
+  const HUB = { url:'https://xqhyemccbwmzxqzkrtwa.supabase.co', key:'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
+  async function cerrarSesion() {
+    try {
+      const cfg = window.GB_SUPABASE || HUB;
+      const url = cfg.SUPABASE_URL || HUB.url, key = cfg.SUPABASE_ANON_KEY || HUB.key;
+      if (window.supabase) await window.supabase.createClient(url, key).auth.signOut();
+    } catch (e) {}
+    try {
+      localStorage.removeItem('gb_demo'); localStorage.removeItem('gb_role');
+      Object.keys(localStorage).filter(k => /^sb-.*-auth-token/.test(k)).forEach(k => localStorage.removeItem(k));
+    } catch (e) {}
+    location.href = 'index.html';
+  }
+
+  function menuUsuario() {
+    document.querySelectorAll('.sb-user').forEach(orig => {
+      // Se clona para descartar el click viejo (el del confirm) sin tocar cada página.
+      const el = orig.cloneNode(true);
+      orig.parentNode.replaceChild(el, orig);
+      el.removeAttribute('title');
+      if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+
+      const menu = document.createElement('div');
+      menu.style.cssText = 'display:none;position:absolute;bottom:100%;left:0;right:0;margin-bottom:8px;'
+        + 'background:#fff;border-radius:11px;box-shadow:0 14px 34px -10px rgba(0,0,0,.45);padding:5px;z-index:60';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '🚪 Cerrar sesión';
+      btn.style.cssText = 'display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;'
+        + 'border-radius:8px;font-size:13.5px;font-family:inherit;color:#1b2a32;cursor:pointer';
+      btn.addEventListener('mouseenter', () => btn.style.background = '#f4f1ea');
+      btn.addEventListener('mouseleave', () => btn.style.background = 'none');
+      btn.addEventListener('click', e => { e.stopPropagation(); cerrarSesion(); });
+      menu.appendChild(btn);
+      el.appendChild(menu);
+
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+      });
+      document.addEventListener('click', () => { menu.style.display = 'none'; });
+    });
+  }
+
+  function iniciar() { pintar(); menuUsuario(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
+  else iniciar();
 })();

@@ -319,9 +319,7 @@
   }
 
   let hub;
-  document.getElementById("logout").addEventListener("click", async ()=>{
-    if(confirm("¿Cerrar sesión?")){ try{ await hub.auth.signOut(); }catch(e){} location.href="index.html"; }
-  });
+  // El menú "Cerrar sesión" del usuario lo maneja assets/hub-nav.js, igual en todas las páginas.
 
   // Agenda de hoy = ruta sugerida con los CLIENTES REALES del vendedor (igual criterio que el Planificador).
   async function cargarAgenda(token){

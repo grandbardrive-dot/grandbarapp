@@ -350,7 +350,7 @@
     const { data:u } = await hub.from('usuarios').select('nombre,es_supervisor').eq('id',session.user.id).maybeSingle();
     PERFIL=u||{};
     if(u&&u.nombre){ document.getElementById('uName').textContent=u.nombre; document.getElementById('avSb').textContent=ini(u.nombre); }
-    document.getElementById('logout').onclick=async()=>{ if(confirm('¿Cerrar sesión?')){ try{await hub.auth.signOut();}catch(e){} location.href='index.html'; } };
+    // Cerrar sesión: lo maneja assets/hub-nav.js (menú del usuario, igual en todas las páginas).
     renderWeek(); renderDay();
     cargar();
     cargarReunionesDir();

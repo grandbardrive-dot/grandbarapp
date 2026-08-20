@@ -232,7 +232,7 @@
         document.getElementById('btnNueva').style.display = 'inline-flex';
       }
     }
-    document.getElementById('logout').onclick = async ()=>{ if(confirm('¿Cerrar sesión?')){ try{ await hub.auth.signOut(); }catch(e){} location.href='index.html'; } };
+    // Cerrar sesión: lo maneja assets/hub-nav.js (menú del usuario, igual en todas las páginas).
     cargar();
   })();
 </script>

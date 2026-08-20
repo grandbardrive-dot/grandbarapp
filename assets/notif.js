@@ -17,23 +17,45 @@
 
   var bell, dot, panel;
   function build() {
-    bell = document.createElement('button');
-    bell.setAttribute('aria-label', 'Notificaciones');
-    bell.style.cssText = 'position:fixed;top:10px;right:12px;z-index:9000;width:42px;height:42px;border-radius:50%;border:0;background:#0d2230;color:#fff;box-shadow:0 6px 18px -6px rgba(0,0,0,.5);cursor:pointer;display:grid;place-items:center';
-    bell.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>';
+    // Si la página ya tiene su campanita en la barra, se usa ESA. Antes se agregaba
+    // siempre una flotante: quedaban las dos superpuestas y la de la barra no hacía
+    // nada (su contador "3" era de maqueta).
+    var propia = document.querySelector('[data-gb-bell]') || document.querySelector('.bell') || document.querySelector('.tb-bell');
+    if (propia) {
+      bell = propia;
+      var falso = bell.querySelector('.dot');
+      if (falso) falso.parentNode.removeChild(falso);
+      bell.style.cursor = 'pointer';
+      if (getComputedStyle(bell).position === 'static') bell.style.position = 'relative';
+    } else {
+      bell = document.createElement('button');
+      bell.setAttribute('aria-label', 'Notificaciones');
+      bell.style.cssText = 'position:fixed;top:10px;right:12px;z-index:9000;width:42px;height:42px;border-radius:50%;border:0;background:#0d2230;color:#fff;box-shadow:0 6px 18px -6px rgba(0,0,0,.5);cursor:pointer;display:grid;place-items:center';
+      bell.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>';
+      document.body.appendChild(bell);
+    }
     dot = document.createElement('span');
-    dot.style.cssText = 'position:absolute;top:-3px;right:-3px;background:#c0603e;color:#fff;font-size:10px;font-weight:800;border-radius:50%;min-width:17px;height:17px;display:none;place-items:center;padding:0 3px';
+    dot.style.cssText = 'position:absolute;top:-5px;right:-5px;background:#c0603e;color:#fff;font-size:10px;font-weight:800;border-radius:50%;min-width:17px;height:17px;display:none;place-items:center;padding:0 3px;line-height:1';
     bell.appendChild(dot);
-    document.body.appendChild(bell);
 
     panel = document.createElement('div');
     panel.style.cssText = 'display:none;position:fixed;top:58px;right:12px;width:min(340px,92vw);max-height:72vh;overflow:auto;background:#fff;border:1px solid #e7ded0;border-radius:14px;box-shadow:0 18px 44px -12px rgba(0,0,0,.32);z-index:9000;font-family:Inter,system-ui,sans-serif';
     panel.innerHTML = '<div style="padding:12px 15px;border-bottom:1px solid #e7ded0;font-weight:800;font-size:14px;position:sticky;top:0;background:#fff;color:#1b2a32">🔔 Notificaciones</div><div id="gbNbody"><div style="padding:22px;text-align:center;color:#6d7d85;font-size:13px">Cargando…</div></div>';
     document.body.appendChild(panel);
 
+    // El panel se ubica debajo de la campanita que se esté usando (la de la barra
+    // no está siempre en la misma esquina que la flotante).
+    function ubicar() {
+      var r = bell.getBoundingClientRect();
+      panel.style.top = Math.round(r.bottom + 8) + 'px';
+      panel.style.right = Math.max(12, Math.round(window.innerWidth - r.right)) + 'px';
+    }
+    window.addEventListener('resize', function () { if (panel.style.display === 'block') ubicar(); });
+
     bell.addEventListener('click', function (e) {
       e.stopPropagation();
       var abierto = panel.style.display === 'block';
+      if (!abierto) ubicar();
       panel.style.display = abierto ? 'none' : 'block';
       if (!abierto) { render(); var top = items[0] ? String(items[0].ts || '') : new Date().toISOString(); localStorage.setItem('gb_notif_seen', top); badge(); }
     });
