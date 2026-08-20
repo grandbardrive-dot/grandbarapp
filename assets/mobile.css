@@ -53,8 +53,11 @@
   /* Las tarjetas de números son chicas: entran de a dos y así se ve mucho más
      contenido sin scrollear. Las que llevan listas o gráficos van a una columna. */
   .stats, .kpis, .metrics, .stat-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-  .grid2, .grid3, .g-2, .g-3, .g-321, .cards, .cols, .row2, .card-grid,
+  .grid2, .grid3, .g-2, .g-3, .g-321, .cards, .cols, .card-grid,
   .grid-2, .grid-3 { grid-template-columns: 1fr !important; gap: 12px !important; }
+  /* .row2 son pares de campos cortos en los formularios (Fecha + Hora): entran
+     perfecto de a dos, apilarlos solo alarga la ventana. */
+  .row2 { gap: 9px !important; }
   .tools, .quick, .accesos { grid-template-columns: repeat(4, 1fr) !important; }
 
   /* — Todo más compacto: entra bastante más en pantalla — */
