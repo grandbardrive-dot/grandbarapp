@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrandBar Hub — Reporte semanal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --navy:#0d2230; --navy-2:#123043; --cream:#f6f1e8; --card:#ffffff;
+      --ink:#1b2a32; --muted:#6d7d85; --line:#e7ded0; --line-2:#ece4d6;
+      --green:#2f6f5e; --green-d:#245647; --green-soft:#e8f1ea;
+      --gold:#c0912f; --gold-d:#a97c22; --gold-soft:#f7efdc;
+      --danger:#c0603e; --danger-soft:#fbe9e4;
+      --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    }
+    *{box-sizing:border-box} html,body{margin:0;height:100%}
+    body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    .app{display:flex;min-height:100vh}
+
+    /* Sidebar (igual que el resto del Hub; el menú lo dibuja hub-nav.js) */
+    .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+    .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+    .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+    .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+    .sb-nav{display:flex;flex-direction:column;gap:3px}
+    .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+    .sb-nav a:hover{background:var(--navy-2);color:#fff}
+    .sb-nav a.active{background:var(--gold);color:#241a06;font-weight:600}
+    .sb-nav svg{width:19px;height:19px;flex:none;opacity:.9}
+    .sb-foot{margin-top:auto;display:flex;flex-direction:column;gap:12px;padding-top:16px}
+    .sb-support{display:flex;align-items:center;gap:11px;background:var(--navy-2);border-radius:12px;padding:12px}
+    .sb-support .t{font-size:13px;font-weight:600}.sb-support .s{font-size:11px;color:#9db0ba}
+    .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px;cursor:pointer}
+    .sb-user .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy)}
+    .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+
+    .main{flex:1;min-width:0}
+    .content{padding:24px 30px 60px;max-width:1000px;width:100%;margin:0 auto}
+    .head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+    .head h1{font-size:25px;margin:0 0 3px;font-weight:800}
+    .head p{margin:0;color:var(--muted);font-size:14px}
+    .btn-print{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 16px;font:inherit;font-weight:700;font-size:13.5px;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+    .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 17px}
+    .stat .l{font-size:12.5px;color:var(--muted)}
+    .stat .v{font-size:25px;font-weight:800;line-height:1.1;margin-top:3px}
+    .stat .s{font-size:12px;font-weight:600;margin-top:2px;color:var(--muted)}
+    .stat .s.ok{color:var(--green)} .stat .s.al{color:var(--danger)}
+
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:16px}
+    .card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+    .card-h .t{font-weight:700;font-size:15.5px;display:flex;align-items:center;gap:8px}
+    .card-h .lnk{color:var(--green);font-size:12.5px;font-weight:700;cursor:pointer}
+    .card-sub{font-size:12.5px;color:var(--muted);margin:-6px 0 12px;line-height:1.45}
+
+    .fila{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-2)}
+    .fila:last-child{border-bottom:0}
+    .fila .n{flex:1;min-width:0}
+    .fila .nm{font-weight:600;font-size:14px}
+    .fila .meta{font-size:12px;color:var(--muted);margin-top:2px}
+    .fila .der{text-align:right;font-size:13px;font-weight:700;white-space:nowrap}
+    .fila .der small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+    .pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:#eef1f3;color:var(--muted);white-space:nowrap}
+    .pill.ok{background:var(--green-soft);color:var(--green-d)}
+    .pill.al{background:var(--danger-soft);color:var(--danger)}
+    .pill.warn{background:var(--gold-soft);color:var(--gold-d)}
+    .acc{display:inline-flex;align-items:center;gap:6px;background:var(--cream);border:1px solid var(--line);border-radius:9px;padding:7px 11px;font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;white-space:nowrap}
+    .acc:hover{border-color:var(--gold);color:var(--gold-d)}
+    .vacio{font-size:13px;color:var(--muted);padding:14px 0;font-style:italic}
+    .cargando{font-size:13px;color:var(--muted);padding:14px 0}
+    .aviso{display:flex;gap:10px;align-items:flex-start;background:var(--gold-soft);border:1px solid #e5d3a3;border-radius:11px;padding:12px 14px;font-size:12.5px;color:#7a5a12;line-height:1.5;margin-bottom:16px}
+
+    @media(max-width:900px){ .stats{grid-template-columns:repeat(2,1fr)} }
+    @media print{ .sidebar,.btn-print,#gb-mtop{display:none!important} .content{max-width:none;padding:0} }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>DISTRIBUCIONES</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav"></nav>
+    <div class="sb-foot">
+      <div class="sb-support"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7fd8bf" stroke-width="2"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="2" y="14" width="4" height="6" rx="1"/><rect x="18" y="14" width="4" height="6" rx="1"/></svg><div><div class="t">Soporte</div><div class="s">Estamos para ayudarte</div></div></div>
+      <div class="sb-user"><div class="av" id="avSb">V</div><div><div class="t" id="uName">Vendedor</div><div class="s" id="uMail">—</div></div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="content">
+      <div class="head">
+        <div>
+          <h1>📊 Reporte semanal</h1>
+          <p id="rango">Cargando…</p>
+        </div>
+        <button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
+      </div>
+
+      <div id="aviso"></div>
+
+      <div class="stats">
+        <div class="stat"><div class="l">Visitas de la semana</div><div class="v" id="kVisitas">—</div><div class="s" id="kVisitasSub">Cargando…</div></div>
+        <div class="stat"><div class="l">Leads sin contactar</div><div class="v" id="kLeads">—</div><div class="s" id="kLeadsSub">Cargando…</div></div>
+        <div class="stat"><div class="l">Clientes sin visitar</div><div class="v" id="kFrios">—</div><div class="s" id="kFriosSub">hace más de 30 días</div></div>
+        <div class="stat"><div class="l">Ventas acumuladas</div><div class="v" id="kVentas" style="font-size:20px">—</div><div class="s" id="kVentasSub">Cargando…</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span class="t">🎯 Leads</span><a class="lnk" href="leads.html">Ver todos ›</a></div>
+        <div class="card-sub">Los que te asignaron y todavía no marcaste como contactados. Cuanto más arriba, más tiempo esperando.</div>
+        <div id="leadsLista" class="cargando">Cargando…</div>
+        <div id="leadsResumen" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span class="t">❄️ Clientes que hace rato no visitás</span><a class="lnk" href="clientes-hub.html">Ver cartera ›</a></div>
+        <div class="card-sub">De tu cartera, los que llevan más tiempo sin una visita registrada.</div>
+        <div id="friosLista" class="cargando">Cargando…</div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span class="t">🏆 Tus clientes que más compran</span></div>
+        <div class="card-sub">Acumulado de la planilla de ventas, de mayor a menor.</div>
+        <div id="topLista" class="cargando">Cargando…</div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span class="t">💤 Clientes sin compras</span></div>
+        <div class="card-sub">Están en tu cartera pero no figuran en la planilla de ventas.</div>
+        <div id="sinCompraLista" class="cargando">Cargando…</div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span class="t">⚠️ Deuda vencida en tu cartera</span><a class="lnk" href="cobranzas-vendedor.html">Ver cobranzas ›</a></div>
+        <div id="deudaLista" class="cargando">Cargando…</div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span class="t">📅 Compromisos de la semana</span><a class="lnk" href="agenda.html">Ver agenda ›</a></div>
+        <div id="agendaLista" class="cargando">Cargando…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/ventas.js?v=1"></script>
+<script>
+  const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+  const MANUAL = { url:"https://fzaxwuuodseyyinveknn.supabase.co", key:"sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk" };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const dia = s => { if(!s) return '—'; const d=new Date(s+(String(s).length===10?'T12:00:00':'')); return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'}); };
+  const diasDesde = s => { if(!s) return null; const d=new Date(s+(String(s).length===10?'T12:00:00':'')); return Math.floor((Date.now()-d.getTime())/86400000); };
+  const plata = n => "$ " + Math.round(Number(n)||0).toLocaleString("es-AR");
+  const inicials = n => (n||"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "V";
+
+  // Semana en curso: lunes a domingo.
+  const hoy = new Date();
+  const lunes = new Date(hoy); lunes.setDate(hoy.getDate() - ((hoy.getDay()+6)%7));
+  const domingo = new Date(lunes); domingo.setDate(lunes.getDate()+6);
+  const DESDE = iso(lunes), HASTA = iso(domingo), HOY = iso(hoy);
+
+  function avisar(txt){ $('aviso').innerHTML = `<div class="aviso"><span>⚠️</span><div>${esc(txt)}</div></div>`; }
+  function pinta(el, html, vacio){ $(el).className=''; $(el).innerHTML = html || `<div class="vacio">${esc(vacio)}</div>`; }
+
+  (async ()=>{
+    const hub = supabase.createClient(HUB.url, HUB.key);
+    const { data:{ session } } = await hub.auth.getSession();
+    if(!session){ location.href='index.html'; return; }
+    const TOKEN = session.access_token;
+
+    $('rango').textContent = `Semana del ${dia(DESDE)} al ${dia(HASTA)}`;
+
+    const { data: perfil } = await hub.from('usuarios').select('nombre,codigo_vendedor').eq('id', session.user.id).maybeSingle();
+    const nombre = (perfil && perfil.nombre) || session.user.email;
+    $('uName').textContent = nombre; $('uMail').textContent = session.user.email; $('avSb').textContent = inicials(nombre);
+    const codV = perfil && perfil.codigo_vendedor;
+    if(!codV) avisar('Tu usuario no tiene código de vendedor cargado: algunos bloques van a salir vacíos.');
+
+    const traer = async (fn) => { try{ const r = await fetch('/.netlify/functions/'+fn, { headers:{ Authorization:'Bearer '+TOKEN } }); return r.ok ? await r.json() : null; }catch(e){ return null; } };
+
+    // ── Agenda de la semana ───────────────────────────────────────────────────
+    traer('compromisos').then(j=>{
+      const comp = (j && j.compromisos) || [];
+      const semana = comp.filter(c => c.fecha >= DESDE && c.fecha <= HASTA);
+      const hechas = semana.filter(c => c.estado === 'completado');
+      $('kVisitas').textContent = hechas.length + ' / ' + semana.length;
+      $('kVisitasSub').textContent = semana.length ? Math.round(hechas.length/semana.length*100)+'% cumplido' : 'nada agendado';
+      $('kVisitasSub').className = 's ' + (semana.length && hechas.length===semana.length ? 'ok' : '');
+
+      const pend = semana.filter(c => c.estado !== 'completado').sort((a,b)=>a.fecha.localeCompare(b.fecha));
+      pinta('agendaLista', pend.map(c=>{
+        const atrasada = c.fecha < HOY;
+        return `<div class="fila">
+          <div class="n"><div class="nm">${esc(c.cliente_nombre||'Sin cliente')}</div>
+            <div class="meta">${dia(c.fecha)}${c.hora?' · '+esc(c.hora)+' hs':''} · ${esc(c.tipo||'visita')}${c.objetivo?' · '+esc(c.objetivo):''}</div></div>
+          <span class="pill ${atrasada?'al':'warn'}">${atrasada?'Atrasada':'Pendiente'}</span>
+        </div>`;
+      }).join(''), semana.length ? '¡Completaste todo lo agendado esta semana! 🎉' : 'No agendaste compromisos esta semana.');
+    });
+
+    // ── Leads ─────────────────────────────────────────────────────────────────
+    traer('leads').then(j=>{
+      const leads = (j && j.leads) || [];
+      const sinContactar = leads.filter(l => ['nuevo','asignado'].includes(String(l.estado||'').toLowerCase()))
+        .sort((a,b)=> String(a.created_at||'').localeCompare(String(b.created_at||'')));
+      $('kLeads').textContent = sinContactar.length;
+      const nuevosSemana = leads.filter(l => String(l.created_at||'').slice(0,10) >= DESDE).length;
+      $('kLeadsSub').textContent = nuevosSemana + (nuevosSemana===1?' nuevo esta semana':' nuevos esta semana');
+      $('kLeadsSub').className = 's ' + (sinContactar.length ? 'al' : 'ok');
+
+      pinta('leadsLista', sinContactar.slice(0,10).map(l=>{
+        const d = diasDesde(String(l.created_at||'').slice(0,10));
+        const tel = String(l.telefono||'').replace(/[^\d+]/g,'');
+        return `<div class="fila">
+          <div class="n"><div class="nm">${esc(l.nombre||'Sin nombre')}</div>
+            <div class="meta">${[l.zona, l.canal, l.origen].filter(Boolean).map(esc).join(' · ')||'—'}${l.telefono?' · '+esc(l.telefono):''}</div></div>
+          <span class="pill ${d!=null&&d>7?'al':'warn'}">${d!=null? d+(d===1?' día':' días') : 'sin fecha'}</span>
+          ${tel?`<a class="acc" href="https://wa.me/54${tel.replace(/^\+?54/,'')}" target="_blank" rel="noopener">WhatsApp</a>`:''}
+        </div>`;
+      }).join(''), leads.length ? 'No tenés leads sin contactar. 👏' : 'Todavía no te asignaron leads.');
+
+      const cuenta = {}; leads.forEach(l=>{ const e=String(l.estado||'sin estado').toLowerCase(); cuenta[e]=(cuenta[e]||0)+1; });
+      const ETIQ = { nuevo:'Nuevos', asignado:'Asignados', contactado:'Contactados', convertido:'Convertidos ✓', descartado:'Descartados' };
+      $('leadsResumen').innerHTML = Object.keys(cuenta).length
+        ? '<div style="display:flex;gap:7px;flex-wrap:wrap">' + Object.keys(cuenta).map(e=>
+            `<span class="pill ${e==='convertido'?'ok':e==='descartado'?'':'warn'}">${esc(ETIQ[e]||e)}: ${cuenta[e]}</span>`).join('') + '</div>'
+        : '';
+    });
+
+    // ── Tareas (solo para el aviso de pendientes) ─────────────────────────────
+    // (queda para una próxima: hoy el reporte se centra en cartera y agenda)
+
+    if(!codV) return;
+
+    // ── Cartera: clientes + última visita + saldos + ventas ───────────────────
+    const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
+    const { data: vend } = await man.from('vendedores').select('id,nombre,codigo').eq('codigo', codV).maybeSingle();
+    let clientes = [];
+    if(vend){
+      const { data: cli } = await man.from('clientes').select('id,nombre,codigo_cliente,direccion,tipo').eq('vendedor_id', vend.id).order('nombre');
+      clientes = cli || [];
+      const ultima = {};
+      if(clientes.length){
+        const { data: vis } = await man.from('visitas').select('cliente_id,fecha').in('cliente_id', clientes.map(c=>c.id));
+        (vis||[]).forEach(v=>{ if(!ultima[v.cliente_id] || v.fecha > ultima[v.cliente_id]) ultima[v.cliente_id]=v.fecha; });
+      }
+
+      // Clientes fríos: sin visita hace más de 30 días (o nunca).
+      const frios = clientes.map(c=>({ c, lv:ultima[c.id]||null, d: ultima[c.id] ? diasDesde(ultima[c.id]) : 9999 }))
+        .filter(x => x.d > 30).sort((a,b)=> b.d - a.d);
+      $('kFrios').textContent = frios.length;
+      pinta('friosLista', frios.slice(0,10).map(x=>`
+        <div class="fila">
+          <div class="n"><div class="nm">${esc(x.c.nombre)}</div>
+            <div class="meta">${esc(x.c.direccion||'—')}${x.lv?' · última visita '+dia(x.lv):' · sin visitas registradas'}</div></div>
+          <span class="pill ${x.d>90?'al':'warn'}">${x.d===9999?'nunca':'hace '+x.d+' días'}</span>
+          <a class="acc" href="agenda.html?nuevo=1&cliente=${encodeURIComponent(x.c.nombre)}">Agendar</a>
+        </div>`).join(''), 'Visitaste a toda tu cartera en los últimos 30 días. 👏');
+    }
+
+    // Ventas por cliente (planilla) → ranking y clientes sin compras.
+    const [ventasCli, total] = await Promise.all([ GBVentas.clientesDe(codV), GBVentas.totalDe(codV) ]);
+    $('kVentas').textContent = total!=null ? plata(total) : '—';
+    $('kVentasSub').textContent = total!=null ? 'se actualiza a diario' : 'sin datos en la planilla';
+
+    pinta('topLista', ventasCli.slice(0,8).map((v,i)=>`
+      <div class="fila">
+        <div class="n"><div class="nm">${i+1}. ${esc(v.nombre)}</div><div class="meta">Cód. ${v.codigo}</div></div>
+        <div class="der">${plata(v.monto)}</div>
+      </div>`).join(''), 'No figuran ventas tuyas en la planilla.');
+
+    if(clientes.length){
+      const conVenta = new Set(ventasCli.map(v=>v.codigo));
+      const sinCompra = clientes.filter(c => { const n=parseInt(String(c.codigo_cliente||''),10); return !isNaN(n) && !conVenta.has(n); });
+      pinta('sinCompraLista', sinCompra.slice(0,12).map(c=>`
+        <div class="fila">
+          <div class="n"><div class="nm">${esc(c.nombre)}</div><div class="meta">${esc(c.direccion||'—')} · Cód. ${esc(c.codigo_cliente||'—')}</div></div>
+          <a class="acc" href="agenda.html?nuevo=1&cliente=${encodeURIComponent(c.nombre)}">Agendar</a>
+        </div>`).join('') + (sinCompra.length>12?`<div class="meta" style="padding-top:10px;font-size:12px;color:var(--muted)">y ${sinCompra.length-12} más</div>`:''),
+        'Todos tus clientes registran compras. 🎉');
+    } else {
+      pinta('sinCompraLista','', 'No pude leer tu cartera de clientes.');
+    }
+
+    // Deuda vencida (cuentas corrientes).
+    traer('cuentas-vendedor').then(j=>{
+      const cc = (j && j.clientes) || [];
+      const conDeuda = cc.filter(c => Number(c.vencida) > 0).sort((a,b)=> Number(b.vencida)-Number(a.vencida));
+      pinta('deudaLista', conDeuda.slice(0,8).map(c=>`
+        <div class="fila">
+          <div class="n"><div class="nm">${esc(c.nombre||('Cliente '+c.codigo))}</div><div class="meta">Cód. ${esc(c.codigo)}${c.telefono?' · '+esc(c.telefono):''}</div></div>
+          <div class="der" style="color:var(--danger)">${plata(c.vencida)}<small>de ${plata(c.saldo)} total</small></div>
+        </div>`).join(''), cc.length ? 'Ningún cliente tuyo tiene deuda vencida. 👏' : 'No pude leer las cuentas corrientes.');
+    });
+  })();
+</script>
+<script src="assets/notif.js?v=2"></script>
+<script src="assets/hub-nav.js?v=3"></script>
+<script src="assets/user-menu.js?v=1"></script>
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+<script src="assets/mobile-nav.js?v=1"></script>
+</body>
+</html>
