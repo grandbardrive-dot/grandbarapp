@@ -115,6 +115,27 @@
     .bottomnav{display:none}
     [hidden]{display:none!important}
 
+    /* En el celular la ficha del cliente no va debajo de la lista (quedaba lejísimos):
+       se abre como ventana sobre la pantalla al tocar el cliente. */
+    @media(max-width:900px){
+      .detail{display:none}
+      body.gb-ficha-open{overflow:hidden}
+      body.gb-ficha-open .detail{
+        display:block;position:fixed;left:0;right:0;bottom:0;top:38px;z-index:9860;
+        border-radius:18px 18px 0 0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+        box-shadow:0 -10px 44px rgba(0,0,0,.4);animation:fichaSube .2s ease
+      }
+      @keyframes fichaSube{from{transform:translateY(26px);opacity:.6}to{transform:none;opacity:1}}
+      #gb-ficha-fondo{display:none;position:fixed;inset:0;background:rgba(6,16,24,.5);z-index:9855}
+      body.gb-ficha-open #gb-ficha-fondo{display:block}
+      #gb-ficha-cerrar{
+        display:none;position:fixed;top:46px;right:14px;z-index:9870;width:38px;height:38px;border:0;
+        border-radius:50%;background:#0d2230;color:#fff;font-size:20px;line-height:1;cursor:pointer;
+        align-items:center;justify-content:center;box-shadow:0 6px 18px -6px rgba(0,0,0,.6)
+      }
+      body.gb-ficha-open #gb-ficha-cerrar{display:flex}
+    }
+
     @media(max-width:960px){
       .sidebar{display:none}
       .topbar .burger{display:block}
@@ -220,6 +241,35 @@
     }).join("") + `<div class="list-foot">${rows.length} de ${CLIENTES.length} clientes</div>`;
   }
 
+  // ── Ficha como ventana en el celular ────────────────────────────────────────
+  // En pantalla chica la ficha quedaba abajo de toda la lista y no se veía que
+  // pasaba algo al tocar un cliente. Ahora se abre encima, y se cierra con la ✕,
+  // tocando el fondo o con el botón Atrás del teléfono.
+  const esCelular = () => window.matchMedia('(max-width:900px)').matches;
+  function armarFicha(){
+    if(document.getElementById('gb-ficha-fondo')) return;
+    const fondo=document.createElement('div'); fondo.id='gb-ficha-fondo';
+    fondo.onclick=()=>cerrarFicha(true);
+    const x=document.createElement('button'); x.id='gb-ficha-cerrar'; x.type='button';
+    x.setAttribute('aria-label','Cerrar ficha'); x.textContent='×';
+    x.onclick=()=>cerrarFicha(true);
+    document.body.appendChild(fondo); document.body.appendChild(x);
+    window.addEventListener('popstate',()=>cerrarFicha(false));
+  }
+  function abrirFicha(){
+    if(!esCelular()) return;
+    armarFicha();
+    if(document.body.classList.contains('gb-ficha-open')) return;
+    document.body.classList.add('gb-ficha-open');
+    history.pushState({ficha:1},'');
+    document.getElementById('detail').scrollTop=0;
+  }
+  function cerrarFicha(volverAtras){
+    if(!document.body.classList.contains('gb-ficha-open')) return;
+    document.body.classList.remove('gb-ficha-open');
+    if(volverAtras && history.state && history.state.ficha) history.back();
+  }
+
   function selCliente(i){
     sel = i; renderList(document.getElementById("q").value);
     const c = CLIENTES[i];
@@ -273,6 +323,7 @@
         </div>
         <button class="btn-visit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M12 11v4M10 13h4"/></svg> Agregar visita</button>
       </div>`;
+    abrirFicha();   // en celular, la ficha se muestra como ventana
   }
   window.selCliente = selCliente;
 
