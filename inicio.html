@@ -202,7 +202,7 @@
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Clientes asignados</div><div class="v" id="stClientes">—</div><div class="sub" id="stClientesSub">Activos</div></div></div>
         <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas de hoy</div><div class="v" id="stVisitas">—</div><div class="sub mut" id="stVisitasSub">Cargando…</div></div></div>
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg></div><div><div class="l">Tareas pendientes</div><div class="v" id="stTareas">—</div><div class="sub mut" id="stTareasSub">Cargando…</div></div></div>
-        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas del mes</div><div class="v" id="stVentas">$ 8.450.000</div><div class="sub" id="stVentasSub">+ 12,5% vs mes anterior</div></div></div>
+        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas del mes</div><div class="v" id="stVentas">—</div><div class="sub" id="stVentasSub">Cargando…</div></div></div>
       </div>
 
       <!-- Fila media -->
@@ -228,7 +228,7 @@
             <div class="donut" id="rsDonut" style="background:conic-gradient(var(--gold) 0%, #ece4d6 0)"><div class="inner">0%</div></div>
           </div>
           <div class="rs-row">
-            <div><div class="rs-lbl">Ventas</div><div class="rs-big" id="rsVentas">$ 8.450.000</div><div class="rs-lbl" id="rsVentasSub" style="color:var(--green)">↑ 12,5% vs semana anterior</div></div>
+            <div><div class="rs-lbl">Ventas</div><div class="rs-big" id="rsVentas">—</div><div class="rs-lbl" id="rsVentasSub" style="color:var(--muted)">Cargando…</div></div>
             <svg class="spark" viewBox="0 0 90 36"><polyline points="0,28 15,24 30,26 45,18 60,20 75,10 90,6" fill="none" stroke="var(--gold)" stroke-width="2"/></svg>
           </div>
           <div class="rs-row">
@@ -305,10 +305,20 @@
   const VENTAS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4uT-97Qq1m5Tr-RZR6TVtHaFFjChInCu42dwEiTla9rnb8h6qvyFkQlK-zcWsbKdesszy4KrncWBG/pub?output=csv";
   function parseCSVLine(line){ const o=[]; let c="", q=false; for(const ch of line){ if(ch==='"') q=!q; else if(ch===',' && !q){ o.push(c); c=""; } else c+=ch; } o.push(c); return o; }
   function parseMonto(s){ const n=parseFloat(String(s).replace(/[^\d,]/g,"").replace(",",".")); return isNaN(n)?null:n; }
+  // Si no se puede saber la venta del vendedor, se dice; no se deja un monto de ejemplo.
+  function sinVentas(motivo){
+    const sv=document.getElementById("stVentas"), ss=document.getElementById("stVentasSub");
+    if(sv) sv.textContent = "—";
+    if(ss) ss.textContent = motivo;
+    const rv=document.getElementById("rsVentas"), rs=document.getElementById("rsVentasSub");
+    if(rv) rv.textContent = "—";
+    if(rs) rs.textContent = motivo;
+  }
+
   async function cargarVentas(codigoVendedor){
     try{
       const cod = parseInt(codigoVendedor, 10);
-      if(isNaN(cod)) return;
+      if(isNaN(cod)){ sinVentas("Sin código de vendedor"); return; }
       const t = await (await fetch(VENTAS_CSV)).text();
       const lines = t.trim().split("\n").map(l=>l.replace(/\r$/,""));
       let monto = null;
@@ -322,8 +332,10 @@
         document.getElementById("stVentasSub").textContent = "Se actualiza a diario";
         const rv = document.getElementById("rsVentas"); if(rv) rv.textContent = fmt;
         const rvs = document.getElementById("rsVentasSub"); if(rvs){ rvs.textContent = "Total acumulado"; rvs.style.color = "var(--muted)"; }
+      } else {
+        sinVentas("Tu código no figura en la planilla");
       }
-    }catch(e){ /* si falla, queda el valor base */ }
+    }catch(e){ sinVentas("No se pudo leer la planilla"); }
   }
 
   let hub;
