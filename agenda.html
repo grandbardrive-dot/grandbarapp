@@ -333,12 +333,31 @@
       }
       renderWeek(); renderDay();
     }catch(e){ toast('Error de conexión',true); }
+    finally{ abrirDesdeURL(); }
+  }
+
+  // Si venís desde la ficha de un cliente ("Agregar visita"), abre el formulario con
+  // el cliente ya escrito: agenda.html?nuevo=1&cliente=NOMBRE. Va en el finally para
+  // que funcione aunque la carga de compromisos falle.
+  let _urlYaAbierta=false;
+  function abrirDesdeURL(){
+    if(_urlYaAbierta) return;
+    const par=new URLSearchParams(location.search);
+    if(!par.get('nuevo') || !PUEDE_EDITAR) return;
+    _urlYaAbierta=true;
+    abrirNuevo();
+    const cli=par.get('cliente');
+    if(cli){ document.getElementById('fCliente').value=cli; valida(); }
+    history.replaceState({}, '', location.pathname);   // limpia la URL
   }
 
   document.getElementById('prev').onclick=()=>{ selDate.setDate(selDate.getDate()-7); renderWeek(); renderDay(); };
   document.getElementById('next').onclick=()=>{ selDate.setDate(selDate.getDate()+7); renderWeek(); renderDay(); };
   document.getElementById('hoy').onclick=()=>{ selDate=new Date(); renderWeek(); renderDay(); };
   document.getElementById('btnNew').onclick=abrirNuevo;
+  // Red de seguridad: si la carga de compromisos no llegó a correr, igual abrimos el
+  // formulario cuando se entra con ?nuevo=1 desde la ficha del cliente.
+  setTimeout(abrirDesdeURL, 1500);
   document.getElementById('mClose').onclick=cerrar;
   document.getElementById('ov').addEventListener('click',e=>{ if(e.target.id==='ov') cerrar(); });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrar(); });
