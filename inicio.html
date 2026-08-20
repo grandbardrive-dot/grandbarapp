@@ -294,6 +294,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/ventas.js?v=1"></script>
 <script src="assets/supabase-config.js"></script>
 <script>
   const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
@@ -315,17 +316,13 @@
     if(rs) rs.textContent = motivo;
   }
 
+  // La lectura de la planilla vive en assets/ventas.js (busca las columnas por nombre,
+  // así un cambio de formato de la tabla dinámica no vuelve a romper la tarjeta).
   async function cargarVentas(codigoVendedor){
     try{
       const cod = parseInt(codigoVendedor, 10);
       if(isNaN(cod)){ sinVentas("Sin código de vendedor"); return; }
-      const t = await (await fetch(VENTAS_CSV)).text();
-      const lines = t.trim().split("\n").map(l=>l.replace(/\r$/,""));
-      let monto = null;
-      for(const l of lines.slice(1)){
-        const p = parseCSVLine(l);
-        if(parseInt(p[0],10) === cod){ monto = parseMonto(p[2]); break; }
-      }
+      const monto = await GBVentas.totalDe(cod);
       if(monto != null){
         const fmt = "$ " + Math.round(monto).toLocaleString("es-AR");
         document.getElementById("stVentas").textContent = fmt;
