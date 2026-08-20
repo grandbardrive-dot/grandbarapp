@@ -21,7 +21,7 @@
   /* — Layout: de columnas a una sola — */
   .app, .layout { display: block !important; }
   .main, .main-col, .content, .wrap { width: 100% !important; min-width: 0 !important; max-width: 100% !important; }
-  .content, .wrap { padding: 14px 12px 96px !important; margin: 0 !important; }
+  .content, .wrap { padding: 14px 12px 28px !important; margin: 0 !important; }
 
   /* — Barra superior del celular (la inyecta mobile-nav.js) — */
   #gb-mtop {
@@ -87,12 +87,13 @@
   /* — La campanita flotante, adentro de la barra móvil — */
   button[aria-label="Notificaciones"] { top: 7px !important; right: 10px !important; z-index: 9900 !important; }
 
-  /* — Barra inferior del celular (las páginas que la tienen) — */
-  .bottomnav { z-index: 9600; }
+  /* — Barra inferior: fuera. El menú va solo en el ☰ de arriba a la izquierda.
+       (Para volver a mostrarla, borrar esta regla.) — */
+  .bottomnav { display: none !important; }
 }
 
 /* Pantallas muy chicas: un poco menos de margen para ganar ancho útil */
 @media (max-width: 420px) {
-  .content, .wrap { padding: 12px 10px 96px !important; }
+  .content, .wrap { padding: 12px 10px 24px !important; }
   .stat .v, .kpi .v { font-size: 20px !important; }
 }
