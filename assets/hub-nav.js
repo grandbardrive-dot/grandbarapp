@@ -59,35 +59,49 @@
     location.href = 'index.html';
   }
 
-  function menuUsuario() {
-    document.querySelectorAll('.sb-user').forEach(orig => {
-      // Se clona para descartar el click viejo (el del confirm) sin tocar cada página.
-      const el = orig.cloneNode(true);
-      orig.parentNode.replaceChild(el, orig);
-      el.removeAttribute('title');
-      if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+  // El menú se cuelga del <body>, NO adentro del elemento que se toca: varias páginas
+  // escriben las iniciales/el nombre con textContent sobre ese mismo nodo y eso borraba
+  // el menú (por eso no se desplegaba en el avatar de arriba).
+  function montarMenu(el, haciaAbajo) {
+    el.removeAttribute('title');
+    el.style.cursor = 'pointer';
 
-      const menu = document.createElement('div');
-      menu.style.cssText = 'display:none;position:absolute;bottom:100%;left:0;right:0;margin-bottom:8px;'
-        + 'background:#fff;border-radius:11px;box-shadow:0 14px 34px -10px rgba(0,0,0,.45);padding:5px;z-index:60';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = '🚪 Cerrar sesión';
-      btn.style.cssText = 'display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;'
-        + 'border-radius:8px;font-size:13.5px;font-family:inherit;color:#1b2a32;cursor:pointer';
-      btn.addEventListener('mouseenter', () => btn.style.background = '#f4f1ea');
-      btn.addEventListener('mouseleave', () => btn.style.background = 'none');
-      btn.addEventListener('click', e => { e.stopPropagation(); cerrarSesion(); });
-      menu.appendChild(btn);
-      el.appendChild(menu);
+    const menu = document.createElement('div');
+    menu.setAttribute('data-hub-menu', '');
+    menu.style.cssText = 'display:none;position:fixed;min-width:180px;background:#fff;border-radius:11px;'
+      + 'box-shadow:0 14px 34px -10px rgba(0,0,0,.45);padding:5px;z-index:9500;white-space:nowrap';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = '🚪 Cerrar sesión';
+    btn.style.cssText = 'display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;'
+      + 'border-radius:8px;font-size:13.5px;font-family:inherit;color:#1b2a32;cursor:pointer';
+    btn.addEventListener('mouseenter', () => btn.style.background = '#f4f1ea');
+    btn.addEventListener('mouseleave', () => btn.style.background = 'none');
+    btn.addEventListener('click', e => { e.stopPropagation(); cerrarSesion(); });
+    menu.appendChild(btn);
+    document.body.appendChild(menu);
 
-      el.style.cursor = 'pointer';
-      el.addEventListener('click', e => {
-        e.stopPropagation();
-        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-      });
-      document.addEventListener('click', () => { menu.style.display = 'none'; });
+    function ubicar() {
+      const r = el.getBoundingClientRect();
+      menu.style.left = Math.round(Math.min(r.left, window.innerWidth - 200)) + 'px';
+      menu.style.top = haciaAbajo ? Math.round(r.bottom + 8) + 'px'
+                                  : Math.round(r.top - menu.offsetHeight - 8) + 'px';
+    }
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const abierto = menu.style.display === 'block';
+      document.querySelectorAll('[data-hub-menu]').forEach(m => m.style.display = 'none');
+      if (!abierto) { menu.style.display = 'block'; ubicar(); }
     });
+    window.addEventListener('resize', () => { if (menu.style.display === 'block') ubicar(); });
+    document.addEventListener('click', () => { menu.style.display = 'none'; });
+  }
+
+  function menuUsuario() {
+    // El bloque del usuario abajo del sidebar…
+    document.querySelectorAll('.sb-user').forEach(el => montarMenu(el, false));
+    // …y el avatar de arriba a la derecha, que hasta ahora no hacía nada.
+    document.querySelectorAll('#avTop, .head .right .av, .topbar .av').forEach(el => montarMenu(el, true));
   }
 
   function iniciar() { pintar(); menuUsuario(); }
