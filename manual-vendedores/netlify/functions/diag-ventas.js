@@ -64,18 +64,41 @@ async function login() {
   return { urlCuenta, cuenta, token, empresa: process.env.AIKON_EMPRESA };
 }
 
+// Busca el primer array de objetos anidado dentro de un objeto (hasta 2 niveles).
+function buscarArray(obj, prof = 0) {
+  if (!obj || typeof obj !== 'object' || prof > 2) return null;
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (Array.isArray(v) && v.length && typeof v[0] === 'object') return { campo: k, arr: v };
+  }
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      const r = buscarArray(v, prof + 1);
+      if (r) return { campo: k + '.' + r.campo, arr: r.arr };
+    }
+  }
+  return null;
+}
+
 // Resume un intento: log/estado, cantidad, columnas y una fila de ejemplo.
 function resumen(nombre, params, res) {
   const bytes = res.text ? res.text.length : 0;
   if (res.error) return { intento: nombre, params, status: res.status, error: res.error };
   const j = parse(res.text);
-  const arr = listaDe(j);
+  let arr = listaDe(j);
+  let campoLista = null;
   if (!arr.length) {
-    // No es lista: mostramos la cabeza del texto (suele traer el error/pista de Sinergis).
-    return { intento: nombre, params, status: res.status, bytes, filas: 0, head: String(res.text || '').slice(0, 320) };
+    // No hay lista de primer nivel: buscamos renglones/detalle anidados en el objeto.
+    const anid = buscarArray(j);
+    if (anid) { arr = anid.arr; campoLista = anid.campo; }
+  }
+  if (!arr.length) {
+    // Nada: mostramos la cabeza del texto (suele traer el error/pista de Sinergis).
+    return { intento: nombre, params, status: res.status, bytes, filas: 0, head: String(res.text || '').slice(0, 360) };
   }
   const cols = Object.keys(arr[0] || {});
-  // Si la primera fila tiene un array anidado (renglones/detalle), lo mostramos también.
+  // ¿Hay un segundo array anidado dentro de cada fila (renglones dentro del comprobante)?
   let detalleAnidado = null;
   for (const k of cols) {
     if (Array.isArray(arr[0][k]) && arr[0][k].length && typeof arr[0][k][0] === 'object') {
@@ -83,7 +106,7 @@ function resumen(nombre, params, res) {
       break;
     }
   }
-  return { intento: nombre, params, status: res.status, bytes, filas: arr.length, columnas: cols, ejemplo: JSON.stringify(arr[0]).slice(0, 700), detalleAnidado };
+  return { intento: nombre, params, status: res.status, bytes, filas: arr.length, campoLista, columnas: cols, ejemplo: JSON.stringify(arr[0]).slice(0, 700), detalleAnidado };
 }
 
 // Mapa de estilos de nombre de parámetro de fecha.
@@ -110,6 +133,25 @@ async function probarComprobantes(urlCuenta, cuenta, token, empresa, metodo, des
   return { encontrada: null, intentos: out };
 }
 
+// Métodos candidatos que devolverían el DETALLE (renglones con SKU) de un comprobante.
+const METODOS_DETALLE = [
+  'ObtenerComprobante', 'ListarComprobante', 'ComprobanteDetalle', 'DetalleComprobante',
+  'ListarComprobanteDetalle', 'ListarComprobanteRenglones', 'ObtenerComprobanteRenglones',
+  'ListarRenglones', 'ListarRenglonesComprobante',
+];
+
+async function probarDetalle(urlCuenta, cuenta, token, comp) {
+  const out = [];
+  let encontrada = null;
+  for (const metodo of METODOS_DETALLE) {
+    const res = await aikonRaw(urlCuenta + '/IS3/' + metodo, { cuenta, token, ...comp }, 7000);
+    const r = resumen(metodo, Object.keys(comp).join('+'), res);
+    out.push(r);
+    if (r.filas > 0) { encontrada = r; break; }
+  }
+  return { encontrada, intentos: out };
+}
+
 async function diagnosticar(q) {
   const { urlCuenta, cuenta, token, empresa } = await login();
 
@@ -117,6 +159,23 @@ async function diagnosticar(q) {
   if (q.tabla) {
     const res = await aikonRaw(urlCuenta + '/IS3/DtTabla', { cuenta, token, tabla: q.tabla });
     return { ok: true, urlCuenta, modo: 'DtTabla', detalle: [resumen(q.tabla, 'tabla', res)] };
+  }
+
+  // Modo DETALLE: buscar el método que trae los renglones (SKU + cantidad) de un comprobante.
+  if (q.detalle) {
+    const comp = {
+      Codigo: q.cod || 'NCR', Sucursal: q.suc || '1000',
+      Numero: q.num || '00014889', Tipo: q.tipo || 'B',
+    };
+    const { encontrada, intentos } = await probarDetalle(urlCuenta, cuenta, token, comp);
+    return {
+      ok: true, _version: 'v4-detalle', urlCuenta, modo: 'detalle', comprobante: comp,
+      encontrada: encontrada ? { intento: encontrada.intento, filas: encontrada.filas, campoLista: encontrada.campoLista, columnas: encontrada.columnas, ejemplo: encontrada.ejemplo } : null,
+      intentos,
+      nota: encontrada
+        ? 'Encontramos el detalle. En "columnas"/"ejemplo" está el SKU y las cantidades por artículo.'
+        : 'Ningún método de detalle respondió con renglones. Revisá los "head". Probá otro comprobante con ?cod=&suc=&num=&tipo= (usá uno tipo FAR/FAC de venta), o lo consultamos a Córdoba Software.',
+    };
   }
 
   // Rango de fechas (default: último 1 día, para que responda rápido).
