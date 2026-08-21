@@ -7,53 +7,134 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="GrandBar">
-<meta name="theme-color" content="#0d2230">
+<meta name="theme-color" content="#0a1322">
 <link rel="manifest" href="/manifest.webmanifest">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GrandBar Hub — Ingresar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/app.css" />
-<link rel="stylesheet" href="assets/mobile.css?v=3">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#0a1322; --bg2:#0c1a2e; --ink:#eef2f7; --muted:#8b98a8; --muted-2:#5f6d7d;
+      --blue:#2f5fd0; --blue-lt:#5a86e6; --blue-2:#1c3a94;
+      --gold:#c9a24a; --gold-lt:#e0bd68;
+      --card:rgba(255,255,255,.035); --card-brd:rgba(255,255,255,.09);
+      --in-bg:rgba(255,255,255,.04); --in-brd:rgba(255,255,255,.11);
+      --danger:#e6795c;
+      --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+      --disp:'Oswald','Inter',sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%}
+    body{
+      font-family:var(--sans);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;
+      background:
+        radial-gradient(1100px 620px at 82% -8%, rgba(47,95,208,.16), transparent 60%),
+        radial-gradient(900px 560px at -8% 108%, rgba(47,95,208,.14), transparent 60%),
+        linear-gradient(160deg, #0b1526 0%, #0a1322 46%, #0a1220 100%);
+      background-attachment:fixed;
+    }
+    .auth{position:relative;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 26px;overflow:hidden}
+    .shell{width:100%;max-width:430px;position:relative;z-index:2}
+
+    /* Decoraciones de fondo */
+    .deco{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1}
+    .mono{position:absolute;top:-46px;left:-30px;font-family:var(--disp);font-weight:700;font-size:270px;line-height:.8;letter-spacing:-.06em;color:transparent;-webkit-text-stroke:1.4px rgba(120,150,220,.16);opacity:.9}
+    .dots{position:absolute;top:26px;right:22px;width:132px;height:96px;opacity:.5;
+      background-image:radial-gradient(rgba(120,150,220,.5) 1.3px, transparent 1.4px);background-size:15px 15px}
+    .arc{position:absolute;top:-120px;right:-120px;width:340px;height:340px;border-radius:50%;border:1.5px solid rgba(201,162,74,.28);border-left-color:transparent;border-bottom-color:transparent;transform:rotate(24deg)}
+    .arc.b{border-color:rgba(47,95,208,.5);border-left-color:transparent;border-top-color:transparent;width:300px;height:300px;top:-100px;right:-100px;transform:rotate(-16deg)}
+    .streak{position:absolute;left:-70px;bottom:-40px;width:220px;height:520px;transform:rotate(24deg);
+      background:linear-gradient(90deg, rgba(47,95,208,.55), rgba(47,95,208,0) 26%),
+                 linear-gradient(90deg, transparent 40%, rgba(201,162,74,.5) 41%, transparent 43%);
+      filter:blur(.2px);opacity:.7}
+
+    /* Marca */
+    .brand{text-align:center;margin-bottom:6px}
+    .wordmark{font-family:var(--disp);font-weight:700;font-size:clamp(40px,12vw,58px);line-height:.9;letter-spacing:.01em;color:var(--blue-lt);
+      text-shadow:0 2px 30px rgba(47,95,208,.35)}
+    .subm{font-family:var(--sans);font-weight:600;font-size:clamp(9px,3vw,11px);letter-spacing:.52em;color:var(--gold);margin-top:8px;padding-left:.52em}
+    .rule{display:flex;align-items:center;justify-content:center;gap:12px;margin:16px 0 22px;color:var(--gold)}
+    .rule i{height:1px;width:74px;background:linear-gradient(90deg,transparent,rgba(201,162,74,.65))}
+    .rule i+i{background:linear-gradient(90deg,rgba(201,162,74,.65),transparent)}
+    .rule b{font-size:15px;filter:drop-shadow(0 0 8px rgba(201,162,74,.5))}
+
+    .hello{text-align:center;margin-bottom:22px}
+    .hello h1{font-size:clamp(26px,7vw,32px);font-weight:800;margin:0 0 6px;letter-spacing:-.01em}
+    .hello .sub{margin:0;color:var(--muted);font-size:14.5px}
+
+    /* Tarjeta */
+    .card{background:var(--card);border:1px solid var(--card-brd);border-radius:20px;padding:22px 20px;
+      box-shadow:0 30px 70px -30px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.04);backdrop-filter:blur(6px)}
+    .field{margin-bottom:16px}
+    .field label{display:block;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px 2px}
+    .input{display:flex;align-items:center;gap:11px;background:var(--in-bg);border:1px solid var(--in-brd);border-radius:12px;padding:0 13px;height:52px;transition:border-color .15s, box-shadow .15s}
+    .input:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,95,208,.18)}
+    .input svg{color:var(--blue-lt);flex:none;opacity:.85}
+    .input input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:15px;color:var(--ink)}
+    .input input::placeholder{color:var(--muted-2)}
+    .eye{background:none;border:0;cursor:pointer;color:var(--muted);display:grid;place-items:center;padding:4px}
+    .eye:hover{color:var(--ink)}
+
+    .forgot{display:block;text-align:right;color:var(--blue-lt);font-size:12.5px;font-weight:600;text-decoration:none;margin:-2px 2px 16px 0}
+    .forgot:hover{color:#7ba1f0}
+
+    .primary{width:100%;height:52px;border:0;border-radius:12px;cursor:pointer;font:inherit;font-weight:700;font-size:15.5px;color:#fff;
+      display:flex;align-items:center;justify-content:center;gap:9px;
+      background:linear-gradient(180deg,var(--blue),var(--blue-2));box-shadow:0 12px 26px -12px rgba(47,95,208,.8), inset 0 1px 0 rgba(255,255,255,.18);
+      transition:transform .08s, filter .15s}
+    .primary:hover{filter:brightness(1.06)} .primary:active{transform:translateY(1px)}
+
+    .or{display:flex;align-items:center;gap:12px;color:var(--muted-2);font-size:12.5px;margin:20px 0 14px}
+    .or::before,.or::after{content:"";flex:1;height:1px;background:rgba(255,255,255,.09)}
+
+    .bio-wrap{display:flex;flex-direction:column;align-items:center;gap:9px}
+    .bio{width:60px;height:60px;border-radius:50%;border:1px solid rgba(90,134,230,.45);background:rgba(47,95,208,.10);color:var(--blue-lt);
+      display:grid;place-items:center;cursor:pointer;transition:transform .1s, box-shadow .15s, background .15s}
+    .bio:hover{background:rgba(47,95,208,.2);box-shadow:0 0 0 4px rgba(47,95,208,.14)} .bio:active{transform:scale(.96)}
+    .bio-lbl{font-size:13.5px;color:var(--muted);font-weight:600}
+    .bio-msg{font-size:12px;color:var(--danger);text-align:center;margin-top:10px;min-height:14px}
+
+    /* Nota de seguridad */
+    .note{display:flex;align-items:center;gap:13px;margin-top:20px;background:rgba(255,255,255,.028);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:13px 15px}
+    .note .sh{color:var(--gold);flex:none}
+    .note .t b{display:block;font-size:12.5px;font-weight:700;color:var(--ink)} .note .t span{font-size:12px;color:var(--muted)}
+    .note .lk{margin-left:auto;color:var(--muted-2);flex:none;padding-left:13px;border-left:1px solid rgba(255,255,255,.08)}
+
+    .copy{text-align:center;color:var(--muted-2);font-size:12px;margin-top:22px}
+    @media(max-width:380px){ .card{padding:18px 15px} .auth{padding:22px 14px} }
+    @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+  </style>
 </head>
 <body>
-  <div class="login">
+  <div class="auth">
+    <div class="deco" aria-hidden="true">
+      <div class="mono">GB</div>
+      <div class="arc b"></div>
+      <div class="arc"></div>
+      <div class="dots"></div>
+      <div class="streak"></div>
+    </div>
 
-    <!-- Panel de marca -->
-    <aside class="login__aside">
-      <div class="logo brand-mark">
-        <span class="b1">Grand<span class="gold">Bar</span></span>
-        <span class="b2">Distribuciones</span>
+    <div class="shell">
+      <div class="brand">
+        <div class="wordmark">GRANDBAR</div>
+        <div class="subm">DISTRIBUCIONES</div>
       </div>
-      <div>
-        <h2>Toda la operación. <span class="gold">Un solo lugar.</span></h2>
-        <p class="lead">Conectamos ventas, compras, logística y finanzas para que todo funcione mejor.</p>
-        <div class="feats">
-          <div class="feat"><span class="fi">👥</span>Equipos conectados</div>
-          <div class="feat"><span class="fi">📊</span>Información en tiempo real</div>
-          <div class="feat"><span class="fi">🛡️</span>Segura y confiable</div>
-        </div>
+      <div class="rule"><i></i><b>✦</b><i></i></div>
+
+      <div class="hello">
+        <h1>Bienvenido</h1>
+        <p class="sub">Ingresá con tu cuenta de GrandBar.</p>
       </div>
-      <div style="color:var(--muted-2);font-size:12px;">© 2026 GrandBar Distribuciones · Versión 1.0.0</div>
-    </aside>
 
-    <!-- Panel de login -->
-    <section class="login__panel">
-      <form class="login__card" id="loginForm" novalidate>
-        <div class="logo brand-mark">
-          <span class="b1">Grand<span class="gold">Bar</span></span>
-          <span class="b2">Distribuciones</span>
-        </div>
-        <div class="divider-star">✦</div>
-        <div class="hub-badge">Hub</div>
-        <p class="sub">Ingresá para continuar en GrandBar Hub.</p>
-
+      <form class="card" id="loginForm" novalidate>
         <div class="field">
           <label for="email">Usuario o email</label>
           <div class="input">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
             <input id="email" type="text" placeholder="ej. usuario@grandbar.com.ar" autocomplete="username" />
           </div>
         </div>
@@ -61,34 +142,42 @@
         <div class="field">
           <label for="pass">Contraseña</label>
           <div class="input">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
             <input id="pass" type="password" placeholder="Ingresá tu contraseña" autocomplete="current-password" />
             <button type="button" class="eye" id="toggleEye" aria-label="Mostrar contraseña">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
         </div>
 
         <a href="#" class="forgot">¿Olvidaste tu contraseña?</a>
 
-        <button type="submit" class="btn btn--gold">
+        <button type="submit" class="primary">
           Ingresar
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </button>
 
-        <div class="or" id="faceOr" style="display:none">O continuá con</div>
-        <button type="button" class="btn btn--ghost" id="btnFaceID" style="display:none">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg>
-          <span id="bioLbl">Ingresar con biometría</span>
-        </button>
-        <div id="faceMsg" style="font-size:12px;color:var(--danger,#c0603e);text-align:center;margin-top:8px;min-height:14px"></div>
+        <div class="or" id="faceOr" style="display:none">o continuá con</div>
+        <div class="bio-wrap" id="bioWrap" style="display:none">
+          <button type="button" class="bio" id="btnFaceID" aria-label="Ingresar con biometría">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <path d="M5.2 11a6.8 6.8 0 0 1 13.6 0"/><path d="M8 11a4 4 0 0 1 8 0v1.5"/><path d="M12 11v3.5a3 3 0 0 0 3 3"/>
+              <path d="M7.2 13v1a5 5 0 0 0 2.2 4.1"/><path d="M16 15.5a6 6 0 0 1-.6 2.6"/><path d="M9.6 20.4A8 8 0 0 1 4.2 14"/>
+            </svg>
+          </button>
+          <div class="bio-lbl" id="bioLbl">Ingresar con huella</div>
+        </div>
+        <div class="bio-msg" id="faceMsg"></div>
 
-        <div class="login__note">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none;color:var(--gold)"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-4Z"/></svg>
-          <span>Aplicación interna de GrandBar. Uso exclusivo para personal autorizado.</span>
+        <div class="note">
+          <svg class="sh" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 2 4 6v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-4Z"/><path d="M9 12l2 2 4-4"/></svg>
+          <div class="t"><b>Aplicación interna de GrandBar.</b><span>Uso exclusivo para personal autorizado.</span></div>
+          <svg class="lk" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
         </div>
       </form>
-    </section>
+
+      <div class="copy">© 2026 GrandBar Distribuciones</div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -104,12 +193,12 @@
     });
 
     const form = document.getElementById("loginForm");
-    const btn  = form.querySelector(".btn--gold");
+    const btn  = form.querySelector('button[type="submit"]');
 
     // Si Supabase todavía no está configurado, avisamos que es modo demo.
     if (!GBAuth.configured) {
-      const note = document.querySelector(".sub");
-      note.innerHTML += ' <span style="color:var(--gold)">(modo demo — entrás sin validar)</span>';
+      const note = document.querySelector(".hello .sub");
+      if (note) note.innerHTML += ' <span style="color:var(--gold)">(modo demo — entrás sin validar)</span>';
     }
 
     // Etiqueta biométrica según el dispositivo
@@ -128,7 +217,7 @@
       return d;
     }
 
-    // Mostrar el botón Face ID solo si hay autenticador biométrico (Face ID / Touch ID)
+    // Mostrar el botón biométrico solo si hay autenticador (Face ID / huella)
     (async function () {
       try {
         if (!(GBAuth.configured && window.GBPasskey && GBPasskey.disponible())) return;
@@ -138,20 +227,20 @@
         }
         document.getElementById("bioLbl").textContent = "Ingresar con " + BIO;
         document.getElementById("faceOr").style.display = "";
-        document.getElementById("btnFaceID").style.display = "";
+        document.getElementById("bioWrap").style.display = "";
       } catch (e) {}
     })();
 
-    // Login con Face ID
+    // Login con biometría
     document.getElementById("btnFaceID").addEventListener("click", async () => {
       const fb = document.getElementById("btnFaceID"), msg = document.getElementById("faceMsg");
-      msg.textContent = ""; fb.disabled = true; fb.style.opacity = ".7";
+      msg.textContent = ""; fb.disabled = true; fb.style.opacity = ".55";
       try {
         await GBPasskey.login(GBAuth.client);
         window.location.href = await destino();
       } catch (e) {
         fb.disabled = false; fb.style.opacity = "1";
-        msg.textContent = (e && e.message) ? e.message : "No se pudo con Face ID. Entrá con tu contraseña.";
+        msg.textContent = (e && e.message) ? e.message : "No se pudo con " + BIO + ". Entrá con tu contraseña.";
       }
     });
 
@@ -162,7 +251,7 @@
       btn.disabled = true; btn.style.opacity = ".7";
       const r = await GBAuth.signIn(email, pass);
       if (r.ok) {
-        // Ofrecer activar Face ID para la próxima (una sola vez por dispositivo)
+        // Ofrecer activar biometría para la próxima (una sola vez por dispositivo)
         try {
           if (GBAuth.configured && window.GBPasskey && GBPasskey.disponible() && localStorage.getItem("gb_passkey") !== "1") {
             if (confirm("¿Activar el ingreso con " + BIO + " para la próxima vez?")) {
