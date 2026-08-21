@@ -5,11 +5,6 @@
   # Funciones serverless del manual de vendedores (IA de fotos y sugerencias).
   functions = "manual-vendedores/netlify/functions"
 
-# Sincronización diaria de ventas desde el ERP (Aikon/Sinergis) para Resultados.
-# 09:00 UTC ≈ 06:00 Argentina → baja las ventas del día anterior.
-[functions."sync-ventas-background"]
-  schedule = "0 9 * * *"
-
 # La app entra por el login (index.html) automáticamente.
 [[redirects]]
   from = "/hub"
