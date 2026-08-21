@@ -1,19 +1,25 @@
 // ============================================================
 //  GrandBar · Netlify Function · diag-ventas  (DIAGNÓSTICO, one-shot)
 //  Se conecta a Córdoba Software (Aikon/Sinergis WebApi IS3) con las
-//  MISMAS credenciales que ya usa sync-cuentas / sync-stock, y prueba
-//  las tablas/métodos típicos de VENTAS para descubrir de dónde salen
-//  las ventas por artículo (con su SKU) y con qué nombres de columna.
+//  MISMAS credenciales que ya usa sync-cuentas / sync-stock, y descubre
+//  de dónde salen las VENTAS por artículo (con su SKU).
+//
+//  Hallazgo: el método IS3 `ListarComprobantes` EXISTE, pero necesita
+//  un rango de fechas. Esta versión lo llama con fechas, probando los
+//  nombres de parámetro típicos de Sinergis hasta que uno devuelve datos.
 //
 //  No escribe nada en Supabase: solo lee del ERP y devuelve un resumen
-//  (estado HTTP, cantidad, columnas y 1 fila de ejemplo por candidato).
+//  (estado, cantidad, columnas y 1 fila de ejemplo por intento).
 //
-//  Uso:  <sitio>/.netlify/functions/diag-ventas   (o ?key=<SYNC_SECRET>)
-//        <sitio>/.netlify/functions/diag-ventas?tabla=NOMBRE  → prueba una puntual
+//  Uso:
+//    /diag-ventas                         → prueba ListarComprobantes (últimos 7 días)
+//    /diag-ventas?desde=01/08/2026&hasta=21/08/2026
+//    /diag-ventas?metodo=NombreMetodo     → prueba otro método IS3 con fechas
+//    /diag-ventas?tabla=NOMBRE            → prueba DtTabla con una tabla puntual
 //  Env vars: las mismas AIKON_* + (opcional) SYNC_SECRET.
 // ============================================================
 
-async function aikonRaw(url, body, ms = 7000) {
+async function aikonRaw(url, body, ms = 8000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
   try {
@@ -32,15 +38,16 @@ async function aikonRaw(url, body, ms = 7000) {
   }
 }
 const parse = (t) => { try { return JSON.parse(t); } catch { return null; } };
-// DtTabla devuelve la lista bajo distintas claves según la versión.
 const listaDe = (j) => {
   if (Array.isArray(j)) return j;
   if (!j || typeof j !== 'object') return [];
   const l = j.lista || j.tabla || j.Tabla || j.datos || j.Datos ||
             j.registros || j.Registros || j.data || j.Lista ||
-            j.ListadoVentas || j.Ventas || j.Comprobantes || [];
+            j.ListadoComprobantes || j.Comprobantes || j.ListadoVentas || j.Ventas || [];
   return Array.isArray(l) ? l : [];
 };
+const dd = (n) => String(n).padStart(2, '0');
+const fmtFecha = (date) => dd(date.getDate()) + '/' + dd(date.getMonth() + 1) + '/' + date.getFullYear();
 
 async function login() {
   const cuenta = process.env.AIKON_CUENTA;
@@ -54,65 +61,84 @@ async function login() {
   })).text) || {};
   const token = j2.token && j2.token.Codigo;
   if (!token) throw new Error('ObtenerToken falló: ' + JSON.stringify(j2).slice(0, 200));
-  return { urlCuenta, cuenta, token };
+  return { urlCuenta, cuenta, token, empresa: process.env.AIKON_EMPRESA };
 }
 
-// Resume un candidato: cantidad, columnas y una fila de ejemplo (recortada).
-function resumen(nombre, tipo, res) {
+// Resume un intento: log/estado, cantidad, columnas y una fila de ejemplo.
+function resumen(nombre, params, res) {
   const bytes = res.text ? res.text.length : 0;
-  if (res.error) return { nombre, tipo, status: res.status, error: res.error };
+  if (res.error) return { intento: nombre, params, status: res.status, error: res.error };
   const j = parse(res.text);
   const arr = listaDe(j);
   if (!arr.length) {
-    // No es lista (o vino vacío): mostramos la cabeza del texto para entender la respuesta.
-    return { nombre, tipo, status: res.status, bytes, filas: 0, head: String(res.text || '').slice(0, 300) };
+    // No es lista: mostramos la cabeza del texto (suele traer el error/pista de Sinergis).
+    return { intento: nombre, params, status: res.status, bytes, filas: 0, head: String(res.text || '').slice(0, 320) };
   }
   const cols = Object.keys(arr[0] || {});
-  return { nombre, tipo, status: res.status, bytes, filas: arr.length, columnas: cols, ejemplo: JSON.stringify(arr[0]).slice(0, 600) };
-}
-
-async function diagnosticar(unaTabla) {
-  const { urlCuenta, cuenta, token } = await login();
-
-  // Tablas candidatas para DtTabla (nombres típicos de ventas en Sinergis).
-  const TABLAS = unaTabla ? [unaTabla] : [
-    'VENTAS', 'COMPROBANTES', 'COMPROBANTES_VENTA', 'MOVIMIENTOS', 'MOVART',
-    'MOVIMIENTOS_ARTICULOS', 'RENGLONES', 'COMPROBANTES_RENGLONES',
-    'VENTAS_DETALLE', 'VENTAS_ARTICULOS', 'FACTURAS_DET', 'ITEMS',
-  ];
-  // Métodos IS3 candidatos (algunos pueden pedir fechas: capturamos el error igual).
-  const METODOS = unaTabla ? [] : [
-    'ListarVentas', 'ListarComprobantes', 'ListarComprobantesVenta',
-    'ConsultarVentas', 'VentasPorArticulo',
-  ];
-
-  const resultados = [];
-  let encontrada = null;
-
-  for (const tabla of TABLAS) {
-    const res = await aikonRaw(urlCuenta + '/IS3/DtTabla', { cuenta, token, tabla });
-    const r = resumen(tabla, 'DtTabla', res);
-    resultados.push(r);
-    if (r.filas > 0) { encontrada = r; break; } // paramos en la primera que trae datos
-  }
-
-  if (!encontrada) {
-    for (const metodo of METODOS) {
-      const res = await aikonRaw(urlCuenta + '/IS3/' + metodo, { cuenta, token });
-      const r = resumen(metodo, 'IS3', res);
-      resultados.push(r);
-      if (r.filas > 0) { encontrada = r; break; }
+  // Si la primera fila tiene un array anidado (renglones/detalle), lo mostramos también.
+  let detalleAnidado = null;
+  for (const k of cols) {
+    if (Array.isArray(arr[0][k]) && arr[0][k].length && typeof arr[0][k][0] === 'object') {
+      detalleAnidado = { campo: k, columnas: Object.keys(arr[0][k][0]), ejemplo: JSON.stringify(arr[0][k][0]).slice(0, 500) };
+      break;
     }
   }
+  return { intento: nombre, params, status: res.status, bytes, filas: arr.length, columnas: cols, ejemplo: JSON.stringify(arr[0]).slice(0, 700), detalleAnidado };
+}
+
+async function probarComprobantes(urlCuenta, cuenta, token, empresa, metodo, desde, hasta) {
+  // Variantes de nombres de parámetro de fecha típicos de Sinergis IS3.
+  const variantes = [
+    { FechaDesde: desde, FechaHasta: hasta },
+    { fechaDesde: desde, fechaHasta: hasta },
+    { Desde: desde, Hasta: hasta },
+    { desde: desde, hasta: hasta },
+    { FechaEmisionDesde: desde, FechaEmisionHasta: hasta },
+    { fecha_desde: desde, fecha_hasta: hasta },
+    { FechaDesde: desde, FechaHasta: hasta, empresa },
+  ];
+  const out = [];
+  for (const extra of variantes) {
+    const body = { cuenta, token, ...extra };
+    const res = await aikonRaw(urlCuenta + '/IS3/' + metodo, body);
+    const r = resumen(metodo, Object.keys(extra).join('+'), res);
+    out.push(r);
+    if (r.filas > 0) return { encontrada: r, intentos: out }; // primera que trae datos
+    // Si el error dejó de ser el de fecha, esta variante fue aceptada: la reportamos igual.
+  }
+  return { encontrada: null, intentos: out };
+}
+
+async function diagnosticar(q) {
+  const { urlCuenta, cuenta, token, empresa } = await login();
+
+  // Modo puntual: DtTabla con una tabla concreta.
+  if (q.tabla) {
+    const res = await aikonRaw(urlCuenta + '/IS3/DtTabla', { cuenta, token, tabla: q.tabla });
+    return { ok: true, urlCuenta, modo: 'DtTabla', detalle: [resumen(q.tabla, 'tabla', res)] };
+  }
+
+  // Rango de fechas (default: últimos 7 días).
+  const hoy = new Date();
+  const hace7 = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const desde = q.desde || fmtFecha(hace7);
+  const hasta = q.hasta || fmtFecha(hoy);
+
+  const metodo = q.metodo || 'ListarComprobantes';
+  const { encontrada, intentos } = await probarComprobantes(urlCuenta, cuenta, token, empresa, metodo, desde, hasta);
 
   return {
     ok: true,
     urlCuenta,
-    encontrada: encontrada ? { nombre: encontrada.nombre, tipo: encontrada.tipo, filas: encontrada.filas, columnas: encontrada.columnas } : null,
-    detalle: resultados,
+    metodo,
+    rango: { desde, hasta },
+    encontrada: encontrada
+      ? { intento: encontrada.intento, params: encontrada.params, filas: encontrada.filas, columnas: encontrada.columnas, detalleAnidado: encontrada.detalleAnidado }
+      : null,
+    intentos,
     nota: encontrada
-      ? 'Se encontró una fuente de ventas. Revisá "columnas" y "ejemplo" para ver el SKU y las cantidades/importes.'
-      : 'Ninguna tabla/método candidato devolvió filas. Pasame el nombre exacto de la tabla de ventas (o probá ?tabla=NOMBRE), o lo consultamos a Córdoba Software.',
+      ? 'Se obtuvieron comprobantes. Revisá "columnas"/"ejemplo" (y "detalleAnidado" para los renglones con SKU y cantidades).'
+      : 'Ninguna variante devolvió datos. Revisá los "head" de cada intento: si el error dejó de mencionar la fecha, ese nombre de parámetro se aceptó y falta otro dato. Si no, lo consultamos a Córdoba Software.',
   };
 }
 
@@ -125,12 +151,11 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
 
   const secret = process.env.SYNC_SECRET;
-  const key = (event.queryStringParameters && event.queryStringParameters.key) || '';
-  if (secret && key !== secret) return { statusCode: 401, headers, body: JSON.stringify({ error: 'No autorizado. Falta ?key=' }) };
+  const q = event.queryStringParameters || {};
+  if (secret && (q.key || '') !== secret) return { statusCode: 401, headers, body: JSON.stringify({ error: 'No autorizado. Falta ?key=' }) };
 
-  const unaTabla = (event.queryStringParameters && event.queryStringParameters.tabla) || null;
   try {
-    return { statusCode: 200, headers, body: JSON.stringify(await diagnosticar(unaTabla), null, 2) };
+    return { statusCode: 200, headers, body: JSON.stringify(await diagnosticar(q), null, 2) };
   } catch (e) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: (e && e.message) || String(e) }) };
   }
