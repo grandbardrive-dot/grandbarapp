@@ -77,6 +77,9 @@
   .canal-tabs{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
   .canal-tab{display:inline-flex;align-items:center;gap:9px;border:1.5px solid var(--line-2);background:var(--surface);border-radius:12px;padding:11px 18px;font-size:13.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit}
   .canal-tab.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .canal-actual{display:flex;align-items:center;gap:10px;margin-top:14px;background:var(--navy);color:#fff;border-radius:12px;padding:13px 16px;font-size:13.5px;line-height:1.45}
+  .canal-actual b{color:var(--gold)}
+  .canal-actual .ico{font-size:19px;flex:none}
   .canal-tab .n{font-size:11.5px;font-weight:700;opacity:.7}
 
   .aviso{display:flex;align-items:flex-start;gap:11px;background:rgba(31,68,127,.05);border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:13px;color:var(--ink2);margin-top:18px;line-height:1.5}
@@ -186,6 +189,9 @@
 
       <div class="canal-tabs" id="canal-tabs"></div>
 
+      <!-- Cada canal tiene SU manual: sin esto se edita uno y se mira el otro. -->
+      <div class="canal-actual" id="canal-actual"></div>
+
       <div class="aviso">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>
         <div>Los cambios se ven en el manual del vendedor apenas abre una visita nueva. Si una sección no la querés usar más, <b>ocultala</b> en vez de borrarla: así no perdés las campañas que estaban publicadas ahí.</div>
@@ -286,9 +292,16 @@
     renderTabs(); renderLista();
   }
 
+  const canalActual = () => CANALES.find(c=>c.id===canal) || CANALES[0];
+  const otroCanal   = () => CANALES.find(c=>c.id!==canal) || CANALES[1];
+
   function renderTabs(){
     document.getElementById('canal-tabs').innerHTML = CANALES.map(c=>
       `<button class="canal-tab ${c.id===canal?'on':''}" onclick="cambiarCanal('${c.id}')">${c.ico} ${esc(c.label)}</button>`).join('');
+    const a=canalActual(), o=otroCanal();
+    document.getElementById('canal-actual').innerHTML =
+      `<span class="ico">${a.ico}</span><div>Estás editando el manual de <b>${esc(a.label)}</b>.
+       Lo que agregues, muevas o borres acá <b>no</b> toca el de ${esc(o.label)} — ese tiene sus propias secciones.</div>`;
   }
   function cambiarCanal(c){ canal=c; document.getElementById('lista').innerHTML='<div class="empty">Cargando…</div>'; cargar(); }
 
@@ -452,13 +465,22 @@
     const hs=hijas(s);
     if(hs.length){ alert(`"${s.nombre}" tiene ${hs.length} subsección(es). Borrá o mové primero las subsecciones.`); return; }
     const usos=USOS[s.codigo]||0, its=ITEMS[s.id]||0;
-    let aviso=`¿Eliminar "${s.nombre}"?\n\nSe borra del manual de los vendedores.`;
+    let aviso=`¿Eliminar "${s.nombre}"?\n\nSe borra del manual de ${canalActual().label.toUpperCase()}.\nEl manual de ${otroCanal().label} no se toca.`;
     if(its)  aviso+=`\n\nTambién se borran sus ${its} ítem(s) de checklist.`;
     if(usos) aviso+=`\n\nOJO: ${usos} campaña(s) están publicadas en esta sección. Van a pasar a "Acciones Mensuales" del canal.`;
     aviso+=`\n\nSi solo querés dejar de usarla, cancelá y usá "Ocultar".`;
     if(!confirm(aviso)) return;
     const { error } = await sb.from('checklist_secciones').delete().eq('id', id);
     if(error){ alert('No se pudo eliminar: '+error.message); return; }
+    // Si existe una sección con el mismo nombre en el otro manual, avisarlo: es el
+    // error clásico (borrás en un canal y seguís viéndola en el manual del otro).
+    try{
+      const { data:gemelas } = await sb.from('checklist_secciones')
+        .select('nombre').eq('canal', otroCanal().id).ilike('nombre', s.nombre);
+      if(gemelas && gemelas.length){
+        alert(`Listo, se borró del manual de ${canalActual().label}.\n\nOJO: "${s.nombre}" también existe en el manual de ${otroCanal().label} y sigue ahí.\nSi también la querés sacar, cambiá de pestaña arriba.`);
+      }
+    }catch(e){}
     await cargar();
   }
 
