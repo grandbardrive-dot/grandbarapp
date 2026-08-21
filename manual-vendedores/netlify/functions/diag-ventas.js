@@ -86,25 +86,26 @@ function resumen(nombre, params, res) {
   return { intento: nombre, params, status: res.status, bytes, filas: arr.length, columnas: cols, ejemplo: JSON.stringify(arr[0]).slice(0, 700), detalleAnidado };
 }
 
-async function probarComprobantes(urlCuenta, cuenta, token, empresa, metodo, desde, hasta) {
-  // Variantes de nombres de parámetro de fecha típicos de Sinergis IS3.
-  const variantes = [
-    { FechaDesde: desde, FechaHasta: hasta },
-    { fechaDesde: desde, fechaHasta: hasta },
-    { Desde: desde, Hasta: hasta },
-    { desde: desde, hasta: hasta },
-    { FechaEmisionDesde: desde, FechaEmisionHasta: hasta },
-    { fecha_desde: desde, fecha_hasta: hasta },
-    { FechaDesde: desde, FechaHasta: hasta, empresa },
-  ];
+// Mapa de estilos de nombre de parámetro de fecha.
+const VARIANTES = {
+  pascal:  (d, h) => ({ FechaDesde: d, FechaHasta: h }),
+  camel:   (d, h) => ({ fechaDesde: d, fechaHasta: h }),
+  plain:   (d, h) => ({ Desde: d, Hasta: h }),
+  emision: (d, h) => ({ FechaEmisionDesde: d, FechaEmisionHasta: h }),
+};
+
+async function probarComprobantes(urlCuenta, cuenta, token, empresa, metodo, desde, hasta, estilo) {
+  // El hallazgo previo: FechaDesde/FechaHasta (pascal) SÍ se acepta pero tarda.
+  // Le damos tiempo (24s) y un rango chico para que responda a tiempo.
+  const orden = estilo ? [estilo] : ['pascal', 'camel'];
   const out = [];
-  for (const extra of variantes) {
-    const body = { cuenta, token, ...extra };
-    const res = await aikonRaw(urlCuenta + '/IS3/' + metodo, body);
-    const r = resumen(metodo, Object.keys(extra).join('+'), res);
+  for (const est of orden) {
+    const build = VARIANTES[est] || VARIANTES.pascal;
+    const extra = build(desde, hasta);
+    const res = await aikonRaw(urlCuenta + '/IS3/' + metodo, { cuenta, token, ...extra }, 24000);
+    const r = resumen(metodo, est + ' (' + Object.keys(extra).join('+') + ')', res);
     out.push(r);
-    if (r.filas > 0) return { encontrada: r, intentos: out }; // primera que trae datos
-    // Si el error dejó de ser el de fecha, esta variante fue aceptada: la reportamos igual.
+    if (r.filas > 0) return { encontrada: r, intentos: out };
   }
   return { encontrada: null, intentos: out };
 }
@@ -118,14 +119,14 @@ async function diagnosticar(q) {
     return { ok: true, urlCuenta, modo: 'DtTabla', detalle: [resumen(q.tabla, 'tabla', res)] };
   }
 
-  // Rango de fechas (default: últimos 7 días).
+  // Rango de fechas (default: último 1 día, para que responda rápido).
   const hoy = new Date();
-  const hace7 = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const desde = q.desde || fmtFecha(hace7);
+  const ayer = new Date(hoy.getTime() - 1 * 24 * 60 * 60 * 1000);
+  const desde = q.desde || fmtFecha(ayer);
   const hasta = q.hasta || fmtFecha(hoy);
 
   const metodo = q.metodo || 'ListarComprobantes';
-  const { encontrada, intentos } = await probarComprobantes(urlCuenta, cuenta, token, empresa, metodo, desde, hasta);
+  const { encontrada, intentos } = await probarComprobantes(urlCuenta, cuenta, token, empresa, metodo, desde, hasta, q.estilo);
 
   return {
     ok: true,
