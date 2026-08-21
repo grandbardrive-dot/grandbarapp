@@ -97,12 +97,12 @@ const VARIANTES = {
 async function probarComprobantes(urlCuenta, cuenta, token, empresa, metodo, desde, hasta, estilo) {
   // El hallazgo previo: FechaDesde/FechaHasta (pascal) SÍ se acepta pero tarda.
   // Le damos tiempo (24s) y un rango chico para que responda a tiempo.
-  const orden = estilo ? [estilo] : ['pascal', 'camel'];
+  const orden = estilo ? [estilo] : ['pascal']; // una sola llamada: no acumular tiempo
   const out = [];
   for (const est of orden) {
     const build = VARIANTES[est] || VARIANTES.pascal;
     const extra = build(desde, hasta);
-    const res = await aikonRaw(urlCuenta + '/IS3/' + metodo, { cuenta, token, ...extra }, 24000);
+    const res = await aikonRaw(urlCuenta + '/IS3/' + metodo, { cuenta, token, ...extra }, 20000);
     const r = resumen(metodo, est + ' (' + Object.keys(extra).join('+') + ')', res);
     out.push(r);
     if (r.filas > 0) return { encontrada: r, intentos: out };
@@ -130,6 +130,7 @@ async function diagnosticar(q) {
 
   return {
     ok: true,
+    _version: 'v3-pascal-1dia',
     urlCuenta,
     metodo,
     rango: { desde, hasta },
