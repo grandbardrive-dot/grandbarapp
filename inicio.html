@@ -102,7 +102,9 @@
     .spark{width:90px;height:36px}
 
     /* Avisos + herramientas */
-    .aviso{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--line-2);border-radius:11px;margin-bottom:10px}
+    .aviso{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--line-2);border-radius:11px;margin-bottom:10px;color:inherit;text-decoration:none}
+    a.aviso:hover{border-color:var(--gold)}
+    .aviso .ai{font-size:16px}
     .aviso .ai{width:34px;height:34px;border-radius:9px;background:var(--gold-soft);color:var(--gold-d);display:grid;place-items:center;flex:none}
     .aviso .at{font-weight:600;font-size:13px}.aviso .as{font-size:12px;color:var(--muted);line-height:1.4}
     .aviso .go{margin-left:auto;color:var(--muted);align-self:center}
@@ -241,9 +243,8 @@
         <!-- Avisos + herramientas -->
         <div>
           <div class="card" style="margin-bottom:16px">
-            <div class="card-h"><span class="t">Avisos importantes</span><a class="lnk" href="#">Ver todos</a></div>
-            <div class="aviso"><div class="ai"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg></div><div><div class="at">Nuevo producto destacado</div><div class="as">Conocé nuestras incorporaciones del mes.</div></div><span class="go">›</span></div>
-            <div class="aviso"><div class="ai"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div><div><div class="at">Promoción activa</div><div class="as">Aprovechá las acciones vigentes en vinos y aperitivos.</div></div><span class="go">›</span></div>
+            <div class="card-h"><span class="t">Avisos importantes</span><a class="lnk" href="reporte-semanal.html">Ver todos</a></div>
+            <div id="avisos"><div class="aviso"><div class="ai">⏳</div><div><div class="at">Cargando…</div></div></div></div>
           </div>
           <div class="card">
             <div class="card-h"><span class="t">Herramientas rápidas</span></div>
@@ -364,6 +365,17 @@
     }catch(e){}
   }
 
+  // Cada dato se pide UNA sola vez aunque lo usen varias tarjetas (agenda, tareas y avisos).
+  const _pedidos = {};
+  function traer(fn, token){
+    if(!_pedidos[fn]){
+      _pedidos[fn] = fetch("/.netlify/functions/"+fn, { headers:{ Authorization:"Bearer "+token } })
+        .then(r => r.ok ? r.json() : {})
+        .catch(() => ({}));
+    }
+    return _pedidos[fn];
+  }
+
   // ── Sincronización con la Agenda ────────────────────────────────────────────
   // "Visitas de hoy", el listado del día y "Visitas realizadas" del resumen semanal
   // estaban escritos a mano en la maqueta (8 visitas, 32 de 50…). Ahora salen de los
@@ -375,9 +387,7 @@
 
   async function cargarAgendaReal(token){
     try{
-      const r = await fetch("/.netlify/functions/compromisos", { headers:{ Authorization:"Bearer "+token } });
-      if(!r.ok) return;
-      const j = await r.json();
+      const j = await traer("compromisos", token);
       const comp = j.compromisos || [];
       const hoy = isoFecha(new Date());
       const deHoy = comp.filter(c => c.fecha === hoy).sort((a,b)=>(a.hora||'99:99').localeCompare(b.hora||'99:99'));
@@ -425,12 +435,78 @@
     }catch(e){}
   }
 
+  // ── Avisos importantes ──────────────────────────────────────────────────────
+  // Eran dos textos fijos de la maqueta ("Nuevo producto destacado", "Promoción
+  // activa") que no llevaban a ningún lado. Ahora se arman con lo que el vendedor
+  // tiene pendiente de verdad, ordenado por urgencia, y cada uno lleva a su pantalla.
+  async function cargarAvisos(token){
+    const cont = document.getElementById("avisos");
+    if(!cont) return;
+    const hoy = isoFecha(new Date());
+    const avisos = [];
+
+    try{
+      const comp = (await traer("compromisos", token)).compromisos || [];
+      const atrasadas = comp.filter(c => c.fecha < hoy && c.estado !== 'completado');
+      if(atrasadas.length) avisos.push({ p:1, ico:"⏰", cls:"al",
+        t: atrasadas.length===1 ? "1 compromiso atrasado" : atrasadas.length+" compromisos atrasados",
+        s: atrasadas.slice(0,2).map(c=>c.cliente_nombre||"sin cliente").join(", ") + (atrasadas.length>2?" y más":""),
+        h:"agenda.html" });
+
+      const hoyPend = comp.filter(c => c.fecha === hoy && c.estado !== 'completado');
+      if(hoyPend.length) avisos.push({ p:2, ico:"📅", cls:"",
+        t: hoyPend.length===1 ? "1 visita pendiente para hoy" : hoyPend.length+" visitas pendientes para hoy",
+        s: hoyPend[0].hora ? "La próxima, "+hoyPend[0].hora+" hs · "+(hoyPend[0].cliente_nombre||"") : (hoyPend[0].cliente_nombre||""),
+        h:"agenda.html" });
+    }catch(e){}
+
+    try{
+      const tareas = (await traer("tareas", token)).tareas || [];
+      const pend = tareas.filter(t => !t.completada);
+      if(pend.length) avisos.push({ p:3, ico:"✅", cls:"",
+        t: pend.length===1 ? "1 tarea sin completar" : pend.length+" tareas sin completar",
+        s: pend[0].titulo || "", h:"tareas.html" });
+    }catch(e){}
+
+    try{
+      const leads = (await traer("leads", token)).leads || [];
+      const sinContactar = leads.filter(l => ['nuevo','asignado'].includes(String(l.estado||'').toLowerCase()));
+      if(sinContactar.length){
+        const viejo = sinContactar.map(l=>String(l.created_at||'').slice(0,10)).filter(Boolean).sort()[0];
+        const dias = viejo ? Math.floor((Date.now()-new Date(viejo+"T12:00:00").getTime())/86400000) : null;
+        avisos.push({ p: (dias!=null && dias>7) ? 1.5 : 4, ico:"🎯", cls:(dias!=null && dias>7)?"al":"",
+          t: sinContactar.length===1 ? "1 lead sin contactar" : sinContactar.length+" leads sin contactar",
+          s: dias!=null ? "El más viejo espera hace "+dias+(dias===1?" día":" días") : "Asignados a vos",
+          h:"leads.html" });
+      }
+    }catch(e){}
+
+    try{
+      const cc = (await traer("cuentas-vendedor", token)).clientes || [];
+      const conDeuda = cc.filter(c => Number(c.vencida) > 0);
+      if(conDeuda.length){
+        const total = conDeuda.reduce((a,c)=>a+Number(c.vencida||0),0);
+        avisos.push({ p:5, ico:"⚠️", cls:"al",
+          t: conDeuda.length===1 ? "1 cliente con deuda vencida" : conDeuda.length+" clientes con deuda vencida",
+          s: "$ " + Math.round(total).toLocaleString("es-AR") + " en total", h:"cobranzas-vendedor.html" });
+      }
+    }catch(e){}
+
+    avisos.sort((a,b)=>a.p-b.p);
+    cont.innerHTML = avisos.length
+      ? avisos.slice(0,4).map(a=>`
+          <a class="aviso" href="${a.h}">
+            <div class="ai" ${a.cls==='al'?'style="background:#fbe9e4;color:#c0603e"':''}>${a.ico}</div>
+            <div><div class="at">${escTxt(a.t)}</div><div class="as">${escTxt(a.s)}</div></div>
+            <div class="go">›</div>
+          </a>`).join("")
+      : `<div class="aviso"><div class="ai">🎉</div><div><div class="at">Estás al día</div><div class="as">No tenés compromisos atrasados, tareas ni leads pendientes.</div></div></div>`;
+  }
+
   // Tarjeta "Tareas pendientes": tareas sin completar y cuántas son de hoy.
   async function cargarTareas(token){
     try{
-      const r = await fetch("/.netlify/functions/tareas", { headers:{ Authorization:"Bearer "+token } });
-      if(!r.ok) return;
-      const j = await r.json();
+      const j = await traer("tareas", token);
       const tareas = j.tareas || [];
       const pend = tareas.filter(t => !t.completada);
       const hoy = pend.filter(t => t.frecuencia === 'diaria' || t.fecha === isoFecha(new Date()));
@@ -532,6 +608,7 @@
       cargarAgenda(session.access_token);        // ruta sugerida (si no hay nada agendado)
       cargarAgendaReal(session.access_token);    // agenda real: tarjetas + listado del día
       cargarTareas(session.access_token);
+      cargarAvisos(session.access_token);
       // Si no hubo ni agenda ni ruta sugerida, no dejar el ejemplo de la maqueta.
       setTimeout(()=>{
         const c=document.getElementById("agendaHoy");
