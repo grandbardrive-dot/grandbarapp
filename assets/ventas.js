@@ -54,7 +54,29 @@ window.GBVentas = (function () {
       });
       if (c.vend != null && c.monto != null) { col = c; desde = i + 1; }
     }
-    if (!col) return { porVendedor: {}, porCliente: {}, total: null };
+    // Sin fila de encabezado (la tabla dinámica a veces se publica sin ella) las
+    // columnas se deducen por la forma de los datos: la del dinero, y las numéricas
+    // de la izquierda son los códigos (vendedor y cliente); el nombre va al lado.
+    if (!col) {
+      var muestra = filas.filter(function (f) { return f.some(function (c) { return /\d/.test(c); }); }).slice(0, 60);
+      var ancho = 0, idxMonto = -1;
+      muestra.forEach(function (f) {
+        ancho = Math.max(ancho, f.length);
+        f.forEach(function (c, j) { if (/\$|\d[\d.]*,\d{2}/.test(String(c))) idxMonto = Math.max(idxMonto, j); });
+      });
+      var numericas = [];
+      for (var j = 0; j < ancho; j++) {
+        if (j === idxMonto) continue;
+        var enteros = muestra.filter(function (f) { return /^\s*\d{1,6}\s*$/.test(String(f[j] || '')); }).length;
+        if (enteros >= 3) numericas.push(j);
+      }
+      if (idxMonto >= 0 && numericas.length) {
+        col = { vend: numericas[0], vendNom: numericas[0] + 1, monto: idxMonto };
+        if (numericas.length > 1) { col.cli = numericas[1]; col.cliNom = numericas[1] + 1; }
+        desde = 0;
+      }
+    }
+    if (!col) return { porVendedor: {}, porCliente: {}, error: true };
 
     var porVendedor = {}, porCliente = {};
     for (var k = desde; k < filas.length; k++) {
@@ -106,6 +128,8 @@ window.GBVentas = (function () {
 
   return {
     cargar: cargar,
+    // ¿Se pudo leer la planilla? Sirve para distinguir "no figurás" de "no la pude leer".
+    seLeyo: function () { return cargar().then(function (d) { return !d.error && Object.keys(d.porVendedor).length > 0; }); },
     // Total vendido por un vendedor (por su código). null si no figura.
     totalDe: function (codigoVendedor) {
       var c = num(codigoVendedor);

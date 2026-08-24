@@ -295,7 +295,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/auth-persist.js?v=1"></script>
-<script src="assets/ventas.js?v=1"></script>
+<script src="assets/ventas.js?v=2"></script>
 <script src="assets/supabase-config.js"></script>
 <script>
   const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
@@ -331,7 +331,10 @@
         const rv = document.getElementById("rsVentas"); if(rv) rv.textContent = fmt;
         const rvs = document.getElementById("rsVentasSub"); if(rvs){ rvs.textContent = "Se actualiza a diario"; rvs.style.color = "var(--muted)"; }
       } else {
-        sinVentas("Tu código no figura en la planilla");
+        // Distinguir "no está tu código" de "no pude leer la planilla": si no se leyó
+        // ningún vendedor, el problema es la planilla y no el código del vendedor.
+        const ok = await GBVentas.seLeyo();
+        sinVentas(ok ? "Tu código ("+cod+") no figura en la planilla" : "No se pudo leer la planilla de ventas");
       }
     }catch(e){ sinVentas("No se pudo leer la planilla"); }
   }
