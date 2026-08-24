@@ -553,6 +553,7 @@ const MANUAL_POR_TIPO = {
   vinoteca: 'vinoteca',
   autoservicio: 'autoservicio',   // todavía tiene su checklist propio en el código
   kiosco: 'autoservicio',
+  evento: 'evento',               // manual propio: paquetes, combos, materiales…
 };
 function manualDe(tipo) {
   const t = String(tipo || '').toLowerCase();

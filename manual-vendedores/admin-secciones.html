@@ -259,6 +259,7 @@
   const CANALES=[
     { id:'restaurante', label:'Restaurantes, bares y hoteles', ico:'🍽️' },
     { id:'vinoteca',    label:'Vinotecas',                     ico:'🍾' },
+    { id:'evento',      label:'Eventos',                       ico:'🎉' },
   ];
   const COLORES=[
     { bg:'#EAF2FB', fg:'#1A5C9A' }, { bg:'#EAF4EE', fg:'#2D6A4F' }, { bg:'#FDF5E0', fg:'#8A5E00' },
@@ -298,10 +299,11 @@
   function renderTabs(){
     document.getElementById('canal-tabs').innerHTML = CANALES.map(c=>
       `<button class="canal-tab ${c.id===canal?'on':''}" onclick="cambiarCanal('${c.id}')">${c.ico} ${esc(c.label)}</button>`).join('');
-    const a=canalActual(), o=otroCanal();
+    const a=canalActual();
+    const otros=CANALES.filter(c=>c.id!==canal).map(c=>c.label).join(' ni el de ');
     document.getElementById('canal-actual').innerHTML =
       `<span class="ico">${a.ico}</span><div>Estás editando el manual de <b>${esc(a.label)}</b>.
-       Lo que agregues, muevas o borres acá <b>no</b> toca el de ${esc(o.label)} — ese tiene sus propias secciones.</div>`;
+       Lo que agregues, muevas o borres acá <b>no</b> toca el de ${esc(otros)} — cada uno tiene sus propias secciones.</div>`;
   }
   function cambiarCanal(c){ canal=c; document.getElementById('lista').innerHTML='<div class="empty">Cargando…</div>'; cargar(); }
 
@@ -465,7 +467,8 @@
     const hs=hijas(s);
     if(hs.length){ alert(`"${s.nombre}" tiene ${hs.length} subsección(es). Borrá o mové primero las subsecciones.`); return; }
     const usos=USOS[s.codigo]||0, its=ITEMS[s.id]||0;
-    let aviso=`¿Eliminar "${s.nombre}"?\n\nSe borra del manual de ${canalActual().label.toUpperCase()}.\nEl manual de ${otroCanal().label} no se toca.`;
+    const otrosLabels = CANALES.filter(c=>c.id!==canal).map(c=>c.label).join(' y ');
+    let aviso=`¿Eliminar "${s.nombre}"?\n\nSe borra del manual de ${canalActual().label.toUpperCase()}.\nLos manuales de ${otrosLabels} no se tocan.`;
     if(its)  aviso+=`\n\nTambién se borran sus ${its} ítem(s) de checklist.`;
     if(usos) aviso+=`\n\nOJO: ${usos} campaña(s) están publicadas en esta sección. Van a pasar a "Acciones Mensuales" del canal.`;
     aviso+=`\n\nSi solo querés dejar de usarla, cancelá y usá "Ocultar".`;
@@ -476,9 +479,10 @@
     // error clásico (borrás en un canal y seguís viéndola en el manual del otro).
     try{
       const { data:gemelas } = await sb.from('checklist_secciones')
-        .select('nombre').eq('canal', otroCanal().id).ilike('nombre', s.nombre);
+        .select('nombre,canal').neq('canal', canal).ilike('nombre', s.nombre);
       if(gemelas && gemelas.length){
-        alert(`Listo, se borró del manual de ${canalActual().label}.\n\nOJO: "${s.nombre}" también existe en el manual de ${otroCanal().label} y sigue ahí.\nSi también la querés sacar, cambiá de pestaña arriba.`);
+        const donde = [...new Set(gemelas.map(g=>(CANALES.find(c=>c.id===g.canal)||{}).label || g.canal))].join(' y ');
+        alert(`Listo, se borró del manual de ${canalActual().label}.\n\nOJO: "${s.nombre}" también existe en el manual de ${donde} y sigue ahí.\nSi también la querés sacar, cambiá de pestaña arriba.`);
       }
     }catch(e){}
     await cargar();
