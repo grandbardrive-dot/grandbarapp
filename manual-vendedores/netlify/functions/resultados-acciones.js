@@ -61,7 +61,7 @@ exports.handler = async (event) => {
     const [acciones, proveedores, ventas] = await Promise.all([
       getAll(CAT_URL, CAT_KEY, 'catalogo_acciones?select=*'),
       getAll(CAT_URL, CAT_KEY, 'catalogo_proveedores?select=id,nombre,categoria'),
-      getAll(MAN_URL, MAN_KEY, `ventas_articulos?select=sku,fecha,descripcion,marca,familia_nombre,unidades,importe,costo&fecha=gte.${desde}&fecha=lte.${hasta}`),
+      getAll(MAN_URL, MAN_KEY, `ventas_articulos?select=sku,fecha,descripcion,marca,familia_nombre,unidades,importe,importe_iva,costo,costo_pleno,imp_interno&fecha=gte.${desde}&fecha=lte.${hasta}`),
     ]);
     const provMap = new Map(proveedores.map((p) => [p.id, p]));
     ventas.forEach((v) => { v._txt = norm(`${v.descripcion || ''} ${v.marca || ''} ${v.familia_nombre || ''}`); });
@@ -74,7 +74,7 @@ exports.handler = async (event) => {
       const artManual = Array.isArray(a.articulos) ? a.articulos.map(String) : [];
       const skuPromo = a.sku_promo ? String(a.sku_promo).replace(/\D/g, '') : '';
       const metodo = artManual.length ? 'articulos' : (skuPromo ? 'sku_promo' : (toks.length ? 'nombre' : 'sin_dato'));
-      let unidades = 0, importe = 0, costo = 0;
+      let unidades = 0, importe = 0, costo = 0, impInterno = 0, importeNeto = 0;
       const skus = new Map();
       for (const v of ventas) {
         let match = false;
@@ -82,9 +82,13 @@ exports.handler = async (event) => {
         else if (metodo === 'sku_promo') match = String(v.sku).replace(/\D/g, '') === skuPromo;
         else if (metodo === 'nombre') { let h = 0; for (const t of toks) if (v._txt.includes(t)) h++; match = h / toks.length >= 0.6; }
         if (!match) continue;
-        unidades += Number(v.unidades) || 0; importe += Number(v.importe) || 0; costo += Number(v.costo) || 0;
+        // Facturado = con IVA; costo = pleno (neto + IVA + imp. interno). Fallback a neto si faltan columnas.
+        const fact = Number(v.importe_iva) || Number(v.importe) || 0;
+        const cst = Number(v.costo_pleno) || Number(v.costo) || 0;
+        unidades += Number(v.unidades) || 0; importe += fact; costo += cst;
+        impInterno += Number(v.imp_interno) || 0; importeNeto += Number(v.importe) || 0;
         const s = skus.get(v.sku) || { sku: v.sku, descripcion: v.descripcion, unidades: 0, importe: 0 };
-        s.unidades += Number(v.unidades) || 0; s.importe += Number(v.importe) || 0; skus.set(v.sku, s);
+        s.unidades += Number(v.unidades) || 0; s.importe += fact; skus.set(v.sku, s);
       }
       const margen = importe - costo;
       return {
@@ -93,6 +97,7 @@ exports.handler = async (event) => {
         porcentaje_off: a.porcentaje_off || null, precio_accionado: a.precio_accionado || null,
         activo: a.activo !== false, vigente_hasta: a.vigente_hasta || null,
         sku_promo: skuPromo || null, metodo_match: metodo,
+        importe_neto: Math.round(importeNeto), imp_interno: Math.round(impInterno), costo: Math.round(costo),
         unidades: Math.round(unidades), importe: Math.round(importe), margen: Math.round(margen),
         margen_pct: importe > 0 ? Math.round((margen / importe) * 1000) / 10 : null,
         skus_match: skus.size, sin_datos: skus.size === 0,

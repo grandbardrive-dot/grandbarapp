@@ -81,15 +81,33 @@ async function sincronizarDia(ctx, fechaStr) {
       const sku = String(val(r, 'Articulo', 'ArticuloCodigo') || '').trim();
       if (!sku) continue;
       const cant = num(val(r, 'Cantidad'));
-      const imp = Math.abs(num(val(r, 'TotalNeto', 'ImporteUni', 'Total'))) * signo;
-      const costoU = Math.abs(num(val(r, 'ArticuloCostoNeto')) * cant) * signo;
+      // Venta neta (sin IVA) del renglón.
+      const netoLinea = Math.abs(num(val(r, 'TotalNeto', 'ImporteUni', 'Total')));
+      // Impuesto interno del renglón (0 en vinos/champagne). Destilados y cervezas lo traen.
+      let impInt = Math.abs(num(val(r, 'TotalImpInt')));
+      if (!impInt) impInt = Math.abs(num(val(r, 'ImporteImpIntUnitario')) * cant);
+      if (!impInt) impInt = Math.abs(num(val(r, 'ImporteImpuestoInterno')));
+      // Alícuota de IVA del artículo (fallback: derivar de TotalIva/neto; sino 21%).
+      let iva = num(val(r, 'AlicuotaIvaPorcentaje'));
+      if (!iva) { const ti = Math.abs(num(val(r, 'TotalIva'))); iva = netoLinea > 0 ? Math.round((ti / netoLinea) * 100) : 21; }
+      const factor = 1 + (iva || 21) / 100;
+      const costoNetoLinea = Math.abs(num(val(r, 'ArticuloCostoNeto')) * cant);
+      // Costo PLENO = (costo neto + impuesto interno) con IVA. Venta comparada = neto con IVA.
+      const costoPlenoLinea = (costoNetoLinea + impInt) * factor;
+
       const key = sku + '|' + fISO;
       const row = agg.get(key) || {
         sku, fecha: fISO, descripcion: val(r, 'Descripcion'), marca: val(r, 'ArticuloMarca'),
         familia: val(r, 'Familia'), familia_nombre: val(r, 'ArticuloFamiliaNombre'), codigo_barras: val(r, 'ArticuloCodigoBarras'),
-        unidades: 0, importe: 0, costo: 0, comprobantes: 0,
+        unidades: 0, importe: 0, importe_iva: 0, imp_interno: 0, costo: 0, costo_pleno: 0, comprobantes: 0,
       };
-      row.unidades += cant * signo; row.importe += imp; row.costo += costoU; row.comprobantes += 1;
+      row.unidades += cant * signo;
+      row.importe += netoLinea * signo;                 // facturado neto (referencia)
+      row.importe_iva += netoLinea * factor * signo;    // facturado con IVA
+      row.imp_interno += impInt * signo;                // impuesto interno
+      row.costo += costoNetoLinea * signo;              // costo neto (referencia)
+      row.costo_pleno += costoPlenoLinea * signo;       // costo neto + IVA + imp. interno
+      row.comprobantes += 1;
       if (!row.descripcion) row.descripcion = val(r, 'Descripcion');
       agg.set(key, row);
       renglones++;
@@ -99,7 +117,13 @@ async function sincronizarDia(ctx, fechaStr) {
   const fISO = ddmmToISO(fechaStr);
   const del = await sb(`ventas_articulos?fecha=eq.${fISO}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
   if (!del.ok && del.status !== 404) throw new Error('DELETE día ' + fISO + ': ' + (await del.text()).slice(0, 140));
-  const filas = [...agg.values()].map((r) => ({ ...r, unidades: Math.round(r.unidades * 100) / 100, importe: Math.round(r.importe), costo: Math.round(r.costo), actualizado: new Date().toISOString() }));
+  const filas = [...agg.values()].map((r) => ({
+    ...r,
+    unidades: Math.round(r.unidades * 100) / 100,
+    importe: Math.round(r.importe), importe_iva: Math.round(r.importe_iva),
+    imp_interno: Math.round(r.imp_interno), costo: Math.round(r.costo), costo_pleno: Math.round(r.costo_pleno),
+    actualizado: new Date().toISOString(),
+  }));
   for (let i = 0; i < filas.length; i += 500) {
     const ins = await sb('ventas_articulos', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filas.slice(i, i + 500)) });
     if (!ins.ok) throw new Error('INSERT día ' + fISO + ': ' + (await ins.text()).slice(0, 160));

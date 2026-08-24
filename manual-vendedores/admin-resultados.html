@@ -228,7 +228,7 @@
     const t=DATA.totales||{};
     const totUnid=(DATA.acciones||[]).reduce((s,a)=>s+(a.unidades||0),0);
     const cards=[
-      {n:'Facturado en acciones',v:money(t.importe),sub:`${DATA.ventas_filas||0} ventas en el período`,ico:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>'},
+      {n:'Facturado en acciones',v:money(t.importe),sub:`con IVA · ${DATA.ventas_filas||0} ventas`,ico:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>'},
       {n:'Unidades vendidas',v:numf(totUnid),sub:'sumadas en todas las acciones',ico:'<path d="M4 7l8-4 8 4-8 4z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/><path d="M4 7v10l8 4 8-4V7" stroke="currentColor" stroke-width="1.8" fill="none"/>'},
       {n:'Margen promedio',v:(t.margen_pct!=null?t.margen_pct+' %':'—'),sub:money(t.margen)+' de margen',ico:'<path d="M4 18L9 12l4 3 7-8" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'},
       {n:'Acciones con ventas',v:`${t.con_datos||0}`,sub:`de ${t.acciones||0} acciones del catálogo`,ico:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/>'},
@@ -268,7 +268,7 @@
     const th=(k,l,r)=>`<th class="${r?'r':''}" onclick="sortBy('${k}')">${l}${sortKey===k?(sortDir<0?' ↓':' ↑'):''}</th>`;
     let html=`<table><thead><tr>
       <th>#</th><th>Acción</th><th>Canal</th><th>Mecánica</th>
-      ${th('unidades','Unidades',1)}${th('importe','Facturado',1)}${th('margen_pct','Margen',1)}<th>Match</th>
+      ${th('unidades','Unidades',1)}${th('importe','Facturado c/IVA',1)}${th('margen_pct','Margen',1)}<th>Match</th>
     </tr></thead><tbody>`;
     rows.forEach((a,i)=>{
       const rk=a.ranking?`<span class="rk ${a.ranking<=3?'top':''}">${a.ranking}</span>`:'<span class="rk" style="background:transparent;color:var(--ink3)">–</span>';
@@ -296,7 +296,7 @@
   }
   function contarNota(n){
     const t=DATA?DATA.totales:{};
-    $('matchNote').innerHTML=`Mostrando ${n||0} acciones. Cruce por <b>SKU promo</b> cuando está cargado (exacto) o por <b>nombre</b> (aproximado). Las que dan "sin ventas" pueden no haber vendido o tener el nombre distinto — cargarles el SKU promo en <b>Catálogo clientes</b> mejora la precisión.`;
+    $('matchNote').innerHTML=`Mostrando ${n||0} acciones. <b>Facturado</b> = venta con IVA. <b>Margen</b> = facturado − costo pleno (costo neto del sistema + IVA + impuesto interno en destilados y cervezas; vinos y champagne sin imp. interno). Cruce por <b>SKU promo</b> (exacto) o por <b>nombre</b> (aproximado); cargar el SKU promo en <b>Catálogo clientes</b> mejora la precisión.`;
   }
   function sortBy(k){ if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=-1;} render(); }
   function toggle(i){ const d=$('det'+i); if(d) d.style.display=d.style.display==='none'?'table-row':'none'; }

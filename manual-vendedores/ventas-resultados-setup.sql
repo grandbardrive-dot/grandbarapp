@@ -16,11 +16,18 @@ create table if not exists ventas_articulos (
   codigo_barras  text,
   unidades       numeric default 0,      -- unidades netas (BO)
   importe        numeric default 0,      -- neto facturado (sin IVA), facturas - NC
+  importe_iva    numeric default 0,      -- facturado CON IVA
+  imp_interno    numeric default 0,      -- impuesto interno (destilados/cervezas; vinos=0)
   costo          numeric default 0,      -- costo neto total de lo vendido
+  costo_pleno    numeric default 0,      -- costo neto + IVA + impuesto interno
   comprobantes   int     default 0,      -- cantidad de renglones que aportaron
   actualizado    timestamptz default now(),
   primary key (sku, fecha)
 );
+-- Si la tabla ya existía sin estas columnas, las agrega:
+alter table ventas_articulos add column if not exists importe_iva numeric default 0;
+alter table ventas_articulos add column if not exists imp_interno numeric default 0;
+alter table ventas_articulos add column if not exists costo_pleno numeric default 0;
 create index if not exists va_fecha_idx on ventas_articulos (fecha);
 create index if not exists va_sku_idx   on ventas_articulos (sku);
 
