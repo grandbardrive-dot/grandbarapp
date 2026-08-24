@@ -544,8 +544,23 @@ const _clCache = {};
 
 // Retorna el checklist desde Supabase si las tablas existen, sino fallback al hardcodeado
 // Requiere que `sb` (cliente Supabase) esté disponible globalmente
+// Tipo de cliente → manual que le corresponde. Los manuales editables son dos
+// (ON TRADE y vinotecas), pero los clientes vienen con muchos tipos: bar, hotel,
+// mayorista, "otros"… Sin este mapa, esos clientes caían al checklist viejo escrito
+// en el código y NO veían nada de lo que se carga desde el panel (secciones nuevas,
+// campañas por sección). Mismo criterio que usa el asistente de campañas.
+const MANUAL_POR_TIPO = {
+  vinoteca: 'vinoteca',
+  autoservicio: 'autoservicio',   // todavía tiene su checklist propio en el código
+  kiosco: 'autoservicio',
+};
+function manualDe(tipo) {
+  const t = String(tipo || '').toLowerCase();
+  return MANUAL_POR_TIPO[t] || 'restaurante';   // ON TRADE: restaurante, bar, hotel, evento, mayorista, otros…
+}
+
 async function getChecklistDynamic(tipo) {
-  const canal = (tipo || 'restaurante').toLowerCase();
+  const canal = manualDe(tipo);
 
   // Devolver cache si ya se cargó
   if (_clCache[canal]) return _clCache[canal];
