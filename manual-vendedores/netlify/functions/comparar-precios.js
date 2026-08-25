@@ -24,13 +24,15 @@ const VTEX = [
 const WOO = [
   { id: 'centralbebidas', nombre: 'Central de Bebidas', base: 'https://centraldebebidas.com.ar' },
 ];
-// Competidores sin API pública → carga manual en el panel (por ahora).
+// Competidores sin API pública (o detrás de login) → carga manual.
+// `buscar` (con %s) = link directo a la búsqueda; `web` = home del sitio.
 const MANUAL = [
-  { id: 'coto',        nombre: 'Coto' },
-  { id: 'maxiconsumo', nombre: 'Maxiconsumo' },
-  { id: 'pedidosya',   nombre: 'Pedidos Ya' },
-  { id: 'almag',       nombre: 'Almag (San Luis)' },
-  { id: 'alfonsa',     nombre: 'Alfonsa (San Luis)' },
+  { id: 'coto',         nombre: 'Coto',                web: 'https://www.cotodigital3.com.ar', buscar: 'https://www.cotodigital3.com.ar/sitios/cdigi/browse?Ntt=%s' },
+  { id: 'maxiconsumo',  nombre: 'Maxiconsumo',         web: 'https://www.maxiconsumo.com',      buscar: 'https://www.maxiconsumo.com/catalogsearch/result/?q=%s' },
+  { id: 'carrefourmay', nombre: 'Carrefour Mayorista', web: 'https://comerciante.carrefour.com.ar' },
+  { id: 'pedidosya',    nombre: 'Pedidos Ya',          web: 'https://www.pedidosya.com.ar' },
+  { id: 'almag',        nombre: 'Almag (San Luis)' },
+  { id: 'alfonsa',      nombre: 'Alfonsa (San Luis)' },
 ];
 
 // Normalización + relevancia: el nombre del producto debe contener TODAS

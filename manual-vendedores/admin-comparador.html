@@ -169,7 +169,7 @@
     // Manuales: una fila con input.
     (DATA.manual||[]).forEach(c=>{
       const v=Number(getMan(c.id))||0;
-      filas.push({tipo:'manual', id:c.id, comp:c.nombre, precio:v||null});
+      filas.push({tipo:'manual', id:c.id, comp:c.nombre, precio:v||null, web:c.web, buscar:c.buscar});
     });
 
     // Orden: con precio primero (de menor a mayor), después sin precio.
@@ -190,8 +190,11 @@
     </tr></thead><tbody>`;
     ordenadas.forEach(f=>{
       if(f.tipo==='manual'){
+        const qq=encodeURIComponent(($('q').value||'').trim());
+        const link=f.buscar?f.buscar.replace('%s',qq):(f.web||'');
+        const linkHtml=link?`<a href="${esc(link)}" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">abrir 🔗</a> <span style="color:var(--ink3)">y pegá el precio</span>`:'<span style="color:var(--ink3)">cargá el precio que veas</span>';
         html+=`<tr class="grow-row"><td><span class="comp">${esc(f.comp)}</span> <span class="badge-man">manual</span></td>
-          <td class="prod" colspan="1" style="color:var(--ink3)">cargá el precio que veas</td>
+          <td class="prod">${linkHtml}</td>
           <td class="r"><input class="minput" type="number" inputmode="numeric" placeholder="$" value="${getMan(f.id)}" oninput="setMan('${f.id}',this.value)"></td>
           <td class="r">${chipVs(f.precio,gb)}</td></tr>`;
       }else if(f.tipo==='auto-vacio'){
