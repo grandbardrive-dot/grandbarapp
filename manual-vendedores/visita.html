@@ -521,6 +521,31 @@
 
   /* ── Secciones especiales vinoteca ── */
   .esp-block { background:var(--azul); border-radius:var(--radius-sm); padding:13px 14px; margin-bottom:12px; }
+
+  /* EVENTOS · armador de paquetes */
+  .ev-paso { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text3); margin:14px 0 7px; }
+  .ev-paso:first-child { margin-top:0; }
+  .ev-chips { display:flex; gap:7px; flex-wrap:wrap; }
+  .ev-chip { border:1.5px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:#fff; border-radius:10px;
+             padding:9px 13px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .ev-chip.on { background:var(--dorado,#c0912f); border-color:var(--dorado,#c0912f); color:#241a06; }
+  .ev-row { display:flex; align-items:center; gap:10px; }
+  .ev-num { width:88px; border:1.5px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:#fff;
+            border-radius:10px; padding:9px 11px; font:inherit; font-size:15px; font-weight:700; }
+  .ev-hint { font-size:12px; color:rgba(255,255,255,.6); }
+  .ev-calc { margin-top:14px; background:rgba(255,255,255,.07); border-radius:12px; padding:12px 14px; }
+  .ev-calc-t { font-size:12.5px; font-weight:700; color:#fff; margin-bottom:8px; }
+  .ev-linea { display:flex; justify-content:space-between; gap:12px; padding:6px 0; font-size:13.5px; color:rgba(255,255,255,.86);
+              border-bottom:1px solid rgba(255,255,255,.08); }
+  .ev-linea:last-of-type { border-bottom:0; }
+  .ev-linea b { color:#fff; white-space:nowrap; }
+  .ev-linea.destacada b { color:var(--dorado,#e0b95f); }
+  .ev-nota { font-size:11.5px; color:rgba(255,255,255,.55); line-height:1.45; margin-top:8px; }
+  .ev-check { display:flex; align-items:center; gap:10px; flex-wrap:wrap; border:1.5px solid rgba(255,255,255,.14);
+              border-radius:11px; padding:11px 13px; margin-bottom:8px; font-size:13.5px; color:#fff; cursor:pointer; }
+  .ev-check.on { border-color:var(--dorado,#c0912f); background:rgba(192,145,47,.14); }
+  .ev-check small { width:100%; color:rgba(255,255,255,.55); font-size:11.5px; }
+  .ev-check input { width:18px; height:18px; accent-color:var(--dorado,#c0912f); }
   .esp-block-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--dorado); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
   .esp-block-title::before { content:''; width:6px; height:6px; background:var(--dorado); border-radius:50%; flex-shrink:0; }
 
@@ -3258,6 +3283,7 @@ body { background:transparent !important; }
       case 'vt_partners':         return renderVtPartners(sec);
       case 'vt_cierre':           return renderVtCierre(sec);
       case 'cierre_resumen':      return renderCierreResumen(sec);
+      case 'ev_paquetes':         return renderEvPaquetes(sec);
       // ── Compatibilidad estructura anterior ──
       case 'vidriera':       return renderEspVidriera(sec);
       case 'heladera':       return renderEspHeladera(sec);
@@ -3268,6 +3294,138 @@ body { background:transparent !important; }
       case 'fechas':         return renderEspFechas(sec);
       default: return '';
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  EVENTOS · Paquetes
+  //  El vendedor elige el tamaño del evento (50/100/150/200), cuántos son menores
+  //  y cómo viene el clima, y la pantalla estima bebida e hielo. Los servicios que
+  //  se contratan afuera (barra, hielo, bartender) van SIN precio: se marcan como
+  //  "a cotizar" y quedan en la propuesta. El diseño se pide a Marketing.
+  //
+  //  OJO: las cantidades de abajo son provisorias, para poder trabajar desde el
+  //  primer día. Cuando definan los números reales se cambian SOLO acá.
+  // ══════════════════════════════════════════════════════════════════════════
+  const EV_REGLAS = {
+    // por adulto, salvo aclaración
+    espumanteCada: 4,      // 1 botella cada N adultos
+    cervezaLitros: 1,      // litros por adulto
+    aperitivoCada: 12,     // 1 botella cada N adultos
+    sinAlcoholAdulto: 0.5, // litros por adulto
+    sinAlcoholMenor: 1.5,  // litros por menor
+    hieloKg: 1,            // kg por persona
+    // multiplicadores según dónde y cómo se hace el evento
+    clima: {
+      calor:   { label:'Al aire libre / calor', bebida:1.3, hielo:1.6 },
+      templado:{ label:'Templado',              bebida:1,   hielo:1   },
+      salon:   { label:'Salón cerrado',         bebida:1,   hielo:0.8 },
+    },
+  };
+  const EV_TAMANIOS = [50, 100, 150, 200];
+  const WA_MARKETING = '5492612123696';   // mismo número que usa la solicitud de materiales
+  let evEstado = { total:100, menores:0, clima:'templado', barra:false, hielo:false, bartender:false };
+
+  function renderEvPaquetes(sec) {
+    return `<div class="esp-block" id="ev-paq-${sec.id}">${evPaquetesHTML(sec.id)}</div>`;
+  }
+
+  function evPaquetesHTML(secId) {
+    const e = evEstado;
+    const adultos = Math.max(0, e.total - e.menores);
+    const c = EV_REGLAS.clima[e.clima] || EV_REGLAS.clima.templado;
+    const n = x => Math.max(0, Math.round(x));
+    const calc = {
+      espumante: n(adultos / EV_REGLAS.espumanteCada * c.bebida),
+      cerveza:   n(adultos * EV_REGLAS.cervezaLitros * c.bebida),
+      aperitivo: n(adultos / EV_REGLAS.aperitivoCada * c.bebida),
+      sinAlcohol:n((adultos * EV_REGLAS.sinAlcoholAdulto + e.menores * EV_REGLAS.sinAlcoholMenor) * c.bebida),
+      hielo:     n(e.total * EV_REGLAS.hieloKg * c.hielo),
+    };
+    const chip = (activo, txt, onclick) =>
+      `<button type="button" class="ev-chip ${activo?'on':''}" onclick="${onclick}">${txt}</button>`;
+
+    return `
+      <div class="ev-paso">1 · ¿Para cuánta gente?</div>
+      <div class="ev-chips">
+        ${EV_TAMANIOS.map(t=>chip(e.total===t, t+' personas', `evSet('total',${t},'${secId}')`)).join('')}
+      </div>
+
+      <div class="ev-paso">2 · ¿Cuántos son menores?</div>
+      <div class="ev-row">
+        <input class="ev-num" type="number" min="0" max="${e.total}" value="${e.menores}"
+               oninput="evSet('menores', Math.min(${e.total}, Math.max(0, +this.value||0)), '${secId}')">
+        <span class="ev-hint">de ${e.total} · quedan ${adultos} adultos</span>
+      </div>
+
+      <div class="ev-paso">3 · ¿Dónde y con qué clima?</div>
+      <div class="ev-chips">
+        ${Object.keys(EV_REGLAS.clima).map(k=>chip(e.clima===k, EV_REGLAS.clima[k].label, `evSet('clima','${k}','${secId}')`)).join('')}
+      </div>
+
+      <div class="ev-calc">
+        <div class="ev-calc-t">Estimación para ${e.total} personas</div>
+        <div class="ev-linea"><span>🍾 Espumantes / vinos</span><b>${calc.espumante} botellas</b></div>
+        <div class="ev-linea"><span>🍺 Cerveza</span><b>${calc.cerveza} litros</b></div>
+        <div class="ev-linea"><span>🥃 Aperitivos</span><b>${calc.aperitivo} botellas</b></div>
+        <div class="ev-linea"><span>🥤 Sin alcohol</span><b>${calc.sinAlcohol} litros</b></div>
+        <div class="ev-linea destacada"><span>🧊 Hielo</span><b>${calc.hielo} kg</b></div>
+        <div class="ev-nota">Cantidades de referencia para arrancar la charla. Ajustalas con el cliente.</div>
+      </div>
+
+      <div class="ev-paso">4 · Servicios que sumamos (los cotiza la empresa)</div>
+      <label class="ev-check ${e.barra?'on':''}"><input type="checkbox" ${e.barra?'checked':''} onchange="evSet('barra',this.checked,'${secId}')"> 🍸 Barra montada <small>Se contrata con un tercero</small></label>
+      <label class="ev-check ${e.hielo?'on':''}"><input type="checkbox" ${e.hielo?'checked':''} onchange="evSet('hielo',this.checked,'${secId}')"> 🧊 Servicio de hielo <small>Entrega desde la fábrica</small></label>
+      <label class="ev-check ${e.bartender?'on':''}"><input type="checkbox" ${e.bartender?'checked':''} onchange="evSet('bartender',this.checked,'${secId}')"> 👨‍🍳 Bartender <small>A confirmar disponibilidad</small></label>
+      <div class="ev-nota">Marcá lo que le interesa al cliente: queda en la propuesta y lo cotiza la empresa. Todavía no tienen precio de lista.</div>
+
+      <div class="ev-paso">5 · Diseño del evento</div>
+      <button type="button" class="esp-ac-btn primary" onclick="evPedirDiseno()">🎨 Pedir diseño y flyers a Marketing</button>
+      <div class="ev-nota">Se abre WhatsApp con el pedido armado; Marketing se comunica con el cliente.</div>
+
+      <button type="button" class="esp-ac-btn" style="margin-top:12px" onclick="evGuardar('${secId}')">📋 Guardar esta propuesta en la visita</button>
+    `;
+  }
+
+  function evSet(campo, valor, secId) {
+    evEstado[campo] = valor;
+    if (campo === 'total') evEstado.menores = Math.min(evEstado.menores, valor);
+    const cont = document.getElementById('ev-paq-' + secId);
+    if (cont) cont.innerHTML = evPaquetesHTML(secId);
+  }
+
+  function evResumen() {
+    const e = evEstado;
+    const adultos = Math.max(0, e.total - e.menores);
+    const c = EV_REGLAS.clima[e.clima] || EV_REGLAS.clima.templado;
+    const n = x => Math.max(0, Math.round(x));
+    const extras = [e.barra && 'barra montada', e.hielo && 'servicio de hielo', e.bartender && 'bartender'].filter(Boolean);
+    return `PAQUETE PARA ${e.total} PERSONAS (${adultos} adultos, ${e.menores} menores) · ${c.label}\n`
+      + `• Espumantes/vinos: ${n(adultos / EV_REGLAS.espumanteCada * c.bebida)} botellas\n`
+      + `• Cerveza: ${n(adultos * EV_REGLAS.cervezaLitros * c.bebida)} litros\n`
+      + `• Aperitivos: ${n(adultos / EV_REGLAS.aperitivoCada * c.bebida)} botellas\n`
+      + `• Sin alcohol: ${n((adultos * EV_REGLAS.sinAlcoholAdulto + e.menores * EV_REGLAS.sinAlcoholMenor) * c.bebida)} litros\n`
+      + `• Hielo: ${n(e.total * EV_REGLAS.hieloKg * c.hielo)} kg\n`
+      + (extras.length ? `A cotizar: ${extras.join(', ')}\n` : '');
+  }
+
+  function evGuardar(secId) {
+    const obs = document.getElementById('obs-' + secId);
+    if (!obs) { showToast('No pude guardar la propuesta', 'error'); return; }
+    obs.value = (obs.value ? obs.value.replace(/PAQUETE PARA[\s\S]*?(?=\n\n|$)/, '').trim() + '\n\n' : '') + evResumen();
+    obs.dispatchEvent(new Event('input', { bubbles: true }));
+    obs.dispatchEvent(new Event('change', { bubbles: true }));
+    showToast('Propuesta guardada en la visita');
+  }
+
+  function evPedirDiseno() {
+    const e = evEstado;
+    const msg = `🎨 Pedido de diseño — EVENTO\n`
+      + `Vendedor: ${vendedor.nombre}\n`
+      + `Cliente: ${cliente.nombre}${cliente.whatsapp ? ' · ' + cliente.whatsapp : ''}\n`
+      + `Evento para ${e.total} personas (${e.menores} menores)\n`
+      + `Necesita: flyers y piezas para el evento.\n`
+      + `Por favor comunicarse con el cliente.`;
+    window.open(`https://wa.me/${WA_MARKETING}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
   // S1 — Vidrieras
