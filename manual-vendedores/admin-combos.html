@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Combos de eventos</title>
+<style>
+  :root{
+    --navy:#1F447F; --navy-d:#16305a; --navy-dd:#0f2340;
+    --gold:#CBB86A; --gold-d:#B08D2E;
+    --bg:#F4F1EA; --surface:#FFFFFF; --surface2:#FBF9F5;
+    --ink:#1F1B16; --ink2:#5f574c; --ink3:#9a9187;
+    --line:rgba(31,68,127,.10); --line-2:rgba(31,68,127,.16);
+    --green:#2D6A4F; --green-bg:#E7F1EC;
+    --red:#C0392B;  --red-bg:#FBEAE7;
+    --amber:#9A6B0E; --amber-bg:#FaF0DA;
+    --shadow:0 1px 2px rgba(31,68,127,.05), 0 14px 34px rgba(31,68,127,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+
+  .layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  @media (max-width:820px){ .layout{grid-template-columns:1fr} .sidebar{display:none} }
+
+  .sidebar{background:linear-gradient(185deg,var(--navy),var(--navy-d) 62%,var(--navy-dd));color:#fff;display:flex;flex-direction:column;padding:0 0 18px;position:sticky;top:0;height:100vh}
+  .sb-logo{padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px}
+  .sb-logo img{height:38px;object-fit:contain}
+  .sb-collapse{background:rgba(255,255,255,.08);border:none;color:#fff;width:30px;height:30px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
+  .sb-collapse svg{width:16px;height:16px}
+  .sb-nav{display:flex;flex-direction:column;gap:3px;padding:16px 12px}
+  .sb-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:rgba(255,255,255,.72);cursor:pointer;background:none;border:none;font-family:inherit;text-align:left;width:100%}
+  .sb-item:hover{background:rgba(255,255,255,.07);color:#fff}
+  .sb-item.active{background:rgba(255,255,255,.12);color:#fff}
+  .sb-item.active .sb-ico{color:var(--gold)}
+  .sb-item.active .sb-txt-main{font-weight:700}
+  .sb-ico{width:20px;height:20px;flex:none;color:rgba(255,255,255,.6)}
+  .sb-txt-main{font-size:14px;line-height:1.15}
+  .sb-txt-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:1px}
+  .sb-spacer{flex:1}
+  .sb-help{margin:0 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:16px}
+  .sb-help-t{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
+  .sb-help-p{font-size:11.5px;color:rgba(255,255,255,.6);margin:7px 0 0;line-height:1.45}
+
+  .topbar{background:var(--navy);border-bottom:3px solid var(--gold);height:70px;display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 26px;position:relative}
+  .tb-user{display:flex;align-items:center;gap:11px;cursor:pointer;padding:6px 8px;border-radius:11px}
+  .tb-user:hover{background:rgba(255,255,255,.08)}
+  .tb-ava{width:38px;height:38px;border-radius:50%;background:var(--gold);color:var(--navy-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+  .tb-user-info{text-align:right;line-height:1.2}
+  .tb-user-name{font-size:14px;font-weight:700;color:#fff}
+  .tb-user-role{font-size:11px;color:rgba(255,255,255,.6)}
+  .menu{position:absolute;top:64px;right:26px;background:var(--surface);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.16);padding:6px;display:none;z-index:50;min-width:180px}
+  .menu.open{display:block}
+  .menu button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;padding:10px 12px;border-radius:8px;font-size:13.5px;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left}
+  .menu button:hover{background:var(--surface2)}
+
+  .content{padding:28px 30px 44px;min-width:0;max-width:1000px}
+  .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  .page-title{font-size:clamp(24px,3vw,31px);font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:12px}
+  .page-title .ico{width:44px;height:44px;border-radius:12px;background:rgba(31,68,127,.09);display:flex;align-items:center;justify-content:center;flex:none;font-size:22px}
+  .page-sub{color:var(--ink2);font-size:14.5px;margin-top:8px;max-width:64ch;line-height:1.5}
+  .btn-new{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none;border-radius:13px;padding:14px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:var(--shadow);white-space:nowrap}
+  .btn-new svg{width:20px;height:20px;color:var(--gold)}
+
+  .aviso{display:flex;align-items:flex-start;gap:11px;background:rgba(31,68,127,.05);border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:13px;color:var(--ink2);margin-top:18px;line-height:1.5}
+  .aviso.error{background:var(--red-bg);border-color:rgba(192,57,43,.25);color:#8a2b20}
+  .aviso svg{width:18px;height:18px;color:var(--navy);flex:none;margin-top:1px}
+  .aviso code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:5px;font-size:12px}
+
+  .combos{margin-top:18px;display:flex;flex-direction:column;gap:14px}
+  .combo{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;padding:15px 18px}
+  .combo.off{opacity:.6}
+  .combo-img{width:54px;height:54px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);object-fit:cover;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .combo-info{flex:1;min-width:0}
+  .combo-nom{font-size:15.5px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .combo-cont{font-size:13px;color:var(--ink2);margin-top:3px}
+  .combo-desc{font-size:12.5px;color:var(--ink3);margin-top:2px}
+  .tag{font-size:10.5px;font-weight:700;border-radius:6px;padding:3px 8px;background:rgba(31,68,127,.07);color:var(--navy)}
+  .tag.off{background:var(--red-bg);color:var(--red)}
+  .acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .ab{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line-2);border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;white-space:nowrap}
+  .ab:hover{border-color:var(--navy);color:var(--navy)}
+  .ab.danger:hover{border-color:var(--red);color:var(--red)}
+  .empty{padding:40px 18px;text-align:center;color:var(--ink3);font-size:13.5px;background:var(--surface);border:1px dashed var(--line-2);border-radius:16px;margin-top:18px}
+
+  .ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9998;align-items:flex-start;justify-content:center;padding:36px 16px;overflow-y:auto}
+  .ov.open{display:flex}
+  .modal{background:var(--surface);max-width:580px;width:100%;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.3);overflow:hidden}
+  .modal-head{background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;padding:20px 24px;position:relative}
+  .modal-head h3{font-size:19px;font-weight:800}
+  .modal-head .sub{font-size:13px;color:rgba(255,255,255,.72);margin-top:3px}
+  .modal-x{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.14);border:none;color:#fff;width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:20px;line-height:1}
+  .modal-body{padding:20px 24px;max-height:64vh;overflow-y:auto}
+  .fld{margin-bottom:15px}
+  .fld label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+  .fld input,.fld textarea{width:100%;padding:11px 13px;border:1.5px solid var(--line-2);border-radius:11px;font-size:14px;font-family:inherit;color:var(--ink);outline:none;background:var(--surface)}
+  .fld input:focus,.fld textarea:focus{border-color:var(--navy)}
+  .fld textarea{min-height:70px;resize:vertical;line-height:1.5}
+  .fld .hint{font-size:11.5px;color:var(--ink3);margin-top:5px;line-height:1.45}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .sw{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink2);cursor:pointer;font-weight:600}
+  .sw input{width:18px;height:18px;accent-color:var(--navy)}
+  .modal-foot{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:16px 24px;border-top:1px solid var(--line);background:var(--surface2)}
+  .mb{display:inline-flex;align-items:center;gap:8px;border-radius:11px;padding:11px 20px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--line-2);background:var(--surface);color:var(--ink2)}
+  .mb.primary{background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none}
+  .msg{font-size:12.5px;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <button class="sb-collapse" onclick="location.href='admin-comercial.html'" title="Volver al inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar Distribuciones">
+    </div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="admin-comercial.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v9h14v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Inicio</div></div></a>
+      <a class="sb-item" href="admin-campanias.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Campañas</div><div class="sb-txt-sub">Acciones comerciales</div></div></a>
+      <a class="sb-item" href="admin-secciones.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Secciones</div><div class="sb-txt-sub">Estructura del manual</div></div></a>
+      <a class="sb-item active" href="admin-combos.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8h14l-1 12H6z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Combos</div><div class="sb-txt-sub">Para eventos</div></div></a>
+      <a class="sb-item" href="admin-catalogo.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 7v10l8 4 8-4V7" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Catálogo</div><div class="sb-txt-sub">Proveedores y productos</div></div></a>
+    </nav>
+    <div class="sb-spacer"></div>
+    <div class="sb-help">
+      <div class="sb-help-t">💡 Dónde se ven</div>
+      <div class="sb-help-p">El vendedor los ve en el manual de un cliente de tipo Evento, en <b>EVENTOS → Combos</b>.</div>
+    </div>
+  </aside>
+
+  <div>
+    <header class="topbar">
+      <div class="tb-user" onclick="toggleMenu(event)">
+        <div class="tb-ava">L</div>
+        <div class="tb-user-info"><div class="tb-user-name">Luciana</div><div class="tb-user-role">Gestora Comercial</div></div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="menu" id="perfil-menu"><button onclick="cerrarSesion()">🚪 Cerrar sesión</button></div>
+    </header>
+
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <div class="page-title"><span class="ico">🍹</span>Combos de eventos</div>
+          <div class="page-sub">Las combinaciones que el vendedor le ofrece al cliente cuando arma un evento. Se ven en el manual, en EVENTOS → Combos.</div>
+        </div>
+        <button class="btn-new" onclick="abrirNuevo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nuevo combo</button>
+      </div>
+
+      <div id="aviso"></div>
+      <div id="lista"><div class="empty">Cargando…</div></div>
+    </main>
+  </div>
+</div>
+
+<div class="ov" id="ov" onclick="if(event.target===this)cerrar()">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="m-title">Nuevo combo</h3>
+      <div class="sub">Lo va a ver el vendedor al armar la propuesta del evento</div>
+      <button class="modal-x" onclick="cerrar()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fld">
+        <label>Nombre</label>
+        <input type="text" id="f-nombre" placeholder="Ej: Combo Gin Tonic" maxlength="80">
+      </div>
+      <div class="fld">
+        <label>Qué incluye</label>
+        <textarea id="f-contenido" placeholder="Ej: 1 gin + 6 tónicas + hielo"></textarea>
+        <div class="hint">Escribilo como se lo contás al cliente. Es lo que ve el vendedor en la pantalla.</div>
+      </div>
+      <div class="row2">
+        <div class="fld">
+          <label>Rinde para <span style="text-transform:none;font-weight:400">(opcional)</span></label>
+          <input type="number" id="f-rinde" min="1" placeholder="Ej: 25">
+          <div class="hint">Personas que cubre UN combo. Con esto la app le sugiere al vendedor cuántos necesita según el tamaño del evento.</div>
+        </div>
+        <div class="fld">
+          <label>Foto <span style="text-transform:none;font-weight:400">(opcional)</span></label>
+          <input type="text" id="f-imagen" placeholder="https://…">
+          <div class="hint">Pegá el link de una imagen si tenés.</div>
+        </div>
+      </div>
+      <div class="fld">
+        <label>Nota para el vendedor <span style="text-transform:none;font-weight:400">(opcional)</span></label>
+        <input type="text" id="f-desc" placeholder="Ej: ideal para eventos al aire libre" maxlength="140">
+      </div>
+      <div class="fld"><label class="sw"><input type="checkbox" id="f-activo" checked> Visible para los vendedores</label></div>
+      <div class="msg" id="m-msg"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="mb" onclick="cerrar()">Cancelar</button>
+      <button class="mb primary" id="m-save" onclick="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script>
+  if(sessionStorage.getItem('admin_auth')!=='1'){ location.replace('admin.html'); }
+  sessionStorage.setItem('admin_perfil','comercial');
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const $=id=>document.getElementById(id);
+
+  let COMBOS=[], edit=null;
+
+  async function cargar(){
+    const { data, error } = await sb.from('combos_evento').select('*').order('orden').order('created_at');
+    if(error){
+      // La tabla todavía no existe: se avisa con el paso exacto en vez de fallar en silencio.
+      $('aviso').innerHTML = `<div class="aviso error"><span>⚠️</span><div>
+        Todavía no está creada la tabla de combos. Andá a <b>Supabase → SQL Editor</b>, pegá el contenido de
+        <code>manual-vendedores/combos-evento-setup.sql</code> y ejecutalo. Después recargá esta página.
+        <div style="margin-top:6px;font-size:12px;color:var(--ink3)">Detalle: ${esc(error.message)}</div></div></div>`;
+      $('lista').innerHTML='';
+      return;
+    }
+    $('aviso').innerHTML='';
+    COMBOS = data || [];
+    render();
+  }
+
+  function render(){
+    if(!COMBOS.length){ $('lista').innerHTML='<div class="empty">Todavía no cargaste ningún combo. Tocá <b>Nuevo combo</b> para el primero.</div>'; return; }
+    $('lista').innerHTML='<div class="combos">'+COMBOS.map((c,i)=>`
+      <div class="combo ${c.activo===false?'off':''}">
+        ${c.imagen_url?`<img class="combo-img" src="${esc(c.imagen_url)}" alt="">`:`<div class="combo-img">🍹</div>`}
+        <div class="combo-info">
+          <div class="combo-nom">${esc(c.nombre)} ${c.activo===false?'<span class="tag off">Oculto</span>':''} ${c.rinde_personas?`<span class="tag">rinde ${c.rinde_personas} personas</span>`:''}</div>
+          ${c.contenido?`<div class="combo-cont">${esc(c.contenido)}</div>`:''}
+          ${c.descripcion?`<div class="combo-desc">${esc(c.descripcion)}</div>`:''}
+        </div>
+        <div class="acts">
+          <button class="ab" onclick="mover('${c.id}',-1)" ${i===0?'disabled style="opacity:.35"':''}>↑</button>
+          <button class="ab" onclick="mover('${c.id}',1)" ${i===COMBOS.length-1?'disabled style="opacity:.35"':''}>↓</button>
+          <button class="ab" onclick="abrirEdicion('${c.id}')">Editar</button>
+          <button class="ab" onclick="toggleActivo('${c.id}')">${c.activo===false?'Mostrar':'Ocultar'}</button>
+          <button class="ab danger" onclick="borrar('${c.id}')">Eliminar</button>
+        </div>
+      </div>`).join('')+'</div>';
+  }
+
+  function abrirNuevo(){
+    edit=null; $('m-title').textContent='Nuevo combo';
+    $('f-nombre').value=''; $('f-contenido').value=''; $('f-rinde').value=''; $('f-imagen').value=''; $('f-desc').value='';
+    $('f-activo').checked=true; $('m-msg').textContent='';
+    $('ov').classList.add('open'); setTimeout(()=>$('f-nombre').focus(),80);
+  }
+  function abrirEdicion(id){
+    edit=COMBOS.find(c=>c.id===id); if(!edit) return;
+    $('m-title').textContent='Editar combo';
+    $('f-nombre').value=edit.nombre||''; $('f-contenido').value=edit.contenido||'';
+    $('f-rinde').value=edit.rinde_personas||''; $('f-imagen').value=edit.imagen_url||'';
+    $('f-desc').value=edit.descripcion||''; $('f-activo').checked=edit.activo!==false; $('m-msg').textContent='';
+    $('ov').classList.add('open');
+  }
+  function cerrar(){ $('ov').classList.remove('open'); }
+
+  async function guardar(){
+    const msg=$('m-msg');
+    const nombre=$('f-nombre').value.trim();
+    if(!nombre){ msg.style.color='#c0392b'; msg.textContent='Poné un nombre para el combo.'; return; }
+    const fila={
+      nombre,
+      contenido:   $('f-contenido').value.trim() || null,
+      descripcion: $('f-desc').value.trim() || null,
+      rinde_personas: $('f-rinde').value ? Number($('f-rinde').value) : null,
+      imagen_url:  $('f-imagen').value.trim() || null,
+      activo:      $('f-activo').checked,
+    };
+    msg.style.color='var(--ink2)'; msg.textContent='Guardando…'; $('m-save').disabled=true;
+    try{
+      let error;
+      if(edit){ ({ error } = await sb.from('combos_evento').update(fila).eq('id', edit.id)); }
+      else { fila.orden = COMBOS.length ? Math.max(...COMBOS.map(c=>c.orden||0))+1 : 0;
+             ({ error } = await sb.from('combos_evento').insert(fila)); }
+      if(error) throw error;
+      cerrar(); await cargar();
+    }catch(e){ msg.style.color='#c0392b'; msg.textContent='No se pudo guardar: '+(e.message||e); }
+    finally{ $('m-save').disabled=false; }
+  }
+
+  async function toggleActivo(id){
+    const c=COMBOS.find(x=>x.id===id); if(!c) return;
+    await sb.from('combos_evento').update({ activo: c.activo===false }).eq('id', id);
+    await cargar();
+  }
+
+  // Reordenar renumerando toda la lista, para que no queden empates.
+  async function mover(id, dir){
+    const i=COMBOS.findIndex(c=>c.id===id), j=i+dir;
+    if(i<0||j<0||j>=COMBOS.length) return;
+    const arr=COMBOS.slice(); arr.splice(j,0,arr.splice(i,1)[0]);
+    await Promise.all(arr.map((c,k)=> c.orden===k ? null : sb.from('combos_evento').update({orden:k}).eq('id',c.id)).filter(Boolean));
+    await cargar();
+  }
+
+  async function borrar(id){
+    const c=COMBOS.find(x=>x.id===id); if(!c) return;
+    if(!confirm(`¿Eliminar el combo "${c.nombre}"?\n\nDeja de verse en el manual de los vendedores.\nSi solo querés sacarlo por ahora, cancelá y usá "Ocultar".`)) return;
+    const { error } = await sb.from('combos_evento').delete().eq('id', id);
+    if(error){ alert('No se pudo eliminar: '+error.message); return; }
+    await cargar();
+  }
+
+  function toggleMenu(ev){ ev.stopPropagation(); $('perfil-menu').classList.toggle('open'); }
+  document.addEventListener('click',()=>$('perfil-menu').classList.remove('open'));
+  function cerrarSesion(){
+    sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil');
+    try{ localStorage.removeItem('gb_demo');
+      Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k));
+    }catch(e){}
+    location.href='/index.html';
+  }
+
+  cargar();
+</script>
+</body>
+</html>

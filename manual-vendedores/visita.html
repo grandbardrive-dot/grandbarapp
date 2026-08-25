@@ -546,6 +546,20 @@
   .ev-check.on { border-color:var(--dorado,#c0912f); background:rgba(192,145,47,.14); }
   .ev-check small { width:100%; color:rgba(255,255,255,.55); font-size:11.5px; }
   .ev-check input { width:18px; height:18px; accent-color:var(--dorado,#c0912f); }
+  .ev-combo { display:flex; align-items:center; gap:12px; border:1.5px solid rgba(255,255,255,.14); border-radius:12px;
+              padding:11px 13px; margin-bottom:9px; }
+  .ev-combo.on { border-color:var(--dorado,#c0912f); background:rgba(192,145,47,.13); }
+  .ev-combo-img { width:46px; height:46px; border-radius:10px; object-fit:cover; flex:none; background:rgba(255,255,255,.08);
+                  display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .ev-combo-info { flex:1; min-width:0; }
+  .ev-combo-nom { font-size:14px; font-weight:700; color:#fff; }
+  .ev-combo-cont { font-size:12.5px; color:rgba(255,255,255,.78); margin-top:2px; }
+  .ev-combo-desc { font-size:11.5px; color:rgba(255,255,255,.5); margin-top:2px; }
+  .ev-combo-sug { font-size:11.5px; color:var(--dorado,#e0b95f); margin-top:4px; font-weight:600; }
+  .ev-cant { display:flex; align-items:center; gap:8px; flex:none; }
+  .ev-cant button { width:32px; height:32px; border-radius:9px; border:1.5px solid rgba(255,255,255,.2);
+                    background:rgba(255,255,255,.07); color:#fff; font-size:17px; font-weight:700; cursor:pointer; line-height:1; }
+  .ev-cant span { min-width:22px; text-align:center; font-size:15px; font-weight:800; color:#fff; }
   .esp-block-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--dorado); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
   .esp-block-title::before { content:''; width:6px; height:6px; background:var(--dorado); border-radius:50%; flex-shrink:0; }
 
@@ -3284,6 +3298,7 @@ body { background:transparent !important; }
       case 'vt_cierre':           return renderVtCierre(sec);
       case 'cierre_resumen':      return renderCierreResumen(sec);
       case 'ev_paquetes':         return renderEvPaquetes(sec);
+      case 'ev_combos':           return renderEvCombos(sec);
       // ── Compatibilidad estructura anterior ──
       case 'vidriera':       return renderEspVidriera(sec);
       case 'heladera':       return renderEspHeladera(sec);
@@ -3426,6 +3441,87 @@ body { background:transparent !important; }
       + `Necesita: flyers y piezas para el evento.\n`
       + `Por favor comunicarse con el cliente.`;
     window.open(`https://wa.me/${WA_MARKETING}?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  // ── EVENTOS · Combos ───────────────────────────────────────────────────────
+  // Los carga Luciana en su panel (Campañas → Combos). Acá se muestran y, si el
+  // combo dice para cuánta gente rinde, se sugiere cuántos hacen falta según el
+  // tamaño de evento elegido en Paquetes.
+  let evCombosSel = {};   // id de combo → cantidad elegida
+
+  function renderEvCombos(sec) {
+    return `<div class="esp-block"><div id="ev-combos-${sec.id}"><div class="esp-loading">Cargando combos…</div></div></div>`;
+  }
+
+  async function cargarEvCombos(secId) {
+    const el = document.getElementById('ev-combos-' + secId);
+    if (!el) return;
+    let items = [];
+    try {
+      const { data } = await sb.from('combos_evento').select('*').eq('activo', true).order('orden');
+      items = data || [];
+    } catch (e) { items = []; }
+
+    if (!items.length) {
+      el.innerHTML = `<div class="esp-loading">Todavía no hay combos cargados. Los carga el área comercial desde su panel.</div>`;
+      return;
+    }
+    const personas = (typeof evEstado !== 'undefined' && evEstado.total) ? evEstado.total : null;
+    el.innerHTML = `
+      ${personas ? `<div class="ev-nota" style="margin:0 0 10px">Sugerencias para <b>${personas} personas</b>, según lo que elegiste en Paquetes.</div>` : ''}
+      ${items.map(c => {
+        const sug = (personas && c.rinde_personas) ? Math.ceil(personas / c.rinde_personas) : null;
+        // La sugerencia queda pre-elegida: lo que el vendedor ve en pantalla es lo que
+        // se guarda después, sin tener que tocar cada combo.
+        if (evCombosSel[c.id] == null) evCombosSel[c.id] = sug || 0;
+        const cant = evCombosSel[c.id];
+        return `<div class="ev-combo ${cant>0?'on':''}" id="ev-combo-${c.id}">
+          ${c.imagen_url ? `<img class="ev-combo-img" src="${esc(c.imagen_url)}" alt="">` : `<div class="ev-combo-img">🍹</div>`}
+          <div class="ev-combo-info">
+            <div class="ev-combo-nom">${esc(c.nombre)}</div>
+            ${c.contenido ? `<div class="ev-combo-cont">${esc(c.contenido)}</div>` : ''}
+            ${c.descripcion ? `<div class="ev-combo-desc">${esc(c.descripcion)}</div>` : ''}
+            ${sug ? `<div class="ev-combo-sug">Sugerido: ${sug} para ${personas} personas</div>` : ''}
+          </div>
+          <div class="ev-cant">
+            <button type="button" onclick="evCombo('${c.id}',-1,'${secId}')">−</button>
+            <span id="ev-cant-${c.id}">${cant}</span>
+            <button type="button" onclick="evCombo('${c.id}',1,'${secId}')">+</button>
+          </div>
+        </div>`;
+      }).join('')}
+      <button type="button" class="esp-ac-btn" style="margin-top:10px" onclick="evGuardarCombos('${secId}')">📋 Guardar los combos elegidos</button>`;
+  }
+
+  function evCombo(id, delta, secId) {
+    const actual = evCombosSel[id] != null ? evCombosSel[id] : (function () {
+      const s = document.getElementById('ev-cant-' + id);
+      return s ? (parseInt(s.textContent, 10) || 0) : 0;
+    })();
+    const nuevo = Math.max(0, actual + delta);
+    evCombosSel[id] = nuevo;
+    const s = document.getElementById('ev-cant-' + id);
+    if (s) s.textContent = nuevo;
+    const card = document.getElementById('ev-combo-' + id);
+    if (card) card.classList.toggle('on', nuevo > 0);
+  }
+
+  async function evGuardarCombos(secId) {
+    const obs = document.getElementById('obs-' + secId);
+    if (!obs) { showToast('No pude guardar los combos', 'error'); return; }
+    let items = [];
+    try {
+      const { data } = await sb.from('combos_evento').select('id,nombre,contenido').eq('activo', true).order('orden');
+      items = data || [];
+    } catch (e) {}
+    const elegidos = items.filter(c => (evCombosSel[c.id] || 0) > 0)
+      .map(c => `• ${evCombosSel[c.id]} × ${c.nombre}${c.contenido ? ' (' + c.contenido + ')' : ''}`);
+    if (!elegidos.length) { showToast('Elegí al menos un combo', 'error'); return; }
+    const bloque = 'COMBOS PARA EL EVENTO\n' + elegidos.join('\n');
+    obs.value = (obs.value ? obs.value.replace(/COMBOS PARA EL EVENTO[\s\S]*?(?=\n\n|$)/, '').trim() + '\n\n' : '') + bloque;
+    obs.dispatchEvent(new Event('input', { bubbles: true }));
+    obs.dispatchEvent(new Event('change', { bubbles: true }));
+    showToast('Combos guardados en la visita');
   }
 
   // S1 — Vidrieras
@@ -3934,6 +4030,7 @@ body { background:transparent !important; }
       // Estructura nueva (recorrido físico)
       checklist.secciones.forEach(sec => {
         switch (sec.especial) {
+          case 'ev_combos':           cargarEvCombos(sec.id);           break;
           case 'vt_vidrieras':        cargarVidriera(sec.id); cargarPlanesVidriera(sec.id); break;
           case 'vt_gondola_vinos':    cargarGondola(sec.id, 'vinos');   break;
           case 'vt_gondola_spirits':  cargarGondola(sec.id, 'spirits'); break;
