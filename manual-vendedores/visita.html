@@ -4020,6 +4020,12 @@ body { background:transparent !important; }
   // ── Carga async de datos especiales ──────────────────────────────────────────
 
   async function cargarSeccionesEspeciales() {
+    // Widgets del manual de EVENTOS. Van ANTES y fuera del bloque de vinoteca: si no,
+    // no se cargan nunca en el manual de eventos (que es donde viven).
+    seccionesHoja(checklist).forEach(sec => {
+      if (sec.especial === 'ev_combos') cargarEvCombos(sec.id);
+    });
+
     if (checklist.id === 'vinoteca') {
       // Compatibilidad estructura anterior
       const secVidrieraOld = checklist.secciones.find(s => s.especial === 'vidriera');
@@ -4030,7 +4036,6 @@ body { background:transparent !important; }
       // Estructura nueva (recorrido físico)
       checklist.secciones.forEach(sec => {
         switch (sec.especial) {
-          case 'ev_combos':           cargarEvCombos(sec.id);           break;
           case 'vt_vidrieras':        cargarVidriera(sec.id); cargarPlanesVidriera(sec.id); break;
           case 'vt_gondola_vinos':    cargarGondola(sec.id, 'vinos');   break;
           case 'vt_gondola_spirits':  cargarGondola(sec.id, 'spirits'); break;
