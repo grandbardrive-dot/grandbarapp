@@ -2544,8 +2544,10 @@ body { background:transparent !important; }
       cargarOportunidades();
     }
     renderCartBar();
-    // Camino/juego: restaurante y vinoteca. Si VISTA_CAMINO=false → queda la lista de acordeones de siempre.
-    if (VISTA_CAMINO && ['restaurante','vinoteca','mayorista'].includes(checklist.id)) activarCamino();
+    // Camino/juego (avatar al centro + secciones alrededor): para TODOS los rubros que
+    // tengan secciones cargadas. Los manuales vacíos quedan con la lista de siempre.
+    // Si VISTA_CAMINO=false → vuelve a los acordeones en todos lados.
+    if (VISTA_CAMINO && checklist.secciones && checklist.secciones.length) activarCamino();
   }
 
   function renderSeccion(sec) {
