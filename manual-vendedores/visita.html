@@ -3302,6 +3302,7 @@ body { background:transparent !important; }
       case 'vt_gondola_spirits':  return renderVtGondola(sec, 'spirits');
       case 'vt_heladera':         return renderVtHeladera(sec);
       case 'vt_fechas_cal':       return renderVtCalendario(sec);
+      case 'calendario_fechas':   return renderVtCalendario(sec);   // ← universal: calendario de fechas en cualquier rubro
       case 'vt_nuevos_productos': return renderVtNuevosProductos(sec);
       case 'vt_materiales':       return renderVtMateriales(sec);
       case 'vt_partners':         return renderVtPartners(sec);
@@ -4190,6 +4191,19 @@ body { background:transparent !important; }
       else if (w.tipo === 'calendario') renderCalendarioMes(sec.id, calRefMes, w.canales);
       else if (w.tipo === 'cafe_preguntas') cargarPropuestasIncorp('cafe_preguntas', 'cafe', 'Café');
       // catalogo_cafe / materiales_fechas: botones estáticos, no requieren carga async
+    });
+
+    // Calendario de fechas especiales — UNIVERSAL: cualquier sección (de cualquier rubro)
+    // con especial='calendario_fechas' muestra el calendario, filtrando por el canal del rubro.
+    const CANAL_CAL = {
+      restaurante:['restaurantes','todos'], vinoteca:['vinotecas','todos'], bar:['bares','todos'],
+      hotel:['hoteles','todos'], disco:['discos','todos'], autoservicio:['autoservicios','todos'],
+      kiosco:['kioscos','todos'], mayorista:['mayoristas','todos'], evento:['eventos','todos'],
+    };
+    seccionesHoja(checklist).forEach(sec => {
+      if (sec.especial === 'calendario_fechas') {
+        renderCalendarioMes(sec.id, calRefMes, CANAL_CAL[checklist.id] || ['todos']);
+      }
     });
   }
 
