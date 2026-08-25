@@ -4189,6 +4189,7 @@ body { background:transparent !important; }
       if (w.tipo === 'propuestas') cargarPropuestasIncorp(sec.id, w.categoria, w.cartLabel);
       else if (w.tipo === 'ofertas') cargarOfertasWidget(w.dataKey, sec.id);
       else if (w.tipo === 'calendario') renderCalendarioMes(sec.id, calRefMes, w.rubro);
+      else if (w.tipo === 'materiales_pop') cargarMaterialesPOP(sec.id);
       else if (w.tipo === 'cafe_preguntas') cargarPropuestasIncorp('cafe_preguntas', 'cafe', 'Café');
       // catalogo_cafe / materiales_fechas: botones estáticos, no requieren carga async
     });
@@ -4199,6 +4200,11 @@ body { background:transparent !important; }
     seccionesHoja(checklist).forEach(sec => {
       if (sec.especial === 'calendario_fechas') {
         renderCalendarioMes(sec.id, calRefMes, checklist.id);
+      }
+      // Materiales POP (catálogo de Marketing + pedido) en cualquier rubro.
+      // Vinoteca ya lo carga en su bloque propio, no repetir.
+      if (sec.especial === 'vt_materiales' && checklist.id !== 'vinoteca') {
+        cargarMaterialesPOP(sec.id);
       }
     });
   }
@@ -4710,7 +4716,7 @@ body { background:transparent !important; }
     'sp_aperitivos':        { tipo: 'ofertas', dataKey: 'sp_aperitivos' },
     'sp_campari':           { tipo: 'campari' },
     // Fechas especiales (restaurante)
-    'fe_materiales':        { tipo: 'materiales_fechas' },
+    'fe_materiales':        { tipo: 'materiales_pop' },   // Restaurantes: catálogo POP + pedido (igual que Vinotecas)
     'fe_fechas':            { tipo: 'calendario', rubro: 'restaurante' },
     // Café Segafreddo
     'cafe_catalogos':       { tipo: 'catalogo_cafe' },
@@ -4731,6 +4737,7 @@ body { background:transparent !important; }
     if (w.tipo === 'ofertas')           return `<div class="ofertas-wrap" id="ofertas-bodegas-${sec.id}"><div class="prop-loading">Cargando ofertas…</div></div>`;
     if (w.tipo === 'campari')           return renderEspCampari(sec);
     if (w.tipo === 'calendario')        return renderVtCalendario(sec);
+    if (w.tipo === 'materiales_pop')    return renderVtMateriales(sec);   // ← catálogo POP + form de pedido (Vinotecas)
     if (w.tipo === 'materiales_fechas') return renderFechasMateriales(sec);
     if (w.tipo === 'catalogo_cafe')     return renderCafeCatalogo(sec);
     if (w.tipo === 'cafe_preguntas')    return renderCafePreguntas(sec);
