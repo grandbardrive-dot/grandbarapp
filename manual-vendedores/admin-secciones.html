@@ -112,6 +112,26 @@
   .sub-name{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .sub-desc{font-size:11.5px;color:var(--ink3);margin-top:2px}
   .sin-subs{font-size:12.5px;color:var(--ink3);padding:10px 0 4px;font-style:italic}
+
+  /* Ítems del checklist (lo que el vendedor tilda en la visita) */
+  .items-wrap{display:none;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0 4px}
+  .items-wrap.open{display:block}
+  .items-t{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);margin-bottom:9px;display:flex;align-items:center;gap:7px}
+  .it{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .it:last-of-type{border-bottom:0}
+  .it.off{opacity:.5}
+  .it-check{width:17px;height:17px;border:2px solid var(--line-2);border-radius:5px;flex:none;margin-top:8px}
+  .it-campos{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+  .it-tx,.it-de{width:100%;border:1.5px solid var(--line-2);border-radius:9px;padding:8px 11px;font-family:inherit;background:var(--surface);color:var(--ink)}
+  .it-tx{font-size:13.5px;font-weight:600}
+  .it-de{font-size:12px;color:var(--ink2)}
+  .it-tx:focus,.it-de:focus{outline:none;border-color:var(--navy)}
+  .it-acts{display:flex;gap:5px;flex:none;align-items:center;padding-top:4px}
+  .it-acts .ab{padding:6px 9px;font-size:12px}
+  .items-add{margin-top:10px;display:inline-flex;align-items:center;gap:7px;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:9px 15px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+  .items-vacio{font-size:12.5px;color:var(--ink3);font-style:italic;padding:4px 0 2px}
+  .items-nota{font-size:11.5px;color:var(--ink3);margin-top:9px;line-height:1.45}
+  @media (max-width:640px){ .it{flex-wrap:wrap} .it-acts{width:100%;justify-content:flex-end;padding-top:0} }
   .empty{padding:40px 18px;text-align:center;color:var(--ink3);font-size:13.5px;background:var(--surface);border:1px dashed var(--line-2);border-radius:16px;margin-top:18px}
 
   /* Modal */
@@ -186,7 +206,7 @@
       <div class="page-head">
         <div>
           <div class="page-title"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10" stroke-linecap="round"/></svg></span>Secciones del manual</div>
-          <div class="page-sub">Armá las secciones y subsecciones que el vendedor ve en su visita. Son también las ubicaciones donde podés publicar campañas.</div>
+          <div class="page-sub">Armá las secciones, las subsecciones y los ítems que el vendedor tilda en su visita. Son también las ubicaciones donde podés publicar campañas.</div>
         </div>
         <button class="btn-new" onclick="abrirNueva(null)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nueva sección</button>
       </div>
@@ -287,10 +307,11 @@
     ]);
     SECS = secRes.data || [];
     const ids = SECS.map(s=>s.id);
+    // Los ítems completos (también los ocultos): se editan desde esta misma pantalla.
     ITEMS = {};
     if(ids.length){
-      const { data:its } = await sb.from('checklist_items').select('seccion_id').in('seccion_id', ids).eq('activo',true);
-      (its||[]).forEach(i=>{ ITEMS[i.seccion_id]=(ITEMS[i.seccion_id]||0)+1; });
+      const { data:its } = await sb.from('checklist_items').select('*').in('seccion_id', ids).order('orden');
+      (its||[]).forEach(i=>{ (ITEMS[i.seccion_id] = ITEMS[i.seccion_id] || []).push(i); });
     }
     // Cuántas campañas usan cada código de sección (para avisar antes de borrar)
     USOS = {};
@@ -319,7 +340,39 @@
   const hijas  = m => SECS.filter(s=>s.parent_id===m.id).sort((a,b)=>(a.orden||0)-(b.orden||0));
 
   function tagUso(cod){ const n=USOS[cod]||0; return n? `<span class="tag uso">${n} campaña${n>1?'s':''}</span>`:''; }
-  function tagItems(s){ const n=ITEMS[s.id]||0; return n? `<span class="tag">${n} ítem${n>1?'s':''}</span>`:''; }
+  const itemsDe = id => (ITEMS[id]||[]).slice().sort((a,b)=>(a.orden||0)-(b.orden||0));
+  function tagItems(s){ const n=itemsDe(s.id).filter(i=>i.activo!==false).length; return n? `<span class="tag">${n} ítem${n>1?'s':''}</span>`:''; }
+
+  // Panel de ítems: lo que el vendedor tilda dentro de esa sección durante la visita.
+  function itemsHTML(sec){
+    const its = itemsDe(sec.id);
+    return `<div class="items-wrap" id="items-${sec.id}">
+      <div class="items-t">☑️ Ítems del checklist — ${esc(sec.nombre)}</div>
+      ${its.length ? its.map((it,k)=>`
+        <div class="it ${it.activo===false?'off':''}" id="it-${it.id}">
+          <div class="it-check"></div>
+          <div class="it-campos">
+            <input class="it-tx" value="${esc(it.texto||'')}" placeholder="Qué tiene que hacer o preguntar el vendedor"
+                   onchange="guardarItem('${it.id}','texto',this.value)">
+            <input class="it-de" value="${esc(it.descripcion||'')}" placeholder="Detalle o ayuda (opcional)"
+                   onchange="guardarItem('${it.id}','descripcion',this.value)">
+          </div>
+          <div class="it-acts">
+            <button class="ab icon" title="Subir" onclick="moverItem('${sec.id}','${it.id}',-1)" ${k===0?'disabled style="opacity:.35"':''}>↑</button>
+            <button class="ab icon" title="Bajar" onclick="moverItem('${sec.id}','${it.id}',1)" ${k===its.length-1?'disabled style="opacity:.35"':''}>↓</button>
+            <button class="ab" onclick="toggleItem('${it.id}')">${it.activo===false?'Mostrar':'Ocultar'}</button>
+            <button class="ab danger" title="Eliminar" onclick="borrarItem('${it.id}')">✕</button>
+          </div>
+        </div>`).join('')
+        : '<div class="items-vacio">Esta sección todavía no tiene ítems. Agregá el primero abajo.</div>'}
+      <button class="items-add" onclick="agregarItem('${sec.id}')">+ Agregar ítem</button>
+      <div class="items-nota">El texto se guarda solo al salir del campo. Los ítems ocultos no le aparecen al vendedor, pero no se pierden.</div>
+    </div>`;
+  }
+  function verItems(id){
+    const w = document.getElementById('items-'+id);
+    if(w) w.classList.toggle('open');
+  }
 
   function renderLista(){
     const ms=madres();
@@ -336,11 +389,12 @@
               <div class="acts">
                 <button class="ab icon" title="Subir"  onclick="mover('${h.id}',-1)" ${j===0?'disabled style="opacity:.35"':''}>↑</button>
                 <button class="ab icon" title="Bajar"  onclick="mover('${h.id}',1)" ${j===hs.length-1?'disabled style="opacity:.35"':''}>↓</button>
+                <button class="ab" onclick="verItems('${h.id}')">☑️ Ítems (${itemsDe(h.id).length})</button>
                 <button class="ab" onclick="abrirEdicion('${h.id}')">Editar</button>
                 <button class="ab" onclick="toggleActiva('${h.id}')">${h.activa===false?'Mostrar':'Ocultar'}</button>
                 <button class="ab danger" onclick="borrar('${h.id}')">Eliminar</button>
               </div>
-            </div>`).join('')
+            </div>${itemsHTML(h)}`).join('')
         : '<div class="sin-subs">Sin subsecciones. Podés agregar una para dividir esta sección (ej: Vinos → Góndola, Incorporaciones).</div>';
       return `<div class="sec ${m.activa===false?'off':''}">
         <div class="sec-head">
@@ -352,12 +406,13 @@
           <div class="acts">
             <button class="ab icon" title="Subir" onclick="mover('${m.id}',-1)" ${i===0?'disabled style="opacity:.35"':''}>↑</button>
             <button class="ab icon" title="Bajar" onclick="mover('${m.id}',1)" ${i===ms.length-1?'disabled style="opacity:.35"':''}>↓</button>
+            <button class="ab" onclick="verItems('${m.id}')">☑️ Ítems (${itemsDe(m.id).length})</button>
             <button class="ab" onclick="abrirNueva('${m.id}')">+ Subsección</button>
             <button class="ab" onclick="abrirEdicion('${m.id}')">Editar</button>
             <button class="ab" onclick="toggleActiva('${m.id}')">${m.activa===false?'Mostrar':'Ocultar'}</button>
             <button class="ab danger" onclick="borrar('${m.id}')">Eliminar</button>
           </div>
-        </div>
+        </div>${itemsHTML(m)}
         <div class="subs">${subsHtml}</div>
       </div>`;
     }).join('')+'</div>';
@@ -441,6 +496,68 @@
     }finally{ document.getElementById('m-save').disabled=false; }
   }
 
+
+  // ── Ítems del checklist ──────────────────────────────────────────────────────
+  // Se guardan campo por campo al salir del input, sin modal: son textos cortos y
+  // Luciana suele corregir varios seguidos.
+  async function guardarItem(id, campo, valor){
+    const it = Object.values(ITEMS).flat().find(x=>x.id===id);
+    const limpio = (valor||'').trim();
+    if(it && (it[campo]||'') === limpio) return;
+    const { error } = await sb.from('checklist_items').update({ [campo]: limpio }).eq('id', id);
+    if(error){ alert('No pude guardar el cambio: '+error.message); return; }
+    if(it) it[campo] = limpio;
+    const fila = document.getElementById('it-'+id);
+    if(fila){ fila.style.transition='background .2s'; fila.style.background='#E7F1EC'; setTimeout(()=>fila.style.background='',600); }
+  }
+
+  async function agregarItem(seccionId){
+    const its = itemsDe(seccionId);
+    const orden = its.length ? Math.max(...its.map(i=>i.orden||0)) + 1 : 0;
+    const { data, error } = await sb.from('checklist_items')
+      .insert({ seccion_id: seccionId, texto: '', descripcion: '', orden, activo: true }).select().single();
+    if(error){ alert('No pude crear el ítem: '+error.message); return; }
+    (ITEMS[seccionId] = ITEMS[seccionId] || []).push(data);
+    renderLista();
+    const w = document.getElementById('items-'+seccionId); if(w) w.classList.add('open');
+    const inp = document.querySelector('#it-'+data.id+' .it-tx'); if(inp) inp.focus();
+  }
+
+  async function toggleItem(id){
+    const it = Object.values(ITEMS).flat().find(x=>x.id===id);
+    if(!it) return;
+    const nuevo = it.activo===false;
+    const { error } = await sb.from('checklist_items').update({ activo: nuevo }).eq('id', id);
+    if(error){ alert('No pude cambiar el ítem: '+error.message); return; }
+    it.activo = nuevo;
+    const abierta = new Set([...document.querySelectorAll('.items-wrap.open')].map(w=>w.id));
+    renderLista(); abierta.forEach(x=>{ const w=document.getElementById(x); if(w) w.classList.add('open'); });
+  }
+
+  async function borrarItem(id){
+    const it = Object.values(ITEMS).flat().find(x=>x.id===id);
+    const txt = (it && it.texto) ? `"${it.texto}"` : 'este ítem';
+    if(!confirm(`¿Eliminar ${txt}?\n\nSe borra para siempre. Si solo no lo querés usar por ahora, mejor ocultalo.`)) return;
+    const { error } = await sb.from('checklist_items').delete().eq('id', id);
+    if(error){ alert('No pude eliminar el ítem: '+error.message); return; }
+    Object.keys(ITEMS).forEach(k=>{ ITEMS[k] = ITEMS[k].filter(x=>x.id!==id); });
+    const abierta = new Set([...document.querySelectorAll('.items-wrap.open')].map(w=>w.id));
+    renderLista(); abierta.forEach(x=>{ const w=document.getElementById(x); if(w) w.classList.add('open'); });
+  }
+
+  // Renumera 0..n para que no queden órdenes empatados (si no, el intercambio no se ve).
+  async function moverItem(seccionId, id, dir){
+    const its = itemsDe(seccionId);
+    const i = its.findIndex(x=>x.id===id);
+    const j = i + dir;
+    if(i<0 || j<0 || j>=its.length) return;
+    [its[i], its[j]] = [its[j], its[i]];
+    await Promise.all(its.map((x,k)=> x.orden===k ? null : sb.from('checklist_items').update({ orden:k }).eq('id', x.id)));
+    its.forEach((x,k)=>{ x.orden = k; });
+    ITEMS[seccionId] = its;
+    const abierta = new Set([...document.querySelectorAll('.items-wrap.open')].map(w=>w.id));
+    renderLista(); abierta.forEach(x=>{ const w=document.getElementById(x); if(w) w.classList.add('open'); });
+  }
   async function toggleActiva(id){
     const s=SECS.find(x=>x.id===id); if(!s) return;
     await sb.from('checklist_secciones').update({ activa: s.activa===false }).eq('id', id);
@@ -474,13 +591,15 @@
     const s=SECS.find(x=>x.id===id); if(!s) return;
     const hs=hijas(s);
     if(hs.length){ alert(`"${s.nombre}" tiene ${hs.length} subsección(es). Borrá o mové primero las subsecciones.`); return; }
-    const usos=USOS[s.codigo]||0, its=ITEMS[s.id]||0;
+    const usos=USOS[s.codigo]||0, its=(ITEMS[s.id]||[]).length;
     const otrosLabels = CANALES.filter(c=>c.id!==canal).map(c=>c.label).join(' y ');
     let aviso=`¿Eliminar "${s.nombre}"?\n\nSe borra del manual de ${canalActual().label.toUpperCase()}.\nLos manuales de ${otrosLabels} no se tocan.`;
     if(its)  aviso+=`\n\nTambién se borran sus ${its} ítem(s) de checklist.`;
     if(usos) aviso+=`\n\nOJO: ${usos} campaña(s) están publicadas en esta sección. Van a pasar a "Acciones Mensuales" del canal.`;
     aviso+=`\n\nSi solo querés dejar de usarla, cancelá y usá "Ocultar".`;
     if(!confirm(aviso)) return;
+    // Los ítems son de esta sección: se borran con ella (por si la base no cascadea).
+    await sb.from('checklist_items').delete().eq('seccion_id', id);
     const { error } = await sb.from('checklist_secciones').delete().eq('id', id);
     if(error){ alert('No se pudo eliminar: '+error.message); return; }
     // Si existe una sección con el mismo nombre en el otro manual, avisarlo: es el
