@@ -4195,10 +4195,13 @@ body { background:transparent !important; }
 
     // Calendario de fechas especiales — UNIVERSAL: cualquier sección (de cualquier rubro)
     // con especial='calendario_fechas' muestra el calendario, filtrando por el canal del rubro.
+    // El admin agrupa las fechas por ON-trade ('restaurantes') / OFF-trade ('vinotecas') + 'todos'.
+    // Cada rubro mira su grupo: bares/hoteles/discos/eventos = ON; autoservicios/kioscos/mayoristas = OFF.
     const CANAL_CAL = {
-      restaurante:['restaurantes','todos'], vinoteca:['vinotecas','todos'], bar:['bares','todos'],
-      hotel:['hoteles','todos'], disco:['discos','todos'], autoservicio:['autoservicios','todos'],
-      kiosco:['kioscos','todos'], mayorista:['mayoristas','todos'], evento:['eventos','todos'],
+      restaurante:['restaurantes','todos'], bar:['restaurantes','todos'], hotel:['restaurantes','todos'],
+      disco:['restaurantes','todos'], evento:['restaurantes','todos'],
+      vinoteca:['vinotecas','todos'], autoservicio:['vinotecas','todos'],
+      kiosco:['vinotecas','todos'], mayorista:['vinotecas','todos'],
     };
     seccionesHoja(checklist).forEach(sec => {
       if (sec.especial === 'calendario_fechas') {
