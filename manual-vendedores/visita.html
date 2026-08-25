@@ -560,6 +560,14 @@
   .ev-cant button { width:32px; height:32px; border-radius:9px; border:1.5px solid rgba(255,255,255,.2);
                     background:rgba(255,255,255,.07); color:#fff; font-size:17px; font-weight:700; cursor:pointer; line-height:1; }
   .ev-cant span { min-width:22px; text-align:center; font-size:15px; font-weight:800; color:#fff; }
+  .ev-mat-chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:11px; }
+  .ev-mat-stock { font-size:10.5px; font-weight:800; border-radius:6px; padding:3px 7px; letter-spacing:.02em;
+                  display:inline-flex; align-items:center; gap:4px; margin-top:4px; }
+  .ev-mat-stock.ok   { background:rgba(45,106,79,.25);  color:#8fe0b4; }
+  .ev-mat-stock.bajo { background:rgba(154,107,14,.28); color:#e8c479; }
+  .ev-mat-stock.sin  { background:rgba(192,57,43,.25);  color:#f0a89e; }
+  .ev-combo.sinstock { opacity:.55; }
+  .ev-combo.sinstock .ev-cant button { opacity:.4; cursor:not-allowed; }
   .esp-block-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--dorado); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
   .esp-block-title::before { content:''; width:6px; height:6px; background:var(--dorado); border-radius:50%; flex-shrink:0; }
 
@@ -3299,6 +3307,7 @@ body { background:transparent !important; }
       case 'cierre_resumen':      return renderCierreResumen(sec);
       case 'ev_paquetes':         return renderEvPaquetes(sec);
       case 'ev_combos':           return renderEvCombos(sec);
+      case 'ev_materiales':       return renderEvMateriales(sec);
       // ── Compatibilidad estructura anterior ──
       case 'vidriera':       return renderEspVidriera(sec);
       case 'heladera':       return renderEspHeladera(sec);
@@ -3524,6 +3533,106 @@ body { background:transparent !important; }
     showToast('Combos guardados en la visita');
   }
 
+
+  // ── EVENTOS · Materiales ───────────────────────────────────────────────────
+  // NO es una lista aparte: sale del stock real que maneja Luciana en su panel de
+  // Materiales (tabla materials_with_stock). Solo se muestran los que ella marcó
+  // como visibles para vendedores. El stock que se ve acá es el de depósito, así
+  // que el vendedor no promete algo que no está.
+  let evMatSel = {};   // id de material → cantidad elegida
+  let evMatCache = [];
+
+  function renderEvMateriales(sec) {
+    return `<div class="esp-block"><div id="ev-mat-${sec.id}"><div class="esp-loading">Cargando materiales…</div></div></div>`;
+  }
+
+  async function cargarEvMateriales(secId) {
+    const el = document.getElementById('ev-mat-' + secId);
+    if (!el) return;
+    let mats = [], provs = {}, marcas = {};
+    try {
+      const [rm, rp, rb] = await Promise.all([
+        sb.from('materials_with_stock')
+          .select('id,name,description,unit_type,stock_actual,minimum_stock,supplier_id,brand_id,processed_image_url,original_image_url')
+          .eq('is_active', true).eq('visible_to_sellers', true).order('name'),
+        sb.from('proveedores').select('id,nombre'),
+        sb.from('brands').select('id,name'),
+      ]);
+      mats = rm.data || [];
+      (rp.data || []).forEach(p => provs[p.id] = p.nombre);
+      (rb.data || []).forEach(b => marcas[b.id] = b.name);
+    } catch (e) { mats = []; }
+    evMatCache = mats;
+
+    if (!mats.length) {
+      el.innerHTML = `<div class="esp-loading">No hay materiales habilitados para vendedores. Los carga el área comercial desde su panel de Materiales.</div>`;
+      return;
+    }
+
+    const stockDe = m => {
+      const s = Number(m.stock_actual || 0), min = Number(m.minimum_stock || 0);
+      if (s <= 0)        return { cls:'sin',  txt:'Sin stock' };
+      if (s <= min || s <= 3) return { cls:'bajo', txt:`Quedan ${s}` };
+      return { cls:'ok', txt:`${s} disponibles` };
+    };
+    const personas = (typeof evEstado !== 'undefined' && evEstado.total) ? evEstado.total : null;
+
+    el.innerHTML = `
+      ${personas ? `<div class="ev-nota" style="margin:0 0 10px">Para el evento de <b>${personas} personas</b> que armaste en Paquetes.</div>` : ''}
+      ${mats.map(m => {
+        const st  = stockDe(m);
+        const sin = st.cls === 'sin';
+        const img = m.processed_image_url || m.original_image_url;
+        const sub = [marcas[m.brand_id], provs[m.supplier_id]].filter(Boolean).join(' · ');
+        if (evMatSel[m.id] == null) evMatSel[m.id] = 0;
+        const cant = evMatSel[m.id];
+        return `<div class="ev-combo ${cant>0?'on':''} ${sin?'sinstock':''}" id="ev-mat-item-${m.id}">
+          ${img ? `<img class="ev-combo-img" src="${esc(img)}" alt="" onerror="_amImgFallback(this)">` : `<div class="ev-combo-img">📦</div>`}
+          <div class="ev-combo-info">
+            <div class="ev-combo-nom">${esc(m.name)}</div>
+            ${sub ? `<div class="ev-combo-cont">${esc(sub)}</div>` : ''}
+            ${m.description ? `<div class="ev-combo-desc">${esc(m.description)}</div>` : ''}
+            <div class="ev-mat-stock ${st.cls}">${st.txt}${m.unit_type ? ' · ' + esc(m.unit_type) : ''}</div>
+          </div>
+          <div class="ev-cant">
+            <button type="button" onclick="evMat('${m.id}',-1,'${secId}')">−</button>
+            <span id="ev-matc-${m.id}">${cant}</span>
+            <button type="button" onclick="evMat('${m.id}',1,'${secId}')">+</button>
+          </div>
+        </div>`;
+      }).join('')}
+      <div class="ev-nota">El stock es el del depósito. Si dice "Sin stock" no lo comprometas: pedilo antes al área comercial.</div>
+      <button type="button" class="esp-ac-btn" style="margin-top:10px" onclick="evGuardarMateriales('${secId}')">📋 Guardar los materiales pedidos</button>`;
+  }
+
+  // No se puede pedir más de lo que hay en depósito.
+  function evMat(id, delta, secId) {
+    const m    = evMatCache.find(x => x.id === id);
+    const tope = Math.max(0, Number(m && m.stock_actual || 0));
+    const nuevo = Math.min(tope, Math.max(0, (evMatSel[id] || 0) + delta));
+    if (delta > 0 && nuevo === (evMatSel[id] || 0)) {
+      showToast(tope === 0 ? 'Ese material no tiene stock' : `Solo hay ${tope} en depósito`, 'error');
+      return;
+    }
+    evMatSel[id] = nuevo;
+    const s = document.getElementById('ev-matc-' + id);
+    if (s) s.textContent = nuevo;
+    const card = document.getElementById('ev-mat-item-' + id);
+    if (card) card.classList.toggle('on', nuevo > 0);
+  }
+
+  function evGuardarMateriales(secId) {
+    const obs = document.getElementById('obs-' + secId);
+    if (!obs) { showToast('No pude guardar los materiales', 'error'); return; }
+    const elegidos = evMatCache.filter(m => (evMatSel[m.id] || 0) > 0)
+      .map(m => `• ${evMatSel[m.id]} × ${m.name}`);
+    if (!elegidos.length) { showToast('Elegí al menos un material', 'error'); return; }
+    const bloque = 'MATERIALES PARA EL EVENTO\n' + elegidos.join('\n');
+    obs.value = (obs.value ? obs.value.replace(/MATERIALES PARA EL EVENTO[\s\S]*?(?=\n\n|$)/, '').trim() + '\n\n' : '') + bloque;
+    obs.dispatchEvent(new Event('input',  { bubbles: true }));
+    obs.dispatchEvent(new Event('change', { bubbles: true }));
+    showToast('Materiales guardados en la visita');
+  }
   // S1 — Vidrieras
   function renderEspVidriera(sec) {
     const OPCIONES_VIDRIERA = [
@@ -4024,6 +4133,7 @@ body { background:transparent !important; }
     // no se cargan nunca en el manual de eventos (que es donde viven).
     seccionesHoja(checklist).forEach(sec => {
       if (sec.especial === 'ev_combos') cargarEvCombos(sec.id);
+      if (sec.especial === 'ev_materiales') cargarEvMateriales(sec.id);
     });
 
     if (checklist.id === 'vinoteca') {
