@@ -33,6 +33,25 @@ const MANUAL = [
   { id: 'alfonsa',     nombre: 'Alfonsa (San Luis)' },
 ];
 
+// Normalización + relevancia: el nombre del producto debe contener TODAS
+// las palabras que buscó Luci (así "skyy reg 750" no trae shampoo ni bolsas).
+function norm(s) {
+  return String(s == null ? '' : s).toUpperCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function tokensQuery(q) {
+  const all = norm(q).split(' ').filter(Boolean);
+  const big = all.filter((t) => t.length >= 4);   // palabras específicas (skyy, branca, 1882)
+  if (big.length) return big;
+  return all.filter((t) => t.length >= 3);         // fallback para búsquedas cortas (gin, ron)
+}
+function esRelevante(nombre, toks) {
+  if (!toks.length) return true;
+  const n = norm(nombre);
+  return toks.every((t) => n.includes(t));
+}
+
 async function fetchTimeout(url, ms = 8000) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
@@ -45,40 +64,45 @@ async function fetchTimeout(url, ms = 8000) {
   finally { clearTimeout(t); }
 }
 
-// Extrae los productos con precio de una respuesta VTEX.
-function parseVtex(arr, max = 8) {
+// Extrae los productos con precio y CON STOCK de una respuesta VTEX,
+// filtrando por relevancia (nombre debe contener las palabras buscadas).
+function parseVtex(arr, toks, max = 8) {
   const out = [];
   for (const p of (Array.isArray(arr) ? arr : [])) {
     try {
-      const it = (p.items || [])[0]; if (!it) continue;
-      const sel = (it.sellers || []).find((s) => s.commertialOffer && s.commertialOffer.Price > 0) || (it.sellers || [])[0];
-      const o = sel && sel.commertialOffer; if (!o) continue;
-      const precio = Number(o.Price) || 0;
-      const disponible = (o.AvailableQuantity == null ? 1 : Number(o.AvailableQuantity)) > 0 && precio > 0;
-      out.push({
-        producto: p.productName || it.name || '—',
-        marca: p.brand || null,
-        precio: precio || null,
-        precio_lista: Number(o.ListPrice) || null,
-        disponible,
-        url: p.link || null,
-      });
+      const nombre = p.productName || (p.items && p.items[0] && p.items[0].name) || '—';
+      if (!esRelevante(nombre, toks)) continue;
+      // Solo vendedores con precio > 0 y stock disponible.
+      let mejor = null;
+      for (const it of (p.items || [])) {
+        for (const s of (it.sellers || [])) {
+          const o = s.commertialOffer;
+          if (!o || !(Number(o.Price) > 0)) continue;
+          const disp = o.AvailableQuantity == null ? true : Number(o.AvailableQuantity) > 0;
+          if (!disp) continue;
+          if (!mejor || Number(o.Price) < mejor.precio) mejor = { precio: Number(o.Price), lista: Number(o.ListPrice) || null };
+        }
+      }
+      if (!mejor) continue; // sin stock / sin precio → no se muestra
+      out.push({ producto: nombre, marca: p.brand || null, precio: mejor.precio, precio_lista: mejor.lista, disponible: true, url: p.link || null });
     } catch (e) { /* saltar producto roto */ }
     if (out.length >= max) break;
   }
   return out;
 }
 
-// Extrae productos con precio de una respuesta WooCommerce Store API.
-function parseWoo(arr, max = 8) {
+// Extrae productos con precio y stock de una respuesta WooCommerce Store API.
+function parseWoo(arr, toks, max = 8) {
   const out = [];
   for (const p of (Array.isArray(arr) ? arr : [])) {
     try {
+      if (p.is_in_stock === false) continue;            // sin stock → fuera
+      if (!esRelevante(p.name || '', toks)) continue;    // relevancia
       const pr = p.prices || {};
       const minor = Number(pr.currency_minor_unit || 0);
       const precio = pr.price != null ? Number(pr.price) / Math.pow(10, minor) : 0;
       if (!precio) continue;
-      out.push({ producto: p.name || '—', marca: null, precio, precio_lista: null, disponible: p.is_in_stock !== false, url: p.permalink || null });
+      out.push({ producto: p.name || '—', marca: null, precio, precio_lista: null, disponible: true, url: p.permalink || null });
     } catch (e) { /* saltar */ }
     if (out.length >= max) break;
   }
@@ -90,16 +114,17 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
   const q = ((event.queryStringParameters || {}).q || '').trim();
   if (!q) return { statusCode: 200, headers, body: JSON.stringify({ ok: true, q: '', auto: [], manual: MANUAL }) };
+  const toks = tokensQuery(q);
 
   const autoVtex = VTEX.map(async (c) => {
-    const r = await fetchTimeout(`${c.base}/api/catalog_system/pub/products/search?ft=${encodeURIComponent(q)}&_from=0&_to=9`);
+    const r = await fetchTimeout(`${c.base}/api/catalog_system/pub/products/search?ft=${encodeURIComponent(q)}&_from=0&_to=29`);
     if (!r.ok || !r.json) return { id: c.id, nombre: c.nombre, base: c.base, error: r.error || ('http ' + r.status), items: [] };
-    return { id: c.id, nombre: c.nombre, base: c.base, items: parseVtex(r.json) };
+    return { id: c.id, nombre: c.nombre, base: c.base, items: parseVtex(r.json, toks) };
   });
   const autoWoo = WOO.map(async (c) => {
-    const r = await fetchTimeout(`${c.base}/wp-json/wc/store/products?search=${encodeURIComponent(q)}&per_page=10`);
+    const r = await fetchTimeout(`${c.base}/wp-json/wc/store/products?search=${encodeURIComponent(q)}&per_page=30`);
     if (!r.ok || !r.json) return { id: c.id, nombre: c.nombre, base: c.base, error: r.error || ('http ' + r.status), items: [] };
-    return { id: c.id, nombre: c.nombre, base: c.base, items: parseWoo(r.json) };
+    return { id: c.id, nombre: c.nombre, base: c.base, items: parseWoo(r.json, toks) };
   });
   const auto = await Promise.all([...autoVtex, ...autoWoo]);
 
