@@ -3360,7 +3360,7 @@ body { background:transparent !important; }
       `<button type="button" class="ev-chip ${activo?'on':''}" onclick="${onclick}">${txt}</button>`;
 
     return `
-      <div class="ev-paso">1 · ¿Para cuánta gente?</div>
+      <div class="ev-paso">1 · ¿Para cuánta gente es el evento?</div>
       <div class="ev-chips">
         ${EV_TAMANIOS.map(t=>chip(e.total===t, t+' personas', `evSet('total',${t},'${secId}')`)).join('')}
       </div>
@@ -3384,18 +3384,18 @@ body { background:transparent !important; }
         <div class="ev-linea"><span>🥃 Aperitivos</span><b>${calc.aperitivo} botellas</b></div>
         <div class="ev-linea"><span>🥤 Sin alcohol</span><b>${calc.sinAlcohol} litros</b></div>
         <div class="ev-linea destacada"><span>🧊 Hielo</span><b>${calc.hielo} kg</b></div>
-        <div class="ev-nota">Cantidades de referencia para arrancar la charla. Ajustalas con el cliente.</div>
+        <div class="ev-nota">Cantidades de referencia para que el mayorista arranque la cotización. Ajustalas con él.</div>
       </div>
 
-      <div class="ev-paso">4 · Servicios que sumamos (los cotiza la empresa)</div>
+      <div class="ev-paso">4 · Servicios que le sumamos al mayorista (los cotiza la empresa)</div>
       <label class="ev-check ${e.barra?'on':''}"><input type="checkbox" ${e.barra?'checked':''} onchange="evSet('barra',this.checked,'${secId}')"> 🍸 Barra montada <small>Se contrata con un tercero</small></label>
       <label class="ev-check ${e.hielo?'on':''}"><input type="checkbox" ${e.hielo?'checked':''} onchange="evSet('hielo',this.checked,'${secId}')"> 🧊 Servicio de hielo <small>Entrega desde la fábrica</small></label>
       <label class="ev-check ${e.bartender?'on':''}"><input type="checkbox" ${e.bartender?'checked':''} onchange="evSet('bartender',this.checked,'${secId}')"> 👨‍🍳 Bartender <small>A confirmar disponibilidad</small></label>
-      <div class="ev-nota">Marcá lo que le interesa al cliente: queda en la propuesta y lo cotiza la empresa. Todavía no tienen precio de lista.</div>
+      <div class="ev-nota">Marcá lo que le interesa al mayorista para revender: queda en la propuesta y lo cotiza la empresa. Todavía no tienen precio de lista.</div>
 
       <div class="ev-paso">5 · Diseño del evento</div>
       <button type="button" class="esp-ac-btn primary" onclick="evPedirDiseno()">🎨 Pedir diseño y flyers a Marketing</button>
-      <div class="ev-nota">Se abre WhatsApp con el pedido armado; Marketing se comunica con el cliente.</div>
+      <div class="ev-nota">Se abre WhatsApp con el pedido armado; Marketing se comunica con el mayorista.</div>
 
       <button type="button" class="esp-ac-btn" style="margin-top:12px" onclick="evGuardar('${secId}')">📋 Guardar esta propuesta en la visita</button>
     `;
