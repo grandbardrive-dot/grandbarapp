@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Comparador de precios</title>
+<style>
+  :root{
+    --navy:#1F447F; --navy-d:#16305a; --navy-dd:#0f2340; --gold:#CBB86A; --gold-d:#B08D2E;
+    --bg:#F4F1EA; --surface:#FFFFFF; --surface2:#FBF9F5;
+    --ink:#1F1B16; --ink2:#5f574c; --ink3:#9a9187;
+    --line:rgba(31,68,127,.10); --line-2:rgba(31,68,127,.16);
+    --green:#2D6A4F; --green-bg:#E7F1EC; --red:#C0392B; --red-bg:#FBEAE7; --amber:#9A6B0E; --amber-bg:#FaF0DA;
+    --shadow:0 1px 2px rgba(31,68,127,.05), 0 14px 34px rgba(31,68,127,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .num{font-variant-numeric:tabular-nums}
+  .layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  @media (max-width:860px){ .layout{grid-template-columns:1fr} .sidebar{display:none} }
+  .sidebar{background:linear-gradient(185deg,var(--navy),var(--navy-d) 62%,var(--navy-dd));color:#fff;display:flex;flex-direction:column;padding:0 0 18px;position:sticky;top:0;height:100vh}
+  .sb-logo{padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)} .sb-logo img{height:38px;object-fit:contain}
+  .sb-nav{display:flex;flex-direction:column;gap:3px;padding:16px 12px}
+  .sb-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:rgba(255,255,255,.72);cursor:pointer;background:none;border:none;font-family:inherit;text-align:left;width:100%}
+  .sb-item:hover{background:rgba(255,255,255,.07);color:#fff}
+  .sb-item.active{background:rgba(255,255,255,.12);color:#fff} .sb-item.active .sb-ico{color:var(--gold)} .sb-item.active .sb-txt-main{font-weight:700}
+  .sb-ico{width:20px;height:20px;flex:none;color:rgba(255,255,255,.6)} .sb-txt-main{font-size:14px} .sb-txt-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:1px}
+  .sb-spacer{flex:1}
+  .topbar{background:var(--navy);border-bottom:3px solid var(--gold);height:70px;display:flex;align-items:center;justify-content:flex-end;padding:0 26px}
+  .tb-user{display:flex;align-items:center;gap:11px} .tb-ava{width:38px;height:38px;border-radius:50%;background:var(--gold);color:var(--navy-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+  .tb-user-name{font-size:14px;font-weight:700;color:#fff;text-align:right} .tb-user-role{font-size:11px;color:rgba(255,255,255,.6);text-align:right}
+  .content{padding:26px 30px 70px;max-width:1100px}
+  .page-title{font-size:clamp(23px,3vw,30px);font-weight:800;letter-spacing:-.02em}
+  .page-sub{color:var(--ink2);font-size:14px;margin-top:6px}
+
+  .searchbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:20px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3)}
+  .field input{border:1.5px solid var(--line-2);border-radius:10px;padding:12px 13px;font-family:inherit;font-size:15px;color:var(--ink);background:var(--surface)}
+  .field.grow{flex:1;min-width:200px}
+  .field.price input{font-weight:800}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:10px;padding:13px 20px;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px}
+  .btn:hover{background:var(--navy-d)} .btn svg{width:17px;height:17px}
+  .hint{font-size:12px;color:var(--ink3);margin-top:8px}
+
+  .summary{display:none;background:linear-gradient(150deg,var(--navy),var(--navy-dd));color:#fff;border-radius:16px;padding:18px 20px;margin-top:20px;box-shadow:var(--shadow)}
+  .summary.show{display:block}
+  .summary b{font-size:22px;font-weight:800}
+  .summary .s2{font-size:13px;color:rgba(255,255,255,.7);margin-top:4px}
+
+  .tablewrap{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);overflow-x:auto}
+  table{width:100%;border-collapse:collapse;min-width:640px}
+  thead th{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);text-align:left;padding:13px 15px;border-bottom:1.5px solid var(--line);white-space:nowrap}
+  thead th.r{text-align:right}
+  tbody td{padding:11px 15px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+  tbody tr:hover{background:var(--surface2)}
+  .comp{font-weight:800} .comp small{display:block;font-weight:600;color:var(--ink3);font-size:11px}
+  .prod{color:var(--ink2)} .prod a{color:var(--navy);font-weight:600}
+  .r{text-align:right;font-variant-numeric:tabular-nums}
+  .price{font-weight:800;font-size:14.5px}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .chip.barato{background:var(--red-bg);color:var(--red)}     /* competidor más barato que nosotros = malo */
+  .chip.caro{background:var(--green-bg);color:var(--green)}   /* nosotros más baratos = bueno */
+  .chip.igual{background:var(--amber-bg);color:var(--amber)}
+  .chip.na{background:rgba(31,68,127,.06);color:var(--ink3)}
+  .minput{width:120px;border:1.5px solid var(--line-2);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13.5px;text-align:right;background:var(--surface2)}
+  .grow-row td{background:var(--surface2)}
+  .empty{padding:36px;text-align:center;color:var(--ink3)}
+  .badge-auto{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);background:rgba(31,68,127,.08);padding:2px 7px;border-radius:6px}
+  .badge-man{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);background:var(--amber-bg);padding:2px 7px;border-radius:6px}
+  .spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;animation:sp .7s linear infinite;vertical-align:middle}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .note{font-size:12px;color:var(--ink3);margin-top:14px;background:var(--surface2);border:1px dashed var(--line-2);border-radius:10px;padding:12px 14px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-logo"><img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar"></div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="admin-comercial.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v9h14v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Inicio</div></div></a>
+      <a class="sb-item" href="admin-campanias.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Campañas</div><div class="sb-txt-sub">Acciones comerciales</div></div></a>
+      <a class="sb-item" href="admin-catalogo.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 7v10l8 4 8-4V7" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Catálogo</div><div class="sb-txt-sub">Proveedores y productos</div></div></a>
+      <a class="sb-item" href="admin-catalogo-clientes.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2zM20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Catálogo clientes</div><div class="sb-txt-sub">Catálogo público de acciones</div></div></a>
+      <a class="sb-item" href="admin-resultados.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Resultados</div><div class="sb-txt-sub">Rendimiento por acción</div></div></a>
+      <a class="sb-item active" href="admin-comparador.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Comparador</div><div class="sb-txt-sub">Precios de la competencia</div></div></a>
+    </nav>
+    <div class="sb-spacer"></div>
+  </aside>
+
+  <div>
+    <header class="topbar"><div class="tb-user"><div class="tb-ava">L</div><div><div class="tb-user-name">Luciana</div><div class="tb-user-role">Gestora Comercial</div></div></div></header>
+    <main class="content">
+      <div class="page-title">Comparador de precios</div>
+      <div class="page-sub">Buscá un producto y compará el precio de la competencia contra el nuestro.</div>
+
+      <div class="searchbar">
+        <div class="field grow"><label>Producto</label><input id="q" placeholder="Ej: skyy, fernet branca, beefeater…" onkeydown="if(event.key==='Enter')buscar()"></div>
+        <div class="field price"><label>Precio GrandBar ($)</label><input id="gb" type="number" inputmode="numeric" placeholder="opcional" oninput="render()"></div>
+        <button class="btn" id="btnBuscar" onclick="buscar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>Buscar</button>
+      </div>
+      <div class="hint">Cargá el <b>Precio GrandBar</b> (de tu lista) y el panel te marca en rojo quién está más barato que nosotros.</div>
+
+      <div class="summary" id="summary"></div>
+      <div id="slot"></div>
+      <div class="note" id="note" style="display:none"></div>
+    </main>
+  </div>
+</div>
+
+<script>
+  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');} sessionStorage.setItem('admin_perfil','comercial');
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const $=id=>document.getElementById(id);
+  const money=n=>(n||n===0)?'$ '+Math.round(n).toLocaleString('es-AR'):'—';
+  const normq=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,'-');
+  let DATA=null;
+
+  async function buscar(){
+    const q=$('q').value.trim();
+    if(!q){ $('slot').innerHTML='<div class="empty">Escribí un producto para buscar.</div>'; return; }
+    $('summary').classList.remove('show'); $('note').style.display='none';
+    $('slot').innerHTML='<div class="empty"><span class="spin" style="border-color:rgba(31,68,127,.2);border-top-color:var(--navy)"></span> Buscando en la competencia…</div>';
+    $('btnBuscar').disabled=true;
+    try{
+      const r=await fetch('/.netlify/functions/comparar-precios?q='+encodeURIComponent(q));
+      DATA=await r.json();
+      if(!DATA.ok) throw new Error(DATA.error||'Error');
+      render();
+    }catch(e){ $('slot').innerHTML='<div class="empty">No se pudo buscar: '+esc(e.message||e)+'</div>'; }
+    finally{ $('btnBuscar').disabled=false; }
+  }
+
+  // Precio manual guardado por competidor + búsqueda.
+  const manKey=(id)=>'gb_comp_'+id+'_'+normq($('q').value);
+  function setMan(id,val){ try{ if(val)localStorage.setItem(manKey(id),val); else localStorage.removeItem(manKey(id)); }catch(e){} render(); }
+  function getMan(id){ try{ return localStorage.getItem(manKey(id))||''; }catch(e){ return ''; } }
+
+  function chipVs(precio,gb){
+    if(!gb||!precio) return '<span class="chip na">—</span>';
+    if(precio<gb) return '<span class="chip barato">🔴 más barato que vos</span>';
+    if(precio>gb) return '<span class="chip caro">🟢 vos más barato</span>';
+    return '<span class="chip igual">= igual</span>';
+  }
+
+  function render(){
+    if(!DATA){ return; }
+    const gb=Number($('gb').value)||0;
+    const filas=[];
+
+    // Autos (VTEX): una fila por producto encontrado.
+    (DATA.auto||[]).forEach(c=>{
+      const items=(c.items||[]).filter(i=>i.precio);
+      if(!items.length){
+        filas.push({tipo:'auto-vacio', comp:c.nombre, base:c.base, error:c.error});
+      }else{
+        items.forEach(i=>filas.push({tipo:'auto', comp:c.nombre, base:c.base, producto:i.producto, precio:i.precio, url:i.url}));
+      }
+    });
+    // Manuales: una fila con input.
+    (DATA.manual||[]).forEach(c=>{
+      const v=Number(getMan(c.id))||0;
+      filas.push({tipo:'manual', id:c.id, comp:c.nombre, precio:v||null});
+    });
+
+    // Orden: con precio primero (de menor a mayor), después sin precio.
+    const conP=filas.filter(f=>f.precio).sort((a,b)=>a.precio-b.precio);
+    const sinP=filas.filter(f=>!f.precio);
+    const ordenadas=[...conP,...sinP];
+
+    // Resumen.
+    if(gb){
+      const masBaratos=conP.filter(f=>f.precio<gb).length;
+      const total=conP.length;
+      $('summary').innerHTML=`<b>${masBaratos} de ${total}</b> ${masBaratos===1?'precio está':'precios están'} más baratos que el tuyo ($ ${gb.toLocaleString('es-AR')}).<div class="s2">${masBaratos?'Ojo con esos. ':'Estás bien parado. '}Comparás contra ${total} precio${total===1?'':'s'} de la competencia.</div>`;
+      $('summary').classList.add('show');
+    }else{ $('summary').classList.remove('show'); }
+
+    let html=`<div class="tablewrap"><table><thead><tr>
+      <th>Competidor</th><th>Producto</th><th class="r">Precio</th><th class="r">vs GrandBar</th>
+    </tr></thead><tbody>`;
+    ordenadas.forEach(f=>{
+      if(f.tipo==='manual'){
+        html+=`<tr class="grow-row"><td><span class="comp">${esc(f.comp)}</span> <span class="badge-man">manual</span></td>
+          <td class="prod" colspan="1" style="color:var(--ink3)">cargá el precio que veas</td>
+          <td class="r"><input class="minput" type="number" inputmode="numeric" placeholder="$" value="${getMan(f.id)}" oninput="setMan('${f.id}',this.value)"></td>
+          <td class="r">${chipVs(f.precio,gb)}</td></tr>`;
+      }else if(f.tipo==='auto-vacio'){
+        html+=`<tr><td><span class="comp">${esc(f.comp)}</span> <span class="badge-auto">auto</span></td>
+          <td class="prod" style="color:var(--ink3)">sin resultados${f.error?' ('+esc(f.error)+')':''}</td>
+          <td class="r">—</td><td class="r"><span class="chip na">—</span></td></tr>`;
+      }else{
+        html+=`<tr><td><span class="comp">${esc(f.comp)}</span> <span class="badge-auto">auto</span></td>
+          <td class="prod">${f.url?`<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.producto)}</a>`:esc(f.producto)}</td>
+          <td class="r price">${money(f.precio)}</td>
+          <td class="r">${chipVs(f.precio,gb)}</td></tr>`;
+      }
+    });
+    html+='</tbody></table></div>';
+    $('slot').innerHTML=html;
+    $('note').style.display='block';
+    $('note').innerHTML='Los <b>automáticos</b> (Carrefour, Chango Mas, Vea, Jumbo, Disco, Go Bar y Central de Bebidas) traen el precio solos. Los <b>manuales</b> (Coto, Maxiconsumo, Pedidos Ya, Almag y Alfonsa) los cargás vos y quedan guardados para esta búsqueda. En rojo = te están ganando en precio.';
+  }
+</script>
+</body>
+</html>

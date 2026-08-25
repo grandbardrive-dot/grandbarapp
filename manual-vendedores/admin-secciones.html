@@ -258,12 +258,16 @@
   sessionStorage.setItem('admin_perfil','comercial');
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
-  // Solo los canales que el manual arma desde la base. Autoservicios usa un checklist
-  // fijo en el código: si se cargaran secciones acá, reemplazaría todo ese manual.
+  // Rubros del manual. Cada uno tiene sus propias secciones (se guardan en la base
+  // por 'canal'). Los rubros nuevos (hoteles, bares, discos) arrancan vacíos.
   const CANALES=[
-    { id:'restaurante', label:'Restaurantes, bares y hoteles', ico:'🍽️' },
-    { id:'vinoteca',    label:'Vinotecas',                     ico:'🍾' },
-    { id:'evento',      label:'Eventos',                       ico:'🎉' },
+    { id:'restaurante',  label:'Restaurantes',  ico:'🍽️' },
+    { id:'vinoteca',     label:'Vinotecas',     ico:'🍾' },
+    { id:'autoservicio', label:'Autoservicios', ico:'🏪' },
+    { id:'hotel',        label:'Hoteles',       ico:'🏨' },
+    { id:'bar',          label:'Bares',         ico:'🍺' },
+    { id:'disco',        label:'Discos',        ico:'🕺' },
+    { id:'evento',       label:'Eventos',       ico:'🎉' },
   ];
   const COLORES=[
     { bg:'#EAF2FB', fg:'#1A5C9A' }, { bg:'#EAF4EE', fg:'#2D6A4F' }, { bg:'#FDF5E0', fg:'#8A5E00' },

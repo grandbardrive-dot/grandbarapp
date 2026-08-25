@@ -553,11 +553,17 @@ const MANUAL_POR_TIPO = {
   vinoteca: 'vinoteca',
   autoservicio: 'autoservicio',   // todavía tiene su checklist propio en el código
   kiosco: 'autoservicio',
+  hotel: 'hotel',                 // rubros separados: cada uno su propio manual
+  bar: 'bar',
+  disco: 'disco',
+  discoteca: 'disco',
   evento: 'evento',               // manual propio: paquetes, combos, materiales…
 };
+// Nombre lindo de cada rubro (para el manual vacío recién creado).
+const RUBRO_LABELS = { restaurante: 'Restaurantes', vinoteca: 'Vinotecas', autoservicio: 'Autoservicios', hotel: 'Hoteles', bar: 'Bares', disco: 'Discos', evento: 'Eventos' };
 function manualDe(tipo) {
   const t = String(tipo || '').toLowerCase();
-  return MANUAL_POR_TIPO[t] || 'restaurante';   // ON TRADE: restaurante, bar, hotel, evento, mayorista, otros…
+  return MANUAL_POR_TIPO[t] || 'restaurante';   // sin mapeo (mayorista, otros…) → Restaurantes
 }
 
 async function getChecklistDynamic(tipo) {
@@ -574,9 +580,12 @@ async function getChecklistDynamic(tipo) {
       .eq('activa', true)
       .order('orden');
 
-    // Si falla (tablas no existen) o no hay datos → fallback silencioso
+    // Si falla (tablas no existen) o no hay datos → fallback.
+    // Rubros con checklist hardcodeado (restaurante/vinoteca/autoservicio) usan ese;
+    // los rubros separados sin secciones cargadas (hotel/bar/disco/evento) se muestran
+    // VACÍOS — NO caen al manual de Restaurantes.
     if (error || !secciones?.length) {
-      _clCache[canal] = getChecklist(tipo);
+      _clCache[canal] = CHECKLISTS[canal] || { id: canal, label: RUBRO_LABELS[canal] || canal, heroSubtitulo: '', secciones: [] };
       return _clCache[canal];
     }
 
