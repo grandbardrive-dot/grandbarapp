@@ -94,6 +94,12 @@
   .fg textarea{resize:vertical;min-height:64px}
   .fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .hint{font-size:11px;color:var(--ink3);margin-top:5px}
+  .rchips{display:flex;flex-wrap:wrap;gap:7px}
+  .rchip{border:1.5px solid var(--line-2);background:var(--surface);border-radius:20px;padding:7px 13px;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;user-select:none;transition:.12s}
+  .rchip:hover{border-color:var(--navy)}
+  .rchip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .rchip.todos.on{background:var(--gold);color:var(--navy-dd);border-color:var(--gold)}
+  .rmini{display:inline-flex;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:20px;background:rgba(31,68,127,.08);color:var(--navy)}
   .drop{border:1.5px dashed var(--line-2);border-radius:10px;padding:14px;text-align:center;cursor:pointer;color:var(--ink3);font-size:12.5px;background:var(--surface2)}
   .drop:hover{border-color:var(--navy);color:var(--navy)}
   .drop img{max-height:90px;border-radius:8px;margin-bottom:6px}
@@ -172,13 +178,9 @@
           <div class="fg"><label>Descripción *</label><textarea id="f-desc" placeholder="Qué es y qué tiene que hacer el vendedor…"></textarea></div>
           <div class="fg"><label>Condición / mecánica (opcional)</label><input id="f-cond" type="text" placeholder="Ej: 3+1 en espumantes"></div>
           <div class="fg">
-            <label>¿Para qué canal? *</label>
-            <select id="f-canal">
-              <option value="todos">Todos los rubros</option>
-              <option value="restaurantes">Restaurantes / ON Trade (bares, hoteles, discos, eventos)</option>
-              <option value="vinotecas">Vinotecas / Autoservicios (kioscos, mayoristas)</option>
-            </select>
-            <div class="hint">Define en qué manuales aparece la fecha.</div>
+            <label>¿Para qué rubros? * <span style="color:var(--ink3);font-weight:600">(elegí uno o varios)</span></label>
+            <div class="rchips" id="f-rubros"></div>
+            <div class="hint">La fecha aparece en el calendario del manual de los rubros elegidos.</div>
           </div>
           <div class="fg-row">
             <div class="fg"><label>Desde *</label><input id="f-inicio" type="date"></div>
@@ -222,8 +224,27 @@
   if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const $=id=>document.getElementById(id);
-  const CANAL_L={todos:'Todos', restaurantes:'ON Trade', vinotecas:'Vinotecas / Autoserv.'};
-  const CANAL_C={todos:'c-todos', restaurantes:'c-on', vinotecas:'c-off'};
+  const RUBROS=[['todos','Todos los rubros'],['restaurante','Restaurantes'],['bar','Bares'],['hotel','Hoteles'],['disco','Discos'],['evento','Eventos'],['vinoteca','Vinotecas'],['autoservicio','Autoservicios'],['kiosco','Kioscos'],['mayorista','Mayoristas']];
+  const RUBRO_L=Object.fromEntries(RUBROS);
+  let selRubros=new Set();
+  const ON_TRADE=['restaurante','bar','hotel','disco','evento'], OFF_TRADE=['vinoteca','autoservicio','kiosco','mayorista'];
+
+  function renderChips(){
+    $('f-rubros').innerHTML=RUBROS.map(([k,l])=>`<button type="button" class="rchip ${k==='todos'?'todos':''} ${selRubros.has(k)?'on':''}" onclick="toggleRubro('${k}')">${l}</button>`).join('');
+  }
+  function toggleRubro(k){
+    if(k==='todos'){ selRubros = selRubros.has('todos') ? new Set() : new Set(['todos']); }
+    else { selRubros.delete('todos'); selRubros.has(k) ? selRubros.delete(k) : selRubros.add(k); }
+    renderChips();
+  }
+  // Rubros de una fecha (nueva col `rubros`; compat con `canal` viejo).
+  function rubrosDe(a){
+    if(Array.isArray(a.rubros)&&a.rubros.length) return a.rubros;
+    const c=a.canal;
+    if(c==='restaurantes') return ON_TRADE.slice();
+    if(c==='vinotecas') return OFF_TRADE.slice();
+    return ['todos'];
+  }
   const fmtF=d=>{ if(!d) return '—'; const x=new Date(d+'T12:00:00'); return x.toLocaleDateString('es-AR',{day:'2-digit',month:'short'}); };
   const hoyISO=()=>new Date().toISOString().slice(0,10);
 
@@ -275,14 +296,17 @@
       const est=estadoDe(a);
       const estLbl = est==='pausa'?'⏸ Pausada' : est==='vencida'?'Vencida' : est==='proxima'?'Próxima' : '✅ Vigente';
       const estCls = est==='vencida'?'est-vencida' : est==='pausa'?'est-pausa' : 'est-activa';
-      const canal=a.canal||'todos';
+      const rubros=rubrosDe(a);
+      const rubChips = rubros.includes('todos')
+        ? '<span class="rmini" style="background:rgba(203,184,106,.18);color:var(--gold-d)">Todos los rubros</span>'
+        : rubros.map(r=>`<span class="rmini">${esc(RUBRO_L[r]||r)}</span>`).join(' ');
       return `<div class="fcard">
         <div class="fcard-img">${a.imagen_url?`<img src="${esc(a.imagen_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`:'📅'}</div>
         <div class="fcard-info">
           <div class="fcard-nombre">${esc(a.nombre)}</div>
           ${a.descripcion?`<div class="fcard-desc">${esc(a.descripcion)}</div>`:''}
           <div class="fcard-meta">
-            <span class="chip ${CANAL_C[canal]||'c-todos'}">${CANAL_L[canal]||canal}</span>
+            ${rubChips}
             <span>📅 ${fmtF(a.fecha_inicio)} → ${fmtF(a.fecha_fin)}</span>
             ${a.condicion?`<span>· ${esc(a.condicion)}</span>`:''}
             <span class="badge-est ${estCls}">${estLbl}</span>
@@ -318,19 +342,26 @@
     const nombre=$('f-nombre').value.trim();
     const desc=$('f-desc').value.trim();
     const cond=$('f-cond').value.trim();
-    const canal=$('f-canal').value;
+    const rubros=[...selRubros];
     const inicio=$('f-inicio').value, fin=$('f-fin').value;
     const msg=$('f-msg'), btn=$('f-save');
     if(!nombre||!desc||!inicio||!fin){ msg.style.color='var(--red)'; msg.textContent='Completá nombre, descripción y las dos fechas.'; return; }
+    if(!rubros.length){ msg.style.color='var(--red)'; msg.textContent='Elegí al menos un rubro.'; return; }
     if(fin<inicio){ msg.style.color='var(--red)'; msg.textContent='La fecha "Hasta" no puede ser anterior a "Desde".'; return; }
+    // canal (legacy, para pantallas viejas que todavía lo leen)
+    let canal='todos';
+    if(!rubros.includes('todos')){
+      const allOn=rubros.every(r=>ON_TRADE.includes(r)), allOff=rubros.every(r=>OFF_TRADE.includes(r));
+      canal = allOn ? 'restaurantes' : allOff ? 'vinotecas' : 'todos';
+    }
     btn.disabled=true; btn.innerHTML='<span class="spin"></span> Guardando…'; msg.textContent='';
     try{
       let img=null; try{ img=await subirImagen(); }catch(e){ /* si falla la imagen, guardamos igual sin ella */ }
-      const { error } = await sb.from('acciones_fechas').insert({ nombre, descripcion:desc, condicion:cond||null, canal, imagen_url:img, fecha_inicio:inicio, fecha_fin:fin, activa:true });
+      const { error } = await sb.from('acciones_fechas').insert({ nombre, descripcion:desc, condicion:cond||null, canal, rubros, imagen_url:img, fecha_inicio:inicio, fecha_fin:fin, activa:true });
       if(error) throw error;
       // limpiar
       ['f-nombre','f-desc','f-cond','f-inicio','f-fin'].forEach(id=>$(id).value='');
-      $('f-canal').value='todos'; _imgFile=null; $('f-drop').innerHTML='<div id="f-drop-txt">📷 Tocá para subir una imagen</div>'; $('f-file').value='';
+      selRubros=new Set(); renderChips(); _imgFile=null; $('f-drop').innerHTML='<div id="f-drop-txt">📷 Tocá para subir una imagen</div>'; $('f-file').value='';
       msg.style.color='var(--green)'; msg.textContent='✓ Fecha guardada.';
       await cargar();
       setTimeout(()=>{ msg.textContent=''; },2500);
@@ -341,6 +372,7 @@
   async function toggleFecha(id,activa){ await sb.from('acciones_fechas').update({activa}).eq('id',id); cargar(); }
   async function eliminarFecha(id){ if(!confirm('¿Eliminar esta fecha especial?')) return; await sb.from('acciones_fechas').delete().eq('id',id); cargar(); }
 
+  renderChips();
   cargar();
 </script>
 </body>

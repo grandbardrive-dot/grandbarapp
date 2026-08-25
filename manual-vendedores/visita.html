@@ -4158,7 +4158,7 @@ body { background:transparent !important; }
           case 'vt_nuevos_productos': cargarNuevosProductos(sec.id);    break;
           case 'vt_materiales':       cargarMaterialesPOP(sec.id);      break;
           case 'vt_partners':         cargarPartners(sec.id);           break;
-          case 'vt_fechas_cal':       renderCalendarioMes(sec.id, calRefMes);  break;
+          case 'vt_fechas_cal':       renderCalendarioMes(sec.id, calRefMes, 'vinoteca');  break;
         }
       });
     }
@@ -4188,24 +4188,17 @@ body { background:transparent !important; }
       if (!w) return;
       if (w.tipo === 'propuestas') cargarPropuestasIncorp(sec.id, w.categoria, w.cartLabel);
       else if (w.tipo === 'ofertas') cargarOfertasWidget(w.dataKey, sec.id);
-      else if (w.tipo === 'calendario') renderCalendarioMes(sec.id, calRefMes, w.canales);
+      else if (w.tipo === 'calendario') renderCalendarioMes(sec.id, calRefMes, w.rubro);
       else if (w.tipo === 'cafe_preguntas') cargarPropuestasIncorp('cafe_preguntas', 'cafe', 'Café');
       // catalogo_cafe / materiales_fechas: botones estáticos, no requieren carga async
     });
 
     // Calendario de fechas especiales — UNIVERSAL: cualquier sección (de cualquier rubro)
-    // con especial='calendario_fechas' muestra el calendario, filtrando por el canal del rubro.
-    // El admin agrupa las fechas por ON-trade ('restaurantes') / OFF-trade ('vinotecas') + 'todos'.
-    // Cada rubro mira su grupo: bares/hoteles/discos/eventos = ON; autoservicios/kioscos/mayoristas = OFF.
-    const CANAL_CAL = {
-      restaurante:['restaurantes','todos'], bar:['restaurantes','todos'], hotel:['restaurantes','todos'],
-      disco:['restaurantes','todos'], evento:['restaurantes','todos'],
-      vinoteca:['vinotecas','todos'], autoservicio:['vinotecas','todos'],
-      kiosco:['vinotecas','todos'], mayorista:['vinotecas','todos'],
-    };
+    // con especial='calendario_fechas' muestra el calendario, filtrando por el RUBRO del manual
+    // actual (+ las fechas marcadas "todos"). El rubro es checklist.id (bar, hotel, disco…).
     seccionesHoja(checklist).forEach(sec => {
       if (sec.especial === 'calendario_fechas') {
-        renderCalendarioMes(sec.id, calRefMes, CANAL_CAL[checklist.id] || ['todos']);
+        renderCalendarioMes(sec.id, calRefMes, checklist.id);
       }
     });
   }
@@ -4718,7 +4711,7 @@ body { background:transparent !important; }
     'sp_campari':           { tipo: 'campari' },
     // Fechas especiales (restaurante)
     'fe_materiales':        { tipo: 'materiales_fechas' },
-    'fe_fechas':            { tipo: 'calendario', canales: ['restaurantes', 'todos'] },
+    'fe_fechas':            { tipo: 'calendario', rubro: 'restaurante' },
     // Café Segafreddo
     'cafe_catalogos':       { tipo: 'catalogo_cafe' },
     'cafe_acciones':        { tipo: 'ofertas', dataKey: 'cafe_acciones' },
@@ -5518,28 +5511,38 @@ body { background:transparent !important; }
   function renderVtCalendario(sec) {
     return `<div class="esp-block"><div id="vt-cal-${sec.id}"><div class="esp-loading">Cargando calendario…</div></div></div>`;
   }
-  // Lee acciones_fechas filtrando por los canales pedidos (vinoteca y restaurante usan sets distintos)
-  async function _getFechasCal(canales) {
-    canales = canales || ['vinotecas','todos'];
-    const key = canales.join(',');
-    if (_fechasCalCache[key]) return _fechasCalCache[key];
+  // ¿la fecha aplica al rubro pedido? Usa la lista `rubros` (nueva); si la fila es
+  // vieja (solo tenía `canal`), mapea canal→rubros por compatibilidad.
+  function _fechaAplicaRubro(a, rubro) {
+    let rr = (Array.isArray(a.rubros) && a.rubros.length) ? a.rubros : null;
+    if (!rr) {
+      const c = a.canal;
+      if (c === 'restaurantes') rr = ['restaurante','bar','hotel','disco','evento'];
+      else if (c === 'vinotecas') rr = ['vinoteca','autoservicio','kiosco','mayorista'];
+      else rr = ['todos'];
+    }
+    return rr.includes('todos') || rr.includes(rubro);
+  }
+  // Lee acciones_fechas y filtra por el RUBRO del manual actual (+ las marcadas "todos").
+  async function _getFechasCal(rubro) {
+    rubro = rubro || 'todos';
+    if (_fechasCalCache[rubro]) return _fechasCalCache[rubro];
     try {
-      const { data } = await sb.from('acciones_fechas').select('*')
-        .eq('activa', true).in('canal', canales);
-      _fechasCalCache[key] = data || [];
-    } catch { _fechasCalCache[key] = []; }
-    return _fechasCalCache[key];
+      const { data } = await sb.from('acciones_fechas').select('*').eq('activa', true);
+      _fechasCalCache[rubro] = (data || []).filter(a => _fechaAplicaRubro(a, rubro));
+    } catch { _fechasCalCache[rubro] = []; }
+    return _fechasCalCache[rubro];
   }
   function calNav(secId, delta) {
     calRefMes = new Date(calRefMes.getFullYear(), calRefMes.getMonth() + delta, 1);
     renderCalendarioMes(secId, calRefMes, _calCanales[secId]);
   }
-  async function renderCalendarioMes(secId, ref, canales) {
-    canales = canales || _calCanales[secId] || ['vinotecas','todos'];
-    _calCanales[secId] = canales;
+  async function renderCalendarioMes(secId, ref, rubro) {
+    rubro = rubro || _calCanales[secId] || 'todos';
+    _calCanales[secId] = rubro;
     const el = document.getElementById(`vt-cal-${secId}`);
     if (!el) return;
-    const eventos = await _getFechasCal(canales);
+    const eventos = await _getFechasCal(rubro);
     const y = ref.getFullYear(), m = ref.getMonth();
     const primerDia = new Date(y, m, 1).getDay(); // 0=Dom
     const diasMes = new Date(y, m+1, 0).getDate();
