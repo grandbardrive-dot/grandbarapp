@@ -98,4 +98,105 @@
     if (!sb.id) sb.id = 'sidebar';
     hacerResponsive();
   };
+
+  // ── Menú del panel comercial (Luciana) ─────────────────────────────────────
+  // Antes cada pantalla tenía su propio <nav> escrito a mano y no coincidían: a
+  // Secciones le faltaban Catálogo clientes, Comparador y Borradores, a Combos le
+  // faltaban cuatro, etc. El menú cambiaba según dónde estabas parado. Ahora la
+  // lista vive acá y se pinta igual en todas.
+  const PAGINAS_COMERCIAL = [
+    'admin-comercial.html', 'admin-campanias.html', 'admin-nueva-campania.html',
+    'admin-secciones.html', 'admin-combos.html', 'admin-catalogo.html',
+    'admin-catalogo-clientes.html', 'admin-resultados.html', 'admin-comparador.html',
+  ];
+  const MENU = [
+    { key:'inicio',    href:'admin-comercial.html', label:'Inicio',
+      ico:'<path d="M3 11l9-7 9 7M5 10v9h14v-9" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { key:'campanias', href:'admin-campanias.html', label:'Campañas', sub:'Acciones comerciales',
+      ico:'<path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/>' },
+    { key:'secciones', href:'admin-secciones.html', label:'Secciones', sub:'Estructura del manual',
+      ico:'<path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/><circle cx="4" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.4" fill="currentColor" stroke="none"/>' },
+    { key:'combos',    href:'admin-combos.html', label:'Combos', sub:'Para eventos',
+      ico:'<path d="M5 8h14l-1 12H6z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/>' },
+    { key:'catalogo',  href:'admin-catalogo.html', label:'Catálogo', sub:'Proveedores y productos',
+      ico:'<path d="M4 7l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 7v10l8 4 8-4V7" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { key:'catclientes', href:'admin-catalogo-clientes.html', label:'Catálogo clientes', sub:'Catálogo público de acciones',
+      ico:'<path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2zM20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z" stroke-linejoin="round"/>' },
+    { key:'resultados', href:'admin-resultados.html', label:'Resultados', sub:'Desempeño de campañas',
+      ico:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke-linecap="round"/>' },
+    { key:'comparador', href:'admin-comparador.html', label:'Comparador', sub:'Precios de la competencia',
+      ico:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/>' },
+    { key:'borradores', href:'admin-campanias.html?estado=borrador', label:'Borradores', sub:'En edición',
+      ico:'<path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" stroke-linecap="round"/>' },
+  ];
+  const AYUDA = [
+    { fn:'verGuias', label:'Guías y tutoriales',
+      ico:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7v.4" stroke-linecap="round"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/>' },
+    { fn:'soporte', label:'Soporte',
+      ico:'<path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-1v-6h3M4 13v4a2 2 0 0 0 2 2h1v-6H4" stroke-linecap="round" stroke-linejoin="round"/>' },
+  ];
+
+  const archivo = () => (location.pathname.split('/').pop() || 'admin-comercial.html').toLowerCase();
+
+  // Qué opción se marca como activa en cada pantalla.
+  function activo() {
+    const f = archivo(), esBorrador = /estado=borrador/.test(location.search);
+    if (f === 'admin-campanias.html')      return esBorrador ? 'borradores' : 'campanias';
+    if (f === 'admin-nueva-campania.html') return 'campanias';
+    const it = MENU.find(m => m.href.split('?')[0] === f);
+    return it ? it.key : '';
+  }
+
+  function itemHTML(m, on) {
+    const ico = `<svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${m.ico}</svg>`;
+    const txt = `<div><div class="sb-txt-main">${m.label}</div>${m.sub ? `<div class="sb-txt-sub">${m.sub}</div>` : ''}</div>`;
+    return `<a class="sb-item${on ? ' active' : ''}" href="${m.href}">${ico}${txt}</a>`;
+  }
+
+  function pintarMenuComercial() {
+    if (PAGINAS_COMERCIAL.indexOf(archivo()) < 0) return;
+    const aside = document.querySelector('aside.sidebar');
+    if (!aside || !aside.querySelector('.sb-nav')) return;
+
+    // El recuadro de ayuda es propio de cada pantalla ("Cómo funciona"): se respeta.
+    const ayudaPropia = aside.querySelector('.sb-help');
+    const ayudaHTML = ayudaPropia ? ayudaPropia.outerHTML : `
+      <div class="sb-help">
+        <div class="sb-help-t">💡 ¿Necesitás ayuda?</div>
+        <div class="sb-help-p">Accedé a guías rápidas y tutoriales paso a paso.</div>
+      </div>`;
+    aside.querySelectorAll('.sb-nav, .sb-label, .sb-spacer, .sb-help').forEach(n => n.remove());
+
+    const act = activo();
+    const html = `
+      <nav class="sb-nav">${MENU.map(m => itemHTML(m, m.key === act)).join('')}</nav>
+      <div class="sb-label">Ayuda</div>
+      <nav class="sb-nav" style="padding-top:0">
+        ${AYUDA.map(a => `<button class="sb-item" style="background:none;border:none;font-family:inherit;text-align:left;width:100%" onclick="${a.fn}()">
+          <svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${a.ico}</svg>
+          <div><div class="sb-txt-main">${a.label}</div></div>
+        </button>`).join('')}
+      </nav>
+      <div class="sb-spacer"></div>
+      ${ayudaHTML}`;
+    aside.insertAdjacentHTML('beforeend', html);
+
+    // Guías y Soporte estaban en el menú de varias pantallas pero solo Inicio tenía
+    // las funciones: al tocarlos no pasaba nada. Acá van los respaldos.
+    if (typeof window.verGuias !== 'function') {
+      window.verGuias = () => alert('Guías y tutoriales — próximamente.');
+    }
+    if (typeof window.soporte !== 'function') {
+      window.soporte = () => {
+        if (typeof window.abrirSoporte === 'function') return window.abrirSoporte();
+        if (confirm('¿Abrir WhatsApp de soporte?')) window.open('https://wa.link/0khu1f', '_blank');
+      };
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', pintarMenuComercial);
+  } else {
+    pintarMenuComercial();
+  }
 })();
