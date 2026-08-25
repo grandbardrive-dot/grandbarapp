@@ -259,7 +259,7 @@
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
   // Rubros del manual. Cada uno tiene sus propias secciones (se guardan en la base
-  // por 'canal'). Los rubros nuevos (hoteles, bares, discos) arrancan vacíos.
+  // por 'canal'). Los rubros nuevos (hoteles, bares, discos, mayoristas) arrancan vacíos.
   const CANALES=[
     { id:'restaurante',  label:'Restaurantes',  ico:'🍽️' },
     { id:'vinoteca',     label:'Vinotecas',     ico:'🍾' },
@@ -267,7 +267,7 @@
     { id:'hotel',        label:'Hoteles',       ico:'🏨' },
     { id:'bar',          label:'Bares',         ico:'🍺' },
     { id:'disco',        label:'Discos',        ico:'🕺' },
-    { id:'evento',       label:'Eventos',       ico:'🎉' },
+    { id:'mayorista',    label:'Mayoristas',    ico:'🛒' },
   ];
   const COLORES=[
     { bg:'#EAF2FB', fg:'#1A5C9A' }, { bg:'#EAF4EE', fg:'#2D6A4F' }, { bg:'#FDF5E0', fg:'#8A5E00' },

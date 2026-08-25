@@ -557,10 +557,10 @@ const MANUAL_POR_TIPO = {
   bar: 'bar',
   disco: 'disco',
   discoteca: 'disco',
-  evento: 'evento',               // manual propio: paquetes, combos, materiales…
+  mayorista: 'mayorista',         // manual propio; adentro lleva EVENTOS
 };
 // Nombre lindo de cada rubro (para el manual vacío recién creado).
-const RUBRO_LABELS = { restaurante: 'Restaurantes', vinoteca: 'Vinotecas', autoservicio: 'Autoservicios', hotel: 'Hoteles', bar: 'Bares', disco: 'Discos', evento: 'Eventos' };
+const RUBRO_LABELS = { restaurante: 'Restaurantes', vinoteca: 'Vinotecas', autoservicio: 'Autoservicios', hotel: 'Hoteles', bar: 'Bares', disco: 'Discos', mayorista: 'Mayoristas' };
 function manualDe(tipo) {
   const t = String(tipo || '').toLowerCase();
   return MANUAL_POR_TIPO[t] || 'restaurante';   // sin mapeo (mayorista, otros…) → Restaurantes
@@ -582,7 +582,7 @@ async function getChecklistDynamic(tipo) {
 
     // Si falla (tablas no existen) o no hay datos → fallback.
     // Rubros con checklist hardcodeado (restaurante/vinoteca/autoservicio) usan ese;
-    // los rubros separados sin secciones cargadas (hotel/bar/disco/evento) se muestran
+    // los rubros separados sin secciones cargadas (hotel/bar/disco/mayorista) se muestran
     // VACÍOS — NO caen al manual de Restaurantes.
     if (error || !secciones?.length) {
       _clCache[canal] = CHECKLISTS[canal] || { id: canal, label: RUBRO_LABELS[canal] || canal, heroSubtitulo: '', secciones: [] };

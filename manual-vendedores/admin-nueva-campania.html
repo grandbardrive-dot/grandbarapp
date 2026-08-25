@@ -233,14 +233,14 @@
     if(c==='hoteles') return 'hotel';
     if(c==='bares') return 'bar';
     if(c==='discos') return 'disco';
-    if(c==='eventos') return 'evento';      // cada rubro tiene su propio manual
+    if(c==='mayorista_mendoza'||c==='mayorista_sanluis') return 'mayorista';   // manual propio
     return 'restaurante';
   }
   function canalesChecklist(){ const s=new Set(); st.canales.forEach(c=>s.add(canalChecklistDe(c))); return s; }
   // Los canales elegidos, agrupados por el manual (hoja) al que pertenecen. El paso 4
   // muestra un bloque por manual: así "VINOS" de restaurante y "VINOS" de vinoteca
   // dejan de verse como dos secciones repetidas sin explicación.
-  const CHK_INFO={ restaurante:{ico:'🍽️',label:'RESTAURANTES',orden:0}, vinoteca:{ico:'🍾',label:'VINOTECAS',orden:1}, autoservicio:{ico:'🏪',label:'AUTOSERVICIOS',orden:2}, hotel:{ico:'🏨',label:'HOTELES',orden:3}, bar:{ico:'🍺',label:'BARES',orden:4}, disco:{ico:'🕺',label:'DISCOS',orden:5}, evento:{ico:'🎉',label:'EVENTOS',orden:6} };
+  const CHK_INFO={ restaurante:{ico:'🍽️',label:'RESTAURANTES',orden:0}, vinoteca:{ico:'🍾',label:'VINOTECAS',orden:1}, autoservicio:{ico:'🏪',label:'AUTOSERVICIOS',orden:2}, hotel:{ico:'🏨',label:'HOTELES',orden:3}, bar:{ico:'🍺',label:'BARES',orden:4}, disco:{ico:'🕺',label:'DISCOS',orden:5}, mayorista:{ico:'🛒',label:'MAYORISTA',orden:6} };
   function gruposChecklist(){
     const m=new Map();
     st.canales.forEach(c=>{ const k=canalChecklistDe(c); if(!m.has(k))m.set(k,[]); m.get(k).push(CANAL_LABELS[c]||c); });
