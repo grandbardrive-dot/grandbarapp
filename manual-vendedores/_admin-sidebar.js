@@ -105,11 +105,13 @@
   // faltaban cuatro, etc. El menú cambiaba según dónde estabas parado. Ahora la
   // lista vive acá y se pinta igual en todas.
   const PAGINAS_COMERCIAL = [
-    'admin-campanias.html', 'admin-nueva-campania.html', 'admin-fechas.html',
+    'admin-comercial.html', 'admin-campanias.html', 'admin-nueva-campania.html', 'admin-fechas.html',
     'admin-secciones.html', 'admin-combos.html', 'admin-catalogo.html',
     'admin-catalogo-clientes.html', 'admin-resultados.html', 'admin-comparador.html',
   ];
   const MENU = [
+    { key:'inicio',    href:'admin-comercial.html', label:'Inicio',
+      ico:'<path d="M3 11l9-7 9 7M5 10v9h14v-9" stroke-linecap="round" stroke-linejoin="round"/>' },
     { key:'campanias', href:'admin-campanias.html', label:'Campañas', sub:'Acciones comerciales',
       ico:'<path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/>' },
     { key:'secciones', href:'admin-secciones.html', label:'Secciones', sub:'Estructura del manual',
@@ -134,7 +136,7 @@
       ico:'<path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-1v-6h3M4 13v4a2 2 0 0 0 2 2h1v-6H4" stroke-linecap="round" stroke-linejoin="round"/>' },
   ];
 
-  const archivo = () => (location.pathname.split('/').pop() || 'admin-campanias.html').toLowerCase();
+  const archivo = () => (location.pathname.split('/').pop() || 'admin-comercial.html').toLowerCase();
 
   // Qué opción se marca como activa en cada pantalla.
   function activo() {
