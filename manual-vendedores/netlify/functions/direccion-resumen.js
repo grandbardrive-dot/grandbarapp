@@ -80,6 +80,19 @@ exports.handler = async (event) => {
       }
     } catch (e) { out.cobranzas_error = String(e.message || e); }
 
+    // ---- Cobranzas del día (pagos de clientes aceptados, con fecha de hoy) ----
+    try {
+      if (cobService) {
+        const cob = (path) => fetch(COB_URL + '/rest/v1/' + path, { headers: { apikey: cobService, Authorization: 'Bearer ' + cobService } });
+        const now = new Date();
+        const hoy = now.toISOString().slice(0, 10);
+        const manana = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+        const rows = await (await cob('comprobantes?tipo=eq.cliente&estado=in.(aceptado,procesado)&fecha_pago=gte.' + hoy + '&fecha_pago=lt.' + manana + '&select=monto&limit=3000')).json();
+        const arr = Array.isArray(rows) ? rows : [];
+        out.cobranzasHoy = { monto: Math.round(arr.reduce((s, c) => s + num(c.monto), 0)), cantidad: arr.length, fecha: hoy };
+      }
+    } catch (e) { out.cobranzasHoy_error = String(e.message || e); }
+
     // ---- Reportes (Hub) ----
     try {
       let path = 'reportes?select=estado&limit=1000';

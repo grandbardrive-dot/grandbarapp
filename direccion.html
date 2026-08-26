@@ -200,7 +200,7 @@
     <!-- KPIs -->
     <div class="kpis">
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></span><span class="lbl">Ventas del día</span></div><div class="v">$8.450.000</div><div class="sub up">▲ +14% vs ayer</div></div>
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><span class="lbl">Cobranzas del día</span></div><div class="v">$2.380.000</div><div class="sub mut">91% del objetivo</div><div class="bar-prog"><i style="width:91%"></i></div></div>
+      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><span class="lbl">Cobranzas del día</span></div><div class="v" id="kpiCobHoy">—</div><div class="sub mut" id="kpiCobSub">Pagos aceptados hoy</div></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--orange)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 12 3 4 7l8 4 8-4zM4 7v10l8 4 8-4V7"/></svg></span><span class="lbl">Pedidos pendientes</span></div><div class="v">37</div><div class="sub down">12 urgentes</div></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--navy)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><span class="lbl">Visitas del mes</span></div><div class="v" id="kpiVisMes">—</div><div class="sub mut" id="kpiVisHoy">Hoy: —</div></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--teal)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg></span><span class="lbl">Mercadería comprometida</span></div><div class="v">$18.400.000</div><div class="sub mut">En pedidos confirmados</div></div>
@@ -358,7 +358,7 @@
     const fmtInt=n=>Number(n||0).toLocaleString('es-AR');
     const fmtM=n=>{ n=Number(n||0); if(Math.abs(n)>=1e6) return '$'+(n/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M'; if(Math.abs(n)>=1e3) return '$'+Math.round(n/1e3)+'K'; return '$'+Math.round(n); };
     async function cargarResumen(region){
-      ['adCC','adVenc','adCliVenc','adClientes','vtVend','vtClientes','vtVisHoy','vtVisMes','kpiVisMes'].forEach(id=>set(id,'…'));
+      ['adCC','adVenc','adCliVenc','adClientes','vtVend','vtClientes','vtVisHoy','vtVisMes','kpiVisMes','kpiCobHoy'].forEach(id=>set(id,'…'));
       const tl=document.getElementById('top5list'); if(tl) tl.innerHTML='<div class="t5"><span class="nm" style="color:var(--muted)">Cargando…</span></div>';
       try{
         const r = await fetch('/.netlify/functions/direccion-resumen'+(region?('?region='+encodeURIComponent(region)):''),{headers:{Authorization:'Bearer '+TOKEN}});
@@ -370,6 +370,7 @@
           set('vtVend',fmtInt(c.vendedores)); set('vtClientes',fmtInt(c.clientes));
           set('alRiesgo',fmtInt(c.clientesVencidos)+' clientes');
         }
+        if(d.cobranzasHoy){ set('kpiCobHoy',fmtM(d.cobranzasHoy.monto)); set('kpiCobSub',fmtInt(d.cobranzasHoy.cantidad)+' pago(s) aceptado(s) hoy'); }
         if(d.visitas){ set('vtVisHoy',fmtInt(d.visitas.hoy)); set('vtVisMes',fmtInt(d.visitas.mes)); set('kpiVisMes',fmtInt(d.visitas.mes)); set('kpiVisHoy','Hoy: '+fmtInt(d.visitas.hoy)); }
         if(tl){
           if(Array.isArray(d.ranking) && d.ranking.length){
