@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Peñaflor 11T</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  .p-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  @media(max-width:900px){ .p-kpis{grid-template-columns:1fr 1fr} }
+  .evowrap{overflow-x:auto}
+  table.evo{border-collapse:collapse;width:100%;min-width:520px}
+  table.evo th,table.evo td{padding:9px 12px;font-size:12.5px;text-align:right;white-space:nowrap}
+  table.evo th{font-size:11px;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line)}
+  table.evo th.l,table.evo td.l{text-align:left}
+  table.evo td{border-bottom:1px solid var(--line-2);font-variant-numeric:tabular-nums}
+  table.evo tr.tot td{font-weight:800;background:var(--cream)}
+  .alcpill{display:inline-block;min-width:44px;padding:2px 8px;border-radius:20px;font-weight:800;font-size:12px}
+  .ro{font-size:10.5px;color:var(--muted);font-weight:600}
+  .bars{display:flex;gap:14px;align-items:flex-end;margin-top:14px;min-height:96px}
+  .bar b{display:block;font-size:11px;color:var(--muted);font-weight:700;text-align:center;margin-top:6px}
+  .bar .col{width:38px;border-radius:7px 7px 0 0;margin:0 auto;position:relative}
+  .bar .pct{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800}
+  .rt2{width:100%;border-collapse:collapse}
+  .rt2 th{text-align:left;font-size:11px;color:var(--muted);font-weight:700;padding:8px 10px;border-bottom:1px solid var(--line)}
+  .rt2 td{padding:10px;border-bottom:1px solid var(--line-2);font-size:12.5px}
+  .rt2 tr[data-id]{cursor:pointer} .rt2 tr[data-id]:hover{background:var(--cream)}
+  .ov{display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:50;align-items:center;justify-content:center;padding:16px}
+  .modal{background:#fff;border-radius:16px;max-width:600px;width:100%;max-height:90vh;overflow:auto;padding:20px}
+  .devo{background:var(--cream);border-radius:10px;padding:11px 13px;font-size:12.5px;margin-top:12px}
+  .empty{padding:34px;text-align:center;color:var(--muted);font-size:13px}
+</style>
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+
+    <div class="dhead">
+      <span class="ic" style="background:var(--green-soft);color:var(--green-d)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3h8l-1 7a3 3 0 0 1-6 0z"/><path d="M12 13v6M8 21h8"/></svg></span>
+      <div><h1>Peñaflor · Plan 11T</h1><div class="sub">Histórico de reportes y evolución mes a mes (CCC por canal)</div></div>
+      <span class="sp"></span>
+      <span class="pill" id="pillMes">—</span>
+    </div>
+
+    <div class="p-kpis" id="kpis"></div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><b style="font-size:15px">Evolución mes a mes</b><span class="sp" style="flex:1"></span><span class="ro" id="evoNote"></span></div>
+      <div class="sub" style="font-size:12px;margin-bottom:10px">Alcance del CCC (Clientes Con Compra) por canal. Comparás cómo viene el plan entre meses.</div>
+      <div class="evowrap"><table class="evo" id="evo"><tbody><tr><td class="empty">Cargando…</td></tr></tbody></table></div>
+      <div class="bars" id="bars"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><b style="font-size:15px">Reportes presentados</b><span class="sp" style="flex:1"></span><span class="ro" id="repNote"></span></div>
+      <div id="repList"><div class="empty">Cargando…</div></div>
+    </div>
+
+  </div></div>
+</div>
+
+<div class="ov" id="ov"><div class="modal">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><b id="mTit" style="font-size:16px;flex:1"></b><button id="mX" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6d7d85">×</button></div>
+  <div id="mMeta" style="font-size:11.5px;color:#6d7d85;margin-bottom:10px"></div>
+  <div id="mCont"></div>
+  <div id="mDevo"></div>
+  <div style="margin-top:14px"><a id="mOpen" href="reportes.html" style="font-size:12.5px;font-weight:800;color:var(--green-d)">Revisar en Reportes (devolución · IA · reenviar) →</a></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/dir-nav.js"></script>
+<script>
+(function(){
+  const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const nf=n=>Math.round(n||0).toLocaleString('es-AR');
+  const MESES=['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const MESL=['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const mesCorto=m=>{const [y,mm]=String(m).split('-');return (MESES[+mm]||m)+" '"+String(y).slice(2);};
+  const mesLargo=m=>{const [y,mm]=String(m).split('-');return (MESL[+mm]||m)+' '+y;};
+  const alcColor=p=>p>=100?'#2f8f6e':(p>=60?'#c99a2e':'#c0603e');
+  const alcBg=p=>p>=100?'var(--green-soft)':(p>=60?'var(--amber-soft)':'var(--danger-soft)');
+  const CANALES=[['vinotecas','Vinotecas'],['tienda_bebidas','Tienda de Bebidas'],['on_premise','On Premise'],['on_premise_noche','On Premise Noche']];
+  let TOKEN=null, MESESDATA=[];
+
+  const MESNUM={enero:'01',febrero:'02',marzo:'03',abril:'04',mayo:'05',junio:'06',julio:'07',agosto:'08',septiembre:'09',setiembre:'09',octubre:'10',noviembre:'11',diciembre:'12'};
+  function mesDe(r){
+    const q=(r.enlace||'').match(/[?&]mes=(\d{4}-\d{2})/); if(q) return q[1];
+    const t=((r.titulo||'')+' '+(r.periodo||'')).toLowerCase();
+    const m=t.match(/(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\s+(\d{4})/);
+    if(m) return m[2]+'-'+MESNUM[m[1]];
+    return null;
+  }
+
+  // ---- Evolución ----
+  async function cargarEvolucion(){
+    let d=null; try{ d=await fetch('/.netlify/functions/reporte-11t?evolucion=1').then(r=>r.json()); }catch(e){}
+    const meses=(d&&d.ok&&d.meses)?d.meses:[];
+    MESESDATA=meses;
+    if(!meses.length){ $('evo').innerHTML='<tbody><tr><td class="empty">Todavía no hay meses cargados. Cuando Luciana suba el Excel GRAND BAR, aparecen acá.</td></tr></tbody>'; $('bars').innerHTML=''; $('kpis').innerHTML=''; $('pillMes').textContent='—'; return; }
+
+    // KPIs del último mes + delta vs anterior
+    const last=meses[meses.length-1], prev=meses.length>1?meses[meses.length-2]:null;
+    $('pillMes').textContent='Último: '+mesLargo(last.mes);
+    const delta=(a,b)=>{ if(b==null) return ''; const d=a-b; const c=d>=0?'#2f8f6e':'#c0603e'; return `<span style="color:${c};font-weight:700"> ${d>=0?'▲':'▼'} ${Math.abs(d)} pts</span>`; };
+    $('kpis').innerHTML=`
+      <div class="card"><div class="sub" style="font-size:11.5px">Alcance del equipo</div><div style="font-size:28px;font-weight:800;color:var(--navy)">${last.total.alcance}%${prev?delta(last.total.alcance,prev.total.alcance):''}</div><div class="ro">${nf(last.total.real)} de ${nf(last.total.objetivo)} · ${mesLargo(last.mes)}</div></div>
+      <div class="card"><div class="sub" style="font-size:11.5px">Clientes con compra</div><div style="font-size:28px;font-weight:800">${nf(last.total.real)}</div><div class="ro">CCC del equipo</div></div>
+      <div class="card"><div class="sub" style="font-size:11.5px">Objetivo</div><div style="font-size:28px;font-weight:800">${nf(last.total.objetivo)}</div><div class="ro">clientes con compra</div></div>
+      <div class="card"><div class="sub" style="font-size:11.5px">Faltan</div><div style="font-size:28px;font-weight:800;color:#c0603e">${nf(last.total.faltan)}</div><div class="ro">para el objetivo</div></div>`;
+
+    // Tabla evolución: filas=Total+canales, columnas=meses
+    const cell=o=>`<span class="alcpill" style="background:${alcBg(o.alcance)};color:${alcColor(o.alcance)}">${o.alcance}%</span><div class="ro">${nf(o.real)}/${nf(o.objetivo)}</div>`;
+    let head='<tr><th class="l">Canal</th>'+meses.map(m=>`<th>${mesCorto(m.mes)}</th>`).join('')+'</tr>';
+    let body='<tr class="tot"><td class="l">TOTAL</td>'+meses.map(m=>`<td>${cell(m.total)}</td>`).join('')+'</tr>';
+    for(const [k,lbl] of CANALES){ body+=`<tr><td class="l">${lbl}</td>`+meses.map(m=>`<td>${cell(m.canales[k]||{real:0,objetivo:0,alcance:0})}</td>`).join('')+'</tr>'; }
+    $('evo').innerHTML='<thead>'+head+'</thead><tbody>'+body+'</tbody>';
+    $('evoNote').textContent=meses.length+' mes'+(meses.length>1?'es':'')+' cargado'+(meses.length>1?'s':'');
+
+    // Barras de alcance total por mes
+    const maxA=Math.max(100,...meses.map(m=>m.total.alcance));
+    $('bars').innerHTML=meses.map(m=>{const h=Math.round((m.total.alcance/maxA)*80)+8;const c=alcColor(m.total.alcance);
+      return `<div class="bar"><div class="col" style="height:${h}px;background:${c}"><span class="pct" style="color:${c}">${m.total.alcance}%</span></div><b>${mesCorto(m.mes)}</b></div>`;}).join('');
+  }
+
+  // ---- Reportes presentados (del circuito de Dirección) ----
+  const BADGE={pendiente:['crit','Pendiente'],aprobado:['ok','Aprobado'],rechazado:['alto','Rechazado'],revision:['medio','Cambios pedidos']};
+  let LISTA=[];
+  async function cargarReportes(){
+    if(!TOKEN){ $('repList').innerHTML='<div class="empty">Iniciá sesión para ver los reportes.</div>'; return; }
+    let d=null; try{ d=await fetch('/.netlify/functions/reportes?admin=1',{headers:{Authorization:'Bearer '+TOKEN}}).then(r=>r.json()); }catch(e){}
+    const all=(d&&d.reportes)?d.reportes:[];
+    LISTA=all.filter(r=>(/11t|pe[ñn]aflor/i.test(r.titulo||'')||/admin-11t/.test(r.enlace||''))&&!/^↪/.test(r.titulo||''));
+    if(!LISTA.length){ $('repList').innerHTML='<div class="empty">Todavía no hay reportes 11T presentados. Cuando Luciana toque “Presentar a Dirección”, aparecen acá.</div>'; $('repNote').textContent=''; return; }
+    $('repNote').textContent=LISTA.length+' reporte'+(LISTA.length>1?'s':'');
+    $('repList').innerHTML='<table class="rt2"><thead><tr><th>Reporte</th><th>Período</th><th>Autor</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>'+
+      LISTA.map(r=>{const b=BADGE[r.estado]||BADGE.pendiente;const f=new Date(r.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'});
+        return `<tr data-id="${r.id}"><td><b>${esc(r.titulo)}</b></td><td>${esc(r.periodo||'—')}</td><td>${esc(r.autor_nombre||'—')}</td><td>${f}</td><td><span class="tag ${b[0]}">${b[1]}</span></td></tr>`;}).join('')+'</tbody></table>';
+    $('repList').querySelectorAll('[data-id]').forEach(tr=>tr.onclick=()=>abrir(tr.dataset.id));
+  }
+
+  // ---- Modal con el tablero del mes ----
+  async function abrir(id){
+    const r=LISTA.find(x=>x.id===id); if(!r) return;
+    $('mTit').textContent=r.titulo;
+    const b=BADGE[r.estado]||BADGE.pendiente;
+    $('mMeta').innerHTML=(esc(r.autor_nombre||''))+' · '+esc(r.periodo||'')+' · <span class="tag '+b[0]+'">'+b[1]+'</span>';
+    $('mCont').innerHTML='<div class="empty">Cargando tablero…</div>';
+    $('mDevo').innerHTML=r.devolucion?`<div class="devo"><b>Devolución de Dirección:</b><br>${esc(r.devolucion)}</div>`:'';
+    $('mOpen').href='reportes.html';
+    $('ov').style.display='flex';
+    render11t(mesDe(r)||'', r.contenido);
+  }
+  function cerrar(){ $('ov').style.display='none'; }
+  $('mX').onclick=cerrar; $('ov').addEventListener('click',e=>{if(e.target.id==='ov')cerrar();});
+
+  async function render11t(mes,textoFallback){
+    let d=null;
+    if(mes){ try{ d=await fetch('/.netlify/functions/reporte-11t?mes='+mes).then(x=>x.json()); }catch(e){} }
+    if(!d||!d.ok||!d.hay_datos){ $('mCont').innerHTML=`<div style="font-size:13.5px;white-space:pre-wrap;background:#f5f1e8;border-radius:10px;padding:12px">${esc(textoFallback||'(sin datos)')}</div>`; return; }
+    const t=d.total, card='background:var(--card);border:1px solid var(--line);border-radius:10px';
+    let h=`<div style="display:flex;gap:9px;margin-bottom:9px">
+      <div style="flex:0 0 128px;background:var(--navy);color:#fff;border-radius:10px;padding:12px;text-align:center;display:flex;flex-direction:column;justify-content:center">
+        <div style="font-size:32px;font-weight:800;line-height:1">${t.alcance}%</div><div style="font-size:10.5px;opacity:.82;margin-top:3px">Alcance del equipo</div><div style="font-size:10.5px;opacity:.66">${nf(t.real)} / ${nf(t.objetivo)}</div></div>
+      <div style="flex:1;display:grid;grid-template-rows:1fr 1fr;gap:9px">
+        <div style="${card};padding:9px 11px"><div style="font-size:10.5px;color:var(--muted);font-weight:700">Clientes con compra</div><div style="font-size:18px;font-weight:800">${nf(t.real)}</div></div>
+        <div style="${card};padding:9px 11px"><div style="font-size:10.5px;color:var(--muted);font-weight:700">Faltan</div><div style="font-size:18px;font-weight:800;color:#c0603e">${nf(t.faltan)}</div></div>
+      </div></div><div style="${card};overflow:hidden">`;
+    CANALES.forEach(([k],i)=>{const c=d.canales[k];if(!c)return;const a=c.tot.alcance,col=alcColor(a);
+      h+=`<div style="display:flex;align-items:center;gap:9px;padding:9px 11px;${i>0?'border-top:1px solid var(--line-2)':''}">
+        <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:12.5px">${esc(c.label)}</div><div style="font-size:10.5px;color:var(--muted)">${esc(c.sub)}</div></div>
+        <div style="width:90px"><div style="height:7px;background:#eee7d8;border-radius:20px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,a)}%;background:${col};border-radius:20px"></i></div></div>
+        <div style="width:34px;text-align:right;font-weight:800;color:${col};font-size:12px">${a}%</div>
+        <div style="width:56px;text-align:right;font-size:12px;font-weight:700">${nf(c.tot.real)}/${nf(c.tot.objetivo)}</div>
+        <div style="width:44px;text-align:right;font-size:11.5px;font-weight:800;color:#c0603e">-${nf(c.tot.faltan)}</div></div>`;});
+    h+='</div>';
+    $('mCont').innerHTML=h;
+  }
+
+  // init
+  cargarEvolucion();
+  const hub=supabase.createClient(HUB.url,HUB.key);
+  hub.auth.getSession().then(r=>{ const s=r.data.session; if(!s){ cargarReportes(); return; } TOKEN=s.access_token; cargarReportes(); });
+})();
+</script>
+<script src="assets/user-menu.js?v=1"></script>
+<script src="assets/mobile-nav.js?v=1"></script>
+</body>
+</html>

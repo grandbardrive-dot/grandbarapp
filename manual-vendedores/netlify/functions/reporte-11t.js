@@ -22,6 +22,22 @@ exports.handler = async (event) => {
   try {
     const q = (event && event.queryStringParameters) || {};
     const hoy = new Date();
+
+    // ---- Evolución: todos los meses cargados (para comparar mes a mes) ----
+    if (q.evolucion) {
+      const rr = await fetch(SB_URL + '/rest/v1/penaflor_11t_reporte?select=mes,data,actualizado&order=mes.asc', { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } });
+      const all = await rr.json().catch(() => []);
+      const meses = (Array.isArray(all) ? all : []).map((row) => {
+        const ccc = (row.data && row.data.ccc) || {};
+        const canales = {};
+        const tot = { real: 0, objetivo: 0 };
+        for (const c of CANALES) { const cc = ccc[c] || { real: 0, objetivo: 0 }; canales[c] = { real: cc.real || 0, objetivo: cc.objetivo || 0, alcance: alc(cc.real || 0, cc.objetivo || 0) }; tot.real += cc.real || 0; tot.objetivo += cc.objetivo || 0; }
+        tot.alcance = alc(tot.real, tot.objetivo); tot.faltan = Math.max(0, tot.objetivo - tot.real);
+        return { mes: row.mes, actualizado: row.actualizado, total: tot, canales };
+      });
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, meses }) };
+    }
+
     const mes = /^\d{4}-\d{2}$/.test(q.mes || '') ? q.mes : (hoy.getUTCFullYear() + '-' + String(hoy.getUTCMonth() + 1).padStart(2, '0'));
 
     const r = await fetch(SB_URL + '/rest/v1/penaflor_11t_reporte?mes=eq.' + mes + '&select=data,filas,actualizado', { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } });
