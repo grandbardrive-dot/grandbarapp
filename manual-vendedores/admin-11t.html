@@ -209,7 +209,7 @@
 
   let PARSED=null; // {rows, mes, filas, clientes, nombre}
 
-  $('mes').value=nowMes();
+  $('mes').value=(new URLSearchParams(location.search).get('mes')||nowMes());
 
   // ── Elegir / arrastrar archivo ──
   const drop=$('drop'), fileInp=$('file');
@@ -439,7 +439,7 @@
       if(!d.ok||!d.hay_datos){ alert('No hay datos cargados para '+mesLabel(mes)+'. Subí el export primero.'); btn.disabled=false; btn.innerHTML=old; return; }
       const body={ accion:'crear', tipo:'puntual', periodo:'11T '+mesLabel(mes),
         titulo:'Plan 11T Peñaflor — '+mesLabel(mes)+' ('+d.total.alcance+'%)',
-        contenido:resumenTexto(d), enlace: location.origin+'/manual-vendedores/admin-11t.html' };
+        contenido:resumenTexto(d), enlace: location.origin+'/manual-vendedores/admin-11t.html?mes='+mes };
       const r=await fetch('/.netlify/functions/reportes',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify(body)});
       const j=await r.json().catch(()=>({}));
       if(!r.ok||!j.ok) throw new Error(j.error||('HTTP '+r.status));
