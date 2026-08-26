@@ -1,10 +1,14 @@
 // ============================================================
-//  DIAGNÓSTICO (temporal) · qué métodos expone el WebApi IS3 de Córdoba Software
-//  Sirve para saber si podemos leer PEDIDOS / REMITOS / STOCK (no solo facturas).
-//  Protegida por clave: ?key=<DIAG_KEY del env>. Devuelve SOLO metadatos
-//  (qué método existe y cuántas filas trae), no vuelca datos de clientes.
-//  Uso: /.netlify/functions/diag-erp?key=XXX&dia=25/08/2026
-//  BORRAR cuando terminemos de diagnosticar.
+//  DIAGNÓSTICO (temporal) · qué TABLAS del ERP podemos leer con DtTabla.
+//  El WebApi IS3 solo tiene el método ListarComprobantes (facturas); NO tiene
+//  ListarPedidos/Remitos/Stock. Pero DtTabla lee tablas crudas (CLIENTES,
+//  ARTICULOS con ar_stockact, etc.). Acá probamos nombres de tabla candidatos
+//  para encontrar PEDIDOS / RESERVAS / STOCK.
+//  Protegida por clave: ?key=<DIAG_KEY>. Devuelve columnas + cantidad de filas
+//  (una fila de muestra con los nombres de campos, NO todos los datos).
+//    ?key=XXX                 → prueba la lista de tablas candidatas
+//    ?key=XXX&tabla=PEDIDOS   → lee una tabla puntual (columnas + 1 muestra)
+//  BORRAR cuando terminemos.
 // ============================================================
 
 async function aikon(url, body, ms = 30000) {
@@ -23,12 +27,15 @@ async function login() {
   return { urlCuenta, cuenta, token: j2.j && j2.j.token && j2.j.token.Codigo };
 }
 
-function conteo(resp) {
+// DtTabla suele devolver { estado, lista:[...] } o { retorno:[...] }
+function resumenTabla(resp) {
   const j = resp.j;
-  if (!j) return { existe: !!resp.ok, filas: 0, nota: resp.raw ? resp.raw.slice(0, 120) : (resp.err || '') };
-  const noExiste = /No se ha encontrado|no existe|not found/i.test(JSON.stringify(j).slice(0, 300));
-  const lista = Array.isArray(j.lista) ? j.lista : (Array.isArray(j) ? j : (Array.isArray(j.retorno) ? j.retorno : null));
-  return { existe: !noExiste, filas: lista ? lista.length : (j.retorno != null ? 1 : 0), campos: lista && lista[0] ? Object.keys(lista[0]).slice(0, 12) : undefined, head: JSON.stringify(j).slice(0, 140) };
+  if (!j) return { existe: false, nota: resp.raw ? resp.raw.slice(0, 120) : (resp.err || 'sin respuesta') };
+  const s = JSON.stringify(j).slice(0, 300);
+  const noExiste = /No se ha encontrado|no existe|not found|error/i.test(s) && !/lista|retorno/i.test(s);
+  const lista = Array.isArray(j.lista) ? j.lista : (Array.isArray(j.retorno) ? j.retorno : (Array.isArray(j) ? j : null));
+  if (!lista) return { existe: !noExiste, filas: 0, head: s.slice(0, 160) };
+  return { existe: true, filas: lista.length, columnas: lista[0] ? Object.keys(lista[0]) : [] };
 }
 
 exports.handler = async (event) => {
@@ -37,27 +44,26 @@ exports.handler = async (event) => {
     const q = (event && event.queryStringParameters) || {};
     if (!process.env.DIAG_KEY || q.key !== process.env.DIAG_KEY) return { statusCode: 403, headers, body: JSON.stringify({ error: 'Falta ?key= válida (env DIAG_KEY).' }) };
 
-    const dia = q.dia || '25/08/2026';
-    const desde = q.desde || dia, hasta = q.hasta || dia;
     const { urlCuenta, cuenta, token } = await login();
     if (!token) return { statusCode: 502, headers, body: JSON.stringify({ error: 'No obtuve token del ERP', urlCuenta }) };
 
-    // Métodos "de fecha" (pedidos / remitos / movimientos)
-    const conFecha = ['ListarComprobantes', 'ListarPedidos', 'ListarNotasPedido', 'ListarNotaPedido', 'ListarRemitos', 'ListarPresupuestos', 'ListarComprobantesNoFiscales', 'ListarComprobantesTodos', 'ListarMovimientos', 'ListarOrdenes'];
-    // Métodos "de stock" (sin fecha)
-    const stock = ['ListarStock', 'ObtenerStock', 'ConsultarStock', 'ListarExistencias', 'ListarArticulosStock', 'ListarArticulos'];
-
-    const res = {};
-    for (const m of conFecha) {
-      const r = await aikon(urlCuenta + '/IS3/' + m, { cuenta, token, FechaDesde: desde, FechaHasta: hasta }, 25000);
-      res[m] = conteo(r);
-    }
-    for (const m of stock) {
-      const r = await aikon(urlCuenta + '/IS3/' + m, { cuenta, token }, 25000);
-      res[m] = conteo(r);
+    // Modo tabla puntual: columnas + 1 fila de muestra
+    if (q.tabla) {
+      const r = await aikon(urlCuenta + '/IS3/DtTabla', { cuenta, token, tabla: q.tabla }, 40000);
+      const res = resumenTabla(r);
+      const lista = r.j && (r.j.lista || r.j.retorno);
+      res.muestra = Array.isArray(lista) && lista[0] ? lista[0] : undefined;
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, tabla: q.tabla, ...res }, null, 2) };
     }
 
-    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, rango: { desde, hasta }, metodos: res }, null, 2) };
+    // Modo prueba: tablas candidatas
+    const tablas = ['CLIENTES', 'ARTICULOS', 'PEDIDOS', 'PEDIDO', 'NOTAPEDIDO', 'NOTASPEDIDO', 'PEDIDOSCAB', 'REMITOS', 'REMITO', 'MOVIMIENTOS', 'MOVSTOCK', 'COMPROBANTES', 'VENTAS', 'PRESUPUESTOS', 'RESERVAS', 'STOCK', 'EXISTENCIAS', 'DEPOSITOS'];
+    const out = {};
+    for (const t of tablas) {
+      const r = await aikon(urlCuenta + '/IS3/DtTabla', { cuenta, token, tabla: t }, 20000);
+      out[t] = resumenTabla(r);
+    }
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, tablas: out }, null, 2) };
   } catch (e) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: (e && e.message) || String(e) }) };
   }
