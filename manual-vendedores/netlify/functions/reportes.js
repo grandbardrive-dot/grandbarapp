@@ -56,6 +56,27 @@ exports.handler = async (event) => {
         return json(200, { ok: true, reporte: (await r.json())[0] });
       }
 
+      if (b.accion === 'reenviar' && b.id) {
+        if (!isDir) return json(403, { error: 'Solo Dirección puede reenviar.' });
+        const destinos = Array.isArray(b.destinos) ? [...new Set(b.destinos.map(String).filter(Boolean))] : [];
+        if (!destinos.length) return json(400, { error: 'Elegí al menos un destinatario.' });
+        const orig = (await (await sb('reportes?id=eq.' + encodeURIComponent(b.id) + '&select=*')).json())[0];
+        if (!orig) return json(404, { error: 'No existe el reporte.' });
+        const quien = perfil.nombre || 'Dirección';
+        const nota = '↪ Reenviado por ' + quien + (b.nota ? ': ' + b.nota : '') + '. Reporte original de ' + (orig.autor_nombre || '—') + '.';
+        const filas = destinos
+          .filter((d) => d !== String(orig.usuario_id))
+          .map((d) => ({
+            usuario_id: d, autor_nombre: orig.autor_nombre, area: orig.area, tipo: orig.tipo,
+            periodo: orig.periodo, titulo: '↪ ' + orig.titulo, contenido: orig.contenido, enlace: orig.enlace,
+            estado: 'aprobado', devolucion: nota, revisado_por: user.id, revisado_por_nombre: quien, revisado_at: new Date().toISOString(),
+          }));
+        if (!filas.length) return json(400, { error: 'El único destinatario elegido es el autor del reporte.' });
+        const r = await sb('reportes', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filas) });
+        if (!r.ok) return json(502, { error: 'No pude reenviar: ' + (await r.text()).slice(0, 160) });
+        return json(200, { ok: true, enviados: filas.length });
+      }
+
       if (b.accion === 'revisar' && b.id) {
         if (!isDir) return json(403, { error: 'Solo Dirección puede revisar.' });
         const est = String(b.estado || '');
@@ -78,6 +99,14 @@ exports.handler = async (event) => {
 
     // ---------- GET ----------
     const qp = event.queryStringParameters || {};
+
+    // Lista de usuarios para reenviar (solo Dirección)
+    if (qp.usuarios) {
+      if (!isDir) return json(403, { error: 'Solo Dirección.' });
+      const rows = await (await sb('usuarios?select=id,nombre,rol,canal,region,es_supervisor&order=nombre.asc&limit=1000')).json();
+      const arr = (Array.isArray(rows) ? rows : []).filter((u) => String(u.id) !== String(user.id));
+      return json(200, { usuarios: arr });
+    }
 
     // Vista Dirección: todos los reportes
     if (qp.admin) {

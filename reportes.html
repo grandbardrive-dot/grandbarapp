@@ -145,6 +145,23 @@
       <div id="mIa" style="margin-top:10px;display:none"></div>
     </div>
 
+    <div style="border:1px solid #e7ded0;border-radius:12px;padding:12px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:9px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#256f54" stroke-width="2"><path d="M4 12v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>
+        <b style="font-size:13px;flex:1">Reenviar a otros<span style="display:block;font-size:11px;color:#6d7d85;font-weight:600">Compartir el reporte con supervisores o vendedores</span></b>
+        <button id="mFwdBtn" style="background:#eef4f1;color:#256f54;border:1px solid #cfe3d9;border-radius:9px;padding:9px 13px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap">↪ Elegir destinatarios</button>
+      </div>
+      <div id="mFwd" style="margin-top:10px;display:none">
+        <input id="mFwdSearch" placeholder="Buscar persona…" style="width:100%;border:1px solid #e7ded0;border-radius:8px;padding:8px 10px;font:inherit;font-size:13px">
+        <div id="mFwdList" style="max-height:158px;overflow:auto;border:1px solid #e7ded0;border-radius:8px;padding:4px;margin-top:6px;font-size:13px">Cargando…</div>
+        <textarea id="mFwdNota" placeholder="Nota para quien lo recibe (opcional)…" style="width:100%;min-height:52px;border:1px solid #e7ded0;border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;margin-top:6px"></textarea>
+        <div style="display:flex;gap:9px;align-items:center;margin-top:8px">
+          <button id="mFwdSend" style="background:#2f8f6e;color:#fff;border:0;border-radius:9px;padding:9px 15px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer">↪ Reenviar</button>
+          <span id="mFwdMsg" style="font-size:12px;font-weight:700"></span>
+        </div>
+      </div>
+    </div>
+
     <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin-bottom:5px">Devolución para el usuario</label>
     <textarea id="mDevo" style="width:100%;min-height:90px;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit;font-size:13.5px" placeholder="Escribí tu devolución / comentarios…"></textarea>
     <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
@@ -202,7 +219,47 @@
     $('mLink').innerHTML=r.enlace?`<a href="${esc(r.enlace)}" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:#256f54">🔗 Abrir tablero completo</a>`:'';
     $('mDevo').value=r.devolucion||''; $('mMsg').textContent='';
     $('mIa').style.display='none'; $('mIa').innerHTML=''; $('mIaBtn').disabled=false; $('mIaBtn').innerHTML='✨ Sugerir estrategias';
+    $('mFwd').style.display='none'; $('mFwdMsg').textContent=''; $('mFwdNota').value=''; $('mFwdSearch').value='';
+    $('mFwdList').querySelectorAll('input:checked').forEach(c=>c.checked=false);
     $('ov').style.display='flex';
+  }
+
+  // ── Reenviar a otros usuarios ──
+  let USERS=null;
+  const rolLabel=u=>[u.es_supervisor?'Supervisor':(u.rol||''),u.canal,u.region].filter(Boolean).join(' · ')||'—';
+  async function cargarUsers(){
+    if(USERS) return USERS;
+    const r=await fetch(FN+'?usuarios=1',{headers:{Authorization:'Bearer '+TOKEN}});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    USERS=(d.usuarios||[]); return USERS;
+  }
+  function pintarUsers(f){
+    const q=(f||'').toLowerCase().trim();
+    const list=(USERS||[]).filter(u=>!q||((u.nombre||'')+' '+rolLabel(u)).toLowerCase().includes(q));
+    if(!list.length){ $('mFwdList').innerHTML='<div style="color:#6d7d85;padding:8px">Sin resultados.</div>'; return; }
+    $('mFwdList').innerHTML=list.map(u=>`<label style="display:flex;align-items:center;gap:9px;padding:6px 7px;border-radius:7px;cursor:pointer">
+      <input type="checkbox" value="${esc(u.id)}" style="width:16px;height:16px;flex:none">
+      <span style="flex:1"><b style="font-size:12.5px">${esc(u.nombre||'—')}</b><span style="display:block;font-size:10.5px;color:#6d7d85">${esc(rolLabel(u))}</span></span>
+    </label>`).join('');
+  }
+  async function toggleFwd(){
+    const open=$('mFwd').style.display==='none';
+    $('mFwd').style.display=open?'block':'none';
+    if(open && !USERS){ try{ await cargarUsers(); pintarUsers(''); }catch(e){ $('mFwdList').innerHTML='<div style="color:#c0603e;padding:8px">No pude cargar usuarios: '+esc(e.message||e)+'</div>'; } }
+  }
+  async function reenviar(){
+    if(!abierto) return;
+    const destinos=[...$('mFwdList').querySelectorAll('input:checked')].map(c=>c.value);
+    if(!destinos.length){ $('mFwdMsg').style.color='#c0603e'; $('mFwdMsg').textContent='Elegí al menos uno.'; return; }
+    const btn=$('mFwdSend'); btn.disabled=true; const old=btn.textContent; btn.textContent='Enviando…'; $('mFwdMsg').textContent='';
+    try{
+      const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},
+        body:JSON.stringify({accion:'reenviar',id:abierto.id,destinos,nota:$('mFwdNota').value.trim()})});
+      const d=await r.json(); if(!r.ok||!d.ok) throw new Error(d.error||'Error');
+      $('mFwdMsg').style.color='#2f8f6e'; $('mFwdMsg').textContent='✓ Reenviado a '+d.enviados+' persona(s).';
+      $('mFwdList').querySelectorAll('input:checked').forEach(c=>c.checked=false); $('mFwdNota').value='';
+    }catch(e){ $('mFwdMsg').style.color='#c0603e'; $('mFwdMsg').textContent=e.message||String(e); }
+    finally{ btn.disabled=false; btn.textContent=old; }
   }
 
   const PRIO={alta:['#c0603e','Prioridad alta'],media:['#c99a2e','Prioridad media'],baja:['#2f8f6e','Prioridad baja']};
@@ -316,6 +373,8 @@
   $('mX').onclick=cerrar; $('ov').addEventListener('click',e=>{if(e.target.id==='ov')cerrar();});
   $('mAprob').onclick=()=>revisar('aprobado'); $('mRev').onclick=()=>revisar('revision'); $('mRech').onclick=()=>revisar('rechazado');
   $('mIaBtn').onclick=iaSugerir;
+  $('mFwdBtn').onclick=toggleFwd; $('mFwdSend').onclick=reenviar;
+  $('mFwdSearch').oninput=e=>pintarUsers(e.target.value);
 
   (async()=>{
     const hub=supabase.createClient(HUB.url,HUB.key);
