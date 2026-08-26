@@ -1193,6 +1193,14 @@
   .cal-acc-desc { font-size:11px; color:var(--text2); margin-top:2px; line-height:1.35; }
   .cal-acc-ver { margin-top:6px; background:none; border:none; color:var(--azul); font-family:inherit; font-size:11px; font-weight:700; cursor:pointer; padding:0; }
   .cal-acc-programar { width:100%; margin-top:4px; background:var(--azul); color:#fff; border:none; border-radius:8px; padding:9px; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; border-bottom:2px solid var(--dorado); }
+  .cal-fecha-cab { display:flex; gap:11px; align-items:flex-start; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:9px; margin-bottom:8px; }
+  .cal-fecha-img { width:70px; height:124px; object-fit:cover; border-radius:7px; flex-shrink:0; background:#fff; border:1px solid var(--border); cursor:pointer; }
+  .cal-fecha-cab-info { flex:1; min-width:0; padding-top:1px; }
+  .cal-fecha-desc { font-size:12px; color:var(--text2); line-height:1.4; }
+  .cal-fecha-cond { font-size:12px; color:var(--text); margin-top:5px; }
+  .cal-fecha-cond b { color:var(--azul); }
+  .cal-fecha-rubros { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+  .cal-fecha-rubro { font-size:10px; font-weight:700; color:var(--azul); background:rgba(31,68,127,.09); border-radius:20px; padding:2px 8px; }
 
   /* Modal placa 9:16 */
   #placa-modal { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:840; display:none; align-items:center; justify-content:center; padding:18px; }
@@ -5515,6 +5523,9 @@ body { background:transparent !important; }
   let calRefMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   const _fechasCalCache = {};        // cache por set de canales
   const _calCanales = {};            // secId -> canales (para que calNav recuerde)
+  const _calEvById = {};             // id de fecha -> objeto completo (imagen, mecánica, rubros)
+  const _RUBRO_LBL = { restaurante:'Restaurantes', bar:'Bares', hotel:'Hoteles', disco:'Discos', discoteca:'Discos', evento:'Eventos', vinoteca:'Vinotecas', autoservicio:'Autoservicios', kiosco:'Kioscos', mayorista:'Mayoristas', todos:'Todos los rubros' };
+  const rubroLbl = r => _RUBRO_LBL[String(r||'').toLowerCase()] || (String(r||'').charAt(0).toUpperCase()+String(r||'').slice(1));
   function renderVtCalendario(sec) {
     return `<div class="esp-block"><div id="vt-cal-${sec.id}"><div class="esp-loading">Cargando calendario…</div></div></div>`;
   }
@@ -5562,6 +5573,7 @@ body { background:transparent !important; }
       const fin = new Date((ev.fecha_fin || ev.fecha_inicio) + 'T23:59:59');
       return ini <= new Date(y, m+1, 0) && fin >= new Date(y, m, 1);
     });
+    evMes.forEach(ev => { if (ev && ev.id != null) _calEvById[ev.id] = ev; });
     const diasConEvento = {};
     evMes.forEach((ev, i) => {
       const ini = new Date(ev.fecha_inicio + 'T00:00:00');
@@ -5654,11 +5666,23 @@ body { background:transparent !important; }
 
     const programar = `<button class="cal-acc-programar" onclick="abrirCompModal('Fechas especiales','${esc(evNombre)}','${esc(fechaId)}','${esc(evNombre)}')">📌 Programar esta fecha</button>`;
 
-    if (!acciones.length) {
-      el.innerHTML = `<div class="cal-acc-empty">Sin acciones cargadas para esta fecha.</div>${programar}`;
-      return;
-    }
-    el.innerHTML = acciones.map(a => `
+    // Cabecera con los datos de la fecha misma (imagen/placa + mecánica + rubros).
+    const ev = _calEvById[fechaId] || {};
+    const rubrosTxt = (Array.isArray(ev.rubros) && ev.rubros.length && !ev.rubros.includes('todos'))
+      ? `<div class="cal-fecha-rubros">${ev.rubros.map(r => `<span class="cal-fecha-rubro">${esc(rubroLbl(r))}</span>`).join('')}</div>` : '';
+    const cab = (ev.imagen_url || ev.descripcion || ev.condicion || rubrosTxt) ? `
+      <div class="cal-fecha-cab">
+        ${ev.imagen_url ? `<img class="cal-fecha-img" src="${esc(ev.imagen_url)}" alt="${esc(ev.nombre || '')}" loading="lazy"
+          data-url="${esc(ev.imagen_url)}" data-titulo="${esc(ev.nombre || '')}" data-ctx="${esc(evNombre)}" onclick="abrirPlacaDesde(this)">` : ''}
+        <div class="cal-fecha-cab-info">
+          ${ev.descripcion ? `<div class="cal-fecha-desc">${esc(ev.descripcion)}</div>` : ''}
+          ${ev.condicion ? `<div class="cal-fecha-cond"><b>Mecánica:</b> ${esc(ev.condicion)}</div>` : ''}
+          ${rubrosTxt}
+          ${ev.imagen_url ? `<button class="cal-acc-ver" data-url="${esc(ev.imagen_url)}" data-titulo="${esc(ev.nombre || '')}" data-ctx="${esc(evNombre)}" onclick="abrirPlacaDesde(this)">Ver / descargar placa →</button>` : ''}
+        </div>
+      </div>` : '';
+
+    const accHtml = acciones.length ? acciones.map(a => `
       <div class="cal-acc-card">
         ${a.placa_url ? `<img class="placa-thumb" src="${esc(a.placa_url)}" alt="" loading="lazy"
           data-url="${esc(a.placa_url)}" data-titulo="${esc(a.titulo)}" data-ctx="${esc(evNombre)}"
@@ -5668,7 +5692,9 @@ body { background:transparent !important; }
           ${a.descripcion ? `<div class="cal-acc-desc">${esc(a.descripcion)}</div>` : ''}
           ${a.placa_url ? `<button class="cal-acc-ver" data-url="${esc(a.placa_url)}" data-titulo="${esc(a.titulo)}" data-ctx="${esc(evNombre)}" onclick="abrirPlacaDesde(this)">Ver placa →</button>` : ''}
         </div>
-      </div>`).join('') + programar;
+      </div>`).join('') : '';
+
+    el.innerHTML = cab + accHtml + programar;
   }
 
   // ── Modal de placa (ver grande + descargar + enviar al cliente) ─────────────
