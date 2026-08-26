@@ -150,15 +150,15 @@
     </header>
     <main class="content">
       <div class="page-title">Plan 11T · Peñaflor</div>
-      <div class="page-sub">Subí el export de ventas (CuboVentas por cliente y producto) y el sistema arma el tablero de rendimiento por canal y línea: cuántos clientes distintos compraron cada línea del mes vs. el objetivo del equipo. Fernando y los supervisores lo ven actualizado con cada carga.</div>
+      <div class="page-sub">Subí el Excel <b>GRAND BAR</b> que genera el sistema (CCC por canal + detalle por línea, Real y Objetivo) y el tablero se arma solo. Fernando y los supervisores lo ven actualizado con cada carga.</div>
 
       <!-- CARGA -->
       <div class="uploader">
         <div class="card" style="padding:14px">
           <div class="drop" id="drop">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 16V4m0 0L8 8m4-4l4 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round"/></svg>
-            <div class="drop-t">Arrastrá el export acá o tocá para elegirlo</div>
-            <div class="drop-s">Excel (.xlsx) o CSV del CuboVentas — Familia 2 · Cliente · Artículo · Tipo · Vendedor · Cantidad</div>
+            <div class="drop-t">Arrastrá el Excel GRAND BAR acá o tocá para elegirlo</div>
+            <div class="drop-s">Excel (.xlsx) del reporte GRAND BAR — CCC por canal (OP &amp; VTK) + detalle por línea 11T e Innovaciones</div>
             <div class="drop-file" id="dropFile"></div>
           </div>
           <input type="file" id="file" accept=".xlsx,.xls,.csv" class="hide">
@@ -174,11 +174,11 @@
       </div>
 
       <div id="report">
-        <div class="empty">Elegí un mes y tocá <b>“Ver reporte del mes”</b>, o subí un export para empezar.</div>
+        <div class="empty">Elegí un mes y tocá <b>“Ver reporte del mes”</b>, o subí el Excel GRAND BAR para empezar.</div>
       </div>
 
       <div class="note">
-        <b>Cómo se cuenta:</b> “Real” = clientes distintos que compraron al menos un producto de esa línea en el mes (cualquier compra, con o sin la promo 5+1). El canal sale del <i>tipo de cliente</i> del export: Vinoteca → Vinotecas · Tienda de Bebidas → Tienda de Bebidas · Restaurant + Hotel → On Premise · Bares + Disco → On Premise Noche. Empresas y Particulares, Cafetería, Catering, Autoservicio y Distribuidores/Mayoristas no entran en el 11T. Los objetivos se cargan por mes en la tabla <code>objetivos_11t</code>.
+        <b>De dónde salen los números:</b> el tablero lee tu Excel <b>GRAND BAR</b> tal cual lo arma el sistema. El objetivo del mes es el <b>CCC (Clientes Con Compra) por canal</b> — Vinotecas, Tienda de Bebidas, On Premise (Restaurantes/Hoteles) y On Premise Noche (Bares/Discos) — no la suma de las líneas. El detalle por línea muestra el Real y el Objetivo de cada una (11T e Innovaciones). Con cada Excel que subís se reemplaza el mes.
       </div>
     </main>
   </div>
@@ -229,79 +229,74 @@
         const ws=wb.Sheets[wb.SheetNames[0]];
         const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
         PARSED=procesar(aoa,f.name);
-        if(!PARSED.rows.length){ $('upMsg').className='up-msg err'; $('upMsg').textContent='No encontré filas de ventas. ¿Es el export del CuboVentas?'; $('btnUp').disabled=true; return; }
+        if(!PARSED.ok){ $('upMsg').className='up-msg err'; $('upMsg').textContent='No reconocí el Excel GRAND BAR (no encontré el bloque CCC por canal ni el detalle por línea).'; $('btnUp').disabled=true; return; }
         if(PARSED.mes) $('mes').value=PARSED.mes;
         $('upMsg').className='up-msg ok';
-        $('upMsg').textContent=`Listo: ${numf(PARSED.filas)} filas · ${numf(PARSED.clientes)} clientes. Revisá el mes y tocá “Subir y actualizar”.`;
+        $('upMsg').textContent=`Listo: ${Object.keys(PARSED.ccc).length} canales (CCC) · ${numf(PARSED.filas)} líneas 11T/innovaciones. Revisá el mes y tocá “Subir y actualizar”.`;
         $('btnUp').disabled=false;
       }catch(err){ $('upMsg').className='up-msg err'; $('upMsg').textContent='No pude leer el archivo: '+esc(err.message||err); $('btnUp').disabled=true; }
     };
     rd.readAsArrayBuffer(f);
   }
 
+  // Parsea el Excel "GRAND BAR" (reporte ya calculado por el sistema):
+  //   · bloque CCC por canal  (col G canal, H Real, I Objetivo)
+  //   · detalle por línea en 2 grupos de columnas (izq A-D, der I-L),
+  //     11T arriba e Innovaciones abajo (separadas por 'INNOVACIONES' /
+  //     canal en MAYÚSCULAS / una fila con un número).
   function procesar(aoa,nombre){
-    // Detectar fila de encabezados (la que tiene "Articulo" y "Tipo de cliente").
-    let hi=-1;
-    for(let i=0;i<Math.min(aoa.length,15);i++){
-      const row=(aoa[i]||[]).map(c=>String(c).trim().toLowerCase());
-      if(row.some(c=>c==='articulo') && row.some(c=>c.startsWith('tipo de cliente'))){ hi=i; break; }
-    }
-    if(hi<0){ // fallback: primera fila con varias columnas
-      for(let i=0;i<Math.min(aoa.length,15);i++){ if((aoa[i]||[]).filter(Boolean).length>=6){hi=i;break;} }
-    }
-    const head=(aoa[hi]||[]).map(c=>String(c).trim().toLowerCase());
-    const col=name=>head.findIndex(h=>h===name);
-    const colStarts=frag=>head.findIndex(h=>h.startsWith(frag));
-    const iFam=colStarts('familia'), iCli=col('clientecodigo'), iNom=col('clientenombre'),
-          iSku=col('codigo'), iArt=col('articulo'), iTipo=colStarts('tipo de cliente'),
-          iVen=colStarts('vendedor'), iCant=colStarts('cantidad');
+    const cell=(r,c)=>{ const row=aoa[r]||[]; return row[c]==null?'':String(row[c]).trim(); };
+    const isNum=v=>v!==''&&v!=null&&!isNaN(Number(String(v).replace(',','.')));
+    const num=v=>Number(String(v).replace(',','.'));
+    const normCanal=s=>{const u=norm(s);if(!u)return null;if(u.includes('NOCHE'))return'on_premise_noche';if(u.includes('ON PREMISE'))return'on_premise';if(u.includes('VINOTECA'))return'vinotecas';if(u.includes('TIENDA'))return'tienda_bebidas';return null;};
 
-    // Mes: intentar leer del encabezado "Entre dd/mm/aaaa y dd/mm/aaaa".
-    let mes=null;
-    for(let i=0;i<hi;i++){ const t=(aoa[i]||[]).join(' ');
-      const m=t.match(/y\s+(\d{2})\/(\d{2})\/(\d{4})/); if(m){ mes=m[3]+'-'+m[2]; break; } }
+    // CCC por canal
+    const ccc={};
+    for(let r=0;r<aoa.length;r++){ const k=normCanal(cell(r,6)); if(k&&isNum(cell(r,7))&&isNum(cell(r,8))) ccc[k]={real:num(cell(r,7)),objetivo:num(cell(r,8))}; }
 
-    const rows=[]; const cli=new Set();
-    for(let i=hi+1;i<aoa.length;i++){
-      const r=aoa[i]||[];
-      const cliCod=String(r[iCli]==null?'':r[iCli]).trim();
-      const art=String(r[iArt]==null?'':r[iArt]).trim();
-      if(!cliCod||!art) continue;
-      if(/^total/i.test(cliCod)||/^total/i.test(art)) continue;
-      cli.add(cliCod);
-      rows.push({
-        cliente_codigo:cliCod,
-        cliente_nombre:String(r[iNom]==null?'':r[iNom]).trim()||null,
-        sku:iSku>=0?(String(r[iSku]==null?'':r[iSku]).trim()||null):null,
-        articulo:art,
-        familia2:iFam>=0?(String(r[iFam]==null?'':r[iFam]).trim()||null):null,
-        tipo_cliente:iTipo>=0?(String(r[iTipo]==null?'':r[iTipo]).trim()||null):null,
-        vendedor:iVen>=0?(String(r[iVen]==null?'':r[iVen]).trim()||null):null,
-        cantidad:iCant>=0?(Number(String(r[iCant]).replace(/\./g,'').replace(',','.'))||0):0,
-      });
+    // Detalle por línea
+    const groups=[{cl:0,ln:1,re:2,ob:3},{cl:8,ln:9,re:10,ob:11}];
+    const lineas=[]; const seen=new Set();
+    for(const g of groups){
+      let curCanal=null,tipo='11t',started=false;
+      for(let r=0;r<aoa.length;r++){
+        const label=cell(r,g.cl),linea=cell(r,g.ln),re=cell(r,g.re),ob=cell(r,g.ob);
+        if(linea&&/linea comercial/i.test(linea)){tipo='11t';curCanal=null;started=true;continue;}
+        if(!started)continue;
+        if(label){
+          if(norm(label).includes('INNOVACION')){tipo='innovacion';}
+          else{const k=normCanal(label);if(k){const upper=label===label.toUpperCase();
+            if(k!==curCanal&&!upper){curCanal=k;tipo='11t';}
+            else if(k!==curCanal&&upper){curCanal=k;tipo='innovacion';}
+            else if(upper){tipo='innovacion';}}}
+        }
+        if(linea&&isNum(linea)){tipo='innovacion';continue;}   // fila separadora numérica
+        if(curCanal&&linea&&!isNum(linea)&&isNum(re)&&isNum(ob)){
+          const key=curCanal+'|'+tipo+'|'+norm(linea); if(seen.has(key))continue; seen.add(key);
+          lineas.push({canal:curCanal,linea:linea,tipo,real:num(re),objetivo:num(ob)});
+        }
+      }
     }
-    return {rows,mes,filas:rows.length,clientes:cli.size,nombre};
+
+    // Mes desde el nombre del archivo (ej "AGOSTO - GRAND BAR")
+    let mes=null; const mm=norm(nombre).match(/(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|SETIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)/);
+    if(mm){ const idx={ENERO:1,FEBRERO:2,MARZO:3,ABRIL:4,MAYO:5,JUNIO:6,JULIO:7,AGOSTO:8,SEPTIEMBRE:9,SETIEMBRE:9,OCTUBRE:10,NOVIEMBRE:11,DICIEMBRE:12}[mm[1]]; mes=(new Date()).getFullYear()+'-'+pad(idx); }
+
+    return { ccc, lineas, filas:lineas.length, mes, nombre, ok:(Object.keys(ccc).length>0||lineas.length>0) };
   }
 
-  // ── Subir a Supabase (reemplaza el mes) ──
+  // ── Guardar el reporte del mes (un jsonb por mes) ──
   async function subir(){
-    if(!PARSED||!PARSED.rows.length) return;
+    if(!PARSED||!PARSED.ok) return;
     const mes=$('mes').value; if(!mes){ alert('Elegí el mes.'); return; }
-    $('btnUp').disabled=true; $('bar').classList.add('on'); const barI=$('bar').querySelector('i');
-    $('upMsg').className='up-msg'; $('upMsg').innerHTML='<span class="spin"></span> Reemplazando datos de '+mes+'…';
+    $('btnUp').disabled=true; $('bar').classList.add('on'); const barI=$('bar').querySelector('i'); barI.style.width='35%';
+    $('upMsg').className='up-msg'; $('upMsg').innerHTML='<span class="spin"></span> Guardando reporte de '+mesLabel(mes)+'…';
     try{
-      const del=await sb.from('ventas_penaflor').delete().eq('mes',mes);
-      if(del.error) throw del.error;
-      const filas=PARSED.rows.map(r=>Object.assign({mes},r));
-      const CH=500; let done=0;
-      for(let i=0;i<filas.length;i+=CH){
-        const ins=await sb.from('ventas_penaflor').insert(filas.slice(i,i+CH));
-        if(ins.error) throw ins.error;
-        done+=Math.min(CH,filas.length-i); barI.style.width=Math.round(done/filas.length*100)+'%';
-        $('upMsg').innerHTML='<span class="spin"></span> Subiendo… '+numf(done)+'/'+numf(filas.length);
-      }
-      await sb.from('ventas_penaflor_meta').upsert({mes,actualizado:new Date().toISOString(),filas:PARSED.filas,clientes:PARSED.clientes,archivo:PARSED.nombre});
-      $('upMsg').className='up-msg ok'; $('upMsg').textContent='✓ Cargado. Actualizando reporte…';
+      const payload={ mes, data:{ ccc:PARSED.ccc, lineas:PARSED.lineas }, filas:PARSED.filas, actualizado:new Date().toISOString(), archivo:PARSED.nombre };
+      const { error }=await sb.from('penaflor_11t_reporte').upsert(payload,{onConflict:'mes'});
+      if(error) throw error;
+      barI.style.width='100%';
+      $('upMsg').className='up-msg ok'; $('upMsg').textContent='✓ Cargado. Actualizando tablero…';
       setTimeout(()=>$('bar').classList.remove('on'),600);
       PARSED=null; $('dropFile').textContent=''; fileInp.value='';
       cargar();
@@ -337,28 +332,18 @@
     const t=REP.total;
     const kpis=`<div class="kpis">
       <div class="kpi big"><div class="kpi-name">Alcance 11T</div><div class="kpi-val">${t.alcance}%</div><div class="kpi-sub">${numf(t.real)} de ${numf(t.objetivo)} objetivo</div></div>
-      <div class="kpi"><div class="kpi-name">Clientes logrados</div><div class="kpi-val">${numf(t.real)}</div><div class="kpi-sub">compras de línea (equipo)</div></div>
-      <div class="kpi"><div class="kpi-name">Objetivo del mes</div><div class="kpi-val">${numf(t.objetivo)}</div><div class="kpi-sub">clientes (suma de líneas 11T)</div></div>
+      <div class="kpi"><div class="kpi-name">Clientes con compra</div><div class="kpi-val">${numf(t.real)}</div><div class="kpi-sub">CCC del equipo (por canal)</div></div>
+      <div class="kpi"><div class="kpi-name">Objetivo del mes</div><div class="kpi-val">${numf(t.objetivo)}</div><div class="kpi-sub">clientes con compra (CCC)</div></div>
       <div class="kpi"><div class="kpi-name">Faltan</div><div class="kpi-val" style="color:var(--red)">${numf(t.faltan)}</div><div class="kpi-sub">para llegar al objetivo</div></div>
     </div>
     <div class="present"><div class="present-txt">Cuando quieras, presentás este tablero a Dirección: le llega a Fernando a su sección de <b>Reportes</b> y le suena la <b>campanita</b>.</div>
       <button class="btn" id="btnEnviar" onclick="enviarDireccion()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l16-8-6 16-3-6-7-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>Presentar reporte a Dirección</button>
     </div>`;
 
-    // filtro por vendedor (para supervisores)
-    const opts=['<option value="">Todo el equipo</option>'].concat((REP.vendedores||[]).map(v=>`<option value="${esc(v.vendedor)}"${norm(v.vendedor)===norm(vendActual)?' selected':''}>${esc(v.vendedor)}</option>`)).join('');
     const toolbar=`<div class="toolbar">
-      <div><div class="sec-title">Rendimiento por canal</div><div class="sec-desc">Ordenado de lo más atrasado a lo cumplido. Tocá una línea para ver el desglose por vendedor.</div></div>
-      <div class="sp"></div>
-      <select onchange="filtrarVend(this.value)"><optgroup label="Ver como">${opts}</optgroup></select>
+      <div><div class="sec-title">Rendimiento por canal</div><div class="sec-desc">CCC del canal arriba; abajo el detalle por línea (11T e Innovaciones), de lo más atrasado a lo cumplido.</div></div>
     </div>`;
-
-    // ranking (solo cuando es todo el equipo)
-    let ranking='';
-    if(!vendActual && REP.vendedores && REP.vendedores.length){
-      ranking='<div class="sec-title" style="margin-top:22px">Ranking de vendedores</div><div class="sec-desc">Clientes con compra de líneas 11T en el mes.</div><div class="rank">'+
-        REP.vendedores.slice(0,12).map((v,i)=>`<div class="rk-card"><div class="rk-pos${i<3?' top':''}">${i+1}</div><div class="rk-nm">${esc(v.vendedor)}<small>${numf(v.real)} clientes</small></div></div>`).join('')+'</div>';
-    }
+    const ranking='';
 
     const canales=['vinotecas','tienda_bebidas','on_premise','on_premise_noche'];
     const canalesHtml=canales.map(k=>canalCard(k,REP.canales[k])).filter(Boolean).join('');
