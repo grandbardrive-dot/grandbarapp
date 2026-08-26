@@ -113,6 +113,16 @@ const APPS = [
   // Nota: el "Recolector de Propuestas" NO es módulo suelto: vive DENTRO
   // del Manual de Vendedores (proveedores cargan propuestas, Luci aprueba).
   {
+    id: "comparador-precios",
+    name: "Comparador de Precios",
+    desc: "Precios de la competencia: compará nuestros productos contra los de cada cadena.",
+    icon: "🔍",
+    area: "compras",
+    roles: ["admin", "compras"],
+    status: "live",
+    url: "manual-vendedores/admin-comparador.html",
+  },
+  {
     id: "reco",
     name: "Reco (Recompra)",
     desc: "Sugerencias de recompra y reposición. Herramienta de Luciana.",

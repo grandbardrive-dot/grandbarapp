@@ -124,8 +124,6 @@
       ico:'<path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2zM20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z" stroke-linejoin="round"/>' },
     { key:'resultados', href:'admin-resultados.html', label:'Resultados', sub:'Desempeño de campañas',
       ico:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke-linecap="round"/>' },
-    { key:'comparador', href:'admin-comparador.html', label:'Comparador', sub:'Precios de la competencia',
-      ico:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/>' },
     { key:'borradores', href:'admin-campanias.html?estado=borrador', label:'Borradores', sub:'En edición',
       ico:'<path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" stroke-linecap="round"/>' },
   ];
@@ -168,8 +166,13 @@
     aside.querySelectorAll('.sb-nav, .sb-label, .sb-spacer, .sb-help').forEach(n => n.remove());
 
     const act = activo();
+    // El Comparador pasó a ser una herramienta del Hub: se entra desde ahí, así que
+    // lo primero del menú es la vuelta al Hub y no una seccion del manual.
+    const volverHub = archivo() === 'admin-comparador.html'
+      ? `<a class="sb-item" href="/hub.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Volver al Hub</div><div class="sb-txt-sub">Todas las herramientas</div></div></a>`
+      : '';
     const html = `
-      <nav class="sb-nav">${MENU.map(m => itemHTML(m, m.key === act)).join('')}</nav>
+      <nav class="sb-nav">${volverHub}${MENU.map(m => itemHTML(m, m.key === act)).join('')}</nav>
       <div class="sb-label">Ayuda</div>
       <nav class="sb-nav" style="padding-top:0">
         ${AYUDA.map(a => `<button class="sb-item" style="background:none;border:none;font-family:inherit;text-align:left;width:100%" onclick="${a.fn}()">
