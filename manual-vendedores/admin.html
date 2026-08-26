@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script>
+  // Sin pantalla de elegir perfil: se resuelve antes de dibujar nada, así no se ve
+  // ni un parpadeo de la portada vieja. El panel clásico sigue disponible con ?tab=.
+  (function(){
+    var qs = new URLSearchParams(location.search);
+    sessionStorage.setItem('admin_auth','1');
+    if (qs.get('perfil') === 'marketing') {
+      sessionStorage.setItem('admin_perfil','marketing');
+      location.replace('admin-marketing.html');
+    } else if (!qs.get('tab')) {
+      sessionStorage.setItem('admin_perfil','comercial');
+      location.replace('admin-comercial.html');
+    }
+  })();
+</script>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1070,16 +1085,28 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
     sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil');
     window.location.href='index.html';
   }
-
-  // Enlaces directos desde el panel comercial (?tab=acciones, etc.) o sesión ya iniciada → saltear bienvenida
+  // Ya no hay pantalla de elegir perfil ni contraseña: entrar al manual es entrar
+  // directo al panel. Esta página queda solo por el panel clásico, al que se llega
+  // con ?tab=… desde el menú (Checklists, Compromisos). Para el panel de Marketing:
+  // admin.html?perfil=marketing.
   (function(){
-    const tabPedida = new URLSearchParams(location.search).get('tab');
-    // Solo entra si ya hay sesión válida (no se auto-autoriza por ?tab=).
-    if (sessionStorage.getItem('admin_auth')==='1') {
-      document.getElementById('welcome').style.display='none';
-      document.getElementById('app').style.display='block';
-      if (tabPedida) window.addEventListener('load', ()=>{ try{ showAdminTab(tabPedida); adminTabsLoaded[tabPedida]=true; }catch(e){} });
+    const qs = new URLSearchParams(location.search);
+    const tabPedida = qs.get('tab');
+    sessionStorage.setItem('admin_auth','1');
+    if (qs.get('perfil') === 'marketing') {
+      sessionStorage.setItem('admin_perfil','marketing');
+      location.replace('admin-marketing.html');
+      return;
     }
+    if (!tabPedida) {
+      sessionStorage.setItem('admin_perfil','comercial');
+      location.replace('admin-comercial.html');
+      return;
+    }
+    if (!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
+    const w=document.getElementById('welcome'); if(w) w.style.display='none';
+    const a=document.getElementById('app');     if(a) a.style.display='block';
+    window.addEventListener('load', ()=>{ try{ showAdminTab(tabPedida); adminTabsLoaded[tabPedida]=true; }catch(e){} });
   })();
 
   let todasVisitas=[], visitasFiltradas=[];

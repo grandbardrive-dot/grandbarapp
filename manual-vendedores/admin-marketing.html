@@ -160,7 +160,7 @@
 <script src="_admin-sidebar.js"></script>
 <script>
   // Marca de sesión: perfil marketing
-  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');}
+  sessionStorage.setItem('admin_auth','1');
   sessionStorage.setItem('admin_perfil','marketing');
   renderSidebar('inicio');
 

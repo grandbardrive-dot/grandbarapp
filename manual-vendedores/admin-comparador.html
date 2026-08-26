@@ -118,7 +118,7 @@
 </div>
 
 <script>
-  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');} sessionStorage.setItem('admin_perfil','comercial');
+  sessionStorage.setItem('admin_auth','1'); sessionStorage.setItem('admin_perfil','comercial');
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const $=id=>document.getElementById(id);
   const money=n=>(n||n===0)?'$ '+Math.round(n).toLocaleString('es-AR'):'—';

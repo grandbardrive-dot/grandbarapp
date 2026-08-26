@@ -218,7 +218,7 @@
 <script src="_admin-sidebar.js"></script>
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
-  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');} sessionStorage.setItem('admin_perfil','comercial');
+  sessionStorage.setItem('admin_auth','1'); sessionStorage.setItem('admin_perfil','comercial');
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const CANAL_GRUPOS=[
     { id:'on',  label:'ON TRADE',  ico:'🍽️', desc:'Restaurantes, Bares, Discotecas, Hoteles, Eventos y Catering.', subs:[['restaurantes','Restaurantes'],['bares','Bares'],['discos','Discotecas'],['hoteles','Hoteles'],['eventos','Eventos y Catering']] },

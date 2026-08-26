@@ -262,7 +262,7 @@
 <script src="_config.js"></script>
 <script src="_admin-sidebar.js"></script>
 <script>
-  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');}
+  sessionStorage.setItem('admin_auth','1');
   if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','marketing');
   renderSidebar('materiales');
 

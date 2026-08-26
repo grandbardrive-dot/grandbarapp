@@ -99,7 +99,7 @@
 <script src="_admin-sidebar.js"></script>
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
-  if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');} if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
+  sessionStorage.setItem('admin_auth','1'); if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
   // Si el iframe no carga en 6s, mostrar aviso con enlace de respaldo.
   setTimeout(()=>{ const l=document.getElementById('loading'); if(l && l.style.display!=='none'){ l.innerHTML='El catálogo tarda en abrir. <a href="catalogo-admin/admin.html" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700;text-decoration:underline">Abrilo en una pestaña nueva</a>.'; l.style.pointerEvents='auto'; } }, 6000);
 </script>
