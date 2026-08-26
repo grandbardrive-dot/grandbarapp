@@ -69,6 +69,7 @@ async function sincronizarDia(ctx, fechaStr) {
   const utiles = comps.filter((c) => /^(FA|NC)/i.test(String(c.Codigo || '')) && !c.FechaAnulacion);
 
   const agg = new Map();
+  const aggCli = new Map();   // cliente|sku|fecha -> unidades netas (para 11T / 6 meses)
   let renglones = 0;
   await enTandas(utiles, 10, async (c) => {
     const j = await aikon(urlCuenta + '/IS3/ObtenerComprobante', { cuenta, token, Codigo: c.Codigo, Sucursal: c.Sucursal, Numero: c.Numero, Tipo: c.Tipo }, 15000);
@@ -77,10 +78,12 @@ async function sincronizarDia(ctx, fechaStr) {
     if (!Array.isArray(det) || !det.length) return;
     const fISO = netDateToISO(c.FechaEmision) || ddmmToISO(fechaStr);
     const signo = /^NC/i.test(String(c.Codigo || '')) ? -1 : 1;
+    const clienteCod = String(c.ClienteCodigo == null ? '' : c.ClienteCodigo).trim();
     for (const r of det) {
       const sku = String(val(r, 'Articulo', 'ArticuloCodigo') || '').trim();
       if (!sku) continue;
       const cant = num(val(r, 'Cantidad'));
+      if (clienteCod) { const ck = clienteCod + '|' + sku + '|' + fISO; aggCli.set(ck, (aggCli.get(ck) || 0) + cant * signo); }
       // Venta neta (sin IVA) del renglón.
       const netoLinea = Math.abs(num(val(r, 'TotalNeto', 'ImporteUni', 'Total')));
       // Impuesto interno del renglón (0 en vinos/champagne). Destilados y cervezas lo traen.
@@ -128,7 +131,16 @@ async function sincronizarDia(ctx, fechaStr) {
     const ins = await sb('ventas_articulos', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filas.slice(i, i + 500)) });
     if (!ins.ok) throw new Error('INSERT día ' + fISO + ': ' + (await ins.text()).slice(0, 160));
   }
-  return { comprobantes: utiles.length, renglones, skus: filas.length };
+
+  // Ventas POR CLIENTE del día (11T / reportes / condición 6 meses). Idempotente por día.
+  const delc = await sb(`ventas_cliente?fecha=eq.${fISO}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+  if (!delc.ok && delc.status !== 404) throw new Error('DELETE cliente día ' + fISO + ': ' + (await delc.text()).slice(0, 120));
+  const filasCli = [...aggCli.entries()].map(([k, u]) => { const p = k.split('|'); return { cliente_codigo: p[0], sku: p[1], fecha: p[2], unidades: Math.round(u * 100) / 100 }; }).filter((x) => x.unidades !== 0);
+  for (let i = 0; i < filasCli.length; i += 500) {
+    const ins = await sb('ventas_cliente', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filasCli.slice(i, i + 500)) });
+    if (!ins.ok) throw new Error('INSERT cliente día ' + fISO + ': ' + (await ins.text()).slice(0, 160));
+  }
+  return { comprobantes: utiles.length, renglones, skus: filas.length, clientes: filasCli.length };
 }
 
 exports.handler = async (event) => {
