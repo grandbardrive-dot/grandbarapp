@@ -62,7 +62,7 @@ const APPS = [
     roles: ["admin", "ventas", "compras"],
     status: "live",
     // Destino por defecto (admin/compras = panel de Luciana).
-    url: "manual-vendedores/admin-comercial.html",
+    url: "manual-vendedores/admin-campanias.html",
     // Override por rol: un vendedor entra a la app de vendedor.
     urlByRole: { ventas: "manual-vendedores/index.html" },
   },

@@ -1055,7 +1055,7 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
     }
     sessionStorage.setItem('admin_auth','1');
     sessionStorage.setItem('admin_perfil', perfil);   // 'comercial' | 'marketing'
-    if (perfil === 'comercial') { window.location.href = 'admin-comercial.html'; return; }
+    if (perfil === 'comercial') { window.location.href = 'admin-campanias.html'; return; }
     if (perfil === 'marketing') { window.location.href = 'admin-marketing.html'; return; }
     // Fallback → panel clásico
     mostrarPanelClasico('visitas');
