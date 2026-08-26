@@ -125,6 +125,15 @@
   .prov{display:flex;align-items:center;gap:8px;color:var(--ink2);font-weight:600;font-size:13px}
   .chips{display:flex;flex-wrap:wrap;gap:5px}
   .chip{font-size:11px;font-weight:600;color:var(--navy);background:rgba(31,68,127,.07);border-radius:6px;padding:3px 9px;white-space:nowrap}
+  /* Pestañas Todo / Campañas / Planes */
+  .tipo-tabs{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap;border-bottom:1.5px solid var(--line);padding-bottom:0}
+  .tipo-tab{background:none;border:none;border-bottom:2.5px solid transparent;padding:10px 4px;margin-bottom:-1.5px;font-family:inherit;font-size:14px;font-weight:700;color:var(--ink3);cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .tipo-tab:hover{color:var(--ink2)}
+  .tipo-tab.on{color:var(--navy);border-bottom-color:var(--navy)}
+  .tipo-tab .n{font-size:11px;font-weight:800;background:rgba(31,68,127,.08);border-radius:20px;padding:2px 8px;color:var(--navy)}
+  .tipo-tab.on .n{background:var(--navy);color:#fff}
+  .tipo-tab+.tipo-tab{margin-left:10px}
+  .chip.tipo{background:rgba(176,141,46,.14);color:#7a5c10}
   .vig{font-size:12.5px;color:var(--ink2);white-space:nowrap}
   .estado{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px}
   .estado::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
@@ -259,6 +268,7 @@
       </div>
 
       <div class="stats" id="stats"><div class="stat"><div class="stat-name">Cargando…</div></div></div>
+      <div class="tipo-tabs" id="tipo-tabs"></div>
 
       <div class="filters">
         <div class="search"><input id="buscar" type="text" placeholder="Buscar por campaña, producto o proveedor…" oninput="render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg></div>
@@ -334,11 +344,52 @@
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
   if(sessionStorage.getItem('admin_auth')!=='1'){location.replace('admin.html');} if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
-  const CANAL_LABEL={restaurantes:'Restaurantes',vinotecas:'Vinotecas',bares:'Bares',discos:'Discos',hoteles:'Hoteles',eventos:'Eventos',autoservicios:'Autoservicios',todos:'Todos'};
+  const CANAL_LABEL={restaurantes:'Restaurantes',vinotecas:'Vinotecas',bares:'Bares',discos:'Discos',hoteles:'Hoteles',eventos:'Eventos',autoservicios:'Autoservicios',mayoristas:'Mayoristas',todos:'Todos'};
+  // Los planes guardan el canal del manual en singular (vinoteca) y las campañas en
+  // plural (vinotecas). Se unifica para que el filtro de canal sirva para los dos.
+  const CANAL_DE_MANUAL={restaurante:'restaurantes',vinoteca:'vinotecas',autoservicio:'autoservicios',hotel:'hoteles',bar:'bares',disco:'discos',mayorista:'mayoristas'};
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const hoy=new Date(); hoy.setHours(0,0,0,0);
   const fmt=d=>{if(!d)return '—';const x=new Date(d);return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear();};
-  let CAMP=[], _limite=6;
+  let CAMP=[], PLANES=[], _limite=6, _tab='todo';
+
+  // Los planes (checklist_planes) viven en otra tabla y hasta ahora no se veían acá:
+  // había que entrar a otra pantalla que ni siquiera estaba en el menú. Se traen a
+  // la misma lista normalizando los campos, así los filtros, el buscador y las
+  // tarjetas de estado funcionan igual para los dos.
+  function normalizarPlan(p, canalDeSeccion){
+    const canal = canalDeSeccion[p.seccion_id] || null;
+    return {
+      ...p,
+      _tipo:'plan',
+      producto: p.nombre,
+      accion: p.condicion ? `Plan ${p.condicion}` : 'Plan',
+      categoria: null,
+      imagen_url: null,
+      aplica_a: canal ? [CANAL_DE_MANUAL[canal] || canal] : [],
+      activa: p.activo !== false,
+      pausada: false,
+    };
+  }
+  const conTipo = a => (a._tipo ? a : { ...a, _tipo:'campania' });
+  // Lo que muestra la pestaña elegida.
+  function items(){
+    if(_tab==='campanias') return CAMP;
+    if(_tab==='planes')    return PLANES;
+    return CAMP.concat(PLANES);
+  }
+  function buscar(id){ return CAMP.concat(PLANES).find(x=>x.id===id); }
+
+  function renderTabs(){
+    const tabs=[
+      { k:'todo',      label:'Todo',     n:CAMP.length+PLANES.length },
+      { k:'campanias', label:'Campañas', n:CAMP.length },
+      { k:'planes',    label:'Planes',   n:PLANES.length },
+    ];
+    document.getElementById('tipo-tabs').innerHTML = tabs.map(t=>
+      `<button class="tipo-tab ${t.k===_tab?'on':''}" onclick="cambiarTab('${t.k}')">${t.label} <span class="n">${t.n}</span></button>`).join('');
+  }
+  function cambiarTab(k){ _tab=k; _limite=6; renderTabs(); renderStats(); renderTopProv(); render(); }
 
   function estadoDe(a){
     if(a.pausada) return {k:'pausada',txt:'Pausada',cls:'t-amber'};
@@ -350,21 +401,32 @@
   }
 
   async function cargar(){
-    try{ const r=await sb.from('acciones_mensuales').select('*').order('created_at',{ascending:false}); CAMP=r.data||[]; }
-    catch(e){ console.warn(e); }
-    // llenar filtro de canales con los que existan
-    const canales=[...new Set(CAMP.flatMap(a=>a.aplica_a||[]))];
+    let secs=[];
+    try{
+      const [rc, rp, rs] = await Promise.all([
+        sb.from('acciones_mensuales').select('*').order('created_at',{ascending:false}),
+        sb.from('checklist_planes').select('*').order('created_at',{ascending:false}),
+        sb.from('checklist_secciones').select('id,canal'),
+      ]);
+      CAMP=(rc.data||[]).map(conTipo);
+      secs=rs.data||[];
+      const canalDeSeccion={}; secs.forEach(s=>canalDeSeccion[s.id]=s.canal);
+      PLANES=(rp.data||[]).map(p=>normalizarPlan(p, canalDeSeccion));
+    }catch(e){ console.warn(e); }
+    // llenar filtro de canales con los que existan (campañas y planes)
+    const canales=[...new Set(CAMP.concat(PLANES).flatMap(a=>a.aplica_a||[]))];
     const selC=document.getElementById('f-canal');
     canales.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=CANAL_LABEL[c]||c; selC.appendChild(o); });
-    // estado inicial desde URL (?estado=borrador)
-    const est=new URLSearchParams(location.search).get('estado');
-    if(est) document.getElementById('f-estado').value=est;
-    renderStats(); renderTopProv(); render();
+    // estado inicial desde URL (?estado=borrador, ?tab=planes)
+    const qs=new URLSearchParams(location.search);
+    const est=qs.get('estado'); if(est) document.getElementById('f-estado').value=est;
+    const tab=qs.get('tab'); if(['todo','campanias','planes'].includes(tab)) _tab=tab;
+    renderTabs(); renderStats(); renderTopProv(); render();
   }
 
   function renderStats(){
     const b={activa:0,proxima:0,pausada:0,vencida:0,borrador:0};
-    CAMP.forEach(a=>b[estadoDe(a).k]++);
+    items().forEach(a=>b[estadoDe(a).k]++);
     const cards=[
       {n:'Activas',v:b.activa,link:'Ver todas',c:'circ-green',ico:'<path d="M11 5L6 9H3v6h3l5 4V5z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',e:'activa'},
       {n:'Próximas',v:b.proxima,link:'Ver próximas',c:'circ-amber',ico:'<rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',e:'proxima'},
@@ -383,14 +445,15 @@
     const badge=document.getElementById('bell-badge'), pv=porVencer();
     if(pv>0){ badge.style.display='flex'; badge.textContent=pv; }
   }
-  function porVencer(){ const l=new Date(hoy);l.setDate(l.getDate()+7); return CAMP.filter(a=>{const e=estadoDe(a);if(e.k!=='activa'||!a.fecha_fin)return false;const ff=new Date(a.fecha_fin);return ff>=hoy&&ff<=l;}).length; }
+  function porVencer(){ const l=new Date(hoy);l.setDate(l.getDate()+7); return CAMP.concat(PLANES).filter(a=>{const e=estadoDe(a);if(e.k!=='activa'||!a.fecha_fin)return false;const ff=new Date(a.fecha_fin);return ff>=hoy&&ff<=l;}).length; }
   function filtrarPorEstado(e){ document.getElementById('f-estado').value=e; render(); window.scrollTo({top:260,behavior:'smooth'}); }
 
   function filtradas(){
     const q=(document.getElementById('buscar').value||'').toLowerCase().trim();
     const fc=document.getElementById('f-canal').value, fe=document.getElementById('f-estado').value, ff=document.getElementById('f-fecha').value;
-    return CAMP.filter(a=>{
-      if(q && !(`${a.producto||''} ${a.proveedor||''} ${a.accion||''} ${a.categoria||''}`.toLowerCase().includes(q))) return false;
+    return items().filter(a=>{
+      const texto = `${a.producto||''} ${a.proveedor||''} ${a.accion||''} ${a.categoria||''} ${(a.lineas_participantes||[]).join(' ')}`;
+      if(q && !texto.toLowerCase().includes(q)) return false;
       if(fc && !(a.aplica_a||[]).includes(fc)) return false;
       if(fe && estadoDe(a).k!==fe) return false;
       if(ff==='vencidas' && estadoDe(a).k!=='vencida') return false;
@@ -402,17 +465,21 @@
   function render(){
     const rows=filtradas(); const vis=rows.slice(0,_limite);
     const body=document.getElementById('tabla-body');
-    if(!rows.length){ body.innerHTML=`<tr><td colspan="7" class="empty">No hay campañas para esos filtros.</td></tr>`; document.getElementById('ver-mas-slot').innerHTML=''; return; }
+    const queEs = _tab==='planes' ? 'planes' : (_tab==='campanias' ? 'campañas' : 'campañas ni planes');
+    if(!rows.length){ body.innerHTML=`<tr><td colspan="7" class="empty">No hay ${queEs} para esos filtros.</td></tr>`; document.getElementById('ver-mas-slot').innerHTML=''; return; }
     body.innerHTML=vis.map(a=>{
-      const e=estadoDe(a);
+      const e=estadoDe(a), esPlan=a._tipo==='plan';
       const canales=(a.aplica_a||[]).map(c=>`<span class="chip">${esc(CANAL_LABEL[c]||c)}</span>`).join('');
-      const thumb=a.imagen_url?`<img class="camp-thumb" src="${esc(a.imagen_url)}" alt="">`:`<span class="camp-thumb ph">🍾</span>`;
-      const cat=a.categoria?`<div><span class="cat-tag">${esc(a.categoria)}</span></div>`:'';
-      const vig=(a.fecha_inicio||a.fecha_fin)?`${fmt(a.fecha_inicio)}<br>– ${fmt(a.fecha_fin)}`:'—';
+      const thumb=a.imagen_url?`<img class="camp-thumb" src="${esc(a.imagen_url)}" alt="">`:`<span class="camp-thumb ph">${esPlan?'📄':'🍾'}</span>`;
+      // En un plan la "categoría" no existe: en su lugar se muestran las líneas que participan.
+      const cat = esPlan
+        ? ((a.lineas_participantes||[]).length ? `<div><span class="cat-tag">${a.lineas_participantes.length} línea${a.lineas_participantes.length===1?'':'s'}</span></div>` : '')
+        : (a.categoria?`<div><span class="cat-tag">${esc(a.categoria)}</span></div>`:'');
+      const vig=(a.fecha_inicio||a.fecha_fin)?`${fmt(a.fecha_inicio)}<br>– ${fmt(a.fecha_fin)}`:(esPlan?'<span style="color:var(--ink3)">Sin límite</span>':'—');
       return `<tr style="cursor:pointer" onclick="verDetalle('${a.id}')">
         <td><div class="camp">${thumb}<div><div class="camp-n">${esc(a.producto||'—')}</div><div class="camp-t">${esc(a.accion||'Campaña')}</div>${cat}</div></div></td>
         <td>${a.proveedor?`<span class="prov">${esc(a.proveedor)}</span>`:'<span style="color:var(--ink3)">—</span>'}</td>
-        <td><div class="chips">${canales||'<span style="color:var(--ink3)">—</span>'}</div></td>
+        <td><div class="chips">${esPlan?'<span class="chip tipo">Plan</span>':''}${canales||(esPlan?'':'<span style="color:var(--ink3)">—</span>')}</div></td>
         <td><span class="vig">${vig}</span></td>
         <td><span class="estado ${e.cls}">${e.txt}</span></td>
         <td><div class="edicion">${fmt(a.created_at)}<small>por Luciana</small></div></td>
@@ -420,12 +487,12 @@
       </tr>`;
     }).join('');
     const slot=document.getElementById('ver-mas-slot');
-    slot.innerHTML = rows.length>_limite ? `<button onclick="_limite+=6;render()">Ver más campañas <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` : '';
+    slot.innerHTML = rows.length>_limite ? `<button onclick="_limite+=6;render()">Ver más <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` : '';
   }
 
   function renderTopProv(){
     const cont=document.getElementById('top-prov');
-    const conProv=CAMP.filter(a=>a.proveedor&&a.proveedor.trim());
+    const conProv=items().filter(a=>a.proveedor&&a.proveedor.trim());
     if(!conProv.length){ cont.innerHTML=`<div style="font-size:12px;color:var(--ink3);padding:8px 0;line-height:1.5">Cargá el <b>Proveedor</b> en tus campañas para ver el ranking acá.</div>`; return; }
     const map={}; conProv.forEach(a=>{const p=a.proveedor.trim(); map[p]=(map[p]||0)+1;});
     const top=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,5);
@@ -453,14 +520,16 @@
   function abrirMenuFila(ev,id){
     ev.stopPropagation();
     _menuId=id;
-    const a=CAMP.find(x=>x.id===id); if(!a)return;
+    const a=buscar(id); if(!a)return;
     const m=document.getElementById('fila-menu');
-    const pausada = a.activa===false;
+    const esPlan = a._tipo==='plan';
+    const pausada = esPlan ? (a.activo===false) : (a.activa===false);
+    const verResultados = esPlan ? '' : `<button onclick="location.href='admin-resultados.html'">📊 Ver resultados</button>`;
     m.innerHTML=`
       <button onclick="editCamp()">✏️ Editar</button>
       <button onclick="dupCamp()">📄 Duplicar</button>
       <button onclick="toggleCamp()">${pausada?'▶️ Reactivar':'⏸️ Pausar'}</button>
-      <button onclick="location.href='admin-resultados.html'">📊 Ver resultados</button>
+      ${verResultados}
       <div class="fm-sep"></div>
       <button class="fm-del" onclick="delCamp()">🗑️ Eliminar</button>`;
     const r=ev.currentTarget.getBoundingClientRect();
@@ -474,9 +543,11 @@
   let _detId=null;
   function filaDet(k,v){ return `<div class="det-row"><div class="det-k">${k}</div><div class="det-v">${v}</div></div>`; }
   function verDetalle(id){
-    const a=CAMP.find(x=>x.id===id); if(!a)return;
+    const a=buscar(id); if(!a)return;
     _detId=id;
     const e=estadoDe(a);
+    // Un plan tiene otros datos que una campaña (condición, líneas, PDF): ficha propia.
+    if(a._tipo==='plan'){ detallePlan(a, e); return; }
     document.getElementById('det-thumb').innerHTML = a.imagen_url?`<img src="${esc(a.imagen_url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:9px">`:'🍾';
     document.getElementById('det-titulo').textContent = a.producto||'—';
     document.getElementById('det-sub').textContent = a.accion||'Campaña';
@@ -515,32 +586,99 @@
 
     document.getElementById('det-overlay').classList.add('open');
   }
+
+  // Ficha de un plan: condición, líneas participantes, sección donde se publica y PDF.
+  function detallePlan(p, e){
+    document.getElementById('det-thumb').innerHTML = '📄';
+    document.getElementById('det-titulo').textContent = p.nombre || '—';
+    document.getElementById('det-sub').textContent = p.condicion ? ('Plan ' + p.condicion) : 'Plan';
+    document.getElementById('det-estado').textContent = e.txt;
+
+    const lineas = (p.lineas_participantes||[]).length
+      ? `<div class="chips">${p.lineas_participantes.map(l=>`<span class="chip">${esc(l)}</span>`).join('')}</div>`
+      : '<span class="muted">Todas las líneas del proveedor</span>';
+    const canales = (p.aplica_a||[]).length
+      ? `<div class="chips">${p.aplica_a.map(c=>`<span class="chip">${esc(CANAL_LABEL[c]||c)}</span>`).join('')}</div>`
+      : '<span class="muted">—</span>';
+    const vig = (p.fecha_inicio||p.fecha_fin)
+      ? `${fmt(p.fecha_inicio)} – ${fmt(p.fecha_fin)}`
+      : '<span class="muted">Sin límite de tiempo</span>';
+    const pdf = p.pdf_url
+      ? `<a href="${esc(p.pdf_url)}" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">Abrir PDF ↗</a>`
+      : '<span class="muted">Sin PDF adjunto</span>';
+
+    document.getElementById('det-body').innerHTML =
+      filaDet('Tipo', '<span class="chip tipo">Plan</span>')
+    + filaDet('Proveedor', p.proveedor?esc(p.proveedor):'<span class="muted">—</span>')
+    + filaDet('Condición', p.condicion?esc(p.condicion):'<span class="muted">—</span>')
+    + filaDet('Líneas participantes', lineas)
+    + filaDet('Canal', canales)
+    + (p.descripcion?filaDet('Descripción', esc(p.descripcion)):'')
+    + filaDet('Vigencia', vig)
+    + filaDet('PDF', pdf)
+    + filaDet('Última edición', `${fmt(p.created_at)} <span class="muted">por Luciana</span>`);
+
+    document.getElementById('det-overlay').classList.add('open');
+  }
   function cerrarDetalle(){ document.getElementById('det-overlay').classList.remove('open'); _detId=null; }
-  function editarDesdeDetalle(){ if(_detId) location.href='admin-nueva-campania.html?id='+_detId; }
+  function editarDesdeDetalle(){
+    if(!_detId) return;
+    location.href = (esPlanId(_detId) ? 'admin-nuevo-plan.html?id=' : 'admin-nueva-campania.html?id=') + _detId;
+  }
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrarDetalle(); });
 
+  // Un plan vive en checklist_planes y se edita en otra pantalla: cada acción
+  // tiene que ir a la tabla y al editor que le corresponden.
   async function refrescar(){
-    const r=await sb.from('acciones_mensuales').select('*').order('created_at',{ascending:false});
-    CAMP=r.data||[]; renderStats(); renderTopProv(); render();
+    const [rc, rp, rs] = await Promise.all([
+      sb.from('acciones_mensuales').select('*').order('created_at',{ascending:false}),
+      sb.from('checklist_planes').select('*').order('created_at',{ascending:false}),
+      sb.from('checklist_secciones').select('id,canal'),
+    ]);
+    CAMP=(rc.data||[]).map(conTipo);
+    const canalDeSeccion={}; (rs.data||[]).forEach(s=>canalDeSeccion[s.id]=s.canal);
+    PLANES=(rp.data||[]).map(p=>normalizarPlan(p, canalDeSeccion));
+    renderTabs(); renderStats(); renderTopProv(); render();
   }
-  function editCamp(){ if(_menuId) location.href='admin-nueva-campania.html?id='+_menuId; }
+  const esPlanId = id => PLANES.some(p=>p.id===id);
+  function editCamp(){
+    if(!_menuId) return;
+    location.href = (esPlanId(_menuId) ? 'admin-nuevo-plan.html?id=' : 'admin-nueva-campania.html?id=') + _menuId;
+  }
+  // Solo se guardan las columnas propias de cada tabla: los campos que agrega la
+  // pantalla para poder mostrarlos juntos (_tipo, producto, activa…) no existen en
+  // checklist_planes y harían fallar el insert.
+  const CAMPOS_PLAN = ['seccion_id','nombre','proveedor','condicion','descripcion','lineas_participantes','fecha_inicio','fecha_fin','activo','pdf_url'];
+  const soloPlan = p => CAMPOS_PLAN.reduce((o,k)=>{ if(p[k]!==undefined) o[k]=p[k]; return o; }, {});
+
   async function dupCamp(){
-    const a=CAMP.find(x=>x.id===_menuId); if(!a)return;
-    const {id,created_at,...rest}=a; rest.activa=false; // la copia queda pausada
-    const r=await sb.from('acciones_mensuales').insert(rest);
+    const a=buscar(_menuId); if(!a)return;
+    let r;
+    if(a._tipo==='plan'){
+      const copia = soloPlan(a); copia.nombre = (a.nombre||'') + ' (copia)'; copia.activo = false;
+      r = await sb.from('checklist_planes').insert(copia);
+    } else {
+      const {id,created_at,_tipo,...rest}=a; rest.activa=false; // la copia queda pausada
+      r = await sb.from('acciones_mensuales').insert(rest);
+    }
     if(r.error){alert('No se pudo duplicar: '+r.error.message);return;}
     await refrescar();
   }
   async function toggleCamp(){
-    const a=CAMP.find(x=>x.id===_menuId); if(!a)return;
-    const r=await sb.from('acciones_mensuales').update({activa:a.activa===false}).eq('id',a.id);
+    const a=buscar(_menuId); if(!a)return;
+    const r = a._tipo==='plan'
+      ? await sb.from('checklist_planes').update({activo:a.activo===false}).eq('id',a.id)
+      : await sb.from('acciones_mensuales').update({activa:a.activa===false}).eq('id',a.id);
     if(r.error){alert('No se pudo actualizar: '+r.error.message);return;}
     await refrescar();
   }
   async function delCamp(){
-    const a=CAMP.find(x=>x.id===_menuId); if(!a)return;
-    if(!confirm(`¿Eliminar la campaña "${a.producto||a.accion||'sin nombre'}"?\n\nEsta acción no se puede deshacer.`))return;
-    const r=await sb.from('acciones_mensuales').delete().eq('id',a.id);
+    const a=buscar(_menuId); if(!a)return;
+    const que = a._tipo==='plan' ? 'el plan' : 'la campaña';
+    if(!confirm(`¿Eliminar ${que} "${a.producto||a.accion||'sin nombre'}"?\n\nEsta acción no se puede deshacer.`))return;
+    const r = a._tipo==='plan'
+      ? await sb.from('checklist_planes').delete().eq('id',a.id)
+      : await sb.from('acciones_mensuales').delete().eq('id',a.id);
     if(r.error){alert('No se pudo eliminar: '+r.error.message);return;}
     await refrescar();
   }
