@@ -79,6 +79,10 @@
   .kpi-val{font-size:28px;font-weight:800;letter-spacing:-.02em;margin-top:9px;line-height:1}
   .kpi-sub{font-size:12px;color:var(--ink3);margin-top:5px}
   .kpi.big .kpi-val{color:var(--navy)}
+  .present{display:flex;align-items:center;gap:16px;margin-top:15px;background:linear-gradient(100deg,var(--navy),var(--navy-d));border-radius:14px;padding:15px 18px;box-shadow:var(--shadow);flex-wrap:wrap}
+  .present-txt{color:rgba(255,255,255,.9);font-size:13px;flex:1;min-width:220px} .present-txt b{color:var(--gold)}
+  .present .btn{background:var(--gold);color:var(--navy-dd);white-space:nowrap}
+  .present .btn:hover{background:#fff;color:var(--navy-dd)}
 
   .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:26px 0 6px}
   .toolbar select{border:1.5px solid var(--line-2);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:13px;background:var(--surface);color:var(--ink)}
@@ -194,6 +198,14 @@
   const norm=s=>String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();
   const claseAlc=p=>p>=100?'g':(p>=60?'a':'r');
   const claseAlc2=p=>p>=100?'g':(p>=60?'a':'r2');
+  const MESES=['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const mesLabel=m=>{const [y,mm]=String(m).split('-');return (MESES[+mm]||m)+' '+y;};
+
+  // Cliente del Hub (mismo proyecto que el login de portalgrandbar) para leer la
+  // sesión de Luciana y firmar el envío del reporte a Dirección.
+  const HUB={url:'https://xqhyemccbwmzxqzkrtwa.supabase.co',key:'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc'};
+  let hubClient=null;
+  const getHub=()=>{ if(!hubClient) hubClient=supabase.createClient(HUB.url,HUB.key); return hubClient; };
 
   let PARSED=null; // {rows, mes, filas, clientes, nombre}
 
@@ -328,6 +340,9 @@
       <div class="kpi"><div class="kpi-name">Clientes logrados</div><div class="kpi-val">${numf(t.real)}</div><div class="kpi-sub">compras de línea (equipo)</div></div>
       <div class="kpi"><div class="kpi-name">Objetivo del mes</div><div class="kpi-val">${numf(t.objetivo)}</div><div class="kpi-sub">clientes (suma de líneas 11T)</div></div>
       <div class="kpi"><div class="kpi-name">Faltan</div><div class="kpi-val" style="color:var(--red)">${numf(t.faltan)}</div><div class="kpi-sub">para llegar al objetivo</div></div>
+    </div>
+    <div class="present"><div class="present-txt">Cuando quieras, presentás este tablero a Dirección: le llega a Fernando a su sección de <b>Reportes</b> y le suena la <b>campanita</b>.</div>
+      <button class="btn" id="btnEnviar" onclick="enviarDireccion()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l16-8-6 16-3-6-7-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>Presentar reporte a Dirección</button>
     </div>`;
 
     // filtro por vendedor (para supervisores)
@@ -392,6 +407,46 @@
   function toggleDet(id){ const d=$('d-'+id), r=$('r-'+id); if(!d) return; d.classList.toggle('hide'); r.classList.toggle('open'); }
   function filtrarVend(v){ const mes=$('mes').value||nowMes(); $('report').innerHTML='<div class="empty"><span class="spin"></span> Cargando…</div>';
     fetch('/.netlify/functions/reporte-11t?mes='+mes+(v?'&vendedor='+encodeURIComponent(v):'')).then(r=>r.json()).then(d=>{REP=d;render();}).catch(e=>{$('report').innerHTML='<div class="empty">Error: '+esc(e.message||e)+'</div>';}); }
+
+  // ── Presentar a Dirección (crea un reporte en el circuito del Hub) ──
+  function resumenTexto(d){
+    const L=[];
+    L.push('PLAN 11T · PEÑAFLOR — '+mesLabel(d.mes));
+    if(d.carga) L.push('Datos al '+new Date(d.carga.fecha).toLocaleDateString('es-AR')+' · '+numf(d.carga.clientes)+' clientes cargados.');
+    L.push('');
+    L.push('ALCANCE DEL EQUIPO: '+d.total.alcance+'%  ('+numf(d.total.real)+' de '+numf(d.total.objetivo)+' clientes objetivo · faltan '+numf(d.total.faltan)+').');
+    L.push('');
+    L.push('Por canal:');
+    ['vinotecas','tienda_bebidas','on_premise','on_premise_noche'].forEach(k=>{const c=d.canales[k];if(c)L.push('• '+c.label+': '+numf(c.tot.real)+'/'+numf(c.tot.objetivo)+' ('+c.tot.alcance+'%) — faltan '+numf(c.tot.faltan));});
+    const lineas=[];
+    ['vinotecas','tienda_bebidas','on_premise','on_premise_noche'].forEach(k=>{const c=d.canales[k];if(c)c.t11.forEach(f=>lineas.push({linea:f.linea,canal:c.label,real:f.real,objetivo:f.objetivo,faltan:f.faltan}));});
+    lineas.sort((a,b)=>b.faltan-a.faltan);
+    if(lineas.length){ L.push(''); L.push('Líneas más atrasadas:');
+      lineas.slice(0,6).forEach(f=>L.push('• '+f.linea+' ('+f.canal+'): '+numf(f.real)+'/'+numf(f.objetivo)+' — faltan '+numf(f.faltan))); }
+    if(d.vendedores&&d.vendedores.length){ L.push(''); L.push('Top vendedores (clientes 11T): '+d.vendedores.slice(0,5).map(v=>v.vendedor+' ('+numf(v.real)+')').join(', ')); }
+    return L.join('\n');
+  }
+
+  async function enviarDireccion(){
+    const mes=$('mes').value||nowMes();
+    if(!confirm('¿Presentar el reporte 11T de '+mesLabel(mes)+' a Dirección?\n\nLe va a llegar a Fernando en su sección de Reportes y a la campanita.')) return;
+    const btn=$('btnEnviar'); const old=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span class="spin"></span> Enviando…';
+    try{
+      const { data:{ session } }=await getHub().auth.getSession();
+      if(!session){ alert('Para enviar el reporte tenés que estar con tu sesión del Hub iniciada (portalgrandbar.com). Cerrá sesión y volvé a entrar.'); btn.disabled=false; btn.innerHTML=old; return; }
+      // Datos frescos del EQUIPO (sin filtro por vendedor).
+      const d=await fetch('/.netlify/functions/reporte-11t?mes='+mes).then(r=>r.json());
+      if(!d.ok||!d.hay_datos){ alert('No hay datos cargados para '+mesLabel(mes)+'. Subí el export primero.'); btn.disabled=false; btn.innerHTML=old; return; }
+      const body={ accion:'crear', tipo:'puntual', periodo:'11T '+mesLabel(mes),
+        titulo:'Plan 11T Peñaflor — '+mesLabel(mes)+' ('+d.total.alcance+'%)',
+        contenido:resumenTexto(d), enlace: location.origin+'/manual-vendedores/admin-11t.html' };
+      const r=await fetch('/.netlify/functions/reportes',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok||!j.ok) throw new Error(j.error||('HTTP '+r.status));
+      btn.innerHTML='✓ Enviado a Dirección';
+      setTimeout(()=>{ btn.disabled=false; btn.innerHTML=old; },2600);
+    }catch(e){ alert('No se pudo enviar: '+(e.message||e)); btn.disabled=false; btn.innerHTML=old; }
+  }
 
   // primera carga
   cargar();
