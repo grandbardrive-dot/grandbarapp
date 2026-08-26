@@ -107,7 +107,7 @@
   const PAGINAS_COMERCIAL = [
     'admin-comercial.html', 'admin-campanias.html', 'admin-nueva-campania.html', 'admin-fechas.html',
     'admin-secciones.html', 'admin-combos.html', 'admin-catalogo.html',
-    'admin-catalogo-clientes.html', 'admin-resultados.html', 'admin-comparador.html',
+    'admin-catalogo-clientes.html', 'admin-resultados.html', 'admin-11t.html', 'admin-comparador.html',
   ];
   const MENU = [
     { key:'inicio',    href:'admin-comercial.html', label:'Inicio',
@@ -124,6 +124,8 @@
       ico:'<path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2zM20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z" stroke-linejoin="round"/>' },
     { key:'resultados', href:'admin-resultados.html', label:'Resultados', sub:'Desempeño de campañas',
       ico:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke-linecap="round"/>' },
+    { key:'reporte11t', href:'admin-11t.html', label:'Plan 11T', sub:'Peñaflor · por canal y línea',
+      ico:'<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 14l3-3 2 2 4-5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="8" r="1.6" fill="currentColor" stroke="none"/>' },
     { key:'borradores', href:'admin-campanias.html?estado=borrador', label:'Borradores', sub:'En edición',
       ico:'<path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" stroke-linecap="round"/>' },
   ];

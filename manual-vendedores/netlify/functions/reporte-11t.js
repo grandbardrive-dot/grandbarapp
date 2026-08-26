@@ -1,17 +1,20 @@
 // ============================================================
 //  GrandBar · Netlify Function · reporte-11t
-//  Cruza las ventas por cliente (ventas_cliente, del ERP) con los
-//  objetivos del 11T (objetivos_11t) para armar el reporte: por canal,
-//  por línea comercial → Real (clientes que compraron) / Objetivo /
-//  Alcance / Faltan. Consolidado del equipo + apertura por vendedor.
+//  Reporte del plan 11T de Peñaflor. Cruza el export de ventas que sube
+//  Luciana (ventas_penaflor, CuboVentas por cliente+producto) con los
+//  objetivos del mes (objetivos_11t) → por canal × línea comercial:
+//  Real (clientes DISTINTOS que compraron esa línea) / Objetivo / Alcance /
+//  Faltan. Consolidado del equipo + apertura por vendedor.
 //
-//  "Real" = clientes DISTINTOS que compraron cualquier producto de esa
-//  línea en el mes. Cruce por nombre (descripción del ERP) con reglas.
-//  Todo lee de fzaxwuuodseyyinveknn. GET  ?mes=YYYY-MM (default: mes actual)
+//  El export ya trae tipo_cliente y vendedor por fila, así que NO necesita
+//  cruzar con la tabla de clientes: el canal sale del tipo_cliente.
+//  Todo lee de fzaxwuuodseyyinveknn.  GET ?mes=YYYY-MM (default: mes actual)
+//        opcional &vendedor=NOMBRE  → filtra el reporte a un vendedor (supervisor)
 // ============================================================
 
 const SB_URL = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const SB_KEY = process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
+
 async function getAll(path) {
   const out = []; const page = 1000;
   for (let from = 0; ; from += page) {
@@ -20,17 +23,19 @@ async function getAll(path) {
     if (!Array.isArray(arr) || !arr.length) break;
     out.push(...arr);
     if (arr.length < page) break;
-    if (out.length > 200000) break;
+    if (out.length > 400000) break;
   }
   return out;
 }
 
-// Rubro del cliente → canal del plan 11T.
+// Tipo de cliente (del cubo) → canal del plan 11T. Todo lo que NO está acá
+// (Empresas y Particulares, Cafetería, Catering, Autoservicio, Distribuidores
+//  y Mayoristas) queda FUERA del 11T.
 const TIPO_CANAL = {
-  vinoteca: 'vinotecas',
-  autoservicio: 'tienda_bebidas', kiosco: 'tienda_bebidas',
-  restaurante: 'on_premise', hotel: 'on_premise',
-  bar: 'on_premise_noche', disco: 'on_premise_noche', discoteca: 'on_premise_noche',
+  'VINOTECA': 'vinotecas',
+  'TIENDA DE BEBIDAS': 'tienda_bebidas',
+  'RESTAURANT': 'on_premise', 'RESTAURANTE': 'on_premise', 'HOTEL': 'on_premise',
+  'BAR': 'on_premise_noche', 'BARES': 'on_premise_noche', 'DISCO': 'on_premise_noche', 'DISCOTECA': 'on_premise_noche',
 };
 
 function norm(s) {
@@ -39,45 +44,58 @@ function norm(s) {
     .replace(/[^A-Z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-// Reglas de match por línea (normalizadas). inc = todas presentes; exc = ninguna;
-// reqAny = al menos una. Si una línea no está acá, se usa su propio nombre como inc.
+// Reglas de match por línea (nombre normalizado del objetivo → cómo reconocer
+// sus productos en el nombre del artículo). inc = todos presentes; exc = ninguno;
+// reqAny = al menos uno. Validadas contra el export "agosto peña".
 const REGLAS = {
-  'ALMA MORA':            { inc: ['ALMA MORA'], exc: ['LOW'] },
-  'MEDALLA':              { inc: ['MEDALLA'], exc: ['ESPUMANTE'] },
-  'FOND DE CAVE':         { inc: ['FOND DE CAVE'], exc: ['RESERVA'] },
-  'FOND DE CAVE RESERVA': { inc: ['FOND DE CAVE RESERVA'] },
-  'CAZADOR':              { inc: ['CAZADOR'], exc: ['ROSADO'] },
-  'DON DAVID':            { inc: ['DON DAVID'], exc: ['LOW', 'RED BLEND'] },
-  'DADA':                 { inc: ['DADA'], exc: ['EXTRA BRUT', 'SIDRA', 'LOW', 'TINTO DE VERANO'] },
-  'GORDON S':             { inc: ['GORDON'], exc: ['TROPICAL', 'PINK'] },
-  'TANQUERAY':            { inc: ['TANQUERAY'], exc: ['SEVILLA', 'RANGPUR', 'ROYALE', 'FLOR', 'BOSSA', 'NOVA'] },
-  'EL ESTECO':            { inc: ['ESTECO'], reqAny: ['ESTATE', 'OLD VINES'], exc: ['BLEND DE EXTREMOS'] },
-  'BLEND DE EXTREMOS':    { inc: ['BLEND DE EXTREMOS'], exc: ['PINOT'] },
-  'NC ESPUMANTES':        { inc: ['NAVARRO CORREAS'], exc: ['LATA'] },
-  'NAVARRO CORREAS LATA': { inc: ['NAVARRO CORREAS', 'LATA'] },
-  'ANTARES':              { inc: ['ANTARES'], exc: ['XPA', '330', '660', 'LAGER'] },
-  'LOS INTOCABLES':       { inc: ['INTOCABLES'], exc: ['OAK'] },
-  'SMIRNOFF':             { inc: ['SMIRNOFF'], exc: ['ICE', 'FLAVOR', 'GREEN', 'RASPBERRY', 'APPLE', 'TAMARINDO', 'WATERMELON', 'TROPICAL', 'GRAPEFRUIT', 'TANGE', 'RUBY', 'LEMONGRASS', 'FRUITS', 'COMBO', 'NEUTRO'] },
-  'SMIRNOFF FLAVORS':     { inc: ['SMIRNOFF'], exc: ['21', 'ICE', 'NEUTRO', 'COMBO'] },
-  'SMIRNOFF ICE':         { inc: ['SMIRNOFF', 'ICE'] },
-  'JW BLACK':             { inc: ['WALKER', 'BLACK'], exc: ['DOUBLE'] },
-  'JW GOLD RESERVE':      { inc: ['WALKER', 'GOLD'] },
-  'JW RED':               { inc: ['WALKER', 'RED'] },
-  'LA MASCOTA':           { inc: ['MASCOTA'] },
-  'TRAPICHE RESERVA':     { inc: ['TRAPICHE RESERVA'] },
-  'COSTA PAMPA':          { inc: ['COSTA', 'PAMPA'] },
-  'ARBOLES BLANCO Y ROSADO': { inc: ['ARBOLES'] },
-  'GORDON S TROPICAL':    { inc: ['GORDON', 'TROPICAL'] },
-  'FRIZZE MANZANA':       { inc: ['FRIZZE'] },
+  'ALMA MORA LOW BLANCO':     { inc: ['ALMA MORA', 'LOW', 'BLANCO'] },
+  'ALMA MORA LOW TINTO':      { inc: ['ALMA MORA', 'LOW'], reqAny: ['TINTO', 'TTO'] },
+  'ALMA MORA':                { inc: ['ALMA MORA'], exc: ['LOW'] },
+  'ANTARES 330':              { inc: ['ANTARES', '330'] },
+  'ANTARES 660':              { inc: ['ANTARES', '660'] },
+  'ANTARES XPA':              { inc: ['ANTARES', 'XPA'] },
+  'ANTARES':                  { inc: ['ANTARES'], exc: ['330', '660', 'XPA', 'COPA'] },
+  'ARBOLES BLANCO Y ROSADO':  { inc: ['ARBOLES'] },
+  'BLEND DE EXTREMOS PINOT':  { inc: ['BLEND DE EXTREMOS', 'PINOT'] },
+  'BLEND DE EXTREMOS':        { inc: ['BLEND DE EXTREMOS'], exc: ['PINOT'] },
+  'CAZADOR ROSADO':           { inc: ['CAZADOR'], reqAny: ['ROSADO', 'ROSE'] },
+  'CAZADOR':                  { inc: ['CAZADOR'], exc: ['ROSADO', 'ROSE'] },
+  'COSTA PAMPA':              { inc: ['COSTA', 'PAMPA'] },
+  'DADA EXTRA BRUT':          { inc: ['DADA', 'EXTRA BRUT'] },
+  'DADA TINTO DE VERANO':     { inc: ['DADA', 'TINTO DE VERANO'] },
+  'DADA SIDRA':               { inc: ['DADA', 'SIDRA'] },
+  'DADA LOW WHITE':           { inc: ['DADA', 'LOW'], reqAny: ['WHITE', 'BLANCO'] },
+  'DADA LOW TINTO':           { inc: ['DADA', 'LOW'], reqAny: ['TINTO', 'TTO'] },
+  'DADA':                     { inc: ['DADA'], exc: ['EXTRA BRUT', 'SIDRA', 'LOW', 'TINTO DE VERANO'] },
+  'DON DAVID LOW TORRONTES':  { inc: ['DON DAVID', 'LOW'] },
+  'DON DAVID RED BLEND':      { inc: ['DON DAVID', 'RED BLEND'] },
+  'DON DAVID':                { inc: ['DON DAVID'], exc: ['LOW', 'RED BLEND'] },
+  'EL ESTECO':                { inc: ['ESTECO'], exc: ['BLEND DE EXTREMOS'] },
+  'FRIZZE MANZANA':           { inc: ['FRIZZE'] },
+  'FOND DE CAVE RESERVA':     { inc: ['FOND DE CAVE', 'RESERVA'] },
+  'FOND DE CAVE':             { inc: ['FOND DE CAVE'], exc: ['RESERVA'] },
+  'GORDON S TROPICAL':        { inc: ['GORDON', 'TROPICAL'] },
+  'GORDON S':                 { inc: ['GORDON'], exc: ['TROPICAL', 'PINK'] },
+  'JW BLACK':                 { inc: ['WALKER', 'BLACK'], exc: ['DOUBLE'] },
+  'JW GOLD RESERVE':          { inc: ['WALKER', 'GOLD'] },
+  'JW RED':                   { inc: ['WALKER', 'RED'] },
+  'LA MASCOTA':               { inc: ['MASCOTA'] },
+  'MEDALLA ESPUMANTE':        { inc: ['MEDALLA'], reqAny: ['BRUT', 'NATURE', 'ESPUMANTE'] },
+  'MEDALLA':                  { inc: ['MEDALLA'], exc: ['BRUT', 'NATURE', 'ESPUMANTE'] },
+  'NAVARRO CORREAS LATA':     { inc: ['NAVARRO CORREAS', 'LATA'] },
+  'NC ESPUMANTES':            { inc: ['NAVARRO CORREAS'], exc: ['LATA', 'RVA', 'MALBEC'] },
+  'TANQUERAY':                { inc: ['TANQUERAY'], exc: ['BOSSA', 'NOVA', 'SEVILLA', 'FLOR'] },
+  'SMIRNOFF ICE':             { inc: ['SMIRNOFF', 'ICE'] },
+  'SMIRNOFF FLAVORS':         { inc: ['SMIRNOFF'], reqAny: ['APPLE', 'GRAPEFRUIT', 'RASPBERRY', 'RUBY', 'TAMARINDO', 'TROPICAL', 'WATERMELON', 'LEMON'], exc: ['ICE', 'LATA'] },
+  'SMIRNOFF':                 { inc: ['SMIRNOFF'], exc: ['ICE', 'APPLE', 'GRAPEFRUIT', 'RASPBERRY', 'RUBY', 'TAMARINDO', 'TROPICAL', 'WATERMELON', 'LEMON', 'LATA'] },
+  'ALARIS':                   { inc: ['ALARIS'] },
+  'TRAPICHE RESERVA':         { inc: ['TRAPICHE', 'RVA'] },
 };
-function reglaDe(lineaNorm) {
-  if (REGLAS[lineaNorm]) return REGLAS[lineaNorm];
-  return { inc: lineaNorm.split(' ').filter((t) => t.length >= 2) };  // default: nombre entero
-}
-function cumple(txt, regla) {
-  if (regla.inc && !regla.inc.every((t) => txt.includes(t))) return false;
-  if (regla.exc && regla.exc.some((t) => txt.includes(t))) return false;
-  if (regla.reqAny && !regla.reqAny.some((t) => txt.includes(t))) return false;
+function reglaDe(ln) { return REGLAS[ln] || { inc: ln.split(' ').filter((t) => t.length >= 2) }; }
+function cumple(txt, r) {
+  if (r.inc && !r.inc.every((t) => txt.includes(t))) return false;
+  if (r.exc && r.exc.some((t) => txt.includes(t))) return false;
+  if (r.reqAny && !r.reqAny.some((t) => txt.includes(t))) return false;
   return true;
 }
 
@@ -87,88 +105,104 @@ exports.handler = async (event) => {
     const q = (event && event.queryStringParameters) || {};
     const hoy = new Date();
     const mes = /^\d{4}-\d{2}$/.test(q.mes || '') ? q.mes : (hoy.getUTCFullYear() + '-' + String(hoy.getUTCMonth() + 1).padStart(2, '0'));
-    const desde = mes + '-01';
-    const finMes = new Date(Date.UTC(+mes.slice(0, 4), +mes.slice(5, 7), 0)).toISOString().slice(0, 10);
+    const filtroVend = q.vendedor ? norm(q.vendedor) : null;
 
-    const [objetivos, artic, ventas, clientes, vendedores] = await Promise.all([
+    const [objetivos, ventas, meta] = await Promise.all([
       getAll(`objetivos_11t?mes=eq.${mes}&select=canal,linea,tipo,objetivo`),
-      getAll(`ventas_articulos?select=sku,descripcion,marca,familia_nombre&fecha=gte.${desde}&fecha=lte.${finMes}`),
-      getAll(`ventas_cliente?select=cliente_codigo,sku&fecha=gte.${desde}&fecha=lte.${finMes}`),
-      getAll('clientes?select=codigo_cliente,tipo,vendedor_id'),
-      getAll('vendedores?select=id,nombre,codigo'),
+      getAll(`ventas_penaflor?mes=eq.${mes}&select=cliente_codigo,articulo,tipo_cliente,vendedor`),
+      getAll(`ventas_penaflor_meta?mes=eq.${mes}&select=actualizado,filas,clientes`),
     ]);
 
-    // Diccionario sku -> texto (para el match por nombre).
-    const skuTxt = {};
-    for (const a of artic) if (a.sku && !skuTxt[a.sku]) skuTxt[a.sku] = norm(`${a.descripcion || ''} ${a.marca || ''} ${a.familia_nombre || ''}`);
+    // Líneas objetivo distintas → su regla.
+    const lineasSet = new Map(); // lineaNorm -> regla
+    for (const o of objetivos) { const ln = norm(o.linea); if (!lineasSet.has(ln)) lineasSet.set(ln, reglaDe(ln)); }
 
-    // Líneas objetivo distintas → su regla. sku -> línea (más específica gana).
-    const lineasSet = new Map(); // lineaNorm -> {nombre, regla}
-    for (const o of objetivos) { const ln = norm(o.linea); if (!lineasSet.has(ln)) lineasSet.set(ln, { nombre: o.linea, regla: reglaDe(ln) }); }
-    const skuLinea = {}; // sku -> lineaNorm
-    for (const [sku, txt] of Object.entries(skuTxt)) {
-      let mejor = null, mejorPeso = 0;
-      for (const [ln, { regla }] of lineasSet) {
-        if (cumple(txt, regla)) { const peso = (regla.inc || []).join('').length; if (peso > mejorPeso) { mejorPeso = peso; mejor = ln; } }
+    // Artículo (nombre) → línea. La línea más específica gana (mayor peso de inc).
+    const artLinea = {};
+    const artsSet = new Set();
+    for (const v of ventas) if (v.articulo) artsSet.add(v.articulo);
+    for (const art of artsSet) {
+      const txt = norm(art);
+      let best = null, bp = -1;
+      for (const [ln, rg] of lineasSet) {
+        if (cumple(txt, rg)) { const peso = (rg.inc || []).join('').length + (rg.reqAny ? 2 : 0); if (peso > bp) { bp = peso; best = ln; } }
       }
-      if (mejor) skuLinea[sku] = mejor;
+      if (best) artLinea[art] = best;
     }
-
-    // Mapas de cliente.
-    const cliInfo = {}; // codigo -> {canal, vendedor_id}
-    for (const c of clientes) { const canal = TIPO_CANAL[String(c.tipo || '').toLowerCase()]; if (canal) cliInfo[String(c.codigo_cliente)] = { canal, vendedor: c.vendedor_id }; }
-    const venNombre = {}; for (const v of vendedores) venNombre[v.id] = { nombre: v.nombre, codigo: v.codigo };
 
     // Agregar: (canal|linea) -> Set(cliente) ; (canal|linea|vendedor) -> Set(cliente)
-    const realCanal = {}, realVend = {};
+    const realCanal = {}, realVend = {}, vendSet = {};
     for (const row of ventas) {
-      const ln = skuLinea[row.sku]; if (!ln) continue;
-      const ci = cliInfo[String(row.cliente_codigo)]; if (!ci) continue;
-      const kC = ci.canal + '|' + ln;
-      (realCanal[kC] = realCanal[kC] || new Set()).add(row.cliente_codigo);
-      const kV = ci.canal + '|' + ln + '|' + (ci.vendedor || 'sin');
-      (realVend[kV] = realVend[kV] || new Set()).add(row.cliente_codigo);
+      const canal = TIPO_CANAL[norm(row.tipo_cliente)]; if (!canal) continue;
+      const ln = artLinea[row.articulo]; if (!ln) continue;
+      const vend = (row.vendedor || 'Sin vendedor').trim();
+      if (filtroVend && norm(vend) !== filtroVend) continue;
+      const cli = String(row.cliente_codigo);
+      (realCanal[canal + '|' + ln] = realCanal[canal + '|' + ln] || new Set()).add(cli);
+      const kv = canal + '|' + ln + '|' + vend;
+      (realVend[kv] = realVend[kv] || new Set()).add(cli);
+      (vendSet[canal + '|' + ln] = vendSet[canal + '|' + ln] || new Set()).add(vend);
     }
 
-    // Armar salida por canal, respetando el orden/tipo de objetivos.
+    // Salida por canal, respetando el orden/tipo de los objetivos.
     const CANALES = ['vinotecas', 'tienda_bebidas', 'on_premise', 'on_premise_noche'];
     const CANAL_L = { vinotecas: 'Vinotecas', tienda_bebidas: 'Tienda de Bebidas', on_premise: 'On Premise', on_premise_noche: 'On Premise Noche' };
+    const CANAL_SUB = { vinotecas: 'OFF · 1+1', tienda_bebidas: 'OFF · 1+1', on_premise: 'ON · Restaurantes y Hoteles', on_premise_noche: 'ON · Bares y Discos' };
     const salida = {};
-    for (const canal of CANALES) salida[canal] = { label: CANAL_L[canal], t11: [], innov: [], tot: { real: 0, objetivo: 0 } };
+    for (const c of CANALES) salida[c] = { label: CANAL_L[c], sub: CANAL_SUB[c], t11: [], innov: [], tot: { real: 0, objetivo: 0 } };
 
-    // vendedores que participan por canal (para el desglose)
     for (const o of objetivos) {
       const ln = norm(o.linea);
       const real = (realCanal[o.canal + '|' + ln] || new Set()).size;
-      // desglose por vendedor
       const porVend = [];
-      for (const [id, v] of Object.entries(venNombre)) {
-        const rv = (realVend[o.canal + '|' + ln + '|' + id] || new Set()).size;
-        if (rv > 0) porVend.push({ vendedor: v.nombre, codigo: v.codigo, real: rv });
+      for (const vend of (vendSet[o.canal + '|' + ln] || [])) {
+        const rv = (realVend[o.canal + '|' + ln + '|' + vend] || new Set()).size;
+        if (rv > 0) porVend.push({ vendedor: vend, real: rv });
       }
       porVend.sort((a, b) => b.real - a.real);
+      const objv = o.objetivo || 0;
       const fila = {
-        linea: o.linea, tipo: o.tipo, real, objetivo: o.objetivo,
-        alcance: o.objetivo > 0 ? Math.round((real / o.objetivo) * 100) : (real > 0 ? 100 : 0),
-        faltan: Math.max(0, (o.objetivo || 0) - real),
+        linea: o.linea, tipo: o.tipo, real, objetivo: objv,
+        alcance: objv > 0 ? Math.round((real / objv) * 100) : (real > 0 ? 100 : 0),
+        faltan: Math.max(0, objv - real),
         por_vendedor: porVend,
       };
       const grp = salida[o.canal]; if (!grp) continue;
       (o.tipo === 'innovacion' ? grp.innov : grp.t11).push(fila);
-      grp.tot.real += real; grp.tot.objetivo += o.objetivo || 0;
     }
-    for (const canal of CANALES) { const t = salida[canal].tot; t.alcance = t.objetivo > 0 ? Math.round((t.real / t.objetivo) * 100) : 0; t.faltan = Math.max(0, t.objetivo - t.real); }
+    // Orden dentro de cada bloque: por alcance asc (lo más rojo arriba).
+    for (const c of CANALES) {
+      salida[c].t11.sort((a, b) => a.alcance - b.alcance || b.objetivo - a.objetivo);
+      salida[c].innov.sort((a, b) => a.alcance - b.alcance || b.objetivo - a.objetivo);
+      const t = salida[c].tot;
+      salida[c].t11.forEach((f) => { t.real += f.real; t.objetivo += f.objetivo; });
+      t.alcance = t.objetivo > 0 ? Math.round((t.real / t.objetivo) * 100) : 0;
+      t.faltan = Math.max(0, t.objetivo - t.real);
+    }
 
     // Total general (solo 11T).
     const total = { real: 0, objetivo: 0 };
-    for (const canal of CANALES) salida[canal].t11.forEach((f) => { total.real += f.real; total.objetivo += f.objetivo; });
+    for (const c of CANALES) { total.real += salida[c].tot.real; total.objetivo += salida[c].tot.objetivo; }
     total.alcance = total.objetivo > 0 ? Math.round((total.real / total.objetivo) * 100) : 0;
     total.faltan = Math.max(0, total.objetivo - total.real);
 
+    // Ranking de vendedores (suma de "real" 11T de todas las líneas/canales).
+    const rankVend = {};
+    for (const [k, set] of Object.entries(realVend)) {
+      const parts = k.split('|'); const vend = parts.slice(2).join('|');
+      const esInnov = objetivos.find((o) => o.canal === parts[0] && norm(o.linea) === parts[1] && o.tipo === 'innovacion');
+      if (esInnov) continue;
+      rankVend[vend] = (rankVend[vend] || 0) + set.size;
+    }
+    const vendedores = Object.entries(rankVend).map(([vendedor, real]) => ({ vendedor, real })).sort((a, b) => b.real - a.real);
+
+    const m0 = meta[0] || {};
     return { statusCode: 200, headers, body: JSON.stringify({
       ok: true, mes, actualizado: new Date().toISOString(),
-      ventas_filas: ventas.length, skus_mapeados: Object.keys(skuLinea).length,
-      total, canales: salida,
+      carga: m0.actualizado ? { fecha: m0.actualizado, filas: m0.filas, clientes: m0.clientes } : null,
+      hay_datos: ventas.length > 0,
+      vendedor: q.vendedor || null,
+      total, canales: salida, vendedores,
     }) };
   } catch (e) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: (e && e.message) || String(e) }) };
