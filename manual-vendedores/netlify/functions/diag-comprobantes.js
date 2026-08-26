@@ -20,6 +20,19 @@ exports.handler = async (event) => {
     const desde = q.desde || q.dia || '25/08/2026';
     const hasta = q.hasta || q.dia || desde;
     const { urlCuenta, cuenta, token } = await login();
+
+    // Modo PROBE: buscar métodos que traigan las ventas NO facturadas (remitos/pedidos/movimientos).
+    if (q.probe) {
+      const metodos = ['ListarRemitos', 'ListarPedidos', 'ListarMovimientos', 'ListarComprobantesTodos', 'ListarNotasPedido', 'ListarComprobantesNoFiscales', 'ListarPresupuestos', 'ListarFacturas'];
+      const res = [];
+      for (const m of metodos) {
+        const j = await aikon(urlCuenta + '/IS3/' + m, { cuenta, token, FechaDesde: desde, FechaHasta: hasta }, 25000);
+        const lista = Array.isArray(j.lista) ? j.lista : (Array.isArray(j) ? j : null);
+        res.push({ metodo: m, existe: !(j._raw && /No se ha encontrado/i.test(j._raw)), filas: lista ? lista.length : 0, head: JSON.stringify(j).slice(0, 160) });
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, rango: { desde, hasta }, probe: res }, null, 2) };
+    }
+
     const jc = await aikon(urlCuenta + '/IS3/ListarComprobantes', { cuenta, token, FechaDesde: desde, FechaHasta: hasta }, 60000);
     const comps = Array.isArray(jc.lista) ? jc.lista : (Array.isArray(jc) ? jc : []);
     const porCodigo = {}, porSucursal = {}, clientes = new Set();
