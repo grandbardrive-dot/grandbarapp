@@ -35,6 +35,21 @@
   .drop .btn{background:var(--navy);color:#fff;border:0;border-radius:9px;padding:8px 16px;font:inherit;font-weight:700;font-size:12px;margin-top:10px;cursor:pointer}
   .recos .r{display:flex;gap:9px;font-size:11.5px;padding:7px 0;color:var(--ink)}
   @media(max-width:1100px){ .kpis5{grid-template-columns:1fr 1fr} .grid-main{grid-template-columns:1fr} }
+  .prov-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .prov-tabs button{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 16px;font:inherit;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
+  .prov-tabs button:hover{color:var(--ink)}
+  .prov-tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .prov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+  .prov-card{display:block;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;position:relative;color:inherit;text-decoration:none;transition:.15s}
+  a.prov-card:hover{border-color:var(--navy);box-shadow:0 8px 24px rgba(13,34,48,.08);transform:translateY(-1px)}
+  .prov-card .pc-ic{width:44px;height:44px;border-radius:12px;background:var(--cream);display:grid;place-items:center;font-size:22px;margin-bottom:12px}
+  .prov-card h3{font-size:16px;margin:0 0 3px} .prov-card p{font-size:12.5px;color:var(--muted);margin:0;line-height:1.4}
+  .prov-card .pc-go{display:inline-block;margin-top:12px;font-size:12.5px;font-weight:800;color:var(--green-d)}
+  .prov-card .pc-meta{display:inline-block;margin-top:12px;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--cream);border-radius:20px;padding:3px 10px}
+  .prov-card.soon{opacity:.85} .prov-card .pc-soon{display:inline-block;margin-top:12px;font-size:11px;font-weight:800;color:var(--gold-d);background:var(--amber-soft);border-radius:20px;padding:3px 10px}
+  .tab-empty{background:var(--card);border:1px dashed var(--line);border-radius:16px;padding:40px;text-align:center;color:var(--muted);font-size:13px}
+</style>
+<style>
 </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
@@ -53,6 +68,13 @@
       <button class="acc" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg> Subir reporte</button>
     </div>
 
+    <div class="prov-tabs" id="provTabs">
+      <button data-tab="general" class="on">General</button>
+      <button data-tab="proveedores">Proveedores</button>
+      <button data-tab="areas">Áreas GrandBar</button>
+    </div>
+
+    <div id="tab-general">
     <div class="kpis5">
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--navy)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></span><span class="lbl">Reportes esperados (mayo)</span></div><div class="v">21</div><div class="sub">100% del plan</div><a class="lnk" href="#">Ver plan de entregas →</a></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7H4V5h11"/></svg></span><span class="lbl">Reportes recibidos</span></div><div class="v" id="kpiTotal">—</div><div class="sub">Total cargados</div><a class="lnk" href="#">Ver recibidos →</a></div>
@@ -124,6 +146,29 @@
       <span class="ia-chip">¿Qué áreas tienen más reportes pendientes? →</span>
       <span class="ia-chip">Mostrame los cambios más importantes del mes →</span>
       <span class="ia-chip">¿Cómo evolucionaron las ventas vs mes anterior? →</span>
+    </div>
+
+    </div><!-- /tab-general -->
+
+    <div id="tab-proveedores" style="display:none">
+      <div class="prov-grid">
+        <a class="prov-card" href="reportes-penaflor.html">
+          <div class="pc-ic">🍷</div>
+          <h3>Peñaflor</h3>
+          <p>Plan 11T — reportes por canal, estado y evolución mes a mes.</p>
+          <span class="pc-go">Ver reportes →</span>
+        </a>
+        <a class="prov-card" href="reportes-campari.html">
+          <div class="pc-ic">🍹</div>
+          <h3>Campari</h3>
+          <p>Plan 5T y acuerdos comerciales.</p>
+          <span class="pc-go">Ver reportes →</span>
+        </a>
+      </div>
+    </div>
+
+    <div id="tab-areas" style="display:none">
+      <div class="tab-empty">Reportes por área interna de GrandBar (Ventas, Compras, Marketing, Depósito…). Próximamente.</div>
     </div>
 
     <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
@@ -381,6 +426,16 @@
     const {data:{session}}=await hub.auth.getSession();
     if(!session) return; TOKEN=session.access_token; cargar();
   })();
+})();
+</script>
+<script>
+(function(){
+  var tabs=document.getElementById('provTabs'); if(!tabs) return;
+  tabs.querySelectorAll('button').forEach(function(b){ b.onclick=function(){
+    tabs.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    ['general','proveedores','areas'].forEach(function(t){ var el=document.getElementById('tab-'+t); if(el) el.style.display=(t===b.dataset.tab?'':'none'); });
+  };});
 })();
 </script>
 <script src="assets/user-menu.js?v=1"></script>

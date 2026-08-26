@@ -9,7 +9,6 @@
     {h:'deposito.html',l:'Depósito',i:'<path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/>'},
     {h:'desarrollo.html',l:'Desarrollo',i:'<path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>'},
     {h:'reportes.html',l:'Reportes',i:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>'},
-    {h:'reportes-penaflor.html',l:'Peñaflor',i:'<path d="M8 3h8l-1 7a3 3 0 0 1-6 0z"/><path d="M12 13v6M8 21h8"/>'},
     {h:'dir-clientes.html',l:'Clientes',i:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>'},
     {h:'leads-asignar.html',l:'Leads',i:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>'},
     {h:'dir-vendedores.html',l:'Vendedores',i:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/>'},
@@ -18,6 +17,7 @@
     {h:'configuracion.html',l:'Configuración',i:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1 2 2 0 1 1-4 0A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 3.6 15a2 2 0 1 1 0-4A1.6 1.6 0 0 0 5 8"/>'}
   ];
   var page=(location.pathname.split('/').pop()||'direccion.html').toLowerCase();
+  if(page==='reportes-penaflor.html'||page==='reportes-campari.html') page='reportes.html'; // sub-páginas de Reportes
   var svg=function(p){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+p+'</svg>';};
   var nav=items.map(function(it){return '<a href="'+it.h+'" class="'+(it.h.toLowerCase()===page?'on':'')+'">'+svg(it.i)+' '+it.l+'</a>';}).join('');
   var el=document.getElementById('dsb'); if(!el) return;
