@@ -464,7 +464,7 @@
               const acc = x.estado==='programada'
                 ? '<button onclick="confirmarReu(\''+x.id+'\')" style="background:var(--green);color:#fff;border:0;border-radius:8px;padding:7px 12px;font:inherit;font-weight:800;font-size:11.5px;cursor:pointer">Confirmar</button>'
                   +'<button onclick="rechazarReu(\''+x.id+'\')" style="background:#fff;color:#c0603e;border:1px solid #e7cfc6;border-radius:8px;padding:7px 12px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">No puedo</button>'
-                : '<button onclick="abrirMinuta(\''+x.id+'\')" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;border-radius:8px;padding:7px 12px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">'+(tieneMin?'📋 Ver minuta':'📝 Hacer minuta')+'</button>';
+                : minBtns(x.id, tieneMin);
               return '<div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line-2)">'
                 +'<div style="text-align:center;min-width:54px"><div style="font-weight:800;font-size:12px">'+f+'</div><div style="font-size:10px;color:var(--muted)">'+(x.hora?esc(x.hora.slice(0,5))+' hs':'')+'</div></div>'
                 +'<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:13px">'+esc(x.titulo)+badge+'</div><div style="font-size:11px;color:var(--muted)">con '+quienN+(x.lugar?' · '+esc(x.lugar):'')+(x.detalle?' · '+esc(x.detalle):'')+'</div>'
@@ -506,13 +506,24 @@
   }
 
   // ── Minuta de reunión ──
-  let _minReu=null, HISTMIN=[];
+  let _minReu=null, HISTMIN=[], _minTranscript='';
+  const _bs='font:inherit;font-weight:700;font-size:11.5px;cursor:pointer;border-radius:8px;padding:7px 12px';
+  function minBtns(id, tieneMin){
+    if(!tieneMin) return `<button onclick="abrirMinuta('${id}')" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;${_bs}">📝 Hacer minuta</button>`;
+    return `<button onclick="verMin('${id}')" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;${_bs}">📋 Ver minuta</button>`
+      +`<button onclick="verRes('${id}')" style="background:#efeaf9;color:#5a3fbf;border:1px solid #d9cff3;${_bs}">✨ Ver resumen</button>`
+      +`<button onclick="abrirMinuta('${id}')" style="background:none;color:#6d7d85;border:1px solid #e7ded0;${_bs}">✏️ Editar</button>`;
+  }
+  function _findReu(id){ return (REUN||[]).find(r=>String(r.id)===String(id)) || (HISTMIN||[]).find(r=>String(r.id)===String(id)); }
+  function verMin(id){ const x=_findReu(id); if(x&&window.verMinutaHTML) window.verMinutaHTML(x); }
+  function verRes(id){ const x=_findReu(id); if(x&&window.verResumen) window.verResumen(x,(html)=>guardarResumen(id,html)); }
+  async function guardarResumen(id,html){ try{ await fetch('/.netlify/functions/reuniones',{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'resumen',id,resumen_html:html})}); const x=_findReu(id); if(x){ x.minuta=x.minuta||{}; x.minuta.resumen_html=html; } }catch(e){} }
   function minRowHtml(val){ return `<div class="min-row"><input type="text" value="${esc(val||'')}" placeholder="Escribí acá…"><button type="button" class="del" onclick="this.parentElement.remove()">×</button></div>`; }
   function minAdd(which,val){ const box=document.getElementById(which==='temas'?'minTemas':'minPend'); box.insertAdjacentHTML('beforeend', minRowHtml(val)); if(val===undefined||val===''){ const ins=box.querySelectorAll('input'); const last=ins[ins.length-1]; if(last) last.focus(); } }
   function _minVals(id){ return [...document.getElementById(id).querySelectorAll('input')].map(i=>i.value.trim()).filter(Boolean); }
   function abrirMinuta(id){
     const x=(REUN||[]).find(r=>String(r.id)===String(id)) || (HISTMIN||[]).find(r=>String(r.id)===String(id));
-    if(!x) return; _minReu=x;
+    if(!x) return; _minReu=x; _minTranscript=(x.minuta&&x.minuta.transcript)||'';
     const f=new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
     document.getElementById('minTit').textContent='Minuta · '+x.titulo;
     document.getElementById('minMeta').textContent=f+(x.hora?' · '+String(x.hora).slice(0,5)+' hs':'');
@@ -525,10 +536,11 @@
     document.getElementById('ovMin').classList.add('open');
     if(window.mountMinutaIA) window.mountMinutaIA(document.getElementById('miaMount'), fillMinutaIA);
   }
-  function fillMinutaIA(m){
+  function fillMinutaIA(m,transcript){
     if(m.temas&&m.temas.length){ document.getElementById('minTemas').innerHTML=''; m.temas.forEach(t=>minAdd('temas',t)); }
     if(m.pendientes&&m.pendientes.length){ document.getElementById('minPend').innerHTML=''; m.pendientes.forEach(t=>minAdd('pend',t)); }
     if(m.notas){ const n=document.getElementById('minNotas'); n.value=(n.value.trim()?n.value.trim()+'\n':'')+m.notas; }
+    if(transcript) _minTranscript=transcript;
   }
   function cerrarMin(){ document.getElementById('ovMin').classList.remove('open'); }
   async function guardarMinuta(){
@@ -537,9 +549,9 @@
     if(!temas.length && !pend.length && !notas){ toast('Cargá al menos un tema',true); return; }
     const btn=document.getElementById('minSave'); btn.disabled=true; btn.textContent='Guardando…';
     try{
-      const r=await fetch('/.netlify/functions/reuniones',{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'minuta',id:_minReu.id,temas,pendientes:pend,notas})});
+      const r=await fetch('/.netlify/functions/reuniones',{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'minuta',id:_minReu.id,temas,pendientes:pend,notas,transcript:_minTranscript||undefined})});
       const d=await r.json(); if(!r.ok||!d.ok){ toast(d.error||'No pude guardar',true); btn.disabled=false; btn.textContent='✔ Finalizar y guardar'; return; }
-      _minReu.minuta={temas,pendientes:pend,notas:notas||null}; _minReu.estado='realizada';
+      _minReu.minuta={temas,pendientes:pend,notas:notas||null,transcript:_minTranscript||(_minReu.minuta&&_minReu.minuta.transcript)||null,resumen_html:(_minReu.minuta&&_minReu.minuta.resumen_html)||null}; _minReu.estado='realizada';
       toast('Minuta guardada ✅'); cerrarMin();
       renderDay(); renderRecordatorios(); cargarHistorialMinutas();
     }catch(e){ toast('Error de conexión',true); btn.disabled=false; btn.textContent='✔ Finalizar y guardar'; }
@@ -604,7 +616,7 @@
       box.innerHTML=HISTMIN.map(x=>{
         const f=new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'});
         const m=x.minuta||{}; const nt=(m.temas||[]).length, np=(m.pendientes||[]).length;
-        return `<div class="citem" style="border-left:4px solid #2f8f6e;cursor:pointer" onclick="abrirMinuta('${x.id}')">
+        return `<div class="citem" style="border-left:4px solid #2f8f6e;cursor:pointer" onclick="verMin('${x.id}')">
           <div class="ccheck" style="visibility:hidden"></div>
           <div class="cbody">
             <div class="ctop"><span class="chora">${f}</span><span class="ctipo" style="background:var(--green-soft);color:var(--green-d)">📋 Minuta</span></div>
@@ -628,7 +640,7 @@
     const motivo = (x.estado==='rechazada' && x.respuesta) ? `<div class="cobj" style="color:#c0603e">No asistís — ${esc(x.respuesta)}</div>` : '';
     const tieneMin = x.minuta && ((x.minuta.temas&&x.minuta.temas.length) || (x.minuta.pendientes&&x.minuta.pendientes.length) || x.minuta.notas);
     const minBtn = (x.estado!=='rechazada' && x.estado!=='cancelada')
-      ? `<div style="margin-top:8px"><button class="min-btn ${tieneMin?'done':''}" onclick="abrirMinuta('${x.id}')">${tieneMin?'📋 Ver / editar minuta':'📝 Hacer minuta'}</button></div>` : '';
+      ? `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${minBtns(x.id, tieneMin)}</div>` : '';
     return `<div class="citem" style="border-left:4px solid #c0912f;background:#fbf7ee">
       <div class="ccheck" style="visibility:hidden"></div>
       <div class="cbody">
@@ -685,6 +697,7 @@
 <script src="assets/hub-nav.js?v=3"></script>
 <script src="assets/user-menu.js?v=1"></script>
 <script src="assets/minuta-ia.js?v=1"></script>
+<script src="assets/minuta-ver.js?v=1"></script>
 <script src="assets/mobile-nav.js?v=1"></script>
 </body>
 </html>

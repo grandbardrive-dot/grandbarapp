@@ -144,7 +144,19 @@
   const $=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const estBadge={programada:['tag tr','Programada'],confirmada:['tag ok','Confirmada'],realizada:['tag ok','Realizada'],cancelada:['tag','Cancelada'],rechazada:['tag alto','No asiste']};
-  let LISTA_REU=[], _minReu=null, calRef=new Date(), selDia=null;
+  let LISTA_REU=[], _minReu=null, calRef=new Date(), selDia=null, _minTranscript='';
+  const _bs='font:inherit;font-weight:700;font-size:11.5px;cursor:pointer;border-radius:8px;padding:6px 11px';
+  function minBtns(id, tieneMin){
+    if(!tieneMin) return '<button data-min="'+id+'" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;'+_bs+'">📝 Hacer minuta</button>';
+    return '<button data-vmin="'+id+'" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;'+_bs+'">📋 Ver minuta</button>'
+      +'<button data-vres="'+id+'" style="background:#efeaf9;color:#5a3fbf;border:1px solid #d9cff3;'+_bs+'">✨ Ver resumen</button>'
+      +'<button data-min="'+id+'" style="background:none;color:#6d7d85;border:1px solid #e7ded0;'+_bs+'">✏️ Editar</button>';
+  }
+  function _findReu(id){ return LISTA_REU.find(r=>String(r.id)===String(id)); }
+  function verMin(id){ const x=_findReu(id); if(x&&window.verMinutaHTML) window.verMinutaHTML(x); }
+  function verRes(id){ const x=_findReu(id); if(x&&window.verResumen) window.verResumen(x,(html)=>guardarResumen(id,html)); }
+  async function guardarResumen(id,html){ try{ await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'resumen',id,resumen_html:html})}); const x=_findReu(id); if(x){ x.minuta=x.minuta||{}; x.minuta.resumen_html=html; } }catch(e){} }
+  function wireMinBtns(cont){ cont.querySelectorAll('[data-vmin]').forEach(b=>b.onclick=()=>verMin(b.dataset.vmin)); cont.querySelectorAll('[data-vres]').forEach(b=>b.onclick=()=>verRes(b.dataset.vres)); }
   const pad=n=>String(n).padStart(2,'0');
   const isoOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
   const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -178,7 +190,7 @@
           <div style="font-size:11.5px;color:#6d7d85">👤 ${esc(x.destinatario||'—')}${x.lugar?' · '+esc(x.lugar):''}</div>
           ${(x.estado==='rechazada'&&x.respuesta)?'<div style="font-size:11px;color:#c0603e;font-weight:600">No asiste: '+esc(x.respuesta)+'</div>':''}
           <div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">
-            <button data-min="${x.id}" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">${tieneMin?'📋 Ver minuta':'📝 Hacer minuta'}</button>
+            ${minBtns(x.id,tieneMin)}
             <button data-del="${x.id}" style="background:none;border:1px solid #e7cfc6;color:#c0603e;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">Cancelar</button>
           </div></div>
         <span class="${b[0]}">${b[1]}</span></div>`;
@@ -186,6 +198,7 @@
     box.innerHTML=html;
     box.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{ if(!confirm('¿Borrar esta reunión?'))return; await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'borrar',id:b.dataset.del})}); cargarLista(); });
     box.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>abrirMinuta(b.dataset.min));
+    wireMinBtns(box);
   }
 
   function abrir(){ $('rov').style.display='flex'; $('rMsg').textContent=''; }
@@ -217,14 +230,14 @@
     box.innerHTML=con.slice(0,20).map(x=>{const f=new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'});const m=x.minuta||{};const nt=(m.temas||[]).length,np=(m.pendientes||[]).length;
       return `<div data-min="${x.id}" style="cursor:pointer;display:flex;gap:9px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-2)"><div style="min-width:40px;text-align:center;font-weight:800;font-size:12px">${f}</div><div style="flex:1"><div style="font-weight:700;font-size:12.5px">${esc(x.titulo)}</div><div style="font-size:11px;color:#6d7d85">${esc(x.destinatario||'')} · ${nt} tema(s)${np?' · '+np+' pend.':''}</div></div><span style="color:#2c5a80;font-size:14px">›</span></div>`;
     }).join('');
-    box.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>abrirMinuta(b.dataset.min));
+    box.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>verMin(b.dataset.min));
   }
 
   function minRowHtml(v){ return `<div class="min-row"><input type="text" value="${esc(v||'')}" placeholder="Escribí acá…"><button type="button" class="del" onclick="this.parentElement.remove()">×</button></div>`; }
   function minAdd(which,v){ const box=$(which==='temas'?'dmTemas':'dmPend'); box.insertAdjacentHTML('beforeend',minRowHtml(v)); if(v===undefined||v===''){ const ins=box.querySelectorAll('input'); if(ins.length) ins[ins.length-1].focus(); } }
   function _minVals(id){ return [...$(id).querySelectorAll('input')].map(i=>i.value.trim()).filter(Boolean); }
   function abrirMinuta(id){
-    const x=LISTA_REU.find(r=>String(r.id)===String(id)); if(!x) return; _minReu=x;
+    const x=LISTA_REU.find(r=>String(r.id)===String(id)); if(!x) return; _minReu=x; _minTranscript=(x.minuta&&x.minuta.transcript)||'';
     $('dmTit').textContent='Minuta · '+x.titulo;
     $('dmMeta').textContent=(x.destinatario?x.destinatario+' · ':'')+new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})+(x.hora?' · '+String(x.hora).slice(0,5)+' hs':'');
     $('dmTemas').innerHTML=''; $('dmPend').innerHTML='';
@@ -236,10 +249,11 @@
     $('dmov').style.display='flex';
     if(window.mountMinutaIA) window.mountMinutaIA($('miaMount'), fillMinutaIA);
   }
-  function fillMinutaIA(m){
+  function fillMinutaIA(m,transcript){
     if(m.temas&&m.temas.length){ $('dmTemas').innerHTML=''; m.temas.forEach(t=>minAdd('temas',t)); }
     if(m.pendientes&&m.pendientes.length){ $('dmPend').innerHTML=''; m.pendientes.forEach(t=>minAdd('pend',t)); }
     if(m.notas){ const n=$('dmNotas'); n.value=(n.value.trim()?n.value.trim()+'\n':'')+m.notas; }
+    if(transcript) _minTranscript=transcript;
   }
   function cerrarMin(){ $('dmov').style.display='none'; }
   async function guardarMinuta(){
@@ -248,14 +262,14 @@
     if(!temas.length&&!pend.length&&!notas){ alert('Cargá al menos un tema.'); return; }
     const btn=$('dmSave'); btn.disabled=true; btn.textContent='Guardando…';
     try{
-      const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'minuta',id:_minReu.id,temas,pendientes:pend,notas})});
+      const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'minuta',id:_minReu.id,temas,pendientes:pend,notas,transcript:_minTranscript||undefined})});
       const d=await r.json(); if(!r.ok||!d.ok){ alert(d.error||'No se pudo guardar'); btn.disabled=false; btn.textContent='✔ Guardar minuta'; return; }
-      _minReu.minuta={temas,pendientes:pend,notas:notas||null}; _minReu.estado='realizada';
+      _minReu.minuta={temas,pendientes:pend,notas:notas||null,transcript:_minTranscript||(_minReu.minuta&&_minReu.minuta.transcript)||null,resumen_html:(_minReu.minuta&&_minReu.minuta.resumen_html)||null}; _minReu.estado='realizada';
       cerrarMin(); cargarLista();
     }catch(e){ alert('Error de conexión'); btn.disabled=false; btn.textContent='✔ Guardar minuta'; }
   }
 
-  window.minAdd=minAdd; window.cerrarMin=cerrarMin; window.guardarMinuta=guardarMinuta; window.abrirMinuta=abrirMinuta;
+  window.minAdd=minAdd; window.cerrarMin=cerrarMin; window.guardarMinuta=guardarMinuta; window.abrirMinuta=abrirMinuta; window.verMin=verMin; window.verRes=verRes;
 
   $('rGuardar').onclick=async()=>{
     const usuario_id=$('rUser').value, titulo=$('rTit').value.trim();
@@ -288,6 +302,7 @@
 })();
 </script>
 <script src="assets/minuta-ia.js?v=1"></script>
+<script src="assets/minuta-ver.js?v=1"></script>
 <script src="assets/user-menu.js?v=1"></script>
 <script src="assets/mobile-nav.js?v=1"></script>
 </body>

@@ -67,7 +67,7 @@
         var d = await r.json();
         if (!r.ok || d.ok === false) { status.textContent = 'Error: ' + (d.error || 'falló la transcripción'); recBtn.disabled = false; fileInp.disabled = false; return; }
         if (d.estado === 'procesando') { status.textContent = '⏳ Transcribiendo con IA… ' + fmtT(intentos * 4); setTimeout(function () { poll(id, token, intentos + 1); }, 4000); return; }
-        if (d.estado === 'listo') { try { fill(d.minuta || {}); } catch (e) {} status.textContent = '✓ Minuta armada por IA. Revisá y guardá.'; recBtn.disabled = false; fileInp.disabled = false; return; }
+        if (d.estado === 'listo') { try { fill(d.minuta || {}, d.transcript || ''); } catch (e) {} status.textContent = '✓ Minuta y transcripción listas. Revisá y guardá.'; recBtn.disabled = false; fileInp.disabled = false; return; }
         setTimeout(function () { poll(id, token, intentos + 1); }, 4000);
       } catch (e) { setTimeout(function () { poll(id, token, intentos + 1); }, 4000); }
     }

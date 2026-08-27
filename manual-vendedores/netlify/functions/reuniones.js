@@ -77,15 +77,30 @@ exports.handler = async (event) => {
       }
 
       if (b.accion === 'minuta' && b.id) {
-        const cur = (await (await sb('reuniones?id=eq.' + encodeURIComponent(b.id) + '&select=usuario_id')).json())[0];
+        const cur = (await (await sb('reuniones?id=eq.' + encodeURIComponent(b.id) + '&select=usuario_id,minuta')).json())[0];
         if (!cur) return json(404, { error: 'No existe.' });
         const esMia = String(cur.usuario_id) === String(user.id);
         if (!isDir && !esMia) return json(403, { error: 'No autorizado.' });
-        const clean = (a) => Array.isArray(a) ? a.map((x) => String(x == null ? '' : x).trim()).filter(Boolean).slice(0, 60) : [];
-        const minuta = { temas: clean(b.temas), pendientes: clean(b.pendientes), notas: String(b.notas || '').trim() || null, autor: perfil.nombre || user.email };
+        const prev = cur.minuta || {};
+        const clean = (a) => Array.isArray(a) ? a.map((x) => String(x == null ? '' : x).trim()).filter(Boolean).slice(0, 80) : [];
+        const minuta = {
+          temas: clean(b.temas), pendientes: clean(b.pendientes), notas: String(b.notas || '').trim() || null, autor: perfil.nombre || user.email,
+          transcript: (b.transcript != null ? String(b.transcript).slice(0, 300000) : (prev.transcript || null)) || null,
+          resumen_html: prev.resumen_html || null,
+        };
         const patch = { minuta, minuta_at: new Date().toISOString(), estado: 'realizada' };
         const r = await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
         if (!r.ok) return json(502, { error: 'No pude guardar la minuta: ' + (await r.text()).slice(0, 160) });
+        return json(200, { ok: true });
+      }
+
+      if (b.accion === 'resumen' && b.id) {
+        const cur = (await (await sb('reuniones?id=eq.' + encodeURIComponent(b.id) + '&select=usuario_id,minuta')).json())[0];
+        if (!cur) return json(404, { error: 'No existe.' });
+        if (!isDir && String(cur.usuario_id) !== String(user.id)) return json(403, { error: 'No autorizado.' });
+        const minuta = cur.minuta || {};
+        minuta.resumen_html = String(b.resumen_html || '').slice(0, 150000) || null;
+        await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ minuta }) });
         return json(200, { ok: true });
       }
 
