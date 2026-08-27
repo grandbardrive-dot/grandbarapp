@@ -447,22 +447,28 @@
       if(!r.ok) return; const d=await r.json();
       REUN=(d.reuniones||[]);
       const box=document.getElementById('dirReuniones');
-      const pend=REUN.filter(x=>x.estado==='programada');
+      const up=REUN.filter(x=>x.fecha>=hoy && x.estado!=='cancelada' && x.estado!=='rechazada')
+        .sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))||String(a.hora||'99').localeCompare(String(b.hora||'99')));
       if(box){
-        if(!pend.length){ box.style.display='none'; box.innerHTML=''; }
+        if(!up.length){ box.style.display='none'; box.innerHTML=''; }
         else{
           box.style.display='block';
-          const quien=(pend.find(x=>x.creado_por_nombre && !/@/.test(x.creado_por_nombre))||{}).creado_por_nombre;
-          const quienN=quien?esc(String(quien).split(/\s+/)[0]):'Dirección';
-          box.innerHTML='<div style="background:linear-gradient(120deg,#12303f,#1a2f5a);color:#fff;border-radius:14px;padding:13px 15px">'
-            +'<div style="font-weight:800;font-size:13.5px;margin-bottom:8px">📌 '+quienN+' te programó '+(pend.length>1?pend.length+' reuniones':'una reunión')+'</div>'
-            +pend.slice(0,6).map(x=>{
+          box.innerHTML='<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px">'
+            +'<div style="font-weight:800;font-size:14px;margin-bottom:8px">📌 Mis reuniones</div>'
+            +up.slice(0,10).map(x=>{
               const f=new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{weekday:'short',day:'2-digit',month:'2-digit'});
-              return '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:9px 0;border-top:1px solid rgba(255,255,255,.12)">'
-                +'<div style="text-align:center;min-width:52px"><div style="font-weight:800;font-size:12px">'+f+'</div><div style="font-size:10px;color:#b9c7d0">'+(x.hora?esc(x.hora.slice(0,5))+' hs':'')+'</div></div>'
-                +'<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:13px">'+esc(x.titulo)+'</div><div style="font-size:11px;color:#b9c7d0">'+esc(x.tipo)+(x.lugar?' · '+esc(x.lugar):'')+(x.detalle?' · '+esc(x.detalle):'')+'</div></div>'
-                +'<div style="display:flex;gap:6px"><button onclick="confirmarReu(\''+x.id+'\')" style="background:var(--gold);color:#241a06;border:0;border-radius:8px;padding:7px 12px;font:inherit;font-weight:800;font-size:11.5px;cursor:pointer">Confirmar</button>'
-                +'<button onclick="rechazarReu(\''+x.id+'\')" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:7px 12px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">No puedo</button></div>'
+              const quienN=(x.creado_por_nombre && !/@/.test(x.creado_por_nombre))?esc(String(x.creado_por_nombre).split(/\s+/)[0]):'Dirección';
+              const tieneMin=x.minuta&&((x.minuta.temas&&x.minuta.temas.length)||(x.minuta.pendientes&&x.minuta.pendientes.length)||x.minuta.notas);
+              const badge = x.estado==='confirmada'||x.estado==='realizada' ? '<span style="color:#2f8f6e;font-weight:800;font-size:11px;margin-left:6px">✓ Confirmada</span>' : '';
+              const acc = x.estado==='programada'
+                ? '<button onclick="confirmarReu(\''+x.id+'\')" style="background:var(--green);color:#fff;border:0;border-radius:8px;padding:7px 12px;font:inherit;font-weight:800;font-size:11.5px;cursor:pointer">Confirmar</button>'
+                  +'<button onclick="rechazarReu(\''+x.id+'\')" style="background:#fff;color:#c0603e;border:1px solid #e7cfc6;border-radius:8px;padding:7px 12px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">No puedo</button>'
+                : '<button onclick="abrirMinuta(\''+x.id+'\')" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;border-radius:8px;padding:7px 12px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">'+(tieneMin?'📋 Ver minuta':'📝 Hacer minuta')+'</button>';
+              return '<div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line-2)">'
+                +'<div style="text-align:center;min-width:54px"><div style="font-weight:800;font-size:12px">'+f+'</div><div style="font-size:10px;color:var(--muted)">'+(x.hora?esc(x.hora.slice(0,5))+' hs':'')+'</div></div>'
+                +'<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:13px">'+esc(x.titulo)+badge+'</div><div style="font-size:11px;color:var(--muted)">con '+quienN+(x.lugar?' · '+esc(x.lugar):'')+(x.detalle?' · '+esc(x.detalle):'')+'</div>'
+                +(x.estado==='rechazada'&&x.respuesta?'<div style="font-size:11px;color:#c0603e;font-weight:600">No asistís: '+esc(x.respuesta)+'</div>':'')+'</div>'
+                +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+acc+'</div>'
                 +'</div>';
             }).join('')+'</div>';
         }
