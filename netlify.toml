@@ -10,3 +10,8 @@
   from = "/hub"
   to = "/hub.html"
   status = 200
+
+# Recordatorios de reunión: revisa cada 15 min y manda los avisos push (un día
+# antes / una hora antes). Ver manual-vendedores/netlify/functions/push-cron.js
+[functions."push-cron"]
+  schedule = "*/15 * * * *"

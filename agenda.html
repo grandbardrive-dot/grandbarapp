@@ -164,6 +164,11 @@
         <button class="btn-new" id="btnNew"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Nuevo</button>
       </div>
 
+      <div id="pushBanner" style="display:none;align-items:center;gap:12px;background:var(--purple-soft);border:1px solid #d4cdf0;border-radius:13px;padding:12px 15px;margin-bottom:14px">
+        <span style="font-size:22px">🔔</span>
+        <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:13.5px" id="pushBT">Activá los avisos de reunión en este celular</div><div style="font-size:12px;color:var(--muted)" id="pushBS">Te avisamos un día antes y una hora antes, aunque tengas la app cerrada.</div></div>
+        <button id="pushBtn" onclick="activarAvisos()" style="background:#6b5bd0;color:#fff;border:0;border-radius:9px;padding:9px 14px;font:inherit;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap">Activar</button>
+      </div>
       <div id="reuRecord" style="margin-bottom:14px"></div>
       <div id="dirReuniones" style="display:none;margin-bottom:14px"></div>
 
@@ -431,6 +436,7 @@
     cargar();
     cargarReunionesDir();
     cargarHistorialMinutas();
+    estadoPush();
     if(PERFIL && PERFIL.es_supervisor) cargarMiAgendaSup();
   })();
 
@@ -525,6 +531,56 @@
       renderDay(); renderRecordatorios(); cargarHistorialMinutas();
     }catch(e){ toast('Error de conexión',true); btn.disabled=false; btn.textContent='✔ Finalizar y guardar'; }
   }
+  // ── Notificaciones push (recordatorios al celular) ──
+  const VAPID_PUBLIC='BLGioYplqvsOcFZvfGeME6wta6_xI6BDVZFAgpdsE0iKszgAF1ndwCzSKxDOc0heIs7Rpv9HMfQAyRheHJ2UE4c';
+  function urlB64ToUint8(base64){
+    const pad='='.repeat((4-base64.length%4)%4);
+    const b=(base64+pad).replace(/-/g,'+').replace(/_/g,'/');
+    const raw=atob(b); const arr=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+    return arr;
+  }
+  const pushSoportado = ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window);
+  function setPushBanner(estado){
+    const b=document.getElementById('pushBanner'); if(!b) return;
+    if(estado==='off'){ b.style.display='flex'; document.getElementById('pushBT').textContent='Activá los avisos de reunión en este celular'; document.getElementById('pushBS').textContent='Te avisamos un día antes y una hora antes, aunque tengas la app cerrada.'; document.getElementById('pushBtn').textContent='Activar'; document.getElementById('pushBtn').onclick=activarAvisos; }
+    else if(estado==='on'){ b.style.display='flex'; b.style.background='var(--green-soft)'; b.style.borderColor='#bcdccb'; document.getElementById('pushBT').textContent='✓ Avisos activados en este celular'; document.getElementById('pushBS').textContent='Te llegará un recordatorio antes de cada reunión.'; document.getElementById('pushBtn').textContent='Probar'; document.getElementById('pushBtn').onclick=probarAviso; }
+    else { b.style.display='none'; }
+  }
+  async function estadoPush(){
+    if(!pushSoportado){ setPushBanner('none'); return; }
+    if(Notification.permission==='granted'){
+      try{ const reg=await navigator.serviceWorker.getRegistration(); const sub=reg&&await reg.pushManager.getSubscription(); setPushBanner(sub?'on':'off'); }
+      catch(e){ setPushBanner('off'); }
+    } else if(Notification.permission==='denied'){ setPushBanner('none'); }
+    else { setPushBanner('off'); }
+  }
+  async function activarAvisos(){
+    if(!pushSoportado){ toast('Este navegador no soporta avisos. En iPhone: agregá la app a la pantalla de inicio.',true); return; }
+    const btn=document.getElementById('pushBtn'); btn.disabled=true; const prev=btn.textContent; btn.textContent='…';
+    try{
+      const perm=await Notification.requestPermission();
+      if(perm!=='granted'){ toast('No diste permiso para los avisos',true); btn.disabled=false; btn.textContent=prev; return; }
+      const reg=await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+      let sub=await reg.pushManager.getSubscription();
+      if(!sub) sub=await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:urlB64ToUint8(VAPID_PUBLIC) });
+      const j=sub.toJSON();
+      const r=await fetch('/.netlify/functions/push-subscribe',{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'subscribe',subscription:{endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth}})});
+      const d=await r.json(); if(!r.ok||!d.ok){ toast(d.error||'No se pudo activar',true); btn.disabled=false; btn.textContent=prev; return; }
+      toast('✓ Avisos activados en este celular'); btn.disabled=false; setPushBanner('on');
+    }catch(e){ toast('No se pudo activar: '+(e.message||e),true); btn.disabled=false; btn.textContent=prev; }
+  }
+  async function probarAviso(){
+    const btn=document.getElementById('pushBtn'); btn.disabled=true; btn.textContent='Enviando…';
+    try{
+      const r=await fetch('/.netlify/functions/push-subscribe',{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'test'})});
+      const d=await r.json();
+      toast(d.enviados?'Te mandamos una notificación de prueba 🔔':'No hay celular suscripto',d.enviados?false:true);
+    }catch(e){ toast('Error',true); }
+    btn.disabled=false; btn.textContent='Probar';
+  }
+
   async function cargarHistorialMinutas(){
     try{
       const r=await fetch('/.netlify/functions/reuniones?historial=1',{headers:{Authorization:'Bearer '+TOKEN}});
