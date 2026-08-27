@@ -67,6 +67,19 @@ exports.handler = async (event) => {
         return json(200, { ok: true });
       }
 
+      if (b.accion === 'minuta' && b.id) {
+        const cur = (await (await sb('reuniones?id=eq.' + encodeURIComponent(b.id) + '&select=usuario_id')).json())[0];
+        if (!cur) return json(404, { error: 'No existe.' });
+        const esMia = String(cur.usuario_id) === String(user.id);
+        if (!isDir && !esMia) return json(403, { error: 'No autorizado.' });
+        const clean = (a) => Array.isArray(a) ? a.map((x) => String(x == null ? '' : x).trim()).filter(Boolean).slice(0, 60) : [];
+        const minuta = { temas: clean(b.temas), pendientes: clean(b.pendientes), notas: String(b.notas || '').trim() || null, autor: perfil.nombre || user.email };
+        const patch = { minuta, minuta_at: new Date().toISOString(), estado: 'realizada' };
+        const r = await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
+        if (!r.ok) return json(502, { error: 'No pude guardar la minuta: ' + (await r.text()).slice(0, 160) });
+        return json(200, { ok: true });
+      }
+
       if (b.accion === 'borrar' && b.id) {
         if (!isDir) return json(403, { error: 'Solo Dirección.' });
         await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
@@ -96,6 +109,12 @@ exports.handler = async (event) => {
         (us || []).forEach(u => { nombres[u.id] = u.nombre; });
       }
       return json(200, { reuniones: (rows || []).map(r => ({ ...r, destinatario: nombres[r.usuario_id] || '—' })) });
+    }
+
+    // Historial de minutas del usuario (reuniones ya realizadas con minuta)
+    if (qp.historial) {
+      const rows = await (await sb('reuniones?usuario_id=eq.' + encodeURIComponent(user.id) + '&minuta=not.is.null&select=*&order=fecha.desc,hora.desc&limit=200')).json();
+      return json(200, { reuniones: Array.isArray(rows) ? rows : [] });
     }
 
     // Vista usuario: mis reuniones (las que me programó Dirección)

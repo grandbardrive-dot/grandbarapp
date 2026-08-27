@@ -113,6 +113,20 @@
     .m-foot .save{flex:1;background:var(--green);color:#fff;border:0;border-radius:11px;padding:14px;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
     .m-foot .save:hover{background:var(--green-d)} .m-foot .save:disabled{opacity:.5}
     .m-foot .del{background:var(--coral-soft);color:var(--coral);border:0;border-radius:11px;padding:14px 16px;font:inherit;font-weight:700;cursor:pointer}
+    .min-add{background:none;border:1px dashed var(--line);border-radius:9px;padding:8px 12px;font:inherit;font-size:12.5px;font-weight:700;color:var(--green-d);cursor:pointer;width:100%;margin-top:4px}
+    .min-add:hover{border-color:var(--green)}
+    .min-row{display:flex;gap:8px;align-items:center;margin-bottom:7px}
+    .min-row input{flex:1;border:1.5px solid var(--line);border-radius:9px;padding:9px 11px;font:inherit;font-size:14px;background:#fdfbf7;color:var(--ink)}
+    .min-row input:focus{outline:none;border-color:var(--gold)}
+    .min-row .del{background:var(--coral-soft);color:var(--coral);border:0;border-radius:8px;width:34px;height:38px;font-size:18px;cursor:pointer;flex:none}
+    .rec-banner{border-radius:13px;padding:12px 15px;margin-bottom:9px;display:flex;gap:11px;align-items:center}
+    .rec-urgent{background:var(--coral-soft);border:1px solid #e7cfc6}
+    .rec-soon{background:var(--gold-soft);border:1px solid #e5d3a3}
+    .rec-banner .ri{font-size:20px;flex:none}
+    .rec-banner .rt{font-weight:800;font-size:13.5px}
+    .rec-banner .rs{font-size:12px;color:var(--muted);margin-top:1px}
+    .min-btn{background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;border-radius:8px;padding:7px 13px;font:inherit;font-weight:700;font-size:12.5px;cursor:pointer}
+    .min-btn.done{background:var(--green-soft);color:var(--green-d);border-color:#bcdccb}
     .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 20px;border-radius:11px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:80}
     .toast.show{opacity:1} .toast.err{background:var(--danger)}
 
@@ -150,6 +164,7 @@
         <button class="btn-new" id="btnNew"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Nuevo</button>
       </div>
 
+      <div id="reuRecord" style="margin-bottom:14px"></div>
       <div id="dirReuniones" style="display:none;margin-bottom:14px"></div>
 
       <div class="sup-banner" id="supBanner">
@@ -169,6 +184,34 @@
 
       <h2 class="daytitle" id="daytitle">—</h2>
       <div class="clist" id="clist"></div>
+
+      <div id="minHistWrap" style="display:none;margin-top:26px">
+        <h2 class="daytitle" style="margin-bottom:10px">📋 Minutas de reuniones</h2>
+        <div class="clist" id="minHist"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal MINUTA -->
+<div class="ov" id="ovMin">
+  <div class="modal">
+    <div class="m-head"><div><h3 id="minTit">Minuta de reunión</h3><div id="minMeta" style="font-size:12px;color:var(--muted);margin-top:2px"></div></div><button class="x" id="minClose"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="m-body">
+      <div class="fld">
+        <label>📝 Temas que se hablaron</label>
+        <div id="minTemas"></div>
+        <button type="button" class="min-add" onclick="minAdd('temas')">+ Agregar tema</button>
+      </div>
+      <div class="fld">
+        <label>⏭️ Pendientes para la próxima</label>
+        <div id="minPend"></div>
+        <button type="button" class="min-add" onclick="minAdd('pend')">+ Agregar pendiente</button>
+      </div>
+      <div class="fld"><label>Notas / acuerdos <span style="font-weight:500;color:var(--muted)">(opcional)</span></label><textarea id="minNotas" maxlength="2000" placeholder="Otras observaciones de la reunión…"></textarea></div>
+    </div>
+    <div class="m-foot">
+      <button class="save" id="minSave" onclick="guardarMinuta()">✔ Finalizar y guardar</button>
     </div>
   </div>
 </div>
@@ -371,7 +414,9 @@
   setTimeout(abrirDesdeURL, 1500);
   document.getElementById('mClose').onclick=cerrar;
   document.getElementById('ov').addEventListener('click',e=>{ if(e.target.id==='ov') cerrar(); });
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrar(); });
+  document.getElementById('minClose').onclick=cerrarMin;
+  document.getElementById('ovMin').addEventListener('click',e=>{ if(e.target.id==='ovMin') cerrarMin(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ cerrar(); cerrarMin(); } });
 
   (async ()=>{
     hub = supabase.createClient(HUB.url, HUB.key);
@@ -385,6 +430,7 @@
     renderWeek(); renderDay();
     cargar();
     cargarReunionesDir();
+    cargarHistorialMinutas();
     if(PERFIL && PERFIL.es_supervisor) cargarMiAgendaSup();
   })();
 
@@ -415,7 +461,88 @@
             }).join('')+'</div>';
         }
       }
-      renderWeek(); renderDay();
+      renderWeek(); renderDay(); renderRecordatorios();
+    }catch(e){}
+  }
+
+  // ── Recordatorios en el panel (mañana / hoy / en 1 hora) ──
+  function renderRecordatorios(){
+    const box=document.getElementById('reuRecord'); if(!box) return;
+    const now=new Date();
+    const items=(REUN||[]).filter(x=>x.estado==='programada'||x.estado==='confirmada').map(x=>{
+      const hhmm = x.hora?String(x.hora).slice(0,5):'09:00';
+      const [Y,M,D]=x.fecha.split('-').map(Number); const [h,mi]=hhmm.split(':').map(Number);
+      const dt=new Date(Y,(M-1),D,h||0,mi||0);
+      return {x,dt,diffMin:Math.round((dt-now)/60000)};
+    }).filter(o=>o.diffMin>=-30).sort((a,b)=>a.dt-b.dt);
+    const man=new Date(now); man.setDate(man.getDate()+1);
+    const rel=[];
+    for(const o of items){
+      const dm=o.diffMin; let cls,ic,txt;
+      if(dm<=60){ cls='rec-urgent'; ic='⏰'; txt = dm<=0?'¡Es ahora!':('En '+(dm<60?dm+' min':'1 hora')); }
+      else if(o.dt.toDateString()===now.toDateString()){ cls='rec-soon'; ic='📅'; txt='Hoy'; }
+      else if(o.dt.toDateString()===man.toDateString()){ cls='rec-soon'; ic='📌'; txt='Mañana'; }
+      else continue;
+      rel.push({o,cls,ic,txt});
+    }
+    if(!rel.length){ box.innerHTML=''; return; }
+    box.innerHTML=rel.slice(0,3).map(({o,cls,ic,txt})=>{
+      const x=o.x; const hhmm=x.hora?String(x.hora).slice(0,5)+' hs':'';
+      return `<div class="rec-banner ${cls}"><span class="ri">${ic}</span><div style="flex:1;min-width:0"><div class="rt">${txt} tenés: ${esc(x.titulo)}</div><div class="rs">${hhmm}${x.lugar?' · '+esc(x.lugar):''}</div></div><button class="min-btn" onclick="abrirMinuta('${x.id}')">📝 Minuta</button></div>`;
+    }).join('');
+  }
+
+  // ── Minuta de reunión ──
+  let _minReu=null, HISTMIN=[];
+  function minRowHtml(val){ return `<div class="min-row"><input type="text" value="${esc(val||'')}" placeholder="Escribí acá…"><button type="button" class="del" onclick="this.parentElement.remove()">×</button></div>`; }
+  function minAdd(which,val){ const box=document.getElementById(which==='temas'?'minTemas':'minPend'); box.insertAdjacentHTML('beforeend', minRowHtml(val)); if(val===undefined||val===''){ const ins=box.querySelectorAll('input'); const last=ins[ins.length-1]; if(last) last.focus(); } }
+  function _minVals(id){ return [...document.getElementById(id).querySelectorAll('input')].map(i=>i.value.trim()).filter(Boolean); }
+  function abrirMinuta(id){
+    const x=(REUN||[]).find(r=>String(r.id)===String(id)) || (HISTMIN||[]).find(r=>String(r.id)===String(id));
+    if(!x) return; _minReu=x;
+    const f=new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+    document.getElementById('minTit').textContent='Minuta · '+x.titulo;
+    document.getElementById('minMeta').textContent=f+(x.hora?' · '+String(x.hora).slice(0,5)+' hs':'');
+    const temas=document.getElementById('minTemas'), pend=document.getElementById('minPend'); temas.innerHTML=''; pend.innerHTML='';
+    const m=x.minuta||{};
+    (m.temas&&m.temas.length?m.temas:['']).forEach(t=>minAdd('temas',t));
+    (m.pendientes&&m.pendientes.length?m.pendientes:['']).forEach(t=>minAdd('pend',t));
+    document.getElementById('minNotas').value=m.notas||'';
+    document.getElementById('minSave').disabled=false; document.getElementById('minSave').textContent='✔ Finalizar y guardar';
+    document.getElementById('ovMin').classList.add('open');
+  }
+  function cerrarMin(){ document.getElementById('ovMin').classList.remove('open'); }
+  async function guardarMinuta(){
+    if(!_minReu) return;
+    const temas=_minVals('minTemas'), pend=_minVals('minPend'), notas=document.getElementById('minNotas').value.trim();
+    if(!temas.length && !pend.length && !notas){ toast('Cargá al menos un tema',true); return; }
+    const btn=document.getElementById('minSave'); btn.disabled=true; btn.textContent='Guardando…';
+    try{
+      const r=await fetch('/.netlify/functions/reuniones',{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'minuta',id:_minReu.id,temas,pendientes:pend,notas})});
+      const d=await r.json(); if(!r.ok||!d.ok){ toast(d.error||'No pude guardar',true); btn.disabled=false; btn.textContent='✔ Finalizar y guardar'; return; }
+      _minReu.minuta={temas,pendientes:pend,notas:notas||null}; _minReu.estado='realizada';
+      toast('Minuta guardada ✅'); cerrarMin();
+      renderDay(); renderRecordatorios(); cargarHistorialMinutas();
+    }catch(e){ toast('Error de conexión',true); btn.disabled=false; btn.textContent='✔ Finalizar y guardar'; }
+  }
+  async function cargarHistorialMinutas(){
+    try{
+      const r=await fetch('/.netlify/functions/reuniones?historial=1',{headers:{Authorization:'Bearer '+TOKEN}});
+      if(!r.ok) return; const d=await r.json(); HISTMIN=d.reuniones||[];
+      const wrap=document.getElementById('minHistWrap'), box=document.getElementById('minHist');
+      if(!HISTMIN.length){ wrap.style.display='none'; box.innerHTML=''; return; }
+      wrap.style.display='block';
+      box.innerHTML=HISTMIN.map(x=>{
+        const f=new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'});
+        const m=x.minuta||{}; const nt=(m.temas||[]).length, np=(m.pendientes||[]).length;
+        return `<div class="citem" style="border-left:4px solid #2f8f6e;cursor:pointer" onclick="abrirMinuta('${x.id}')">
+          <div class="ccheck" style="visibility:hidden"></div>
+          <div class="cbody">
+            <div class="ctop"><span class="chora">${f}</span><span class="ctipo" style="background:var(--green-soft);color:var(--green-d)">📋 Minuta</span></div>
+            <div class="cname">${esc(x.titulo)}</div>
+            <div class="cobj">${nt} tema(s)${np?' · '+np+' pendiente(s)':''}</div>
+          </div></div>`;
+      }).join('');
     }catch(e){}
   }
 
@@ -430,13 +557,16 @@
            <button onclick="rechazarReu('${x.id}')" style="background:#fff;color:#c0603e;border:1px solid #e7cfc6;border-radius:8px;padding:7px 13px;font:inherit;font-weight:700;font-size:12.5px;cursor:pointer">No puedo asistir</button>
          </div>` : '';
     const motivo = (x.estado==='rechazada' && x.respuesta) ? `<div class="cobj" style="color:#c0603e">No asistís — ${esc(x.respuesta)}</div>` : '';
+    const tieneMin = x.minuta && ((x.minuta.temas&&x.minuta.temas.length) || (x.minuta.pendientes&&x.minuta.pendientes.length) || x.minuta.notas);
+    const minBtn = (x.estado!=='rechazada' && x.estado!=='cancelada')
+      ? `<div style="margin-top:8px"><button class="min-btn ${tieneMin?'done':''}" onclick="abrirMinuta('${x.id}')">${tieneMin?'📋 Ver / editar minuta':'📝 Hacer minuta'}</button></div>` : '';
     return `<div class="citem" style="border-left:4px solid #c0912f;background:#fbf7ee">
       <div class="ccheck" style="visibility:hidden"></div>
       <div class="cbody">
         <div class="ctop"><span class="chora">${hora}</span><span class="ctipo" style="background:#f0e6c9;color:#8a6d15">📌 Reunión · ${quienN}</span>${badge}</div>
         <div class="cname">${esc(x.titulo)}</div>
         ${(x.lugar||x.detalle)?`<div class="cobj">${[x.lugar,x.detalle].filter(Boolean).map(esc).join(' · ')}</div>`:''}
-        ${motivo}${acc}
+        ${motivo}${acc}${minBtn}
       </div></div>`;
   }
 
