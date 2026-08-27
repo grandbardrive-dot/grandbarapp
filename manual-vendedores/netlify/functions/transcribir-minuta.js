@@ -8,7 +8,7 @@
 // ============================================================
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
-const MODEL = process.env.IA_MODEL || 'claude-sonnet-5';
+const MODEL = process.env.IA_MODEL || 'claude-haiku-4-5-20251001'; // rápido: entra en el límite de tiempo de la función
 const AAI = 'https://api.assemblyai.com/v2/transcript';
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
@@ -95,7 +95,7 @@ exports.handler = async (event) => {
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model: MODEL, max_tokens: 3000, system: SYS_RESUMEN, messages: [{ role: 'user', content: userMsg }] }),
+        body: JSON.stringify({ model: MODEL, max_tokens: 1600, system: SYS_RESUMEN, messages: [{ role: 'user', content: userMsg }] }),
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) return json(502, { error: 'Error de la IA: ' + ((data.error && data.error.message) || resp.status) });

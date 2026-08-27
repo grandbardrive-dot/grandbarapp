@@ -45,7 +45,7 @@
       var token = await hubToken();
       var r = await fetch('/.netlify/functions/transcribir-minuta', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'resumen', titulo: reunion.titulo, transcript: m.transcript || '', temas: m.temas || [], pendientes: m.pendientes || [] }) });
       var d = await r.json();
-      if (!r.ok || !d.ok || !d.html) { abrir('Resumen', '<div style="color:#c0603e">No se pudo generar el resumen: ' + esc((d && d.error) || '') + '</div>'); return; }
+      if (!r.ok || !d.ok || !d.html) { abrir('Resumen', '<div style="color:#c0603e">No se pudo generar el resumen: ' + esc((d && d.error) || ('error ' + r.status)) + '</div>'); return; }
       m.resumen_html = d.html;
       abrir('Resumen · ' + (reunion.titulo || ''), d.html);
       if (typeof saveFn === 'function') { try { saveFn(d.html); } catch (e) {} }
