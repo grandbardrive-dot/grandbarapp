@@ -10,6 +10,7 @@ const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const DIR_ROLES = ['direccion', 'admin', 'duenio'];
 const ESTADOS = ['pendiente', 'aprobado', 'rechazado', 'revision'];
+const { pushA } = require('./_notificar');
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 
@@ -53,6 +54,13 @@ exports.handler = async (event) => {
         };
         const r = await sb('reportes', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) });
         if (!r.ok) return json(502, { error: 'No pude guardar: ' + (await r.text()).slice(0, 160) });
+        // Avisar a Dirección (campanita + push)
+        try {
+          const dirs = await (await sb('usuarios?rol=in.(' + DIR_ROLES.join(',') + ')&select=id')).json();
+          for (const dd of (Array.isArray(dirs) ? dirs : [])) {
+            await pushA(sb, dd.id, { title: '📥 ' + (fila.autor_nombre || 'Un usuario') + ' te envió un reporte', body: fila.titulo, url: '/reportes.html', tag: 'rep-new' });
+          }
+        } catch (e) {}
         return json(200, { ok: true, reporte: (await r.json())[0] });
       }
 

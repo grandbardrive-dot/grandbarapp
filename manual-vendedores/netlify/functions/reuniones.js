@@ -8,6 +8,7 @@
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const DIR_ROLES = ['direccion', 'admin', 'duenio'];
+const { pushA } = require('./_notificar');
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 
@@ -47,14 +48,16 @@ exports.handler = async (event) => {
         // aviso al usuario en su campanita
         try {
           const quien = (perfil.nombre && !/@/.test(perfil.nombre)) ? String(perfil.nombre).split(/\s+/)[0] : 'Dirección';
-          await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ destinatario_id: b.usuario_id, icono: '📌', titulo: quien + ' te programó una reunión', detalle: fila.titulo + ' · ' + fila.fecha + (fila.hora ? ' ' + String(fila.hora).slice(0, 5) : ''), link: 'agenda.html' }) });
+          const detalle = fila.titulo + ' · ' + fila.fecha + (fila.hora ? ' ' + String(fila.hora).slice(0, 5) : '');
+          await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ destinatario_id: b.usuario_id, icono: '📌', titulo: quien + ' te programó una reunión', detalle, link: 'agenda.html' }) });
+          await pushA(sb, b.usuario_id, { title: '📌 ' + quien + ' te programó una reunión', body: detalle, url: '/agenda.html', tag: 'reu-new-' + b.usuario_id });
         } catch (e) {}
         return json(200, { ok: true, reunion: (await r.json())[0] });
       }
 
       if (b.accion === 'estado' && b.id) {
         const est = String(b.estado || '');
-        const cur = (await (await sb('reuniones?id=eq.' + encodeURIComponent(b.id) + '&select=usuario_id')).json())[0];
+        const cur = (await (await sb('reuniones?id=eq.' + encodeURIComponent(b.id) + '&select=usuario_id,creado_por,titulo')).json())[0];
         if (!cur) return json(404, { error: 'No existe.' });
         const esMia = String(cur.usuario_id) === String(user.id);
         // El usuario destino puede confirmar / marcar realizada / rechazar (no asistir); Dirección puede todo.
@@ -64,6 +67,12 @@ exports.handler = async (event) => {
         const patch = { estado: est };
         if (b.motivo !== undefined) patch.respuesta = String(b.motivo || '').trim() || null;
         await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
+        // Avisar a quien la programó (Dirección) que el usuario respondió → push
+        if (esMia && cur.creado_por && (est === 'confirmada' || est === 'rechazada')) {
+          const nombre = (perfil.nombre && !/@/.test(perfil.nombre)) ? perfil.nombre : 'El usuario';
+          const txt = est === 'confirmada' ? nombre + ' confirmó la reunión' : nombre + ' no puede asistir';
+          try { await pushA(sb, cur.creado_por, { title: (est === 'confirmada' ? '✅ ' : '⚠️ ') + txt, body: (cur.titulo || '') + (est === 'rechazada' && patch.respuesta ? ' · ' + patch.respuesta : ''), url: '/dir-agenda.html', tag: 'reu-resp-' + b.id }); } catch (e) {}
+        }
         return json(200, { ok: true });
       }
 

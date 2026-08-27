@@ -13,6 +13,7 @@ const ESTADOS = ['nuevo', 'asignado', 'contactado', 'convertido', 'descartado'];
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const qv = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
 
+const { pushA } = require('./_notificar');
 exports.handler = async (event) => {
   try {
     const srole = process.env.HUB_SERVICE_ROLE;
@@ -41,6 +42,7 @@ exports.handler = async (event) => {
     async function notificar(destId, n) {
       if (!destId) return;
       try { await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ destinatario_id: destId, icono: n.icono || '🔔', titulo: n.titulo, detalle: n.detalle || null, link: n.link || null }) }); } catch (e) {}
+      try { await pushA(sb, destId, { title: (n.icono ? n.icono + ' ' : '') + n.titulo, body: n.detalle || '', url: (n.link && String(n.link).startsWith('/')) ? n.link : ('/' + (n.link || '')), tag: n.tag }); } catch (e) {}
     }
     async function idDeVendedor(cod) { const u = (await (await sb('usuarios?codigo_vendedor=eq.' + encodeURIComponent(cod) + '&select=id&limit=1')).json())[0]; return u ? u.id : null; }
 

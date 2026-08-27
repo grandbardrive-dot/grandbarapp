@@ -197,6 +197,8 @@
       <button class="acc"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Acción rápida</button>
     </div>
 
+    <div id="pushMount" style="display:none;align-items:center;gap:12px;background:#ece9f8;border:1px solid #d4cdf0;border-radius:13px;padding:12px 15px;margin:0 0 16px"></div>
+
     <!-- KPIs -->
     <div class="kpis">
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></span><span class="lbl">Ventas del día</span></div><div class="v">$8.450.000</div><div class="sub up">▲ +14% vs ayer</div></div>
@@ -385,6 +387,8 @@
     cargarResumen(selSuc?selSuc.value:'');
   })();
 </script>
+<script src="assets/push-cliente.js?v=1"></script>
+<script>window.addEventListener('load',function(){ if(window.pushMount) window.pushMount(document.getElementById('pushMount')); });</script>
 <script src="assets/user-menu.js?v=1"></script>
 <script src="assets/mobile-nav.js?v=1"></script>
 </body>
