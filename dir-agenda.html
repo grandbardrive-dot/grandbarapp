@@ -104,6 +104,7 @@
   <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:92vh;overflow:auto;padding:20px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px"><b id="dmTit" style="font-size:16px;flex:1">Minuta</b><button onclick="cerrarMin()" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6d7d85">×</button></div>
     <div id="dmMeta" style="font-size:12px;color:#6d7d85;margin-bottom:12px"></div>
+    <div id="miaMount"></div>
     <div style="margin-bottom:13px"><label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px">📝 Temas que se hablaron</label><div id="dmTemas"></div><button type="button" class="min-add" onclick="minAdd('temas')">+ Agregar tema</button></div>
     <div style="margin-bottom:13px"><label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px">⏭️ Pendientes para la próxima</label><div id="dmPend"></div><button type="button" class="min-add" onclick="minAdd('pend')">+ Agregar pendiente</button></div>
     <div style="margin-bottom:6px"><label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px">Notas / acuerdos</label><textarea id="dmNotas" maxlength="2000" style="width:100%;min-height:64px;border:1.5px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:14px"></textarea></div>
@@ -233,6 +234,12 @@
     $('dmNotas').value=m.notas||'';
     $('dmSave').disabled=false; $('dmSave').textContent='✔ Guardar minuta';
     $('dmov').style.display='flex';
+    if(window.mountMinutaIA) window.mountMinutaIA($('miaMount'), fillMinutaIA);
+  }
+  function fillMinutaIA(m){
+    if(m.temas&&m.temas.length){ $('dmTemas').innerHTML=''; m.temas.forEach(t=>minAdd('temas',t)); }
+    if(m.pendientes&&m.pendientes.length){ $('dmPend').innerHTML=''; m.pendientes.forEach(t=>minAdd('pend',t)); }
+    if(m.notas){ const n=$('dmNotas'); n.value=(n.value.trim()?n.value.trim()+'\n':'')+m.notas; }
   }
   function cerrarMin(){ $('dmov').style.display='none'; }
   async function guardarMinuta(){
@@ -280,6 +287,7 @@
   })();
 })();
 </script>
+<script src="assets/minuta-ia.js?v=1"></script>
 <script src="assets/user-menu.js?v=1"></script>
 <script src="assets/mobile-nav.js?v=1"></script>
 </body>

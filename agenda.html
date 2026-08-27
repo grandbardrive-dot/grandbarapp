@@ -203,6 +203,7 @@
   <div class="modal">
     <div class="m-head"><div><h3 id="minTit">Minuta de reunión</h3><div id="minMeta" style="font-size:12px;color:var(--muted);margin-top:2px"></div></div><button class="x" id="minClose"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="m-body">
+      <div id="miaMount"></div>
       <div class="fld">
         <label>📝 Temas que se hablaron</label>
         <div id="minTemas"></div>
@@ -522,6 +523,12 @@
     document.getElementById('minNotas').value=m.notas||'';
     document.getElementById('minSave').disabled=false; document.getElementById('minSave').textContent='✔ Finalizar y guardar';
     document.getElementById('ovMin').classList.add('open');
+    if(window.mountMinutaIA) window.mountMinutaIA(document.getElementById('miaMount'), fillMinutaIA);
+  }
+  function fillMinutaIA(m){
+    if(m.temas&&m.temas.length){ document.getElementById('minTemas').innerHTML=''; m.temas.forEach(t=>minAdd('temas',t)); }
+    if(m.pendientes&&m.pendientes.length){ document.getElementById('minPend').innerHTML=''; m.pendientes.forEach(t=>minAdd('pend',t)); }
+    if(m.notas){ const n=document.getElementById('minNotas'); n.value=(n.value.trim()?n.value.trim()+'\n':'')+m.notas; }
   }
   function cerrarMin(){ document.getElementById('ovMin').classList.remove('open'); }
   async function guardarMinuta(){
@@ -677,6 +684,7 @@
 <script src="assets/notif.js?v=2"></script>
 <script src="assets/hub-nav.js?v=3"></script>
 <script src="assets/user-menu.js?v=1"></script>
+<script src="assets/minuta-ia.js?v=1"></script>
 <script src="assets/mobile-nav.js?v=1"></script>
 </body>
 </html>
