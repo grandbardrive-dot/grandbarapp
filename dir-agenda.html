@@ -58,18 +58,13 @@
       <button class="acc" id="btnReunion" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Programar reunión</button>
     </div>
 
-    <div class="kpis5">
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><span class="lbl">Actividades programadas</span></div><div class="v">126</div><div class="sub up">▲ 18% vs. semana anterior</div></div>
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--gold)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><span class="lbl">Visitas programadas</span></div><div class="v">98</div><div class="sub up">▲ 14% vs. semana anterior</div></div>
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/></svg></span><span class="lbl">Actividades completadas</span></div><div style="display:flex;align-items:center;gap:10px"><div><div class="v">82</div><div class="sub">66% del total</div></div><svg width="46" height="46" viewBox="0 0 42 42" style="flex:none;margin-left:auto"><circle cx="21" cy="21" r="15.9" fill="none" stroke="#eee7d8" stroke-width="6"/><circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--green)" stroke-width="6" stroke-dasharray="65 35" stroke-dashoffset="25"/><text x="21" y="24" text-anchor="middle" font-size="8" font-weight="800" fill="var(--ink)">65%</text></svg></div></div>
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 6v6c0 5 8 10 8 10s8-5 8-10V6z"/></svg></span><span class="lbl">Cumplimiento semanal</span></div><div class="v">68%</div><div class="sub up">▲ 9 p.p. vs. semana anterior</div></div>
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--blue)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="lbl">Actividades pendientes</span></div><div class="v">44</div><a class="lnk" href="#" style="color:var(--blue)">Ver pendientes →</a></div>
-    </div>
 
     <div class="grid-a">
       <div class="card">
         <div class="c-h"><div class="t">Mi agenda · Reuniones con supervisores</div><span class="lnk" id="btnReunion3" style="cursor:pointer">+ Programar reunión</span></div>
-        <div id="miAgendaWeek"><div style="color:var(--muted);font-size:12.5px;padding:24px 0;text-align:center">Cargando…</div></div>
+        <div class="agcal-head"><button class="agnav" id="agPrev">‹</button><span class="agmes" id="agMes">—</span><button class="agnav" id="agNext">›</button></div>
+        <div class="agcal" id="miAgendaCal"></div>
+        <div id="miAgendaDia" style="margin-top:14px"></div>
       </div>
 
       <div style="display:flex;flex-direction:column;gap:16px">
@@ -77,93 +72,10 @@
           <div class="c-h"><div class="t">📋 Minutas de reuniones</div></div>
           <div id="reuMinutas"></div>
         </div>
-        <div class="card">
-          <div class="c-h"><div class="t">Mayo 2025</div><span>‹ ›</span></div>
-          <div class="mcal">
-            <div class="h">L</div><div class="h">M</div><div class="h">M</div><div class="h">J</div><div class="h">V</div><div class="h">S</div><div class="h">D</div>
-            <div class="d mut">28</div><div class="d mut">29</div><div class="d mut">30</div><div class="d">1</div><div class="d">2</div><div class="d">3</div><div class="d">4</div>
-            <div class="d">5</div><div class="d">6</div><div class="d">7</div><div class="d">8</div><div class="d">9</div><div class="d">10</div><div class="d">11</div>
-            <div class="d">12</div><div class="d">13</div><div class="d">14</div><div class="d">15</div><div class="d">16</div><div class="d">17</div><div class="d">18</div>
-            <div class="d">19</div><div class="d on">20</div><div class="d">21</div><div class="d">22</div><div class="d">23</div><div class="d">24</div><div class="d">25</div>
-            <div class="d">26</div><div class="d">27</div><div class="d">28</div><div class="d">29</div><div class="d">30</div><div class="d">31</div><div class="d mut">1</div>
-          </div>
-        </div>
-        <div class="card tk">
-          <div class="c-h"><div class="t">Tareas pendientes</div><span class="lnk">Ver todas (16) →</span></div>
-          <div class="row"><span class="i" style="width:26px;height:26px;border-radius:7px;background:var(--danger-soft);color:var(--danger);display:grid;place-items:center;flex:none">⚑</span><div style="flex:1"><div class="nm">Enviar propuesta comercial</div><div class="ss">La Esquina Resto Bar</div></div><div style="text-align:right"><span class="tag alto">Alta</span><div class="ss">20/05</div></div></div>
-          <div class="row"><span class="i" style="width:26px;height:26px;border-radius:7px;background:var(--amber-soft);color:var(--gold-d);display:grid;place-items:center;flex:none">⚑</span><div style="flex:1"><div class="nm">Seguimiento post visita</div><div class="ss">Vinoteca Don Julián</div></div><div style="text-align:right"><span class="tag medio">Media</span><div class="ss">20/05</div></div></div>
-          <div class="row"><span class="i" style="width:26px;height:26px;border-radius:7px;background:var(--danger-soft);color:var(--danger);display:grid;place-items:center;flex:none">⚑</span><div style="flex:1"><div class="nm">Revisar stock crítico</div><div class="ss">Kiosco 33</div></div><div style="text-align:right"><span class="tag alto">Alta</span><div class="ss">21/05</div></div></div>
-          <div class="row"><span class="i" style="width:26px;height:26px;border-radius:7px;background:var(--amber-soft);color:var(--gold-d);display:grid;place-items:center;flex:none">⚑</span><div style="flex:1"><div class="nm">Cargar pedidos del día</div><div class="ss">Autoservicio Norte</div></div><div style="text-align:right"><span class="tag medio">Media</span><div class="ss">21/05</div></div></div>
-        </div>
-        <div class="card prox">
-          <div class="c-h"><div class="t">Próximas actividades</div></div>
-          <div class="row"><span class="tm">Hoy 10:30</span><div><div class="nm">Visita: Brindis Bar</div><div class="lo">📍 Luján de Cuyo, Mendoza</div></div></div>
-          <div class="row"><span class="tm">Hoy 11:00</span><div><div class="nm">Visita: Kiosco 33</div><div class="lo">📍 Maipú, Mendoza</div></div></div>
-          <div class="row"><span class="tm">Hoy 14:00</span><div><div class="nm">Reunión: Plan comercial</div><div class="lo">📍 Oficina Central</div></div></div>
-          <div class="row"><span class="tm">Mañana 09:30</span><div><div class="nm">Visita: Hotel Diplomatic</div><div class="lo">📍 Mendoza</div></div></div>
-        </div>
       </div>
     </div>
 
-    <div class="g-3">
-      <div class="card cmp">
-        <div class="c-h"><div class="t">Cumplimiento por vendedor <small>Esta semana</small></div></div>
-        <div class="row"><span class="nm">Carolina Heluani</span><span class="track"><i style="width:78%;background:var(--green)"></i></span><span class="pc">78%</span></div>
-        <div class="row"><span class="nm">Diego Sebastianelli</span><span class="track"><i style="width:71%;background:var(--green)"></i></span><span class="pc">71%</span></div>
-        <div class="row"><span class="nm">Franco Fernández</span><span class="track"><i style="width:65%;background:var(--gold)"></i></span><span class="pc">65%</span></div>
-        <div class="row"><span class="nm">Daniel Pérez</span><span class="track"><i style="width:62%;background:var(--gold)"></i></span><span class="pc">62%</span></div>
-        <div class="row"><span class="nm">Juan Pablo Mollar</span><span class="track"><i style="width:59%;background:var(--danger)"></i></span><span class="pc">59%</span></div>
-        <a class="lnk" href="#" style="margin-top:8px;display:inline-block">Ver reporte completo →</a>
-      </div>
-
-      <div class="card">
-        <div class="c-h"><div class="t">Actividades por tipo <small>Esta semana</small></div></div>
-        <div class="donut-wrap">
-          <svg width="120" height="120" viewBox="0 0 42 42" style="flex:none">
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#eee7d8" stroke-width="6"></circle>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--green)" stroke-width="6" stroke-dasharray="62 38" stroke-dashoffset="25"></circle>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--orange)" stroke-width="6" stroke-dasharray="14 86" stroke-dashoffset="-37"></circle>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--purple)" stroke-width="6" stroke-dasharray="12 88" stroke-dashoffset="-51"></circle>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--blue)" stroke-width="6" stroke-dasharray="8 92" stroke-dashoffset="-63"></circle>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#9aa" stroke-width="6" stroke-dasharray="4 96" stroke-dashoffset="-71"></circle>
-            <text x="21" y="20" text-anchor="middle" font-size="6" font-weight="800" fill="var(--ink)">126</text>
-            <text x="21" y="26" text-anchor="middle" font-size="3" fill="var(--muted)">Total</text>
-          </svg>
-          <div class="leg">
-            <div class="l"><span class="sw" style="background:var(--green)"></span><span class="n">Visitas</span><span class="m">78</span><span class="p">62%</span></div>
-            <div class="l"><span class="sw" style="background:var(--orange)"></span><span class="n">Reuniones</span><span class="m">18</span><span class="p">14%</span></div>
-            <div class="l"><span class="sw" style="background:var(--purple)"></span><span class="n">Seguimientos</span><span class="m">15</span><span class="p">12%</span></div>
-            <div class="l"><span class="sw" style="background:var(--blue)"></span><span class="n">Reportes / Admin.</span><span class="m">10</span><span class="p">8%</span></div>
-            <div class="l"><span class="sw" style="background:#9aa"></span><span class="n">Otros</span><span class="m">5</span><span class="p">4%</span></div>
-          </div>
-        </div>
-        <a class="lnk" href="#" style="margin-top:8px;display:inline-block">Ver análisis detallado →</a>
-      </div>
-
-      <div class="card">
-        <div class="c-h"><div class="t">Carga de actividades <small>Últimas 4 semanas</small></div></div>
-        <div style="display:flex;gap:12px;font-size:11px;color:var(--muted);margin-bottom:4px"><span>🟢 Programadas</span><span>🟣 Completadas</span><span>🟠 Pendientes</span></div>
-        <svg viewBox="0 0 300 150" style="width:100%;height:140px">
-          <line x1="0" y1="30" x2="300" y2="30" stroke="var(--line-2)"/><line x1="0" y1="80" x2="300" y2="80" stroke="var(--line-2)"/><line x1="0" y1="120" x2="300" y2="120" stroke="var(--line-2)"/>
-          <polyline points="0,55 100,42 200,28 300,38" fill="none" stroke="var(--green)" stroke-width="2.4"/>
-          <polyline points="0,90 100,82 200,72 300,68" fill="none" stroke="var(--purple)" stroke-width="2.4"/>
-          <polyline points="0,118 100,110 200,112 300,105" fill="none" stroke="var(--orange)" stroke-width="2.4"/>
-          <g font-size="8" fill="var(--muted)"><text x="0" y="142">28 Abr</text><text x="90" y="142">5 May</text><text x="185" y="142">12 May</text><text x="255" y="142">19 May</text></g>
-        </svg>
-        <a class="lnk" href="#" style="margin-top:6px;display:inline-block">Ver evolución completa →</a>
-      </div>
-    </div>
-
-    <div class="ia-strip">
-      <div class="h"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg><span>IA Asistente de Agenda<small>Insights y recomendaciones basadas en datos</small></span></div>
-      <span class="sp" style="flex:1"></span>
-      <span class="ia-chip">🗺️ Optimización de rutas: ahorrá 2,5 hs de viaje →</span>
-      <span class="ia-chip">📊 El martes tenés 35% más de carga que el promedio →</span>
-      <span class="ia-chip">📍 Hay 12 clientes sin visita en los últimos 30 días →</span>
-      <span class="ia-chip">⚠️ 2 vendedores por debajo del 60% de cumplimiento →</span>
-    </div>
-
-    <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
+    <div class="foot">Panel de Dirección · GrandBar Distribuciones</div>
   </div></div>
 </div>
 <div id="rov" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:50;align-items:center;justify-content:center;padding:16px">
@@ -204,6 +116,19 @@
   .min-row{display:flex;gap:8px;align-items:center;margin-bottom:7px}
   .min-row input{flex:1;border:1.5px solid var(--line);border-radius:9px;padding:9px 11px;font:inherit;font-size:14px}
   .min-row .del{background:#fbe9e4;color:#c0603e;border:0;border-radius:8px;width:34px;height:38px;font-size:18px;cursor:pointer;flex:none}
+  .agcal-head{display:flex;align-items:center;justify-content:center;gap:18px;margin:8px 0 12px}
+  .agmes{font-weight:800;font-size:15px;text-transform:capitalize}
+  .agnav{background:var(--card);border:1px solid var(--line);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px;font-weight:700;color:var(--ink)}
+  .agnav:hover{border-color:var(--gold)}
+  .agcal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .agdow{text-align:center;font-size:10.5px;font-weight:700;color:var(--muted);padding-bottom:2px}
+  .agcell{aspect-ratio:1;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;font-size:13.5px;font-weight:600}
+  .agcell:hover{border-color:var(--gold)}
+  .agcell.empty{border:0;cursor:default;background:none}
+  .agcell.today{border-color:var(--gold);color:var(--gold-d)}
+  .agcell.sel{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .agcell.has::after{content:"";position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:#6b5bd0}
+  .agcell.sel.has::after{background:#fff}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -218,7 +143,49 @@
   const $=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const estBadge={programada:['tag tr','Programada'],confirmada:['tag ok','Confirmada'],realizada:['tag ok','Realizada'],cancelada:['tag','Cancelada'],rechazada:['tag alto','No asiste']};
-  let LISTA_REU=[], _minReu=null;
+  let LISTA_REU=[], _minReu=null, calRef=new Date(), selDia=null;
+  const pad=n=>String(n).padStart(2,'0');
+  const isoOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const DOWL=['L','M','M','J','V','S','D'];
+
+  function renderCalendario(){
+    const y=calRef.getFullYear(), m=calRef.getMonth();
+    $('agMes').textContent=MESES[m]+' '+y;
+    const primer=(new Date(y,m,1).getDay()+6)%7; // Lunes=0
+    const dias=new Date(y,m+1,0).getDate();
+    const hoyISO=isoOf(new Date());
+    const conReu={}; LISTA_REU.forEach(x=>{ if(x.estado!=='cancelada') conReu[x.fecha]=true; });
+    let html=DOWL.map(d=>`<div class="agdow">${d}</div>`).join('');
+    for(let i=0;i<primer;i++) html+='<div class="agcell empty"></div>';
+    for(let d=1;d<=dias;d++){ const f=y+'-'+pad(m+1)+'-'+pad(d); const cls=['agcell']; if(f===hoyISO)cls.push('today'); if(f===selDia)cls.push('sel'); if(conReu[f])cls.push('has'); html+=`<div class="${cls.join(' ')}" data-f="${f}">${d}</div>`; }
+    $('miAgendaCal').innerHTML=html;
+    $('miAgendaCal').querySelectorAll('[data-f]').forEach(c=>c.onclick=()=>{ selDia=c.dataset.f; renderCalendario(); renderDiaSel(); });
+  }
+  function renderDiaSel(){
+    const box=$('miAgendaDia');
+    if(!selDia){ box.innerHTML='<div style="color:#6d7d85;font-size:12.5px;text-align:center;padding:10px 0">Tocá un día para ver tus reuniones.</div>'; return; }
+    const fl=new Date(selDia+'T00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+    const rows=LISTA_REU.filter(x=>x.fecha===selDia && x.estado!=='cancelada').sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
+    let html=`<div style="font-weight:800;font-size:12.5px;color:#a97c22;text-transform:capitalize;margin-bottom:8px">${fl}</div>`;
+    if(!rows.length){ html+='<div style="color:#6d7d85;font-size:12.5px;padding:6px 0">No hay reuniones este día.</div>'; box.innerHTML=html; return; }
+    html+=rows.map(x=>{const b=estBadge[x.estado]||estBadge.programada;
+      const tieneMin=x.minuta&&((x.minuta.temas&&x.minuta.temas.length)||(x.minuta.pendientes&&x.minuta.pendientes.length)||x.minuta.notas);
+      return `<div style="display:flex;gap:11px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-left:4px solid #6b5bd0;border-radius:11px;margin-bottom:8px">
+        <div style="min-width:44px;text-align:center"><div style="font-weight:800;font-size:13px">${x.hora?esc(x.hora.slice(0,5)):'—'}</div></div>
+        <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">${esc(x.titulo)}</div>
+          <div style="font-size:11.5px;color:#6d7d85">👤 ${esc(x.destinatario||'—')}${x.lugar?' · '+esc(x.lugar):''}</div>
+          ${(x.estado==='rechazada'&&x.respuesta)?'<div style="font-size:11px;color:#c0603e;font-weight:600">No asiste: '+esc(x.respuesta)+'</div>':''}
+          <div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">
+            <button data-min="${x.id}" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">${tieneMin?'📋 Ver minuta':'📝 Hacer minuta'}</button>
+            <button data-del="${x.id}" style="background:none;border:1px solid #e7cfc6;color:#c0603e;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">Cancelar</button>
+          </div></div>
+        <span class="${b[0]}">${b[1]}</span></div>`;
+    }).join('');
+    box.innerHTML=html;
+    box.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{ if(!confirm('¿Borrar esta reunión?'))return; await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'borrar',id:b.dataset.del})}); cargarLista(); });
+    box.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>abrirMinuta(b.dataset.min));
+  }
 
   function abrir(){ $('rov').style.display='flex'; $('rMsg').textContent=''; }
   function cerrar(){ $('rov').style.display='none'; }
@@ -236,35 +203,9 @@
       const r=await fetch(FN+'?admin=1',{headers:{Authorization:'Bearer '+TOKEN}});
       const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
       LISTA_REU=(d.reuniones||[]);
-      const hoy=new Date().toISOString().slice(0,10);
-      const rows=LISTA_REU.filter(x=>x.fecha>=hoy && x.estado!=='cancelada').sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))||String(a.hora||'99').localeCompare(String(b.hora||'99')));
-      const cont=$('miAgendaWeek');
-      if(!rows.length){ cont.innerHTML='<div style="color:#6d7d85;font-size:12.5px;padding:24px 0;text-align:center">No tenés reuniones próximas.<br>Programá una con “+ Programar reunión”.</div>'; }
-      else{
-        let html='', curF=null;
-        rows.forEach(x=>{
-          if(x.fecha!==curF){ curF=x.fecha; const fl=new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}); html+=`<div style="font-weight:800;font-size:12px;color:#a97c22;text-transform:capitalize;margin:16px 0 8px">${fl}</div>`; }
-          const b=estBadge[x.estado]||estBadge.programada;
-          const tieneMin=x.minuta&&((x.minuta.temas&&x.minuta.temas.length)||(x.minuta.pendientes&&x.minuta.pendientes.length)||x.minuta.notas);
-          html+=`<div style="display:flex;gap:11px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-left:4px solid #6b5bd0;border-radius:11px;margin-bottom:8px">
-            <div style="min-width:44px;text-align:center"><div style="font-weight:800;font-size:13px">${x.hora?esc(x.hora.slice(0,5)):'—'}</div></div>
-            <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">${esc(x.titulo)}</div>
-              <div style="font-size:11.5px;color:#6d7d85">👤 ${esc(x.destinatario||'—')}${x.lugar?' · '+esc(x.lugar):''}</div>
-              ${(x.estado==='rechazada'&&x.respuesta)?'<div style="font-size:11px;color:#c0603e;font-weight:600">No asiste: '+esc(x.respuesta)+'</div>':''}
-              <div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">
-                <button data-min="${x.id}" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">${tieneMin?'📋 Ver minuta':'📝 Hacer minuta'}</button>
-                <button data-del="${x.id}" style="background:none;border:1px solid #e7cfc6;color:#c0603e;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">Cancelar</button>
-              </div>
-            </div>
-            <span class="${b[0]}">${b[1]}</span>
-          </div>`;
-        });
-        cont.innerHTML=html;
-      }
-      cont.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{ if(!confirm('¿Borrar esta reunión?'))return; await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'borrar',id:b.dataset.del})}); cargarLista(); });
-      cont.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>abrirMinuta(b.dataset.min));
-      renderMinutasDir();
-    }catch(e){ $('miAgendaWeek').innerHTML='<div style="color:#c0603e;font-size:12px;padding:12px 0;text-align:center">'+esc(e.message)+'</div>'; }
+      if(!selDia){ const hoyISO=isoOf(new Date()); selDia = LISTA_REU.some(x=>x.fecha===hoyISO && x.estado!=='cancelada') ? hoyISO : (LISTA_REU.filter(x=>x.fecha>=hoyISO && x.estado!=='cancelada').sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)))[0]||{}).fecha || hoyISO; if(selDia){ const [Y,M]=selDia.split('-').map(Number); calRef=new Date(Y,M-1,1); } }
+      renderCalendario(); renderDiaSel(); renderMinutasDir();
+    }catch(e){ $('miAgendaCal').innerHTML='<div style="color:#c0603e;font-size:12px;padding:12px 0;text-align:center">'+esc(e.message)+'</div>'; }
   }
 
   function renderMinutasDir(){
@@ -327,6 +268,8 @@
   };
 
   $('btnReunion').onclick=abrir; var b2=$('btnReunion2'); if(b2) b2.onclick=abrir; var b3=$('btnReunion3'); if(b3) b3.onclick=abrir;
+  $('agPrev').onclick=()=>{ calRef=new Date(calRef.getFullYear(),calRef.getMonth()-1,1); renderCalendario(); };
+  $('agNext').onclick=()=>{ calRef=new Date(calRef.getFullYear(),calRef.getMonth()+1,1); renderCalendario(); };
   $('rX').onclick=cerrar; $('rov').addEventListener('click',e=>{if(e.target.id==='rov')cerrar();});
 
   (async()=>{
