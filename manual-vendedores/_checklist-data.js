@@ -421,16 +421,8 @@ const CHECKLISTS = {
     heroSubtitulo: 'Checklist de visita a autoservicios.',
     secciones: [
 
-      {
-        id: 'as0',
-        titulo: 'Programas Satélites',
-        subtitulo: 'Torneo y programas de incentivos',
-        icono: '🏆',
-        iconoBg: '#FDF5E0', iconoColor: '#854F0B',
-        especial: 'as_satelites',
-        intro: 'Programas activos con este cliente.',
-        items: []
-      },
+      // (Sección "Programas Satélites" removida del recorrido: quedaba duplicada
+      //  con el acordeón 🛰 de la ficha del cliente, donde vive el Torneo Doña Paula.)
 
       {
         id: 'as1',
