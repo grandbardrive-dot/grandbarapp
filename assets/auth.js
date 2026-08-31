@@ -42,9 +42,16 @@
       // Buscar el rol en la tabla usuarios (id = auth.users.id)
       const { data: perfil } = await client
         .from("usuarios")
-        .select("nombre, rol, es_supervisor")
+        .select("nombre, rol, es_supervisor, activo")
         .eq("id", session.user.id)
         .single();
+      // Quien está marcado como "sin acceso" en el panel NO entra. Antes ese campo
+      // era decorativo: el interruptor del panel decía "Sin acceso" y la persona
+      // seguía entrando igual.
+      if (perfil && perfil.activo === false) {
+        try { await client.auth.signOut(); } catch (e) {}
+        return { bloqueado: true, nombre: perfil.nombre || session.user.email };
+      }
       return {
         user: session.user,
         role: perfil?.rol || "ventas",
@@ -64,6 +71,11 @@
     async requireAuth() {
       const s = await this.getSession();
       if (!s) { window.location.href = "index.html"; return null; }
+      if (s.bloqueado) {
+        alert("Tu acceso está desactivado. Hablá con Nahuel o Josefina para que te lo habiliten.");
+        window.location.href = "index.html";
+        return null;
+      }
       return s;
     },
   };
