@@ -8,7 +8,7 @@ create table if not exists public.usuarios (
   id      uuid primary key references auth.users(id) on delete cascade,
   nombre  text,
   email   text,
-  rol     text not null default 'ventas',   -- admin | ventas | marketing | administracion | compras | mayorista | deposito | reportes | cliente
+  rol     text not null default 'ventas',   -- admin | ventas | marketing | administracion | compras | mayorista | deposito | reportes | cliente | diseno | desarrollo
   activo  boolean not null default true,
   creado  timestamptz not null default now()
 );
