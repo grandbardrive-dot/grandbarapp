@@ -15,7 +15,9 @@
      compras        → Luciana (Compras + Mayorista)
      mayorista      → puntos de venta al público
      deposito       → depósito (stock, vencimientos, materiales)
-     marketing      → Marketing + Desarrollo
+     marketing      → Marketing (se unifico en diseno + desarrollo)
+     diseno         → Josefina (piezas, materiales, pedidos de diseno)
+     desarrollo     → Nahuel (sistema, usuarios, todas las pantallas)
      reportes       → acceso a dashboards
      cliente        → clientes externos
    =========================================================== */
@@ -27,9 +29,32 @@ const AREAS = {
   deposito:       "Depósito",
   administracion: "Administración y Finanzas",
   reportes:       "Reportes",
+  sistema:        "Diseño y Desarrollo",
 };
 
 const APPS = [
+  // =================== DISEÑO Y DESARROLLO ===================
+  // Los paneles de Josefina y Nahuel. Reemplazan al panel de Marketing, que se unificó.
+  {
+    id: "panel-diseno",
+    name: "Panel de Diseño",
+    desc: "Pedidos de diseño, biblioteca de piezas, materiales y acceso a todas las pantallas.",
+    icon: "🎨",
+    area: "sistema",
+    roles: ["admin", "diseno", "marketing"],
+    status: "live",
+    url: "panel-diseno.html",
+  },
+  {
+    id: "panel-desarrollo",
+    name: "Panel de Desarrollo",
+    desc: "Mapa completo del sistema, usuarios y roles, herramientas del Hub y estado general.",
+    icon: "🧑‍💻",
+    area: "sistema",
+    roles: ["admin", "desarrollo"],
+    status: "live",
+    url: "panel-desarrollo.html",
+  },
   // =================== COPILOTO IA ===================
   {
     id: "planificador-ia",

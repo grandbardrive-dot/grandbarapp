@@ -1,0 +1,76 @@
+/* Estilos de los paneles de Diseño y Desarrollo (Josefina y Nahuel).
+   Mismos colores que el Hub para que no parezca otra app. */
+:root{
+  --navy:#0d2238; --navy-2:#14304c; --cream:#f5f1e8; --card:#ffffff;
+  --ink:#1b2a32; --muted:#7a8891; --line:#e9e3d6; --line-2:#efe9dc;
+  --gold:#c9a13b; --gold-d:#a9852a; --gold-soft:#f7efda;
+  --green:#2f6f5e; --green-soft:#e7f1ea;
+  --red:#c0392b; --red-soft:#fbeae7;
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box} html,body{margin:0;height:100%}
+body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+
+.app{display:flex;min-height:100vh}
+.sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;
+  padding:22px 16px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+.sb-logo b{color:var(--gold)}
+.sb-sub{font-size:10px;letter-spacing:.22em;color:#8fa3b3;padding:4px 10px 0;text-transform:uppercase}
+.sb-rol{font-size:12px;font-weight:700;color:var(--gold);padding:14px 10px 6px;letter-spacing:.06em;text-transform:uppercase}
+.sb-nav{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+.sb-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:10px;color:#c7d4dd;
+  cursor:pointer;background:none;border:none;font-family:inherit;font-size:14px;text-align:left;width:100%}
+.sb-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.sb-item.on{background:var(--gold);color:#20160a;font-weight:700}
+.sb-item .i{width:20px;text-align:center;flex:none}
+.sb-spacer{flex:1}
+.sb-pie{background:rgba(255,255,255,.06);border-radius:12px;padding:12px 13px;font-size:12px;color:#a9bcc9;line-height:1.5}
+
+.main{flex:1;min-width:0;padding:30px 34px 60px;max-width:1400px}
+.head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+h1{font-size:clamp(25px,3vw,33px);margin:0;letter-spacing:-.02em}
+.head-sub{color:var(--muted);font-size:14.5px;margin-top:7px;max-width:64ch;line-height:1.55}
+.buscador{position:relative;margin:22px 0 6px;max-width:460px}
+.buscador input{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px 12px 40px;
+  font-family:inherit;font-size:14px;background:var(--card);color:var(--ink)}
+.buscador input:focus{outline:none;border-color:var(--navy)}
+.buscador .lupa{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+
+.vista{display:none} .vista.on{display:block}
+
+/* Mapa de pantallas */
+.pv-grupo{margin-top:26px}
+.pv-grupo-h{display:flex;align-items:center;gap:10px;padding-bottom:9px;border-bottom:1.5px solid var(--line);flex-wrap:wrap}
+.pv-grupo-h h2{font-size:16px;margin:0;letter-spacing:-.01em}
+.pv-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.pv-quien{font-size:11.5px;color:var(--muted)}
+.pv-n{margin-left:auto;font-size:11px;font-weight:800;background:rgba(13,34,56,.07);border-radius:20px;padding:3px 9px;color:var(--navy)}
+.pv-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:14px}
+.pv-card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 15px;display:block;
+  transition:transform .12s,border-color .12s,box-shadow .12s}
+.pv-card:hover{transform:translateY(-2px);border-color:var(--gold);box-shadow:0 8px 22px rgba(13,34,56,.08)}
+.pv-card-n{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+.pv-card-nota{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.45}
+.pv-card-ruta{font-size:11px;color:#a9b4bb;margin-top:8px;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
+.pv-vacio{padding:40px 18px;text-align:center;color:var(--muted);font-size:14px;
+  background:var(--card);border:1px dashed var(--line);border-radius:14px;margin-top:20px}
+
+/* Bloques de aviso */
+.aviso{display:flex;gap:12px;align-items:flex-start;background:var(--gold-soft);border:1px solid #e6d5a8;
+  border-radius:13px;padding:14px 16px;font-size:13.5px;color:#6b5411;line-height:1.55;margin-top:20px}
+.aviso b{color:#4a3a0b}
+.en-obra{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:34px 22px;margin-top:22px}
+.en-obra h3{margin:0 0 8px;font-size:17px}
+.en-obra p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.6;max-width:70ch}
+.en-obra ul{margin:12px 0 0;padding-left:20px;color:var(--muted);font-size:13.5px;line-height:1.7}
+
+@media (max-width:860px){
+  .app{flex-direction:column}
+  .sidebar{width:100%;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;padding:14px}
+  .sb-nav{flex-direction:row;flex-wrap:wrap;margin:0}
+  .sb-item{width:auto;padding:8px 12px;font-size:13px}
+  .sb-rol,.sb-sub,.sb-pie,.sb-spacer{display:none}
+  .main{padding:20px 16px 50px}
+}

@@ -123,14 +123,19 @@
 <script src="assets/auth.js"></script>
 <script src="assets/apps.js"></script>
 <script>
-  const ROLE_LABEL = { admin:"Administrador", ventas:"Ventas", marketing:"Marketing", administracion:"Administración", compras:"Compras", mayorista:"Mayorista", deposito:"Depósito", reportes:"Reportes", cliente:"Cliente", direccion:"Dirección" };
-  const AREA_DOT = { ventas:"#2f6f5e", marketing:"#6b5bd0", compras:"#c9a13b", deposito:"#2f5f8f", administracion:"#d0603e", reportes:"#0d2238", copiloto:"#2f6f5e" };
+  const ROLE_LABEL = { admin:"Administrador", ventas:"Ventas", marketing:"Marketing", diseno:"Diseño", desarrollo:"Desarrollo", administracion:"Administración", compras:"Compras", mayorista:"Mayorista", deposito:"Depósito", reportes:"Reportes", cliente:"Cliente", direccion:"Dirección" };
+  const AREA_DOT = { ventas:"#2f6f5e", marketing:"#6b5bd0", compras:"#c9a13b", deposito:"#2f5f8f", administracion:"#d0603e", reportes:"#0d2238", copiloto:"#2f6f5e", sistema:"#a9852a" };
   const firstName = n => (n||"").trim().split(/\s+/)[0] || "";
   const initials = n => (n||"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "GB";
 
   let currentRole="compras", currentUser="Equipo GrandBar", currentArea="all", query="";
 
-  const visible = a => (a.roles.includes("*")||a.roles.includes(currentRole));
+  // Desarrollo (Nahuel) ve todo, igual que admin: tiene que poder entrar a cualquier
+  // herramienta para mantenerla. Diseño (Josefina) hereda lo que veía Marketing,
+  // porque ese panel se unificó en el suyo.
+  const ROL_HEREDA = { desarrollo:'*todo*', diseno:'marketing' };
+  const visible = a => currentRole==='desarrollo' || a.roles.includes("*") || a.roles.includes(currentRole)
+    || a.roles.includes(ROL_HEREDA[currentRole]);
   function urlForRole(a){ return (a.urlByRole && a.urlByRole[currentRole]) ? a.urlByRole[currentRole] : a.url; }
 
   function apps(){

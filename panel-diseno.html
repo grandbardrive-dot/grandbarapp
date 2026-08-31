@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2238">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>GrandBar — Panel de Diseño</title>
+<link rel="stylesheet" href="assets/panel-admin.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<b>Bar</b></div>
+    <div class="sb-sub">Distribuciones</div>
+    <div class="sb-rol">Diseño · Josefina</div>
+    <nav class="sb-nav">
+      <button class="sb-item on" data-v="pedidos"><span class="i">🎨</span> Pedidos de diseño</button>
+      <button class="sb-item" data-v="mapa"><span class="i">🗺️</span> Mapa de pantallas</button>
+      <button class="sb-item" data-v="piezas"><span class="i">🖼️</span> Biblioteca de piezas</button>
+    </nav>
+    <!-- Lo que estaba en el panel de Marketing, que se unificó acá -->
+    <div class="sb-rol">Herramientas</div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="manual-vendedores/admin-materiales.html"><span class="i">📦</span> Materiales</a>
+      <a class="sb-item" href="manual-vendedores/admin-material-nuevo.html"><span class="i">➕</span> Nuevo material</a>
+      <a class="sb-item" href="manual-vendedores/admin-catalogo.html"><span class="i">🍾</span> Catálogo</a>
+      <a class="sb-item" href="manual-vendedores/admin-campanias.html"><span class="i">📣</span> Campañas</a>
+      <a class="sb-item" href="panel-desarrollo.html"><span class="i">🧑‍💻</span> Panel de Desarrollo</a>
+    </nav>
+    <div class="sb-spacer"></div>
+    <a class="sb-item" href="hub.html"><span class="i">←</span> Volver al Hub</a>
+    <div class="sb-pie">Entrás a cualquier pantalla del sistema sin usar la cuenta de otro.</div>
+  </aside>
+
+  <main class="main">
+    <div class="head">
+      <div>
+        <h1>Panel de Diseño</h1>
+        <div class="head-sub">Los pedidos de diseño en un solo lugar, y acceso a cualquier pantalla del sistema sin cambiar de cuenta.</div>
+      </div>
+    </div>
+
+    <!-- ── Pedidos de diseño ─────────────────────────────────────────── -->
+    <div class="vista on" id="v-pedidos">
+      <div class="en-obra">
+        <h3>Bandeja de pedidos</h3>
+        <p>Hoy los pedidos de diseño salen por WhatsApp: el vendedor toca “Pedir diseño y flyers a Marketing” en el manual y se abre un chat. No queda registro de qué se pidió, para qué cliente, ni si se entregó.</p>
+        <ul>
+          <li>Cada pedido entra como ficha: quién pidió, para qué cliente, para cuándo y qué necesita.</li>
+          <li>Estados: Nuevo → En curso → Listo, para saber qué falta sin revisar el chat.</li>
+          <li>La pieza terminada se sube al pedido y le llega al vendedor.</li>
+        </ul>
+      </div>
+      <div class="aviso">
+        <span>🗄️</span>
+        <div>Para esto hace falta crear la tabla <code>pedidos_diseno</code> en la base del manual y cambiar el botón del manual para que, además de abrir WhatsApp, deje el pedido registrado. <b>Es el próximo paso</b>: el SQL lo preparo yo y lo corrés desde Supabase, como hicimos con los combos.</div>
+      </div>
+    </div>
+
+    <!-- ── Mapa de pantallas ─────────────────────────────────────────── -->
+    <div class="vista" id="v-mapa">
+      <div class="buscador">
+        <span class="lupa">🔎</span>
+        <input id="q" type="text" placeholder="Buscar pantalla, área o persona… (ej: supervisor, catálogo, Luciana)">
+      </div>
+      <div id="mapa"></div>
+    </div>
+
+    <!-- ── Biblioteca de piezas ──────────────────────────────────────── -->
+    <div class="vista" id="v-piezas">
+      <div class="en-obra">
+        <h3>Biblioteca de piezas</h3>
+        <p>Las piezas terminadas ordenadas para que vendedores y Luciana las bajen solos, sin pedírtelas cada vez.</p>
+        <ul>
+          <li>Placas y flyers por proveedor y por campaña.</li>
+          <li>Plantillas editables y logos de cada bodega.</li>
+          <li>Lo que subas acá aparece en las herramientas del vendedor.</li>
+        </ul>
+      </div>
+      <div class="aviso">
+        <span>📦</span>
+        <div>Ya existe el depósito de archivos que usa Materiales (el bucket <code>Activaciones</code>), así que las piezas pueden guardarse ahí mismo. Falta definir con vos cómo querés ordenarlas: por proveedor, por campaña o por tipo de pieza.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="assets/pantallas.js"></script>
+<script>
+  document.querySelectorAll('.sb-item[data-v]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.sb-item[data-v]').forEach(x => x.classList.remove('on'));
+      document.querySelectorAll('.vista').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      document.getElementById('v-' + b.dataset.v).classList.add('on');
+    });
+  });
+  renderPantallas('mapa', '');
+  document.getElementById('q').addEventListener('input', e => renderPantallas('mapa', e.target.value));
+</script>
+</body>
+</html>

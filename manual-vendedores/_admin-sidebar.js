@@ -12,16 +12,20 @@
     proveedores: '<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" stroke-linecap="round" stroke-linejoin="round"/>',
     usuarios:    '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0" stroke-linecap="round"/>',
     config:      '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2.3-1.3l-.3-2.5h-4l-.3 2.5a7 7 0 0 0-2.3 1.3l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.3l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2.3 1.3l.3 2.5h4l.3-2.5a7 7 0 0 0 2.3-1.3l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z" stroke-linejoin="round"/>',
+    material:    '<path d="M12 5v14M5 12h14" stroke-linecap="round"/>',
+    desarrollo:  '<path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 6l-2 12" stroke-linecap="round" stroke-linejoin="round"/>',
   };
+  // El panel de Marketing se unificó: sus herramientas viven ahora en los paneles de
+  // Diseño (Josefina) y Desarrollo (Nahuel). Este menú es el de las pantallas de
+  // materiales, que pasaron a Diseño.
   const ITEMS = [
-    { key:'inicio',      label:'Inicio',        href:'admin-marketing.html' },
-    { key:'campanias',   label:'Campañas',      sub:'Acciones comerciales', href:'admin-campanias.html' },
-    { key:'materiales',  label:'Materiales',    sub:'Biblioteca e inventario', href:'admin-materiales.html' },
-    { key:'checklists',  label:'Checklists',    sub:'Manual del vendedor', href:'admin.html?tab=checklists' },
-    { key:'compromisos', label:'Compromisos',   sub:'Seguimiento', href:'admin.html?tab=compromisos' },
-    { key:'proveedores', label:'Proveedores',   sub:'Marcas y productos', href:'admin-catalogo.html' },
-    { key:'usuarios',    label:'Usuarios',      soon:true },
-    { key:'config',      label:'Configuración', soon:true },
+    { key:'inicio',      label:'Panel de Diseño', sub:'Volver',                  href:'/panel-diseno.html' },
+    { key:'materiales',  label:'Materiales',      sub:'Biblioteca e inventario', href:'admin-materiales.html' },
+    { key:'material',    label:'Nuevo material',  sub:'Alta con foto',           href:'admin-material-nuevo.html' },
+    { key:'proveedores', label:'Catálogo',        sub:'Proveedores y productos', href:'admin-catalogo.html' },
+    { key:'campanias',   label:'Campañas',        sub:'Acciones comerciales',    href:'admin-campanias.html' },
+    { key:'checklists',  label:'Panel clásico',   sub:'Visitas y compromisos',   href:'admin.html?tab=checklists' },
+    { key:'desarrollo',  label:'Panel de Desarrollo', sub:'Sistema y usuarios',  href:'/panel-desarrollo.html' },
   ];
 
   window.renderSidebar = function (active) {
@@ -41,10 +45,10 @@
       <nav class="sb-nav">${nav}</nav>
       <div class="sb-spacer"></div>
       <nav class="sb-nav" style="padding-top:0">
-        <button class="sb-item" onclick="sessionStorage.removeItem('admin_perfil');location.href='admin.html'">
+        <a class="sb-item" href="/hub.html">
           <svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l-5-5 5-5M15 12H5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div><div class="sb-txt-main">Cambiar de perfil</div></div>
-        </button>
+          <div><div class="sb-txt-main">Volver al Hub</div></div>
+        </a>
       </nav>`;
     hacerResponsive();
   };
