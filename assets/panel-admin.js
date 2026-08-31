@@ -244,9 +244,11 @@ function pdRender() {
 
 function pdFiltrar(k) { _pdFiltro = k; pdRender(); }
 
+// Mismo cuidado que en las herramientas: si no vuelve la fila, no se guardó.
 async function pdGuardar(id, campos) {
-  const { error } = await pdSb().from('pedidos_diseno').update(campos).eq('id', id);
+  const { data, error } = await pdSb().from('pedidos_diseno').update(campos).eq('id', id).select();
   if (error) { alert('No pude guardar: ' + error.message); return false; }
+  if (!data || !data.length) { alert('No se guardó el cambio. Recargá la pantalla y probá de nuevo.'); pdCargar(); return false; }
   const p = PD.find(x => x.id === id);
   if (p) Object.assign(p, campos);
   pdRender();
@@ -357,14 +359,16 @@ function hhFila(h) {
   </article>`;
 }
 
+// Ojo: cuando RLS bloquea, Supabase NO devuelve error: devuelve 0 filas y un 200.
+// Sin el .select() la pantalla decía "guardado" y en la base no cambiaba nada.
 async function hhGuardar(id, campos) {
   const sb = hhSb();
-  const { error } = await sb.from('hub_herramientas')
-    .update({ ...campos, actualizado: new Date().toISOString() }).eq('id', id);
-  if (error) {
-    alert(/row-level security|permission/i.test(error.message)
-      ? 'Para cambiar las herramientas hay que estar con sesión iniciada en el Hub. Entrá al Hub y volvé a esta pantalla.'
-      : 'No pude guardar: ' + error.message);
+  const { data, error } = await sb.from('hub_herramientas')
+    .update({ ...campos, actualizado: new Date().toISOString() }).eq('id', id).select();
+  if (error) { alert('No pude guardar: ' + error.message); return false; }
+  if (!data || !data.length) {
+    alert('No se guardó: para cambiar las herramientas hay que estar con la sesión iniciada en el Hub.\n\nEntrá al Hub con tu cuenta y volvé a esta pantalla.');
+    hhCargar();   // volver a mostrar lo que hay de verdad en la base
     return false;
   }
   const h = HH.find(x => x.id === id);
