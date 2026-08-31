@@ -130,12 +130,10 @@
 
   let currentRole="compras", currentUser="Equipo GrandBar", currentArea="all", query="";
 
-  // Desarrollo (Nahuel) ve todo, igual que admin: tiene que poder entrar a cualquier
-  // herramienta para mantenerla. Diseño (Josefina) hereda lo que veía Marketing,
-  // porque ese panel se unificó en el suyo.
-  const ROL_HEREDA = { desarrollo:'*todo*', diseno:'marketing' };
-  const visible = a => currentRole==='desarrollo' || a.roles.includes("*") || a.roles.includes(currentRole)
-    || a.roles.includes(ROL_HEREDA[currentRole]);
+  // Diseño y Desarrollo (Josefina y Nahuel) ven exactamente lo mismo, y ven todo:
+  // mantienen el sistema entero, así que necesitan entrar a cualquier herramienta.
+  const ROLES_TOTALES = ['admin', 'diseno', 'desarrollo'];
+  const visible = a => ROLES_TOTALES.includes(currentRole) || a.roles.includes("*") || a.roles.includes(currentRole);
   function urlForRole(a){ return (a.urlByRole && a.urlByRole[currentRole]) ? a.urlByRole[currentRole] : a.url; }
 
   function apps(){
