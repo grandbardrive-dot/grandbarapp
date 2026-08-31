@@ -96,16 +96,7 @@ function montarPanel(cfg) {
       </div>
 
       <div class="vista" id="v-usuarios">
-        <div class="en-obra">
-          <h3>Usuarios y roles</h3>
-          <p>Dar de alta gente, cambiarle el rol y ver qué herramientas le quedan visibles en el Hub. Hoy eso se toca a mano en Supabase, en la tabla <code>usuarios</code>.</p>
-          <ul>
-            <li>Alta y baja de personas, sin entrar a Supabase.</li>
-            <li>Cambiar el rol y ver en el momento qué tarjetas pasa a ver.</li>
-            <li>Marcar quién es supervisor y de qué equipo.</li>
-          </ul>
-        </div>
-        <div class="aviso"><span>🔑</span><div>Para leer y escribir la tabla de usuarios hace falta permiso de servicio: con la clave pública que usa el sitio, Supabase la bloquea. <b>Es lo primero que hay que resolver</b> antes de armar esta pantalla.</div></div>
+        <div id="usuarios"><div class="pv-vacio">Cargando usuarios…</div></div>
       </div>
 
       <div class="vista" id="v-herramientas">
@@ -143,6 +134,7 @@ function montarPanel(cfg) {
   document.getElementById('q').addEventListener('input', e => renderPantallas('mapa', e.target.value));
 
   hhCargar();
+  usCargar();
 }
 
 /* ── Bandeja de pedidos de diseño ───────────────────────────────────────────
@@ -388,4 +380,142 @@ function hhRol(id, rol) {
   if (i >= 0) roles.splice(i, 1); else roles.push(rol);
   if (!roles.length) { alert('Dejala al menos con un rol, si no no la ve nadie.'); return; }
   hhGuardar(id, { roles });
+}
+
+/* ── Usuarios y roles ───────────────────────────────────────────────────────
+   El rol define qué herramientas ve cada uno en el Hub. Crear cuentas y
+   cambiar contraseñas sigue siendo cosa de Supabase: acá se administra el
+   día a día (rol, nombre, activo, supervisor).                            */
+const US_ROLES = [
+  { k:'admin',          n:'Administrador',   d:'Ve todo. Reservalo para poca gente.' },
+  { k:'desarrollo',     n:'Desarrollo',      d:'Nahuel. Administra el sistema.' },
+  { k:'diseno',         n:'Diseño',          d:'Josefina. Piezas y pedidos de diseño.' },
+  { k:'direccion',      n:'Dirección',       d:'Reportes y tableros generales.' },
+  { k:'ventas',         n:'Ventas',          d:'Vendedores: manual, cartera, agenda.' },
+  { k:'compras',        n:'Compras',         d:'Luciana: campañas, catálogo, comparador.' },
+  { k:'marketing',      n:'Marketing',       d:'Materiales y catálogo de acciones.' },
+  { k:'administracion', n:'Administración',  d:'Cobranzas y cuenta corriente.' },
+  { k:'tesoreria',      n:'Tesorería',       d:'Revisión de cobranzas.' },
+  { k:'deposito',       n:'Depósito',        d:'Stock, vencimientos, materiales.' },
+  { k:'mayorista',      n:'Mayorista',       d:'Puntos de venta al público.' },
+  { k:'reportes',       n:'Reportes',        d:'Solo dashboards.' },
+  { k:'cliente',        n:'Cliente',         d:'Externo: portal de cuenta corriente.' },
+];
+let US = [], _usYo = null;
+
+async function usCargar() {
+  const cont = document.getElementById('usuarios');
+  if (!cont) return;
+  const sb = hhSb();
+  if (!sb) { cont.innerHTML = `<div class="aviso"><span>⚠️</span><div>No hay conexión con el Hub.</div></div>`; return; }
+  try {
+    const ses = await sb.auth.getSession();
+    _usYo = ses.data.session ? ses.data.session.user.id : null;
+  } catch (e) { _usYo = null; }
+
+  let data = [];
+  try {
+    const r = await sb.from('usuarios').select('*').order('nombre');
+    if (r.error) throw r.error;
+    data = r.data || [];
+  } catch (e) {
+    cont.innerHTML = `<div class="aviso"><span>⚠️</span><div>No pude leer los usuarios: ${hhEsc(e.message || e)}</div></div>`;
+    return;
+  }
+  US = data;
+
+  // Sin sesión, o sin el permiso nuevo, la tabla devuelve nada o solo la fila propia.
+  if (!US.length || (US.length === 1 && !_usYo)) {
+    cont.innerHTML = `<div class="aviso"><span>🔑</span><div>
+      ${_usYo ? 'Solo estás viendo tu propio perfil.' : 'No hay sesión iniciada en el Hub.'}
+      Para administrar a todos hace falta: <b>1)</b> entrar al Hub con tu cuenta y
+      <b>2)</b> haber corrido <code>usuarios-panel-setup.sql</code> en Supabase → proyecto del Hub,
+      que es lo que le da permiso a los roles admin, desarrollo y diseño.</div></div>`;
+    if (!US.length) return;
+  }
+  usRender();
+}
+
+function usRender() {
+  const cont = document.getElementById('usuarios');
+  const nombreRol = k => (US_ROLES.find(r => r.k === k) || {}).n || k;
+  // Cuántas herramientas del Hub ve ese rol: dice más que el nombre del rol.
+  const cuantasVe = rol => HH.length
+    ? HH.filter(h => (h.roles || []).includes('*') || (h.roles || []).includes(rol)).length
+    : null;
+
+  const filas = US.map(u => {
+    const yo = u.id === _usYo;
+    const n = cuantasVe(u.rol);
+    return `<article class="hh" id="us-${hhEsc(u.id)}">
+      <div class="hh-top">
+        <span class="hh-ico">${hhEsc((u.nombre || u.email || '?').trim().charAt(0).toUpperCase())}</span>
+        <div class="hh-nom">${hhEsc(u.nombre || u.email)}${yo ? ' <span class="pv-n">vos</span>' : ''}</div>
+        <button class="hh-sw ${u.activo !== false ? 'on' : ''}" onclick="usActivo('${hhEsc(u.id)}')"
+                title="${u.activo !== false ? 'Puede entrar' : 'No puede entrar'}">
+          <span></span>${u.activo !== false ? 'Activo' : 'Sin acceso'}</button>
+      </div>
+      <div class="hh-desc">${hhEsc(u.email || '')}${n != null ? ` · ve ${n} herramienta${n === 1 ? '' : 's'} en el Hub` : ''}</div>
+      <div class="hh-campos">
+        <label>Nombre
+          <input type="text" value="${hhEsc(u.nombre || '')}" onchange="usGuardar('${hhEsc(u.id)}',{nombre:this.value.trim()})">
+        </label>
+        <label>Rol
+          <select onchange="usRol('${hhEsc(u.id)}',this.value,this)">
+            ${US_ROLES.map(r => `<option value="${r.k}" ${r.k === u.rol ? 'selected' : ''}>${r.n}</option>`).join('')}
+          </select>
+        </label>
+        <label>Supervisor
+          <select onchange="usGuardar('${hhEsc(u.id)}',{es_supervisor:this.value==='si'})">
+            <option value="no" ${!u.es_supervisor ? 'selected' : ''}>No</option>
+            <option value="si" ${u.es_supervisor ? 'selected' : ''}>Sí</option>
+          </select>
+        </label>
+      </div>
+      <div class="hh-roles"><span class="hh-lab">Qué es este rol:</span>
+        <span style="font-size:12.5px;color:var(--muted)">${hhEsc((US_ROLES.find(r => r.k === u.rol) || {}).d || '—')}</span>
+      </div>
+    </article>`;
+  }).join('');
+
+  cont.innerHTML = `
+    <div class="aviso"><span>🔑</span><div><b>Crear cuentas y cambiar contraseñas no se hace desde acá</b>: eso va por
+      Supabase → Authentication → Users. Al crear una cuenta ahí, aparece sola en esta lista con rol Ventas y se le
+      cambia desde acá.</div></div>
+    <section class="pv-grupo">
+      <div class="pv-grupo-h"><span class="pv-dot" style="background:#0d2238"></span>
+        <h2>Usuarios</h2><span class="pv-n">${US.length}</span></div>
+      ${filas}
+    </section>`;
+}
+
+async function usGuardar(id, campos) {
+  const sb = hhSb();
+  const { data, error } = await sb.from('usuarios').update(campos).eq('id', id).select();
+  if (error) { alert('No pude guardar: ' + error.message); return false; }
+  if (!data || !data.length) {
+    alert('No se guardó. Para administrar usuarios hay que entrar al Hub con tu cuenta y tener corrido usuarios-panel-setup.sql.');
+    usCargar();
+    return false;
+  }
+  const u = US.find(x => x.id === id);
+  if (u) Object.assign(u, campos);
+  usRender();
+  return true;
+}
+function usActivo(id) {
+  const u = US.find(x => x.id === id); if (!u) return;
+  if (u.id === _usYo && u.activo !== false) { alert('No te saques el acceso a vos mismo.'); return; }
+  usGuardar(id, { activo: u.activo === false });
+}
+// Cambiarse el rol a uno mismo puede dejarte sin poder volver a entrar acá.
+function usRol(id, rol, sel) {
+  const u = US.find(x => x.id === id); if (!u) return;
+  if (u.id === _usYo && !['admin', 'desarrollo', 'diseno'].includes(rol)) {
+    if (!confirm('Te estás sacando a vos mismo el permiso para administrar usuarios.\n\nSi seguís, vas a necesitar Supabase para volver atrás. ¿Seguro?')) {
+      if (sel) sel.value = u.rol;
+      return;
+    }
+  }
+  usGuardar(id, { rol });
 }
