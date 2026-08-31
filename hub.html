@@ -130,10 +130,10 @@
 
   let currentRole="compras", currentUser="Equipo GrandBar", currentArea="all", query="";
 
-  // Diseño y Desarrollo (Josefina y Nahuel) ven exactamente lo mismo, y ven todo:
-  // mantienen el sistema entero, así que necesitan entrar a cualquier herramienta.
-  const ROLES_TOTALES = ['admin', 'diseno', 'desarrollo'];
-  const visible = a => ROLES_TOTALES.includes(currentRole) || a.roles.includes("*") || a.roles.includes(currentRole);
+  // Cada rol ve SUS herramientas. Diseño y Desarrollo no son la excepción: ellos las
+  // administran desde su panel, no las usan todas. Antes veían las 22 mezcladas con
+  // las propias y no se entendía cuáles eran suyas.
+  const visible = a => a.roles.includes("*") || a.roles.includes(currentRole);
   function urlForRole(a){ return (a.urlByRole && a.urlByRole[currentRole]) ? a.urlByRole[currentRole] : a.url; }
 
   function apps(){
@@ -184,9 +184,28 @@
   document.getElementById("search").addEventListener("input", e=>{ query=e.target.value; render(); });
   document.getElementById("userChip").addEventListener("click", ()=>{ if(GBAuth.configured){ if(confirm("¿Cerrar sesión?")) GBAuth.signOut(); } });
 
+  // Las tarjetas salen de la tabla hub_herramientas (se administra desde el panel de
+  // Diseño y Desarrollo). Si la tabla no existe todavía, o viene vacía, o falla la
+  // conexión, se usan las de apps.js: el Hub nunca queda en blanco.
+  async function traerHerramientas(){
+    try{
+      if(!GBAuth.client) return null;
+      const { data, error } = await GBAuth.client
+        .from('hub_herramientas').select('*').order('orden');
+      if(error || !data || !data.length) return null;
+      return data.map(h => ({
+        id:h.id, name:h.nombre, desc:h.descripcion||'', icon:h.icono||'',
+        area:h.area, roles:h.roles||[], status:h.estado||'soon',
+        url:h.url||'#', urlByRole:h.url_por_rol||null,
+      }));
+    }catch(e){ return null; }
+  }
+
   (async function init(){
     const s = await GBAuth.requireAuth();
     if(!s) return;
+    const deLaBase = await traerHerramientas();
+    if(deLaBase){ APPS.length = 0; APPS.push(...deLaBase); }
     currentRole = s.role || "compras";
     currentUser = s.nombre || "Equipo GrandBar";
     document.getElementById("uName").textContent = currentUser;

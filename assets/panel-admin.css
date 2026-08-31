@@ -97,3 +97,28 @@ h1{font-size:clamp(25px,3vw,33px);margin:0;letter-spacing:-.02em}
 .pd-b:hover{border-color:var(--navy)}
 .pd-b.ok:hover{border-color:var(--green);color:var(--green)}
 .pd-b.danger:hover{border-color:var(--red);color:var(--red)}
+
+/* Editor de herramientas del Hub */
+.hh{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 16px;margin-top:12px}
+.hh-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hh-ico{font-size:20px;flex:none}
+.hh-nom{font-size:15px;font-weight:800;letter-spacing:-.01em;flex:1;min-width:140px}
+.hh-sw{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line);background:var(--card);
+  border-radius:20px;padding:6px 13px 6px 8px;font-family:inherit;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
+.hh-sw span{width:28px;height:16px;border-radius:10px;background:var(--line);position:relative;transition:background .15s}
+.hh-sw span::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left .15s}
+.hh-sw.on{color:var(--green);border-color:var(--green)}
+.hh-sw.on span{background:var(--green)}
+.hh-sw.on span::after{left:14px}
+.hh-desc{font-size:12.5px;color:var(--muted);margin-top:5px;line-height:1.45}
+.hh-campos{display:flex;gap:12px;flex-wrap:wrap;margin-top:11px}
+.hh-campos label{font-size:11px;font-weight:700;color:var(--muted);display:flex;flex-direction:column;gap:4px;text-transform:uppercase;letter-spacing:.05em}
+.hh-campos select,.hh-campos input{border:1.5px solid var(--line);border-radius:9px;padding:8px 10px;font-family:inherit;
+  font-size:13px;background:var(--card);color:var(--ink);text-transform:none;letter-spacing:0;font-weight:400;min-width:150px}
+.hh-campos select:focus,.hh-campos input:focus{outline:none;border-color:var(--navy)}
+.hh-roles{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:11px}
+.hh-lab{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:2px}
+.hh-rol{border:1.5px solid var(--line);background:var(--card);color:var(--muted);border-radius:20px;padding:5px 11px;
+  font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.hh-rol:hover{border-color:var(--navy);color:var(--navy)}
+.hh-rol.on{background:var(--navy);border-color:var(--navy);color:#fff}

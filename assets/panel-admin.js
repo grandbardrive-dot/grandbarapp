@@ -142,25 +142,7 @@ function montarPanel(cfg) {
   pdCargar();
   document.getElementById('q').addEventListener('input', e => renderPantallas('mapa', e.target.value));
 
-  // Herramientas del Hub: qué ve cada rol, leído de apps.js
-  if (typeof APPS !== 'undefined') {
-    const porArea = {};
-    APPS.forEach(a => (porArea[a.area] = porArea[a.area] || []).push(a));
-    document.getElementById('tools').innerHTML = Object.keys(AREAS).filter(k => porArea[k]).map(k => `
-      <section class="pv-grupo">
-        <div class="pv-grupo-h"><span class="pv-dot" style="background:#0d2238"></span><h2>${esc(AREAS[k])}</h2><span class="pv-n">${porArea[k].length}</span></div>
-        <div class="pv-cards">
-          ${porArea[k].map(a => `
-            <a class="pv-card" href="${a.url === '#' ? 'javascript:void(0)' : esc(a.url)}">
-              <div class="pv-card-n">${esc(a.icon || '')} ${esc(a.name)}
-                <span class="pv-n" style="margin:0 0 0 6px;background:${a.status === 'live' ? 'var(--green-soft)' : 'var(--line-2)'};color:${a.status === 'live' ? 'var(--green)' : 'var(--muted)'}">${a.status === 'live' ? 'Activo' : 'Próximamente'}</span>
-              </div>
-              <div class="pv-card-nota">${esc(a.desc)}</div>
-              <div class="pv-card-ruta">Lo ven: ${esc(a.roles.join(', '))}</div>
-            </a>`).join('')}
-        </div>
-      </section>`).join('');
-  }
+  hhCargar();
 }
 
 /* ── Bandeja de pedidos de diseño ───────────────────────────────────────────
@@ -286,4 +268,120 @@ function pdResponder(id) {
   const txt = prompt('Respuesta para el vendedor:', p.respuesta || '');
   if (txt === null) return;
   pdGuardar(id, { respuesta: txt.trim() || null });
+}
+
+/* ── Herramientas del Hub ───────────────────────────────────────────────────
+   Las tarjetas del Hub. Antes vivían en apps.js (código) y para prender una o
+   cambiarla de área había que publicar. Ahora se editan acá y el Hub las lee
+   de la tabla hub_herramientas.                                            */
+const HH_AREAS = {
+  copiloto:'Copiloto IA', ventas:'Ventas', marketing:'Marketing', compras:'Compras',
+  deposito:'Depósito', administracion:'Administración y Finanzas', reportes:'Reportes',
+  sistema:'Diseño y Desarrollo',
+};
+const HH_ROLES = ['admin','direccion','ventas','administracion','compras','mayorista',
+                  'deposito','marketing','reportes','cliente','diseno','desarrollo','tesoreria'];
+let HH = [];
+
+const hhSb = () => (window.GBAuth && GBAuth.client) || null;
+const hhEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+async function hhCargar() {
+  const cont = document.getElementById('tools');
+  if (!cont) return;
+  const sb = hhSb();
+  if (!sb) { cont.innerHTML = `<div class="aviso"><span>⚠️</span><div>No hay conexión con el Hub.</div></div>`; return; }
+  try {
+    const { data, error } = await sb.from('hub_herramientas').select('*').order('orden');
+    if (error) throw error;
+    HH = data || [];
+  } catch (e) {
+    const falta = /does not exist|schema cache/i.test(e.message || '');
+    cont.innerHTML = falta
+      ? `<div class="aviso"><span>🗄️</span><div>Todavía no está creada la tabla <code>hub_herramientas</code>.
+          Corré <code>hub-herramientas-setup.sql</code> en Supabase → proyecto del Hub
+          (<code>xqhyemccbwmzxqzkrtwa</code>) → SQL Editor, y recargá.
+          Hasta entonces el Hub sigue usando las tarjetas del código, que no se pueden editar.</div></div>`
+      : `<div class="aviso"><span>⚠️</span><div>No pude leer las herramientas: ${hhEsc(e.message || e)}</div></div>`;
+    return;
+  }
+  hhRender();
+}
+
+function hhRender() {
+  const porArea = {};
+  HH.forEach(h => (porArea[h.area] = porArea[h.area] || []).push(h));
+  const areas = Object.keys(HH_AREAS).filter(k => porArea[k]);
+  const sinArea = Object.keys(porArea).filter(k => !HH_AREAS[k]);
+
+  document.getElementById('tools').innerHTML = `
+    <div class="aviso"><span>✏️</span><div>Lo que cambies acá se ve en el Hub de todos apenas recargan. <b>Prendida</b> significa que la tarjeta se puede usar; <b>Próximamente</b> la muestra apagada.</div></div>
+    ${areas.concat(sinArea).map(k => `
+      <section class="pv-grupo">
+        <div class="pv-grupo-h"><span class="pv-dot" style="background:#0d2238"></span>
+          <h2>${hhEsc(HH_AREAS[k] || k)}</h2><span class="pv-n">${porArea[k].length}</span></div>
+        ${porArea[k].map(h => hhFila(h)).join('')}
+      </section>`).join('')}`;
+}
+
+function hhFila(h) {
+  const activa = h.estado === 'live';
+  return `<article class="hh" id="hh-${hhEsc(h.id)}">
+    <div class="hh-top">
+      <span class="hh-ico">${hhEsc(h.icono || '▫️')}</span>
+      <div class="hh-nom">${hhEsc(h.nombre)}</div>
+      <button class="hh-sw ${activa ? 'on' : ''}" onclick="hhEstado('${hhEsc(h.id)}')"
+              title="${activa ? 'Prendida: se puede usar' : 'Apagada: se muestra como Próximamente'}">
+        <span></span>${activa ? 'Prendida' : 'Próximamente'}</button>
+    </div>
+    <div class="hh-desc">${hhEsc(h.descripcion || '')}</div>
+    <div class="hh-campos">
+      <label>Área
+        <select onchange="hhGuardar('${hhEsc(h.id)}',{area:this.value})">
+          ${Object.keys(HH_AREAS).map(k => `<option value="${k}" ${k === h.area ? 'selected' : ''}>${HH_AREAS[k]}</option>`).join('')}
+        </select>
+      </label>
+      <label>Dirección
+        <input type="text" value="${hhEsc(h.url || '')}" onchange="hhGuardar('${hhEsc(h.id)}',{url:this.value.trim()||'#'})">
+      </label>
+      <label>Orden
+        <input type="number" style="width:80px" value="${h.orden || 0}" onchange="hhGuardar('${hhEsc(h.id)}',{orden:+this.value||0})">
+      </label>
+    </div>
+    <div class="hh-roles">
+      <span class="hh-lab">La ven:</span>
+      ${HH_ROLES.map(r => `<button class="hh-rol ${(h.roles || []).includes(r) ? 'on' : ''}"
+        onclick="hhRol('${hhEsc(h.id)}','${r}')">${r}</button>`).join('')}
+      ${(h.roles || []).includes('*') ? '<span class="hh-rol on">todos</span>' : ''}
+    </div>
+  </article>`;
+}
+
+async function hhGuardar(id, campos) {
+  const sb = hhSb();
+  const { error } = await sb.from('hub_herramientas')
+    .update({ ...campos, actualizado: new Date().toISOString() }).eq('id', id);
+  if (error) {
+    alert(/row-level security|permission/i.test(error.message)
+      ? 'Para cambiar las herramientas hay que estar con sesión iniciada en el Hub. Entrá al Hub y volvé a esta pantalla.'
+      : 'No pude guardar: ' + error.message);
+    return false;
+  }
+  const h = HH.find(x => x.id === id);
+  if (h) Object.assign(h, campos);
+  hhRender();
+  return true;
+}
+function hhEstado(id) {
+  const h = HH.find(x => x.id === id); if (!h) return;
+  hhGuardar(id, { estado: h.estado === 'live' ? 'soon' : 'live' });
+}
+// Sumar o sacar un rol de la lista de quiénes ven esa tarjeta.
+function hhRol(id, rol) {
+  const h = HH.find(x => x.id === id); if (!h) return;
+  const roles = (h.roles || []).slice();
+  const i = roles.indexOf(rol);
+  if (i >= 0) roles.splice(i, 1); else roles.push(rol);
+  if (!roles.length) { alert('Dejala al menos con un rol, si no no la ve nadie.'); return; }
+  hhGuardar(id, { roles });
 }
