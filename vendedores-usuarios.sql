@@ -29,7 +29,7 @@ update public.usuarios as u
        activo = true
   from (values
     ('gmartinez@grandbar.com.ar',      '001', 'Gustavo Martinez'),
-    -- ('?@grandbar.com.ar',           '002', 'Fernando Malanca'),      -- definir: choca con Franco Malanca
+    -- 002 Fernando Malanca y 020 Franco Malanca NO llevan cuenta (decidido).
     ('ccarrada@grandbar.com.ar',       '003', 'Carolina Carrada'),
     ('jmollar@grandbar.com.ar',        '005', 'Juan Pablo Mollar'),
     ('dperez@grandbar.com.ar',         '006', 'Daniel Perez'),
@@ -40,7 +40,6 @@ update public.usuarios as u
     ('ljuarez@grandbar.com.ar',        '017', 'Lucas Juarez'),
     ('lbuenanueva@grandbar.com.ar',    '018', 'Luciana Buenanueva'),
     ('aroldan@grandbar.com.ar',        '019', 'Analía Roldan'),
-    -- ('?@grandbar.com.ar',           '020', 'Franco Malanca'),        -- definir: choca con Fernando Malanca
     ('jfranso@grandbar.com.ar',        '024', 'Juan Pablo Franso'),
     ('pcofano@grandbar.com.ar',        '025', 'Pablo Cofano'),
     ('egimenez@grandbar.com.ar',       '027', 'Exequiel Gimenez'),
