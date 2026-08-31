@@ -34,26 +34,22 @@ const AREAS = {
 
 const APPS = [
   // =================== DISEÑO Y DESARROLLO ===================
-  // Los paneles de Josefina y Nahuel. Reemplazan al panel de Marketing, que se unificó.
+  // Un solo panel, el mismo para los dos: urlByRole manda a cada uno al suyo.
+  // Reemplaza al panel de Marketing, que se unificó acá.
   {
-    id: "panel-diseno",
-    name: "Panel de Diseño",
-    desc: "Pedidos de diseño, biblioteca de piezas, materiales y acceso a todas las pantallas.",
+    id: "panel-diseno-desarrollo",
+    name: "Panel de Diseño y Desarrollo",
+    desc: "Pedidos de diseño, materiales, usuarios y acceso a todas las pantallas del sistema.",
     icon: "🎨",
     area: "sistema",
     roles: ["admin", "diseno", "desarrollo", "marketing"],
     status: "live",
-    url: "panel-diseno.html",
-  },
-  {
-    id: "panel-desarrollo",
-    name: "Panel de Desarrollo",
-    desc: "Mapa completo del sistema, usuarios y roles, herramientas del Hub y estado general.",
-    icon: "🧑‍💻",
-    area: "sistema",
-    roles: ["admin", "diseno", "desarrollo"],
-    status: "live",
     url: "panel-desarrollo.html",
+    urlByRole: {
+      diseno:     "panel-diseno.html",
+      marketing:  "panel-diseno.html",
+      desarrollo: "panel-desarrollo.html",
+    },
   },
   // =================== COPILOTO IA ===================
   {

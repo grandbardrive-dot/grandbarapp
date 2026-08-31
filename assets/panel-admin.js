@@ -35,16 +35,18 @@ const PANEL_VISTAS = [
 
 function montarPanel(cfg) {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const otro = cfg.area === 'Diseño'
-    ? { n:'Panel de Desarrollo', r:'panel-desarrollo.html', i:'🧑‍💻' }
-    : { n:'Panel de Diseño',     r:'panel-diseno.html',     i:'🎨' };
+  // Los dos paneles son el mismo: uno es el de Josefina y el otro el de Nahuel.
+  const otro = /josefina/i.test(cfg.persona)
+    ? { n:'Panel de Nahuel',   r:'panel-desarrollo.html', i:'🧑‍💻' }
+    : { n:'Panel de Josefina', r:'panel-diseno.html',     i:'🎨' };
 
   document.getElementById('panel').innerHTML = `
   <div class="app">
     <aside class="sidebar">
       <div class="sb-logo">Grand<b>Bar</b></div>
       <div class="sb-sub">Distribuciones</div>
-      <div class="sb-rol">${esc(cfg.area)} · ${esc(cfg.persona)}</div>
+      <div class="sb-rol">Diseño y Desarrollo</div>
+      <div class="sb-sub" style="color:#dfe7ec;font-size:13px;letter-spacing:0;text-transform:none;padding-top:2px">${esc(cfg.persona)}</div>
       <div class="sb-sub" style="padding-bottom:2px">${esc(cfg.mail)}</div>
       <nav class="sb-nav">
         ${PANEL_VISTAS.map((v, k) => `<button class="sb-item${k === 0 ? ' on' : ''}" data-v="${v.k}"><span class="i">${v.i}</span> ${v.n}</button>`).join('')}
@@ -62,7 +64,7 @@ function montarPanel(cfg) {
     <main class="main">
       <div class="head">
         <div>
-          <h1>Panel de ${esc(cfg.area)}</h1>
+          <h1>Panel de Diseño y Desarrollo</h1>
           <div class="head-sub">Todo el sistema desde un solo lugar: cualquier pantalla de cualquier perfil, sin cambiar de cuenta ni buscar la dirección.</div>
         </div>
       </div>

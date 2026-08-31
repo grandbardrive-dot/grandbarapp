@@ -84,7 +84,7 @@ const PANTALLAS = [
     ico: '🎨',
     quien: 'Marketing',
     items: [
-      { n:'Panel Marketing (unificado)', r:'panel-diseno.html',                nota:'Ya no existe aparte: sus herramientas pasaron al panel de Diseño.' },
+      { n:'Panel Marketing (unificado)', r:'panel-diseno.html',                nota:'Ya no existe aparte: sus herramientas pasaron al panel de Diseño y Desarrollo.' },
       { n:'Materiales',        r:'manual-vendedores/admin-materiales.html',     nota:'Inventario de POP y materiales.' },
       { n:'Nuevo material',    r:'manual-vendedores/admin-material-nuevo.html', nota:'Alta de material con foto.' },
       { n:'Marketing (Hub)',   r:'marketing.html',                              nota:'Tablero del área.' },
@@ -124,8 +124,8 @@ const PANTALLAS = [
     ico: '⚙️',
     quien: 'Nahuel y Josefina',
     items: [
-      { n:'Panel de Diseño',    r:'panel-diseno.html',                         nota:'El de Josefina: pedidos, piezas y materiales.' },
-      { n:'Panel de Desarrollo',r:'panel-desarrollo.html',                     nota:'Este mismo: mapa, usuarios y estado.' },
+      { n:'Panel de Josefina',  r:'panel-diseno.html',                         nota:'Panel de Diseño y Desarrollo (el de Josefina).' },
+      { n:'Panel de Nahuel',    r:'panel-desarrollo.html',                     nota:'El mismo panel, con su nombre.' },
       { n:'Hub',                r:'hub.html',                                  nota:'La pantalla de herramientas según el rol.' },
       { n:'Ingreso',            r:'index.html',                                nota:'Login del Hub.' },
       { n:'Panel clásico',      r:'manual-vendedores/admin.html?tab=checklists',nota:'Visitas, compromisos y checklists en crudo.' },
