@@ -76,16 +76,8 @@ function montarPanel(cfg) {
       </div>
 
       <div class="vista" id="v-pedidos">
-        <div class="en-obra">
-          <h3>Bandeja de pedidos</h3>
-          <p>Hoy los pedidos de diseño salen por WhatsApp: el vendedor toca “Pedir diseño y flyers a Marketing” en el manual y se abre un chat. No queda registro de qué se pidió, para qué cliente, ni si se entregó.</p>
-          <ul>
-            <li>Cada pedido entra como ficha: quién pidió, para qué cliente, para cuándo y qué necesita.</li>
-            <li>Estados: Nuevo → En curso → Listo, para saber qué falta sin revisar el chat.</li>
-            <li>La pieza terminada se sube al pedido y le llega al vendedor.</li>
-          </ul>
-        </div>
-        <div class="aviso"><span>🗄️</span><div>Falta crear la tabla <code>pedidos_diseno</code> y cambiar el botón del manual para que, además de abrir WhatsApp, deje el pedido registrado. <b>Es el próximo paso</b>: el SQL lo preparo yo y lo corren desde Supabase.</div></div>
+        <div class="pd-tabs" id="pd-tabs"></div>
+        <div id="pd-lista"><div class="pv-vacio">Cargando pedidos…</div></div>
       </div>
 
       <div class="vista" id="v-piezas">
@@ -145,6 +137,7 @@ function montarPanel(cfg) {
   });
 
   renderPantallas('mapa', '');
+  pdCargar();
   document.getElementById('q').addEventListener('input', e => renderPantallas('mapa', e.target.value));
 
   // Herramientas del Hub: qué ve cada rol, leído de apps.js
@@ -166,4 +159,129 @@ function montarPanel(cfg) {
         </div>
       </section>`).join('');
   }
+}
+
+/* ── Bandeja de pedidos de diseño ───────────────────────────────────────────
+   Los pedidos los deja el manual cuando el vendedor toca "Pedir diseño".
+   Viven en el proyecto del manual, en la tabla pedidos_diseno.            */
+const PD_ESTADOS = [
+  { k:'nuevo',     n:'Nuevos',    color:'#c0392b' },
+  { k:'en_curso',  n:'En curso',  color:'#a9852a' },
+  { k:'listo',     n:'Listos',    color:'#2f6f5e' },
+  { k:'cancelado', n:'Cancelados',color:'#7a8891' },
+];
+const PD_TIPOS = { placa:'Placa', flyer:'Flyer', evento:'Diseño de evento', otro:'Otro' };
+
+let PD = [], _pdFiltro = 'nuevo', _pdSb = null;
+
+function pdSb() {
+  if (!_pdSb) _pdSb = supabase.createClient(
+    'https://fzaxwuuodseyyinveknn.supabase.co',
+    'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk');
+  return _pdSb;
+}
+const pdEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const pdFecha = d => { if (!d) return '—'; const x = new Date(d);
+  return String(x.getDate()).padStart(2,'0') + '/' + String(x.getMonth()+1).padStart(2,'0') + '/' + x.getFullYear(); };
+// "hace 3 días" dice más que una fecha cuando lo que importa es cuánto lleva esperando.
+function pdHace(d) {
+  if (!d) return '';
+  const dias = Math.floor((Date.now() - new Date(d)) / 86400000);
+  if (dias <= 0) return 'hoy';
+  if (dias === 1) return 'ayer';
+  return 'hace ' + dias + ' días';
+}
+
+async function pdCargar() {
+  const cont = document.getElementById('pd-lista');
+  if (!cont) return;
+  try {
+    const { data, error } = await pdSb().from('pedidos_diseno').select('*').order('created_at', { ascending:false });
+    if (error) throw error;
+    PD = data || [];
+  } catch (e) {
+    const falta = /does not exist|schema cache/i.test(e.message || '');
+    document.getElementById('pd-tabs').innerHTML = '';
+    cont.innerHTML = falta
+      ? `<div class="aviso"><span>🗄️</span><div>Todavía no está creada la tabla <code>pedidos_diseno</code>.
+           Corré <code>manual-vendedores/pedidos-diseno-setup.sql</code> en Supabase → proyecto del manual
+           (<code>fzaxwuuodseyyinveknn</code>) → SQL Editor, y recargá esta pantalla.</div></div>`
+      : `<div class="aviso"><span>⚠️</span><div>No pude leer los pedidos: ${pdEsc(e.message || e)}</div></div>`;
+    return;
+  }
+  pdRender();
+}
+
+function pdRender() {
+  const cuenta = k => PD.filter(p => (p.estado || 'nuevo') === k).length;
+  document.getElementById('pd-tabs').innerHTML =
+    PD_ESTADOS.map(e => `<button class="pd-tab ${_pdFiltro === e.k ? 'on' : ''}" onclick="pdFiltrar('${e.k}')">
+      <span class="pd-dot" style="background:${e.color}"></span>${e.n} <span class="pv-n">${cuenta(e.k)}</span></button>`).join('') +
+    `<button class="pd-tab ${_pdFiltro === 'todos' ? 'on' : ''}" onclick="pdFiltrar('todos')">Todos <span class="pv-n">${PD.length}</span></button>`;
+
+  const lista = _pdFiltro === 'todos' ? PD : PD.filter(p => (p.estado || 'nuevo') === _pdFiltro);
+  const cont = document.getElementById('pd-lista');
+  if (!lista.length) {
+    cont.innerHTML = `<div class="pv-vacio">${_pdFiltro === 'nuevo'
+      ? 'No hay pedidos nuevos. Cuando un vendedor pida diseño desde el manual, aparece acá.'
+      : 'No hay pedidos en este estado.'}</div>`;
+    return;
+  }
+
+  cont.innerHTML = lista.map(p => {
+    const est = PD_ESTADOS.find(e => e.k === (p.estado || 'nuevo')) || PD_ESTADOS[0];
+    const wa = p.cliente_whatsapp
+      ? `<a class="pd-b" href="https://wa.me/${pdEsc(String(p.cliente_whatsapp).replace(/\D/g,''))}" target="_blank" rel="noopener">💬 WhatsApp del cliente</a>` : '';
+    const pieza = p.pieza_url
+      ? `<a class="pd-b" href="${pdEsc(p.pieza_url)}" target="_blank" rel="noopener">🖼️ Ver pieza</a>` : '';
+    return `<article class="pd-card">
+      <div class="pd-top">
+        <span class="pd-est" style="background:${est.color}1a;color:${est.color}">${est.n.replace(/s$/,'')}</span>
+        <span class="pd-tipo">${pdEsc(PD_TIPOS[p.tipo] || p.tipo || 'Otro')}</span>
+        <span class="pd-cuando">${pdEsc(pdHace(p.created_at))} · ${pdEsc(pdFecha(p.created_at))}</span>
+      </div>
+      <div class="pd-cliente">${pdEsc(p.cliente_nombre || 'Sin cliente')}</div>
+      <div class="pd-quien">Lo pidió ${pdEsc(p.vendedor_nombre || '—')}${p.vendedor_codigo ? ' · ' + pdEsc(p.vendedor_codigo) : ''}${p.fecha_necesita ? ' · lo necesita para el ' + pdEsc(pdFecha(p.fecha_necesita)) : ''}</div>
+      ${p.detalle ? `<div class="pd-detalle">${pdEsc(p.detalle)}</div>` : ''}
+      ${p.nota ? `<div class="pd-detalle" style="color:var(--muted)">${pdEsc(p.nota)}</div>` : ''}
+      ${p.respuesta ? `<div class="pd-detalle" style="color:var(--green)">↳ ${pdEsc(p.respuesta)}</div>` : ''}
+      <div class="pd-acts">
+        ${p.estado !== 'en_curso' && p.estado !== 'listo' ? `<button class="pd-b" onclick="pdEstado('${p.id}','en_curso')">▶️ Tomarlo</button>` : ''}
+        ${p.estado !== 'listo' ? `<button class="pd-b ok" onclick="pdEstado('${p.id}','listo')">✅ Marcar listo</button>` : ''}
+        ${p.estado === 'listo' ? `<button class="pd-b" onclick="pdEstado('${p.id}','en_curso')">↩️ Reabrir</button>` : ''}
+        <button class="pd-b" onclick="pdAdjuntar('${p.id}')">🔗 Adjuntar pieza</button>
+        <button class="pd-b" onclick="pdResponder('${p.id}')">💬 Responder</button>
+        ${wa}${pieza}
+        ${p.estado !== 'cancelado' ? `<button class="pd-b danger" onclick="pdEstado('${p.id}','cancelado')">✕ Cancelar</button>` : ''}
+      </div>
+    </article>`;
+  }).join('');
+}
+
+function pdFiltrar(k) { _pdFiltro = k; pdRender(); }
+
+async function pdGuardar(id, campos) {
+  const { error } = await pdSb().from('pedidos_diseno').update(campos).eq('id', id);
+  if (error) { alert('No pude guardar: ' + error.message); return false; }
+  const p = PD.find(x => x.id === id);
+  if (p) Object.assign(p, campos);
+  pdRender();
+  return true;
+}
+function pdEstado(id, estado) {
+  const campos = { estado };
+  if (estado === 'listo') campos.entregado_en = new Date().toISOString();
+  pdGuardar(id, campos);
+}
+function pdAdjuntar(id) {
+  const p = PD.find(x => x.id === id) || {};
+  const url = prompt('Link de la pieza terminada (Drive, Canva, etc.):', p.pieza_url || '');
+  if (url === null) return;
+  pdGuardar(id, { pieza_url: url.trim() || null });
+}
+function pdResponder(id) {
+  const p = PD.find(x => x.id === id) || {};
+  const txt = prompt('Respuesta para el vendedor:', p.respuesta || '');
+  if (txt === null) return;
+  pdGuardar(id, { respuesta: txt.trim() || null });
 }

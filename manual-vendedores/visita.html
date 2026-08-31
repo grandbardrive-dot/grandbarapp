@@ -3452,13 +3452,29 @@ body { background:transparent !important; }
     showToast('Propuesta guardada en la visita');
   }
 
-  function evPedirDiseno() {
+  // El pedido queda registrado en la bandeja de Diseño Y se abre el WhatsApp. Si la
+  // tabla todavía no existe o falla la conexión, igual se abre el chat: el vendedor
+  // nunca se queda sin poder pedir.
+  async function evPedirDiseno() {
     const e = evEstado;
+    const detalle = `Evento para ${e.total} personas (${e.menores} menores). Flyers y piezas para el evento.`;
+    let guardado = false;
+    try {
+      const { error } = await sb.from('pedidos_diseno').insert({
+        vendedor_id: vendedor.id, vendedor_nombre: vendedor.nombre, vendedor_codigo: vendedor.codigo,
+        cliente_id: cliente.id, cliente_nombre: cliente.nombre, cliente_whatsapp: cliente.whatsapp || null,
+        tipo: 'evento', detalle, estado: 'nuevo',
+      });
+      guardado = !error;
+      if (error) console.warn('pedidos_diseno:', error.message);
+    } catch (err) { console.warn(err); }
+
+    showToast(guardado ? 'Pedido enviado a Diseño' : 'Se abre WhatsApp (el pedido no se pudo registrar)', guardado ? '' : 'error');
+
     const msg = `🎨 Pedido de diseño — EVENTO\n`
       + `Vendedor: ${vendedor.nombre}\n`
       + `Cliente: ${cliente.nombre}${cliente.whatsapp ? ' · ' + cliente.whatsapp : ''}\n`
-      + `Evento para ${e.total} personas (${e.menores} menores)\n`
-      + `Necesita: flyers y piezas para el evento.\n`
+      + `${detalle}\n`
       + `Por favor comunicarse con el cliente.`;
     window.open(`https://wa.me/${WA_MARKETING}?text=${encodeURIComponent(msg)}`, '_blank');
   }
