@@ -1935,16 +1935,40 @@ body { background:transparent !important; }
   // CARTA DEL CLIENTE — bloque s0 (no cuenta al contador) + modal foto/galería
   // Todo atado a cliente.id (cliente_id de la visita). Bucket Storage: Activaciones.
   // ══════════════════════════════════════════════════════════════════════════
-
   // Bloque destacado dentro de "Introducción & preparación"
+  // Un restaurante tiene "carta"; una vinoteca, un autoservicio o un mayorista tienen
+  // "catálogo". Es la misma función: solo cambia cómo se llama en cada rubro.
+  const MANUALES_CATALOGO = ['vinoteca', 'autoservicio', 'mayorista'];
+  const esCatalogo = () => MANUALES_CATALOGO.includes((typeof checklist !== 'undefined' && checklist) ? checklist.id : '');
+  const palCarta   = () => esCatalogo() ? 'catálogo' : 'carta';
+  const palCartas  = () => esCatalogo() ? 'catálogos' : 'cartas';
+  const palCartaC  = () => esCatalogo() ? 'Catálogo' : 'Carta';
+  const palCartasC = () => esCatalogo() ? 'Catálogos' : 'Cartas';
+
+  // Textos del modal, que en el HTML están escritos como "carta".
+  function ajustarTextosCarta() {
+    const set = (sel, txt) => { const e = document.querySelector(sel); if (e) e.textContent = txt; };
+    set('.carta-modal-title', '📖 ' + palCartaC() + ' del cliente');
+    set('#carta-listado .carta-section-label', palCartasC() + (esCatalogo() ? ' guardados' : ' guardadas') + ' de este cliente');
+    set('.carta-btn-agregar', '📷 Agregar foto de ' + palCarta());
+    set('.carta-analisis .carta-section-label', 'Productos ' + (esCatalogo() ? 'del catálogo' : 'de la carta'));
+    set('#carta-btn-analizar', '✨ Analizar ' + palCarta());
+    set('#carta-analizando', 'Analizando ' + palCarta() + '…');
+    const hint = document.querySelector('#carta-listado .carta-bloque-hint');
+    if (hint) hint.textContent = 'Podés sumar varias fotos (una por página).';
+  }
+
   function renderBloqueCarta() {
+    const hint = esCatalogo()
+      ? 'Sacá fotos del catálogo del cliente para tenerlo siempre a mano.'
+      : 'Sacá fotos de la carta del cliente para tenerla siempre a mano.';
     return `
       <div class="carta-bloque">
-        <span class="carta-bloque-title">📖 Carta del cliente</span>
+        <span class="carta-bloque-title">📖 ${palCartaC()} del cliente</span>
         <button class="carta-btn-abrir" onclick="abrirCartaModal()">
-          📖 Ver / cargar carta del cliente
+          📖 Ver / cargar ${palCarta()} del cliente
         </button>
-        <div class="carta-bloque-hint">Sacá fotos de la carta del restaurante para tenerla siempre a mano.</div>
+        <div class="carta-bloque-hint">${hint}</div>
       </div>`;
   }
 
@@ -1953,6 +1977,7 @@ body { background:transparent !important; }
     const modal = document.getElementById('carta-modal');
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
+    ajustarTextosCarta();                      // "carta" o "catálogo" según el rubro
     cerrarCartaGrande();                       // siempre arranca en la galería
     document.addEventListener('keydown', _cartaEscHandler);
     resetAnalisisUI();
@@ -1994,16 +2019,16 @@ body { background:transparent !important; }
       actualizarBotonAnalizar();
 
       if (!data || data.length === 0) {
-        wrap.innerHTML = '<div class="carta-vacio">Todavía no hay carta cargada para este cliente.</div>';
+        wrap.innerHTML = `<div class="carta-vacio">Todavía no hay ${palCarta()} cargado${esCatalogo()?'':'a'} para este cliente.</div>`;
         return;
       }
       wrap.innerHTML = `<div class="carta-galeria">${
-        data.map(c => `<img class="carta-thumb" src="${esc(c.foto_url)}" alt="Carta"
+        data.map(c => `<img class="carta-thumb" src="${esc(c.foto_url)}" alt="${palCartaC()}"
           onclick="abrirCartaGrande('${esc(c.foto_url)}')">`).join('')
       }</div>`;
     } catch (e) {
       console.warn('Cartas cliente load error:', e.message);
-      wrap.innerHTML = '<div class="carta-vacio">No se pudieron cargar las cartas. Reintentá.</div>';
+      wrap.innerHTML = `<div class="carta-vacio">No se pudieron cargar ${esCatalogo()?'los catálogos':'las cartas'}. Reintentá.</div>`;
     }
   }
 
@@ -2314,7 +2339,7 @@ body { background:transparent !important; }
     const comp  = total - gb;
     if (total) {
       resumen.style.display = 'block';
-      resumen.innerHTML = `<b>${total}</b> en carta · <span class="gb">${gb} de GrandBar</span> · <span class="comp">${comp} de competencia</span>`;
+      resumen.innerHTML = `<b>${total}</b> en ${esCatalogo()?'el catálogo':'carta'} · <span class="gb">${gb} de GrandBar</span> · <span class="comp">${comp} de competencia</span>`;
     } else {
       resumen.style.display = 'none';
     }
@@ -2528,8 +2553,11 @@ body { background:transparent !important; }
     cargarDatosClienteExtra();
     // Bloque "Carta del cliente": ahora vive en la ficha, debajo del WhatsApp.
     // Se muestra con el mismo alcance que antes (checklists que tienen la sección s0).
+    // Antes solo se mostraba si el manual tenía una sección con id 's0', que es el de
+    // Restaurantes: en Bares la introducción se llama distinto y el bloque nunca
+    // aparecía. Va en cualquier manual que tenga secciones.
     const slotCarta = document.getElementById('carta-ficha-slot');
-    if (slotCarta) slotCarta.innerHTML = checklist.secciones.some(s => s.id === 's0') ? renderBloqueCarta() : '';
+    if (slotCarta) slotCarta.innerHTML = (checklist.secciones || []).length ? renderBloqueCarta() : '';
     // Campari: si el checklist tiene la subsección sp_campari (restaurante), va ahí;
     // si no (vinotecas/autoservicios), fallback en la ficha para no perderlo.
     const slotCampari = document.getElementById('campari-ficha-slot');
