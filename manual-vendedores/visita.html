@@ -1938,7 +1938,7 @@ body { background:transparent !important; }
   // Bloque destacado dentro de "Introducción & preparación"
   // Un restaurante tiene "carta"; una vinoteca, un autoservicio o un mayorista tienen
   // "catálogo". Es la misma función: solo cambia cómo se llama en cada rubro.
-  const MANUALES_CATALOGO = ['vinoteca', 'autoservicio', 'mayorista'];
+  const MANUALES_CATALOGO = ['vinoteca'];
   const esCatalogo = () => MANUALES_CATALOGO.includes((typeof checklist !== 'undefined' && checklist) ? checklist.id : '');
   const palCarta   = () => esCatalogo() ? 'catálogo' : 'carta';
   const palCartas  = () => esCatalogo() ? 'catálogos' : 'cartas';
@@ -2553,11 +2553,13 @@ body { background:transparent !important; }
     cargarDatosClienteExtra();
     // Bloque "Carta del cliente": ahora vive en la ficha, debajo del WhatsApp.
     // Se muestra con el mismo alcance que antes (checklists que tienen la sección s0).
-    // Antes solo se mostraba si el manual tenía una sección con id 's0', que es el de
-    // Restaurantes: en Bares la introducción se llama distinto y el bloque nunca
-    // aparecía. Va en cualquier manual que tenga secciones.
+    // Dónde tiene sentido: en el ON, restaurantes y bares tienen CARTA; en el OFF, las
+    // vinotecas tienen CATÁLOGO. En el resto (hoteles, discos, autoservicios,
+    // mayoristas) el bloque no aparece.
+    const CON_CARTA = ['restaurante', 'bar', 'vinoteca'];
     const slotCarta = document.getElementById('carta-ficha-slot');
-    if (slotCarta) slotCarta.innerHTML = (checklist.secciones || []).length ? renderBloqueCarta() : '';
+    if (slotCarta) slotCarta.innerHTML =
+      ((checklist.secciones || []).length && CON_CARTA.includes(checklist.id)) ? renderBloqueCarta() : '';
     // Campari: si el checklist tiene la subsección sp_campari (restaurante), va ahí;
     // si no (vinotecas/autoservicios), fallback en la ficha para no perderlo.
     const slotCampari = document.getElementById('campari-ficha-slot');
