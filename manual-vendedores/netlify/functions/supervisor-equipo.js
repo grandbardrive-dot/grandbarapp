@@ -54,6 +54,9 @@ exports.handler = async (event) => {
     const cRes = await cob('cuentas_cubo?vendedor=in.(' + qvals(codigos) + ')&select=codigo,nombre,saldo,vencida,telefono,vendedor&order=nombre.asc');
     let clientes = await cRes.json();
     if (!Array.isArray(clientes)) clientes = [];
+    // La deuda vencida no puede superar el saldo neto: una nota de crédito / anticipo
+    // baja la deuda aunque el cubo viejo la dejara inflada. (Corrige la vista al toque.)
+    clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, Math.min(num(c.vencida), num(c.saldo))) }));
 
     // ¿drill-in de un vendedor puntual?
     const qp = event.queryStringParameters || {};

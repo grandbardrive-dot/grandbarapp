@@ -65,7 +65,7 @@ exports.handler = async (event) => {
           const rows = await (await cob('cuentas_cubo?select=saldo,vencida,vendedor&order=codigo.asc' + filtro + '&limit=' + page + '&offset=' + offset)).json();
           if (!Array.isArray(rows) || !rows.length) break;
           rows.forEach(c => {
-            clientes++; const s = num(c.saldo), v = num(c.vencida);
+            clientes++; const s = num(c.saldo), v = Math.max(0, Math.min(num(c.vencida), s)); // la vencida no puede superar el saldo neto (nota de crédito)
             saldo += s; vencida += v; if (v > 0) clientesVencidos++;
             const cod = String(c.vendedor || ''); if (!cod) return;
             if (!porVend[cod]) porVend[cod] = { codigo: cod, nombre: nombreDeCod[cod] || cod, clientes: 0, saldo: 0, vencida: 0 };

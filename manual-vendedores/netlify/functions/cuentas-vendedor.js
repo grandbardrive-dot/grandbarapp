@@ -56,6 +56,8 @@ exports.handler = async (event) => {
     if (!cRes.ok) return json(502, { error: 'Error leyendo cuentas_cubo: ' + (await cRes.text()).slice(0, 200) });
     let clientes = await cRes.json();
     if (!Array.isArray(clientes)) clientes = [];
+    // La deuda vencida no puede superar el saldo neto (una nota de crédito la cancela).
+    clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, Math.min(Number(c.vencida) || 0, Number(c.saldo) || 0)) }));
 
     // 4) Coordenadas + dirección desde clientes_geo (Supabase del Hub, service role).
     //    OJO: clientes_geo.codigo quedó numérico (sin ceros) → cruzamos por número.
