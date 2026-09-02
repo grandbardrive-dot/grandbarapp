@@ -338,11 +338,13 @@
     if(volverAtras && history.state && history.state.ficha) history.back();
   }
 
+  let _MAN=null; const mansb=()=>(_MAN||(_MAN=supabase.createClient(MANUAL.url,MANUAL.key)));
+  const _e=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+  let fichaTab='resumen';
+
   function selCliente(i){
-    sel = i; renderList(document.getElementById("q").value);
+    sel = i; fichaTab='resumen'; renderList(document.getElementById("q") ? document.getElementById("q").value : "");
     const c = CLIENTES[i];
-    const lv = ultimaVisita[c.id];
-    const sd = lookupSaldo(c);
     document.getElementById("detail").innerHTML = `
       <div class="d-head">
         <div class="num">${i+1}</div>
@@ -355,8 +357,37 @@
           <div class="d-act" onclick="comoLlegar(${i})"><div class="ci"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg></div>Cómo llegar</div>
         </div>
       </div>
-      <div class="d-tabs"><div class="d-tab on">Resumen</div><div class="d-tab">Historial</div><div class="d-tab">Documentos</div><div class="d-tab">Notas</div></div>
-      <div class="d-body">
+      <div class="d-tabs">
+        <div class="d-tab on" data-tab="resumen" onclick="setFichaTab('resumen')">Resumen</div>
+        <div class="d-tab" data-tab="historial" onclick="setFichaTab('historial')">Historial</div>
+        <div class="d-tab" data-tab="documentos" onclick="setFichaTab('documentos')">Documentos</div>
+        <div class="d-tab" data-tab="notas" onclick="setFichaTab('notas')">Notas</div>
+      </div>
+      <div class="d-body" id="d-content"></div>`;
+    renderFichaTab();
+    abrirFicha();   // en celular, la ficha se muestra como ventana
+  }
+  window.selCliente = selCliente;
+
+  function setFichaTab(t){
+    fichaTab=t;
+    document.querySelectorAll('#detail .d-tab').forEach(el=>el.classList.toggle('on', el.dataset.tab===t));
+    renderFichaTab();
+  }
+  window.setFichaTab = setFichaTab;
+
+  function renderFichaTab(){
+    const cont=document.getElementById('d-content'); if(!cont) return;
+    const c=CLIENTES[sel]; if(!c) return;
+    if(fichaTab==='resumen'){ cont.innerHTML=resumenHTML(sel); cargarVendido(c); }
+    else if(fichaTab==='historial'){ cont.innerHTML='<div class="d-block" id="histBox"><h4>Historial de visitas</h4><div class="v pend">Cargando…</div></div>'; cargarHistorial(c); }
+    else if(fichaTab==='notas'){ cont.innerHTML='<div class="d-block" id="notasBox">Cargando…</div>'; cargarNotas(c); }
+    else if(fichaTab==='documentos'){ cont.innerHTML='<div class="d-block"><h4>Documentos</h4><div class="v pend">Próximamente: subí acá archivos del cliente (foto del local, PDFs, comprobantes).</div></div>'; }
+  }
+
+  function resumenHTML(i){
+    const c=CLIENTES[i], lv=ultimaVisita[c.id], sd=lookupSaldo(c);
+    return `
         <div class="d-block">
           <h4>Información general</h4>
           <div class="kv">
@@ -390,19 +421,62 @@
           <h4>Última visita</h4>
           <div class="v ${lv?'':'pend'}">${lv? fmtFecha(lv) : "Sin visitas registradas"}</div>
         </div>
-        <button class="btn-visit" onclick="agregarVisita(${i})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M12 11v4M10 13h4"/></svg> Agregar visita</button>
-      </div>`;
-    // Lo vendido a este cliente sale de la planilla de ventas (cruce por código).
-    if(window.GBVentas){
-      GBVentas.deCliente(c.codigo_cliente).then(monto=>{
-        const el=document.getElementById("dVendido"); if(!el) return;
-        if(monto!=null){ el.textContent = GBVentas.formato(monto); el.className = "v"; el.style.color = "var(--green-d)"; }
-        else { el.textContent = "Sin ventas en la planilla"; el.className = "v pend"; }
-      }).catch(()=>{ const el=document.getElementById("dVendido"); if(el){ el.textContent="—"; el.className="v pend"; } });
-    }
-    abrirFicha();   // en celular, la ficha se muestra como ventana
+        <button class="btn-visit" onclick="agregarVisita(${i})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M12 11v4M10 13h4"/></svg> Agregar visita</button>`;
   }
-  window.selCliente = selCliente;
+
+  function cargarVendido(c){
+    if(!window.GBVentas) return;
+    GBVentas.deCliente(c.codigo_cliente).then(monto=>{
+      const el=document.getElementById("dVendido"); if(!el) return;
+      if(monto!=null){ el.textContent = GBVentas.formato(monto); el.className = "v"; el.style.color = "var(--green-d)"; }
+      else { el.textContent = "Sin ventas en la planilla"; el.className = "v pend"; }
+    }).catch(()=>{ const el=document.getElementById("dVendido"); if(el){ el.textContent="—"; el.className="v pend"; } });
+  }
+
+  async function cargarHistorial(c){
+    const box=document.getElementById('histBox'); if(!box) return;
+    try{
+      const { data } = await mansb().from('visitas').select('*').eq('cliente_id', c.id).order('fecha',{ascending:false}).limit(60);
+      const vis=data||[];
+      if(!vis.length){ box.innerHTML='<h4>Historial de visitas</h4><div class="v pend">Todavía no hay visitas registradas para este cliente.</div>'; return; }
+      box.innerHTML='<h4>Historial de visitas ('+vis.length+')</h4>'+vis.map(v=>{
+        const f=fmtFecha(v.fecha)||_e(v.fecha||'');
+        const desc=v.objetivo||v.resultado||v.notas||v.observaciones||v.detalle||'';
+        return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-2)"><div style="min-width:82px;font-weight:800;font-size:12.5px">${f}</div><div style="flex:1;font-size:13px">${desc?_e(desc):'<span style="color:var(--muted)">Visita registrada</span>'}</div></div>`;
+      }).join('');
+    }catch(e){ box.innerHTML='<h4>Historial de visitas</h4><div class="v pend">No se pudo cargar el historial.</div>'; }
+  }
+
+  async function cargarNotas(c){
+    const box=document.getElementById('notasBox'); if(!box) return;
+    box.innerHTML=`<h4>Notas del cliente</h4>
+      <textarea id="notaNueva" placeholder="Escribí una nota sobre este cliente…" style="width:100%;min-height:66px;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:14px;background:#fdfbf7"></textarea>
+      <button class="btn-visit" style="margin-top:8px" onclick="guardarNota()">＋ Agregar nota</button>
+      <div id="notasLista" style="margin-top:14px"><div class="v pend">Cargando…</div></div>`;
+    listarNotas(c);
+  }
+  async function listarNotas(c){
+    const box=document.getElementById('notasLista'); if(!box) return;
+    try{
+      const { data, error } = await mansb().from('cliente_notas').select('*').eq('cliente_id', String(c.id)).order('created_at',{ascending:false}).limit(100);
+      if(error) throw error;
+      const ns=data||[];
+      if(!ns.length){ box.innerHTML='<div class="v pend">Sin notas todavía. Escribí la primera arriba.</div>'; return; }
+      box.innerHTML=ns.map(n=>`<div style="background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px"><div style="font-size:13.5px;white-space:pre-wrap">${_e(n.texto)}</div><div style="font-size:11px;color:var(--muted);margin-top:5px">${_e(n.autor||'')}${n.created_at?' · '+(fmtFecha(n.created_at)||''):''}</div></div>`).join('');
+    }catch(e){ box.innerHTML='<div class="v pend">No se pudieron cargar las notas.<br><span style="font-size:11px">Falta correr el SQL de <code>cliente_notas</code>.</span></div>'; }
+  }
+  async function guardarNota(){
+    const c=CLIENTES[sel]; if(!c) return;
+    const ta=document.getElementById('notaNueva'); const txt=(ta.value||'').trim(); if(!txt) return;
+    ta.disabled=true;
+    try{
+      const { error } = await mansb().from('cliente_notas').insert({ cliente_id:String(c.id), codigo:c.codigo_cliente||null, texto:txt, autor:(c.vendedor_nombre||vendedorNombre) });
+      if(error) throw error;
+      ta.value=''; listarNotas(c);
+    }catch(e){ alert('No se pudo guardar la nota. ¿Corriste el SQL de cliente_notas?'); }
+    finally{ ta.disabled=false; }
+  }
+  window.guardarNota = guardarNota;
 
   // ── Acciones de la ficha ────────────────────────────────────────────────────
   // Estaban dibujadas pero sin nada atrás: tocarlas no hacía nada.
