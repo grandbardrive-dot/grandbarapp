@@ -27,6 +27,7 @@ const PANEL_HERRAMIENTAS = [
 const PANEL_VISTAS = [
   { k:'mapa',         i:'🗺️', n:'Mapa de pantallas' },
   { k:'pedidos',      i:'🎨', n:'Pedidos de diseño' },
+  { k:'portadas',     i:'📕', n:'Portadas del catálogo' },
   { k:'piezas',       i:'🖼️', n:'Biblioteca de piezas' },
   { k:'usuarios',     i:'👤', n:'Usuarios y roles' },
   { k:'herramientas', i:'🧩', n:'Herramientas del Hub' },
@@ -82,6 +83,10 @@ function montarPanel(cfg) {
         <div id="pd-lista"><div class="pv-vacio">Cargando pedidos…</div></div>
       </div>
 
+      <div class="vista" id="v-portadas">
+        <div id="portadas"><div class="pv-vacio">Cargando portadas…</div></div>
+      </div>
+
       <div class="vista" id="v-piezas">
         <div class="en-obra">
           <h3>Biblioteca de piezas</h3>
@@ -134,6 +139,7 @@ function montarPanel(cfg) {
   document.getElementById('q').addEventListener('input', e => renderPantallas('mapa', e.target.value));
 
   hhCargar();
+  poCargar();
   usCargar();
 }
 
@@ -518,4 +524,117 @@ function usRol(id, rol, sel) {
     }
   }
   usGuardar(id, { rol });
+}
+
+/* ── Portadas del catálogo público ──────────────────────────────────────────
+   catalogoon.com / catalogooff.com son un sitio aparte. Antes, cambiar la
+   portada era reemplazar el archivo y volver a subir la carpeta entera a
+   Netlify. Ahora la imagen se sube acá, va al depósito del catálogo y su
+   dirección queda guardada en catalogo_config (portada_on / portada_off /
+   portada_mayorista). El sitio la lee al abrir.                            */
+const CAT_URL = 'https://zlwnoqdxendsgbfvfyue.supabase.co';
+const CAT_KEY = 'sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4';
+const CAT_BUCKET = 'Activaciones';
+const PORTADAS = [
+  { k:'on',        n:'Catálogo ON',        d:'Restaurantes, bares y hoteles', web:'https://catalogoon.com' },
+  { k:'off',       n:'Catálogo OFF',       d:'Vinotecas y autoservicios',     web:'https://catalogooff.com' },
+  { k:'mayorista', n:'Catálogo Mayorista', d:'Puntos de venta al público',    web:'https://catalogoon.com/mayorista/' },
+];
+let PO = {}, _poSb = null;
+
+function poSb() {
+  if (!_poSb) _poSb = supabase.createClient(CAT_URL, CAT_KEY);
+  return _poSb;
+}
+
+async function poCargar() {
+  const cont = document.getElementById('portadas');
+  if (!cont) return;
+  try {
+    const { data, error } = await poSb().from('catalogo_config').select('clave, valor');
+    if (error) throw error;
+    PO = {};
+    (data || []).forEach(r => { PO[r.clave] = r.valor; });
+  } catch (e) {
+    cont.innerHTML = `<div class="aviso"><span>⚠️</span><div>No pude leer la configuración del catálogo: ${hhEsc(e.message || e)}</div></div>`;
+    return;
+  }
+  poRender();
+}
+
+function poRender() {
+  document.getElementById('portadas').innerHTML = `
+    <div class="aviso"><span>📕</span><div>Subís la imagen y el catálogo la muestra al toque: <b>no hay que volver a subir la carpeta a Netlify</b>.
+      Conviene una imagen apaisada y liviana (menos de 1 MB) — es lo primero que ve el cliente y tiene que abrir rápido en el celular.</div></div>
+    ${PORTADAS.map(p => {
+      const url = (PO['portada_' + p.k] || '').trim();
+      return `<article class="hh" id="po-${p.k}">
+        <div class="hh-top">
+          <span class="hh-ico">📕</span>
+          <div class="hh-nom">${p.n}</div>
+          <a class="pd-b" href="${p.web}" target="_blank" rel="noopener">Ver el sitio ↗</a>
+        </div>
+        <div class="hh-desc">${p.d}</div>
+        <div class="po-preview">
+          ${url
+            ? `<img src="${hhEsc(url)}" alt="Portada ${p.n}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'po-rota',textContent:'No se pudo mostrar la imagen guardada.'}))">`
+            : `<div class="po-rota">Todavía usa la portada que vino en la carpeta del sitio.</div>`}
+        </div>
+        <div class="po-acts">
+          <input type="file" accept="image/*" id="po-file-${p.k}" style="display:none" onchange="poSubir('${p.k}', this)">
+          <button class="pd-b ok" onclick="document.getElementById('po-file-${p.k}').click()">📤 Subir portada nueva</button>
+          ${url ? `<button class="pd-b" onclick="poQuitar('${p.k}')">↩️ Volver a la del sitio</button>` : ''}
+          <span class="po-estado" id="po-msg-${p.k}"></span>
+        </div>
+      </article>`;
+    }).join('')}`;
+}
+
+async function poSubir(canal, input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  const msg = document.getElementById('po-msg-' + canal);
+  const decir = (t, err) => { if (msg) { msg.textContent = t; msg.className = 'po-estado' + (err ? ' err' : ''); } };
+
+  if (!/^image\//.test(file.type)) { decir('Eso no es una imagen.', true); return; }
+  // 5 MB es muchísimo para una portada: avisa, pero deja seguir.
+  if (file.size > 5 * 1024 * 1024) {
+    if (!confirm('La imagen pesa ' + (file.size / 1048576).toFixed(1) + ' MB.\n\nEn el celular va a tardar en abrir. ¿La subo igual?')) return;
+  }
+  decir('Subiendo…');
+
+  try {
+    const ext  = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const path = `catalogo/portadas/${canal}-${Date.now()}.${ext}`;
+    const up = await poSb().storage.from(CAT_BUCKET).upload(path, file, { upsert: true, contentType: file.type });
+    if (up.error) throw up.error;
+    const { data } = poSb().storage.from(CAT_BUCKET).getPublicUrl(path);
+    const url = data.publicUrl;
+
+    // upsert: la fila puede no existir todavía (la primera vez).
+    const r = await poSb().from('catalogo_config')
+      .upsert({ clave: 'portada_' + canal, valor: url, updated_at: new Date().toISOString() }, { onConflict: 'clave' })
+      .select();
+    if (r.error) throw r.error;
+    if (!r.data || !r.data.length) throw new Error('No se guardó la dirección de la imagen.');
+
+    PO['portada_' + canal] = url;
+    poRender();
+    const m2 = document.getElementById('po-msg-' + canal);
+    if (m2) { m2.textContent = 'Listo, ya está publicada.'; m2.className = 'po-estado ok'; }
+  } catch (e) {
+    decir('No se pudo subir: ' + (e.message || e), true);
+  }
+}
+
+// Vuelve a la portada que viene en la carpeta del sitio (/assets/portada.jpg).
+async function poQuitar(canal) {
+  if (!confirm('El catálogo va a volver a mostrar la portada que viene en la carpeta del sitio.\n\n¿Seguir?')) return;
+  const r = await poSb().from('catalogo_config')
+    .upsert({ clave: 'portada_' + canal, valor: '', updated_at: new Date().toISOString() }, { onConflict: 'clave' })
+    .select();
+  if (r.error) { alert('No pude guardar: ' + r.error.message); return; }
+  PO['portada_' + canal] = '';
+  poRender();
 }
