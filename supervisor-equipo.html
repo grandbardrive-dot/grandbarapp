@@ -145,7 +145,7 @@
       <div id="viewVend"><div class="vgrid" id="vgrid"><div class="loading">Cargando…</div></div></div>
 
       <div id="viewCli" style="display:none">
-        <div class="toolbar"><input id="buscar" placeholder="Buscar cliente, vendedor o dirección…" oninput="renderClientes()" /></div>
+        <div class="toolbar"><input id="buscar" placeholder="Buscar por nombre, código, vendedor o dirección…" oninput="renderClientes()" /></div>
         <div class="clist" id="clist"><div class="loading">Tocá la pestaña para cargar…</div></div>
       </div>
 
@@ -264,7 +264,7 @@
   function renderClientes(){
     const cont=document.getElementById('clist'); if(CLIENTES===null) return;
     const q=(document.getElementById('buscar').value||'').toLowerCase().trim();
-    const list = CLIENTES.filter(c=>!q || ((c.nombre||'')+' '+(c.vendedor_nombre||'')+' '+(c.direccion||'')).toLowerCase().includes(q));
+    const list = CLIENTES.filter(c=>!q || ((c.nombre||'')+' '+(c.vendedor_nombre||'')+' '+(c.direccion||'')+' '+(c.codigo||'')+' '+(c.localidad||'')).toLowerCase().includes(q));
     if(!list.length){ cont.innerHTML='<div class="empty">Sin resultados.</div>'; return; }
     cont.innerHTML = list.slice(0,400).map(c=>`
       <div class="crow">
