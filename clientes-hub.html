@@ -72,7 +72,12 @@
     .stat .sub.pend{color:var(--muted)}
 
     .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-    .pill{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer}
+    .pill{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;user-select:none}
+    .pill:hover{border-color:var(--gold)}
+    .cdrop{position:absolute;z-index:60;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px rgba(13,34,48,.16);padding:5px;max-height:60vh;overflow:auto}
+    .cdrop button{display:flex;width:100%;align-items:center;gap:8px;background:none;border:0;text-align:left;padding:9px 12px;border-radius:8px;font:inherit;font-size:13.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
+    .cdrop button:hover{background:var(--cream)}
+    .cdrop button.on{font-weight:800;color:var(--gold-d);background:var(--gold-soft)}
     .toolbar .spacer{flex:1}
 
     .layout{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;align-items:start}
@@ -194,10 +199,10 @@
       <div id="modo" style="display:none;background:var(--gold-soft);border:1px solid #e5d3a3;border-radius:10px;padding:10px 14px;font-size:13px;color:#7a5a12;margin-bottom:14px"></div>
 
       <div class="toolbar">
-        <div class="pill">Todos los clientes <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
-        <div class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</div>
+        <div class="pill" id="fDeudaBtn" onclick="menuDeuda(event)"><span class="pl">Todos los clientes</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="pill" id="fDimBtn" onclick="menuDim(event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> <span class="pl">Filtros</span></div>
         <div class="spacer"></div>
-        <div class="pill" id="sortBtn">Ordenar: Nombre A-Z <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div class="pill" id="sortBtn" onclick="menuSort(event)"><span class="pl">Ordenar: Nombre A-Z</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
       </div>
 
       <div class="layout">
@@ -238,19 +243,70 @@
 
   function fmtFecha(iso){ if(!iso) return null; const d=new Date(iso); return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 
+  // Estado de los filtros/orden de la barra.
+  let fDeuda='todos', fDim='', _dimKey='tipo', orden='az';
   function renderList(filter){
-    const q = (filter||"").toLowerCase();
-    const rows = CLIENTES
-      .map((c,i)=>({c,i}))
-      .filter(({c}) => !q || (c.nombre+" "+c.direccion+" "+c.tipo).toLowerCase().includes(q));
-    document.getElementById("list").innerHTML = rows.map(({c,i})=>{
+    const qEl=document.getElementById("q");
+    const q = (filter!=null ? filter : (qEl?qEl.value:"")).toLowerCase().trim();
+    let rows = CLIENTES.map((c,i)=>({c,i}))
+      .filter(({c}) => !q || ((c.nombre||"")+" "+(c.direccion||"")+" "+(c.tipo||"")+" "+(c.vendedor_nombre||"")+" "+(c.codigo_cliente||"")).toLowerCase().includes(q))
+      .filter(({c}) => {
+        if (fDeuda==='todos') return true;
+        const sd=lookupSaldo(c)||{}; const v=Number(sd.vencida)||0, s=Number(sd.saldo)||0;
+        if (fDeuda==='vencida') return v>0;
+        if (fDeuda==='deuda')   return s>0;
+        if (fDeuda==='aldia')   return !(s>0);
+        return true;
+      })
+      .filter(({c}) => !fDim || String(c[_dimKey]||"").trim()===fDim);
+    rows.sort((A,B)=>{
+      const a=A.c, b=B.c;
+      if (orden==='za') return (b.nombre||"").localeCompare(a.nombre||"");
+      if (orden==='deuda'){ const va=Number((lookupSaldo(a)||{}).vencida)||0, vb=Number((lookupSaldo(b)||{}).vencida)||0; return vb-va; }
+      if (orden==='visita'){ return String(ultimaVisita[b.id]||"").localeCompare(String(ultimaVisita[a.id]||"")); }
+      return (a.nombre||"").localeCompare(b.nombre||"");
+    });
+    document.getElementById("list").innerHTML = rows.map(({c,i},pos)=>{
       const lv = ultimaVisita[c.id] ? `Última visita<br>${fmtFecha(ultimaVisita[c.id])}` : "";
       return `<div class="crow ${i===sel?'sel':''}" onclick="selCliente(${i})">
-        <div class="n">${i+1}</div>
+        <div class="n">${pos+1}</div>
         <div><div class="nm">${c.nombre}</div><div class="meta">${c.vendedor_nombre ? c.vendedor_nombre+(c.direccion?' · '+c.direccion:'') : cap(c.tipo)+(c.direccion? ' · '+c.direccion:'')}</div></div>
         <div class="right"><div class="lv">${lv}</div><span class="badge">Activo</span></div>
       </div>`;
     }).join("") + `<div class="list-foot">${rows.length} de ${CLIENTES.length} clientes</div>`;
+  }
+
+  // ── Menús de la barra (deuda / filtro / orden) ──
+  function _cerrarDrops(){ document.querySelectorAll('.cdrop').forEach(d=>d.remove()); }
+  document.addEventListener('click', e=>{ if(!e.target.closest('.cdrop') && !e.target.closest('.pill')) _cerrarDrops(); });
+  function _pill(id,txt){ const el=document.querySelector('#'+id+' .pl'); if(el) el.textContent=txt; }
+  function _drop(ev, items, cur, pick){
+    _cerrarDrops();
+    const anchor = ev.currentTarget || ev.target.closest('.pill');
+    const d=document.createElement('div'); d.className='cdrop';
+    d.innerHTML=items.map(it=>`<button data-v="${encodeURIComponent(it.v)}" class="${it.v===cur?'on':''}">${it.l}</button>`).join('');
+    document.body.appendChild(d);
+    const r=anchor.getBoundingClientRect();
+    let left=window.scrollX+r.left; const w=Math.min(220,Math.max(180,r.width));
+    if(left+w>window.scrollX+window.innerWidth-8) left=window.scrollX+window.innerWidth-w-8;
+    d.style.left=left+'px'; d.style.top=(window.scrollY+r.bottom+6)+'px'; d.style.minWidth=w+'px';
+    d.querySelectorAll('button').forEach(b=>b.onclick=()=>{ _cerrarDrops(); pick(decodeURIComponent(b.dataset.v)); });
+  }
+  function menuDeuda(ev){
+    const L={todos:'Todos los clientes',vencida:'Con deuda vencida',deuda:'Con saldo pendiente',aldia:'Al día'};
+    _drop(ev, Object.keys(L).map(v=>({v,l:L[v]})), fDeuda, v=>{ fDeuda=v; _pill('fDeudaBtn',L[v]); sel=-1; renderList(); });
+  }
+  function menuDim(ev){
+    const useVend = CLIENTES.some(c=>c.vendedor_nombre);
+    _dimKey = useVend ? 'vendedor_nombre' : 'tipo';
+    const vals=[...new Set(CLIENTES.map(c=>String(c[_dimKey]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    if(!vals.length){ _drop(ev,[{v:'',l:'(sin datos para filtrar)'}],'',()=>{}); return; }
+    const items=[{v:'',l:useVend?'Todos los vendedores':'Todos los rubros'}].concat(vals.map(v=>({v,l:useVend?v:cap(v)})));
+    _drop(ev, items, fDim, v=>{ fDim=v; _pill('fDimBtn', v?(useVend?v:cap(v)):'Filtros'); sel=-1; renderList(); });
+  }
+  function menuSort(ev){
+    const L={az:'Nombre A-Z',za:'Nombre Z-A',deuda:'Más deuda vencida',visita:'Última visita'};
+    _drop(ev, Object.keys(L).map(v=>({v,l:L[v]})), orden, v=>{ orden=v; _pill('sortBtn','Ordenar: '+L[v]); sel=-1; renderList(); });
   }
 
   // ── Ficha como ventana en el celular ────────────────────────────────────────
