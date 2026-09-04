@@ -558,27 +558,60 @@ function manualDe(tipo) {
   return MANUAL_POR_TIPO[t] || 'restaurante';   // sin mapeo (mayorista, otros…) → Restaurantes
 }
 
-async function getChecklistDynamic(tipo) {
+// La zona sale del vendedor logueado (el login guarda su ficha completa). Mendoza es
+// el default: si un vendedor no tiene zona cargada, ve el manual de siempre.
+function zonaActual() {
+  try {
+    const v = JSON.parse(sessionStorage.getItem('vendedor') || '{}');
+    const z = String(v.zona || '').trim().toLowerCase();
+    return z === 'sanluis' ? 'sanluis' : 'mendoza';
+  } catch (e) { return 'mendoza'; }
+}
+
+async function getChecklistDynamic(tipo, zonaPedida) {
   const canal = manualDe(tipo);
+  const zona  = zonaPedida || zonaActual();
+  const clave = canal + '|' + zona;
 
   // Devolver cache si ya se cargó
-  if (_clCache[canal]) return _clCache[canal];
+  if (_clCache[clave]) return _clCache[clave];
+
+  // Trae las secciones de esa zona. San Luis que todavía no tenga nada cargado para
+  // ese rubro cae en las de Mendoza, para que el vendedor no se quede sin manual
+  // mientras se está armando.
+  //
+  // Si la columna `zona` todavía no existe (falta correr zona-sanluis-setup.sql),
+  // se consulta sin ella: así el manual sigue andando igual que antes en vez de
+  // quedar en blanco por un cambio que todavía no se aplicó en la base.
+  let _sinColumnaZona = false;
+  async function traer(z) {
+    if (!_sinColumnaZona) {
+      const r = await sb.from('checklist_secciones').select('*')
+        .eq('canal', canal).eq('zona', z).eq('activa', true).order('orden');
+      if (r.error && /column .*zona.* does not exist/i.test(r.error.message || '')) {
+        _sinColumnaZona = true;                       // no reintentar en cada llamada
+        console.warn('[checklist] Falta la columna zona: se usa el manual único.');
+      } else {
+        return (r.error || !r.data?.length) ? null : r.data;
+      }
+    }
+    if (z !== 'mendoza') return null;                 // sin columna, hay un solo manual
+    const r2 = await sb.from('checklist_secciones').select('*')
+      .eq('canal', canal).eq('activa', true).order('orden');
+    return (r2.error || !r2.data?.length) ? null : r2.data;
+  }
 
   try {
-    const { data: secciones, error } = await sb
-      .from('checklist_secciones')
-      .select('*')
-      .eq('canal', canal)
-      .eq('activa', true)
-      .order('orden');
+    let secciones = await traer(zona);
+    if (!secciones && zona !== 'mendoza') secciones = await traer('mendoza');
 
     // Si falla (tablas no existen) o no hay datos → fallback.
     // Rubros con checklist hardcodeado (restaurante/vinoteca/autoservicio) usan ese;
     // los rubros separados sin secciones cargadas (hotel/bar/disco/mayorista) se muestran
     // VACÍOS — NO caen al manual de Restaurantes.
-    if (error || !secciones?.length) {
-      _clCache[canal] = CHECKLISTS[canal] || { id: canal, label: RUBRO_LABELS[canal] || canal, heroSubtitulo: '', secciones: [] };
-      return _clCache[canal];
+    if (!secciones) {
+      _clCache[clave] = CHECKLISTS[canal] || { id: canal, label: RUBRO_LABELS[canal] || canal, heroSubtitulo: '', secciones: [] };
+      return _clCache[clave];
     }
 
     const secIds = secciones.map(s => s.id);
@@ -659,19 +692,20 @@ async function getChecklistDynamic(tipo) {
       secciones:     topLevel,
     };
 
-    _clCache[canal] = result;
+    _clCache[clave] = result;
     return result;
 
   } catch(e) {
     console.warn('[checklist] Fallback a datos hardcodeados:', e.message);
-    _clCache[canal] = getChecklist(tipo);
-    return _clCache[canal];
+    _clCache[clave] = getChecklist(tipo);
+    return _clCache[clave];
   }
 }
 
-// Invalidar cache (llamar después de editar en admin)
+// Invalidar cache (llamar después de editar en admin). La cache va por canal+zona,
+// así que borrar un canal borra sus dos zonas.
 function invalidarCacheChecklist(canal) {
-  if (canal) delete _clCache[canal];
+  if (canal) Object.keys(_clCache).forEach(k => { if (k === canal || k.startsWith(canal + '|')) delete _clCache[k]; });
   else Object.keys(_clCache).forEach(k => delete _clCache[k]);
 }
 

@@ -74,6 +74,12 @@
   .btn-new{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none;border-radius:13px;padding:14px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:var(--shadow);white-space:nowrap}
   .btn-new svg{width:20px;height:20px;color:var(--gold)}
 
+  /* Selector de zona (Mendoza / San Luis) */
+  .zona-tabs{display:inline-flex;gap:0;margin-top:22px;border:1.5px solid var(--line-2);border-radius:12px;overflow:hidden;background:var(--surface)}
+  .zona-tab{background:none;border:none;padding:10px 20px;font-family:inherit;font-size:13.5px;font-weight:700;color:var(--ink3);cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .zona-tab+.zona-tab{border-left:1.5px solid var(--line-2)}
+  .zona-tab:hover{background:var(--surface2);color:var(--ink)}
+  .zona-tab.on{background:var(--navy);color:#fff}
   .canal-tabs{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
   .canal-tab{display:inline-flex;align-items:center;gap:9px;border:1.5px solid var(--line-2);background:var(--surface);border-radius:12px;padding:11px 18px;font-size:13.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit}
   .canal-tab.on{background:var(--navy);border-color:var(--navy);color:#fff}
@@ -211,6 +217,7 @@
         <button class="btn-new" onclick="abrirNueva(null)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nueva sección</button>
       </div>
 
+      <div class="zona-tabs" id="zona-tabs"></div>
       <div class="canal-tabs" id="canal-tabs"></div>
 
       <!-- Cada canal tiene SU manual: sin esto se edita uno y se mira el otro. -->
@@ -295,14 +302,15 @@
   ];
   const EMOJIS=['📋','🍷','🥃','🍾','🍺','☕','📦','📅','🏷','🪟','🏝️','🧊','🏆','⭐','🔄','📷','✅','🎁'];
 
-  let canal='restaurante', SECS=[], ITEMS={}, USOS={};
+  let canal='restaurante', zona='mendoza', SECS=[], ITEMS={}, USOS={};
+  const ZONAS=[{id:'mendoza',label:'Mendoza',ico:'🍇'},{id:'sanluis',label:'San Luis',ico:'⛰️'}];
   let edit=null;        // fila que se está editando (null = alta)
   let padre=null;       // madre cuando se crea una subsección
   let colorSel=0;
 
   async function cargar(){
     const [secRes, accRes] = await Promise.all([
-      sb.from('checklist_secciones').select('*').eq('canal',canal).order('orden'),
+      sb.from('checklist_secciones').select('*').eq('canal',canal).eq('zona',zona).order('orden'),
       sb.from('acciones_mensuales').select('seccion_checklist'),
     ]);
     SECS = secRes.data || [];
@@ -325,16 +333,74 @@
   const canalActual = () => CANALES.find(c=>c.id===canal) || CANALES[0];
   const otroCanal   = () => CANALES.find(c=>c.id!==canal) || CANALES[1];
 
+  const zonaActual = () => ZONAS.find(z=>z.id===zona) || ZONAS[0];
+
   function renderTabs(){
+    document.getElementById('zona-tabs').innerHTML = ZONAS.map(z=>
+      `<button class="zona-tab ${z.id===zona?'on':''}" onclick="cambiarZona('${z.id}')">${z.ico} ${esc(z.label)}</button>`).join('');
     document.getElementById('canal-tabs').innerHTML = CANALES.map(c=>
       `<button class="canal-tab ${c.id===canal?'on':''}" onclick="cambiarCanal('${c.id}')">${c.ico} ${esc(c.label)}</button>`).join('');
-    const a=canalActual();
-    const otros=CANALES.filter(c=>c.id!==canal).map(c=>c.label).join(' ni el de ');
+    const a=canalActual(), z=zonaActual();
+    const otraZona = ZONAS.find(x=>x.id!==zona);
     document.getElementById('canal-actual').innerHTML =
-      `<span class="ico">${a.ico}</span><div>Estás editando el manual de <b>${esc(a.label)}</b>.
-       Lo que agregues, muevas o borres acá <b>no</b> toca el de ${esc(otros)} — cada uno tiene sus propias secciones.</div>`;
+      `<span class="ico">${a.ico}</span><div>Estás editando el manual de <b>${esc(a.label)}</b> de <b>${esc(z.label)}</b>.
+       Lo que hagas acá no toca el de ${esc(otraZona.label)} ni el de los otros rubros — cada combinación tiene sus propias secciones.</div>`;
   }
   function cambiarCanal(c){ canal=c; document.getElementById('lista').innerHTML='<div class="empty">Cargando…</div>'; cargar(); }
+  function cambiarZona(z){ zona=z; document.getElementById('lista').innerHTML='<div class="empty">Cargando…</div>'; cargar(); }
+
+  // Copia el ARMADO del manual de Mendoza a la zona actual: secciones madre, sus
+  // subsecciones y sus ítems. Solo la estructura y los textos de arranque; después
+  // se editan acá sin tocar Mendoza. No pisa nada: solo corre si la zona está vacía.
+  async function copiarDeMendoza(){
+    if(SECS.length){ alert('Esta zona ya tiene secciones. Copiar solo sirve cuando está vacía.'); return; }
+    if(!confirm('Se van a copiar las secciones e ítems de '+canalActual().label+' de Mendoza a '+zonaActual().label+'.\n\nDespués les cambiás el contenido acá. El manual de Mendoza no se toca.\n\n¿Seguir?')) return;
+
+    const btn = document.querySelector('.empty .ab'); if(btn){ btn.disabled=true; btn.textContent='Copiando…'; }
+    try{
+      const { data:origen, error:e1 } = await sb.from('checklist_secciones')
+        .select('*').eq('canal',canal).eq('zona','mendoza').order('orden');
+      if(e1) throw e1;
+      if(!origen || !origen.length){ alert('Mendoza tampoco tiene secciones en este rubro, así que no hay nada para copiar.'); return; }
+
+      // Primero las madres, para tener sus id nuevos y poder colgarles las hijas.
+      const madresO = origen.filter(s=>!s.parent_id);
+      const hijasO  = origen.filter(s=>s.parent_id);
+      const mapa    = {};                 // id viejo → id nuevo
+
+      const limpiar = s => { const {id, created_at, ...r} = s; r.zona = zona; return r; };
+
+      for(const m of madresO){
+        const { data, error } = await sb.from('checklist_secciones').insert(limpiar(m)).select().single();
+        if(error) throw error;
+        mapa[m.id] = data.id;
+      }
+      for(const h of hijasO){
+        const fila = limpiar(h);
+        fila.parent_id = mapa[h.parent_id] || null;
+        const { data, error } = await sb.from('checklist_secciones').insert(fila).select().single();
+        if(error) throw error;
+        mapa[h.id] = data.id;
+      }
+
+      // Los ítems de cada sección copiada.
+      const ids = origen.map(s=>s.id);
+      const { data:items } = await sb.from('checklist_items').select('*').in('seccion_id', ids).order('orden');
+      if(items && items.length){
+        const nuevos = items.map(i=>{ const {id, created_at, ...r} = i; r.seccion_id = mapa[i.seccion_id]; return r; })
+                            .filter(r=>r.seccion_id);
+        if(nuevos.length){
+          const { error } = await sb.from('checklist_items').insert(nuevos);
+          if(error) throw error;
+        }
+      }
+      alert('Listo: se copiaron '+origen.length+' secciones'+(items&&items.length?' y '+items.length+' ítems':'')+'.');
+      await cargar();
+    }catch(e){
+      alert('No se pudo copiar: '+(e.message||e));
+      if(btn){ btn.disabled=false; btn.textContent='📋 Copiar la estructura de Mendoza'; }
+    }
+  }
 
   const madres = ()=> SECS.filter(s=>!s.parent_id).sort((a,b)=>(a.orden||0)-(b.orden||0));
   const hijas  = m => SECS.filter(s=>s.parent_id===m.id).sort((a,b)=>(a.orden||0)-(b.orden||0));
@@ -376,7 +442,17 @@
 
   function renderLista(){
     const ms=madres();
-    if(!ms.length){ document.getElementById('lista').innerHTML='<div class="empty">Todavía no hay secciones en este canal. Tocá <b>Nueva sección</b> para crear la primera.</div>'; return; }
+    if(!ms.length){
+      // En San Luis lo normal es arrancar copiando la estructura de Mendoza y después
+      // cambiarle el contenido: es "lo mismo pero distinto", no algo de cero.
+      const copiar = zona!=='mendoza'
+        ? `<div style="margin-top:14px"><button class="ab" onclick="copiarDeMendoza()">📋 Copiar la estructura de Mendoza</button></div>
+           <div style="font-size:12px;color:var(--ink3);margin-top:8px">Trae las mismas secciones e ítems, y después les cambiás el contenido. No toca el manual de Mendoza.</div>`
+        : '';
+      document.getElementById('lista').innerHTML =
+        `<div class="empty">Todavía no hay secciones en <b>${esc(canalActual().label)} de ${esc(zonaActual().label)}</b>. Tocá <b>Nueva sección</b> para crear la primera.${copiar}</div>`;
+      return;
+    }
     document.getElementById('lista').innerHTML='<div class="secs">'+ms.map((m,i)=>{
       const hs=hijas(m);
       const subsHtml = hs.length
@@ -484,6 +560,7 @@
       }else{
         const hermanas = padre ? hijas(padre) : madres();
         fila.canal     = canal;
+        fila.zona      = zona;
         fila.codigo    = generarCodigo(nombre);
         fila.parent_id = padre ? padre.id : null;
         fila.orden     = hermanas.length ? Math.max(...hermanas.map(s=>s.orden||0))+1 : 0;
