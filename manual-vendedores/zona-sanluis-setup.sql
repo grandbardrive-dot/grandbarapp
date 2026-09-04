@@ -21,6 +21,9 @@ update public.checklist_secciones set zona = 'mendoza' where zona is null;
 -- El código de una sección era único por canal. Ahora puede repetirse entre
 -- zonas (el 's0' de Mendoza y el 's0' de San Luis son secciones distintas),
 -- así que la unicidad pasa a ser por canal + zona + código.
+-- Ojo: en la base esto era un ÍNDICE, no una restricción, así que "drop constraint"
+-- no lo tocaba (y no daba error: simplemente no hacía nada).
+drop index if exists cl_sec_canal_codigo;
 alter table public.checklist_secciones drop constraint if exists cl_sec_canal_codigo;
 alter table public.checklist_secciones
   add constraint cl_sec_canal_zona_codigo unique (canal, zona, codigo);
