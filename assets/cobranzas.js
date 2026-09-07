@@ -11,7 +11,7 @@ const COB_API = '/.netlify/functions/cobranzas-panel';
 
 const COB_SECCIONES = [
   { id:'clientes',     ico:'👥', n:'Clientes',            d:'Buscá un cliente y mirá su cuenta corriente, facturas y datos.', color:'#e0567f' },
-  { id:'comprobantes', ico:'🧾', n:'Cargar comprobantes', d:'Revisá los pagos de los clientes, aprobá y cargá el recibo.',    color:'#69a531' },
+  { id:'comprobantes', ico:'🧾', n:'Supervisión de cobranzas', d:'Cómo viene la revisión de comprobantes: demoras, atrasos y quién resolvió.', color:'#69a531' },
   { id:'whatsapp',     ico:'📲', n:'WhatsApp',            d:'Mandá mensajes y seguí el estado de los envíos.',                color:'#e0533c' },
   { id:'estadisticas', ico:'📊', n:'Estadísticas',        d:'Cartera, cobranzas y comparativas del período.',                 color:'#2f6db0' },
   { id:'bloquear',     ico:'🔒', n:'Bloquear cuentas',    d:'Clientes que superaron su límite: bloqueá o dá de alta.',        color:'#d6a52b' },
@@ -42,7 +42,7 @@ async function cobApi(qs, opts) {
 function cobChip(id) {
   const r = COB_RESUMEN;
   if (id === 'clientes')     return r.cuentas ? { t: Number(r.cuentas).toLocaleString('es-AR') + ' cuentas', c:'' } : null;
-  if (id === 'comprobantes') return r.compPend ? { t: r.compPend + ' sin revisar', c:'alerta' } : { t:'Al día', c:'ok' };
+  if (id === 'comprobantes') return r.compPend ? { t: r.compPend + ' esperando', c:'alerta' } : { t:'Al día', c:'ok' };
   if (id === 'bloquear')     return r.aBloquear ? { t: r.aBloquear + ' para revisar', c:'alerta' } : { t:'Sin pendientes', c:'ok' };
   if (id === 'reclamos')     return r.reclAbiertos ? { t: r.reclAbiertos + ' abierto' + (r.reclAbiertos>1?'s':''), c:'alerta' } : { t:'Sin abiertos', c:'ok' };
   if (id === 'efectivo')     return r.cobrosPend ? { t: r.cobrosPend + ' para retirar', c:'alerta' } : { t:'Sin pendientes', c:'ok' };
@@ -166,29 +166,69 @@ async function cobFicha(codigo) {
   } catch (e) { cq('f-cont').innerHTML = cerror(e.message); }
 }
 
-// ── 2 · Cargar comprobantes ────────────────────────────────
-async function cobComprobantes() {
-  cq('cob').innerHTML = cobCabecera('Cargar comprobantes', 'Pagos que subieron los clientes.') +
-    `<div class="aviso"><span>🏦</span><div>Para cruzar con el extracto del banco y aceptar o rechazar, está
-       <a href="cobranzas-tesoreria.html" style="color:var(--navy);font-weight:700">Revisión de comprobantes</a>.</div></div>
-     <div id="cp-lista"><div class="pv-vacio">Cargando…</div></div>`;
+// ── 2 · Supervisión de cobranzas ───────────────────────────
+// Aceptar o rechazar comprobantes lo opera tesorería (Mónica). Acá se supervisa el
+// sector: cuánto entra, cuánto se tarda, qué quedó trabado y quién lo resolvió.
+// Por eso no hay botones de acción: es una pantalla para mirar, no para operar.
+let _supDias = 30;
+async function cobComprobantes(dias) {
+  if (dias) _supDias = dias;
+  cq('cob').innerHTML = cobCabecera('Supervisión de cobranzas', 'Cómo viene la revisión de comprobantes que hace tesorería.') +
+    `<div class="cb-paginado">
+       ${[7,30,90].map(d => `<button class="cb-b ${_supDias===d?'on':''}" onclick="cobComprobantes(${d})">${d} días</button>`).join('')}
+     </div>
+     <div id="sup-cont"><div class="pv-vacio">Calculando…</div></div>`;
   try {
-    const d = await cobApi('?que=comprobantes');
-    const pend = d.filas.filter(c => (c.estado || 'pendiente') === 'pendiente');
-    const resto = d.filas.filter(c => (c.estado || 'pendiente') !== 'pendiente');
-    const card = c => `<article class="hh">
-      <div class="hh-top"><span class="hh-ico">🧾</span>
-        <div class="hh-nom">${cesc((c.cliente && (c.cliente.comercio || c.cliente.nombre)) || 'Sin cliente')}</div>
-        <span class="cb-chip ${c.estado === 'revisado' ? 'ok' : 'alerta'}">${cesc(c.estado || 'pendiente')}</span></div>
-      <div class="hh-desc">${cfec(c.created_at)}${c.concepto ? ' · ' + cesc(c.concepto) : ''}</div>
-      <div class="pd-acts">
-        ${c.archivo_url ? `<a class="cb-b" href="${cesc(c.archivo_url)}" target="_blank" rel="noopener">📎 Ver comprobante</a>` : ''}
-        ${(c.estado || 'pendiente') === 'pendiente' ? `<button class="cb-b ok" onclick="cobAccion('comprobante-revisado','${c.id}',this,cobComprobantes)">✅ Marcar revisado</button>` : ''}
-      </div></article>`;
-    cq('cp-lista').innerHTML =
-      (pend.length ? pend.map(card).join('') : `<div class="pv-vacio">No hay comprobantes sin revisar.</div>`) +
-      (resto.length ? `<h2 style="font-size:16px;margin:28px 0 0">Ya revisados <span class="pv-n">${resto.length}</span></h2>` + resto.map(card).join('') : '');
-  } catch (e) { cq('cp-lista').innerHTML = cerror(e.message); }
+    const d = await cobApi('?que=supervision&dias=' + _supDias);
+    const ESTADO_LBL = { pendiente:'Sin tocar', procesado:'Procesado, falta cerrar', aceptado:'Aceptado', rechazado:'Rechazado' };
+    const demora = d.promedioHoras == null ? '—'
+      : d.promedioHoras < 48 ? Math.round(d.promedioHoras) + ' h'
+      : Math.round(d.promedioHoras / 24) + ' días';
+
+    cq('sup-cont').innerHTML = `
+      <div class="cb-cards" style="grid-template-columns:repeat(auto-fill,minmax(210px,1fr))">
+        <div class="cb-card" style="cursor:default"><h3>Entraron</h3>
+          <div style="font-size:26px;font-weight:800;margin-top:6px">${d.total.toLocaleString('es-AR')}</div>
+          <p>en los últimos ${d.dias} días</p></div>
+        <div class="cb-card" style="cursor:default;border-top-color:${d.abiertos ? 'var(--red)' : 'var(--green)'}">
+          <h3>Sin resolver</h3>
+          <div style="font-size:26px;font-weight:800;margin-top:6px" class="${d.abiertos?'rojo':''}">${d.abiertos}</div>
+          <p>esperando a tesorería</p></div>
+        <div class="cb-card" style="cursor:default"><h3>Demora promedio</h3>
+          <div style="font-size:26px;font-weight:800;margin-top:6px">${demora}</div>
+          <p>desde que lo sube el cliente</p></div>
+      </div>
+
+      <h2 style="font-size:16px;margin:26px 0 0">En qué estado están</h2>
+      ${d.porEstado.length ? `<table class="cb-tabla">
+        <thead><tr><th>Estado</th><th class="num">Cantidad</th><th class="num">Monto</th></tr></thead>
+        <tbody>${d.porEstado.map(e => `<tr>
+          <td><b>${cesc(ESTADO_LBL[e.estado] || e.estado)}</b></td>
+          <td class="num">${e.cantidad}</td>
+          <td class="num">${cnum(e.monto)}</td></tr>`).join('')}</tbody></table>`
+        : `<div class="pv-vacio">No entró ningún comprobante en este período.</div>`}
+
+      <h2 style="font-size:16px;margin:26px 0 0">Los que más esperan</h2>
+      ${d.demorados.length ? `<table class="cb-tabla">
+        <thead><tr><th>Entró</th><th>Cliente</th><th>Estado</th><th class="num">Monto</th><th class="num">Esperando</th></tr></thead>
+        <tbody>${d.demorados.map(c => `<tr>
+          <td>${cfec(c.created_at)}</td>
+          <td>${cesc(c.cliente || "—")}</td>
+          <td>${cesc(ESTADO_LBL[c.estado] || c.estado || 'pendiente')}</td>
+          <td class="num">${cnum(c.monto)}</td>
+          <td class="num ${c.dias >= 3 ? 'rojo' : ''}">${c.dias === 0 ? 'hoy' : c.dias + ' día' + (c.dias>1?'s':'')}</td>
+        </tr>`).join('')}</tbody></table>`
+        : `<div class="pv-vacio">No quedó ninguno esperando. Al día.</div>`}
+
+      <h2 style="font-size:16px;margin:26px 0 0">Quién los resolvió</h2>
+      ${d.porPersona.length ? `<table class="cb-tabla">
+        <thead><tr><th>Persona</th><th class="num">Resueltos</th><th class="num">Monto</th></tr></thead>
+        <tbody>${d.porPersona.map(p => `<tr>
+          <td><b>${cesc(p.quien)}</b></td>
+          <td class="num">${p.cantidad}</td>
+          <td class="num">${cnum(p.monto)}</td></tr>`).join('')}</tbody></table>`
+        : `<div class="pv-vacio">Todavía no se resolvió ninguno en este período.</div>`}`;
+  } catch (e) { cq('sup-cont').innerHTML = cerror(e.message); }
 }
 
 // ── 3 · WhatsApp ───────────────────────────────────────────

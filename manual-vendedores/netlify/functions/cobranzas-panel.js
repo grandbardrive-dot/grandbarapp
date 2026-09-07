@@ -173,6 +173,62 @@ exports.handler = async (event) => {
       return json(200, { filas: await leer('reclamos?select=*,cliente:clientes(comercio,nombre,whatsapp)&order=updated_at.desc&limit=200') });
     }
 
+    // Supervisión del sector: cómo viene la revisión de comprobantes, sin los botones
+    // de aceptar o rechazar (eso lo opera tesorería). Interesa el volumen, cuánto se
+    // tarda y qué quedó trabado.
+    if (que === 'supervision') {
+      const desdeDias = Math.max(1, parseInt(p.dias || '30', 10) || 30);
+      const desde = new Date(Date.now() - desdeDias * 86400000).toISOString();
+      const comps = await leer('comprobantes?select=id,cliente_id,estado,monto,fecha_pago,procesado_por,procesado_at,created_at,tipo'
+        + '&tipo=eq.cliente&created_at=gte.' + desde + '&order=created_at.desc&limit=2000');
+
+      const num = v => Number(v || 0);
+      const porEstado = {};
+      comps.forEach(c => {
+        const e = c.estado || 'pendiente';
+        porEstado[e] = porEstado[e] || { estado: e, cantidad: 0, monto: 0 };
+        porEstado[e].cantidad++; porEstado[e].monto += num(c.monto);
+      });
+
+      // Cuánto tarda en resolverse: de que el cliente lo sube a que tesorería lo cierra.
+      const cerrados = comps.filter(c => c.procesado_at && c.created_at);
+      const horas = cerrados.map(c => (new Date(c.procesado_at) - new Date(c.created_at)) / 3600000).filter(h => h >= 0);
+      const promedio = horas.length ? horas.reduce((a, b) => a + b, 0) / horas.length : null;
+
+      // Lo que sigue esperando, y hace cuánto: es lo que un supervisor mira primero.
+      const abiertos = comps.filter(c => ['pendiente', 'procesado'].includes(c.estado || 'pendiente'));
+      const ahora = Date.now();
+      const demorados = abiertos
+        .map(c => ({ ...c, dias: Math.floor((ahora - new Date(c.created_at)) / 86400000) }))
+        .sort((a, b) => b.dias - a.dias).slice(0, 15);
+
+      // De quién es cada uno: un supervisor mira el nombre, no el id.
+      const ids = [...new Set(demorados.map(c => c.cliente_id).filter(Boolean))];
+      if (ids.length) {
+        const cl = await leer('clientes?select=id,nombre,comercio&id=in.(' + ids.join(',') + ')');
+        const porId = {};
+        cl.forEach(c => { porId[c.id] = c.comercio || c.nombre; });
+        demorados.forEach(c => { c.cliente = porId[c.cliente_id] || null; });
+      }
+
+      const porPersona = {};
+      cerrados.forEach(c => {
+        const k = c.procesado_por || 'Sin registrar';
+        porPersona[k] = porPersona[k] || { quien: k, cantidad: 0, monto: 0 };
+        porPersona[k].cantidad++; porPersona[k].monto += num(c.monto);
+      });
+
+      return json(200, {
+        dias: desdeDias,
+        total: comps.length,
+        porEstado: Object.values(porEstado).sort((a, b) => b.cantidad - a.cantidad),
+        promedioHoras: promedio,
+        abiertos: abiertos.length,
+        demorados,
+        porPersona: Object.values(porPersona).sort((a, b) => b.cantidad - a.cantidad),
+      });
+    }
+
     if (que === 'estadisticas') {
       // Se recorre la cartera para sacar los totales: la función stats_cuentas_cubo
       // del otro sistema exige ser admin DE ESE sistema, y acá entramos con la llave
