@@ -39,7 +39,7 @@ update public.vendedores set zona = 'mendoza'
  where zona is null or zona = '';
 
 update public.vendedores set zona = 'sanluis'
- where codigo in ('041', '006', '043', '017');
+ where codigo in ('041', '006', '043', '017', '008');   -- 008 Mayorista San Luis
 
 
 -- ── 3) Comprobar cómo quedó ─────────────────────────────────
