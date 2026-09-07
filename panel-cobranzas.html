@@ -15,13 +15,38 @@
 <link rel="stylesheet" href="assets/panel-admin.css">
 <style>
   .cb-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:24px}
-  .cb-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;
-    border-top:4px solid var(--line);opacity:.75}
-  .cb-card .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:var(--line-2)}
-  .cb-card h3{margin:13px 0 0;font-size:16px;letter-spacing:-.01em;text-transform:uppercase;color:var(--navy)}
-  .cb-card p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.45}
-  .cb-chip{display:inline-block;margin-top:12px;font-size:11.5px;font-weight:800;border-radius:20px;
-    padding:4px 11px;background:var(--line-2);color:var(--muted)}
+  .cb-card{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--gold);border-radius:16px;
+    padding:20px;cursor:pointer;text-align:left;font-family:inherit;width:100%;transition:transform .12s,box-shadow .12s}
+  .cb-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(13,34,56,.10)}
+  .cb-card .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:var(--gold-soft)}
+  .cb-card h3{margin:13px 0 0;font-size:15px;letter-spacing:-.01em;text-transform:uppercase;color:var(--navy)}
+  .cb-card p{margin:6px 0 0;font-size:12.5px;color:var(--muted);line-height:1.45}
+  .cb-chip{display:inline-block;margin-top:12px;font-size:11.5px;font-weight:800;border-radius:20px;padding:4px 11px;
+    background:rgba(13,34,56,.07);color:var(--navy)}
+  .cb-chip.ok{background:var(--green-soft);color:var(--green)}
+  .cb-chip.alerta{background:var(--red-soft);color:var(--red)}
+
+  .cb-volver{display:inline-flex;align-items:center;gap:7px;background:none;border:none;font-family:inherit;
+    font-size:13.5px;font-weight:700;color:var(--navy);cursor:pointer;padding:0;margin-bottom:10px}
+  .cb-tabla{width:100%;border-collapse:collapse;margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .cb-tabla th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+    padding:12px 14px;border-bottom:1px solid var(--line);font-weight:800}
+  .cb-tabla td{padding:12px 14px;border-bottom:1px solid var(--line-2);font-size:13.5px;vertical-align:top}
+  .cb-tabla tr:last-child td{border-bottom:0}
+  .num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .rojo{color:var(--red);font-weight:700}
+  .cb-paginado{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  .cb-b{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--line);
+    border-radius:10px;padding:8px 13px;font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;
+    font-family:inherit;white-space:nowrap;text-decoration:none}
+  .cb-b:hover{border-color:var(--navy)}
+  .cb-b.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .cb-b.ok:hover{border-color:var(--green);color:var(--green)}
+  .cb-b.danger:hover{border-color:var(--red);color:var(--red)}
+  .cb-b[disabled]{opacity:.45;cursor:default}
+  .pd-acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+  .pd-detalle{font-size:13.5px;margin-top:9px;line-height:1.5}
+  .pd-cuando{margin-left:auto;font-size:11.5px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -30,52 +55,23 @@
     <div class="sb-logo">Grand<b>Bar</b></div>
     <div class="sb-sub">Distribuciones</div>
     <div class="sb-rol">Cobranzas</div>
-    <nav class="sb-nav">
-      <a class="sb-item on" href="panel-cobranzas.html"><span class="i">💳</span> Cobranzas</a>
-      <a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">🏦</span> Revisión de comprobantes</a>
-    </nav>
+    <div class="sb-sub" id="cob-quien" style="color:#dfe7ec;font-size:13px;letter-spacing:0;text-transform:none;padding-top:2px"></div>
+    <nav class="sb-nav" id="cob-nav"></nav>
     <div class="sb-spacer"></div>
+    <a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">🏦</span> Revisión de comprobantes</a>
     <a class="sb-item" href="hub.html"><span class="i">←</span> Volver al Hub</a>
+    <div class="sb-pie">Los datos salen del sistema de cuenta corriente. Se leen desde el servidor: la llave nunca pasa por el navegador.</div>
   </aside>
 
   <main class="main">
-    <div class="head"><div>
-      <h1>Cobranzas</h1>
-      <div class="head-sub">Cuenta corriente, comprobantes, reclamos y cobros, dentro del Portal.</div>
-    </div></div>
-
-    <div class="aviso"><span>🚧</span><div><b>En construcción.</b> Las pantallas se están armando acá adentro, con los
-      datos del sistema de cuenta corriente. Mientras tanto no se muestra nada, para no dar números equivocados.</div></div>
-
-    <!-- Las 7 secciones, listadas para que se vea qué va a haber. Sin datos hasta
-         tener la fuente correcta: mostrar cifras mal es peor que no mostrar nada. -->
-    <div class="cb-cards">
-      <div class="cb-card"><div class="ico">👥</div><h3>Clientes</h3><p>Buscá un cliente y mirá su cuenta corriente, facturas y datos.</p><span class="cb-chip">Pendiente</span></div>
-      <div class="cb-card"><div class="ico">🧾</div><h3>Cargar comprobantes</h3><p>Revisá los pagos de los clientes, aprobá y cargá el recibo.</p><span class="cb-chip">Pendiente</span></div>
-      <div class="cb-card"><div class="ico">📲</div><h3>WhatsApp</h3><p>Mandá mensajes y seguí el estado de los envíos.</p><span class="cb-chip">Pendiente</span></div>
-      <div class="cb-card"><div class="ico">📊</div><h3>Estadísticas</h3><p>Cartera, cobranzas y comparativas del período.</p><span class="cb-chip">Pendiente</span></div>
-      <div class="cb-card"><div class="ico">🔒</div><h3>Bloquear cuentas</h3><p>Clientes que superaron su límite: bloqueá o dá de alta.</p><span class="cb-chip">Pendiente</span></div>
-      <div class="cb-card"><div class="ico">💬</div><h3>Reclamos</h3><p>Reclamos de clientes, con chat y número de seguimiento.</p><span class="cb-chip">Pendiente</span></div>
-      <div class="cb-card"><div class="ico">💵</div><h3>Cobros en efectivo</h3><p>Clientes que avisaron que tienen el efectivo listo para retirar.</p><span class="cb-chip">Pendiente</span></div>
-    </div>
+    <div id="cob"><div class="pv-vacio">Cargando…</div></div>
   </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/supabase-config.js"></script>
 <script src="assets/auth.js"></script>
-<script>
-  (async function(){
-    const s = await GBAuth.requireAuth();
-    if(!s) return;
-    const permitidos = ['admin','administracion','tesoreria','desarrollo','diseno'];
-    if(!permitidos.includes(s.role)){
-      document.querySelector('.main').innerHTML =
-        '<div class="head"><div><h1>Cobranzas</h1></div></div>' +
-        '<div class="aviso"><span>🔑</span><div>Esta pantalla es del área de administración y cobranzas.</div></div>' +
-        '<p><a class="sb-item" style="color:var(--navy);width:auto;display:inline-flex" href="hub.html">← Volver al Hub</a></p>';
-    }
-  })();
-</script>
+<script src="assets/cobranzas.js?v=1"></script>
+<script>montarCobranzas();</script>
 </body>
 </html>
