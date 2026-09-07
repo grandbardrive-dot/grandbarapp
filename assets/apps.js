@@ -197,19 +197,9 @@ const APPS = [
   },
 
   // =================== ADMINISTRACIÓN Y FINANZAS ===================
-  {
-    id: "cashflow",
-    name: "Cashflow",
-    desc: "Flujo de caja proyectado y seguimiento de ingresos/egresos.",
-    icon: "💹",
-    area: "administracion",
-    roles: ["admin", "administracion", "compras"],
-    status: "soon",
-    url: "#",
-  },
-  // Ojo: "Portal Cuenta Corriente" y "Recordatorios WhatsApp" salieron de acá.
-  // Eran lo mismo que Cobranzas: la cuenta corriente y los avisos por WhatsApp
-  // están adentro de ese panel, no como herramientas aparte.
+  // Ojo: de acá salieron "Portal Cuenta Corriente", "Recordatorios WhatsApp" y
+  // "Cashflow". Las dos primeras eran lo mismo que Cobranzas: la cuenta corriente
+  // y los avisos por WhatsApp están adentro de ese panel. Cashflow nunca se hizo.
   {
     id: "cobranzas-revision",
     name: "Revisión de Cobranzas",
