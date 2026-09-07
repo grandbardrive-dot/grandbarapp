@@ -47,6 +47,64 @@
   .pd-acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
   .pd-detalle{font-size:13.5px;margin-top:9px;line-height:1.5}
   .pd-cuando{margin-left:auto;font-size:11.5px;color:var(--muted)}
+
+  /* — Equipo de administración: tareas y agenda — */
+  .eq-barra{height:8px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:18px}
+  .eq-barra-in{height:100%;background:var(--green);border-radius:6px;transition:width .25s}
+  .eq-gente{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-top:18px}
+  .eq-persona{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .eq-persona header{display:flex;align-items:center;gap:11px;padding-bottom:11px;border-bottom:1px solid var(--line-2)}
+  .eq-persona header b{display:block;font-size:14.5px;color:var(--navy)}
+  .eq-persona header small{display:block;font-size:11.5px;color:var(--muted)}
+  .eq-persona header .cb-chip{margin:0 0 0 auto}
+  .eq-av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex:none}
+  .eq-t{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line-2);cursor:pointer}
+  .eq-t:last-child{border-bottom:0;padding-bottom:0}
+  .eq-t input[type=checkbox]{width:18px;height:18px;margin-top:1px;flex:none;cursor:pointer;accent-color:var(--green)}
+  .eq-t b{font-size:13.5px;font-weight:700}
+  .eq-t small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+  .eq-t .eq-freq{font-weight:700;letter-spacing:.02em;text-transform:uppercase;font-size:10.5px;opacity:.8}
+  .eq-t.lista b{text-decoration:line-through;color:var(--muted)}
+  .eq-t .eq-x{margin-left:auto;background:none;border:0;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 4px;line-height:1;opacity:0}
+  .eq-t:hover .eq-x{opacity:1}
+  .eq-t .eq-x:hover{color:var(--red)}
+  .eq-nada{font-size:12.5px;color:var(--muted);padding:12px 0 2px}
+
+  .eq-form{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);
+    border-radius:14px;padding:16px 18px;margin-top:16px}
+  .eq-form h3{margin:0;font-size:14px;text-transform:uppercase;letter-spacing:.02em;color:var(--navy)}
+  .eq-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:12px}
+  .eq-campos label{display:flex;flex-direction:column;gap:5px;font-size:11.5px;font-weight:800;
+    text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .eq-campos label.ancho{grid-column:1/-1}
+  .eq-campos input,.eq-campos select{font-family:inherit;font-size:13.5px;font-weight:500;color:var(--ink);
+    border:1.5px solid var(--line);border-radius:9px;padding:9px 11px;background:#fff;text-transform:none;letter-spacing:0}
+  .eq-campos input:focus,.eq-campos select:focus{outline:none;border-color:var(--navy)}
+  .eq-sw{display:inline-flex;align-items:center;gap:7px;font-size:13px}
+  .eq-sw input{width:17px;height:17px;accent-color:var(--green)}
+  .cb-tabla input[type=text]{font-family:inherit;font-size:13.5px;border:1.5px solid transparent;border-radius:8px;
+    padding:6px 8px;width:100%;background:transparent;color:var(--ink)}
+  .cb-tabla input[type=text]:hover{border-color:var(--line)}
+  .cb-tabla input[type=text]:focus{outline:none;border-color:var(--navy);background:#fff}
+
+  .eq-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:18px}
+  .eq-cab{background:var(--card);padding:9px 10px;font-size:11px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--muted);text-align:center}
+  .eq-celda{background:var(--card);min-height:104px;padding:7px 8px;cursor:pointer;transition:background .12s}
+  .eq-celda:hover{background:var(--gold-soft)}
+  .eq-celda.vacia{background:var(--line-2);cursor:default}
+  .eq-celda.vacia:hover{background:var(--line-2)}
+  .eq-celda.hoy{box-shadow:inset 0 0 0 2px var(--navy)}
+  .eq-num{font-size:12px;font-weight:800;color:var(--muted)}
+  .eq-celda.hoy .eq-num{color:var(--navy)}
+  .eq-ev{margin-top:4px;font-size:11px;line-height:1.35;padding:3px 5px;border-left:3px solid;border-radius:4px;
+    background:rgba(13,34,56,.05);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .eq-mas{margin-top:3px;font-size:10.5px;font-weight:700;color:var(--muted)}
+  @media (max-width:700px){
+    .eq-celda{min-height:74px;padding:5px}
+    .eq-ev{font-size:10px}
+  }
 </style>
 </head>
 <body>
@@ -71,6 +129,7 @@
 <script src="assets/supabase-config.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/cobranzas.js?v=3"></script>
+<script src="assets/equipo-admin.js?v=1"></script>
 <script>montarCobranzas();</script>
 </body>
 </html>

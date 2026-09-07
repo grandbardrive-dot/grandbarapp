@@ -17,6 +17,8 @@ const COB_SECCIONES = [
   { id:'bloquear',     ico:'🔒', n:'Bloquear cuentas',    d:'Clientes que superaron su límite: bloqueá o dá de alta.',        color:'#d6a52b' },
   { id:'reclamos',     ico:'💬', n:'Reclamos',            d:'Reclamos de clientes, con chat y número de seguimiento.',        color:'#7b5cd6' },
   { id:'efectivo',     ico:'💵', n:'Cobros en efectivo',  d:'Clientes que avisaron que tienen el efectivo listo para retirar.', color:'#2d8a4f' },
+  { id:'tareas',       ico:'✅', n:'Tareas del equipo',   d:'Qué tiene que hacer cada una del equipo y qué quedó hecho.',      color:'#3b6fa0' },
+  { id:'agenda',       ico:'📅', n:'Agenda del equipo',   d:'El calendario compartido: reuniones, vencimientos y recordatorios.', color:'#c47f2b' },
 ];
 
 let COB_TOKEN = null, COB_RESUMEN = {}, COB_VISTA = 'tablero';
@@ -48,6 +50,8 @@ function cobChip(id) {
   if (id === 'efectivo')     return r.cobrosPend ? { t: r.cobrosPend + ' para retirar', c:'alerta' } : { t:'Sin pendientes', c:'ok' };
   if (id === 'estadisticas') return { t:'Ver resumen', c:'' };
   if (id === 'whatsapp')     return { t:'Enviar / ver', c:'' };
+  if (id === 'tareas')       return { t:'Ver el día', c:'' };
+  if (id === 'agenda')       return { t:'Ver el mes', c:'' };
   return null;
 }
 
@@ -56,7 +60,7 @@ function cobTablero() {
   cq('cob').innerHTML = `
     <div class="head"><div>
       <h1>Cobranzas</h1>
-      <div class="head-sub">Cuenta corriente, comprobantes, reclamos y cobros — todo desde el Portal.</div>
+      <div class="head-sub">Cuenta corriente, comprobantes y reclamos, más la agenda y las tareas del equipo.</div>
     </div></div>
     <div class="cb-cards">
       ${COB_SECCIONES.map(s => {
@@ -80,7 +84,8 @@ function cobAbrir(id) {
   COB_VISTA = id; cobNav();
   ({ clientes: cobClientes, bloquear: cobBloquear, efectivo: cobEfectivo,
      comprobantes: cobComprobantes, reclamos: cobReclamos,
-     estadisticas: cobEstadisticas, whatsapp: cobWhatsapp }[id] || cobTablero)();
+     estadisticas: cobEstadisticas, whatsapp: cobWhatsapp,
+     tareas: eqTareas, agenda: eqAgenda }[id] || cobTablero)();
 }
 
 const cobCabecera = (t, sub) => `
