@@ -14,6 +14,18 @@
    una function: no hay plata de por medio, es la agenda del área.
    =========================================================== */
 
+/* Estas cuatro las tenía cobranzas.js. Ahora las trae este archivo para que la
+   agenda pueda vivir sola en el Hub y, al mismo tiempo, adentro del panel. */
+const eqQ   = id => document.getElementById(id);
+const eqEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const eqErr = m => `<div class="aviso"><span>⚠️</span><div>${eqEsc(m)}</div></div>`;
+// Dentro del panel de Cobranzas vuelve al tablero; sola en el Hub, al Hub.
+const eqCabecera = (t, sub) =>
+  (typeof cobTablero === 'function'
+    ? `<button class="cb-volver" onclick="cobTablero()">‹ Volver al tablero</button>`
+    : `<a class="cb-volver" href="hub.html">‹ Volver al Hub</a>`) +
+  `<div class="head"><div><h1>${eqEsc(t)}</h1><div class="head-sub">${eqEsc(sub)}</div></div></div>`;
+
 const EQ_DIAS  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 const EQ_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','setiembre','octubre','noviembre','diciembre'];
 const EQ_COLORES = ['#2f6db0','#e0567f','#69a531','#d6a52b','#7b5cd6','#2d8a4f','#e0533c'];
@@ -66,7 +78,7 @@ async function eqGente(recargar) {
 async function eqSelectGente(id, incluirTodos) {
   const g = await eqGente();
   return `<select id="${id}">${incluirTodos ? '<option value="">Todo el equipo</option>' : ''}` +
-    g.map(p => `<option value="${p.id}">${cesc(p.nombre)}</option>`).join('') + '</select>';
+    g.map(p => `<option value="${p.id}">${eqEsc(p.nombre)}</option>`).join('') + '</select>';
 }
 
 
@@ -83,10 +95,10 @@ function eqAplica(t, fecha) {
 
 async function eqTareas(fecha) {
   _eqDia = fecha || _eqDia || eqHoy();
-  cq('cob').innerHTML = cobCabecera('Tareas del equipo', 'Qué tiene que hacer cada una y qué quedó hecho.') +
+  eqQ('cob').innerHTML = eqCabecera('Tareas del equipo', 'Qué tiene que hacer cada una y qué quedó hecho.') +
     `<div class="cb-paginado">
        <button class="cb-b" onclick="eqTareas('${eqSuma(_eqDia,-1)}')">‹</button>
-       <b style="font-size:14px;min-width:210px;text-align:center">${cesc(eqLargo(_eqDia))}</b>
+       <b style="font-size:14px;min-width:210px;text-align:center">${eqEsc(eqLargo(_eqDia))}</b>
        <button class="cb-b" onclick="eqTareas('${eqSuma(_eqDia,1)}')">›</button>
        ${_eqDia !== eqHoy() ? `<button class="cb-b" onclick="eqTareas('${eqHoy()}')">Volver a hoy</button>` : ''}
        <span style="flex:1"></span>
@@ -102,7 +114,7 @@ async function eqPintarTareas() {
   try {
     const gente = await eqGente();
     if (!gente.length) {
-      cq('eq-lista').innerHTML = `<div class="pv-vacio">Todavía no hay nadie cargado en el equipo.
+      eqQ('eq-lista').innerHTML = `<div class="pv-vacio">Todavía no hay nadie cargado en el equipo.
         Tocá “Editar equipo” para agregar a la primera persona.</div>`;
       return;
     }
@@ -120,27 +132,27 @@ async function eqPintarTareas() {
          <p style="font-size:13px;color:var(--muted);margin:8px 0 0">
            ${listas} de ${total} hechas${listas === total ? ' — todo al día 🎉' : ''}</p>`;
 
-    cq('eq-lista').innerHTML = resumen + '<div class="eq-gente">' + gente.map((p, i) => {
+    eqQ('eq-lista').innerHTML = resumen + '<div class="eq-gente">' + gente.map((p, i) => {
       const suyas = delDia.filter(t => t.persona_id === p.id);
       const ok = suyas.filter(t => hecho.has(t.id)).length;
       return `<section class="eq-persona">
         <header>
-          <span class="eq-av" style="background:${eqColor(i)}">${cesc(eqIni(p.nombre))}</span>
-          <div><b>${cesc(p.nombre)}</b><small>${cesc(p.puesto || '')}</small></div>
+          <span class="eq-av" style="background:${eqColor(i)}">${eqEsc(eqIni(p.nombre))}</span>
+          <div><b>${eqEsc(p.nombre)}</b><small>${eqEsc(p.puesto || '')}</small></div>
           <span class="cb-chip ${suyas.length && ok === suyas.length ? 'ok' : ''}">${ok}/${suyas.length}</span>
         </header>
         ${suyas.length ? suyas.map(t => `
           <label class="eq-t ${hecho.has(t.id) ? 'lista' : ''}">
             <input type="checkbox" ${hecho.has(t.id) ? 'checked' : ''} onchange="eqMarcar('${t.id}', this.checked)">
-            <div><b>${cesc(t.titulo)}</b>
-              ${t.descripcion ? `<small>${cesc(t.descripcion)}</small>` : ''}
-              <small class="eq-freq">${cesc(EQ_FREQ[t.frecuencia] || t.frecuencia)}</small></div>
+            <div><b>${eqEsc(t.titulo)}</b>
+              ${t.descripcion ? `<small>${eqEsc(t.descripcion)}</small>` : ''}
+              <small class="eq-freq">${eqEsc(EQ_FREQ[t.frecuencia] || t.frecuencia)}</small></div>
             <button class="eq-x" title="Sacar la tarea" onclick="event.preventDefault();eqBorrarTarea('${t.id}','${eqComilla(t.titulo)}')">✕</button>
           </label>`).join('')
           : '<div class="eq-nada">Sin tareas para este día.</div>'}
       </section>`;
     }).join('') + '</div>';
-  } catch (e) { cq('eq-lista').innerHTML = cerror(e.message); }
+  } catch (e) { eqQ('eq-lista').innerHTML = eqErr(e.message); }
 }
 
 async function eqMarcar(id, marcada) {
@@ -155,7 +167,7 @@ async function eqMarcar(id, marcada) {
 }
 
 async function eqFormTarea() {
-  const cont = cq('eq-form');
+  const cont = eqQ('eq-form');
   if (cont.dataset.abierto === 'tarea') { cont.innerHTML = ''; cont.dataset.abierto = ''; return; }
   cont.dataset.abierto = 'tarea';
   cont.innerHTML = `<div class="eq-form">
@@ -176,29 +188,29 @@ async function eqFormTarea() {
       <button class="cb-b ok" onclick="eqGuardarTarea()">Guardar</button>
       <button class="cb-b" onclick="eqFormTarea()">Cancelar</button>
     </div></div>`;
-  cq('t-tit').focus();
+  eqQ('t-tit').focus();
 }
 
 function eqFreqCambio() {
-  const f = cq('t-fre').value;
-  cq('t-dow-l').hidden = f !== 'semanal';
-  cq('t-fec-l').hidden = f !== 'puntual';
+  const f = eqQ('t-fre').value;
+  eqQ('t-dow-l').hidden = f !== 'semanal';
+  eqQ('t-fec-l').hidden = f !== 'puntual';
 }
 
 async function eqGuardarTarea() {
-  const titulo = cq('t-tit').value.trim();
-  if (!titulo) { alert('Poné qué hay que hacer.'); cq('t-tit').focus(); return; }
-  const frecuencia = cq('t-fre').value;
+  const titulo = eqQ('t-tit').value.trim();
+  if (!titulo) { alert('Poné qué hay que hacer.'); eqQ('t-tit').focus(); return; }
+  const frecuencia = eqQ('t-fre').value;
   const s = (await GBAuth.getSession()) || {};
   const fila = {
-    titulo, descripcion: cq('t-des').value.trim() || null,
-    persona_id: cq('t-per').value, frecuencia,
-    dia_semana: frecuencia === 'semanal' ? +cq('t-dow').value : null,
-    fecha:      frecuencia === 'puntual' ? cq('t-fec').value : null,
+    titulo, descripcion: eqQ('t-des').value.trim() || null,
+    persona_id: eqQ('t-per').value, frecuencia,
+    dia_semana: frecuencia === 'semanal' ? +eqQ('t-dow').value : null,
+    fecha:      frecuencia === 'puntual' ? eqQ('t-fec').value : null,
     creado_por: s.nombre || null,
   };
   if (await eqEscribir(eqSb().from('admin_tareas').insert(fila).select(), 'guardar la tarea')) {
-    cq('eq-form').innerHTML = ''; cq('eq-form').dataset.abierto = '';
+    eqQ('eq-form').innerHTML = ''; eqQ('eq-form').dataset.abierto = '';
     eqPintarTareas();
   }
 }
@@ -214,7 +226,7 @@ async function eqBorrarTarea(id, titulo) {
 /* ══════════ El equipo ══════════ */
 
 async function eqEditarEquipo(forzar) {
-  const cont = cq('eq-form');
+  const cont = eqQ('eq-form');
   if (cont.dataset.abierto === 'equipo' && !forzar) { cont.innerHTML = ''; cont.dataset.abierto = ''; return; }
   cont.dataset.abierto = 'equipo';
   const { data } = await eqSb().from('admin_equipo').select('*').order('orden');
@@ -223,8 +235,8 @@ async function eqEditarEquipo(forzar) {
     <table class="cb-tabla" style="margin-top:10px">
       <thead><tr><th>Nombre</th><th>Puesto</th><th>Aparece en el tablero</th></tr></thead>
       <tbody>${(data || []).map(p => `<tr>
-        <td><input type="text" value="${cesc(p.nombre)}" onchange="eqGuardarPersona('${p.id}',{nombre:this.value.trim()})"></td>
-        <td><input type="text" value="${cesc(p.puesto || '')}" placeholder="Administración" onchange="eqGuardarPersona('${p.id}',{puesto:this.value.trim()||null})"></td>
+        <td><input type="text" value="${eqEsc(p.nombre)}" onchange="eqGuardarPersona('${p.id}',{nombre:this.value.trim()})"></td>
+        <td><input type="text" value="${eqEsc(p.puesto || '')}" placeholder="Administración" onchange="eqGuardarPersona('${p.id}',{puesto:this.value.trim()||null})"></td>
         <td><label class="eq-sw"><input type="checkbox" ${p.activo ? 'checked' : ''} onchange="eqGuardarPersona('${p.id}',{activo:this.checked})"> ${p.activo ? 'Sí' : 'No'}</label></td>
       </tr>`).join('')}</tbody>
     </table>
@@ -249,12 +261,12 @@ async function eqGuardarPersona(id, campos) {
 }
 
 async function eqAgregarPersona() {
-  const nombre = cq('p-nom').value.trim();
-  if (!nombre) { alert('Poné el nombre.'); cq('p-nom').focus(); return; }
+  const nombre = eqQ('p-nom').value.trim();
+  if (!nombre) { alert('Poné el nombre.'); eqQ('p-nom').focus(); return; }
   const { data } = await eqSb().from('admin_equipo').select('orden').order('orden', { ascending: false }).limit(1);
   const orden = ((data || [])[0] || {}).orden || 0;
   if (await eqEscribir(eqSb().from('admin_equipo')
-        .insert({ nombre, puesto: cq('p-pue').value.trim() || null, orden: orden + 10 }).select(), 'agregar a la persona')) {
+        .insert({ nombre, puesto: eqQ('p-pue').value.trim() || null, orden: orden + 10 }).select(), 'agregar a la persona')) {
     await eqGente(true);
     eqEditarEquipo(true);
   }
@@ -270,7 +282,7 @@ async function eqAgenda(mes) {
   const anterior  = eqISO(new Date(ini.getFullYear(), ini.getMonth() - 1, 1));
   const siguiente = eqISO(new Date(ini.getFullYear(), ini.getMonth() + 1, 1));
 
-  cq('cob').innerHTML = cobCabecera('Agenda del equipo', 'El calendario compartido: reuniones, vencimientos y recordatorios.') +
+  eqQ('cob').innerHTML = eqCabecera('Agenda del equipo', 'El calendario compartido: reuniones, vencimientos y recordatorios.') +
     `<div class="cb-paginado">
        <button class="cb-b" onclick="eqAgenda('${anterior}')">‹</button>
        <b style="font-size:14px;min-width:190px;text-align:center;text-transform:capitalize">${EQ_MESES[ini.getMonth()]} ${ini.getFullYear()}</b>
@@ -308,7 +320,7 @@ async function eqPintarAgenda() {
     const hoy = eqHoy();
     const proximos = evs.filter(e => e.fecha >= hoy).slice(0, 12);
 
-    cq('eq-cal').innerHTML = `
+    eqQ('eq-cal').innerHTML = `
       <div class="eq-cal">
         ${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => `<div class="eq-cab">${d}</div>`).join('')}
         ${celdas.map(f => {
@@ -318,8 +330,8 @@ async function eqPintarAgenda() {
             <span class="eq-num">${eqDe(f).getDate()}</span>
             ${del.slice(0, 3).map(e => {
               const p = e.persona_id ? quien[e.persona_id] : null;
-              return `<div class="eq-ev" style="border-left-color:${p ? p.c : '#9aa7b0'}" title="${cesc(e.titulo)}">
-                ${(EQ_TIPOS[e.tipo] || EQ_TIPOS.evento).ico} ${e.hora ? cesc(String(e.hora).slice(0,5)) + ' ' : ''}${cesc(e.titulo)}</div>`;
+              return `<div class="eq-ev" style="border-left-color:${p ? p.c : '#9aa7b0'}" title="${eqEsc(e.titulo)}">
+                ${(EQ_TIPOS[e.tipo] || EQ_TIPOS.evento).ico} ${e.hora ? eqEsc(String(e.hora).slice(0,5)) + ' ' : ''}${eqEsc(e.titulo)}</div>`;
             }).join('')}
             ${del.length > 3 ? `<div class="eq-mas">+${del.length - 3} más</div>` : ''}
           </div>`;
@@ -332,19 +344,19 @@ async function eqPintarAgenda() {
         <tbody>${proximos.map(e => {
           const p = e.persona_id ? quien[e.persona_id] : null;
           return `<tr>
-            <td><b>${cesc(eqCap(eqLargo(e.fecha)))}</b>${e.hora ? ' · ' + cesc(String(e.hora).slice(0,5)) : ''}</td>
-            <td>${(EQ_TIPOS[e.tipo] || EQ_TIPOS.evento).ico} <b>${cesc(e.titulo)}</b>
-              ${e.detalle ? `<div style="color:var(--muted);font-size:12.5px">${cesc(e.detalle)}</div>` : ''}</td>
-            <td>${p ? cesc(p.n) : 'Todo el equipo'}</td>
+            <td><b>${eqEsc(eqCap(eqLargo(e.fecha)))}</b>${e.hora ? ' · ' + eqEsc(String(e.hora).slice(0,5)) : ''}</td>
+            <td>${(EQ_TIPOS[e.tipo] || EQ_TIPOS.evento).ico} <b>${eqEsc(e.titulo)}</b>
+              ${e.detalle ? `<div style="color:var(--muted);font-size:12.5px">${eqEsc(e.detalle)}</div>` : ''}</td>
+            <td>${p ? eqEsc(p.n) : 'Todo el equipo'}</td>
             <td><button class="cb-b danger" onclick="eqBorrarEvento('${e.id}','${eqComilla(e.titulo)}')">Quitar</button></td>
           </tr>`;
         }).join('')}</tbody></table>`
         : '<div class="pv-vacio">No hay nada agendado de acá en adelante este mes.</div>'}`;
-  } catch (e) { cq('eq-cal').innerHTML = cerror(e.message); }
+  } catch (e) { eqQ('eq-cal').innerHTML = eqErr(e.message); }
 }
 
 async function eqFormEvento(fecha) {
-  const cont = cq('eq-form');
+  const cont = eqQ('eq-form');
   if (cont.dataset.abierto === 'evento' && !fecha) { cont.innerHTML = ''; cont.dataset.abierto = ''; return; }
   cont.dataset.abierto = 'evento';
   cont.innerHTML = `<div class="eq-form">
@@ -363,22 +375,22 @@ async function eqFormEvento(fecha) {
       <button class="cb-b ok" onclick="eqGuardarEvento()">Guardar</button>
       <button class="cb-b" onclick="eqFormEvento()">Cancelar</button>
     </div></div>`;
-  cq('e-tit').focus();
+  eqQ('e-tit').focus();
 }
 
 async function eqGuardarEvento() {
-  const titulo = cq('e-tit').value.trim();
-  if (!titulo) { alert('Poné qué se agenda.'); cq('e-tit').focus(); return; }
+  const titulo = eqQ('e-tit').value.trim();
+  if (!titulo) { alert('Poné qué se agenda.'); eqQ('e-tit').focus(); return; }
   const s = (await GBAuth.getSession()) || {};
   const fila = {
-    titulo, detalle: cq('e-det').value.trim() || null,
-    fecha: cq('e-fec').value, hora: cq('e-hor').value || null,
-    persona_id: cq('e-per').value || null, tipo: cq('e-tip').value,
+    titulo, detalle: eqQ('e-det').value.trim() || null,
+    fecha: eqQ('e-fec').value, hora: eqQ('e-hor').value || null,
+    persona_id: eqQ('e-per').value || null, tipo: eqQ('e-tip').value,
     creado_por: s.nombre || null,
   };
   if (!fila.fecha) { alert('Poné la fecha.'); return; }
   if (await eqEscribir(eqSb().from('admin_agenda').insert(fila).select(), 'guardar')) {
-    cq('eq-form').innerHTML = ''; cq('eq-form').dataset.abierto = '';
+    eqQ('eq-form').innerHTML = ''; eqQ('eq-form').dataset.abierto = '';
     eqAgenda(fila.fecha.slice(0, 8) + '01');
   }
 }

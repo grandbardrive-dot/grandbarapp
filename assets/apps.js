@@ -220,6 +220,16 @@ const APPS = [
     status: "live",
     url: "panel-cobranzas.html",
   },
+  {
+    id: "agenda-equipo",
+    name: "Agenda del equipo",
+    desc: "Calendario compartido de administración: reuniones, vencimientos y recordatorios.",
+    icon: "📅",
+    area: "administracion",
+    roles: ["admin", "administracion", "tesoreria"],
+    status: "live",
+    url: "agenda-equipo.html",
+  },
 
   // =================== REPORTES ===================
   {
