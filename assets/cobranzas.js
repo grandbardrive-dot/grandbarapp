@@ -262,14 +262,39 @@ async function cobComprobantes(dias) {
 }
 
 // ── 3 · WhatsApp ───────────────────────────────────────────
-function cobWhatsapp() {
-  cq('cob').innerHTML = cobCabecera('WhatsApp', 'Mensajes a clientes y estado de los envíos.') +
-    `<div class="en-obra">
-       <h3>Todavía no está acá</h3>
-       <p>El envío usa la cuenta oficial de WhatsApp y sus plantillas aprobadas, que viven en el otro sistema
-          (funciones <code>wa-enviar</code>, <code>wa-templates</code>, <code>wa-webhook</code>). Traerlo implica mover esa
-          conexión, no solo la pantalla: se hace aparte para no cortar los envíos que ya funcionan.</p>
-     </div>`;
+// Bandeja: respuestas de los clientes + estado de los envíos (lee wa_eventos).
+let _waConvs = [];
+function waFecha(v) {
+  if (!v) return ''; const d = new Date(v); if (isNaN(d)) return '';
+  return d.toDateString() === new Date().toDateString()
+    ? d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+function waEstado(e) { return ({ sent: 'Enviado', delivered: 'Entregado', read: 'Leído', failed: 'Falló' }[e] || e || ''); }
+async function cobWhatsapp() {
+  cq('cob').innerHTML = cobCabecera('WhatsApp', 'Respuestas de los clientes y estado de los mensajes enviados.') +
+    `<div id="wa-lista"><div class="pv-vacio">Cargando…</div></div>`;
+  try {
+    const d = await cobApi('?que=whatsapp');
+    _waConvs = d.conversaciones || [];
+    if (!_waConvs.length) { cq('wa-lista').innerHTML = `<div class="pv-vacio">Todavía no hay mensajes de WhatsApp.</div>`; return; }
+    cq('wa-lista').innerHTML = `<table class="cb-tabla"><thead><tr><th>Cliente</th><th>Último mensaje</th><th>Cuándo</th><th>Envío</th></tr></thead><tbody>` +
+      _waConvs.map((c, i) => `<tr style="cursor:pointer" onclick="cobWaChat(${i})">
+        <td><b>${cesc(c.cliente || c.telefono)}</b>${c.codigo ? `<div style="font-size:11px;color:var(--muted)">Cód. ${cesc(c.codigo)}</div>` : ''}</td>
+        <td>${c.entrantes ? '💬 ' + cesc(c.ultimoTexto || '') : '<span style="color:var(--muted)">— sin respuesta —</span>'}</td>
+        <td style="white-space:nowrap">${waFecha(c.ultimaFecha)}</td>
+        <td>${c.error ? '<span class="rojo">⚠️ Falló</span>' : cesc(waEstado(c.ultimoEstado))}</td>
+      </tr>`).join('') + `</tbody></table>`;
+  } catch (e) { cq('wa-lista').innerHTML = cerror(e.message); }
+}
+function cobWaChat(i) {
+  const c = _waConvs[i]; if (!c) return;
+  const burbujas = (c.mensajes || []).map(m => `<div style="max-width:75%;padding:8px 11px;border-radius:12px;font-size:13.5px;line-height:1.4;white-space:pre-wrap;word-break:break-word;${m.dir === 'in' ? 'background:#fff;align-self:flex-start;border:1px solid var(--line)' : 'background:#d9fdd3;align-self:flex-end'}">${cesc(m.texto)}<div style="font-size:10.5px;color:var(--muted);text-align:right;margin-top:3px">${waFecha(m.fecha)}</div></div>`).join('')
+    || `<div class="pv-vacio">Este cliente todavía no respondió. Acá vas a ver sus respuestas.</div>`;
+  cq('cob').innerHTML = `<button class="cb-volver" onclick="cobWhatsapp()">‹ Volver a WhatsApp</button>` +
+    cobCabecera(c.cliente || c.telefono, cesc(c.telefono) + (c.codigo ? ' · Cód. ' + cesc(c.codigo) : '')) +
+    `<div style="display:flex;flex-direction:column;gap:5px;padding:16px;background:#efe7d8;border-radius:14px;max-height:58vh;overflow:auto">${burbujas}</div>
+     <div class="pv-vacio" style="text-align:left;margin-top:10px">${c.error ? '⚠️ Último envío: ' + cesc(c.error) + '. ' : ''}Por ahora la bandeja es de lectura. Para responder por texto, usá Meta Business Suite.</div>`;
 }
 
 // ── 4 · Estadísticas ───────────────────────────────────────

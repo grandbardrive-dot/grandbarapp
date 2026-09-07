@@ -323,6 +323,51 @@ exports.handler = async (event) => {
       });
     }
 
+    // ── Bandeja de WhatsApp: respuestas de clientes + estado de envíos ──
+    // Los mensajes los guarda el webhook (wa-webhook) en wa_eventos, en el mismo
+    // proyecto de cobranzas. Acá se agrupan por teléfono y se matchea el cliente.
+    if (que === 'whatsapp') {
+      const soloDig = v => String(v == null ? '' : v).replace(/\D/g, '');
+      const last10 = v => { const d = soloDig(v); return d.length > 10 ? d.slice(-10) : d; };
+      const textoDe = c => {
+        if (!c || typeof c !== 'object') return '';
+        if (c.text && c.text.body) return c.text.body;
+        if (c.button && c.button.text) return c.button.text;
+        if (c.interactive) { const i = c.interactive; return (i.button_reply && i.button_reply.title) || (i.list_reply && i.list_reply.title) || '[respuesta]'; }
+        if (c.image) return '📷 Imagen'; if (c.document) return '📎 Documento'; if (c.audio) return '🎤 Audio';
+        return '[' + (c.type || 'mensaje') + ']';
+      };
+      const tsDe = (c, f) => { const t = c && c.timestamp ? Number(c.timestamp) * 1000 : null; return t && !isNaN(t) ? new Date(t).toISOString() : f; };
+
+      const eventos = await leer('wa_eventos?select=tipo,estado,telefono,message_id,error_titulo,error_detalle,crudo,created_at&order=created_at.desc&limit=1500');
+      const dir = {};
+      for (const c of await leer('cuentas_cubo?select=codigo,nombre,telefono&telefono=not.is.null')) { const k = last10(c.telefono); if (k && !dir[k]) dir[k] = { nombre: c.nombre, codigo: c.codigo }; }
+      for (const c of await leer('clientes?select=comercio,nombre,whatsapp,codigo_cubo&whatsapp=not.is.null')) { const k = last10(c.whatsapp); if (k && !dir[k]) dir[k] = { nombre: c.comercio || c.nombre, codigo: c.codigo_cubo }; }
+
+      const conv = new Map();
+      for (const e of (Array.isArray(eventos) ? eventos : [])) {
+        const k = last10(e.telefono); if (!k) continue;
+        if (!conv.has(k)) conv.set(k, { telefono: e.telefono, key: k, mensajes: [], entrantes: 0, ultimoEstado: null, error: null, ultimaFecha: null, ultimoTexto: null });
+        const c = conv.get(k);
+        if (e.tipo === 'message') {
+          const fecha = tsDe(e.crudo, e.created_at);
+          c.mensajes.push({ dir: 'in', texto: textoDe(e.crudo), fecha });
+          c.entrantes++;
+          if (!c.ultimaFecha || fecha > c.ultimaFecha) { c.ultimaFecha = fecha; c.ultimoTexto = textoDe(e.crudo); }
+        } else if (e.tipo === 'status') {
+          if (!c.ultimoEstado) c.ultimoEstado = e.estado;
+          if (e.estado === 'failed' && !c.error) c.error = e.error_titulo || e.error_detalle || 'Falló el envío';
+          if (!c.ultimaFecha) c.ultimaFecha = e.created_at;
+        }
+      }
+      const conversaciones = [...conv.values()].map(c => {
+        const info = dir[c.key] || {};
+        c.mensajes.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+        return { telefono: c.telefono, cliente: info.nombre || null, codigo: info.codigo || null, entrantes: c.entrantes, ultimoTexto: c.ultimoTexto, ultimaFecha: c.ultimaFecha, ultimoEstado: c.ultimoEstado, error: c.error, mensajes: c.mensajes };
+      }).sort((a, b) => String(b.ultimaFecha || '').localeCompare(String(a.ultimaFecha || '')));
+      return json(200, { conversaciones });
+    }
+
     return json(400, { error: 'No sé qué es "' + que + '".' });
 
   } catch (e) {
