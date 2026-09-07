@@ -31,6 +31,9 @@
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
+// El manual: de acá salen los NOMBRES de los vendedores (comprobantes guarda el código).
+const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
+const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 const ROLES_OK = ['tesoreria', 'administracion', 'admin', 'desarrollo', 'diseno'];
 const POR_PAGINA = 50;
 
@@ -173,16 +176,24 @@ exports.handler = async (event) => {
       return json(200, { filas: await leer('reclamos?select=*,cliente:clientes(comercio,nombre,whatsapp)&order=updated_at.desc&limit=200') });
     }
 
-    // Supervisión del sector: cómo viene la revisión de comprobantes, sin los botones
-    // de aceptar o rechazar (eso lo opera tesorería). Interesa el volumen, cuánto se
-    // tarda y qué quedó trabado.
+    // ── Cómo viene la revisión de comprobantes ──────────────
+    // El circuito real, según lo que escribe cada pantalla:
+    //   1) el cliente sube el comprobante            → estado 'pendiente'
+    //   2) el vendedor lo confirma                   → 'procesado' + procesado_por = su código
+    //   3) tesorería lo cruza con el banco           → 'aceptado' o 'rechazado'
+    // Ojo: el paso 3 no deja registro de quién ni de cuándo, así que la única
+    // demora que se puede medir de punta a punta es la del paso 2. Lo que está
+    // esperando a tesorería se mide desde que el vendedor lo pasó.
     if (que === 'supervision') {
       const desdeDias = Math.max(1, parseInt(p.dias || '30', 10) || 30);
       const desde = new Date(Date.now() - desdeDias * 86400000).toISOString();
       const comps = await leer('comprobantes?select=id,cliente_id,estado,monto,fecha_pago,procesado_por,procesado_at,created_at,tipo'
         + '&tipo=eq.cliente&created_at=gte.' + desde + '&order=created_at.desc&limit=2000');
 
-      const num = v => Number(v || 0);
+      const num  = v => Number(v || 0);
+      const prom = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+      const ahora = Date.now();
+
       const porEstado = {};
       comps.forEach(c => {
         const e = c.estado || 'pendiente';
@@ -190,42 +201,71 @@ exports.handler = async (event) => {
         porEstado[e].cantidad++; porEstado[e].monto += num(c.monto);
       });
 
-      // Cuánto tarda en resolverse: de que el cliente lo sube a que tesorería lo cierra.
-      const cerrados = comps.filter(c => c.procesado_at && c.created_at);
-      const horas = cerrados.map(c => (new Date(c.procesado_at) - new Date(c.created_at)) / 3600000).filter(h => h >= 0);
-      const promedio = horas.length ? horas.reduce((a, b) => a + b, 0) / horas.length : null;
+      // Dónde está parado cada uno: esperando al vendedor o esperando a tesorería.
+      const conVendedor  = comps.filter(c => (c.estado || 'pendiente') === 'pendiente');
+      const conTesoreria = comps.filter(c => c.estado === 'procesado');
 
-      // Lo que sigue esperando, y hace cuánto: es lo que un supervisor mira primero.
-      const abiertos = comps.filter(c => ['pendiente', 'procesado'].includes(c.estado || 'pendiente'));
-      const ahora = Date.now();
-      const demorados = abiertos
-        .map(c => ({ ...c, dias: Math.floor((ahora - new Date(c.created_at)) / 86400000) }))
-        .sort((a, b) => b.dias - a.dias).slice(0, 15);
+      // Lo que tarda el vendedor en confirmar: se puede medir en todos los que ya pasó.
+      const pasados = comps.filter(c => c.procesado_at && c.created_at);
+      const horasVend = pasados
+        .map(c => (new Date(c.procesado_at) - new Date(c.created_at)) / 3600000)
+        .filter(h => h >= 0);
+
+      // Los que siguen frenados, con hace cuánto esperan a quien los tiene.
+      const trabados = [...conVendedor, ...conTesoreria].map(c => {
+        const espera = c.estado === 'procesado' ? (c.procesado_at || c.created_at) : c.created_at;
+        return {
+          id: c.id, cliente_id: c.cliente_id, estado: c.estado || 'pendiente', monto: c.monto,
+          created_at: c.created_at, procesado_por: c.procesado_por,
+          esperaA: c.estado === 'procesado' ? 'tesoreria' : 'vendedor',
+          dias: Math.floor((ahora - new Date(espera)) / 86400000),
+        };
+      }).sort((a, b) => b.dias - a.dias).slice(0, 20);
 
       // De quién es cada uno: un supervisor mira el nombre, no el id.
-      const ids = [...new Set(demorados.map(c => c.cliente_id).filter(Boolean))];
+      const ids = [...new Set(trabados.map(c => c.cliente_id).filter(Boolean))];
       if (ids.length) {
         const cl = await leer('clientes?select=id,nombre,comercio&id=in.(' + ids.join(',') + ')');
         const porId = {};
         cl.forEach(c => { porId[c.id] = c.comercio || c.nombre; });
-        demorados.forEach(c => { c.cliente = porId[c.cliente_id] || null; });
+        trabados.forEach(c => { c.cliente = porId[c.cliente_id] || null; });
       }
 
-      const porPersona = {};
-      cerrados.forEach(c => {
-        const k = c.procesado_por || 'Sin registrar';
-        porPersona[k] = porPersona[k] || { quien: k, cantidad: 0, monto: 0 };
-        porPersona[k].cantidad++; porPersona[k].monto += num(c.monto);
+      // procesado_por guarda el CÓDIGO del vendedor. Los nombres están en el
+      // proyecto del manual, que sí se lee con la clave pública.
+      const porVendedor = {};
+      pasados.forEach(c => {
+        const k = c.procesado_por || 'sin-codigo';
+        porVendedor[k] = porVendedor[k] || { codigo: k, nombre: null, cantidad: 0, monto: 0, _h: [] };
+        porVendedor[k].cantidad++; porVendedor[k].monto += num(c.monto);
+        const h = (new Date(c.procesado_at) - new Date(c.created_at)) / 3600000;
+        if (h >= 0) porVendedor[k]._h.push(h);
       });
+      const codigos = Object.keys(porVendedor).filter(k => k !== 'sin-codigo');
+      if (codigos.length) {
+        try {
+          const r = await fetch(MAN_URL + '/rest/v1/vendedores?select=codigo,nombre&codigo=in.('
+            + codigos.map(encodeURIComponent).join(',') + ')',
+            { headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON } });
+          if (r.ok) (await r.json()).forEach(v => {
+            if (porVendedor[v.codigo]) porVendedor[v.codigo].nombre = v.nombre;
+          });
+        } catch (e) { /* si no se puede, queda el código solo */ }
+      }
+      const vendedores = Object.values(porVendedor).map(v => ({
+        codigo: v.codigo === 'sin-codigo' ? null : v.codigo,
+        nombre: v.nombre, cantidad: v.cantidad, monto: v.monto, horas: prom(v._h),
+      })).sort((a, b) => b.cantidad - a.cantidad);
 
       return json(200, {
         dias: desdeDias,
         total: comps.length,
         porEstado: Object.values(porEstado).sort((a, b) => b.cantidad - a.cantidad),
-        promedioHoras: promedio,
-        abiertos: abiertos.length,
-        demorados,
-        porPersona: Object.values(porPersona).sort((a, b) => b.cantidad - a.cantidad),
+        esperandoVendedor: conVendedor.length,
+        esperandoTesoreria: conTesoreria.length,
+        horasVendedor: prom(horasVend),
+        trabados,
+        vendedores,
       });
     }
 

@@ -11,7 +11,7 @@ const COB_API = '/.netlify/functions/cobranzas-panel';
 
 const COB_SECCIONES = [
   { id:'clientes',     ico:'👥', n:'Clientes',            d:'Buscá un cliente y mirá su cuenta corriente, facturas y datos.', color:'#e0567f' },
-  { id:'comprobantes', ico:'🧾', n:'Supervisión de cobranzas', d:'Cómo viene la revisión de comprobantes: demoras, atrasos y quién resolvió.', color:'#69a531' },
+  { id:'comprobantes', ico:'🧾', n:'Supervisión de cobranzas', d:'Cómo vienen los comprobantes que suben los clientes: dónde se frenan y cuánto tardan.', color:'#69a531' },
   { id:'whatsapp',     ico:'📲', n:'WhatsApp',            d:'Mandá mensajes y seguí el estado de los envíos.',                color:'#e0533c' },
   { id:'estadisticas', ico:'📊', n:'Estadísticas',        d:'Cartera, cobranzas y comparativas del período.',                 color:'#2f6db0' },
   { id:'bloquear',     ico:'🔒', n:'Bloquear cuentas',    d:'Clientes que superaron su límite: bloqueá o dá de alta.',        color:'#d6a52b' },
@@ -42,7 +42,7 @@ async function cobApi(qs, opts) {
 function cobChip(id) {
   const r = COB_RESUMEN;
   if (id === 'clientes')     return r.cuentas ? { t: Number(r.cuentas).toLocaleString('es-AR') + ' cuentas', c:'' } : null;
-  if (id === 'comprobantes') return r.compPend ? { t: r.compPend + ' esperando', c:'alerta' } : { t:'Al día', c:'ok' };
+  if (id === 'comprobantes') return r.compPend ? { t: r.compPend + ' sin confirmar', c:'alerta' } : { t:'Al día', c:'ok' };
   if (id === 'bloquear')     return r.aBloquear ? { t: r.aBloquear + ' para revisar', c:'alerta' } : { t:'Sin pendientes', c:'ok' };
   if (id === 'reclamos')     return r.reclAbiertos ? { t: r.reclAbiertos + ' abierto' + (r.reclAbiertos>1?'s':''), c:'alerta' } : { t:'Sin abiertos', c:'ok' };
   if (id === 'efectivo')     return r.cobrosPend ? { t: r.cobrosPend + ' para retirar', c:'alerta' } : { t:'Sin pendientes', c:'ok' };
@@ -168,35 +168,41 @@ async function cobFicha(codigo) {
 
 // ── 2 · Supervisión de cobranzas ───────────────────────────
 // Aceptar o rechazar comprobantes lo opera tesorería (Mónica). Acá se supervisa el
-// sector: cuánto entra, cuánto se tarda, qué quedó trabado y quién lo resolvió.
-// Por eso no hay botones de acción: es una pantalla para mirar, no para operar.
+// sector, así que no hay botones de acción: es una pantalla para mirar.
+// El circuito tiene tres pasos: el cliente sube el comprobante, el vendedor lo
+// confirma, y recién ahí tesorería lo cruza con el banco. Por eso importa saber
+// en cuál de los dos está frenado cada uno.
 let _supDias = 30;
+const _horas = h => h == null ? '—' : h < 48 ? Math.round(h) + ' h' : Math.round(h / 24) + ' días';
+const _dias  = d => d === 0 ? 'hoy' : d + ' día' + (d > 1 ? 's' : '');
+
 async function cobComprobantes(dias) {
   if (dias) _supDias = dias;
-  cq('cob').innerHTML = cobCabecera('Supervisión de cobranzas', 'Cómo viene la revisión de comprobantes que hace tesorería.') +
+  cq('cob').innerHTML = cobCabecera('Supervisión de cobranzas', 'Cómo viene la revisión de los comprobantes que suben los clientes.') +
     `<div class="cb-paginado">
        ${[7,30,90].map(d => `<button class="cb-b ${_supDias===d?'on':''}" onclick="cobComprobantes(${d})">${d} días</button>`).join('')}
      </div>
      <div id="sup-cont"><div class="pv-vacio">Calculando…</div></div>`;
   try {
     const d = await cobApi('?que=supervision&dias=' + _supDias);
-    const ESTADO_LBL = { pendiente:'Sin tocar', procesado:'Procesado, falta cerrar', aceptado:'Aceptado', rechazado:'Rechazado' };
-    const demora = d.promedioHoras == null ? '—'
-      : d.promedioHoras < 48 ? Math.round(d.promedioHoras) + ' h'
-      : Math.round(d.promedioHoras / 24) + ' días';
+    const ESTADO_LBL = { pendiente:'Lo tiene el vendedor', procesado:'Lo tiene tesorería', aceptado:'Aceptado', rechazado:'Rechazado' };
 
     cq('sup-cont').innerHTML = `
-      <div class="cb-cards" style="grid-template-columns:repeat(auto-fill,minmax(210px,1fr))">
+      <div class="cb-cards" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
         <div class="cb-card" style="cursor:default"><h3>Entraron</h3>
           <div style="font-size:26px;font-weight:800;margin-top:6px">${d.total.toLocaleString('es-AR')}</div>
           <p>en los últimos ${d.dias} días</p></div>
-        <div class="cb-card" style="cursor:default;border-top-color:${d.abiertos ? 'var(--red)' : 'var(--green)'}">
-          <h3>Sin resolver</h3>
-          <div style="font-size:26px;font-weight:800;margin-top:6px" class="${d.abiertos?'rojo':''}">${d.abiertos}</div>
-          <p>esperando a tesorería</p></div>
-        <div class="cb-card" style="cursor:default"><h3>Demora promedio</h3>
-          <div style="font-size:26px;font-weight:800;margin-top:6px">${demora}</div>
-          <p>desde que lo sube el cliente</p></div>
+        <div class="cb-card" style="cursor:default;border-top-color:${d.esperandoVendedor ? 'var(--red)' : 'var(--green)'}">
+          <h3>Frenados en el vendedor</h3>
+          <div style="font-size:26px;font-weight:800;margin-top:6px" class="${d.esperandoVendedor?'rojo':''}">${d.esperandoVendedor}</div>
+          <p>el cliente los subió y todavía nadie los confirmó</p></div>
+        <div class="cb-card" style="cursor:default;border-top-color:${d.esperandoTesoreria ? 'var(--gold)' : 'var(--green)'}">
+          <h3>Esperando a tesorería</h3>
+          <div style="font-size:26px;font-weight:800;margin-top:6px">${d.esperandoTesoreria}</div>
+          <p>ya pasados, falta cruzarlos con el banco</p></div>
+        <div class="cb-card" style="cursor:default"><h3>Tarda el vendedor</h3>
+          <div style="font-size:26px;font-weight:800;margin-top:6px">${_horas(d.horasVendedor)}</div>
+          <p>desde que el cliente lo sube hasta que lo confirma</p></div>
       </div>
 
       <h2 style="font-size:16px;margin:26px 0 0">En qué estado están</h2>
@@ -208,26 +214,30 @@ async function cobComprobantes(dias) {
           <td class="num">${cnum(e.monto)}</td></tr>`).join('')}</tbody></table>`
         : `<div class="pv-vacio">No entró ningún comprobante en este período.</div>`}
 
-      <h2 style="font-size:16px;margin:26px 0 0">Los que más esperan</h2>
-      ${d.demorados.length ? `<table class="cb-tabla">
-        <thead><tr><th>Entró</th><th>Cliente</th><th>Estado</th><th class="num">Monto</th><th class="num">Esperando</th></tr></thead>
-        <tbody>${d.demorados.map(c => `<tr>
+      <h2 style="font-size:16px;margin:26px 0 0">Los que están trabados</h2>
+      ${d.trabados.length ? `<table class="cb-tabla">
+        <thead><tr><th>Entró</th><th>Cliente</th><th>Lo tiene</th><th class="num">Monto</th><th class="num">Esperando</th></tr></thead>
+        <tbody>${d.trabados.map(c => `<tr>
           <td>${cfec(c.created_at)}</td>
-          <td>${cesc(c.cliente || "—")}</td>
-          <td>${cesc(ESTADO_LBL[c.estado] || c.estado || 'pendiente')}</td>
+          <td>${cesc(c.cliente || '—')}</td>
+          <td>${c.esperaA === 'tesoreria' ? 'Tesorería' : 'El vendedor'}</td>
           <td class="num">${cnum(c.monto)}</td>
-          <td class="num ${c.dias >= 3 ? 'rojo' : ''}">${c.dias === 0 ? 'hoy' : c.dias + ' día' + (c.dias>1?'s':'')}</td>
+          <td class="num ${c.dias >= 3 ? 'rojo' : ''}">${_dias(c.dias)}</td>
         </tr>`).join('')}</tbody></table>`
-        : `<div class="pv-vacio">No quedó ninguno esperando. Al día.</div>`}
+        : `<div class="pv-vacio">No quedó ninguno trabado. Al día.</div>`}
 
-      <h2 style="font-size:16px;margin:26px 0 0">Quién los resolvió</h2>
-      ${d.porPersona.length ? `<table class="cb-tabla">
-        <thead><tr><th>Persona</th><th class="num">Resueltos</th><th class="num">Monto</th></tr></thead>
-        <tbody>${d.porPersona.map(p => `<tr>
-          <td><b>${cesc(p.quien)}</b></td>
-          <td class="num">${p.cantidad}</td>
-          <td class="num">${cnum(p.monto)}</td></tr>`).join('')}</tbody></table>`
-        : `<div class="pv-vacio">Todavía no se resolvió ninguno en este período.</div>`}`;
+      <h2 style="font-size:16px;margin:26px 0 0">Qué vendedor los confirmó</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin:4px 0 0">
+        El paso que hace el vendedor cuando el cliente le avisa que pagó. Lo que hace
+        tesorería después no queda registrado a nombre de nadie.</p>
+      ${d.vendedores.length ? `<table class="cb-tabla">
+        <thead><tr><th>Vendedor</th><th class="num">Confirmados</th><th class="num">Monto</th><th class="num">Tardó</th></tr></thead>
+        <tbody>${d.vendedores.map(v => `<tr>
+          <td><b>${cesc(v.nombre || 'Sin identificar')}</b>${v.codigo ? ` <span style="color:var(--muted);font-weight:600">${cesc(v.codigo)}</span>` : ''}</td>
+          <td class="num">${v.cantidad}</td>
+          <td class="num">${cnum(v.monto)}</td>
+          <td class="num">${_horas(v.horas)}</td></tr>`).join('')}</tbody></table>`
+        : `<div class="pv-vacio">Ningún vendedor confirmó comprobantes en este período.</div>`}`;
   } catch (e) { cq('sup-cont').innerHTML = cerror(e.message); }
 }
 
