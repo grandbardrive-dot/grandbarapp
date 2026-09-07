@@ -296,8 +296,33 @@ function cobWaChat(i) {
     || `<div class="pv-vacio">Este cliente todavía no respondió. Acá vas a ver sus respuestas.</div>`;
   cq('cob').innerHTML = `<button class="cb-volver" onclick="cobWhatsapp()">‹ Volver a WhatsApp</button>` +
     cobCabecera(c.cliente || c.telefono, cesc(c.telefono) + (c.codigo ? ' · Cód. ' + cesc(c.codigo) : '')) +
-    `<div style="display:flex;flex-direction:column;gap:5px;padding:16px;background:#efe7d8;border-radius:14px;max-height:58vh;overflow:auto">${burbujas}</div>
-     <div class="pv-vacio" style="text-align:left;margin-top:10px">${c.error ? '⚠️ Último envío: ' + cesc(c.error) + '. ' : ''}Por ahora la bandeja es de lectura. Para responder por texto, usá Meta Business Suite.</div>`;
+    `<div style="display:flex;flex-direction:column;gap:5px;padding:16px;background:#efe7d8;border-radius:14px;max-height:52vh;overflow:auto">${burbujas}</div>
+     <div style="display:flex;gap:8px;margin-top:10px">
+       <textarea id="wa-resp" rows="2" placeholder="Escribí tu respuesta…" style="flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13.5px;resize:vertical"></textarea>
+       <button class="cb-b on" style="padding:0 18px" onclick="cobWaResponder(${i})">Enviar</button>
+     </div>
+     <div id="wa-resp-msg" class="pv-vacio" style="text-align:left;margin-top:6px;font-size:12.5px">${c.error ? '⚠️ Último envío: ' + cesc(c.error) + '. ' : ''}Se puede responder por texto solo dentro de las 24 hs del último mensaje del cliente.</div>`;
+}
+async function cobWaResponder(i) {
+  const c = _waConvs[i]; if (!c) return;
+  const ta = document.getElementById('wa-resp'), msg = document.getElementById('wa-resp-msg');
+  const texto = (ta && ta.value || '').trim(); if (!texto) { if (ta) ta.focus(); return; }
+  const aviso = (t, err) => { if (msg) { msg.textContent = t; msg.style.color = err ? '#c0392b' : ''; } };
+  aviso('Enviando…');
+  try {
+    const r = await fetch('https://grandbar-gestioncuenta.netlify.app/.netlify/functions/wa-responder', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + COB_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: c.telefono, texto }),
+    });
+    const j = await r.json();
+    if (!j.ok) {
+      const fuera = /24|reengag|window|outside/i.test(j.error || '');
+      aviso('No se pudo enviar: ' + (j.error || 'error') + (fuera ? ' — pasaron más de 24 hs desde el último mensaje del cliente; ahí solo se puede con una plantilla.' : ''), true);
+      return;
+    }
+    c.mensajes.push({ dir: 'out', texto, fecha: new Date().toISOString() });
+    ta.value = ''; cobWaChat(i);
+  } catch (e) { aviso('Error de conexión: ' + (e.message || e), true); }
 }
 
 // ── 4 · Estadísticas ───────────────────────────────────────

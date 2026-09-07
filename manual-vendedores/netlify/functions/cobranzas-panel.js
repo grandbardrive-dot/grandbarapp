@@ -354,6 +354,11 @@ exports.handler = async (event) => {
           c.mensajes.push({ dir: 'in', texto: textoDe(e.crudo), fecha });
           c.entrantes++;
           if (!c.ultimaFecha || fecha > c.ultimaFecha) { c.ultimaFecha = fecha; c.ultimoTexto = textoDe(e.crudo); }
+        } else if (e.tipo === 'saliente') {
+          // Respuesta que mandamos nosotros desde la bandeja.
+          const fecha = e.created_at;
+          c.mensajes.push({ dir: 'out', texto: textoDe(e.crudo), fecha });
+          if (!c.ultimaFecha || fecha > c.ultimaFecha) { c.ultimaFecha = fecha; }
         } else if (e.tipo === 'status') {
           if (!c.ultimoEstado) c.ultimoEstado = e.estado;
           if (e.estado === 'failed' && !c.error) c.error = e.error_titulo || e.error_detalle || 'Falló el envío';
