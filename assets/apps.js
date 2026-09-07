@@ -207,45 +207,28 @@ const APPS = [
     status: "soon",
     url: "#",
   },
-  {
-    id: "portal",
-    name: "Portal Cuenta Corriente",
-    desc: "Saldos, facturas y pagos de clientes (MercadoPago).",
-    icon: "🏦",
-    area: "administracion",
-    roles: ["admin", "administracion", "cliente"],
-    status: "live",
-    url: "#",
-  },
+  // Ojo: "Portal Cuenta Corriente" y "Recordatorios WhatsApp" salieron de acá.
+  // Eran lo mismo que Cobranzas: la cuenta corriente y los avisos por WhatsApp
+  // están adentro de ese panel, no como herramientas aparte.
   {
     id: "cobranzas-revision",
     name: "Revisión de Cobranzas",
-    desc: "Comprobantes que cargaron los vendedores: cruzar con el banco y aceptar/rechazar.",
+    desc: "Comprobantes que cargaron los vendedores: cruzar con el banco y aceptar o rechazar.",
     icon: "💳",
     area: "administracion",
-    roles: ["admin", "administracion", "tesoreria"],
+    roles: ["admin", "tesoreria"],
     status: "live",
     url: "cobranzas-tesoreria.html",
   },
   {
     id: "cobranzas",
     name: "Cobranzas",
-    desc: "Reparto automático de pagos parciales, factura más atrasada primero.",
+    desc: "Clientes, comprobantes, reclamos, bloqueos y cobros en efectivo.",
     icon: "💵",
     area: "administracion",
-    roles: ["admin", "administracion"],
+    roles: ["admin", "administracion", "tesoreria"],
     status: "live",
-    url: "#",
-  },
-  {
-    id: "whatsapp",
-    name: "Recordatorios WhatsApp",
-    desc: "Avisos automáticos de cuenta corriente por WhatsApp oficial.",
-    icon: "💬",
-    area: "administracion",
-    roles: ["admin", "administracion"],
-    status: "live",
-    url: "#",
+    url: "panel-cobranzas.html",
   },
 
   // =================== REPORTES ===================
