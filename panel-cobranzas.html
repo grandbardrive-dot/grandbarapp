@@ -14,38 +14,14 @@
 <title>GrandBar — Cobranzas</title>
 <link rel="stylesheet" href="assets/panel-admin.css">
 <style>
-  /* Tarjetas del tablero */
   .cb-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:24px}
-  .cb-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;cursor:pointer;
-    border-top:4px solid var(--gold);transition:transform .12s,box-shadow .12s;text-align:left;font-family:inherit;width:100%}
-  .cb-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(13,34,56,.10)}
-  .cb-card .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:var(--gold-soft)}
+  .cb-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;
+    border-top:4px solid var(--line);opacity:.75}
+  .cb-card .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:var(--line-2)}
   .cb-card h3{margin:13px 0 0;font-size:16px;letter-spacing:-.01em;text-transform:uppercase;color:var(--navy)}
   .cb-card p{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.45}
-  .cb-chip{display:inline-block;margin-top:12px;font-size:11.5px;font-weight:800;border-radius:20px;padding:4px 11px;
-    background:var(--gold-soft);color:#6b5411}
-  .cb-chip.ok{background:var(--green-soft);color:var(--green)}
-  .cb-chip.alerta{background:var(--red-soft);color:var(--red)}
-  .cb-card.prox{opacity:.6;cursor:default}
-  .cb-card.prox:hover{transform:none;box-shadow:none}
-
-  /* Vistas internas */
-  .cb-volver{display:inline-flex;align-items:center;gap:7px;background:none;border:none;font-family:inherit;
-    font-size:13.5px;font-weight:700;color:var(--navy);cursor:pointer;padding:0;margin-bottom:6px}
-  .cb-tabla{width:100%;border-collapse:collapse;margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  .cb-tabla th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
-    padding:12px 14px;border-bottom:1px solid var(--line);font-weight:800}
-  .cb-tabla td{padding:12px 14px;border-bottom:1px solid var(--line-2);font-size:13.5px;vertical-align:top}
-  .cb-tabla tr:last-child td{border-bottom:0}
-  .num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
-  .rojo{color:var(--red);font-weight:700}
-  .cb-paginado{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
-  .cb-b{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--line);
-    border-radius:10px;padding:8px 13px;font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;font-family:inherit;white-space:nowrap;text-decoration:none}
-  .cb-b:hover{border-color:var(--navy)}
-  .cb-b.danger:hover{border-color:var(--red);color:var(--red)}
-  .cb-b.ok:hover{border-color:var(--green);color:var(--green)}
-  .cb-b[disabled]{opacity:.45;cursor:default}
+  .cb-chip{display:inline-block;margin-top:12px;font-size:11.5px;font-weight:800;border-radius:20px;
+    padding:4px 11px;background:var(--line-2);color:var(--muted)}
 </style>
 </head>
 <body>
@@ -54,16 +30,34 @@
     <div class="sb-logo">Grand<b>Bar</b></div>
     <div class="sb-sub">Distribuciones</div>
     <div class="sb-rol">Cobranzas</div>
-    <div class="sb-sub" id="cb-quien" style="color:#dfe7ec;font-size:13px;letter-spacing:0;text-transform:none;padding-top:2px"></div>
-    <nav class="sb-nav" id="cb-nav"></nav>
+    <nav class="sb-nav">
+      <a class="sb-item on" href="panel-cobranzas.html"><span class="i">💳</span> Cobranzas</a>
+      <a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">🏦</span> Revisión de comprobantes</a>
+    </nav>
     <div class="sb-spacer"></div>
-    <a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">🏦</span> Revisión de comprobantes</a>
     <a class="sb-item" href="hub.html"><span class="i">←</span> Volver al Hub</a>
-    <div class="sb-pie">Los datos vienen del sistema de cuenta corriente. Se leen desde el servidor: la llave nunca pasa por el navegador.</div>
   </aside>
 
   <main class="main">
-    <div id="cb-cont"><div class="pv-vacio">Cargando…</div></div>
+    <div class="head"><div>
+      <h1>Cobranzas</h1>
+      <div class="head-sub">Cuenta corriente, comprobantes, reclamos y cobros, dentro del Portal.</div>
+    </div></div>
+
+    <div class="aviso"><span>🚧</span><div><b>En construcción.</b> Las pantallas se están armando acá adentro, con los
+      datos del sistema de cuenta corriente. Mientras tanto no se muestra nada, para no dar números equivocados.</div></div>
+
+    <!-- Las 7 secciones, listadas para que se vea qué va a haber. Sin datos hasta
+         tener la fuente correcta: mostrar cifras mal es peor que no mostrar nada. -->
+    <div class="cb-cards">
+      <div class="cb-card"><div class="ico">👥</div><h3>Clientes</h3><p>Buscá un cliente y mirá su cuenta corriente, facturas y datos.</p><span class="cb-chip">Pendiente</span></div>
+      <div class="cb-card"><div class="ico">🧾</div><h3>Cargar comprobantes</h3><p>Revisá los pagos de los clientes, aprobá y cargá el recibo.</p><span class="cb-chip">Pendiente</span></div>
+      <div class="cb-card"><div class="ico">📲</div><h3>WhatsApp</h3><p>Mandá mensajes y seguí el estado de los envíos.</p><span class="cb-chip">Pendiente</span></div>
+      <div class="cb-card"><div class="ico">📊</div><h3>Estadísticas</h3><p>Cartera, cobranzas y comparativas del período.</p><span class="cb-chip">Pendiente</span></div>
+      <div class="cb-card"><div class="ico">🔒</div><h3>Bloquear cuentas</h3><p>Clientes que superaron su límite: bloqueá o dá de alta.</p><span class="cb-chip">Pendiente</span></div>
+      <div class="cb-card"><div class="ico">💬</div><h3>Reclamos</h3><p>Reclamos de clientes, con chat y número de seguimiento.</p><span class="cb-chip">Pendiente</span></div>
+      <div class="cb-card"><div class="ico">💵</div><h3>Cobros en efectivo</h3><p>Clientes que avisaron que tienen el efectivo listo para retirar.</p><span class="cb-chip">Pendiente</span></div>
+    </div>
   </main>
 </div>
 
@@ -71,239 +65,17 @@
 <script src="assets/supabase-config.js"></script>
 <script src="assets/auth.js"></script>
 <script>
-/* ============================================================
-   Panel de Cobranzas — adentro del Portal.
-   Los datos los sirve manual-vendedores/netlify/functions/cobranzas-panel.js,
-   que valida el token del Portal y recién ahí lee la base de Cobranzas.
-   ============================================================ */
-const API = '/.netlify/functions/cobranzas-panel';
-const SECCIONES = [
-  { id:'clientes',     ico:'👥', n:'Clientes',            d:'Buscá un cliente y mirá su cuenta corriente, facturas y datos.', listo:true },
-  { id:'comprobantes', ico:'🧾', n:'Cargar comprobantes', d:'Revisá los pagos de los clientes, aprobá y cargá el recibo.',    href:'cobranzas-tesoreria.html' },
-  { id:'whatsapp',     ico:'📲', n:'WhatsApp',            d:'Mandá mensajes y seguí el estado de los envíos.' },
-  { id:'estadisticas', ico:'📊', n:'Estadísticas',        d:'Cartera, cobranzas y comparativas del período.' },
-  { id:'bloquear',     ico:'🔒', n:'Bloquear cuentas',    d:'Clientes que superaron su límite: bloqueá o dá de alta.',        listo:true },
-  { id:'reclamos',     ico:'💬', n:'Reclamos',            d:'Reclamos de clientes, con chat y número de seguimiento.' },
-  { id:'efectivo',     ico:'💵', n:'Cobros en efectivo',  d:'Clientes que avisaron que tienen el efectivo listo para retirar.', listo:true },
-];
-
-let TOKEN = null, RESUMEN = {}, VISTA = 'tablero';
-const $ = id => document.getElementById(id);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const plata = n => (n == null || n === '') ? '—' : '$ ' + Math.round(Number(n)).toLocaleString('es-AR');
-const fecha = d => { if (!d) return '—'; const x = new Date(d);
-  return String(x.getDate()).padStart(2,'0') + '/' + String(x.getMonth()+1).padStart(2,'0') + '/' + x.getFullYear(); };
-
-async function api(qs, opts) {
-  const r = await fetch(API + (qs || ''), {
-    ...opts,
-    headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json', ...((opts||{}).headers || {}) },
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data.error || ('Error ' + r.status));
-  return data;
-}
-
-function error(msg) {
-  return `<div class="aviso"><span>⚠️</span><div>${esc(msg)}</div></div>`;
-}
-
-// ── Tablero ────────────────────────────────────────────────
-function chipDe(id) {
-  const r = RESUMEN;
-  if (id === 'clientes')     return r.cuentas ? { t: r.cuentas.toLocaleString('es-AR') + ' cuentas', c:'' } : null;
-  if (id === 'comprobantes') return r.compPend ? { t: r.compPend + ' sin revisar', c:'alerta' } : { t:'Al día', c:'ok' };
-  if (id === 'bloquear')     return r.aBloquear ? { t: r.aBloquear + ' para revisar', c:'alerta' } : { t:'Sin pendientes', c:'ok' };
-  if (id === 'reclamos')     return r.reclAbiertos ? { t: r.reclAbiertos + ' abierto' + (r.reclAbiertos>1?'s':''), c:'alerta' } : { t:'Sin abiertos', c:'ok' };
-  if (id === 'efectivo')     return r.cobrosPend ? { t: r.cobrosPend + ' para retirar', c:'alerta' } : { t:'Sin pendientes', c:'ok' };
-  return null;
-}
-
-function tablero() {
-  VISTA = 'tablero';
-  pintarNav();
-  $('cb-cont').innerHTML = `
-    <div class="head"><div>
-      <h1>Cobranzas</h1>
-      <div class="head-sub">Cuenta corriente, comprobantes, reclamos y cobros — todo desde el Portal.</div>
-    </div></div>
-    <div class="cb-cards">
-      ${SECCIONES.map(s => {
-        const chip = chipDe(s.id);
-        const prox = !s.listo && !s.href;
-        const onclick = s.href ? `location.href='${s.href}'` : (s.listo ? `abrir('${s.id}')` : '');
-        return `<button class="cb-card ${prox?'prox':''}" ${onclick?`onclick="${onclick}"`:''}>
-          <div class="ico">${s.ico}</div>
-          <h3>${esc(s.n)}</h3>
-          <p>${esc(s.d)}</p>
-          ${chip ? `<span class="cb-chip ${chip.c}">${esc(chip.t)}</span>` : ''}
-          ${prox ? `<span class="cb-chip">En camino</span>` : ''}
-        </button>`;
-      }).join('')}
-    </div>`;
-}
-
-function pintarNav() {
-  $('cb-nav').innerHTML = `<button class="sb-item ${VISTA==='tablero'?'on':''}" onclick="tablero()"><span class="i">🏠</span> Tablero</button>` +
-    SECCIONES.filter(s => s.listo).map(s =>
-      `<button class="sb-item ${VISTA===s.id?'on':''}" onclick="abrir('${s.id}')"><span class="i">${s.ico}</span> ${esc(s.n)}</button>`).join('');
-}
-
-function abrir(id) {
-  VISTA = id; pintarNav();
-  if (id === 'clientes') return verClientes();
-  if (id === 'bloquear') return verBloquear();
-  if (id === 'efectivo') return verEfectivo();
-}
-
-const encabezado = (t, sub) => `
-  <button class="cb-volver" onclick="tablero()">‹ Volver al tablero</button>
-  <div class="head"><div><h1>${esc(t)}</h1><div class="head-sub">${esc(sub)}</div></div></div>`;
-
-// ── Clientes / cuenta corriente ────────────────────────────
-let _cliPag = 0, _cliQ = '';
-async function verClientes(pag) {
-  if (pag != null) _cliPag = pag;
-  $('cb-cont').innerHTML = encabezado('Clientes', 'Cuenta corriente de cada cliente.') +
-    `<div class="buscador"><span class="lupa">🔎</span>
-       <input id="cli-q" type="text" placeholder="Buscar por código, nombre o comercio…" value="${esc(_cliQ)}"></div>
-     <div id="cli-lista"><div class="pv-vacio">Buscando…</div></div>`;
-  const inp = $('cli-q');
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { _cliQ = inp.value.trim(); verClientes(0); } });
-
-  try {
-    const d = await api('?que=clientes&pagina=' + _cliPag + '&q=' + encodeURIComponent(_cliQ));
-    if (!d.filas.length) {
-      $('cli-lista').innerHTML = `<div class="pv-vacio">${_cliQ ? 'Ningún cliente coincide con “' + esc(_cliQ) + '”.' : 'No hay cuentas cargadas.'}</div>`;
-      return;
+  (async function(){
+    const s = await GBAuth.requireAuth();
+    if(!s) return;
+    const permitidos = ['admin','administracion','tesoreria','desarrollo','diseno'];
+    if(!permitidos.includes(s.role)){
+      document.querySelector('.main').innerHTML =
+        '<div class="head"><div><h1>Cobranzas</h1></div></div>' +
+        '<div class="aviso"><span>🔑</span><div>Esta pantalla es del área de administración y cobranzas.</div></div>' +
+        '<p><a class="sb-item" style="color:var(--navy);width:auto;display:inline-flex" href="hub.html">← Volver al Hub</a></p>';
     }
-    const desde = d.pagina * d.porPagina + 1, hasta = Math.min(desde + d.filas.length - 1, d.total);
-    $('cli-lista').innerHTML = `
-      <table class="cb-tabla">
-        <thead><tr><th>Código</th><th>Cliente</th><th>Vendedor</th><th class="num">Saldo</th><th class="num">Deuda vencida</th></tr></thead>
-        <tbody>${d.filas.map(c => `<tr>
-          <td>${esc(c.codigo || '—')}</td>
-          <td><b>${esc(c.comercio || c.nombre || '—')}</b>${c.comercio && c.nombre && c.comercio !== c.nombre ? `<div style="color:var(--muted);font-size:12px">${esc(c.nombre)}</div>` : ''}</td>
-          <td>${esc(c.vendedor || '—')}</td>
-          <td class="num">${plata(c.saldo)}</td>
-          <td class="num ${Number(c.deuda_vencida) > 0 ? 'rojo' : ''}">${plata(c.deuda_vencida)}</td>
-        </tr>`).join('')}</tbody>
-      </table>
-      <div class="cb-paginado">
-        <button class="cb-b" onclick="verClientes(${d.pagina-1})" ${d.pagina<=0?'disabled':''}>‹ Anteriores</button>
-        <span style="font-size:12.5px;color:var(--muted)">${desde}–${hasta} de ${d.total.toLocaleString('es-AR')}</span>
-        <button class="cb-b" onclick="verClientes(${d.pagina+1})" ${hasta>=d.total?'disabled':''}>Siguientes ›</button>
-      </div>`;
-  } catch (e) { $('cli-lista').innerHTML = error(e.message); }
-}
-
-// ── Bloquear cuentas ───────────────────────────────────────
-async function verBloquear() {
-  $('cb-cont').innerHTML = encabezado('Bloquear cuentas', 'Clientes que pasaron su tope de deuda vencida.') +
-    `<div id="blo-lista"><div class="pv-vacio">Cargando…</div></div>`;
-  try {
-    const d = await api('?que=bloquear');
-    const fila = (c, bloqueado) => `<tr id="blo-${esc(c.codigo)}">
-      <td>${esc(c.codigo || '—')}</td>
-      <td><b>${esc(c.comercio || c.nombre || '—')}</b></td>
-      <td class="num rojo">${plata(c.deuda_vencida)}</td>
-      <td class="num">${plata(c.tope_deuda_vencida)}</td>
-      <td style="text-align:right">
-        ${bloqueado
-          ? `<button class="cb-b ok" onclick="cambiarBloqueo('${esc(c.codigo)}',false,this)">Dar de alta</button>`
-          : `<button class="cb-b danger" onclick="cambiarBloqueo('${esc(c.codigo)}',true,this)">🔒 Bloquear</button>`}
-      </td></tr>`;
-    $('blo-lista').innerHTML = `
-      ${d.filas.length ? `
-        <table class="cb-tabla">
-          <thead><tr><th>Código</th><th>Cliente</th><th class="num">Deuda vencida</th><th class="num">Tope</th><th></th></tr></thead>
-          <tbody>${d.filas.map(c => fila(c,false)).join('')}</tbody>
-        </table>`
-        : `<div class="pv-vacio">Ningún cliente pasó su tope. Todo en orden.</div>`}
-      ${d.bloqueados.length ? `
-        <h2 style="font-size:16px;margin:28px 0 0">Bloqueados hoy <span class="pv-n">${d.bloqueados.length}</span></h2>
-        <table class="cb-tabla">
-          <thead><tr><th>Código</th><th>Cliente</th><th class="num">Deuda vencida</th><th class="num">Tope</th><th></th></tr></thead>
-          <tbody>${d.bloqueados.map(c => fila(c,true)).join('')}</tbody>
-        </table>` : ''}`;
-  } catch (e) { $('blo-lista').innerHTML = error(e.message); }
-}
-
-async function cambiarBloqueo(codigo, bloquear, btn) {
-  const q = bloquear
-    ? '¿Bloquear la cuenta ' + codigo + '?\n\nNo va a poder comprar hasta que la des de alta.'
-    : '¿Dar de alta la cuenta ' + codigo + '?';
-  if (!confirm(q)) return;
-  btn.disabled = true; btn.textContent = 'Guardando…';
-  try {
-    await api('', { method:'POST', body: JSON.stringify({ accion: bloquear ? 'bloquear' : 'desbloquear', codigo }) });
-    await verBloquear();
-    await cargarResumen();
-  } catch (e) {
-    alert('No se pudo: ' + e.message);
-    btn.disabled = false; btn.textContent = bloquear ? '🔒 Bloquear' : 'Dar de alta';
-  }
-}
-
-// ── Cobros en efectivo ─────────────────────────────────────
-async function verEfectivo() {
-  $('cb-cont').innerHTML = encabezado('Cobros en efectivo', 'Clientes que avisaron que tienen el efectivo listo para retirar.') +
-    `<div id="efe-lista"><div class="pv-vacio">Cargando…</div></div>`;
-  try {
-    const d = await api('?que=efectivo');
-    const pend = d.filas.filter(c => (c.estado || 'pendiente') === 'pendiente');
-    const resto = d.filas.filter(c => (c.estado || 'pendiente') !== 'pendiente');
-    const card = c => `<article class="hh">
-      <div class="hh-top">
-        <span class="hh-ico">💵</span>
-        <div class="hh-nom">${esc(c.cliente_nombre || c.codigo || 'Sin nombre')}</div>
-        <span class="cb-chip ${c.estado === 'cobrado' ? 'ok' : c.estado === 'cancelado' ? '' : 'alerta'}">${esc(c.estado || 'pendiente')}</span>
-      </div>
-      <div class="hh-desc">${esc(c.codigo || '')}${c.vendedor ? ' · ' + esc(c.vendedor) : ''} · avisado el ${fecha(c.created_at)}</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px">${plata(c.monto)}</div>
-      ${c.facturas ? `<div class="hh-desc">Facturas: ${esc(c.facturas)}</div>` : ''}
-      <div class="pd-acts">
-        ${c.telefono ? `<a class="cb-b" href="https://wa.me/${esc(String(c.telefono).replace(/\D/g,''))}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
-        ${(c.estado || 'pendiente') === 'pendiente' ? `
-          <button class="cb-b ok" onclick="cambiarCobro('${c.id}','cobro-cobrado',this)">✅ Cobrado</button>
-          <button class="cb-b danger" onclick="cambiarCobro('${c.id}','cobro-cancelado',this)">✕ Cancelar</button>` : ''}
-      </div>
-    </article>`;
-    $('efe-lista').innerHTML =
-      (pend.length ? pend.map(card).join('') : `<div class="pv-vacio">No hay cobros pendientes de retirar.</div>`) +
-      (resto.length ? `<h2 style="font-size:16px;margin:28px 0 0">Ya resueltos <span class="pv-n">${resto.length}</span></h2>` + resto.map(card).join('') : '');
-  } catch (e) { $('efe-lista').innerHTML = error(e.message); }
-}
-
-async function cambiarCobro(id, accion, btn) {
-  btn.disabled = true; btn.textContent = 'Guardando…';
-  try {
-    await api('', { method:'POST', body: JSON.stringify({ accion, id }) });
-    await verEfectivo();
-    await cargarResumen();
-  } catch (e) { alert('No se pudo: ' + e.message); btn.disabled = false; }
-}
-
-// ── Arranque ───────────────────────────────────────────────
-async function cargarResumen() {
-  try { RESUMEN = await api('?que=resumen'); } catch (e) { RESUMEN = { _error: e.message }; }
-}
-
-(async function init() {
-  const s = await GBAuth.requireAuth();
-  if (!s) return;
-  const ses = await GBAuth.client.auth.getSession();
-  TOKEN = ses.data.session ? ses.data.session.access_token : null;
-  $('cb-quien').textContent = s.nombre || '';
-
-  await cargarResumen();
-  if (RESUMEN._error) {
-    pintarNav();
-    $('cb-cont').innerHTML = `<div class="head"><div><h1>Cobranzas</h1></div></div>` + error(RESUMEN._error);
-    return;
-  }
-  tablero();
-})();
+  })();
 </script>
 </body>
 </html>
