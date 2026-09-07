@@ -4,6 +4,8 @@
 //   POST {accion:'importar-banco', movimientos:[...]} → carga el extracto.
 //   POST {accion:'aceptar', id, banco_mov_id?} → estado 'aceptado' + liga el movimiento.
 //   POST {accion:'rechazar', id} → estado 'rechazado'.
+//  Al cerrar deja quién y cuándo (revisado_por / revisado_at): es lo que mide la
+//  pantalla de supervisión de Brenda.
 //  Verifica el rol del Hub (tesoreria | administracion | admin).
 //  Env: COBRANZAS_SERVICE_ROLE
 // ============================================================
@@ -30,6 +32,8 @@ exports.handler = async (event) => {
     const perfil = (await pRes.json())[0] || {};
     if (!ROLES_OK.includes(String(perfil.rol || '').toLowerCase())) return json(403, { error: 'No autorizado (solo tesorería/administración).' });
 
+    const quienRevisa = perfil.nombre || user.email || 'Sin identificar';
+
     const cob = (path, opts = {}) => fetch(COB_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: service, Authorization: 'Bearer ' + service, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
 
     if (event.httpMethod === 'POST') {
@@ -52,7 +56,8 @@ exports.handler = async (event) => {
       }
 
       if (body.accion === 'aceptar' && body.id) {
-        const patch = { estado: 'aceptado' };
+        // Quién cerró y cuándo: sin esto no se puede medir cuánto tarda tesorería.
+        const patch = { estado: 'aceptado', revisado_por: quienRevisa, revisado_at: new Date().toISOString() };
         if (body.banco_mov_id) patch.banco_mov_id = body.banco_mov_id;
         const up = await cob('comprobantes?id=eq.' + encodeURIComponent(body.id) + '&estado=eq.procesado', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
         if (!up.ok) return json(502, { error: 'No pude aceptar: ' + (await up.text()).slice(0, 150) });
@@ -61,7 +66,7 @@ exports.handler = async (event) => {
       }
 
       if (body.accion === 'rechazar' && body.id) {
-        const up = await cob('comprobantes?id=eq.' + encodeURIComponent(body.id) + '&estado=eq.procesado', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'rechazado' }) });
+        const up = await cob('comprobantes?id=eq.' + encodeURIComponent(body.id) + '&estado=eq.procesado', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'rechazado', revisado_por: quienRevisa, revisado_at: new Date().toISOString() }) });
         if (!up.ok) return json(502, { error: 'No pude rechazar' });
         return json(200, { ok: true });
       }

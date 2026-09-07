@@ -178,20 +178,20 @@ exports.handler = async (event) => {
 
     // ── Cómo viene la revisión de comprobantes ──────────────
     // El circuito real, según lo que escribe cada pantalla:
-    //   1) el cliente sube el comprobante            → estado 'pendiente'
-    //   2) el vendedor lo confirma                   → 'procesado' + procesado_por = su código
-    //   3) tesorería lo cruza con el banco           → 'aceptado' o 'rechazado'
-    // Ojo: el paso 3 no deja registro de quién ni de cuándo, así que la única
-    // demora que se puede medir de punta a punta es la del paso 2. Lo que está
-    // esperando a tesorería se mide desde que el vendedor lo pasó.
+    //   1) el cliente sube el comprobante   → estado 'pendiente'
+    //   2) el vendedor lo confirma          → 'procesado'  + procesado_por (su código) / procesado_at
+    //   3) tesorería lo cruza con el banco  → 'aceptado' o 'rechazado' + revisado_por / revisado_at
+    // Con eso se puede medir cada tramo por separado: lo que tarda el vendedor en
+    // confirmar y lo que tarda tesorería en cerrar.
     if (que === 'supervision') {
       const desdeDias = Math.max(1, parseInt(p.dias || '30', 10) || 30);
       const desde = new Date(Date.now() - desdeDias * 86400000).toISOString();
-      const comps = await leer('comprobantes?select=id,cliente_id,estado,monto,fecha_pago,procesado_por,procesado_at,created_at,tipo'
+      const comps = await leer('comprobantes?select=id,cliente_id,estado,monto,fecha_pago,procesado_por,procesado_at,revisado_por,revisado_at,created_at,tipo'
         + '&tipo=eq.cliente&created_at=gte.' + desde + '&order=created_at.desc&limit=2000');
 
       const num  = v => Number(v || 0);
       const prom = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+      const hrs  = (a, b) => (new Date(b) - new Date(a)) / 3600000;
       const ahora = Date.now();
 
       const porEstado = {};
@@ -205,11 +205,17 @@ exports.handler = async (event) => {
       const conVendedor  = comps.filter(c => (c.estado || 'pendiente') === 'pendiente');
       const conTesoreria = comps.filter(c => c.estado === 'procesado');
 
-      // Lo que tarda el vendedor en confirmar: se puede medir en todos los que ya pasó.
+      // Tramo 1: lo que tarda el vendedor en confirmar.
       const pasados = comps.filter(c => c.procesado_at && c.created_at);
-      const horasVend = pasados
-        .map(c => (new Date(c.procesado_at) - new Date(c.created_at)) / 3600000)
-        .filter(h => h >= 0);
+      const horasVend = pasados.map(c => hrs(c.created_at, c.procesado_at)).filter(h => h >= 0);
+
+      // Tramo 2: lo que tarda tesorería en cerrar, desde que el vendedor lo pasó.
+      // Solo cuentan los que se cerraron con las columnas nuevas; lo anterior no
+      // tiene registro y se informa aparte para no falsear el promedio.
+      const cerrados    = comps.filter(c => ['aceptado', 'rechazado'].includes(c.estado));
+      const conRegistro = cerrados.filter(c => c.revisado_at);
+      const horasTeso   = conRegistro
+        .map(c => hrs(c.procesado_at || c.created_at, c.revisado_at)).filter(h => h >= 0);
 
       // Los que siguen frenados, con hace cuánto esperan a quien los tiene.
       const trabados = [...conVendedor, ...conTesoreria].map(c => {
@@ -238,7 +244,7 @@ exports.handler = async (event) => {
         const k = c.procesado_por || 'sin-codigo';
         porVendedor[k] = porVendedor[k] || { codigo: k, nombre: null, cantidad: 0, monto: 0, _h: [] };
         porVendedor[k].cantidad++; porVendedor[k].monto += num(c.monto);
-        const h = (new Date(c.procesado_at) - new Date(c.created_at)) / 3600000;
+        const h = hrs(c.created_at, c.procesado_at);
         if (h >= 0) porVendedor[k]._h.push(h);
       });
       const codigos = Object.keys(porVendedor).filter(k => k !== 'sin-codigo');
@@ -257,6 +263,22 @@ exports.handler = async (event) => {
         nombre: v.nombre, cantidad: v.cantidad, monto: v.monto, horas: prom(v._h),
       })).sort((a, b) => b.cantidad - a.cantidad);
 
+      // revisado_por ya guarda el nombre de la persona del Portal.
+      const porRevisor = {};
+      conRegistro.forEach(c => {
+        const k = c.revisado_por || 'Sin identificar';
+        porRevisor[k] = porRevisor[k] || { quien: k, cantidad: 0, monto: 0, aceptados: 0, rechazados: 0, _h: [] };
+        const v = porRevisor[k];
+        v.cantidad++; v.monto += num(c.monto);
+        if (c.estado === 'aceptado') v.aceptados++; else v.rechazados++;
+        const h = hrs(c.procesado_at || c.created_at, c.revisado_at);
+        if (h >= 0) v._h.push(h);
+      });
+      const revisores = Object.values(porRevisor).map(v => ({
+        quien: v.quien, cantidad: v.cantidad, monto: v.monto,
+        aceptados: v.aceptados, rechazados: v.rechazados, horas: prom(v._h),
+      })).sort((a, b) => b.cantidad - a.cantidad);
+
       return json(200, {
         dias: desdeDias,
         total: comps.length,
@@ -264,8 +286,12 @@ exports.handler = async (event) => {
         esperandoVendedor: conVendedor.length,
         esperandoTesoreria: conTesoreria.length,
         horasVendedor: prom(horasVend),
+        horasTesoreria: prom(horasTeso),
+        cerrados: cerrados.length,
+        cerradosSinRegistro: cerrados.length - conRegistro.length,
         trabados,
         vendedores,
+        revisores,
       });
     }
 

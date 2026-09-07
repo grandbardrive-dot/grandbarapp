@@ -170,8 +170,8 @@ async function cobFicha(codigo) {
 // Aceptar o rechazar comprobantes lo opera tesorería (Mónica). Acá se supervisa el
 // sector, así que no hay botones de acción: es una pantalla para mirar.
 // El circuito tiene tres pasos: el cliente sube el comprobante, el vendedor lo
-// confirma, y recién ahí tesorería lo cruza con el banco. Por eso importa saber
-// en cuál de los dos está frenado cada uno.
+// confirma, y recién ahí tesorería lo cruza con el banco. Cada tramo se mide por
+// separado, y se muestra en cuál de los dos quedó frenado cada uno.
 let _supDias = 30;
 const _horas = h => h == null ? '—' : h < 48 ? Math.round(h) + ' h' : Math.round(h / 24) + ' días';
 const _dias  = d => d === 0 ? 'hoy' : d + ' día' + (d > 1 ? 's' : '');
@@ -203,7 +203,13 @@ async function cobComprobantes(dias) {
         <div class="cb-card" style="cursor:default"><h3>Tarda el vendedor</h3>
           <div style="font-size:26px;font-weight:800;margin-top:6px">${_horas(d.horasVendedor)}</div>
           <p>desde que el cliente lo sube hasta que lo confirma</p></div>
+        <div class="cb-card" style="cursor:default"><h3>Tarda tesorería</h3>
+          <div style="font-size:26px;font-weight:800;margin-top:6px">${_horas(d.horasTesoreria)}</div>
+          <p>desde que el vendedor lo pasa hasta que se cierra</p></div>
       </div>
+      ${d.cerradosSinRegistro ? `<p style="font-size:12.5px;color:var(--muted);margin:12px 0 0">
+        De los ${d.cerrados} cerrados en el período, ${d.cerradosSinRegistro} son de antes de que se
+        empezara a guardar quién los revisó, así que no entran en el promedio de tesorería.</p>` : ''}
 
       <h2 style="font-size:16px;margin:26px 0 0">En qué estado están</h2>
       ${d.porEstado.length ? `<table class="cb-tabla">
@@ -226,10 +232,24 @@ async function cobComprobantes(dias) {
         </tr>`).join('')}</tbody></table>`
         : `<div class="pv-vacio">No quedó ninguno trabado. Al día.</div>`}
 
+      <h2 style="font-size:16px;margin:26px 0 0">Quién los cerró en tesorería</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin:4px 0 0">
+        El cruce con el banco: aceptar o rechazar. El tiempo se cuenta desde que el
+        vendedor lo pasó.</p>
+      ${d.revisores.length ? `<table class="cb-tabla">
+        <thead><tr><th>Persona</th><th class="num">Cerrados</th><th class="num">Aceptados</th><th class="num">Rechazados</th><th class="num">Monto</th><th class="num">Tardó</th></tr></thead>
+        <tbody>${d.revisores.map(v => `<tr>
+          <td><b>${cesc(v.quien)}</b></td>
+          <td class="num">${v.cantidad}</td>
+          <td class="num">${v.aceptados}</td>
+          <td class="num ${v.rechazados ? 'rojo' : ''}">${v.rechazados}</td>
+          <td class="num">${cnum(v.monto)}</td>
+          <td class="num">${_horas(v.horas)}</td></tr>`).join('')}</tbody></table>`
+        : `<div class="pv-vacio">Todavía no se cerró ninguno con registro de quién lo revisó.</div>`}
+
       <h2 style="font-size:16px;margin:26px 0 0">Qué vendedor los confirmó</h2>
       <p style="font-size:12.5px;color:var(--muted);margin:4px 0 0">
-        El paso que hace el vendedor cuando el cliente le avisa que pagó. Lo que hace
-        tesorería después no queda registrado a nombre de nadie.</p>
+        El paso previo: cuando el cliente le avisa al vendedor que pagó.</p>
       ${d.vendedores.length ? `<table class="cb-tabla">
         <thead><tr><th>Vendedor</th><th class="num">Confirmados</th><th class="num">Monto</th><th class="num">Tardó</th></tr></thead>
         <tbody>${d.vendedores.map(v => `<tr>
