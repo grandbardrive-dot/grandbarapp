@@ -111,6 +111,7 @@ const PANTALLAS = [
     quien: 'Administración',
     items: [
       { n:'Administración',        r:'administracion.html',      nota:'Tablero del área.' },
+      { n:'Panel de Cobranzas',    r:'panel-cobranzas.html',     nota:'Cuenta corriente, comprobantes, reclamos y cobros. Es el sistema de gestión, adentro del Portal.' },
       { n:'Revisión de cobranzas', r:'cobranzas-tesoreria.html', nota:'Extracto y match de pagos.' },
       { n:'Compras',               r:'compras.html',             nota:'Tablero de compras.' },
       { n:'Depósito',              r:'deposito.html',            nota:'Stock y movimientos.' },
