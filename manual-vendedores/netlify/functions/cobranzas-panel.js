@@ -68,6 +68,23 @@ exports.handler = async (event) => {
       headers: { apikey: service, Authorization: 'Bearer ' + service, 'Content-Type': 'application/json', ...(opts.headers || {}) },
     });
     const leer = async (path) => { const r = await cob(path); return r.ok ? await r.json() : []; };
+
+    // La base corta en 1000 filas por consulta y NO avisa: contesta 200 con las
+    // primeras 1000. Un "limit=2000" no sirve de nada. Para lo que se suma entero
+    // —la cartera, la deuda vencida— hay que pedirlo por páginas, o los totales
+    // salen cortados sin que nada falle.
+    const leerTodo = async (path, tope = 20000) => {
+      const filas = [], tam = 1000;
+      for (let desde = 0; desde < tope; desde += tam) {
+        const r = await cob(path, { headers: { 'Range-Unit': 'items', Range: desde + '-' + (desde + tam - 1) } });
+        if (!r.ok) break;
+        const lote = await r.json();
+        if (!Array.isArray(lote) || !lote.length) break;
+        filas.push(...lote);
+        if (lote.length < tam) break;
+      }
+      return filas;
+    };
     const contar = async (tabla, filtro) => {
       const r = await cob(tabla + '?select=id' + (filtro ? '&' + filtro : ''), { headers: { Prefer: 'count=exact', Range: '0-0' } });
       return Number((r.headers.get('content-range') || '*/0').split('/')[1]) || 0;
@@ -113,7 +130,7 @@ exports.handler = async (event) => {
         contar('comprobantes', 'estado=eq.pendiente'),
         contar('reclamos', 'estado=eq.abierto'),
         contar('cobros_efectivo', 'estado=eq.pendiente'),
-        leer('clientes?select=estado,deuda_vencida,tope_deuda_vencida&deuda_vencida=gt.0&limit=2000'),
+        leerTodo('clientes?select=estado,deuda_vencida,tope_deuda_vencida&deuda_vencida=gt.0&order=deuda_vencida.desc'),
       ]);
       // Pasados de tope: hay que comparar dos columnas entre sí, así que se cuenta acá.
       const aBloquear = clientes.filter(c =>
@@ -161,7 +178,7 @@ exports.handler = async (event) => {
     }
 
     if (que === 'bloquear') {
-      const todos = await leer('clientes?select=*&deuda_vencida=gt.0&order=deuda_vencida.desc&limit=500');
+      const todos = await leerTodo('clientes?select=*&deuda_vencida=gt.0&order=deuda_vencida.desc', 3000);
       return json(200, {
         filas: todos.filter(c => Number(c.deuda_vencida || 0) > Number(c.tope_deuda_vencida || 0) && c.estado !== 'bloqueado'),
         bloqueados: todos.filter(c => c.estado === 'bloqueado'),
@@ -193,8 +210,8 @@ exports.handler = async (event) => {
     if (que === 'supervision') {
       const desdeDias = Math.max(1, parseInt(p.dias || '30', 10) || 30);
       const desde = new Date(Date.now() - desdeDias * 86400000).toISOString();
-      const comps = await leer('comprobantes?select=id,cliente_id,estado,monto,fecha_pago,procesado_por,procesado_at,revisado_por,revisado_at,created_at,tipo'
-        + '&tipo=eq.cliente&created_at=gte.' + desde + '&order=created_at.desc&limit=2000');
+      const comps = await leerTodo('comprobantes?select=id,cliente_id,estado,monto,fecha_pago,procesado_por,procesado_at,revisado_por,revisado_at,created_at,tipo'
+        + '&tipo=eq.cliente&created_at=gte.' + desde + '&order=created_at.desc');
 
       const num  = v => Number(v || 0);
       const prom = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
@@ -306,7 +323,7 @@ exports.handler = async (event) => {
       // Se recorre la cartera para sacar los totales: la función stats_cuentas_cubo
       // del otro sistema exige ser admin DE ESE sistema, y acá entramos con la llave
       // de servicio, así que se calcula del lado nuestro.
-      const cuentas = await leer('cuentas_cubo?select=saldo,vencida,equipo,vendedor&limit=10000');
+      const cuentas = await leerTodo('cuentas_cubo?select=saldo,vencida,equipo,vendedor&order=codigo');
       const num = v => Number(v || 0);
       const cartera = cuentas.reduce((a, c) => a + num(c.saldo), 0);
       const vencida = cuentas.reduce((a, c) => a + num(c.vencida), 0);
@@ -346,10 +363,10 @@ exports.handler = async (event) => {
       };
       const tsDe = (c, f) => { const t = c && c.timestamp ? Number(c.timestamp) * 1000 : null; return t && !isNaN(t) ? new Date(t).toISOString() : f; };
 
-      const eventos = await leer('wa_eventos?select=tipo,estado,telefono,message_id,error_titulo,error_detalle,crudo,created_at&order=created_at.desc&limit=1500');
+      const eventos = await leerTodo('wa_eventos?select=tipo,estado,telefono,message_id,error_titulo,error_detalle,crudo,created_at&order=created_at.desc', 5000);
       const dir = {};
-      for (const c of await leer('cuentas_cubo?select=codigo,nombre,telefono&telefono=not.is.null')) { const k = last10(c.telefono); if (k && !dir[k]) dir[k] = { nombre: c.nombre, codigo: c.codigo }; }
-      for (const c of await leer('clientes?select=comercio,nombre,whatsapp,codigo_cubo&whatsapp=not.is.null')) { const k = last10(c.whatsapp); if (k && !dir[k]) dir[k] = { nombre: c.comercio || c.nombre, codigo: c.codigo_cubo }; }
+      for (const c of await leerTodo('cuentas_cubo?select=codigo,nombre,telefono&telefono=not.is.null&order=codigo')) { const k = last10(c.telefono); if (k && !dir[k]) dir[k] = { nombre: c.nombre, codigo: c.codigo }; }
+      for (const c of await leerTodo('clientes?select=comercio,nombre,whatsapp,codigo_cubo&whatsapp=not.is.null&order=id')) { const k = last10(c.whatsapp); if (k && !dir[k]) dir[k] = { nombre: c.comercio || c.nombre, codigo: c.codigo_cubo }; }
 
       const conv = new Map();
       for (const e of (Array.isArray(eventos) ? eventos : [])) {
