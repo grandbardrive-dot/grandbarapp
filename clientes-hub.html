@@ -79,6 +79,11 @@
     .cdrop button:hover{background:var(--cream)}
     .cdrop button.on{font-weight:800;color:var(--gold-d);background:var(--gold-soft)}
     .toolbar .spacer{flex:1}
+    /* Segmento Activos / Ocultos */
+    .seg{display:inline-flex;background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+    .seg-b{border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:6px 13px;border-radius:8px;cursor:pointer}
+    .seg-b.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(13,34,48,.1)}
+    .seg-b span{opacity:.6;font-weight:500;margin-left:2px}
 
     .layout{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;align-items:start}
 
@@ -94,6 +99,10 @@
     .crow .right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
     .crow .lv{font-size:11px;color:var(--muted)}
     .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;background:var(--green-soft);color:var(--green-d)}
+    .badge.tog{cursor:pointer;border:1px solid transparent;font-family:inherit}
+    .badge.tog:hover{border-color:currentColor}
+    .badge.off{background:#f0ece4;color:var(--muted)}
+    .crow.oculto{opacity:.6}
     .list-foot{padding:12px 16px;font-size:12px;color:var(--muted);text-align:center}
 
     /* Detalle */
@@ -199,6 +208,10 @@
       <div id="modo" style="display:none;background:var(--gold-soft);border:1px solid #e5d3a3;border-radius:10px;padding:10px 14px;font-size:13px;color:#7a5a12;margin-bottom:14px"></div>
 
       <div class="toolbar">
+        <div class="seg">
+          <button class="seg-b on" id="segAct" onclick="setVerOcultos(false)">Activos <span id="cntAct"></span></button>
+          <button class="seg-b" id="segOcu" onclick="setVerOcultos(true)">Ocultos <span id="cntOcu"></span></button>
+        </div>
         <div class="pill" id="fDeudaBtn" onclick="menuDeuda(event)"><span class="pl">Todos los clientes</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
         <div class="pill" id="fDimBtn" onclick="menuDim(event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> <span class="pl">Filtros</span></div>
         <div class="spacer"></div>
@@ -244,11 +257,41 @@
   function fmtFecha(iso){ if(!iso) return null; const d=new Date(iso); return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 
   // Estado de los filtros/orden de la barra.
-  let fDeuda='todos', fDim='', _dimKey='tipo', orden='az';
+  let fDeuda='todos', fDim='', _dimKey='tipo', orden='az', verOcultos=false;
+  // Un cliente es activo salvo que activo===false (por defecto: activo).
+  const esActivo = c => c.activo !== false;
+
+  function setVerOcultos(oc){
+    verOcultos = oc;
+    document.getElementById('segAct').classList.toggle('on', !oc);
+    document.getElementById('segOcu').classList.toggle('on', oc);
+    sel=-1; renderList();
+  }
+  window.setVerOcultos = setVerOcultos;
+
+  // Cambia activo/inactivo del cliente. Optimista + guarda en el Manual.
+  async function toggleActivo(i){
+    const c = CLIENTES[i]; if(!c) return;
+    const nuevo = !esActivo(c);
+    c.activo = nuevo;
+    sel=-1; renderList();
+    try{
+      const { error } = await mansb().from('clientes').update({ activo:nuevo }).eq('id', c.id);
+      if(error){ c.activo = !nuevo; renderList(); avisoFicha('No se pudo guardar el cambio. Reintentá.'); }
+    }catch(e){ c.activo = !nuevo; renderList(); }
+  }
+  window.toggleActivo = toggleActivo;
+
   function renderList(filter){
     const qEl=document.getElementById("q");
     const q = (filter!=null ? filter : (qEl?qEl.value:"")).toLowerCase().trim();
+    // Contadores de las pestañas (sobre el total)
+    const nOcu = CLIENTES.filter(c=>!esActivo(c)).length;
+    const ca=document.getElementById('cntAct'), co=document.getElementById('cntOcu');
+    if(ca) ca.textContent = '('+(CLIENTES.length-nOcu)+')';
+    if(co) co.textContent = '('+nOcu+')';
     let rows = CLIENTES.map((c,i)=>({c,i}))
+      .filter(({c}) => esActivo(c) !== verOcultos)
       .filter(({c}) => !q || ((c.nombre||"")+" "+(c.direccion||"")+" "+(c.tipo||"")+" "+(c.vendedor_nombre||"")+" "+(c.codigo_cliente||"")).toLowerCase().includes(q))
       .filter(({c}) => {
         if (fDeuda==='todos') return true;
@@ -268,10 +311,11 @@
     });
     document.getElementById("list").innerHTML = rows.map(({c,i},pos)=>{
       const lv = ultimaVisita[c.id] ? `Última visita<br>${fmtFecha(ultimaVisita[c.id])}` : "";
-      return `<div class="crow ${i===sel?'sel':''}" onclick="selCliente(${i})">
+      const act = esActivo(c);
+      return `<div class="crow ${i===sel?'sel':''}${act?'':' oculto'}" onclick="selCliente(${i})">
         <div class="n">${pos+1}</div>
         <div><div class="nm">${c.nombre}</div><div class="meta">${c.vendedor_nombre ? c.vendedor_nombre+(c.direccion?' · '+c.direccion:'') : cap(c.tipo)+(c.direccion? ' · '+c.direccion:'')}</div></div>
-        <div class="right"><div class="lv">${lv}</div><span class="badge">Activo</span></div>
+        <div class="right"><div class="lv">${lv}</div><button class="badge tog ${act?'':'off'}" onclick="event.stopPropagation();toggleActivo(${i})" title="${act?'Tocá para ocultar este cliente':'Tocá para reactivar'}">${act?'Activo':'Inactivo'}</button></div>
       </div>`;
     }).join("") + `<div class="list-foot">${rows.length} de ${CLIENTES.length} clientes</div>`;
   }
@@ -349,7 +393,7 @@
       <div class="d-head">
         <div class="num">${i+1}</div>
         <div>
-          <div class="nm">${c.nombre} <span class="badge">Activo</span></div>
+          <div class="nm">${c.nombre} <button class="badge tog ${esActivo(c)?'':'off'}" onclick="event.stopPropagation();toggleActivo(${i})" title="${esActivo(c)?'Tocá para ocultar este cliente':'Tocá para reactivar'}">${esActivo(c)?'Activo':'Inactivo'}</button></div>
           <div class="sub">${cap(c.tipo)} · ${c.direccion||"—"}</div>
         </div>
         <div class="d-actions">
@@ -564,13 +608,13 @@
       if(!vend){ reason="no existe un vendedor con código "+perfil.codigo_vendedor+" en el Manual"; return; }
 
       const { data: cli, error: ce } = await man.from("clientes")
-        .select("id,nombre,tipo,direccion,codigo_cliente,whatsapp").eq("vendedor_id", vend.id).order("nombre");
+        .select("id,nombre,tipo,direccion,codigo_cliente,whatsapp,activo").eq("vendedor_id", vend.id).order("nombre");
       if(ce){ reason="error leyendo clientes ("+ce.message+")"; return; }
       setUser(perfil.nombre || vend.nombre, session.user.email);
       if(!cli || !cli.length){ reason="el vendedor "+perfil.codigo_vendedor+" no tiene clientes cargados en el Manual"; return; }
 
       CLIENTES = cli;
-      document.getElementById("stCount").textContent = cli.length;
+      document.getElementById("stCount").textContent = cli.filter(c=>c.activo!==false).length;
 
       // Última visita por cliente (si la tabla lo permite)
       try{
