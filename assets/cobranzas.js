@@ -12,7 +12,7 @@ const COB_API = '/.netlify/functions/cobranzas-panel';
 const COB_SECCIONES = [
   { id:'clientes',     ico:'👥', n:'Clientes',            d:'Buscá un cliente y mirá su cuenta corriente, facturas y datos.', color:'#e0567f' },
   { id:'comprobantes', ico:'🧾', n:'Supervisión de cobranzas', d:'Cómo vienen los comprobantes que suben los clientes: dónde se frenan y cuánto tardan.', color:'#69a531' },
-  { id:'whatsapp',     ico:'📲', n:'WhatsApp',            d:'Mandá mensajes y seguí el estado de los envíos.',                color:'#e0533c' },
+  { id:'whatsapp',     ico:'📲', n:'WhatsApp',            d:'Lo que responden los clientes y cómo llegaron los avisos. Es de lectura.', color:'#e0533c' },
   { id:'estadisticas', ico:'📊', n:'Estadísticas',        d:'Cartera, cobranzas y comparativas del período.',                 color:'#2f6db0' },
   { id:'bloquear',     ico:'🔒', n:'Bloquear cuentas',    d:'Clientes que superaron su límite: bloqueá o dá de alta.',        color:'#d6a52b' },
   { id:'reclamos',     ico:'💬', n:'Reclamos',            d:'Reclamos de clientes, con chat y número de seguimiento.',        color:'#7b5cd6' },
@@ -59,7 +59,7 @@ function cobChip(id) {
   if (id === 'reclamos')     return r.reclAbiertos ? { t: r.reclAbiertos + ' abierto' + (r.reclAbiertos>1?'s':''), c:'alerta' } : { t:'Sin abiertos', c:'ok' };
   if (id === 'efectivo')     return r.cobrosPend ? { t: r.cobrosPend + ' para retirar', c:'alerta' } : { t:'Sin pendientes', c:'ok' };
   if (id === 'estadisticas') return { t:'Ver resumen', c:'' };
-  if (id === 'whatsapp')     return { t:'Enviar / ver', c:'' };
+  if (id === 'whatsapp')     return { t:'Ver la bandeja', c:'' };
   if (id === 'tareas')       return { t:'Ver el día', c:'' };
   return null;
 }
@@ -143,9 +143,9 @@ async function cobClientes(pag) {
 }
 
 // Estados que puede tener un comprobante, en castellano.
+const COB_REC_LBL = { abierto:'Abierto', en_curso:'En curso', resuelto:'Resuelto' };
 const COMP_LBL = { pendiente:'Lo tiene el vendedor', procesado:'Lo tiene tesorería',
                    aceptado:'Aceptado', rechazado:'Rechazado', revisado:'Revisado' };
-const RECL_LBL = { abierto:'Abierto', en_curso:'En curso', resuelto:'Resuelto' };
 const cwa = t => String(t || '').replace(/\D/g, '');
 
 async function cobFicha(codigo) {
@@ -228,7 +228,7 @@ async function cobFicha(codigo) {
           <tbody>${d.reclamos.map(x => `<tr>
             <td><b>${cesc(x.asunto || 'Reclamo')}</b></td>
             <td>${cesc(x.factura || '—')}</td>
-            <td class="${x.estado === 'abierto' ? 'rojo' : ''}">${cesc(RECL_LBL[x.estado] || x.estado || '—')}</td>
+            <td class="${x.estado === 'abierto' ? 'rojo' : ''}">${cesc(COB_REC_LBL[x.estado] || x.estado || '—')}</td>
             <td>${cfec(x.updated_at)}</td>
             <td><button class="cb-b" onclick="cobReclamo('${x.id}')">Abrir</button></td>
           </tr>`).join('')}</tbody>
@@ -451,7 +451,7 @@ async function cobBloquear() {
 }
 
 // ── 6 · Reclamos ───────────────────────────────────────────
-const COB_REC_LBL = { abierto:'Abierto', en_curso:'En curso', resuelto:'Resuelto' };
+
 async function cobReclamos() {
   cq('cob').innerHTML = cobCabecera('Reclamos', 'Reclamos de clientes, con su historial.') +
     `<div id="r-lista"><div class="pv-vacio">Cargando…</div></div>`;
@@ -467,6 +467,7 @@ async function cobReclamos() {
         <button class="cb-b" onclick="cobReclamo('${r.id}')">Ver conversación</button>
         ${r.estado !== 'resuelto' ? `<button class="cb-b ok" onclick="cobEstadoReclamo('${r.id}','resuelto',this)">✅ Marcar resuelto</button>` : ''}
         ${r.estado === 'abierto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','en_curso',this)">▶️ En curso</button>` : ''}
+        ${r.estado === 'resuelto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','abierto',this)">↩️ Reabrir</button>` : ''}
       </div></article>`).join('');
   } catch (e) { cq('r-lista').innerHTML = cerror(e.message); }
 }

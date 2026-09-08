@@ -19,11 +19,12 @@
 //    reclamos        id, asunto, factura, estado, updated_at, cliente_id
 //
 //    GET  ?que=resumen | clientes | cliente&codigo= | bloquear | efectivo
-//                      | comprobantes | reclamos | estadisticas
+//                      | supervision | reclamos | whatsapp | estadisticas
 //    POST {accion:'bloquear'|'desbloquear', id}
 //         {accion:'cobro-cobrado'|'cobro-cancelado', id}
-//         {accion:'comprobante-revisado', id}
 //         {accion:'reclamo-estado', id, estado}
+//  Sobre comprobantes no hay ninguna accion: aceptarlos o rechazarlos lo opera
+//  tesoreria desde cobranzas-tesoreria. Aca la revision solo se supervisa.
 //
 //  Env: COBRANZAS_SERVICE_ROLE (ya usada por cuentas-vendedor y cobranzas-tesoreria)
 // ============================================================
@@ -93,10 +94,6 @@ exports.handler = async (event) => {
         return patch('cobros_efectivo', 'id=eq.' + encodeURIComponent(b.id),
           b.accion === 'cobro-cobrado' ? { estado: 'cobrado', cobrado_at: new Date().toISOString() } : { estado: 'cancelado' },
           'Ese cobro');
-      }
-      if (b.accion === 'comprobante-revisado') {
-        if (!b.id) return json(400, { error: 'Falta el comprobante.' });
-        return patch('comprobantes', 'id=eq.' + encodeURIComponent(b.id), { estado: 'revisado' }, 'Ese comprobante');
       }
       if (b.accion === 'reclamo-estado') {
         if (!b.id || !b.estado) return json(400, { error: 'Falta el reclamo o el estado.' });
@@ -173,10 +170,6 @@ exports.handler = async (event) => {
 
     if (que === 'efectivo') {
       return json(200, { filas: await leer('cobros_efectivo?select=*&order=created_at.desc&limit=300') });
-    }
-
-    if (que === 'comprobantes') {
-      return json(200, { filas: await leer('comprobantes?select=*,cliente:clientes(comercio,nombre,whatsapp)&order=created_at.desc&limit=300') });
     }
 
     if (que === 'reclamos') {
