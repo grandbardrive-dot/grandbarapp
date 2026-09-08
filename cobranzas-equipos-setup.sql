@@ -82,3 +82,47 @@ select coalesce(nullif(trim(vendedor), ''), '(sin vendedor)') as vendedor,
  where coalesce(trim(equipo), '') = ''
  group by 1
  order by cuentas desc;
+
+
+-- ============================================================
+--  SEGUNDA PARTE: los vendedores que nunca tuvieron equipo
+--  (correr después de la primera, en el mismo proyecto)
+--
+--  El criterio salió de mirar qué clientes tiene cada uno en el manual:
+--  qué rubros y cuántos siguen activos.
+--
+--  · 003 Carolina Carrada → ON. De sus 113 clientes, 97 son restaurante,
+--    hotel o bar, y 87 siguen activos. Es venta ON, sin dudas.
+--
+--  · El resto son cuentas que NO son de venta: bolsas contables (incobrables,
+--    gestión judicial, empleados, operaciones especiales, clientes con acuerdo)
+--    o personas que ya no tienen cartera activa. Van a 'SIN VENTA' para que no
+--    ensucien los totales de ON y OFF, pero se siguen viendo como su propia
+--    fila en el reporte: no desaparecen.
+-- ============================================================
+
+insert into public.equipos_vendedores (vendedor, equipo) values
+  ('003', 'ON'),          -- Carolina Carrada: 97 de 113 clientes son ON, 87 activos
+  ('009', 'SIN VENTA'),   -- Clientes Este: bolsa, sin cartera
+  ('019', 'SIN VENTA'),   -- Analía Roldán: ya no trabaja, 0 clientes activos, $0
+  ('020', 'SIN VENTA'),   -- Franco Malanca: 0 clientes activos, $0
+  ('021', 'SIN VENTA'),   -- Gestión Judicial
+  ('022', 'SIN VENTA'),   -- Incobrables: 0 clientes activos
+  ('034', 'SIN VENTA'),   -- Empleados Grandbar: consumo interno
+  ('042', 'SIN VENTA'),   -- Brenda: administración, $0
+  ('044', 'SIN VENTA'),   -- Operaciones Especiales
+  ('045', 'SIN VENTA')    -- Clientes con Acuerdo: condición comercial, no equipo
+on conflict (vendedor) do update set equipo = excluded.equipo, actualizado = now();
+
+update public.cuentas_cubo c
+   set equipo = e.equipo
+  from public.equipos_vendedores e
+ where coalesce(trim(c.equipo), '') = ''
+   and trim(c.vendedor) = e.vendedor;
+
+-- Lo que todavía queda sin equipo (deberían ser 018, 035 y la cuenta sin vendedor).
+select coalesce(nullif(trim(vendedor), ''), '(sin vendedor)') as vendedor,
+       count(*) as cuentas, sum(saldo) as cartera
+  from public.cuentas_cubo
+ where coalesce(trim(equipo), '') = ''
+ group by 1 order by cuentas desc;
