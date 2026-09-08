@@ -85,8 +85,11 @@ exports.handler = async (event) => {
       }
       return filas;
     };
-    const contar = async (tabla, filtro) => {
-      const r = await cob(tabla + '?select=id' + (filtro ? '&' + filtro : ''), { headers: { Prefer: 'count=exact', Range: '0-0' } });
+    // Ojo: cada tabla tiene su propia clave. cuentas_cubo no tiene columna 'id'
+    // (su clave es el codigo), asi que pedir 'select=id' devolvia un error y el
+    // contador quedaba en cero sin que se notara.
+    const contar = async (tabla, filtro, clave) => {
+      const r = await cob(tabla + '?select=' + (clave || 'id') + (filtro ? '&' + filtro : ''), { headers: { Prefer: 'count=exact', Range: '0-0' } });
       return Number((r.headers.get('content-range') || '*/0').split('/')[1]) || 0;
     };
 
@@ -126,7 +129,7 @@ exports.handler = async (event) => {
 
     if (que === 'resumen') {
       const [cuentas, compPend, reclAbiertos, cobrosPend, clientes] = await Promise.all([
-        contar('cuentas_cubo', ''),
+        contar('cuentas_cubo', '', 'codigo'),
         contar('comprobantes', 'estado=eq.pendiente'),
         contar('reclamos', 'estado=eq.abierto'),
         contar('cobros_efectivo', 'estado=eq.pendiente'),
