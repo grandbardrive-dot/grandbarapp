@@ -589,7 +589,14 @@
       const { data:{ session } } = await hub.auth.getSession();
       if(!session){ location.href="index.html"; return; }   // portero
 
-      const { data: perfil } = await hub.from("usuarios").select("nombre, codigo_vendedor, canal, es_supervisor").eq("id", session.user.id).maybeSingle();
+      const { data: perfil } = await hub.from("usuarios").select("nombre, rol, codigo_vendedor, canal, es_supervisor").eq("id", session.user.id).maybeSingle();
+      // Esta pantalla es la del vendedor. Antes solo miraba que hubiera sesión, así
+      // que cualquiera que cayera acá veía el panel de vendedor aunque fuera de otra
+      // área. Los que administran el sistema sí pueden entrar a mirar: la abren a
+      // propósito desde el mapa de pantallas de su panel.
+      const ROL_MIRA = ["admin", "direccion", "duenio", "desarrollo", "diseno"];
+      const rol = perfil && perfil.rol ? String(perfil.rol).toLowerCase() : "ventas";
+      if(rol !== "ventas" && !ROL_MIRA.includes(rol)){ location.replace("hub.html"); return; }
       // Los supervisores van a su panel de equipo, no a la pantalla de vendedor.
       if(perfil && perfil.es_supervisor){ location.replace("supervisor-equipo.html"); return; }
       let nombre = perfil && perfil.nombre ? perfil.nombre : session.user.email;
