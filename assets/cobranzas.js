@@ -425,7 +425,9 @@ async function cobEstadisticas() {
         <div class="aviso" style="margin-top:14px"><span>🏷️</span><div>
           <b>${d.sinEquipo.total.toLocaleString('es-AR')} cuentas vienen sin equipo</b> en el Excel de CUBO
           (${cnum(d.sinEquipo.cartera)} de cartera, ${cnum(d.sinEquipo.vencida)} vencida). No es un equipo:
-          es esa celda vacía en la planilla. Se arregla completando la columna
+          es esa celda vacía en la planilla.
+          ${d.sinEquipo.conSaldo ? `De esas, <b>${d.sinEquipo.conSaldo.toLocaleString('es-AR')} tienen saldo</b> y ${d.sinEquipo.enCero.toLocaleString('es-AR')} están en cero — las que están en cero suelen ser cuentas viejas.` : 'Todas están en cero: son cuentas viejas, no un problema de clasificación.'}
+          Se arregla completando la columna
           <b>Equipo</b> antes de importarla.</div></div>
 
         <h2 style="font-size:16px;margin:22px 0 0">De quién son esas cuentas</h2>

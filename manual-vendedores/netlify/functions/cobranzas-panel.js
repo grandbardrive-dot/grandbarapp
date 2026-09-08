@@ -360,6 +360,10 @@ exports.handler = async (event) => {
         cartera: huerfanas.reduce((a, c) => a + num(c.saldo), 0),
         vencida: huerfanas.reduce((a, c) => a + num(c.vencida), 0),
         sinVendedor, seDeduce,
+        // Separar las que tienen plata de las que no: una cuenta vieja en cero no es
+        // el mismo problema que una cuenta con deuda real sin clasificar.
+        conSaldo:  huerfanas.filter(c => num(c.saldo) !== 0).length,
+        enCero:    huerfanas.filter(c => num(c.saldo) === 0).length,
         vendedores: Object.values(porArreglar).sort((a, b) => b.cuentas - a.cuentas).slice(0, 25),
       };
       const porVendedor = {};
