@@ -109,6 +109,36 @@
   }
   .search-input::placeholder { color: var(--text3); }
 
+  /* ── Pestañas Activos / Ocultos ── */
+  .view-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .view-tab {
+    flex: 1; text-align: center;
+    font-size: 12.5px; font-weight: 600;
+    padding: 9px 0; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border-strong);
+    background: var(--surface); color: var(--text2);
+    cursor: pointer; font-family: system-ui, sans-serif;
+    transition: all .15s;
+  }
+  .view-tab.active { background: var(--azul); color: #fff; border-color: var(--azul); }
+  .view-tab .cnt { opacity: .65; font-weight: 500; margin-left: 3px; }
+
+  /* Botón Activo / Inactivo por cliente */
+  .cli-toggle {
+    flex-shrink: 0;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .03em;
+    padding: 5px 10px; border-radius: 20px;
+    border: 1.5px solid; cursor: pointer;
+    font-family: system-ui, sans-serif;
+    background: var(--surface); transition: all .15s;
+    white-space: nowrap;
+  }
+  .cli-toggle.on  { color: #1f7a4d; border-color: rgba(31,122,77,.4); background: rgba(31,122,77,.09); }
+  .cli-toggle.off { color: #a8461f; border-color: rgba(168,70,31,.4); background: rgba(168,70,31,.08); }
+  .cli-toggle:active { transform: scale(.94); }
+  .client-card.oculto { opacity: .62; }
+
   /* ── Filtros tipo ── */
   .filter-row { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
   .filter-btn {
@@ -270,6 +300,11 @@ body { background:transparent !important; }
     <span class="torneo-banner-pts" id="torneo-banner-pts">–</span>
   </a>
 
+  <div class="view-tabs">
+    <button class="view-tab active" id="tab-activos" onclick="setVista(false)">Activos <span class="cnt" id="cnt-activos"></span></button>
+    <button class="view-tab" id="tab-ocultos" onclick="setVista(true)">Ocultos <span class="cnt" id="cnt-ocultos"></span></button>
+  </div>
+
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
     <input class="search-input" id="search" type="text"
@@ -306,7 +341,27 @@ body { background:transparent !important; }
   document.getElementById('perfil-nombre').textContent = vendedor.nombre;
   document.getElementById('perfil-sub').textContent = vendedor.zona ? `📍 ${vendedor.zona}` : (vendedor.codigo || '');
 
-  let todosClientes = [], ultimasVisitas = {}, tipoActivo = '';
+  let todosClientes = [], ultimasVisitas = {}, tipoActivo = '', verOcultos = false;
+  // Un cliente se considera activo salvo que activo === false (default: activo).
+  const esActivo = c => c.activo !== false;
+
+  function setVista(oc) {
+    verOcultos = oc;
+    document.getElementById('tab-activos').classList.toggle('active', !oc);
+    document.getElementById('tab-ocultos').classList.toggle('active', oc);
+    filtrar();
+  }
+
+  // Cambia activo/inactivo. Optimista: actualiza la vista y guarda en la base.
+  async function toggleActivo(id) {
+    const c = todosClientes.find(x => x.id === id);
+    if (!c) return;
+    const nuevo = !esActivo(c);
+    c.activo = nuevo;
+    filtrar();
+    const { error } = await sb.from('clientes').update({ activo: nuevo }).eq('id', id);
+    if (error) { c.activo = !nuevo; filtrar(); alert('No se pudo guardar el cambio. Reintentá.'); }
+  }
 
   // ── Llamador "Sin Campari" (lee el Sheet del Plan Campari 5T, solo lectura) ──
   const SHEET_BASE_5T = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRki8X-1_-X8TCp3hHWWiFuLDFXAsh58vyMAiRhaoShCg1my2PPCGRdv-pT0TFtjFsI98viBKDC4hxo/pub?output=csv';
@@ -409,14 +464,21 @@ body { background:transparent !important; }
   }
 
   function filtrar() {
+    // Contadores de las pestañas (sobre el total, sin búsqueda/tipo)
+    const nOcultos = todosClientes.filter(c => !esActivo(c)).length;
+    document.getElementById('cnt-activos').textContent = `(${todosClientes.length - nOcultos})`;
+    document.getElementById('cnt-ocultos').textContent = `(${nOcultos})`;
+
     const q = document.getElementById('search').value.trim().toLowerCase();
-    let lista = todosClientes;
+    // Universo según la pestaña: Activos o Ocultos
+    let universo = todosClientes.filter(c => esActivo(c) !== verOcultos);
+    let lista = universo;
     if (tipoActivo) lista = lista.filter(c => c.tipo === tipoActivo);
     if (q) lista = lista.filter(c =>
       c.nombre.toLowerCase().includes(q) || c.codigo_cliente.toLowerCase().includes(q));
     document.getElementById('list-label').textContent =
-      lista.length === todosClientes.length
-        ? `${lista.length} cliente${lista.length !== 1 ? 's' : ''}`
+      lista.length === universo.length
+        ? `${lista.length} cliente${lista.length !== 1 ? 's' : ''}${verOcultos ? ' oculto' + (lista.length !== 1 ? 's' : '') : ''}`
         : `${lista.length} resultado${lista.length !== 1 ? 's' : ''}`;
     renderLista(lista);
   }
@@ -424,19 +486,24 @@ body { background:transparent !important; }
   function renderLista(lista) {
     const cont = document.getElementById('list-container');
     if (!lista.length) {
-      cont.innerHTML = `<div class="empty-state"><div class="emoji">🔍</div><p>No se encontraron clientes.</p></div>`;
+      const vacio = verOcultos
+        ? `<div class="emoji">👁</div><p>No tenés clientes ocultos.<br>Los que marques como <b>inactivos</b> van a aparecer acá.</p>`
+        : `<div class="emoji">🔍</div><p>No se encontraron clientes.</p>`;
+      cont.innerHTML = `<div class="empty-state">${vacio}</div>`;
       return;
     }
     cont.innerHTML = lista.map(c => {
       const v = ultimasVisitas[c.id];
+      const activo = esActivo(c);
       const emoji = { restaurante:'🍽', vinoteca:'🍷', hotel:'🏨', bar:'🍺', evento:'🎉' }[c.tipo] || '🏢';
       const pctHtml = v
         ? `<span class="client-pct">${v.porcentaje_total}%</span><span class="client-fecha">${fmtFecha(v.fecha)}</span>`
         : `<span class="pct-none">Sin visitas</span>`;
+      const toggleBtn = `<button class="cli-toggle ${activo ? 'on' : 'off'}" onclick="event.stopPropagation();toggleActivo('${c.id}')">${activo ? '● Activo' : '○ Inactivo'}</button>`;
       // Llamador "Sin Campari": solo si el Sheet está cargado, el cliente está en el Sheet y campari=0
       const cod = normCod5T(c.codigo_cliente);
       const sinCampari = _campariLoaded && _campariMap.has(cod) && _campariMap.get(cod) === false;
-      return `<div class="client-card${sinCampari ? ' sin-campari' : ''}" onclick="sel('${c.id}')">
+      return `<div class="client-card${sinCampari ? ' sin-campari' : ''}${activo ? '' : ' oculto'}" onclick="sel('${c.id}')">
         <div class="client-avatar">${c.logo_url ? `<img src="${esc(c.logo_url)}" alt="" onerror="this.parentElement.textContent='${emoji}'">` : emoji}</div>
         <div class="client-info">
           <div class="client-nombre">${esc(c.nombre)}${sinCampari ? `<span class="badge-sincampari">🔴 Sin Campari</span>` : ''}</div>
@@ -446,7 +513,10 @@ body { background:transparent !important; }
           </div>
         </div>
         <span class="client-tipo">${esc(c.tipo||'cliente')}</span>
-        <div style="text-align:right;flex-shrink:0">${pctHtml}</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;text-align:right">
+          ${pctHtml}
+          ${toggleBtn}
+        </div>
       </div>`;
     }).join('');
   }
