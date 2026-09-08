@@ -421,6 +421,26 @@ async function cobEstadisticas() {
           <p>de ${d.total.toLocaleString('es-AR')} cuentas</p></div>
       </div>
       ${tabla('Por equipo', d.equipos, 'Equipo')}
+      ${(d.sinEquipo && d.sinEquipo.total) ? `
+        <div class="aviso" style="margin-top:14px"><span>🏷️</span><div>
+          <b>${d.sinEquipo.total.toLocaleString('es-AR')} cuentas vienen sin equipo</b> en el Excel de CUBO
+          (${cnum(d.sinEquipo.cartera)} de cartera, ${cnum(d.sinEquipo.vencida)} vencida). No es un equipo:
+          es esa celda vacía en la planilla. Se arregla completando la columna
+          <b>Equipo</b> antes de importarla.</div></div>
+
+        <h2 style="font-size:16px;margin:22px 0 0">De quién son esas cuentas</h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:4px 0 0">
+          ${d.sinEquipo.seDeduce ? `A <b>${d.sinEquipo.seDeduce.toLocaleString('es-AR')}</b> se les puede deducir el equipo, porque ese mismo vendedor sí lo tiene cargado en otras cuentas. ` : ''}
+          ${d.sinEquipo.sinVendedor ? `<b>${d.sinEquipo.sinVendedor.toLocaleString('es-AR')}</b> no tienen ni vendedor: esas hay que asignarlas a mano.` : ''}</p>
+        ${d.sinEquipo.vendedores.length ? `<table class="cb-tabla">
+          <thead><tr><th>Vendedor</th><th>Debería ser</th><th class="num">Cuentas</th><th class="num">Cartera</th><th class="num">Vencida</th></tr></thead>
+          <tbody>${d.sinEquipo.vendedores.map(v => `<tr>
+            <td><b>${cesc(v.vendedor)}</b></td>
+            <td>${v.equipo ? cesc(v.equipo) : '<span style="color:var(--muted)">no se puede deducir</span>'}</td>
+            <td class="num">${v.cuentas.toLocaleString('es-AR')}</td>
+            <td class="num">${cnum(v.cartera)}</td>
+            <td class="num ${v.vencida>0?'rojo':''}">${cnum(v.vencida)}</td>
+          </tr>`).join('')}</tbody></table>` : ''}` : ''}
       ${tabla('Por vendedor <span class="pv-n">los 20 con más vencido</span>', d.vendedores, 'Vendedor')}`;
   } catch (e) { cq('e-cont').innerHTML = cerror(e.message); }
 }

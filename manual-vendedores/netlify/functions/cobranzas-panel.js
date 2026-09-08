@@ -334,6 +334,34 @@ exports.handler = async (event) => {
         porEquipo[k] = porEquipo[k] || { equipo: k, cuentas: 0, cartera: 0, vencida: 0 };
         porEquipo[k].cuentas++; porEquipo[k].cartera += num(c.saldo); porEquipo[k].vencida += num(c.vencida);
       });
+
+      // "Sin equipo" no es un equipo: son las cuentas que vienen con esa celda
+      // vacía en el Excel de CUBO. Para poder arreglarlo hay que saber de quién
+      // son: si tienen vendedor, el equipo se completa mirando qué equipo tiene
+      // ese mismo vendedor en sus otras cuentas.
+      const equipoDe = {};                       // vendedor -> equipo, sacado de las cuentas que sí lo traen
+      cuentas.forEach(c => {
+        const e = (c.equipo || '').trim(), v = (c.vendedor || '').trim();
+        if (e && v && !equipoDe[v]) equipoDe[v] = e.toUpperCase();
+      });
+      const huerfanas = cuentas.filter(c => !(c.equipo || '').trim());
+      const porArreglar = {};
+      let seDeduce = 0, sinVendedor = 0;
+      huerfanas.forEach(c => {
+        const v = (c.vendedor || '').trim();
+        if (!v) { sinVendedor++; return; }
+        const k = v + (equipoDe[v] ? ' → ' + equipoDe[v] : '');
+        porArreglar[k] = porArreglar[k] || { vendedor: v, equipo: equipoDe[v] || null, cuentas: 0, cartera: 0, vencida: 0 };
+        porArreglar[k].cuentas++; porArreglar[k].cartera += num(c.saldo); porArreglar[k].vencida += num(c.vencida);
+        if (equipoDe[v]) seDeduce++;
+      });
+      const sinEquipo = {
+        total: huerfanas.length,
+        cartera: huerfanas.reduce((a, c) => a + num(c.saldo), 0),
+        vencida: huerfanas.reduce((a, c) => a + num(c.vencida), 0),
+        sinVendedor, seDeduce,
+        vendedores: Object.values(porArreglar).sort((a, b) => b.cuentas - a.cuentas).slice(0, 25),
+      };
       const porVendedor = {};
       cuentas.forEach(c => {
         const k = c.vendedor || 'Sin asignar';
@@ -341,7 +369,7 @@ exports.handler = async (event) => {
         porVendedor[k].cuentas++; porVendedor[k].cartera += num(c.saldo); porVendedor[k].vencida += num(c.vencida);
       });
       return json(200, {
-        total: cuentas.length, cartera, vencida, conVencida,
+        total: cuentas.length, cartera, vencida, conVencida, sinEquipo,
         equipos: Object.values(porEquipo).sort((a, b) => b.vencida - a.vencida),
         vendedores: Object.values(porVendedor).sort((a, b) => b.vencida - a.vencida).slice(0, 20),
       });
