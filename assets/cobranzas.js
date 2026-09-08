@@ -25,8 +25,19 @@ let COB_TOKEN = null, COB_RESUMEN = {}, COB_VISTA = 'tablero';
 const cq   = id => document.getElementById(id);
 const cesc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const cnum = n => (n == null || n === '') ? '—' : '$ ' + Math.round(Number(n)).toLocaleString('es-AR');
-const cfec = d => { if (!d) return '—'; const x = new Date(d);
-  return String(x.getDate()).padStart(2,'0') + '/' + String(x.getMonth()+1).padStart(2,'0') + '/' + x.getFullYear(); };
+// Ojo con las fechas "sueltas" (2026-08-31, sin hora): new Date() las lee como
+// medianoche en Greenwich, y acá estamos tres horas atrás, así que se mostraban
+// un día antes. Un vencimiento corrido un día en un panel de deuda no es un
+// detalle. Las fechas con hora sí se pasan a hora local, que es lo correcto.
+const cfec = d => {
+  if (!d) return '—';
+  const s = String(d), sola = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const x = sola ? new Date(+sola[1], +sola[2] - 1, +sola[3]) : new Date(s);
+  if (isNaN(x)) return '—';
+  return String(x.getDate()).padStart(2,'0') + '/' + String(x.getMonth()+1).padStart(2,'0') + '/' + x.getFullYear();
+};
+const choy = () => { const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
 const cerror = m => `<div class="aviso"><span>⚠️</span><div>${cesc(m)}</div></div>`;
 
 async function cobApi(qs, opts) {
@@ -131,41 +142,97 @@ async function cobClientes(pag) {
   } catch (e) { cq('c-lista').innerHTML = cerror(e.message); }
 }
 
+// Estados que puede tener un comprobante, en castellano.
+const COMP_LBL = { pendiente:'Lo tiene el vendedor', procesado:'Lo tiene tesorería',
+                   aceptado:'Aceptado', rechazado:'Rechazado', revisado:'Revisado' };
+const RECL_LBL = { abierto:'Abierto', en_curso:'En curso', resuelto:'Resuelto' };
+const cwa = t => String(t || '').replace(/\D/g, '');
+
 async function cobFicha(codigo) {
   cq('cob').innerHTML = `<button class="cb-volver" onclick="cobClientes()">‹ Volver a clientes</button>
     <div id="f-cont"><div class="pv-vacio">Cargando…</div></div>`;
   try {
     const d = await cobApi('?que=cliente&codigo=' + encodeURIComponent(codigo));
     if (!d.cuenta) { cq('f-cont').innerHTML = cerror('No encontré la cuenta ' + codigo + '.'); return; }
-    const c = d.cuenta;
-    const impagas = (d.facturas || []).filter(f => Number(f.saldo || 0) > 0);
-    const hoy = new Date().toISOString().slice(0, 10);
+    const c = d.cuenta, f = d.ficha;
+    const impagas = (d.facturas || []).filter(x => Number(x.saldo || 0) > 0);
+    const hoy = choy();
+    const tel = f && cwa(f.whatsapp);
+    const bloqueado = f && f.estado === 'bloqueado';
+    const cobrosPend = (d.cobros || []).filter(x => (x.estado || 'pendiente') === 'pendiente');
+
     cq('f-cont').innerHTML = `
       <div class="head"><div><h1>${cesc(c.nombre || c.codigo)}</h1>
         <div class="head-sub">Código ${cesc(c.codigo)}${c.vendedor ? ' · ' + cesc(c.vendedor) : ''}${c.equipo ? ' · ' + cesc(c.equipo) : ''}</div></div></div>
-      <div class="cb-cards" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
-        <div class="cb-card" style="cursor:default"><h3>Saldo</h3><div style="font-size:26px;font-weight:800;margin-top:6px">${cnum(c.saldo)}</div></div>
-        <div class="cb-card" style="cursor:default;border-top-color:${Number(c.vencida)>0?'var(--red)':'var(--green)'}">
-          <h3>Deuda vencida</h3><div style="font-size:26px;font-weight:800;margin-top:6px" class="${Number(c.vencida)>0?'rojo':''}">${cnum(c.vencida)}</div></div>
-        <div class="cb-card" style="cursor:default"><h3>Comprobantes impagos</h3><div style="font-size:26px;font-weight:800;margin-top:6px">${impagas.length}</div></div>
+
+      <div class="pd-acts" style="margin-top:4px">
+        ${tel ? `<a class="cb-b ok" href="https://wa.me/${cesc(tel)}" target="_blank" rel="noopener">💬 Escribirle por WhatsApp</a>` : ''}
+        ${f ? (bloqueado
+          ? `<button class="cb-b ok" onclick="cobAccion('desbloquear','${f.id}',this,()=>cobFicha('${cesc(c.codigo)}'))">🔓 Dar de alta</button>`
+          : `<button class="cb-b danger" onclick="cobAccion('bloquear','${f.id}',this,()=>cobFicha('${cesc(c.codigo)}'))">🔒 Bloquear la cuenta</button>`) : ''}
+        ${!f ? `<span class="pd-cuando" style="margin:0">Sin ficha en el portal de clientes: no se puede bloquear ni escribirle desde acá.</span>` : ''}
       </div>
-      ${d.ficha ? `<div class="aviso"><span>👤</span><div>Tiene cuenta en el portal de clientes: <b>${cesc(d.ficha.comercio || d.ficha.nombre || '')}</b>
-        · estado <b>${cesc(d.ficha.estado)}</b>${d.ficha.whatsapp ? ' · ' + cesc(d.ficha.whatsapp) : ''}</div></div>` : ''}
+
+      <div class="cb-cards" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+        <div class="cb-card" style="cursor:default"><h3>Saldo</h3>
+          <div style="font-size:26px;font-weight:800;margin-top:6px">${cnum(c.saldo)}</div></div>
+        <div class="cb-card" style="cursor:default;border-top-color:${Number(c.vencida)>0?'var(--red)':'var(--green)'}">
+          <h3>Deuda vencida</h3>
+          <div style="font-size:26px;font-weight:800;margin-top:6px" class="${Number(c.vencida)>0?'rojo':''}">${cnum(c.vencida)}</div></div>
+        <div class="cb-card" style="cursor:default"><h3>Facturas impagas</h3>
+          <div style="font-size:26px;font-weight:800;margin-top:6px">${impagas.length}</div>
+          <p>de ${(d.facturas || []).length} en total</p></div>
+        ${f ? `<div class="cb-card" style="cursor:default;border-top-color:${bloqueado ? 'var(--red)' : 'var(--green)'}">
+          <h3>Estado de la cuenta</h3>
+          <div style="font-size:20px;font-weight:800;margin-top:10px" class="${bloqueado ? 'rojo' : ''}">${bloqueado ? '🔒 Bloqueada' : '✅ Habilitada'}</div>
+          <p>${cesc(f.comercio || f.nombre || '')}${f.whatsapp ? ' · ' + cesc(f.whatsapp) : ''}</p></div>` : ''}
+      </div>
+
+      ${cobrosPend.length ? `<div class="aviso"><span>💵</span><div>Avisó que tiene efectivo listo para retirar:
+        <b>${cobrosPend.map(x => cnum(x.monto)).join(', ')}</b>. Se gestiona en Cobros en efectivo.</div></div>` : ''}
+
       <h2 style="font-size:16px;margin:26px 0 0">Facturas <span class="pv-n">${(d.facturas||[]).length}</span></h2>
       ${(d.facturas || []).length ? `
         <table class="cb-tabla">
           <thead><tr><th>Comprobante</th><th>Fecha</th><th>Vence</th><th class="num">Importe</th><th class="num">Saldo</th></tr></thead>
-          <tbody>${d.facturas.map(f => {
-            const vencida = Number(f.saldo || 0) > 0 && f.vencimiento && f.vencimiento < hoy;
+          <tbody>${d.facturas.map(x => {
+            const vencida = Number(x.saldo || 0) > 0 && x.vencimiento && x.vencimiento < hoy;
             return `<tr>
-              <td>${cesc((f.tipo || '') + ' ' + (f.numero || ''))}</td>
-              <td>${cfec(f.fecha)}</td>
-              <td class="${vencida ? 'rojo' : ''}">${cfec(f.vencimiento)}${vencida ? ' ⚠️' : ''}</td>
-              <td class="num">${cnum(f.importe)}</td>
-              <td class="num ${Number(f.saldo)>0?'rojo':''}">${cnum(f.saldo)}</td>
+              <td>${cesc((x.tipo || '') + ' ' + (x.numero || ''))}</td>
+              <td>${cfec(x.fecha)}</td>
+              <td class="${vencida ? 'rojo' : ''}">${cfec(x.vencimiento)}${vencida ? ' ⚠️' : ''}</td>
+              <td class="num">${cnum(x.importe)}</td>
+              <td class="num ${Number(x.saldo)>0?'rojo':''}">${cnum(x.saldo)}</td>
             </tr>`;
           }).join('')}</tbody>
-        </table>` : `<div class="pv-vacio">Sin facturas cargadas para este cliente.</div>`}`;
+        </table>` : `<div class="pv-vacio">Sin facturas cargadas para este cliente.</div>`}
+
+      <h2 style="font-size:16px;margin:26px 0 0">Comprobantes que subió <span class="pv-n">${(d.comprobantes||[]).length}</span></h2>
+      ${(d.comprobantes || []).length ? `
+        <table class="cb-tabla">
+          <thead><tr><th>Subió</th><th>Concepto</th><th class="num">Monto</th><th>Estado</th><th>Quién lo cerró</th><th></th></tr></thead>
+          <tbody>${d.comprobantes.map(x => `<tr>
+            <td>${cfec(x.created_at)}</td>
+            <td>${cesc(x.concepto || (x.tipo === 'recibo' ? 'Recibo' : 'Pago'))}${x.factura ? `<div style="color:var(--muted);font-size:12px">factura ${cesc(x.factura)}</div>` : ''}</td>
+            <td class="num">${cnum(x.monto)}</td>
+            <td class="${x.estado === 'rechazado' ? 'rojo' : ''}">${cesc(COMP_LBL[x.estado] || x.estado || '—')}</td>
+            <td>${cesc(x.revisado_por || '—')}</td>
+            <td>${x.archivo_url ? `<a class="cb-b" href="${cesc(x.archivo_url)}" target="_blank" rel="noopener">📎 Ver</a>` : ''}</td>
+          </tr>`).join('')}</tbody>
+        </table>` : `<div class="pv-vacio">${f ? 'Este cliente no subió ningún comprobante.' : 'No tiene ficha en el portal de clientes, así que no puede subir comprobantes.'}</div>`}
+
+      <h2 style="font-size:16px;margin:26px 0 0">Reclamos <span class="pv-n">${(d.reclamos||[]).length}</span></h2>
+      ${(d.reclamos || []).length ? `
+        <table class="cb-tabla">
+          <thead><tr><th>Asunto</th><th>Factura</th><th>Estado</th><th>Última novedad</th><th></th></tr></thead>
+          <tbody>${d.reclamos.map(x => `<tr>
+            <td><b>${cesc(x.asunto || 'Reclamo')}</b></td>
+            <td>${cesc(x.factura || '—')}</td>
+            <td class="${x.estado === 'abierto' ? 'rojo' : ''}">${cesc(RECL_LBL[x.estado] || x.estado || '—')}</td>
+            <td>${cfec(x.updated_at)}</td>
+            <td><button class="cb-b" onclick="cobReclamo('${x.id}')">Abrir</button></td>
+          </tr>`).join('')}</tbody>
+        </table>` : `<div class="pv-vacio">Sin reclamos.</div>`}`;
   } catch (e) { cq('f-cont').innerHTML = cerror(e.message); }
 }
 

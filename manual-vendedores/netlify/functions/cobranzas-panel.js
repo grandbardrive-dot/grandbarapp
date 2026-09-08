@@ -141,12 +141,26 @@ exports.handler = async (event) => {
     if (que === 'cliente') {
       if (!p.codigo) return json(400, { error: 'Falta el código.' });
       const cod = encodeURIComponent(p.codigo);
-      const [cuenta, facturas, ficha] = await Promise.all([
+      const [cuenta, facturas, ficha, cobros] = await Promise.all([
         leer('cuentas_cubo?select=*&codigo=eq.' + cod),
         leer('facturas?select=*&codigo=eq.' + cod + '&order=vencimiento.asc&limit=300'),
         leer('clientes?select=*&codigo_cubo=eq.' + cod).catch(() => []),
+        leer('cobros_efectivo?select=*&codigo=eq.' + cod + '&order=created_at.desc&limit=20').catch(() => []),
       ]);
-      return json(200, { cuenta: cuenta[0] || null, facturas, ficha: (ficha && ficha[0]) || null });
+      const cli = (ficha && ficha[0]) || null;
+
+      // Lo que subió y lo que reclamó este cliente cuelga de su ficha del portal,
+      // no del código del cubo: sin ficha no hay nada que traer.
+      let comprobantes = [], reclamos = [];
+      if (cli && cli.id) {
+        const id = encodeURIComponent(cli.id);
+        [comprobantes, reclamos] = await Promise.all([
+          leer('comprobantes?select=id,concepto,archivo_url,monto,fecha_pago,estado,tipo,factura,created_at,procesado_por,revisado_por'
+             + '&cliente_id=eq.' + id + '&order=created_at.desc&limit=20'),
+          leer('reclamos?select=id,asunto,factura,estado,updated_at&cliente_id=eq.' + id + '&order=updated_at.desc&limit=20'),
+        ]);
+      }
+      return json(200, { cuenta: cuenta[0] || null, facturas, ficha: cli, comprobantes, reclamos, cobros });
     }
 
     if (que === 'bloquear') {
