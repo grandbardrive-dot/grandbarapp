@@ -344,10 +344,10 @@
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
   sessionStorage.setItem('admin_auth','1'); if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
-  const CANAL_LABEL={restaurantes:'Restaurantes',vinotecas:'Vinotecas',bares:'Bares',discos:'Discos',hoteles:'Hoteles',eventos:'Eventos',autoservicios:'Autoservicios',mayoristas:'Mayoristas',todos:'Todos'};
+  const CANAL_LABEL={restaurantes:'Restaurantes',vinotecas:'Vinotecas',tiendas_bebidas:'Tienda de Bebidas',bares:'Bares',discos:'Discos',hoteles:'Hoteles',eventos:'Eventos',autoservicios:'Autoservicios',mayoristas:'Mayoristas',todos:'Todos'};
   // Los planes guardan el canal del manual en singular (vinoteca) y las campañas en
   // plural (vinotecas). Se unifica para que el filtro de canal sirva para los dos.
-  const CANAL_DE_MANUAL={restaurante:'restaurantes',vinoteca:'vinotecas',autoservicio:'autoservicios',hotel:'hoteles',bar:'bares',disco:'discos',mayorista:'mayoristas'};
+  const CANAL_DE_MANUAL={restaurante:'restaurantes',vinoteca:'vinotecas',tienda_bebidas:'tiendas_bebidas',autoservicio:'autoservicios',hotel:'hoteles',bar:'bares',disco:'discos',mayorista:'mayoristas'};
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const hoy=new Date(); hoy.setHours(0,0,0,0);
   const fmt=d=>{if(!d)return '—';const x=new Date(d);return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear();};

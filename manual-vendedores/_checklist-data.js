@@ -543,6 +543,11 @@ const _clCache = {};
 // campañas por sección). Mismo criterio que usa el asistente de campañas.
 const MANUAL_POR_TIPO = {
   vinoteca: 'vinoteca',
+  'tienda de bebidas': 'tienda_bebidas',   // rubro propio (manual separado)
+  'tienda_bebidas': 'tienda_bebidas',
+  'tienda de bebida': 'tienda_bebidas',
+  'tiendas de bebidas': 'tienda_bebidas',
+  tienda: 'tienda_bebidas',
   autoservicio: 'autoservicio',   // todavía tiene su checklist propio en el código
   kiosco: 'autoservicio',
   hotel: 'hotel',                 // rubros separados: cada uno su propio manual
@@ -552,7 +557,7 @@ const MANUAL_POR_TIPO = {
   mayorista: 'mayorista',         // manual propio; adentro lleva EVENTOS
 };
 // Nombre lindo de cada rubro (para el manual vacío recién creado).
-const RUBRO_LABELS = { restaurante: 'Restaurantes', vinoteca: 'Vinotecas', autoservicio: 'Autoservicios', hotel: 'Hoteles', bar: 'Bares', disco: 'Discos', mayorista: 'Mayoristas' };
+const RUBRO_LABELS = { restaurante: 'Restaurantes', vinoteca: 'Vinotecas', tienda_bebidas: 'Tienda de Bebidas', autoservicio: 'Autoservicios', hotel: 'Hoteles', bar: 'Bares', disco: 'Discos', mayorista: 'Mayoristas' };
 function manualDe(tipo) {
   const t = String(tipo || '').toLowerCase();
   return MANUAL_POR_TIPO[t] || 'restaurante';   // sin mapeo (mayorista, otros…) → Restaurantes

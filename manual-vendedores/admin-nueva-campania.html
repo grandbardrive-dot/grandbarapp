@@ -222,13 +222,14 @@
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const CANAL_GRUPOS=[
     { id:'on',  label:'ON TRADE',  ico:'🍽️', desc:'Restaurantes, Bares, Discotecas, Hoteles, Eventos y Catering.', subs:[['restaurantes','Restaurantes'],['bares','Bares'],['discos','Discotecas'],['hoteles','Hoteles'],['eventos','Eventos y Catering']] },
-    { id:'off', label:'OFF TRADE', ico:'🍾', desc:'Vinotecas, Autoservicios, Kioscos.', subs:[['vinotecas','Vinotecas'],['autoservicios','Autoservicios'],['kioscos','Kioscos']] },
+    { id:'off', label:'OFF TRADE', ico:'🍾', desc:'Vinotecas, Tiendas de Bebidas, Autoservicios, Kioscos.', subs:[['vinotecas','Vinotecas'],['tiendas_bebidas','Tienda de Bebidas'],['autoservicios','Autoservicios'],['kioscos','Kioscos']] },
     { id:'may', label:'MAYORISTA', ico:'🛒', desc:'Venta mayorista en sucursales al público.', subs:[['mayorista_mendoza','Mayorista Mendoza'],['mayorista_sanluis','Mayorista San Luis']] },
   ];
   const CANAL_LABELS={}; CANAL_GRUPOS.forEach(g=>g.subs.forEach(([v,l])=>CANAL_LABELS[v]=l));
   // canales que implican cada checklist (para el paso 4)
   function canalChecklistDe(c){
     if(c==='vinotecas') return 'vinoteca';
+    if(c==='tiendas_bebidas') return 'tienda_bebidas';
     if(c==='autoservicios'||c==='kioscos') return 'autoservicio';
     if(c==='hoteles') return 'hotel';
     if(c==='bares') return 'bar';
