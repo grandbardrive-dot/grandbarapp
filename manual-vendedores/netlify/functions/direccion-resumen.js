@@ -16,6 +16,7 @@ const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 const DIR_ROLES = ['direccion', 'admin', 'duenio'];
 
+const { traerTodo } = require('./_paginar');
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const num = v => { const n = Number(v); return isNaN(n) ? 0 : n; };
 const norm = s => String(s || '').toLowerCase().replace(/[\s_]/g, '');
@@ -32,7 +33,7 @@ exports.handler = async (event) => {
     if (!uRes.ok) return json(401, { error: 'Sesión inválida' });
     const user = await uRes.json();
 
-    const hub = (path) => fetch(HUB_URL + '/rest/v1/' + path, { headers: { apikey: hubService || HUB_ANON, Authorization: 'Bearer ' + (hubService || token) } });
+    const hub = (path, opts = {}) => fetch(HUB_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: hubService || HUB_ANON, Authorization: 'Bearer ' + (hubService || token), ...(opts.headers || {}) } });
     const perfil = (await (await hub('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=rol')).json())[0] || {};
     if (!DIR_ROLES.includes(String(perfil.rol || '').toLowerCase())) return json(403, { error: 'Solo Dirección.' });
 
@@ -56,7 +57,7 @@ exports.handler = async (event) => {
       if (regionFiltro && (!codigosRegion || !codigosRegion.length)) {
         out.cobranzas = { clientes: 0, saldo: 0, vencida: 0, clientesVencidos: 0, vendedores: 0 };
       } else {
-        const cob = (path) => fetch(COB_URL + '/rest/v1/' + path, { headers: { apikey: cobService, Authorization: 'Bearer ' + cobService } });
+        const cob = (path, opts = {}) => fetch(COB_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: cobService, Authorization: 'Bearer ' + cobService, ...(opts.headers || {}) } });
         const filtro = codigosRegion ? '&vendedor=in.(' + qvals(codigosRegion) + ')' : '';
         let offset = 0, page = 1000, guard = 0;
         let saldo = 0, vencida = 0, clientes = 0, clientesVencidos = 0;
@@ -83,11 +84,11 @@ exports.handler = async (event) => {
     // ---- Cobranzas del día (pagos de clientes aceptados, con fecha de hoy) ----
     try {
       if (cobService) {
-        const cob = (path) => fetch(COB_URL + '/rest/v1/' + path, { headers: { apikey: cobService, Authorization: 'Bearer ' + cobService } });
+        const cob = (path, opts = {}) => fetch(COB_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: cobService, Authorization: 'Bearer ' + cobService, ...(opts.headers || {}) } });
         const now = new Date();
         const hoy = now.toISOString().slice(0, 10);
         const manana = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
-        const rows = await (await cob('comprobantes?tipo=eq.cliente&estado=in.(aceptado,procesado)&fecha_pago=gte.' + hoy + '&fecha_pago=lt.' + manana + '&select=monto&limit=3000')).json();
+        const rows = await traerTodo(cob, 'comprobantes?tipo=eq.cliente&estado=in.(aceptado,procesado)&fecha_pago=gte.' + hoy + '&fecha_pago=lt.' + manana + '&select=monto&order=id');
         const arr = Array.isArray(rows) ? rows : [];
         out.cobranzasHoy = { monto: Math.round(arr.reduce((s, c) => s + num(c.monto), 0)), cantidad: arr.length, fecha: hoy };
       }
@@ -95,9 +96,9 @@ exports.handler = async (event) => {
 
     // ---- Reportes (Hub) ----
     try {
-      let path = 'reportes?select=estado&limit=1000';
+      let path = 'reportes?select=estado&order=id';
       if (regionFiltro) path += '&area=ilike.*' + (regionFiltro === 'sanluis' ? 'luis' : 'mendoza') + '*';
-      const reps = await (await hub(path)).json();
+      const reps = await traerTodo(hub, path);
       const c = { total: 0, pendiente: 0, aprobado: 0, rechazado: 0, revision: 0 };
       (Array.isArray(reps) ? reps : []).forEach(r => { c.total++; if (c[r.estado] !== undefined) c[r.estado]++; });
       out.reportes = c;
@@ -105,7 +106,7 @@ exports.handler = async (event) => {
 
     // ---- Visitas (Manual, key pública) ----
     try {
-      const man = (path) => fetch(MAN_URL + '/rest/v1/' + path, { headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON } });
+      const man = (path, opts = {}) => fetch(MAN_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON, ...(opts.headers || {}) } });
       let vendIdFiltro = '';
       if (regionFiltro) {
         // mapear codigo -> id en Manual para filtrar visitas por región
@@ -118,7 +119,7 @@ exports.handler = async (event) => {
       const now = new Date();
       const inicioMes = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
       const hoyStr = now.toISOString().slice(0, 10);
-      const vis = await (await man('visitas?select=fecha&fecha=gte.' + inicioMes + vendIdFiltro + '&limit=5000')).json();
+      const vis = await traerTodo(man, 'visitas?select=fecha&fecha=gte.' + inicioMes + vendIdFiltro + '&order=fecha');
       const arr = Array.isArray(vis) ? vis : [];
       out.visitas = { mes: arr.length, hoy: arr.filter(v => String(v.fecha || '').slice(0, 10) === hoyStr).length };
     } catch (e) { if (String(e.message) !== '__done__' && !out.visitas) out.visitas = null; }

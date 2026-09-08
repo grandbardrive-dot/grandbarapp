@@ -464,25 +464,26 @@ async function cargarTodo() {
       .eq('torneo_id', TORNEO_ID)
       .in('vendedor_id', vendIds),
 
-    // Todos los clientes de la cartera
-    sb.from('clientes')
+    // Todos los clientes de la cartera. Por páginas: la base corta en 1000 filas
+    // y un equipo grande puede tener más.
+    traerTodo(() => sb.from('clientes')
       .select('id, nombre, codigo_cliente, tipo, vendedor_id')
       .in('vendedor_id', vendIds)
-      .order('nombre'),
+      .order('id')),
 
     // Última visita histórica por cliente
-    sb.from('visitas')
+    traerTodo(() => sb.from('visitas')
       .select('cliente_id, fecha')
       .in('vendedor_id', vendIds)
-      .order('fecha', { ascending: false }),
+      .order('fecha', { ascending: false })),
   ]);
 
   allVisitas  = visitasRes.data  || [];
   allTorneo   = torneoRes.data   || [];
-  allClientes = clientesRes.data || [];
+  allClientes = clientesRes || [];
 
   // Mapear última visita por cliente
-  (ultimasRes.data || []).forEach(v => {
+  (ultimasRes || []).forEach(v => {
     if (!ultimasVisitas[v.cliente_id]) ultimasVisitas[v.cliente_id] = v.fecha;
   });
 
@@ -917,23 +918,25 @@ let owCharts = {};
 async function loadOwnerData() {
   const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
-  const [vR, visR, tR, cR, uvR] = await Promise.all([
+  // Clientes y visitas se cuentan enteros, así que se piden por páginas: la base
+  // corta en 1000 filas y la cartera son más de cinco mil.
+  const [vR, visR, tR, clientes, ultVis] = await Promise.all([
     sb.from('vendedores').select('id,nombre,codigo,zona').order('nombre'),
     sb.from('visitas').select('id,vendedor_id,cliente_id,fecha,porcentaje_total,progreso,clientes(id,nombre,tipo,codigo_cliente),vendedores(id,nombre,codigo)')
       .gte('fecha', inicioMes).order('fecha', { ascending:false }),
     sb.from('torneo_registros').select('vendedor_id,puntos,mes,tipo,detalle,clientes(tipo),vendedores(id,nombre,codigo)')
       .eq('torneo_id', TORNEO_ID),
-    sb.from('clientes').select('id,nombre,tipo,codigo_cliente,vendedor_id'),
-    sb.from('visitas').select('cliente_id,fecha').order('fecha', { ascending:false }),
+    traerTodo(() => sb.from('clientes').select('id,nombre,tipo,codigo_cliente,vendedor_id').order('id')),
+    traerTodo(() => sb.from('visitas').select('cliente_id,fecha').order('fecha', { ascending:false })),
   ]);
 
   OD.vendedores = vR.data   || [];
   OD.visitas    = visR.data || [];
   OD.torneo     = tR.data   || [];
-  OD.clientes   = cR.data   || [];
+  OD.clientes   = clientes  || [];
 
   const seen = new Set();
-  (uvR.data||[]).forEach(v => { if (!seen.has(v.cliente_id)) { seen.add(v.cliente_id); OD.ultVis[v.cliente_id]=v.fecha; } });
+  (ultVis || []).forEach(v => { if (!seen.has(v.cliente_id)) { seen.add(v.cliente_id); OD.ultVis[v.cliente_id]=v.fecha; } });
 
   showOwnerTab('resumen');
 }

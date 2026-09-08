@@ -15,6 +15,7 @@ const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const ROLES_OK = ['tesoreria', 'administracion', 'admin'];
 
+const { traerTodo } = require('./_paginar');
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const qids = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
 
@@ -91,8 +92,8 @@ exports.handler = async (event) => {
     const vendedorDe = id => { const c = cmap[id] || {}; return (c.codigo_cubo && vmap[c.codigo_cubo]) || null; };
 
     // Movimientos del banco sin usar (para los matches de los procesados)
-    const bm = await cob('banco_movimientos?usado_en=is.null&select=id,fecha,nombre,documento,credito&order=fecha.desc&limit=2000');
-    const movs = (await bm.json()) || [];
+    const movs = await traerTodo(cob, 'banco_movimientos?usado_en=is.null&select=id,fecha,nombre,documento,credito&order=fecha.desc', 20000);
+
     const byMonto = {};
     (Array.isArray(movs) ? movs : []).forEach(m => { const k = Math.round(Number(m.credito) || 0); (byMonto[k] = byMonto[k] || []).push(m); });
 

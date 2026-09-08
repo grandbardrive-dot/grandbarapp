@@ -9,6 +9,7 @@
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 
+const { traerTodo } = require('./_paginar');
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const qvals = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
 
@@ -101,8 +102,8 @@ exports.handler = async (event) => {
       const codes = await equipoCodigos();
       if (!codes.length) return json(200, { equipo: [] });
       const hoy = new Date().toISOString().slice(0, 10);
-      const r = await sb('compromisos?vendedor=in.(' + qvals(codes) + ')&fecha=gte.' + hoy + '&select=vendedor,fecha,estado&order=fecha.asc&limit=2000');
-      const rows = await r.json();
+      const rows = await traerTodo(sb, 'compromisos?vendedor=in.(' + qvals(codes) + ')&fecha=gte.' + hoy + '&select=vendedor,fecha,estado&order=fecha.asc');
+
       const agg = {}; codes.forEach(c => agg[c] = { codigo: c, hoy: 0, proximos: 0, pendientes: 0 });
       (Array.isArray(rows) ? rows : []).forEach(x => { const a = agg[String(x.vendedor)]; if (!a) return; if (x.fecha === hoy) a.hoy++; else a.proximos++; if (x.estado !== 'completado') a.pendientes++; });
       return json(200, { equipo: Object.values(agg) });

@@ -19,15 +19,15 @@ const FREC = ['semanal', 'quincenal', 'mensual'];
 // Cruce con el manual: visitas registradas (con cronómetro) por un vendedor en un rango.
 // Devuelve un mapa "codigo|YYYY-MM-DD" -> { duracion } (matchea por código crudo y numérico).
 async function visitasManual(codVend, desdeISO, hastaISO) {
-  const man = (path) => fetch(MAN_URL + '/rest/v1/' + path, { headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON } });
+  const man = (path, opts = {}) => fetch(MAN_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON, ...(opts.headers || {}) } });
   const map = {};
   try {
     const v = (await (await man('vendedores?codigo=eq.' + encodeURIComponent(codVend) + '&select=id&limit=1')).json())[0];
     if (!v) return map;
-    let q = 'visitas?vendedor_id=eq.' + encodeURIComponent(v.id) + '&select=cliente_id,duracion_minutos,fecha,clientes(codigo_cliente)&order=fecha.desc&limit=3000';
+    let q = 'visitas?vendedor_id=eq.' + encodeURIComponent(v.id) + '&select=cliente_id,duracion_minutos,fecha,clientes(codigo_cliente)&order=fecha.desc';
     if (desdeISO) q += '&fecha=gte.' + desdeISO;
     if (hastaISO) q += '&fecha=lt.' + hastaISO;
-    const rows = await (await man(q)).json();
+    const rows = await traerTodo(man, q);
     (Array.isArray(rows) ? rows : []).forEach(r => {
       const cod = r.clientes && r.clientes.codigo_cliente; if (cod == null || !r.fecha) return;
       const dia = String(r.fecha).slice(0, 10);
@@ -49,6 +49,7 @@ function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'applic
 const qv = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
 
 const { pushA } = require('./_notificar');
+const { traerTodo } = require('./_paginar');
 exports.handler = async (event) => {
   try {
     const srole = process.env.HUB_SERVICE_ROLE;
@@ -62,7 +63,7 @@ exports.handler = async (event) => {
     const user = await uRes.json();
 
     const sb = (path, opts = {}) => fetch(HUB_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: srole, Authorization: 'Bearer ' + srole, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
-    const cob = (path) => cobService ? fetch(COB_URL + '/rest/v1/' + path, { headers: { apikey: cobService, Authorization: 'Bearer ' + cobService } }) : Promise.resolve({ json: async () => [] });
+    const cob = (path, opts = {}) => cobService ? fetch(COB_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: cobService, Authorization: 'Bearer ' + cobService, ...(opts.headers || {}) } }) : Promise.resolve({ ok: false, json: async () => [] });
 
     const perfil = (await (await sb('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=nombre,canal,region,codigo_vendedor,es_supervisor')).json())[0] || {};
 
@@ -257,7 +258,7 @@ exports.handler = async (event) => {
     if (vista === 'clientes') {
       const vend = await vendObjetivo();
       if (!(await puede(vend))) return json(403, { error: 'No autorizado.' });
-      const cli = await (await cob('cuentas_cubo?vendedor=eq.' + encodeURIComponent(vend) + '&select=codigo,nombre&order=nombre.asc&limit=2000')).json();
+      const cli = await traerTodo(cob, 'cuentas_cubo?vendedor=eq.' + encodeURIComponent(vend) + '&select=codigo,nombre&order=nombre.asc', 5000);
       const frec = await (await sb('agenda_frecuencia?vendedor=eq.' + encodeURIComponent(vend) + '&select=cliente_codigo,frecuencia')).json();
       const fmap = {}; (frec || []).forEach(f => { fmap[String(f.cliente_codigo)] = f.frecuencia; });
       const clientes = (Array.isArray(cli) ? cli : []).map(c => ({ codigo: String(c.codigo), nombre: c.nombre, frecuencia: fmap[String(c.codigo)] || null }));
