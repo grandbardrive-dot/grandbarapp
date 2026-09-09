@@ -38,6 +38,12 @@
   .secitem:hover{background:#F4F1EA}
   .secitem input{width:17px;height:17px;accent-color:var(--azul);flex:none;cursor:pointer}
   .sec-cod{font-size:11px;font-weight:700;color:var(--ink3);background:#F0EDE6;border-radius:5px;padding:1px 6px;margin-left:2px;letter-spacing:.02em}
+  .zonabar{display:flex;gap:6px;margin-bottom:8px}
+  .zb{font-family:inherit;font-size:13px;font-weight:700;color:var(--ink2);background:#fff;
+    border:1.5px solid var(--line-2);border-radius:9px;padding:7px 15px;cursor:pointer;transition:all .12s}
+  .zb:hover{border-color:var(--azul)}
+  .zb.on{background:var(--azul);border-color:var(--azul);color:#fff}
+  .sec-otra{color:#b06a1f;font-weight:700}
   .secbox-load{padding:14px;color:var(--ink3);font-size:13px}
   .sec-count{font-size:12px;color:var(--azul);font-weight:700;margin-top:6px}
   .file-box{border:1.5px dashed var(--line-2);border-radius:12px;padding:16px;text-align:center;background:#FBF9F5}
@@ -70,9 +76,15 @@
 
       <div class="fld">
         <label>¿En qué secciones aparece? <span class="req">*</span></label>
+        <div class="zonabar" id="f-zonabar">
+          <button type="button" class="zb on"  data-zona="mendoza" onclick="elegirZona('mendoza')">Mendoza</button>
+          <button type="button" class="zb"     data-zona="sanluis" onclick="elegirZona('sanluis')">San Luis</button>
+          <button type="button" class="zb"     data-zona="todas"   onclick="elegirZona('todas')">Las dos</button>
+        </div>
         <div class="secbox" id="f-secbox"><div class="secbox-load">Cargando secciones…</div></div>
         <div class="sec-count" id="sec-count"></div>
-        <div class="hint">Marcá una o varias secciones. El plan se muestra en todas las que elijas, en la visita del vendedor.</div>
+        <div class="hint">Marcá una o varias secciones. El plan se muestra en todas las que elijas, en la visita del vendedor.
+          Mendoza y San Luis tienen sus propias secciones: elegí la zona arriba.</div>
       </div>
 
       <div class="fld">
@@ -128,13 +140,16 @@
   const editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
   let planPdfActual = null;   // pdf_url existente (para conservarlo si no suben otro)
 
-  // Cargar las secciones como casillas (multi-selección), agrupadas por canal y zona.
-  // Ojo: desde que San Luis tiene sus propias secciones, el mismo nombre existe una
-  // vez por zona. Sin mostrar la zona, la lista se veía repetida y no había forma de
-  // saber cuál era cuál. Y adentro de una misma zona hay nombres repetidos de verdad
-  // (secciones distintas a las que les pusieron el mismo nombre): a esas se les
-  // muestra el código al lado para poder distinguirlas.
+  // Cargar las secciones como casillas (multi-selección), agrupadas por canal.
+  // Mendoza y San Luis tienen cada una sus secciones, con los mismos nombres, así
+  // que la lista se filtra por zona. OJO: los grupos de la otra zona se ESCONDEN,
+  // no se borran. Si se borraran del HTML, al guardar se perderían las secciones ya
+  // marcadas de la otra zona sin que nadie se entere.
+  // Además, adentro de una misma zona hay nombres repetidos de verdad (secciones
+  // distintas con el mismo nombre): a esas se les muestra el código al lado.
   const ZONA_LBL = { mendoza: 'Mendoza', sanluis: 'San Luis' };
+  let ZONA_VISTA = 'mendoza';
+
   async function cargarSecciones(){
     const box = document.getElementById('f-secbox');
     try{
@@ -146,32 +161,54 @@
 
       const grupos = {};
       secs.forEach(s=>{
-        const k = (s.canal||'otros') + '|' + (s.zona||'mendoza');
+        const k = (s.zona||'mendoza') + '|' + (s.canal||'otros');
         (grupos[k] = grupos[k] || []).push(s);
       });
 
       let html = '';
       Object.keys(grupos).sort().forEach(k=>{
-        const [canal, zona] = k.split('|');
+        const [zona, canal] = k.split('|');
         const lista = grupos[k];
-        // ¿qué nombres se repiten dentro de este mismo grupo?
         const veces = {};
         lista.forEach(s=> veces[s.nombre] = (veces[s.nombre]||0) + 1);
+        html += `<div class="secgrupo" data-zona="${zona}">`;
         html += `<div class="grp">${canal.toUpperCase()} · ${ZONA_LBL[zona] || zona}</div>`;
         lista.forEach(s=>{
           const nom = (s.nombre||'').replace(/</g,'&lt;');
           const aclara = veces[s.nombre] > 1
             ? ` <span class="sec-cod">${(s.codigo||'').replace(/</g,'&lt;')}</span>` : '';
-          html += `<label class="secitem"><input type="checkbox" value="${s.id}" onchange="actualizarContadorSec()">${nom}${aclara}</label>`;
+          html += `<label class="secitem"><input type="checkbox" value="${s.id}" data-zona="${zona}" onchange="actualizarContadorSec()">${nom}${aclara}</label>`;
         });
+        html += `</div>`;
       });
       box.innerHTML = html;
+      elegirZona(ZONA_VISTA);
     }catch(e){ box.innerHTML = '<div class="secbox-load">Error al cargar secciones</div>'; }
+  }
+
+  function elegirZona(z){
+    ZONA_VISTA = z;
+    document.querySelectorAll('#f-zonabar .zb').forEach(b=>{
+      b.classList.toggle('on', b.dataset.zona === z);
+    });
+    document.querySelectorAll('#f-secbox .secgrupo').forEach(g=>{
+      g.hidden = (z !== 'todas' && g.dataset.zona !== z);
+    });
+    document.getElementById('f-secbox').scrollTop = 0;
+    actualizarContadorSec();
   }
   function seccionesElegidas(){ return [...document.querySelectorAll('#f-secbox input[type=checkbox]:checked')].map(c=>c.value); }
   function actualizarContadorSec(){
-    const n = seccionesElegidas().length;
-    document.getElementById('sec-count').textContent = n ? `${n} ${n>1?'secciones seleccionadas':'sección seleccionada'}` : '';
+    const marcadas = [...document.querySelectorAll('#f-secbox input[type=checkbox]:checked')];
+    const n = marcadas.length;
+    // Lo que está marcado en la zona que no se está mirando hay que decirlo: si no,
+    // parece que el plan tiene menos secciones de las que en realidad va a guardar.
+    const escondidas = ZONA_VISTA === 'todas' ? 0
+      : marcadas.filter(c => c.dataset.zona !== ZONA_VISTA).length;
+    const otra = ZONA_VISTA === 'mendoza' ? 'San Luis' : 'Mendoza';
+    document.getElementById('sec-count').innerHTML = !n ? ''
+      : `${n} ${n>1?'secciones seleccionadas':'sección seleccionada'}` +
+        (escondidas ? ` <span class="sec-otra">— ${escondidas} en ${otra}, que no estás viendo</span>` : '');
   }
 
   // Modo edición: precargar el plan existente
@@ -182,6 +219,12 @@
       document.getElementById('f-titulo').value    = p.nombre || '';
       const secsSel = (Array.isArray(p.secciones)&&p.secciones.length) ? p.secciones : (p.seccion_id?[p.seccion_id]:[]);
       document.querySelectorAll('#f-secbox input[type=checkbox]').forEach(c=>{ c.checked = secsSel.includes(c.value); });
+      // Abrir la vista en la zona del plan, para no dejarlo mirando una lista vacía
+      // si el plan es de San Luis. Si tiene secciones de las dos, se muestran todas.
+      const zonasDelPlan = [...new Set([...document.querySelectorAll('#f-secbox input[type=checkbox]:checked')]
+        .map(c => c.dataset.zona))];
+      if (zonasDelPlan.length === 1) elegirZona(zonasDelPlan[0]);
+      else if (zonasDelPlan.length > 1) elegirZona('todas');
       actualizarContadorSec();
       document.getElementById('f-proveedor').value = p.proveedor || '';
       document.getElementById('f-duracion').value  = p.condicion || '';
