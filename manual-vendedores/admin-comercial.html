@@ -116,6 +116,7 @@
   .warn-edit svg{width:15px;height:15px}
 
   /* Últimas campañas */
+.chip-plan{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;    background:#EAF2FB;color:#1F447F;border-radius:20px;padding:1px 7px;margin-left:5px;vertical-align:1px}
   .sec-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:32px 0 4px;flex-wrap:wrap}
   .sec-title{font-size:20px;font-weight:800;letter-spacing:-.01em}
   .sec-sub{font-size:12.5px;color:var(--ink3);margin-top:2px}
@@ -281,7 +282,7 @@
       <!-- Últimas campañas -->
       <div class="sec-head">
         <div>
-          <div class="sec-title">Últimas campañas</div>
+          <div class="sec-title">Últimas campañas y planes</div>
           <div class="sec-sub">Tus campañas más recientes.</div>
         </div>
         <div class="sec-tools">
@@ -299,7 +300,7 @@
         </table>
       </div>
       <div class="ver-todas">
-        <button onclick="location.href='admin-campanias.html'">Ver todas las campañas
+        <button onclick="location.href='admin-campanias.html'">Ver todas las campañas y planes
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
@@ -342,26 +343,59 @@
   const CANAL_LABEL = { restaurantes:'Restaurantes', vinotecas:'Vinotecas', bares:'Bares', discos:'Discos', hoteles:'Hoteles', eventos:'Eventos', autoservicios:'Autoservicios', todos:'Todos' };
   const esc = s => String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const fmtFecha = d => { if(!d) return '—'; const x=new Date(d); return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear(); };
+  // Ojo con las fechas sueltas (2026-08-17, sin hora): new Date() las lee como
+  // medianoche en Greenwich, y acá estamos tres horas atrás, así que se mostraban
+  // un día antes. Una campaña que arranca el 17 aparecía como que arrancaba el 16.
+  const fechaDe = d => {
+    if(!d) return null;
+    const s = String(d), sola = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const x = sola ? new Date(+sola[1], +sola[2]-1, +sola[3]) : new Date(s);
+    return isNaN(x) ? null : x;
+  };
+  const fmtFecha = d => { const x = fechaDe(d); return x ? String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear() : '—'; };
 
   let CAMPANAS = [];
 
   function estadoDe(a){
-    if(!a.activa) return {k:'borrador', txt:'Borrador', cls:'t-navy'};
-    const fi = a.fecha_inicio ? new Date(a.fecha_inicio) : null;
-    const ff = a.fecha_fin ? new Date(a.fecha_fin) : null;
+    const publicada = a._tipo === 'plan' ? (a.activo !== false) : !!a.activa;
+    if(!publicada) return {k:'borrador', txt:'Borrador', cls:'t-navy'};
+    const fi = fechaDe(a.fecha_inicio);
+    const ff = fechaDe(a.fecha_fin);
     if(ff && ff < hoy) return {k:'vencida', txt:'Vencida', cls:'t-red'};
     if(fi && fi > hoy) return {k:'proxima', txt:'Próxima', cls:'t-amber'};
     return {k:'activa', txt:'Activa', cls:'t-green'};
   }
 
+  // Los planes viven en otra tabla (checklist_planes) y se cargan desde otra pantalla,
+  // pero para Luciana son lo mismo: cosas que el vendedor ve en la visita. Si el inicio
+  // mira solo acciones_mensuales, los 14 planes cargados no aparecen en ningún lado y
+  // el tablero dice "0 activas" cuando en realidad hay 14 andando.
+  function normalizarPlan(p, canalDeSeccion){
+    const canal = canalDeSeccion[p.seccion_id] || null;
+    return { ...p, _tipo:'plan',
+      producto: p.nombre,
+      accion: p.condicion ? ('Plan ' + p.condicion) : 'Plan',
+      categoria: null, imagen_url: null,
+      aplica_a: canal ? [CANAL_DE_MANUAL[canal] || canal] : [] };
+  }
+  // Los canales del manual se llaman en singular; los de las campañas, en plural.
+  const CANAL_DE_MANUAL = { restaurante:'restaurantes', vinoteca:'vinotecas', tienda_bebidas:'tiendas_bebidas',
+    autoservicio:'autoservicios', hotel:'hoteles', bar:'bares', disco:'discos', mayorista:'mayoristas' };
+
   async function cargar(){
-    let data = [];
+    let camp = [], planes = [];
     try{
-      const r = await sb.from('acciones_mensuales').select('*').order('created_at',{ascending:false});
-      data = r.data || [];
+      const [rc, rp, rs] = await Promise.all([
+        sb.from('acciones_mensuales').select('*').order('created_at',{ascending:false}),
+        sb.from('checklist_planes').select('*').order('created_at',{ascending:false}),
+        sb.from('checklist_secciones').select('id,canal'),
+      ]);
+      camp = (rc.data||[]).map(a => ({ ...a, _tipo:'campania' }));
+      const canalDeSeccion = {}; (rs.data||[]).forEach(s => canalDeSeccion[s.id] = s.canal);
+      planes = (rp.data||[]).map(p => normalizarPlan(p, canalDeSeccion));
     }catch(e){ console.warn(e); }
-    CAMPANAS = data;
+    CAMPANAS = camp.concat(planes)
+      .sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
     renderStats();
     renderWarn();
     renderTabla();
@@ -371,9 +405,9 @@
     const b = { activa:0, proxima:0, vencida:0, borrador:0 };
     CAMPANAS.forEach(a => b[estadoDe(a).k]++);
     const cards = [
-      { key:'activa',   name:'Activas',    num:b.activa,   cap:'campañas activas',   link:'Ver todas',      color:'c-green', ico:'<path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' },
+      { key:'activa',   name:'Activas',    num:b.activa,   cap:'campañas y planes',   link:'Ver todas',      color:'c-green', ico:'<path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' },
       { key:'proxima',  name:'Próximas',   num:b.proxima,  cap:'por activarse',       link:'Ver próximas',   color:'c-amber', ico:'<rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' },
-      { key:'vencida',  name:'Vencidas',   num:b.vencida,  cap:'campañas vencidas',   link:'Ver vencidas',   color:'c-red',   ico:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' },
+      { key:'vencida',  name:'Vencidas',   num:b.vencida,  cap:'ya terminaron',   link:'Ver vencidas',   color:'c-red',   ico:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' },
       { key:'borrador', name:'Borradores', num:b.borrador, cap:'sin publicar',        link:'Ver borradores', color:'c-navy',  ico:'<path d="M7 3h7l5 5v13H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.8"/>' },
     ];
     document.getElementById('stats').innerHTML = cards.map(c => `
@@ -394,12 +428,12 @@
 
   function contarPorVencer(){
     const lim = new Date(hoy); lim.setDate(lim.getDate()+7);
-    return CAMPANAS.filter(a => { const e=estadoDe(a); if(e.k!=='activa'||!a.fecha_fin) return false; const ff=new Date(a.fecha_fin); return ff>=hoy && ff<=lim; }).length;
+    return CAMPANAS.filter(a => { const e=estadoDe(a); if(e.k!=='activa'||!a.fecha_fin) return false; const ff=fechaDe(a.fecha_fin); return ff && ff>=hoy && ff<=lim; }).length;
   }
 
   function renderWarn(){
     const lim = new Date(hoy); lim.setDate(lim.getDate()+7);
-    const porVencer = CAMPANAS.filter(a => { const e=estadoDe(a); if(e.k!=='activa'||!a.fecha_fin) return false; const ff=new Date(a.fecha_fin); return ff>=hoy && ff<=lim; })
+    const porVencer = CAMPANAS.filter(a => { const e=estadoDe(a); if(e.k!=='activa'||!a.fecha_fin) return false; const ff=fechaDe(a.fecha_fin); return ff && ff>=hoy && ff<=lim; })
       .sort((x,y)=> new Date(x.fecha_fin)-new Date(y.fecha_fin));
     const slot = document.getElementById('warn-slot');
     if(!porVencer.length){ slot.innerHTML=''; return; }
@@ -426,20 +460,20 @@
     if(q) rows = rows.filter(a => (`${a.producto||''} ${a.proveedor||''} ${a.accion||''} ${a.categoria||''}`).toLowerCase().includes(q));
     rows = rows.slice(0,6);
     const body = document.getElementById('tabla-body');
-    if(!rows.length){ body.innerHTML = `<tr><td colspan="7" class="empty">No hay campañas${q?' para esa búsqueda':''}.</td></tr>`; return; }
+    if(!rows.length){ body.innerHTML = `<tr><td colspan="7" class="empty">No hay campañas ni planes${q?' para esa búsqueda':''}.</td></tr>`; return; }
     body.innerHTML = rows.map(a => {
       const e = estadoDe(a);
       const canales = (a.aplica_a||[]).map(c=>`<span class="chip">${esc(CANAL_LABEL[c]||c)}</span>`).join('');
       const thumb = a.imagen_url?`<img class="camp-thumb" src="${esc(a.imagen_url)}" alt="">`:`<span class="camp-thumb ph">🍾</span>`;
       const vig = (a.fecha_inicio||a.fecha_fin)?`${fmtFecha(a.fecha_inicio)}<br>– ${fmtFecha(a.fecha_fin)}`:'—';
       return `<tr>
-        <td><div class="camp">${thumb}<div><div class="camp-n">${esc(a.producto||'—')}</div><div class="camp-t">${esc(a.accion||a.categoria||'Campaña')}</div></div></div></td>
+        <td><div class="camp">${thumb}<div><div class="camp-n">${esc(a.producto||"—")}${a._tipo==="plan"?` <span class="chip-plan">Plan</span>`:""}</div><div class="camp-t">${esc(a.accion||a.categoria||a._tipo==='plan'?'Plan':'Campaña')}</div></div></div></td>
         <td>${a.proveedor?`<span class="prov">${esc(a.proveedor)}</span>`:'<span style="color:var(--ink3)">—</span>'}</td>
         <td><div class="chips">${canales||'<span style="color:var(--ink3)">—</span>'}</div></td>
         <td><span class="vig">${vig}</span></td>
         <td><span class="estado ${e.cls}">${e.txt}</span></td>
         <td><div class="edicion">${fmtFecha(a.created_at)}<small>última carga</small></div></td>
-        <td style="text-align:right"><button class="dots" onclick="location.href='admin.html?tab=acciones'" title="Acciones">⋯</button></td>
+        <td style="text-align:right"><button class="dots" onclick="location.href='${a._tipo==="plan" ? "admin-nuevo-plan.html?id="+a.id : "admin.html?tab=acciones"}'" title="Abrir">⋯</button></td>
       </tr>`;
     }).join('');
   }
