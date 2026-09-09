@@ -213,11 +213,6 @@
     background: var(--dorado-lt); color: #7a6830; flex-shrink: 0;
     border: 1px solid rgba(203,184,106,.25);
   }
-  select.client-tipo { font-family: inherit; cursor: pointer; appearance: none; -webkit-appearance: none;
-    max-width: 150px; text-overflow: ellipsis; }
-  select.client-tipo:hover { border-color: rgba(203,184,106,.7); }
-  /* Sin clasificar: se marca en rojo suave para que se note cuál falta corregir. */
-  select.client-tipo.sinclas { background: #FDECEC; color: #a33; border-color: rgba(190,60,60,.25); }
   .client-pct { font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--azul); display: block; }
   .client-fecha { font-size: 10px; color: var(--text3); margin-top: 2px; display: block; }
   .pct-none { color: var(--text3); font-weight: 400; font-size: 11px; }
@@ -355,72 +350,6 @@ body { background:transparent !important; }
     document.getElementById('tab-activos').classList.toggle('active', !oc);
     document.getElementById('tab-ocultos').classList.toggle('active', oc);
     filtrar();
-  }
-
-  // Los rubros que puede tener un cliente. El rubro decide qué manual ve el vendedor
-  // cuando entra a la visita, así que un cliente en "otros" recibe el de restaurantes
-  // por defecto: por eso hay que poder corregirlo desde acá.
-  const RUBROS = [
-    { v:'restaurante',       n:'Restaurante',       e:'🍽' },
-    { v:'bar',               n:'Bar',               e:'🍺' },
-    { v:'vinoteca',          n:'Vinoteca',          e:'🍷' },
-    { v:'tienda de bebidas', n:'Tienda de Bebidas', e:'🏬' },
-    { v:'autoservicio',      n:'Autoservicio',      e:'🛒' },
-    { v:'hotel',             n:'Hotel',             e:'🏨' },
-    { v:'disco',             n:'Disco',             e:'🪩' },
-    { v:'mayorista',         n:'Mayorista',         e:'📦' },
-    { v:'otros',             n:'Sin clasificar',    e:'🏢' },
-  ];
-  const rubroDe   = t => RUBROS.find(r => r.v === String(t||'').toLowerCase());
-  const emojiDe   = t => (rubroDe(t) || {}).e || '🏢';
-  const nombreDe  = t => (rubroDe(t) || {}).n || (t || 'Sin clasificar');
-
-  // Qué canales del manual tienen secciones cargadas. Sirve para avisar antes de
-  // mandar un cliente a un rubro cuyo manual todavía está vacío: si no, el vendedor
-  // abre la visita y no ve nada, sin entender por qué.
-  let CANALES_CON_MANUAL = null;
-  async function canalesConManual() {
-    if (CANALES_CON_MANUAL) return CANALES_CON_MANUAL;
-    try {
-      const { data } = await sb.from('checklist_secciones').select('canal').eq('activa', true);
-      CANALES_CON_MANUAL = new Set((data || []).map(s => s.canal));
-    } catch (e) { CANALES_CON_MANUAL = null; }
-    return CANALES_CON_MANUAL;
-  }
-  // El mismo mapa que usa el manual para decidir qué recorrido mostrar.
-  const CANAL_DE_RUBRO = {
-    'restaurante':'restaurante', 'bar':'bar', 'vinoteca':'vinoteca',
-    'tienda de bebidas':'tienda_bebidas', 'autoservicio':'autoservicio',
-    'hotel':'hotel', 'disco':'disco', 'mayorista':'mayorista', 'otros':'restaurante',
-  };
-
-  // Cambia el rubro. Optimista, igual que activo/inactivo.
-  async function cambiarRubro(id, valor, sel) {
-    const c = todosClientes.find(x => x.id === id);
-    if (!c) return;
-    const antes = c.tipo;
-
-    const canales = await canalesConManual();
-    const canal = CANAL_DE_RUBRO[valor] || 'restaurante';
-    if (canales && !canales.has(canal)) {
-      const r = (rubroDe(valor) || {}).n || valor;
-      if (!confirm('El manual de ' + r + ' todavía no tiene secciones cargadas.\n\n' +
-                   'Si guardás esto, el vendedor va a abrir la visita de este cliente y no va a ver el recorrido.\n\n' +
-                   '¿Lo guardo igual?')) {
-        if (sel) sel.value = antes || 'otros';
-        return;
-      }
-    }
-
-    c.tipo = valor;
-    const { error } = await sb.from('clientes').update({ tipo: valor }).eq('id', id);
-    if (error) {
-      c.tipo = antes;
-      if (sel) sel.value = antes || 'otros';
-      alert('No se pudo guardar el rubro. Reintentá.');
-      return;
-    }
-    filtrar();   // se redibuja: cambia el ícono, el chip y los filtros de arriba
   }
 
   // Cambia activo/inactivo. Optimista: actualiza la vista y guarda en la base.
@@ -566,7 +495,7 @@ body { background:transparent !important; }
     cont.innerHTML = lista.map(c => {
       const v = ultimasVisitas[c.id];
       const activo = esActivo(c);
-      const emoji = emojiDe(c.tipo);
+      const emoji = { restaurante:'🍽', vinoteca:'🍷', hotel:'🏨', bar:'🍺', evento:'🎉' }[c.tipo] || '🏢';
       const pctHtml = v
         ? `<span class="client-pct">${v.porcentaje_total}%</span><span class="client-fecha">${fmtFecha(v.fecha)}</span>`
         : `<span class="pct-none">Sin visitas</span>`;
@@ -583,10 +512,7 @@ body { background:transparent !important; }
             ${c.direccion ? `<span>· ${esc(c.direccion)}</span>` : ''}
           </div>
         </div>
-        <select class="client-tipo${(c.tipo||'otros')==='otros'?' sinclas':''}" title="Rubro del cliente — define qué manual ve el vendedor"
-          onclick="event.stopPropagation()" onchange="event.stopPropagation();cambiarRubro('${c.id}',this.value,this)">
-          ${RUBROS.map(r=>`<option value="${r.v}" ${(c.tipo||'otros')===r.v?'selected':''}>${r.e} ${r.n}</option>`).join('')}
-        </select>
+        <span class="client-tipo">${esc(c.tipo||'cliente')}</span>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;text-align:right">
           ${pctHtml}
           ${toggleBtn}
