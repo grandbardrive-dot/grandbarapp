@@ -4782,7 +4782,8 @@ body { background:transparent !important; }
     // Exhibidores". Las ofertas van en Acciones de Rotación (vt_acciones_mensuales),
     // así que esta no lleva widget: si no, la misma lista aparecía en las dos.
     'vt_incorporaciones':   { tipo: 'propuestas', categoria: 'vino' },
-    'vt_acciones_mensuales':{ tipo: 'ofertas', dataKey: 'mensuales' },
+    'vt_acciones_mensuales':{ tipo: 'ofertas', dataKey: 'mensuales' },        // VINOS > Acciones de Rotación
+    'vt_acciones_de_rotacion':{ tipo: 'ofertas', dataKey: 'rtd_rotacion' },   // RTD y FRIOS > Acciones de Rotación
     'vt_gondola_spirits':   { tipo: 'ofertas', dataKey: 'sp_rotacion' },
     'vt_heladera':          { tipo: 'ofertas', dataKey: 'vt_heladera' },
   };
@@ -5046,7 +5047,7 @@ body { background:transparent !important; }
 
   // Etiqueta de carrito por subsección
   const OFERTAS_SUB_LABEL = {
-    rotacion: 'Rotación', mensuales: 'Mensuales',
+    rotacion: 'Rotación', mensuales: 'Mensuales', rtd_rotacion: 'RTD y Fríos',
     sp_rotacion: 'Rotación Spirits', sp_mensuales: 'Mensuales Spirits', sp_aperitivos: 'Aperitivos',
     cafe_acciones: 'Café', vt_heladera: 'Heladera',
   };
