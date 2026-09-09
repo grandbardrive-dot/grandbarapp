@@ -5047,120 +5047,7 @@ body { background:transparent !important; }
     sp_rotacion: 'Rotación Spirits', sp_mensuales: 'Mensuales Spirits', sp_aperitivos: 'Aperitivos',
     cafe_acciones: 'Café', vt_heladera: 'Heladera',
   };
-  // Fotos de prueba de café (Unsplash). TODO: vienen del Sheet en producción.
-  const _FOTOS_CAFE = [
-    'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=240&q=70',
-    'https://images.unsplash.com/photo-1611854779393-1b2da9d400fe?w=240&q=70',
-    'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=240&q=70',
-    'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=240&q=70',
-  ];
-  const _fotoC = i => _FOTOS_CAFE[i % _FOTOS_CAFE.length];
-  // Fotos de prueba de spirits (Unsplash). TODO: vienen del Sheet en producción.
-  const _FOTOS_SPIRITS = [
-    'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=240&q=70',
-    'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=240&q=70',
-    'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=240&q=70',
-    'https://images.unsplash.com/photo-1582819509237-d5d2f6da6d2c?w=240&q=70',
-    'https://images.unsplash.com/photo-1474722883778-792e7990302f?w=240&q=70',
-  ];
-  const _fotoS = i => _FOTOS_SPIRITS[i % _FOTOS_SPIRITS.length];
 
-  // ┌────────────────────────────────────────────────────────────────────────┐
-  // │ DATOS DE PRUEBA — reemplazar por lectura del Google Sheet (ver cargarOfertas)│
-  // │ Cada oferta imita EXACTO la fila del Sheet futuro:                        │
-  // │ { bodega, producto, tipo_oferta, precio_accionado, foto_url, orden }      │
-  // │ Las foto_url son imágenes de ejemplo de internet (Unsplash) solo de prueba.│
-  // └────────────────────────────────────────────────────────────────────────┘
-  const _FOTOS_PRUEBA = [
-    'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=240&q=70',
-    'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=240&q=70',
-    'https://images.unsplash.com/photo-1474722883778-792e7990302f?w=240&q=70',
-    'https://images.unsplash.com/photo-1568213816046-0ee1c42bd559?w=240&q=70',
-    'https://images.unsplash.com/photo-1586370434639-0fe43b2d32d6?w=240&q=70',
-  ];
-  const _foto = i => _FOTOS_PRUEBA[i % _FOTOS_PRUEBA.length];
-
-  const OFERTAS_PRUEBA = {
-    rotacion: [
-      { bodega:'Peñaflor',      producto:'Alma Mora Malbec',        tipo_oferta:'43% OFF', precio_accionado:3755,  foto_url:_foto(0), orden:1 },
-      { bodega:'Peñaflor',      producto:'Trapiche Reserva Malbec', tipo_oferta:'5+1',     precio_accionado:4200,  foto_url:_foto(1), orden:2 },
-      { bodega:'Peñaflor',      producto:'Fond de Cave Cabernet',   tipo_oferta:'2+1',     precio_accionado:5100,  foto_url:_foto(2), orden:3 },
-      { bodega:'Peñaflor',      producto:'Don David Reserve',       tipo_oferta:'30% OFF', precio_accionado:6300,  foto_url:_foto(3), orden:4 },
-      { bodega:'Peñaflor',      producto:'Mascota Vineyards',       tipo_oferta:'5+1',     precio_accionado:7800,  foto_url:_foto(4), orden:5 },
-      { bodega:'Chandon',       producto:'Chandon Extra Brut',      tipo_oferta:'25% OFF', precio_accionado:8900,  foto_url:_foto(1), orden:1 },
-      { bodega:'Chandon',       producto:'Chandon Délice',          tipo_oferta:'2+1',     precio_accionado:9500,  foto_url:_foto(2), orden:2 },
-      { bodega:'Salentein',     producto:'Salentein Reserve Malbec',tipo_oferta:'20% OFF', precio_accionado:7600,  foto_url:_foto(0), orden:1 },
-      { bodega:'Salentein',     producto:'Numina Spirit',           tipo_oferta:'5+1',     precio_accionado:12400, foto_url:_foto(3), orden:2 },
-      { bodega:'Séptima',       producto:'Séptima Gran Reserva',    tipo_oferta:'30% OFF', precio_accionado:8100,  foto_url:_foto(4), orden:1 },
-      { bodega:'Doña Paula',    producto:'Doña Paula Estate Malbec',tipo_oferta:'43% OFF', precio_accionado:5400,  foto_url:_foto(2), orden:1 },
-      { bodega:'Doña Paula',    producto:'Doña Paula Los Cardos',   tipo_oferta:'3+1',     precio_accionado:3200,  foto_url:_foto(0), orden:2 },
-      { bodega:'Casarena',      producto:'Casarena Single Vineyard',tipo_oferta:'25% OFF', precio_accionado:9900,  foto_url:_foto(1), orden:1 },
-      { bodega:'Renacer',       producto:'Renacer Punto Final',     tipo_oferta:'5+1',     precio_accionado:6700,  foto_url:_foto(3), orden:1 },
-      { bodega:'Catena Zapata', producto:'Catena Malbec',           tipo_oferta:'20% OFF', precio_accionado:11200, foto_url:_foto(4), orden:1 },
-      { bodega:'San Huberto',   producto:'San Huberto Reserva',     tipo_oferta:'2+1',     precio_accionado:2900,  foto_url:_foto(2), orden:1 },
-      { bodega:'Etchart',       producto:'Etchart Privado Torrontés',tipo_oferta:'30% OFF',precio_accionado:2600,  foto_url:_foto(0), orden:1 },
-    ],
-    mensuales: [
-      { bodega:'Trapiche',    producto:'Trapiche Medalla Malbec', tipo_oferta:'15% OFF', precio_accionado:8900,  foto_url:_foto(0), orden:1 },
-      { bodega:'Trapiche',    producto:'Trapiche Iscay',          tipo_oferta:'5+1',     precio_accionado:22000, foto_url:_foto(1), orden:2 },
-      { bodega:'Zuccardi',    producto:'Zuccardi Serie A Malbec',  tipo_oferta:'20% OFF', precio_accionado:9800,  foto_url:_foto(2), orden:1 },
-      { bodega:'Zuccardi',    producto:'Zuccardi Q Tempranillo',   tipo_oferta:'2+1',     precio_accionado:13500, foto_url:_foto(3), orden:2 },
-      { bodega:'Luigi Bosca', producto:'Luigi Bosca Malbec',       tipo_oferta:'25% OFF', precio_accionado:14200, foto_url:_foto(4), orden:1 },
-      { bodega:'Norton',      producto:'Norton Reserva Malbec',    tipo_oferta:'3+1',     precio_accionado:6400,  foto_url:_foto(1), orden:1 },
-      { bodega:'Norton',      producto:'Norton Cosecha Tardía',    tipo_oferta:'30% OFF', precio_accionado:5200,  foto_url:_foto(2), orden:2 },
-      { bodega:'Rutini',      producto:'Rutini Cabernet-Malbec',   tipo_oferta:'15% OFF', precio_accionado:18900, foto_url:_foto(0), orden:1 },
-    ],
-    // ── SPIRITS (botones = proveedores: Diageo, Campari, Pernod Ricard, Jack Daniels, Absolut) ──
-    sp_rotacion: [
-      { bodega:'Diageo',        producto:'Johnnie Walker Black Label', tipo_oferta:'20% OFF', precio_accionado:18900, foto_url:_fotoS(0), orden:1 },
-      { bodega:'Diageo',        producto:'Smirnoff Vodka',             tipo_oferta:'2+1',     precio_accionado:7200,  foto_url:_fotoS(1), orden:2 },
-      { bodega:'Campari',       producto:'Aperol',                     tipo_oferta:'30% OFF', precio_accionado:6800,  foto_url:_fotoS(2), orden:1 },
-      { bodega:'Campari',       producto:'Campari',                    tipo_oferta:'5+1',     precio_accionado:7500,  foto_url:_fotoS(3), orden:2 },
-      { bodega:'Pernod Ricard', producto:'Chivas Regal 12',            tipo_oferta:'15% OFF', precio_accionado:22000, foto_url:_fotoS(0), orden:1 },
-      { bodega:'Pernod Ricard', producto:'Beefeater Gin',              tipo_oferta:'2+1',     precio_accionado:11500, foto_url:_fotoS(4), orden:2 },
-      { bodega:'Jack Daniels',  producto:"Jack Daniel's Old No.7",     tipo_oferta:'25% OFF', precio_accionado:19500, foto_url:_fotoS(1), orden:1 },
-      { bodega:'Absolut',       producto:'Absolut Vodka',              tipo_oferta:'20% OFF', precio_accionado:9900,  foto_url:_fotoS(3), orden:1 },
-    ],
-    sp_mensuales: [
-      { bodega:'Diageo',        producto:'Johnnie Walker Red Label',   tipo_oferta:'43% OFF', precio_accionado:12900, foto_url:_fotoS(0), orden:1 },
-      { bodega:'Diageo',        producto:'Tanqueray Gin',              tipo_oferta:'5+1',     precio_accionado:14200, foto_url:_fotoS(4), orden:2 },
-      { bodega:'Campari',       producto:'Cynar',                      tipo_oferta:'25% OFF', precio_accionado:5400,  foto_url:_fotoS(2), orden:1 },
-      { bodega:'Campari',       producto:'Wild Turkey',                tipo_oferta:'2+1',     precio_accionado:16800, foto_url:_fotoS(0), orden:2 },
-      { bodega:'Pernod Ricard', producto:"Ballantine's Finest",        tipo_oferta:'30% OFF', precio_accionado:13900, foto_url:_fotoS(1), orden:1 },
-      { bodega:'Jack Daniels',  producto:'Gentleman Jack',             tipo_oferta:'15% OFF', precio_accionado:26500, foto_url:_fotoS(3), orden:1 },
-      { bodega:'Absolut',       producto:'Absolut Citron',             tipo_oferta:'2+1',     precio_accionado:10500, foto_url:_fotoS(4), orden:1 },
-    ],
-    sp_aperitivos: [
-      // 2 acciones CON campos opcionales (párrafo + foto de material); el resto SIN (opcionales).
-      { bodega:'Campari',       producto:'Aperol Spritz Pack',         tipo_oferta:'43% OFF', precio_accionado:6200,  foto_url:_fotoS(2), orden:1,
-        descripcion_larga:'Pack promocional de Aperol + Prosecco + soda para armar el Spritz perfecto. Incluye receta sugerida y material de comunicación para la barra. Ideal para activar el aperitivo de las tardes y aumentar el ticket del happy hour.',
-        material_foto_url:'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=900&q=75' },
-      { bodega:'Campari',       producto:'Campari Soda',               tipo_oferta:'5+1',     precio_accionado:4800,  foto_url:_fotoS(3), orden:2 },
-      { bodega:'Campari',       producto:'Cynar',                      tipo_oferta:'2+1',     precio_accionado:5100,  foto_url:_fotoS(0), orden:3 },
-      { bodega:'Pernod Ricard', producto:'Ramazzotti Aperitivo',       tipo_oferta:'20% OFF', precio_accionado:7800,  foto_url:_fotoS(1), orden:1,
-        descripcion_larga:'Amaro italiano clásico para after office. Se sirve con soda y rodaja de naranja. Buen margen y rotación en la franja de aperitivo.',
-        material_foto_url:'https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=900&q=75' },
-      { bodega:'Diageo',        producto:"Gordon's Gin Tonic RTD",     tipo_oferta:'3+1',     precio_accionado:5600,  foto_url:_fotoS(4), orden:1 },
-    ],
-    // ── VINOTECA · Heladera (RTD / frío) — botones = marca/bodega ──
-    vt_heladera: [
-      { bodega:'Aperol',      producto:'Aperol Spritz RTD Lata', tipo_oferta:'2+1',     precio_accionado:3200, foto_url:_fotoS(2), orden:1 },
-      { bodega:'Campari',     producto:'Campari Spritz RTD Lata',tipo_oferta:'20% OFF', precio_accionado:3400, foto_url:_fotoS(3), orden:1 },
-      { bodega:"Gordon's",    producto:"Gordon's Gin Tonic RTD", tipo_oferta:'3+1',     precio_accionado:2800, foto_url:_fotoS(4), orden:1 },
-      { bodega:"Gordon's",    producto:"Gordon's Pink RTD",      tipo_oferta:'2+1',     precio_accionado:2900, foto_url:_fotoS(0), orden:2 },
-      { bodega:'Smirnoff',    producto:'Smirnoff Ice',           tipo_oferta:'25% OFF', precio_accionado:2600, foto_url:_fotoS(1), orden:1 },
-      { bodega:'Cervezas',    producto:'Six pack Corona',        tipo_oferta:'15% OFF', precio_accionado:6500, foto_url:_fotoS(2), orden:1 },
-      { bodega:'Energizantes',producto:'Speed XL 473ml',         tipo_oferta:'2+1',     precio_accionado:1800, foto_url:_fotoS(3), orden:1 },
-    ],
-    // ── CAFÉ SEGAFREDDO (botones = líneas Segafreddo) ──
-    cafe_acciones: [
-      { bodega:'Massimo',    producto:'Massimo Grano 1kg',      tipo_oferta:'15% OFF', precio_accionado:9800,  foto_url:_fotoC(0), orden:1 },
-      { bodega:'Massimo',    producto:'Massimo Molido 250g',    tipo_oferta:'2+1',     precio_accionado:3200,  foto_url:_fotoC(1), orden:2 },
-      { bodega:'Intermezzo', producto:'Intermezzo Grano 1kg',   tipo_oferta:'10% OFF', precio_accionado:11200, foto_url:_fotoC(2), orden:1 },
-      { bodega:'Selection',  producto:'Selection Cápsulas x10',  tipo_oferta:'3+1',     precio_accionado:4500,  foto_url:_fotoC(3), orden:1 },
-      { bodega:'Decaf',      producto:'Decaffeinato 250g',      tipo_oferta:'20% OFF', precio_accionado:3900,  foto_url:_fotoC(0), orden:1 },
-    ],
-  };
 
   // Cache de ofertas ya cargadas, por subsección
   const _ofertasData = {};
@@ -5176,8 +5063,84 @@ body { background:transparent !important; }
   //     const text = await resp.text();
   //     // parsear con splitCSV() línea por línea → mapear columnas a los campos de arriba.
   //   Es el ÚNICO lugar a tocar: el resto del widget no cambia.
+  // ── OFERTAS DEL CATÁLOGO (catalogoon.com / catalogooff.com) ─────────────────
+  // Son las acciones que Luciana sube y baja todo el tiempo desde su panel del
+  // catálogo, así que acá NO se filtran por fecha: vale lo que esté marcado como
+  // activo en este momento. Se leen en cada visita, no se guardan copias.
+  //
+  // Viven en OTRO proyecto de Supabase (el del catálogo), por eso hace falta un
+  // segundo cliente. Es solo lectura, con la clave pública del catálogo.
+  const CAT_CFG = { url:'https://zlwnoqdxendsgbfvfyue.supabase.co', key:'sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4' };
+  const _mecTexto = a => String(a.mecanica || (a.porcentaje_off ? a.porcentaje_off + '% OFF' : '')).trim();
+  const _mecCorta = a => _mecTexto(a).length > 0 && _mecTexto(a).length <= 12;
+  let _catSb = null, _catCache = null;
+  const catSb = () => (_catSb = _catSb || supabase.createClient(CAT_CFG.url, CAT_CFG.key, { auth:{ persistSession:false } }));
+
+  // Qué canal del catálogo le corresponde a este cliente. Las marcadas "ambos"
+  // valen siempre.
+  function _canalCatalogo() {
+    const t = String(cliente.tipo || '').toLowerCase();
+    if (t === 'mayorista') return 'mayorista';
+    // OFF = se lo lleva; ON = se consume en el local.
+    const OFF = ['vinoteca', 'tienda de bebidas', 'autoservicio'];
+    return OFF.includes(t) ? 'off' : 'on';
+  }
+
+  // La categoría sale del PROVEEDOR (vinos / spirits / cervezas), que es como está
+  // armado el catálogo. Cada widget de la visita pide la suya.
+  //   · Las góndolas piden su categoría.
+  //   · "Acciones Mensuales" no está en la lista a propósito: es la sección general,
+  //     así que muestra TODO lo del canal del cliente, sin filtrar por categoría.
+  //   · Café pide 'cafe', que el catálogo no tiene: queda vacío en vez de mostrarle
+  //     cervezas a alguien que está hablando de café.
+  const CAT_CATEGORIA_DE_WIDGET = {
+    rotacion:'vinos',
+    sp_rotacion:'spirits', sp_mensuales:'spirits', sp_aperitivos:'spirits',
+    vt_heladera:'cervezas',
+    cafe_acciones:'cafe',
+  };
+
+  async function _getOfertasCatalogo() {
+    if (_catCache) return _catCache;
+    try {
+      const sbc = catSb();
+      const [ra, rp] = await Promise.all([
+        sbc.from('catalogo_acciones').select('*').eq('activo', true).order('orden'),
+        sbc.from('catalogo_proveedores').select('id,nombre,categoria,activo'),
+      ]);
+      const prov = {}; (rp.data || []).forEach(p => prov[p.id] = p);
+      _catCache = (ra.data || []).map(a => {
+        const p = prov[a.proveedor_id] || {};
+        return {
+          bodega: p.nombre || 'Sin proveedor',
+          categoria: String(p.categoria || '').toLowerCase(),
+          canal: String(a.canal || 'ambos').toLowerCase(),
+          producto: a.nombre_producto || '',
+          // La mecánica corta ("5+1", "20% OFF") entra en la chapita redonda. Las
+          // largas ("COMPRANDO 1 MARCA 10% - 2 O 3 MARCAS 15%…") no entran: van
+          // debajo del nombre, donde se leen.
+          tipo_oferta: _mecCorta(a) ? _mecTexto(a) : '',
+          descripcion_larga: [_mecCorta(a) ? '' : _mecTexto(a), a.info_adicional || ''].filter(Boolean).join(' — '),
+          precio_accionado: a.precio_accionado || 0,
+          precio_regular: a.precio_regular || 0,
+          foto_url: a.imagen_url || '',
+          info: a.info_adicional || '',
+          orden: a.orden || 0,
+        };
+      }).filter(o => o.producto);
+    } catch (e) { console.warn('catálogo:', e); _catCache = []; }
+    return _catCache;
+  }
+
+  // Las ofertas que le tocan a ESTE cliente en ESTA subsección.
   async function cargarOfertas(subKey) {
-    return OFERTAS_PRUEBA[subKey] || [];
+    const cat = await _getOfertasCatalogo();
+    const canal = _canalCatalogo();
+    const quiere = CAT_CATEGORIA_DE_WIDGET[subKey];
+    return cat.filter(o =>
+      (o.canal === canal || o.canal === 'ambos') &&
+      (!quiere || o.categoria === quiere)
+    );
   }
 
   const fmtPesos = n => '$' + Number(n || 0).toLocaleString('es-AR');
@@ -5186,12 +5149,14 @@ body { background:transparent !important; }
   async function cargarOfertasWidget(subKey, secId) {
     const el = document.getElementById(`ofertas-bodegas-${secId}`);
     if (!el) return;
-    // Las campañas cargadas por el panel ya se ven como tarjetas en la sección, así que
-    // acá solo queda el listado de ofertas de ejemplo — y únicamente cuando la sección
-    // no tiene campañas, para no mostrar lo mismo dos veces.
+    // Dos cosas distintas conviven acá:
+    //  · las CAMPAÑAS del panel de Luciana, que ya se ven como tarjetas arriba en la
+    //    sección — acá solo se marcan como "ofrecidas" para el resumen de la visita;
+    //  · las ACCIONES DEL CATÁLOGO, que son las que se muestran en esta grilla.
+    // Antes, si había una campaña, la grilla se vaciaba. Ahora no: son cosas
+    // distintas y el vendedor tiene que poder mostrar las dos.
     const reales = (await _campaniasSeccion(secId)).map(_campaniaAOferta);
-    reales.forEach(o => marcarOfrecido(o.producto, OFERTAS_SUB_LABEL[subKey] || subKey)); // Mejora 3
-    if (reales.length) { _ofertasData[subKey] = []; el.innerHTML = ''; return; }
+    reales.forEach(o => marcarOfrecido(o.producto, OFERTAS_SUB_LABEL[subKey] || subKey));
 
     const ofertas = await cargarOfertas(subKey);
     _ofertasData[subKey] = ofertas;
@@ -5228,7 +5193,7 @@ body { background:transparent !important; }
           <div class="oferta-foto-wrap">
             <img src="${esc(o.foto_url)}" alt="" loading="lazy"
               onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=\\'oferta-foto-fallback\\'>🍷</span>')">
-            <span class="oferta-badge">${esc(o.tipo_oferta)}</span>
+            ${o.tipo_oferta ? `<span class="oferta-badge">${esc(o.tipo_oferta)}</span>` : ""}
           </div>
           <div class="oferta-nombre">${esc(o.producto)}</div>
           ${o.descripcion_larga ? `<div class="oferta-desc" onclick="this.classList.toggle('expanded')" title="Tocar para ver más">${esc(o.descripcion_larga)}</div>` : ''}
