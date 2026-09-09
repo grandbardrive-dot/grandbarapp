@@ -4238,7 +4238,7 @@ body { background:transparent !important; }
     // Widgets de subsección (propuestas / ofertas) según el mapa WIDGET_SUBSEC.
     // (campari no carga acá: cargarProgresos/cargarAcuerdosCampari ya corren en init)
     seccionesHoja(checklist).forEach(sec => {
-      const w = WIDGET_SUBSEC[sec.id];
+      const w = widgetDe(sec);
       if (!w) return;
       if (w.tipo === 'propuestas') cargarPropuestasIncorp(sec.id, w.categoria, w.cartLabel);
       else if (w.tipo === 'ofertas') cargarOfertasWidget(w.dataKey, sec.id);
@@ -4787,9 +4787,36 @@ body { background:transparent !important; }
     'vt_gondola_spirits':   { tipo: 'ofertas', dataKey: 'sp_rotacion' },
     'vt_heladera':          { tipo: 'ofertas', dataKey: 'vt_heladera' },
   };
+
+  // Qué widget le toca a una subsección.
+  //
+  // El mapa de arriba está atado a CÓDIGOS, y los códigos solo existen en los
+  // manuales que se armaron primero. Por eso bar y autoservicio tenían sus
+  // secciones "Acciones de Rotación" adentro de VINOS y SPIRITS y no mostraban
+  // ninguna oferta: nadie había agregado sus códigos a la lista.
+  //
+  // Así que si una subsección no está en el mapa pero se llama "Acciones de
+  // Rotación" (o "Acciones Mensuales") y cuelga de una sección de rubro —VINOS,
+  // SPIRITS, GÓNDOLA DE VINOS, RTD y FRÍOS…— lleva el widget de ofertas sola.
+  // Con eso queda parejo en todos los manuales, y una sección nueva que cree
+  // Luciana funciona sin tocar código.
+  const _ES_SLOT_OFERTAS = /ACCIONES?\s+(DE\s+)?(ROTACI|MENSUAL)/i;
+  function widgetDe(sec) {
+    if (!sec) return null;
+    const explicito = WIDGET_SUBSEC[sec.id];
+    if (explicito) return explicito;
+    const nombre = String(sec.titulo || sec.nombre || '');
+    if (!_ES_SLOT_OFERTAS.test(nombre)) return null;
+    const cat = _categoriaDeSeccion(sec.id);
+    // Sin rubro reconocible (o café, que el catálogo no tiene) no se pone nada:
+    // mejor vacío que mostrarle todo mezclado.
+    if (!cat || cat === 'cafe') return null;
+    return { tipo: 'ofertas', dataKey: sec.id };
+  }
+
   // HTML del slot de widget para una subsección (se llena async después)
   function widgetSlotHtml(sec) {
-    const w = WIDGET_SUBSEC[sec.id];
+    const w = widgetDe(sec);
     if (!w) return '';
     if (w.tipo === 'propuestas')        return `<div class="prop-wrap" id="propuestas-incorp-${sec.id}"><div class="prop-loading">Cargando propuestas…</div></div>`;
     if (w.tipo === 'ofertas')           return `<div class="ofertas-wrap" id="ofertas-bodegas-${sec.id}"><div class="prop-loading">Cargando ofertas…</div></div>`;
