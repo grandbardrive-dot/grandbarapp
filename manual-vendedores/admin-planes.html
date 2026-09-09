@@ -82,10 +82,12 @@
     try{
       const [{data:planes},{data:secs}] = await Promise.all([
         sb.from('checklist_planes').select('*').order('created_at',{ascending:false}),
-        sb.from('checklist_secciones').select('id,nombre,canal')
+        sb.from('checklist_secciones').select('id,nombre,canal,zona')
       ]);
       PLANES = planes||[];
-      SECMAP = {}; (secs||[]).forEach(s=>SECMAP[s.id]={nombre:s.nombre,canal:s.canal});
+      // Se guarda la zona: el mismo nombre de sección existe en Mendoza y en San Luis,
+      // así que sin eso no se sabe a cuál apunta el plan.
+      SECMAP = {}; (secs||[]).forEach(s=>SECMAP[s.id]={nombre:s.nombre,canal:s.canal,zona:s.zona});
     }catch(e){ document.getElementById('cards').innerHTML=`<div class="empty">No se pudieron cargar los planes.<br>${esc(e.message||e)}</div>`; return; }
     render();
   }
@@ -99,7 +101,9 @@
     }
     cont.innerHTML = PLANES.map(p=>{
       const secIds = (Array.isArray(p.secciones)&&p.secciones.length) ? p.secciones : (p.seccion_id?[p.seccion_id]:[]);
-      const secNombres = secIds.map(id=>SECMAP[id]?.nombre).filter(Boolean);
+      const ZL={mendoza:'Mendoza',sanluis:'San Luis'};
+      const secNombres = secIds.map(id=>{ const s=SECMAP[id]; if(!s) return null;
+        return s.nombre + (s.zona && s.zona!=='mendoza' ? ' (' + (ZL[s.zona]||s.zona) + ')' : ''); }).filter(Boolean);
       const secTxt = secNombres.length ? secNombres.map(esc).join(', ') : '<i>sección no encontrada</i>';
       const tags = (Array.isArray(p.lineas_participantes)?p.lineas_participantes:[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
       const activo = p.activo !== false;
