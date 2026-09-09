@@ -38,6 +38,21 @@
   .secitem:hover{background:#F4F1EA}
   .secitem input{width:17px;height:17px;accent-color:var(--azul);flex:none;cursor:pointer}
   .sec-cod{font-size:11px;font-weight:700;color:var(--ink3);background:#F0EDE6;border-radius:5px;padding:1px 6px;margin-left:2px;letter-spacing:.02em}
+  .madre{border:1px solid var(--line);border-radius:11px;margin:6px 4px;background:#fff;overflow:hidden}
+  .madre.abierta{border-color:var(--line-2)}
+  .madre-h{display:flex;align-items:center;gap:10px;width:100%;padding:10px 11px;background:none;border:0;
+    font-family:inherit;text-align:left;cursor:pointer}
+  .madre-h:hover{background:#F7F4EE}
+  .madre-h.sola{cursor:pointer}
+  .madre-h.sola input{width:17px;height:17px;accent-color:var(--azul);flex:none;cursor:pointer}
+  .madre-ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:15px;flex:none}
+  .madre-n{flex:1;font-size:13.5px;font-weight:800;color:var(--ink);letter-spacing:.01em;line-height:1.25}
+  .madre-n small{display:block;font-size:11.5px;font-weight:500;color:var(--ink3);letter-spacing:0;margin-top:1px}
+  .madre-c{font-size:11.5px;font-weight:800;color:var(--ink3);background:#F0EDE6;border-radius:20px;padding:2px 9px;flex:none}
+  .madre-c.con{background:var(--azul);color:#fff}
+  .madre-fl{font-size:11px;color:var(--ink3);flex:none;transition:transform .15s}
+  .madre.abierta .madre-fl{transform:rotate(180deg)}
+  .madre-b{padding:2px 8px 8px 46px;border-top:1px solid var(--line)}
   .zonabar{display:flex;gap:6px;margin-bottom:8px}
   .zb{font-family:inherit;font-size:13px;font-weight:700;color:var(--ink2);background:#fff;
     border:1.5px solid var(--line-2);border-radius:9px;padding:7px 15px;cursor:pointer;transition:all .12s}
@@ -140,13 +155,14 @@
   const editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
   let planPdfActual = null;   // pdf_url existente (para conservarlo si no suben otro)
 
-  // Cargar las secciones como casillas (multi-selección), agrupadas por canal.
-  // Mendoza y San Luis tienen cada una sus secciones, con los mismos nombres, así
-  // que la lista se filtra por zona. OJO: los grupos de la otra zona se ESCONDEN,
-  // no se borran. Si se borraran del HTML, al guardar se perderían las secciones ya
-  // marcadas de la otra zona sin que nadie se entere.
-  // Además, adentro de una misma zona hay nombres repetidos de verdad (secciones
-  // distintas con el mismo nombre): a esas se les muestra el código al lado.
+  // Las secciones del manual tienen dos niveles: una sección madre (VINOS, SPIRITS,
+  // RTD y FRIOS…) y adentro sus subsecciones (Acciones de Incorporación, de Rotación,
+  // de Volumen…). Por eso "Acciones de Rotación" aparece varias veces: no está
+  // repetida, es la de VINOS, la de SPIRITS y la de RTD, que son distintas.
+  //
+  // Antes la lista las mostraba todas planas y no había forma de saber a cuál de las
+  // tres se estaba apuntando. Ahora se elige igual que en la visita del vendedor:
+  // zona → canal → sección madre → subsección.
   const ZONA_LBL = { mendoza: 'Mendoza', sanluis: 'San Luis' };
   let ZONA_VISTA = 'mendoza';
 
@@ -154,36 +170,61 @@
     const box = document.getElementById('f-secbox');
     try{
       const { data } = await sb.from('checklist_secciones')
-        .select('id,codigo,nombre,canal,zona,activa').eq('activa',true)
-        .order('canal').order('zona').order('nombre');
+        .select('id,codigo,nombre,descripcion,canal,zona,parent_id,orden,icono,icono_bg,icono_color,activa')
+        .eq('activa',true).order('orden');
       const secs = data || [];
       if(!secs.length){ box.innerHTML = '<div class="secbox-load">No hay secciones cargadas</div>'; return; }
 
+      const esc = t => String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+      const porOrden = (a,b) => (a.orden||0) - (b.orden||0);
+
+      // canal + zona → madres, y cada madre con sus hijas
       const grupos = {};
-      secs.forEach(s=>{
-        const k = (s.zona||'mendoza') + '|' + (s.canal||'otros');
-        (grupos[k] = grupos[k] || []).push(s);
+      secs.filter(s=>!s.parent_id).sort(porOrden).forEach(m=>{
+        const k = (m.zona||'mendoza') + '|' + (m.canal||'otros');
+        (grupos[k] = grupos[k] || []).push(m);
       });
 
       let html = '';
       Object.keys(grupos).sort().forEach(k=>{
         const [zona, canal] = k.split('|');
-        const lista = grupos[k];
-        const veces = {};
-        lista.forEach(s=> veces[s.nombre] = (veces[s.nombre]||0) + 1);
         html += `<div class="secgrupo" data-zona="${zona}">`;
-        html += `<div class="grp">${canal.toUpperCase()} · ${ZONA_LBL[zona] || zona}</div>`;
-        lista.forEach(s=>{
-          const nom = (s.nombre||'').replace(/</g,'&lt;');
-          const aclara = veces[s.nombre] > 1
-            ? ` <span class="sec-cod">${(s.codigo||'').replace(/</g,'&lt;')}</span>` : '';
-          html += `<label class="secitem"><input type="checkbox" value="${s.id}" data-zona="${zona}" onchange="actualizarContadorSec()">${nom}${aclara}</label>`;
+        html += `<div class="grp">${esc(canal.toUpperCase())} · ${ZONA_LBL[zona] || zona}</div>`;
+        grupos[k].forEach(m=>{
+          const hijas = secs.filter(s=>s.parent_id===m.id).sort(porOrden);
+          const ico = `<span class="madre-ico" style="background:${esc(m.icono_bg||'#EAF2FB')};color:${esc(m.icono_color||'#1F447F')}">${esc(m.icono||'📋')}</span>`;
+          const nom = `<span class="madre-n">${esc(m.nombre)}${m.descripcion?`<small>${esc(m.descripcion)}</small>`:''}</span>`;
+          if(!hijas.length){
+            // Sección sin subsecciones: se elige la sección entera.
+            html += `<div class="madre"><label class="madre-h sola">
+                <input type="checkbox" value="${m.id}" data-zona="${zona}" onchange="actualizarContadorSec()">
+                ${ico}${nom}</label></div>`;
+            return;
+          }
+          html += `<div class="madre" data-madre="${m.id}">
+              <button type="button" class="madre-h" onclick="abrirMadre(this)">
+                ${ico}${nom}
+                <span class="madre-c" data-cuenta="${m.id}">0/${hijas.length}</span>
+                <span class="madre-fl">▾</span>
+              </button>
+              <div class="madre-b" hidden>` +
+            hijas.map(s=>`<label class="secitem">
+                <input type="checkbox" value="${s.id}" data-zona="${zona}" data-madre="${m.id}" onchange="actualizarContadorSec()">
+                ${esc(s.nombre)}</label>`).join('') +
+            `</div></div>`;
         });
         html += `</div>`;
       });
       box.innerHTML = html;
       elegirZona(ZONA_VISTA);
     }catch(e){ box.innerHTML = '<div class="secbox-load">Error al cargar secciones</div>'; }
+  }
+
+  function abrirMadre(btn){
+    const caja = btn.parentElement;
+    const cuerpo = caja.querySelector('.madre-b');
+    cuerpo.hidden = !cuerpo.hidden;
+    caja.classList.toggle('abierta', !cuerpo.hidden);
   }
 
   function elegirZona(z){
@@ -197,12 +238,22 @@
     document.getElementById('f-secbox').scrollTop = 0;
     actualizarContadorSec();
   }
+
   function seccionesElegidas(){ return [...document.querySelectorAll('#f-secbox input[type=checkbox]:checked')].map(c=>c.value); }
+
   function actualizarContadorSec(){
+    // El contadorcito de cada sección madre (0/3), para ver de un vistazo dónde hay algo elegido.
+    document.querySelectorAll('#f-secbox .madre[data-madre]').forEach(caja=>{
+      const hijas = caja.querySelectorAll('.madre-b input[type=checkbox]');
+      const listas = caja.querySelectorAll('.madre-b input[type=checkbox]:checked').length;
+      const chip = caja.querySelector('.madre-c');
+      if (chip) { chip.textContent = listas + '/' + hijas.length; chip.classList.toggle('con', listas > 0); }
+    });
+
     const marcadas = [...document.querySelectorAll('#f-secbox input[type=checkbox]:checked')];
     const n = marcadas.length;
-    // Lo que está marcado en la zona que no se está mirando hay que decirlo: si no,
-    // parece que el plan tiene menos secciones de las que en realidad va a guardar.
+    // Lo marcado en la zona que no se está mirando hay que decirlo: si no, parece que
+    // el plan tiene menos secciones de las que en realidad va a guardar.
     const escondidas = ZONA_VISTA === 'todas' ? 0
       : marcadas.filter(c => c.dataset.zona !== ZONA_VISTA).length;
     const otra = ZONA_VISTA === 'mendoza' ? 'San Luis' : 'Mendoza';
@@ -225,6 +276,11 @@
         .map(c => c.dataset.zona))];
       if (zonasDelPlan.length === 1) elegirZona(zonasDelPlan[0]);
       else if (zonasDelPlan.length > 1) elegirZona('todas');
+      // Abrir las secciones madre que tengan algo marcado adentro.
+      document.querySelectorAll('#f-secbox .madre-b input[type=checkbox]:checked').forEach(c=>{
+        const caja = c.closest('.madre'); if(!caja) return;
+        caja.querySelector('.madre-b').hidden = false; caja.classList.add('abierta');
+      });
       actualizarContadorSec();
       document.getElementById('f-proveedor').value = p.proveedor || '';
       document.getElementById('f-duracion').value  = p.condicion || '';
