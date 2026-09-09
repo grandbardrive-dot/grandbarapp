@@ -5086,20 +5086,9 @@ body { background:transparent !important; }
     return OFF.includes(t) ? 'off' : 'on';
   }
 
-  // La categoría sale del PROVEEDOR (vinos / spirits / cervezas), que es como está
-  // armado el catálogo. Cada widget de la visita pide la suya.
-  //   · Las góndolas piden su categoría.
-  //   · "Acciones Mensuales" no está en la lista a propósito: es la sección general,
-  //     así que muestra TODO lo del canal del cliente, sin filtrar por categoría.
-  //   · Café pide 'cafe', que el catálogo no tiene: queda vacío en vez de mostrarle
-  //     cervezas a alguien que está hablando de café.
-  const CAT_CATEGORIA_DE_WIDGET = {
-    rotacion:'vinos',
-    sp_rotacion:'spirits', sp_mensuales:'spirits', sp_aperitivos:'spirits',
-    vt_heladera:'cervezas',
-    cafe_acciones:'cafe',
-  };
 
+  // Se lee el catálogo entero una vez por visita y se arma el formato que espera
+  // el widget. Sin filtro de fechas a propósito: vale lo que esté activo ahora.
   async function _getOfertasCatalogo() {
     if (_catCache) return _catCache;
     try {
@@ -5121,10 +5110,10 @@ body { background:transparent !important; }
           // debajo del nombre, donde se leen.
           tipo_oferta: _mecCorta(a) ? _mecTexto(a) : '',
           descripcion_larga: [_mecCorta(a) ? '' : _mecTexto(a), a.info_adicional || ''].filter(Boolean).join(' — '),
+          // Muchas acciones no tienen precio: lo define la mecánica. No se inventa.
           precio_accionado: a.precio_accionado || 0,
           precio_regular: a.precio_regular || 0,
           foto_url: a.imagen_url || '',
-          info: a.info_adicional || '',
           orden: a.orden || 0,
         };
       }).filter(o => o.producto);
@@ -5132,11 +5121,29 @@ body { background:transparent !important; }
     return _catCache;
   }
 
-  // Las ofertas que le tocan a ESTE cliente en ESTA subsección.
-  async function cargarOfertas(subKey) {
+  // De qué categoría del catálogo es esta subsección. Se mira la SECCIÓN MADRE
+  // (VINOS, SPIRITS, RTD y FRIOS), no el código de la subsección: los códigos
+  // quedaron de otra época y ya no dicen lo que la sección es hoy. Por ejemplo,
+  // "VINOS > Acciones de Rotación" tiene código vt_acciones_mensuales y
+  // "VINOS > Acciones de Volumen" tiene vt_gondola_vinos. Guiarse por el código
+  // metía spirits y cervezas adentro de VINOS.
+  function _categoriaDeSeccion(secId) {
+    const madre = madreDe(secId) || buscarSec(secId) || {};
+    const n = String(madre.nombre || '').toUpperCase();
+    if (n.includes('VINO'))                                  return 'vinos';
+    if (n.includes('SPIRIT') || n.includes('APERITIV'))      return 'spirits';
+    if (n.includes('RTD') || n.includes('FRIO') || n.includes('FRÍO')
+        || n.includes('HELADERA') || n.includes('CERVEZA'))  return 'cervezas';
+    if (n.includes('CAFÉ') || n.includes('CAFE'))            return 'cafe';
+    // Secciones generales (Acciones Mensuales y similares): todo lo del canal.
+    return null;
+  }
+
+  // Las ofertas que le tocan a ESTE cliente en ESTA sección.
+  async function cargarOfertas(subKey, secId) {
     const cat = await _getOfertasCatalogo();
     const canal = _canalCatalogo();
-    const quiere = CAT_CATEGORIA_DE_WIDGET[subKey];
+    const quiere = _categoriaDeSeccion(secId);
     return cat.filter(o =>
       (o.canal === canal || o.canal === 'ambos') &&
       (!quiere || o.categoria === quiere)
@@ -5158,7 +5165,7 @@ body { background:transparent !important; }
     const reales = (await _campaniasSeccion(secId)).map(_campaniaAOferta);
     reales.forEach(o => marcarOfrecido(o.producto, OFERTAS_SUB_LABEL[subKey] || subKey));
 
-    const ofertas = await cargarOfertas(subKey);
+    const ofertas = await cargarOfertas(subKey, secId);
     _ofertasData[subKey] = ofertas;
     ofertas.forEach(o => marcarOfrecido(o.producto, OFERTAS_SUB_LABEL[subKey] || subKey)); // Mejora 3
     if (!ofertas.length) { el.innerHTML = ''; return; }
