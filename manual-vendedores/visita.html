@@ -5128,15 +5128,22 @@ body { background:transparent !important; }
   // "VINOS > Acciones de Volumen" tiene vt_gondola_vinos. Guiarse por el código
   // metía spirits y cervezas adentro de VINOS.
   function _categoriaDeSeccion(secId) {
-    const madre = madreDe(secId) || buscarSec(secId) || {};
-    const n = String(madre.nombre || '').toUpperCase();
-    if (n.includes('VINO'))                                  return 'vinos';
-    if (n.includes('SPIRIT') || n.includes('APERITIV'))      return 'spirits';
-    if (n.includes('RTD') || n.includes('FRIO') || n.includes('FRÍO')
-        || n.includes('HELADERA') || n.includes('CERVEZA'))  return 'cervezas';
-    if (n.includes('CAFÉ') || n.includes('CAFE'))            return 'cafe';
-    // Secciones generales (Acciones Mensuales y similares): todo lo del canal.
-    return null;
+    // Ojo: los nodos del checklist guardan el nombre en 'titulo' (ver _checklist-data.js),
+    // no en 'nombre'. Leer el campo equivocado hacía que no reconociera nada y mostrara
+    // todas las categorías juntas.
+    const nom = s => String((s && (s.titulo || s.nombre || s.label)) || '').toUpperCase();
+    const cat = n => {
+      if (n.includes('VINO'))                             return 'vinos';
+      if (n.includes('SPIRIT') || n.includes('APERITIV')) return 'spirits';
+      if (n.includes('RTD') || n.includes('FRIO') || n.includes('FRÍO')
+          || n.includes('HELADERA') || n.includes('CERVEZA')) return 'cervezas';
+      if (n.includes('CAFÉ') || n.includes('CAFE'))       return 'cafe';
+      return null;
+    };
+    // Primero la subsección (por si ella misma dice el rubro, como "SOBRE LA MESA > Vinos"),
+    // después la sección madre (VINOS, SPIRITS, RTD y FRIOS).
+    return cat(nom(buscarSec(secId))) || cat(nom(madreDe(secId)));
+    // Si ninguna dice nada, queda null: es una sección general y muestra todo el canal.
   }
 
   // Las ofertas que le tocan a ESTE cliente en ESTA sección.
