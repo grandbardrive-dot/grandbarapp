@@ -4777,7 +4777,9 @@ body { background:transparent !important; }
     'cafe_acciones':        { tipo: 'ofertas', dataKey: 'cafe_acciones' },
     'cafe_preguntas':       { tipo: 'cafe_preguntas' },
     // ── VINOTECA: subsecciones de VINOS/SPIRITS unificadas a los moldes estándar ──
-    'vt_gondola_vinos':     { tipo: 'ofertas', dataKey: 'rotacion' },
+    // Ojo: el código 'vt_gondola_vinos' es hoy "VINOS > Acciones de Volumen y
+    // Exhibidores". Las ofertas van en Acciones de Rotación (vt_acciones_mensuales),
+    // así que esta no lleva widget: si no, la misma lista aparecía en las dos.
     'vt_incorporaciones':   { tipo: 'propuestas', categoria: 'vino' },
     'vt_acciones_mensuales':{ tipo: 'ofertas', dataKey: 'mensuales' },
     'vt_gondola_spirits':   { tipo: 'ofertas', dataKey: 'sp_rotacion' },
