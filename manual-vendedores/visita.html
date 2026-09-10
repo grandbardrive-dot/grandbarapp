@@ -2588,6 +2588,16 @@ body { background:transparent !important; }
     if (VISTA_CAMINO && checklist.secciones && checklist.secciones.length) activarCamino();
   }
 
+  // ¿Es la sección de Introducción/preparación? Ahí van el resumen de la visita
+  // anterior y las oportunidades automáticas. Antes sólo se reconocía 's0'
+  // (Restaurantes); ahora cualquier rubro cuyo código o título arranque con
+  // "introduc"/"prepar" (Bares: 'preparacion_de_la_visita', etc.).
+  function esIntro(sec) {
+    const id = String(sec.id || '').toLowerCase();
+    const tit = String(sec.titulo || '').trim().toLowerCase();
+    return id === 's0' || /^(introduc|prepar)/.test(id) || /^(introduc|prepar)/.test(tit);
+  }
+
   function renderSeccion(sec) {
     // Sección MADRE: contenedor de subsecciones (acordeón anidado).
     // Caso mixto: la madre puede tener ítems PROPIOS además de hijas.
@@ -2733,7 +2743,7 @@ body { background:transparent !important; }
     return `
       ${planesHtml}
       <div class="checks-zone">
-        ${sec.id === 's0' ? `<div id="minuta-anterior"></div><div id="oportunidades-intro"></div>` : ''}
+        ${esIntro(sec) ? `<div id="minuta-anterior"></div><div id="oportunidades-intro"></div>` : ''}
         ${calcHtml}
         ${especialHtml}
         ${sec.especial !== 'acciones_mensuales' ? `<div id="acm-${sec.id}"></div>` : ''}
