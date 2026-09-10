@@ -267,6 +267,14 @@
   .oferta-add:active { transform: scale(.9); }
   .oferta-add.added { background: #1B4332; }
   .oferta-card.added-card { border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
+  /* Cantidad en la tarjeta (botellas / cajas) — antes de agregar */
+  .oferta-qty { display: flex; align-items: center; gap: 5px; margin-top: 8px; padding-right: 34px; flex-wrap: wrap; }
+  .oferta-qty-units { display: inline-flex; background: var(--surface2); border: 1px solid rgba(45,106,79,.3); border-radius: 6px; padding: 2px; }
+  .oferta-qty-u { border: none; background: none; cursor: pointer; font-family: inherit; font-size: 9.5px; font-weight: 700;
+    color: var(--text2); padding: 3px 8px; border-radius: 4px; -webkit-tap-highlight-color: transparent; }
+  .oferta-qty-u.on { background: #2D6A4F; color: #fff; }
+  .oferta-qty-input { width: 46px; padding: 4px 5px; text-align: center; border: 1px solid rgba(45,106,79,.3);
+    border-radius: 6px; font-family: 'DM Mono',monospace; font-size: 12px; font-weight: 700; color: var(--azul); }
   /* Aperitivos: párrafo opcional + botón "Ver material" */
   .oferta-desc { font-size: 10.5px; color: var(--text2); line-height: 1.35; margin: 4px 0 6px; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .oferta-desc.expanded { -webkit-line-clamp: unset; }
@@ -4704,11 +4712,11 @@ body { background:transparent !important; }
 
   function cartFind(seccion, nombre) { return cartItems.find(c => c.seccion===seccion && c.nombre===nombre); }
 
-  function cartAdd(seccion, nombre, estado) {
+  function cartAdd(seccion, nombre, estado, cantidad, unidad) {
     estado = estado || 'Agregado';
     let it = cartFind(seccion, nombre);
-    if (it) { it.estado = estado; }
-    else { it = { id:'c'+Date.now()+Math.random().toString(36).slice(2,6), seccion, nombre, estado, unidad:'cajas', cantidad:1 }; cartItems.push(it); }
+    if (it) { it.estado = estado; if (cantidad != null) it.cantidad = cantidad; if (unidad) it.unidad = unidad; }
+    else { it = { id:'c'+Date.now()+Math.random().toString(36).slice(2,6), seccion, nombre, estado, unidad: unidad || 'cajas', cantidad: cantidad || 1 }; cartItems.push(it); }
     renderCartBar();
     return it;
   }
@@ -5276,7 +5284,10 @@ body { background:transparent !important; }
     const label = OFERTAS_SUB_LABEL[subKey] || subKey;
     document.getElementById('ofertas-modal-title').textContent = bodega;
     document.getElementById('ofertas-modal-body').innerHTML = ofertas.map(o => {
-      const added = !!cartFind(label, o.producto);
+      const it0 = cartFind(label, o.producto);
+      const added = !!it0;
+      const uSel = it0?.unidad || 'cajas';
+      const qSel = it0?.cantidad || 1;
       return `
         <div class="oferta-card ${added ? 'added-card' : ''}">
           <div class="oferta-foto-wrap">
@@ -5288,6 +5299,14 @@ body { background:transparent !important; }
           ${o.descripcion_larga ? `<div class="oferta-desc" onclick="this.classList.toggle('expanded')" title="Tocar para ver más">${esc(o.descripcion_larga)}</div>` : ''}
           ${o.material_foto_url ? `<button class="oferta-material" data-url="${esc(o.material_foto_url)}" data-titulo="${esc(o.producto)} — material" data-ctx="${esc(o.producto)}" onclick="abrirPlacaDesde(this)">🖼️ Ver material</button>` : ''}
           ${Number(o.precio_accionado) > 0 ? `<div class="oferta-precio">Precio final accionado<b>${fmtPesos(o.precio_accionado)}</b></div>` : ''}
+          <div class="oferta-qty">
+            <div class="oferta-qty-units">
+              <button type="button" class="oferta-qty-u ${uSel!=='botellas'?'on':''}" data-u="cajas" onclick="ofertaSetU(this)">Cajas</button>
+              <button type="button" class="oferta-qty-u ${uSel==='botellas'?'on':''}" data-u="botellas" onclick="ofertaSetU(this)">Botellas</button>
+            </div>
+            <input class="oferta-qty-input" type="number" min="1" inputmode="numeric" value="${qSel}"
+                   oninput="ofertaSyncCart(this.closest('.oferta-card'))">
+          </div>
           <button class="oferta-add ${added ? 'added' : ''}" data-seccion="${esc(label)}" data-nombre="${esc(o.producto)}"
             onclick="toggleOfertaCarrito(this)">${added ? '✓' : '+'}</button>
         </div>`;
@@ -5304,6 +5323,31 @@ body { background:transparent !important; }
   }
   function _ofertasEscHandler(e) { if (e.key === 'Escape') cerrarOfertasModal(); }
 
+  // Lee la cantidad/unidad elegidas en una tarjeta de oferta
+  function _ofertaQty(card) {
+    if (!card) return { unidad:'cajas', cantidad:1 };
+    const u = card.querySelector('.oferta-qty-u.on')?.dataset.u || 'cajas';
+    const n = Math.max(1, Math.floor(Number(card.querySelector('.oferta-qty-input')?.value) || 1));
+    return { unidad:u, cantidad:n };
+  }
+  // Cambiar botellas/cajas en la tarjeta (y sincronizar si ya está en el carrito)
+  function ofertaSetU(btn) {
+    const card = btn.closest('.oferta-card');
+    if (card) card.querySelectorAll('.oferta-qty-u').forEach(b => b.classList.toggle('on', b === btn));
+    ofertaSyncCart(card);
+  }
+  // Si el producto ya está en el carrito, refleja el cambio de cantidad/unidad
+  function ofertaSyncCart(card) {
+    if (!card) return;
+    const addBtn = card.querySelector('.oferta-add');
+    if (!addBtn) return;
+    const it = cartFind(addBtn.dataset.seccion, addBtn.dataset.nombre);
+    if (!it) return;
+    const { unidad, cantidad } = _ofertaQty(card);
+    it.unidad = unidad; it.cantidad = cantidad;
+    if (typeof updateCierreResumen === 'function') updateCierreResumen();
+  }
+
   // [+]/✓ de una oferta → carrito de acuerdos existente
   function toggleOfertaCarrito(btn) {
     const seccion = btn.dataset.seccion, nombre = btn.dataset.nombre;
@@ -5314,10 +5358,11 @@ body { background:transparent !important; }
       btn.classList.remove('added'); btn.textContent = '+';
       if (card) card.classList.remove('added-card');
     } else {
-      cartAdd(seccion, nombre, 'Oferta');
+      const { unidad, cantidad } = _ofertaQty(card);
+      cartAdd(seccion, nombre, 'Oferta', cantidad, unidad);
       btn.classList.add('added'); btn.textContent = '✓';
       if (card) card.classList.add('added-card');
-      showToast(`🛒 Agregada: ${nombre}`, 'success');
+      showToast(`🛒 Agregada: ${nombre} (${cantidad} ${unidad})`, 'success');
     }
   }
 
