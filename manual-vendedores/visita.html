@@ -275,6 +275,23 @@
   .oferta-qty-u.on { background: #2D6A4F; color: #fff; }
   .oferta-qty-input { width: 46px; padding: 4px 5px; text-align: center; border: 1px solid rgba(45,106,79,.3);
     border-radius: 6px; font-family: 'DM Mono',monospace; font-size: 12px; font-weight: 700; color: var(--azul); }
+  /* ── Mix Ideal (combos que carga Luci) ── */
+  .mix-list { display: flex; flex-direction: column; gap: 10px; }
+  .mix-empty { font-size: 12.5px; color: var(--text3); font-style: italic; padding: 6px 0; }
+  .mix-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid #7a5cff; border-radius: 12px; padding: 12px 14px; }
+  .mix-card.added { border-color: var(--green); border-left-color: var(--green); background: #F0FAF4; }
+  .mix-card-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .mix-card-nom { font-size: 14.5px; font-weight: 800; color: var(--azul); }
+  .mix-nivel { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #6a4fd0; background: #efeaff; border: 1px solid #dcd2ff; padding: 2px 8px; border-radius: 20px; }
+  .mix-items { list-style: none; margin: 9px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .mix-items li { font-size: 12.5px; color: var(--text); padding-left: 17px; position: relative; }
+  .mix-items li::before { content: '🍾'; position: absolute; left: 0; font-size: 10px; top: 1px; }
+  .mix-desc { font-size: 11.5px; color: var(--text3); margin-top: 8px; line-height: 1.4; }
+  .mix-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 11px; flex-wrap: wrap; }
+  .mix-precio { font-family: 'DM Mono',monospace; font-size: 16px; font-weight: 700; color: var(--azul); }
+  .mix-add { background: var(--green); color: #fff; border: none; border-radius: 20px; font-family: inherit;
+    font-size: 12px; font-weight: 700; padding: 8px 15px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .mix-add.added { background: #1B4332; }
   /* Aperitivos: párrafo opcional + botón "Ver material" */
   .oferta-desc { font-size: 10.5px; color: var(--text2); line-height: 1.35; margin: 4px 0 6px; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .oferta-desc.expanded { -webkit-line-clamp: unset; }
@@ -4269,6 +4286,7 @@ body { background:transparent !important; }
       if (!w) return;
       if (w.tipo === 'propuestas') cargarPropuestasIncorp(sec.id, w.categoria, w.cartLabel);
       else if (w.tipo === 'ofertas') cargarOfertasWidget(w.dataKey, sec.id);
+      else if (w.tipo === 'mix_ideal') cargarMixIdeal(sec.id);
       else if (w.tipo === 'calendario') renderCalendarioMes(sec.id, calRefMes, w.rubro);
       else if (w.tipo === 'materiales_pop') cargarMaterialesPOP(sec.id);
       else if (w.tipo === 'cafe_preguntas') cargarPropuestasIncorp('cafe_preguntas', 'cafe', 'Café');
@@ -4822,6 +4840,7 @@ body { background:transparent !important; }
     // "Aperitivos en Carta" no lleva ofertas: las de spirits van todas en
     // SPIRITS > Acciones de Rotación, para no repetir la misma lista.
     'sp_campari':           { tipo: 'campari' },
+    'oportunidades_en_carta':{ tipo: 'mix_ideal' },   // SPIRITS > Propuestas "Mix Ideal" (bar)
     // Fechas especiales (restaurante)
     'fe_materiales':        { tipo: 'materiales_pop' },   // Restaurantes: catálogo POP + pedido (igual que Vinotecas)
     'fe_fechas':            { tipo: 'calendario', rubro: 'restaurante' },
@@ -4858,6 +4877,8 @@ body { background:transparent !important; }
     const explicito = WIDGET_SUBSEC[sec.id];
     if (explicito) return explicito;
     const nombre = String(sec.titulo || sec.nombre || '');
+    // "Mix Ideal": combos de productos que carga Luciana — vale para cualquier rubro.
+    if (/mix\s*ideal/i.test(nombre)) return { tipo: 'mix_ideal' };
     if (!_ES_SLOT_OFERTAS.test(nombre)) return null;
     const cat = _categoriaDeSeccion(sec.id);
     // Sin rubro reconocible (o café, que el catálogo no tiene) no se pone nada:
@@ -4872,6 +4893,7 @@ body { background:transparent !important; }
     if (!w) return '';
     if (w.tipo === 'propuestas')        return `<div class="prop-wrap" id="propuestas-incorp-${sec.id}"><div class="prop-loading">Cargando propuestas…</div></div>`;
     if (w.tipo === 'ofertas')           return `<div class="ofertas-wrap" id="ofertas-bodegas-${sec.id}"><div class="prop-loading">Cargando ofertas…</div></div>`;
+    if (w.tipo === 'mix_ideal')         return `<div class="mix-wrap" id="mix-ideal-${sec.id}"><div class="prop-loading">Cargando mixes…</div></div>`;
     if (w.tipo === 'campari')           return renderEspCampari(sec);
     if (w.tipo === 'calendario')        return renderVtCalendario(sec);
     if (w.tipo === 'materiales_pop')    return renderVtMateriales(sec);   // ← catálogo POP + form de pedido (Vinotecas)
@@ -5273,6 +5295,57 @@ body { background:transparent !important; }
             <span>${esc(b)}</span><span class="bodega-count">${conteo[b]}</span>
           </button>`).join('')}
       </div>`;
+  }
+
+  // ── MIX IDEAL: combos de productos que carga Luciana (mixes_ideales) ──
+  async function cargarMixIdeal(secId) {
+    const el = document.getElementById(`mix-ideal-${secId}`);
+    if (!el) return;
+    let mixes = [];
+    try {
+      const { data } = await sb.from('mixes_ideales').select('*').eq('activo', true).order('orden');
+      mixes = data || [];
+    } catch (e) { el.innerHTML = ''; return; }
+    if (!mixes.length) {
+      el.innerHTML = `<div class="mix-empty">Todavía no hay mixes cargados para proponer.</div>`;
+      return;
+    }
+    const secLabel = (buscarSec(secId)?.titulo) || 'Mix Ideal';
+    el.innerHTML = `<div class="mix-list">` + mixes.map(m => {
+      const items = String(m.contenido || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      const nombreCart = 'Mix: ' + m.nombre;
+      const added = !!cartFind(secLabel, nombreCart);
+      return `
+        <div class="mix-card ${added ? 'added' : ''}" id="mix-card-${m.id}">
+          <div class="mix-card-head">
+            <div class="mix-card-nom">${esc(m.nombre)}</div>
+            ${m.nivel ? `<span class="mix-nivel">${esc(m.nivel)}</span>` : ''}
+          </div>
+          ${items.length ? `<ul class="mix-items">${items.map(it => `<li>${esc(it)}</li>`).join('')}</ul>` : ''}
+          ${m.descripcion ? `<div class="mix-desc">${esc(m.descripcion)}</div>` : ''}
+          <div class="mix-foot">
+            ${m.precio ? `<div class="mix-precio">$ ${Number(m.precio).toLocaleString('es-AR')}</div>` : '<span></span>'}
+            <button class="mix-add ${added ? 'added' : ''}" data-seccion="${esc(secLabel)}" data-nombre="${esc(nombreCart)}"
+              onclick="toggleMixCarrito(this)">${added ? '✓ Agregado' : '+ Agregar al carrito'}</button>
+          </div>
+        </div>`;
+    }).join('') + `</div>`;
+  }
+
+  function toggleMixCarrito(btn) {
+    const seccion = btn.dataset.seccion, nombre = btn.dataset.nombre;
+    const card = btn.closest('.mix-card');
+    const existe = cartFind(seccion, nombre);
+    if (existe) {
+      cartRemove(existe.id);
+      btn.classList.remove('added'); btn.textContent = '+ Agregar al carrito';
+      if (card) card.classList.remove('added');
+    } else {
+      cartAdd(seccion, nombre, 'Mix propuesto');
+      btn.classList.add('added'); btn.textContent = '✓ Agregado';
+      if (card) card.classList.add('added');
+      showToast(`🛒 Agregado: ${nombre}`, 'success');
+    }
   }
 
   // Abrir modal con las tarjetas de oferta de una bodega
