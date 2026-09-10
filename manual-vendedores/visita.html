@@ -1131,6 +1131,15 @@
   .cart-item-sec { color:#9a8636; }
   .cart-item-nombre { font-size:13px; font-weight:600; color:var(--text); margin-top:2px; }
   .cart-item-estado { font-size:10.5px; color:var(--text2); margin-top:2px; }
+  /* Cantidad por producto (botellas / cajas) */
+  .cart-qty { display:flex; align-items:center; gap:7px; margin-top:8px; flex-wrap:wrap; }
+  .cart-qty-lbl { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#2D6A4F; }
+  .cart-qty-units { display:inline-flex; background:#fff; border:1px solid rgba(45,106,79,.35); border-radius:7px; padding:2px; }
+  .cart-qty-u { border:none; background:none; cursor:pointer; font-family:inherit; font-size:11px; font-weight:700;
+    color:var(--text2); padding:4px 10px; border-radius:5px; }
+  .cart-qty-u.on { background:#2D6A4F; color:#fff; }
+  .cart-qty-input { width:56px; padding:5px 6px; text-align:center; border:1px solid rgba(45,106,79,.35);
+    border-radius:7px; font-family:'DM Mono',monospace; font-size:13px; font-weight:700; color:var(--azul); }
   .cart-item-rm { background:none; border:none; color:#C0341D; font-size:17px; cursor:pointer;
     flex-shrink:0; padding:0 4px; line-height:1; }
   .cart-drawer-foot { padding:14px 18px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid var(--border); }
@@ -2857,7 +2866,7 @@ body { background:transparent !important; }
     // Acuerdos del carrito de esa visita
     const carrito = Array.isArray(v.carrito) ? v.carrito : [];
     const acuerdosHtml = carrito.length
-      ? carrito.map(c => `<div class="minuta-li">${esc(c.nombre)}${c.estado?` · ${esc(c.estado)}`:''}</div>`).join('')
+      ? carrito.map(c => `<div class="minuta-li">${esc(c.nombre)}${c.cantidad?` · ${c.cantidad} ${esc(c.unidad||'cajas')}`:''}${c.estado?` · ${esc(c.estado)}`:''}</div>`).join('')
       : `<div class="minuta-empty">Sin acuerdos registrados.</div>`;
 
     // Materiales solicitados (guardados en progreso)
@@ -3295,7 +3304,7 @@ body { background:transparent !important; }
     const payloadConCrono = { ...basePayload, hora_fin: horaFin.toISOString() };
     if (horaInicio)              payloadConCrono.hora_inicio       = horaInicio.toISOString();
     if (duracionMinutos !== null) payloadConCrono.duracion_minutos = duracionMinutos;
-    payloadConCrono.carrito = cartItems.map(c => ({ seccion:c.seccion, nombre:c.nombre, estado:c.estado }));
+    payloadConCrono.carrito = cartItems.map(c => ({ seccion:c.seccion, nombre:c.nombre, estado:c.estado, cantidad:c.cantidad||null, unidad:c.unidad||null }));
     if (proximaAccion)    payloadConCrono.proxima_accion    = proximaAccion;
     if (fechaSeguimiento) payloadConCrono.fecha_seguimiento = fechaSeguimiento;
 
@@ -4699,7 +4708,7 @@ body { background:transparent !important; }
     estado = estado || 'Agregado';
     let it = cartFind(seccion, nombre);
     if (it) { it.estado = estado; }
-    else { it = { id:'c'+Date.now()+Math.random().toString(36).slice(2,6), seccion, nombre, estado }; cartItems.push(it); }
+    else { it = { id:'c'+Date.now()+Math.random().toString(36).slice(2,6), seccion, nombre, estado, unidad:'cajas', cantidad:1 }; cartItems.push(it); }
     renderCartBar();
     return it;
   }
@@ -4755,9 +4764,34 @@ body { background:transparent !important; }
           <div class="cart-item-sec">${esc(c.seccion)}</div>
           <div class="cart-item-nombre">${esc(c.nombre)}</div>
           <div class="cart-item-estado">${esc(c.estado)}</div>
+          <div class="cart-qty">
+            <span class="cart-qty-lbl">Cantidad</span>
+            <div class="cart-qty-units">
+              <button class="cart-qty-u ${c.unidad==='botellas'?'on':''}" onclick="cartSetUnidad('${c.id}','botellas')">Botellas</button>
+              <button class="cart-qty-u ${c.unidad!=='botellas'?'on':''}" onclick="cartSetUnidad('${c.id}','cajas')">Cajas</button>
+            </div>
+            <input class="cart-qty-input" type="number" min="1" inputmode="numeric" value="${c.cantidad||1}"
+                   oninput="cartSetCantidad('${c.id}',this.value)">
+          </div>
         </div>
         <button class="cart-item-rm" onclick="cartRemove('${c.id}')">✕</button>
       </div>`).join('');
+  }
+
+  // Cambiar unidad (botellas/cajas) de un ítem del carrito
+  function cartSetUnidad(id, u) {
+    const it = cartItems.find(c => c.id === id);
+    if (!it) return;
+    it.unidad = u;
+    renderCartDrawer();
+    if (typeof updateCierreResumen === 'function') updateCierreResumen();
+  }
+  // Cambiar cantidad de un ítem del carrito (sin re-render para no perder el foco del input)
+  function cartSetCantidad(id, val) {
+    const it = cartItems.find(c => c.id === id);
+    if (!it) return;
+    it.cantidad = Math.max(1, Math.floor(Number(val) || 1));
+    if (typeof updateCierreResumen === 'function') updateCierreResumen();
   }
 
   function finalizarDesdeCarrito() {
@@ -6057,7 +6091,7 @@ body { background:transparent !important; }
     const el = document.getElementById('cierre-resumen-list');
     if (!el) return;
     el.innerHTML = cartItems.length
-      ? cartItems.map(c => `<div class="cierre-resumen-li">${esc(c.nombre)} — <b>${esc(c.estado)}</b></div>`).join('')
+      ? cartItems.map(c => `<div class="cierre-resumen-li">${esc(c.nombre)}${c.cantidad?` · <b>${c.cantidad} ${esc(c.unidad||'cajas')}</b>`:''} — <b>${esc(c.estado)}</b></div>`).join('')
       : `<div class="minuta-empty">Todavía no hay acuerdos en el carrito.</div>`;
   }
 
@@ -6091,7 +6125,7 @@ body { background:transparent !important; }
     const d = recolectarResumen();
     const bloque = (titulo, lineas) => lineas && lineas.length
       ? `<div class="minuta-block"><div class="minuta-label">${titulo}</div>${lineas.map(l=>`<div class="minuta-li">${esc(l)}</div>`).join('')}</div>` : '';
-    const acuerdos = d.acuerdos.map(a => `${a.nombre} — ${a.estado}`);
+    const acuerdos = d.acuerdos.map(a => `${a.nombre}${a.cantidad?` · ${a.cantidad} ${a.unidad||'cajas'}`:''} — ${a.estado}`);
     const prox = d.proximaAccion ? [`${d.proximaAccion}${d.fechaSeguimiento?` (${d.fechaSeguimiento})`:''}`] : [];
     const obs = d.observaciones ? [d.observaciones] : [];
     const html = bloque('Acuerdos tomados', acuerdos) + bloque('Materiales solicitados', d.materiales)
@@ -6187,7 +6221,7 @@ body { background:transparent !important; }
   }
 
   function recolectarResumen() {
-    const acuerdos = cartItems.map(c => ({ nombre:c.nombre, estado:c.estado, seccion:c.seccion }));
+    const acuerdos = cartItems.map(c => ({ nombre:c.nombre, estado:c.estado, seccion:c.seccion, cantidad:c.cantidad||null, unidad:c.unidad||null }));
     const materiales = [];
     document.querySelectorAll('.mat-items-list .mat-item').forEach(row => {
       const n = row.querySelector('.mat-item-nombre')?.value?.trim();
