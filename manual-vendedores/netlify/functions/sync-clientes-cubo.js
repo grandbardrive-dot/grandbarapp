@@ -56,6 +56,15 @@ const RUBROS = {
   'distribuidores y mayoristas': 'mayorista', 'mayorista': 'mayorista',
 };
 
+// Vendedores cuyos clientes la sincronización NO mueve de cartera, ni para
+// adentro ni para afuera. Carolina Carrada (003) y Carolina Heluani (039) son dos
+// personas con clientes propios, pero en CUBO casi toda la cartera figura bajo
+// el 039 (125 cuentas contra 5). Aplicar eso le vaciaba la cartera al 003, que
+// en el manual tiene 113 clientes. Hasta que CUBO lo refleje bien, se respeta el
+// manual. Se puede cambiar sin tocar código con SYNC_VENDEDORES_PROTEGIDOS.
+const PROTEGIDOS = String((process.env && process.env.SYNC_VENDEDORES_PROTEGIDOS) || '003,039')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
 const norm = s => String(s == null ? '' : s).trim().toLowerCase()
   .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
 const cod5 = c => { const s = String(c == null ? '' : c).trim(); return /^\d+$/.test(s) ? s.padStart(5, '0') : s; };
@@ -84,6 +93,8 @@ function calcular(cubo, manual, vendedores) {
   const nuevos = [], cambios = [];
   const sinMapear = {}, vendSinMatch = {}, cambiosRubro = {};
   const porCampo = { nombre: 0, tipo: 0, vendedor: 0, direccion: 0 };
+  const codDe = {}; vendedores.forEach(v => { codDe[v.id] = cod3(v.codigo); });
+  const pares = {}; let protegidos = 0, nuevosProtegidos = 0;
   const vistos = new Set();
 
   for (const o of cubo) {
@@ -105,6 +116,7 @@ function calcular(cubo, manual, vendedores) {
     if (!ex) {
       nuevos.push({ codigo_cliente: cod, nombre: nombre || cod, direccion: direccion ? String(direccion).trim() : null,
                     tipo: tipo || 'otros', vendedor_id: vid, activo: activoEnCubo(o), _rubro: rubro, _ven: ven });
+      if (PROTEGIDOS.includes(ven)) nuevosProtegidos++;   // nuevo que CUBO asigna a una cartera protegida
       continue;
     }
 
@@ -119,13 +131,21 @@ function calcular(cubo, manual, vendedores) {
       const k = (ex.tipo || '(vacío)') + ' → ' + tipo;
       cambiosRubro[k] = (cambiosRubro[k] || 0) + 1;
     }
-    if (vid && vid !== ex.vendedor_id) { fila.vendedor_id = vid; que.push('vendedor'); porCampo.vendedor++; }
+    if (vid && vid !== ex.vendedor_id) {
+      const de = codDe[ex.vendedor_id] || '', a = ven;
+      if (PROTEGIDOS.includes(de) || PROTEGIDOS.includes(a)) protegidos++;   // cartera protegida: no se mueve
+      else {
+        fila.vendedor_id = vid; que.push('vendedor'); porCampo.vendedor++;
+        const k = (de || 'sin vendedor') + ' → ' + a;
+        pares[k] = (pares[k] || 0) + 1;
+      }
+    }
     if (direccion && !ex.direccion) { fila.direccion = String(direccion).trim(); que.push('direccion'); porCampo.direccion++; }
     if (que.length) cambios.push({ fila, que, antes: ex, _ven: ven });
   }
 
   const noEnCubo = manual.filter(c => !vistos.has(cod5(c.codigo_cliente))).length;
-  return { nuevos, cambios, sinMapear, vendSinMatch, cambiosRubro, porCampo, noEnCubo, vistos: vistos.size };
+  return { nuevos, cambios, sinMapear, vendSinMatch, cambiosRubro, porCampo, noEnCubo, vistos: vistos.size, pares, protegidos, nuevosProtegidos };
 }
 
 // ── CUBO ────────────────────────────────────────────────────
@@ -213,6 +233,10 @@ exports.handler = async (event) => {
       cambios_de_rubro: r.cambiosRubro,
       rubros_de_cubo_sin_traducir: r.sinMapear,
       vendedores_de_cubo_que_no_estan_en_el_manual: r.vendSinMatch,
+      cambios_de_vendedor: r.pares,
+      vendedor_sin_mover_por_proteccion: r.protegidos,
+      vendedores_protegidos: PROTEGIDOS,
+      nuevos_en_carteras_protegidas: r.nuevosProtegidos,
       muestras: {
         nuevos: r.nuevos.slice(0, 12).map(n => ({ codigo: n.codigo_cliente, nombre: n.nombre, rubro: n.tipo, vendedor: nomVend[n.vendedor_id] || n._ven || '—' })),
         rubro: r.cambios.filter(c => c.que.includes('tipo')).slice(0, 15).map(c => ({ codigo: c.fila.codigo_cliente, nombre: c.fila.nombre, antes: c.antes.tipo, despues: c.fila.tipo })),

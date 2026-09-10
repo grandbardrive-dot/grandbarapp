@@ -93,8 +93,13 @@
       <h2 class="sc-h2">Clientes nuevos (muestra)</h2>
       ${tabla([['codigo','Código'],['nombre','Cliente'],['rubro','Rubro'],['vendedor','Vendedor']], d.muestras.nuevos)}
 
-      <h2 class="sc-h2">Cambios de vendedor (muestra)</h2>
-      <p class="sc-nota">Ojo con estos: mueven al cliente de una cartera a otra.</p>
+      <h2 class="sc-h2">Cambios de vendedor</h2>
+      <p class="sc-nota">Ojo con estos: mueven al cliente de una cartera a otra. Todos, agrupados por de quién a quién:</p>
+      ${chips(d.cambios_de_vendedor)}
+      ${(d.vendedores_protegidos || []).length ? `<p class="sc-nota">Carteras protegidas: <b>${esc(d.vendedores_protegidos.join(', '))}</b> —
+        ningún cliente que ya está en el manual se mueve de ni hacia ellas.${d.vendedor_sin_mover_por_proteccion ? ` <b>${n(d.vendedor_sin_mover_por_proteccion)}</b> se quedan donde están aunque CUBO diga otra cosa.` : ''}
+        ${d.nuevos_en_carteras_protegidas ? `<br>Ojo: <b>${n(d.nuevos_en_carteras_protegidas)}</b> de los clientes nuevos CUBO los asigna a una de estas carteras, y entran ahí.` : ''}</p>` : ''}
+      <p class="sc-nota">Muestra:</p>
       ${tabla([['codigo','Código'],['nombre','Cliente'],['antes','Hoy lo tiene'],['despues','Pasa a']], d.muestras.vendedor)}
 
       <h2 class="sc-h2">Vendedores de CUBO que no están en el manual</h2>
