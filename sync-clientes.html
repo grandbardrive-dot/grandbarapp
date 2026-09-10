@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<meta name="theme-color" content="#0d2238">
+<title>GrandBar — Clientes desde CUBO</title>
+<link rel="stylesheet" href="assets/panel-admin.css">
+<link rel="stylesheet" href="assets/cobranzas.css">
+<style>
+  .sc-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px}
+  .sc-big{font-size:26px;font-weight:800;margin-top:6px}
+  .sc-h2{font-size:16px;margin:28px 0 0}
+  .sc-nota{font-size:12.5px;color:var(--muted);margin:6px 0 0;line-height:1.5}
+  .sc-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .sc-chip{font-size:12px;font-weight:700;background:rgba(13,34,56,.07);border-radius:20px;padding:4px 11px}
+  .sc-chip b{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<b>Bar</b></div>
+    <div class="sb-sub">Distribuciones</div>
+    <div class="sb-rol">Sistema</div>
+    <div class="sb-spacer"></div>
+    <a class="sb-item" href="hub.html"><span class="i">←</span> Volver al Hub</a>
+    <div class="sb-pie">Trae de CUBO los clientes nuevos y corrige nombre, rubro y vendedor. No toca si están ocultos, ni el WhatsApp ni el logo.</div>
+  </aside>
+
+  <main class="main">
+    <div class="head"><div>
+      <h1>Clientes desde CUBO</h1>
+      <div class="head-sub">La lista de clientes del manual, al día con el sistema de gestión.</div>
+    </div></div>
+
+    <div class="aviso" style="margin-top:14px"><span>🛟</span><div>
+      Primero corré el <b>simulacro</b>: lee CUBO y el manual y te dice qué cambiaría, <b>sin tocar nada</b>.
+      Recién cuando lo revises, aplicás.</div></div>
+
+    <div class="sc-bar">
+      <button class="cb-b on" id="b-sim" onclick="correr('simulacro')">🔍 Correr simulacro</button>
+      <button class="cb-b danger" id="b-apl" onclick="correr('aplicar')" disabled>✍️ Aplicar los cambios</button>
+      <span id="sc-estado" class="sc-nota" style="margin:0"></span>
+    </div>
+
+    <div id="sc-out"></div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script>
+  const q = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const n = x => Number(x || 0).toLocaleString('es-AR');
+  let TOKEN = null, SIMULADO = false;
+
+  const tabla = (cols, filas) => !filas || !filas.length ? '<div class="pv-vacio">Nada.</div>' :
+    `<table class="cb-tabla"><thead><tr>${cols.map(c => `<th>${esc(c[1])}</th>`).join('')}</tr></thead>
+     <tbody>${filas.map(f => `<tr>${cols.map(c => `<td>${esc(f[c[0]])}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const chips = obj => { const e = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]);
+    return e.length ? `<div class="sc-chips">${e.map(([k, v]) => `<span class="sc-chip">${esc(k)} · <b>${n(v)}</b></span>`).join('')}</div>` : '<div class="pv-vacio">Ninguno.</div>'; };
+
+  function pintar(d) {
+    const pc = d.por_campo || {};
+    q('sc-out').innerHTML = `
+      ${d.escrito ? `<div class="aviso" style="margin-top:18px;border-color:var(--green)"><span>✅</span><div>
+        Listo: <b>${n(d.escrito.insertados)} clientes nuevos</b> y <b>${n(d.escrito.actualizados)} actualizados</b>.
+        ${(d.escrito.errores || []).length ? '<br>⚠️ ' + d.escrito.errores.map(esc).join('<br>⚠️ ') : ''}</div></div>` : ''}
+
+      <div class="cb-cards" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+        <div class="cb-card" style="cursor:default"><h3>En CUBO</h3><div class="sc-big">${n(d.cubo.clientes)}</div><p>clientes</p></div>
+        <div class="cb-card" style="cursor:default"><h3>En el manual</h3><div class="sc-big">${n(d.manual.clientes)}</div>
+          <p>${n(d.manual.que_cubo_no_tiene)} que CUBO no tiene (no se borran)</p></div>
+        <div class="cb-card" style="cursor:default;border-top-color:var(--green)"><h3>Nuevos</h3><div class="sc-big">${n(d.nuevos)}</div>
+          <p>${d.nuevos_dados_de_baja_en_cubo ? n(d.nuevos_dados_de_baja_en_cubo) + ' entran ocultos (baja en CUBO)' : 'se crean'}</p></div>
+        <div class="cb-card" style="cursor:default;border-top-color:var(--gold)"><h3>A corregir</h3><div class="sc-big">${n(d.a_actualizar)}</div>
+          <p>rubro ${n(pc.tipo)} · vendedor ${n(pc.vendedor)} · nombre ${n(pc.nombre)} · dirección ${n(pc.direccion)}</p></div>
+      </div>
+
+      <h2 class="sc-h2">Cambios de rubro</h2>
+      <p class="sc-nota">Así se reparte cómo pasa cada cliente de un rubro a otro.</p>
+      ${chips(d.cambios_de_rubro)}
+      ${tabla([['codigo','Código'],['nombre','Cliente'],['antes','Hoy'],['despues','Pasa a']], d.muestras.rubro)}
+
+      <h2 class="sc-h2">Rubros de CUBO que no se tocan</h2>
+      <p class="sc-nota">No tienen un manual equivalente, así que esos clientes se quedan con el rubro que ya tienen.</p>
+      ${chips(d.rubros_de_cubo_sin_traducir)}
+
+      <h2 class="sc-h2">Clientes nuevos (muestra)</h2>
+      ${tabla([['codigo','Código'],['nombre','Cliente'],['rubro','Rubro'],['vendedor','Vendedor']], d.muestras.nuevos)}
+
+      <h2 class="sc-h2">Cambios de vendedor (muestra)</h2>
+      <p class="sc-nota">Ojo con estos: mueven al cliente de una cartera a otra.</p>
+      ${tabla([['codigo','Código'],['nombre','Cliente'],['antes','Hoy lo tiene'],['despues','Pasa a']], d.muestras.vendedor)}
+
+      <h2 class="sc-h2">Vendedores de CUBO que no están en el manual</h2>
+      <p class="sc-nota">A esos clientes no se les cambia el vendedor, porque no hay a quién asignarlos.</p>
+      ${chips(d.vendedores_de_cubo_que_no_estan_en_el_manual)}
+
+      <h2 class="sc-h2">Cambios de nombre (muestra)</h2>
+      ${tabla([['codigo','Código'],['antes','Hoy'],['despues','Pasa a']], d.muestras.nombre)}
+
+      <p class="sc-nota" style="margin-top:26px">Columnas que manda CUBO: ${esc((d.cubo.columnas || []).join(', '))}.
+        Campo de baja: ${esc(d.cubo.campo_estado || 'no encontrado — los nuevos entran visibles')}. Tardó ${n(d.ms)} ms.</p>`;
+  }
+
+  async function correr(modo) {
+    if (modo === 'aplicar') {
+      if (!SIMULADO) { alert('Primero corré el simulacro.'); return; }
+      if (!confirm('¿Aplicar los cambios en la lista de clientes del manual?\n\nSe crean los nuevos y se corrigen nombre, rubro y vendedor. No se toca si están ocultos, ni el WhatsApp ni el logo, y no se borra a nadie.')) return;
+    }
+    q('b-sim').disabled = q('b-apl').disabled = true;
+    q('sc-estado').textContent = modo === 'aplicar' ? 'Aplicando…' : 'Leyendo CUBO y el manual… (tarda unos segundos)';
+    try {
+      const r = await fetch('/.netlify/functions/sync-clientes-cubo?modo=' + modo, { headers: { Authorization: 'Bearer ' + TOKEN } });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || ('Error ' + r.status));
+      pintar(d);
+      SIMULADO = true;
+      q('sc-estado').textContent = modo === 'aplicar' ? 'Aplicado.' : 'Simulacro listo: no se escribió nada.';
+    } catch (e) {
+      q('sc-out').innerHTML = `<div class="aviso" style="margin-top:18px"><span>⚠️</span><div>${esc(e.message)}</div></div>`;
+      q('sc-estado').textContent = '';
+    } finally {
+      q('b-sim').disabled = false;
+      q('b-apl').disabled = !SIMULADO;
+    }
+  }
+
+  (async function () {
+    const s = await GBAuth.requireAuth();
+    if (!s) return;
+    if (!['admin', 'desarrollo', 'diseno'].includes(String(s.role || '').toLowerCase())) {
+      q('sc-out').innerHTML = '<div class="aviso" style="margin-top:18px"><span>🔒</span><div>Esta pantalla es de Desarrollo y Diseño.</div></div>';
+      q('b-sim').disabled = true; return;
+    }
+    const ses = await GBAuth.client.auth.getSession();
+    TOKEN = ses.data.session ? ses.data.session.access_token : null;
+  })();
+</script>
+</body>
+</html>

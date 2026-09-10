@@ -128,6 +128,7 @@ const PANTALLAS = [
     items: [
       { n:'Panel de Josefina',  r:'panel-diseno.html',                         nota:'Panel de Diseño y Desarrollo (el de Josefina).' },
       { n:'Panel de Nahuel',    r:'panel-desarrollo.html',                     nota:'El mismo panel, con su nombre.' },
+      { n:'Clientes desde CUBO', r:'sync-clientes.html',                        nota:'Trae de CUBO los clientes nuevos y corrige nombre, rubro y vendedor. Con simulacro.' },
       { n:'Hub',                r:'hub.html',                                  nota:'La pantalla de herramientas según el rol.' },
       { n:'Ingreso',            r:'index.html',                                nota:'Login del Hub.' },
       { n:'Panel clásico',      r:'manual-vendedores/admin.html?tab=checklists',nota:'Visitas, compromisos y checklists en crudo.' },
