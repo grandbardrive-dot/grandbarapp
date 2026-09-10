@@ -100,6 +100,28 @@
       background: #2D6A4F; letter-spacing: .01em;
     }
 
+    /* ── Cantidad (botellas / cajas) — aparece al agregar ── */
+    .am-qty {
+      display: none; align-items: center; gap: 8px;
+      margin-top: 8px; padding: 8px 9px;
+      background: #F0FAF4; border: 1px solid rgba(45,106,79,.3);
+      border-radius: 9px; flex-wrap: wrap;
+    }
+    .am-qty-units { display: inline-flex; background: #fff; border: 1px solid rgba(45,106,79,.3); border-radius: 8px; padding: 2px; }
+    .am-qty-u {
+      border: none; background: none; cursor: pointer;
+      font-family: system-ui,sans-serif; font-size: 11px; font-weight: 700;
+      color: #5a5650; padding: 5px 11px; border-radius: 6px; transition: background .12s, color .12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .am-qty-u.on { background: #2D6A4F; color: #fff; }
+    .am-qty-input {
+      width: 62px; padding: 6px 8px; text-align: center;
+      border: 1px solid rgba(45,106,79,.35); border-radius: 8px;
+      font-family: 'DM Mono',monospace; font-size: 14px; font-weight: 700; color: #1F447F;
+    }
+    .am-qty-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #2D6A4F; }
+
     /* ── Resumen dinámico ── */
     .am-resumen-wrap {
       margin-top: 16px;
@@ -334,19 +356,46 @@ function amToggle(id, accionJson) {
   const btn    = document.getElementById(`am-btn-${id}`);
   if (!card || !btn) return;
 
+  const qty = document.getElementById(`am-qty-${id}`);
   if (_amSeleccionadas.has(id)) {
     // Deseleccionar
     _amSeleccionadas.delete(id);
     card.classList.remove('am-seleccionada');
     btn.textContent = '+ Agregar';
     btn.classList.remove('agregada');
+    if (qty) qty.style.display = 'none';
   } else {
-    // Seleccionar
+    // Seleccionar — arranca con 1 caja por defecto (el vendedor lo ajusta)
+    accion.unidad   = accion.unidad   || 'cajas';
+    accion.cantidad = accion.cantidad || 1;
     _amSeleccionadas.set(id, accion);
     card.classList.add('am-seleccionada');
     btn.innerHTML = '✓ Agregada';
     btn.classList.add('agregada');
+    if (qty) qty.style.display = 'flex';
   }
+  _amActualizarResumen();
+}
+
+// Cantidad seleccionada de una acción (para pintar la tarjeta ya seleccionada al re-render)
+function _selUnidad(id)   { const a = _amSeleccionadas.get(id); return (a && a.unidad) || 'cajas'; }
+function _selCantidad(id) { const a = _amSeleccionadas.get(id); return (a && a.cantidad) || 1; }
+
+// Cambiar unidad (botellas / cajas) de una acción ya agregada
+function amSetUnidad(id, u) {
+  const a = _amSeleccionadas.get(id);
+  if (!a) return;
+  a.unidad = u;
+  const cont = document.getElementById(`am-qty-${id}`);
+  if (cont) cont.querySelectorAll('.am-qty-u').forEach(b => b.classList.toggle('on', b.dataset.u === u));
+  _amActualizarResumen();
+}
+
+// Cambiar cantidad de una acción ya agregada
+function amSetCantidad(id, val) {
+  const a = _amSeleccionadas.get(id);
+  if (!a) return;
+  a.cantidad = Math.max(1, Math.floor(Number(val) || 1));
   _amActualizarResumen();
 }
 
@@ -373,7 +422,7 @@ function _amActualizarResumen() {
       <span class="am-resumen-item-icon">${a.categoria === 'vinos' ? '🍷' : '🥃'}</span>
       <div class="am-resumen-item-info">
         <div class="am-resumen-item-nombre">${_amEsc(a.producto)}</div>
-        <div class="am-resumen-item-cond">${_amEsc(a.accion)}${a.precio_accionado ? ' · $' + Number(a.precio_accionado).toLocaleString('es-AR') : ''}</div>
+        <div class="am-resumen-item-cond">${_amEsc(a.accion)}${a.cantidad ? ' · <b>' + a.cantidad + ' ' + (a.unidad || 'cajas') + '</b>' : ''}${a.precio_accionado ? ' · $' + Number(a.precio_accionado).toLocaleString('es-AR') : ''}</div>
       </div>
     </div>`).join('');
 }
@@ -427,6 +476,17 @@ function renderAccionCard(a, opts = {}) {
           <span class="am-precio-val">${precio}</span>
         </div>` : ''}
         ${btnHtml}
+        ${seleccionable ? `
+        <div class="am-qty" id="am-qty-${_amEsc(a.id)}" style="display:${yaAgregada ? 'flex' : 'none'}">
+          <span class="am-qty-label">Cantidad</span>
+          <div class="am-qty-units">
+            <button type="button" class="am-qty-u${_selUnidad(a.id) === 'botellas' ? ' on' : ''}" data-u="botellas" onclick="amSetUnidad('${_amEsc(a.id)}','botellas')">Botellas</button>
+            <button type="button" class="am-qty-u${_selUnidad(a.id) !== 'botellas' ? ' on' : ''}" data-u="cajas" onclick="amSetUnidad('${_amEsc(a.id)}','cajas')">Cajas</button>
+          </div>
+          <input class="am-qty-input" type="number" min="1" inputmode="numeric"
+                 value="${_selCantidad(a.id)}"
+                 oninput="amSetCantidad('${_amEsc(a.id)}',this.value)">
+        </div>` : ''}
         ${_amEntregaHtml(a)}
       </div>
     </div>`;
@@ -598,6 +658,7 @@ function amAbrirModal() {
           <div class="am-modal-item-info">
             <div class="am-modal-item-nombre">${_amEsc(a.producto)}</div>
             <span class="am-modal-item-accion">${_amEsc(a.accion)}</span>
+            ${a.cantidad ? `<div class="am-modal-item-precio" style="color:#2D6A4F">📦 ${a.cantidad} ${_amEsc(a.unidad || 'cajas')}</div>` : ''}
             ${a.precio_accionado ? `<div class="am-modal-item-precio">$ ${Number(a.precio_accionado).toLocaleString('es-AR')}</div>` : ''}
           </div>
           <button class="am-modal-item-rm" onclick="amQuitarDelModal('${_amEsc(a.id)}')" title="Quitar">✕</button>
@@ -658,7 +719,7 @@ function amCompartirWA() {
   const tel     = _amClienteCtx?.telefono || '5492612123696';
 
   const lineas  = items.map((a, i) =>
-    `${i+1}. *${a.producto}* — ${a.accion}${a.precio_accionado ? ' ($' + Number(a.precio_accionado).toLocaleString('es-AR') + ')' : ''}`
+    `${i+1}. *${a.producto}* — ${a.accion}${a.cantidad ? ' · ' + a.cantidad + ' ' + (a.unidad || 'cajas') : ''}${a.precio_accionado ? ' ($' + Number(a.precio_accionado).toLocaleString('es-AR') + ')' : ''}`
   ).join('\n');
 
   const msg = `Hola! Te comparto las acciones del mes ${cliente}:\n\n${lineas}\n\n_GrandBar Distribuciones_`;
