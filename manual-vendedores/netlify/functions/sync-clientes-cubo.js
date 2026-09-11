@@ -222,6 +222,7 @@ exports.handler = async (event) => {
     ]);
     const r = calcular(cubo, manual, vendedores);
     const nomVend = {}; vendedores.forEach(v => { nomVend[v.id] = cod3(v.codigo) + ' ' + v.nombre; });
+    const codVend = {}; vendedores.forEach(v => { codVend[v.id] = cod3(v.codigo); });
 
     const informe = {
       modo,
@@ -239,6 +240,14 @@ exports.handler = async (event) => {
       vendedor_sin_mover_por_proteccion: r.protegidos,
       vendedores_protegidos: PROTEGIDOS,
       nuevos_en_carteras_protegidas: r.nuevosProtegidos,
+      // La lista COMPLETA de los que cambian de vendedor, para poder revisar un
+      // traspaso cliente por cliente antes de aplicar. "par" es la misma clave
+      // que usan los grupos (cambios_de_vendedor), así la pantalla puede filtrar.
+      vendedor_detalle: r.cambios.filter(c => c.que.includes('vendedor')).map(c => ({
+        codigo: c.fila.codigo_cliente, nombre: c.fila.nombre, tipo: c.fila.tipo,
+        de: nomVend[c.antes.vendedor_id] || '—', a: nomVend[c.fila.vendedor_id] || c._ven,
+        par: (codVend[c.antes.vendedor_id] || 'sin vendedor') + ' → ' + c._ven,
+      })),
       muestras: {
         nuevos: r.nuevos.slice(0, 12).map(n => ({ codigo: n.codigo_cliente, nombre: n.nombre, rubro: n.tipo, vendedor: nomVend[n.vendedor_id] || n._ven || '—' })),
         rubro: r.cambios.filter(c => c.que.includes('tipo')).slice(0, 15).map(c => ({ codigo: c.fila.codigo_cliente, nombre: c.fila.nombre, antes: c.antes.tipo, despues: c.fila.tipo })),

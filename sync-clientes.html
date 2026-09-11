@@ -16,6 +16,10 @@
   .sc-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
   .sc-chip{font-size:12px;font-weight:700;background:rgba(13,34,56,.07);border-radius:20px;padding:4px 11px}
   .sc-chip b{font-variant-numeric:tabular-nums}
+  /* Los grupos de cambios de vendedor se tocan para ver sus clientes. */
+  .sc-chip-b{border:0;cursor:pointer;font-family:inherit;color:inherit;transition:background .12s}
+  .sc-chip-b:hover{background:rgba(13,34,56,.14)}
+  .sc-chip-b.on{background:var(--navy);color:#fff}
 </style>
 </head>
 <body>
@@ -94,8 +98,13 @@
       ${tabla([['codigo','Código'],['nombre','Cliente'],['rubro','Rubro'],['vendedor','Vendedor']], d.muestras.nuevos)}
 
       <h2 class="sc-h2">Cambios de vendedor</h2>
-      <p class="sc-nota">Ojo con estos: mueven al cliente de una cartera a otra. Todos, agrupados por de quién a quién:</p>
-      ${chips(d.cambios_de_vendedor)}
+      <p class="sc-nota">Ojo con estos: mueven al cliente de una cartera a otra. Agrupados de quién a quién —
+        <b>tocá un grupo para ver todos sus clientes</b>:</p>
+      ${(() => { const e = Object.entries(d.cambios_de_vendedor || {}).sort((a, b) => b[1] - a[1]);
+        return e.length ? `<div class="sc-chips">${e.map(([k, v]) =>
+          `<button type="button" class="sc-chip sc-chip-b" data-par="${esc(k)}" onclick="verPar(this)">${esc(k)} · <b>${n(v)}</b></button>`).join('')}</div>`
+          : '<div class="pv-vacio">Ninguno.</div>'; })()}
+      <div id="sc-vend-det"></div>
       ${(d.vendedores_protegidos || []).length ? `<p class="sc-nota">Carteras protegidas: <b>${esc(d.vendedores_protegidos.join(', '))}</b> —
         ningún cliente que ya está en el manual se mueve de ni hacia ellas.${d.vendedor_sin_mover_por_proteccion ? ` <b>${n(d.vendedor_sin_mover_por_proteccion)}</b> se quedan donde están aunque CUBO diga otra cosa.` : ''}
         ${d.nuevos_en_carteras_protegidas ? `<br>Ojo: <b>${n(d.nuevos_en_carteras_protegidas)}</b> de los clientes nuevos CUBO los asigna a una de estas carteras, y entran ahí.` : ''}</p>` : ''}
@@ -111,6 +120,17 @@
 
       <p class="sc-nota" style="margin-top:26px">Columnas que manda CUBO: ${esc((d.cubo.columnas || []).join(', '))}.
         Campo de baja: ${esc(d.cubo.campo_estado || 'no encontrado — los nuevos entran visibles')}. Tardó ${n(d.ms)} ms.</p>`;
+    window._VD = d.vendedor_detalle || [];
+  }
+
+  // Al tocar un grupo de "Cambios de vendedor", muestra TODOS sus clientes, para
+  // poder confirmar un traspaso cliente por cliente antes de aplicar.
+  function verPar(btn) {
+    const par = btn.dataset.par;
+    document.querySelectorAll('.sc-chip-b').forEach(b => b.classList.toggle('on', b === btn));
+    const filas = (window._VD || []).filter(x => x.par === par);
+    q('sc-vend-det').innerHTML = `<p class="sc-nota" style="margin-top:12px"><b>${esc(par)}</b> — ${n(filas.length)} clientes:</p>` +
+      tabla([['codigo','Código'],['nombre','Cliente'],['tipo','Rubro'],['de','Hoy lo tiene'],['a','Pasa a']], filas);
   }
 
   async function correr(modo) {
