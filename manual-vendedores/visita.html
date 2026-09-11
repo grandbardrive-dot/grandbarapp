@@ -409,6 +409,15 @@
   .fb-placa { padding:0; border:1px solid var(--border,rgba(31,68,127,.16)); border-radius:10px; background:var(--surface,#fff); cursor:pointer; overflow:hidden; display:flex; flex-direction:column; -webkit-tap-highlight-color:transparent; }
   .fb-placa img { width:100%; aspect-ratio:9/16; object-fit:cover; background:#000; display:block; }
   .fb-placa span { font-size:10px; font-weight:600; color:var(--text2,#5a5650); padding:5px 6px; line-height:1.2; text-align:left; }
+  /* ── Evidencias en el PDV ── */
+  .ev-deliv { display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px solid var(--border,rgba(31,68,127,.08)); }
+  .ev-deliv:first-of-type { border-top:none; }
+  .ev-deliv-info { flex:1; min-width:0; }
+  .ev-add { background:var(--surface2,#faf9f7); border:1px dashed var(--border-strong,rgba(31,68,127,.25)); border-radius:11px; padding:11px 12px; }
+  .ev-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:6px; }
+  .ev-thumb { display:flex; flex-direction:column; border:1px solid var(--border,rgba(31,68,127,.16)); border-radius:10px; overflow:hidden; text-decoration:none; background:var(--surface,#fff); }
+  .ev-thumb img { width:100%; aspect-ratio:1/1; object-fit:cover; background:#000; display:block; }
+  .ev-thumb span { font-size:10px; font-weight:600; color:var(--text2,#5a5650); padding:5px 6px; line-height:1.2; }
   /* Aperitivos: párrafo opcional + botón "Ver material" */
   .oferta-desc { font-size: 10.5px; color: var(--text2); line-height: 1.35; margin: 4px 0 6px; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .oferta-desc.expanded { -webkit-line-clamp: unset; }
@@ -4407,6 +4416,7 @@ body { background:transparent !important; }
       else if (w.tipo === 'mix_ideal') cargarMixIdeal(sec.id);
       else if (w.tipo === 'vino_copa') cargarVinoCopa(sec.id);
       else if (w.tipo === 'fechas') cargarFechasBar(sec.id, w.modo);
+      else if (w.tipo === 'evidencias') cargarEvidencias(sec.id);
       else if (w.tipo === 'calendario') renderCalendarioMes(sec.id, calRefMes, w.rubro);
       else if (w.tipo === 'materiales_pop') cargarMaterialesPOP(sec.id);
       else if (w.tipo === 'cafe_preguntas') cargarPropuestasIncorp('cafe_preguntas', 'cafe', 'Café');
@@ -4966,6 +4976,7 @@ body { background:transparent !important; }
     'proximas_fechas':      { tipo: 'fechas', modo: 'registro' },    // ACTIVACIONES > Próximas fechas
     'proponer_activacion':  { tipo: 'fechas', modo: 'activacion' },  // ACTIVACIONES > Proponer Activación
     'seguimiento':          { tipo: 'fechas', modo: 'seguimiento' }, // ACTIVACIONES > Seguimiento
+    'materiales_entregados_evid':{ tipo: 'evidencias' },  // MATERIALES > Evidencias en el PDV
     // Fechas especiales (restaurante)
     'fe_materiales':        { tipo: 'materiales_pop' },   // Restaurantes: catálogo POP + pedido (igual que Vinotecas)
     'fe_fechas':            { tipo: 'calendario', rubro: 'restaurante' },
@@ -5026,6 +5037,7 @@ body { background:transparent !important; }
     if (w.tipo === 'cocteleria')        return renderCocteleria(sec);
     if (w.tipo === 'vino_copa')         return `<div class="vc-wrap" id="vino-copa-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
     if (w.tipo === 'fechas')            return `<div class="fb-wrap" id="fb-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
+    if (w.tipo === 'evidencias')        return `<div class="ev-wrap" id="ev-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
     if (w.tipo === 'campari')           return renderEspCampari(sec);
     if (w.tipo === 'calendario')        return renderVtCalendario(sec);
     if (w.tipo === 'materiales_pop')    return renderVtMateriales(sec);   // ← catálogo POP + form de pedido (Vinotecas)
@@ -5882,6 +5894,66 @@ body { background:transparent !important; }
       document.getElementById('fb-tarea-'+id).innerHTML = `<div class="fb-ia" style="background:#E6F0E9;border-color:#bfe0cf;color:#2f7d5f"><b>✓ Tarea creada</b> en tu agenda para el ${fechaRec ? _fbFmt(fechaRec) : '—'} (${dias} días antes).</div>`;
       showToast('📌 Tarea creada en la agenda', 'success');
     } catch(e){ showToast('No se pudo crear la tarea: '+(e.message||e), 'error'); btn.disabled = false; btn.textContent = '📌 Crear tarea en la agenda'; }
+  }
+
+  // ═══ EVIDENCIAS EN EL PDV — foto de que el cliente usa los materiales entregados ═══
+  let _evPending = { secId:null, material:null };
+  async function cargarEvidencias(secId){
+    const el = document.getElementById('ev-'+secId); if (!el) return;
+    let entregas = [];
+    try {
+      const { data } = await sb.from('material_stock_movements')
+        .select('id,material_id,quantity,created_at').eq('customer_id', cliente.id).eq('movement_type', 'entrega').order('created_at', { ascending:false });
+      entregas = data || [];
+      const ids = [...new Set(entregas.map(e => e.material_id).filter(Boolean))];
+      const nombreDe = {};
+      if (ids.length){ const { data: mats } = await sb.from('materials').select('id,name').in('id', ids); (mats||[]).forEach(m => nombreDe[m.id] = m.name); }
+      entregas = entregas.map(e => ({ ...e, nombre: nombreDe[e.material_id] || 'Material' }));
+    } catch(e){ entregas = []; }
+    let evis = [];
+    try { const { data } = await sb.from('evidencias_materiales').select('*').eq('cliente_id', cliente.id).order('created_at', { ascending:false }); evis = data || []; } catch(e){}
+
+    const entregasHtml = entregas.length ? `<div class="fb-label">Materiales entregados a este cliente</div>` + entregas.map(e => `
+      <div class="ev-deliv">
+        <div class="ev-deliv-info"><div class="prod-nom">${esc(e.nombre)}</div><div class="prod-sub">${e.quantity ? e.quantity+' u. · ' : ''}${new Date(e.created_at).toLocaleDateString('es-AR')}</div></div>
+        <button class="herr-btn sec" onclick="evFoto('${secId}','${_e2(e.nombre)}')">📷 Evidencia</button>
+      </div>`).join('') : `<div class="herr-note">Cuando entregues materiales (desde las acciones con "Entregué"), aparecen acá para registrar la evidencia. También podés cargar una foto suelta abajo.</div>`;
+
+    const addHtml = `<div class="fb-label" style="margin-top:14px">Registrar evidencia</div>
+      <div class="ev-add">
+        <input class="fb-in" id="ev-mat-${secId}" placeholder="Material (ej: Exhibidor de barra)" style="margin-top:0">
+        <button class="herr-btn" style="margin-top:8px" onclick="evFotoLibre('${secId}')">📷 Sacar / subir foto de evidencia</button>
+      </div>`;
+
+    const evisHtml = evis.length ? `<div class="fb-label" style="margin-top:14px">Evidencias registradas</div><div class="ev-grid">` + evis.map(v => `
+      <a class="ev-thumb" href="${esc(v.foto_url)}" target="_blank" rel="noopener"><img src="${esc(v.foto_url)}" loading="lazy" alt=""><span>${esc(v.material||'Material')}</span></a>`).join('') + `</div>` : '';
+
+    el.innerHTML = entregasHtml + addHtml + evisHtml;
+  }
+  function _evInput(){
+    let inp = document.getElementById('ev-file-input');
+    if (!inp){ inp = document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.setAttribute('capture','environment'); inp.id='ev-file-input'; inp.style.display='none'; inp.onchange=evSubir; document.body.appendChild(inp); }
+    return inp;
+  }
+  function evFoto(secId, material){ _evPending = { secId, material }; _evInput().click(); }
+  function evFotoLibre(secId){
+    const m = (document.getElementById('ev-mat-'+secId)?.value || '').trim();
+    if (!m){ showToast('Poné el nombre del material.', 'error'); return; }
+    _evPending = { secId, material:m }; _evInput().click();
+  }
+  async function evSubir(e){
+    const file = e.target.files[0]; e.target.value=''; if (!file) return;
+    const { secId, material } = _evPending;
+    showToast('Subiendo foto…');
+    try {
+      const path = `evidencias/${cliente.id}/${Date.now()}.jpg`;
+      const { error } = await sb.storage.from('Activaciones').upload(path, file, { upsert:true, contentType:file.type || 'image/jpeg' });
+      if (error) throw error;
+      const { data: url } = sb.storage.from('Activaciones').getPublicUrl(path);
+      await sb.from('evidencias_materiales').insert({ cliente_id: cliente.id, vendedor_id: (vendedor && vendedor.id) || null, material, foto_url: url.publicUrl });
+      showToast('✓ Evidencia guardada', 'success');
+      cargarEvidencias(secId);
+    } catch(err){ showToast('No se pudo guardar: '+(err.message||err), 'error'); }
   }
 
   // ── DESARROLLO DE COCTELERÍA: buscador de producto + IA + costeo por medida ──

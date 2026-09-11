@@ -556,8 +556,24 @@ async function amEntregarMaterial(materialId, campaignId, key, btn) {
     }
     if (error) throw error;
     const rowEl = document.getElementById('am-ent-row-' + key);
+    const matNombre = (rowEl && rowEl.querySelector('.am-ent-nombre')?.textContent) || 'Material';
     if (rowEl) rowEl.innerHTML = `<div class="am-ent-done">✓ Entregado ${cant} · stock ahora ${resulting}</div>`;
     _amToast('✓ Entrega registrada — stock descontado.', 'success');
+    // Recordatorio en la agenda del vendedor: volver en unos días a sacar la foto de
+    // evidencia de que el cliente está usando el material entregado. No bloquea la entrega.
+    try {
+      if (_amEntregaCtx && _amEntregaCtx.sellerId) {
+        const d = new Date(); d.setDate(d.getDate() + 7);
+        await sb.from('compromisos').insert({
+          vendedor_id: _amEntregaCtx.sellerId,
+          cliente_id:  _amEntregaCtx.customerId || null,
+          seccion: 'Evidencias de materiales',
+          descripcion: `Presentar evidencia (foto) de "${matNombre}" en ${_amEntregaCtx.clienteNombre || 'el cliente'}`,
+          fecha_ejecucion: d.toISOString().slice(0, 10),
+          estado: 'pendiente'
+        });
+      }
+    } catch (e2) { /* el recordatorio es best-effort */ }
   } catch (e) {
     btn.disabled = false; btn.textContent = prevTxt;
     _amToast('No se pudo registrar: ' + (e.message || e), 'error');
