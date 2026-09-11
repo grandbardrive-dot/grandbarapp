@@ -418,6 +418,18 @@
   .ev-thumb { display:flex; flex-direction:column; border:1px solid var(--border,rgba(31,68,127,.16)); border-radius:10px; overflow:hidden; text-decoration:none; background:var(--surface,#fff); }
   .ev-thumb img { width:100%; aspect-ratio:1/1; object-fit:cover; background:#000; display:block; }
   .ev-thumb span { font-size:10px; font-weight:600; color:var(--text2,#5a5650); padding:5px 6px; line-height:1.2; }
+  /* ── Oportunidades de Visibilidad ── */
+  .vis-banner { display:flex; align-items:flex-start; gap:9px; background:#FDECEA; border:1px solid #f3c9c1; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:12px; color:#a8461f; line-height:1.4; }
+  .vis-banner b { color:#8a2b20; }
+  .vis-card { background:var(--surface2,#faf9f7); border:1px solid var(--border,rgba(31,68,127,.14)); border-left:3px solid #6a4fd0; border-radius:11px; padding:11px 12px; margin-top:9px; }
+  .vis-card.presentada { border-left-color:#2f7d5f; opacity:.75; }
+  .vis-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .vis-ubic { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#6a4fd0; background:#efeaff; border:1px solid #dcd2ff; padding:2px 9px; border-radius:20px; }
+  .vis-est { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:auto; }
+  .vis-est.pendiente { background:#FDECEA; color:#a8461f; } .vis-est.presentada { background:#E6F0E9; color:#2f7d5f; }
+  .vis-nota { font-size:12.5px; color:var(--text,#1A1814); margin-top:6px; line-height:1.4; }
+  .vis-foto { width:100%; max-height:150px; object-fit:cover; border-radius:8px; margin-top:8px; display:block; }
+  .vis-acts { display:flex; gap:7px; flex-wrap:wrap; margin-top:9px; }
   /* Aperitivos: párrafo opcional + botón "Ver material" */
   .oferta-desc { font-size: 10.5px; color: var(--text2); line-height: 1.35; margin: 4px 0 6px; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .oferta-desc.expanded { -webkit-line-clamp: unset; }
@@ -4417,6 +4429,7 @@ body { background:transparent !important; }
       else if (w.tipo === 'vino_copa') cargarVinoCopa(sec.id);
       else if (w.tipo === 'fechas') cargarFechasBar(sec.id, w.modo);
       else if (w.tipo === 'evidencias') cargarEvidencias(sec.id);
+      else if (w.tipo === 'visibilidad') cargarVisibilidad(sec.id);
       else if (w.tipo === 'calendario') renderCalendarioMes(sec.id, calRefMes, w.rubro);
       else if (w.tipo === 'materiales_pop') cargarMaterialesPOP(sec.id);
       else if (w.tipo === 'cafe_preguntas') cargarPropuestasIncorp('cafe_preguntas', 'cafe', 'Café');
@@ -4977,6 +4990,7 @@ body { background:transparent !important; }
     'proponer_activacion':  { tipo: 'fechas', modo: 'activacion' },  // ACTIVACIONES > Proponer Activación
     'seguimiento':          { tipo: 'fechas', modo: 'seguimiento' }, // ACTIVACIONES > Seguimiento
     'materiales_entregados_evid':{ tipo: 'evidencias' },  // MATERIALES > Evidencias en el PDV
+    'oportunidades_de_visibilid':{ tipo: 'visibilidad' }, // MATERIALES > Oportunidades de Visibilidad
     // Fechas especiales (restaurante)
     'fe_materiales':        { tipo: 'materiales_pop' },   // Restaurantes: catálogo POP + pedido (igual que Vinotecas)
     'fe_fechas':            { tipo: 'calendario', rubro: 'restaurante' },
@@ -5038,6 +5052,7 @@ body { background:transparent !important; }
     if (w.tipo === 'vino_copa')         return `<div class="vc-wrap" id="vino-copa-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
     if (w.tipo === 'fechas')            return `<div class="fb-wrap" id="fb-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
     if (w.tipo === 'evidencias')        return `<div class="ev-wrap" id="ev-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
+    if (w.tipo === 'visibilidad')       return `<div class="vis-wrap" id="vis-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
     if (w.tipo === 'campari')           return renderEspCampari(sec);
     if (w.tipo === 'calendario')        return renderVtCalendario(sec);
     if (w.tipo === 'materiales_pop')    return renderVtMateriales(sec);   // ← catálogo POP + form de pedido (Vinotecas)
@@ -5954,6 +5969,77 @@ body { background:transparent !important; }
       showToast('✓ Evidencia guardada', 'success');
       cargarEvidencias(secId);
     } catch(err){ showToast('No se pudo guardar: '+(err.message||err), 'error'); }
+  }
+
+  // ═══ OPORTUNIDADES DE VISIBILIDAD — registro rápido + recordatorio en la próxima visita ═══
+  const VIS_UBIC = ['Barra','Backbar','Mesas','Heladera','Terraza','Ingreso','Carta'];
+  let _visUbic = null, _visPend = { id:null, secId:null };
+  async function cargarVisibilidad(secId){
+    const el = document.getElementById('vis-'+secId); if (!el) return;
+    let ops = [];
+    try { const { data } = await sb.from('oportunidades_visibilidad').select('*').eq('cliente_id', cliente.id).order('created_at', { ascending:false }); ops = data || []; } catch(e){}
+    const pend = ops.filter(o => (o.estado||'pendiente') !== 'presentada');
+    const banner = pend.length ? `<div class="vis-banner">📌 <div>Tenés <b>${pend.length}</b> oportunidad${pend.length!==1?'es':''} de visibilidad <b>pendiente${pend.length!==1?'s':''} de propuesta</b>. Presentásela al cliente en esta visita.</div></div>` : '';
+    const chips = VIS_UBIC.map(u => `<button class="fb-chip ${_visUbic===u?'on':''}" onclick="visChip(this,'${u}')">${u}</button>`).join('');
+    const form = `<div class="fb-label">¿Dónde hay oportunidad?</div>
+      <div class="fb-chips">${chips}</div>
+      <textarea class="fb-in" id="vis-nota-${secId}" rows="2" placeholder="Ej: Espacio disponible detrás de barra para Aperol." style="resize:vertical"></textarea>
+      <button class="fb-save" onclick="visRegistrar('${secId}')">+ Registrar oportunidad</button>`;
+    const lista = ops.length ? `<div class="fb-label" style="margin-top:16px">Oportunidades registradas</div>` + ops.map(o => visCard(o, secId)).join('') : '';
+    el.innerHTML = banner + form + lista;
+  }
+  function visChip(btn, u){
+    const wasOn = btn.classList.contains('on');
+    btn.parentElement.querySelectorAll('.fb-chip').forEach(b => b.classList.remove('on'));
+    if (!wasOn){ btn.classList.add('on'); _visUbic = u; } else _visUbic = null;
+  }
+  function visCard(o, secId){
+    const est = (o.estado||'pendiente');
+    return `<div class="vis-card ${est==='presentada'?'presentada':''}">
+      <div class="vis-top">
+        ${o.ubicacion ? `<span class="vis-ubic">${esc(o.ubicacion)}</span>` : ''}
+        <span class="vis-est ${est}">${est==='presentada'?'Propuesta presentada':'Pendiente de propuesta'}</span>
+      </div>
+      ${o.nota ? `<div class="vis-nota">${esc(o.nota)}</div>` : ''}
+      ${o.foto_url ? `<img class="vis-foto" src="${esc(o.foto_url)}" loading="lazy" alt="">` : ''}
+      <div class="vis-acts">
+        ${o.foto_url ? '' : `<button class="herr-btn sec" onclick="visFoto('${o.id}','${secId}')">📷 Foto</button>`}
+        ${est==='presentada' ? '' : `<button class="herr-btn sec" onclick="visPresentada('${o.id}','${secId}')">✓ Presenté propuesta</button>`}
+      </div>
+    </div>`;
+  }
+  async function visRegistrar(secId){
+    const nota = (document.getElementById('vis-nota-'+secId)?.value || '').trim();
+    if (!_visUbic && !nota){ showToast('Elegí dónde o escribí la oportunidad.', 'error'); return; }
+    try {
+      await sb.from('oportunidades_visibilidad').insert({ cliente_id: cliente.id, vendedor_id: (vendedor && vendedor.id) || null, ubicacion: _visUbic, nota: nota || null, estado: 'pendiente' });
+      _visUbic = null;
+      showToast('✓ Oportunidad registrada', 'success');
+      cargarVisibilidad(secId);
+    } catch(e){ showToast('No se pudo guardar: '+(e.message||e), 'error'); }
+  }
+  async function visPresentada(id, secId){
+    try { await sb.from('oportunidades_visibilidad').update({ estado:'presentada' }).eq('id', id); cargarVisibilidad(secId); showToast('✓ Marcada como presentada', 'success'); } catch(e){}
+  }
+  function visFoto(id, secId){ _visPend = { id, secId }; _visInput().click(); }
+  function _visInput(){
+    let inp = document.getElementById('vis-file-input');
+    if (!inp){ inp = document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.setAttribute('capture','environment'); inp.id='vis-file-input'; inp.style.display='none'; inp.onchange=visSubirFoto; document.body.appendChild(inp); }
+    return inp;
+  }
+  async function visSubirFoto(e){
+    const file = e.target.files[0]; e.target.value=''; if (!file) return;
+    const { id, secId } = _visPend;
+    showToast('Subiendo foto…');
+    try {
+      const path = `visibilidad/${cliente.id}/${Date.now()}.jpg`;
+      const { error } = await sb.storage.from('Activaciones').upload(path, file, { upsert:true, contentType:file.type || 'image/jpeg' });
+      if (error) throw error;
+      const { data: url } = sb.storage.from('Activaciones').getPublicUrl(path);
+      await sb.from('oportunidades_visibilidad').update({ foto_url: url.publicUrl }).eq('id', id);
+      showToast('✓ Foto agregada', 'success');
+      cargarVisibilidad(secId);
+    } catch(err){ showToast('No se pudo subir: '+(err.message||err), 'error'); }
   }
 
   // ── DESARROLLO DE COCTELERÍA: buscador de producto + IA + costeo por medida ──
