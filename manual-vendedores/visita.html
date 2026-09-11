@@ -338,6 +338,51 @@
   .vc-cond { font-size: 12.5px; color: var(--text); margin-top: 7px; }
   .vc-desc { font-size: 11.5px; color: var(--text3); margin-top: 5px; }
   .vc-usar { margin-top: 9px; width: 100%; background: var(--dorado-lt,rgba(203,184,106,.15)); border: 1px solid rgba(203,184,106,.4); color: #7a6830; border-radius: 9px; font-family: inherit; font-size: 12px; font-weight: 700; padding: 8px; cursor: pointer; }
+  /* ── Herramientas IA (Stock & Rotación) ── */
+  .sec-herr { flex-shrink:0; display:inline-flex; align-items:center; gap:4px; background:linear-gradient(135deg,#1F447F,#6a4fd0); color:#fff; border:none; border-radius:20px; font-family:inherit; font-size:11px; font-weight:800; letter-spacing:.02em; padding:5px 11px; cursor:pointer; -webkit-tap-highlight-color:transparent; box-shadow:0 2px 6px rgba(106,79,208,.3); }
+  .sec-herr:active { transform:scale(.95); }
+  .herr-ov { display:none; position:fixed; inset:0; z-index:700; background:rgba(13,34,48,.6); overflow-y:auto; padding:0; }
+  .herr-ov.open { display:block; }
+  .herr-modal { background:var(--crema,#f1ede8); min-height:100vh; max-width:560px; margin:0 auto; }
+  .herr-head { position:sticky; top:0; z-index:2; background:linear-gradient(135deg,#13273f,#1F447F); color:#fff; padding:16px 18px calc(16px + env(safe-area-inset-top)); display:flex; align-items:center; gap:12px; border-bottom:3px solid var(--dorado,#CBB86A); }
+  .herr-head .t { flex:1; }
+  .herr-head .t b { font-size:16px; font-weight:800; display:block; }
+  .herr-head .t span { font-size:11.5px; color:rgba(255,255,255,.6); }
+  .herr-x { background:rgba(255,255,255,.15); border:none; color:#fff; width:34px; height:34px; border-radius:10px; font-size:19px; cursor:pointer; flex-shrink:0; }
+  .herr-body { padding:16px 16px 60px; }
+  .herr-tool { background:var(--surface,#fff); border:1px solid var(--border,rgba(31,68,127,.16)); border-radius:14px; box-shadow:0 2px 10px rgba(13,34,48,.06); margin-bottom:14px; overflow:hidden; }
+  .herr-tool-h { display:flex; align-items:center; gap:10px; padding:14px 15px; border-bottom:1px solid var(--border,rgba(31,68,127,.1)); }
+  .herr-tool-ic { font-size:20px; }
+  .herr-tool-h .th { flex:1; }
+  .herr-tool-h .th b { font-size:14.5px; font-weight:800; color:var(--azul,#1F447F); display:block; }
+  .herr-tool-h .th span { font-size:11.5px; color:var(--text3,#9E9B96); }
+  .herr-tool-body { padding:12px 15px 15px; }
+  .herr-loading { font-size:12.5px; color:var(--text3,#9E9B96); font-style:italic; padding:8px 0; }
+  .herr-empty { font-size:12.5px; color:var(--text3,#9E9B96); font-style:italic; padding:8px 0; }
+  .prod-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--border,rgba(31,68,127,.08)); }
+  .prod-row:first-child { border-top:none; }
+  .prod-dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+  .prod-dot.r { background:#e2231a; } .prod-dot.y { background:#e0a52e; } .prod-dot.g { background:#2f9e5f; }
+  .prod-info { flex:1; min-width:0; }
+  .prod-nom { font-size:13px; font-weight:700; color:var(--text,#1A1814); line-height:1.25; }
+  .prod-sub { font-size:11px; color:var(--text3,#9E9B96); margin-top:1px; }
+  .prod-act { flex-shrink:0; }
+  .herr-btn { background:linear-gradient(135deg,#1F447F,#6a4fd0); color:#fff; border:none; border-radius:9px; font-family:inherit; font-size:12.5px; font-weight:700; padding:10px 13px; cursor:pointer; width:100%; margin-top:10px; }
+  .herr-btn:disabled { opacity:.6; }
+  .herr-btn.sec { background:var(--surface2,#faf9f7); color:var(--azul,#1F447F); border:1.5px solid var(--border,rgba(31,68,127,.2)); font-size:11.5px; padding:7px 11px; width:auto; margin:0; }
+  .repo-card { background:var(--surface2,#faf9f7); border:1px solid var(--border,rgba(31,68,127,.14)); border-left:3px solid #e0a52e; border-radius:10px; padding:11px 12px; margin-top:9px; }
+  .repo-card .rn { font-size:13px; font-weight:800; color:var(--azul,#1F447F); }
+  .repo-line { font-size:12px; color:var(--text,#1A1814); margin-top:5px; }
+  .repo-line b { font-family:'DM Mono',monospace; }
+  .repo-flag { display:inline-block; margin-top:7px; font-size:11px; font-weight:700; color:#a8461f; background:#FDECEA; border-radius:20px; padding:3px 10px; }
+  .baja-card { border:1px solid var(--border,rgba(31,68,127,.14)); border-radius:10px; padding:11px 12px; margin-top:9px; }
+  .baja-q { font-size:11.5px; font-weight:700; color:var(--text2,#5a5650); margin:9px 0 6px; }
+  .baja-opts { display:flex; flex-wrap:wrap; gap:6px; }
+  .baja-opt { font-size:11.5px; font-weight:600; padding:6px 11px; border-radius:20px; border:1.5px solid var(--border,rgba(31,68,127,.2)); background:var(--surface,#fff); color:var(--text2,#5a5650); cursor:pointer; }
+  .baja-opt.on { background:#1F447F; color:#fff; border-color:#1F447F; }
+  .baja-ia { margin-top:10px; background:#F0EEFF; border:1px solid #d9d2ff; border-radius:10px; padding:11px 12px; font-size:12.5px; color:#2c2450; line-height:1.5; }
+  .baja-ia b { color:#6a4fd0; }
+  .herr-note { font-size:11px; color:var(--text3,#9E9B96); background:var(--card-2,#faf5ea); border:1px dashed var(--border,rgba(31,68,127,.18)); border-radius:9px; padding:9px 11px; margin-top:4px; line-height:1.45; }
   /* Aperitivos: párrafo opcional + botón "Ver material" */
   .oferta-desc { font-size: 10.5px; color: var(--text2); line-height: 1.35; margin: 4px 0 6px; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .oferta-desc.expanded { -webkit-line-clamp: unset; }
@@ -2693,6 +2738,7 @@ body { background:transparent !important; }
           <div class="sec-icon" style="background:${sec.iconoBg};color:${sec.iconoColor}">${sec.icono}</div>
           <div class="sec-info"><h3>${esc(sec.titulo)}</h3><p>${esc(sec.subtitulo)}</p></div>
           <div class="sec-right">
+            ${catHerr(sec) ? `<button class="sec-herr" onclick="event.stopPropagation();abrirHerramientas('${catHerr(sec)}')" title="Herramientas IA">🛠️ IA</button>` : ''}
             <span class="badge" id="bc-${sec.id}">0/${total}</span>
             <span class="badge done" id="bd-${sec.id}">✓ Listo</span>
             <span class="chevron" id="ch-${sec.id}">⌄</span>
@@ -5443,6 +5489,200 @@ body { background:transparent !important; }
     const inp = document.getElementById('calc-botella');
     if (inp) { inp.value = precio; if (typeof calcCopa === 'function') calcCopa(); inp.scrollIntoView({ behavior:'smooth', block:'center' }); }
   }
+
+  // ═══ HERRAMIENTAS IA — Stock & Rotación (Reposición/Quiebres + Baja Rotación) ═══
+  // Icono en las secciones SPIRITS y VINOS. Usa el historial de compra real del
+  // cliente (ventas_cliente) — GrandBar sabe lo que VENDIÓ, no el stock real del bar,
+  // por eso hablamos de "posible" quiebre/reposición.
+  function catHerr(sec){
+    const t = String(sec.titulo || sec.nombre || '').toLowerCase();
+    if (/spirit/.test(t)) return 'spirits';
+    if (/vino/.test(t))   return 'vinos';
+    return null;
+  }
+  function catProducto(n){
+    const p = String(n || '').toLowerCase();
+    if (/malbec|cabernet|bonarda|syrah|merlot|blend|chardonnay|sauvignon|torront|rosado|\btinto\b|\bblanco\b|\bvino\b|espumante|champ|brut|prosecco|lambrusco|pinot/.test(p)) return 'vinos';
+    if (/\bgin\b|vodka|whisky|whiskey|bourbon|\bron\b|\brum\b|tequila|campari|aperol|cynar|fernet|vermut|vermú|licor|absenta|cognac|brandy|pisco|gancia|ramazzotti|amargo/.test(p)) return 'spirits';
+    return 'otros';
+  }
+
+  let _histCargado = false, _histProductos = [];
+  async function cargarHistorialCompra(){
+    if (_histCargado) return _histProductos;
+    _histCargado = true;
+    const cod = String(cliente.codigo_cliente || '').trim();
+    if (!cod) return [];
+    try {
+      const { data: ventas } = await sb.from('ventas_cliente')
+        .select('sku,fecha,unidades').eq('cliente_codigo', cod).gt('unidades', 0).order('fecha');
+      if (!ventas || !ventas.length) return [];
+      const skus = [...new Set(ventas.map(v => v.sku).filter(s => s && /[0-9]/.test(s)))];
+      const nombreDe = {};
+      for (let i = 0; i < skus.length; i += 200){
+        const lote = skus.slice(i, i + 200);
+        const { data: prods } = await sb.from('productos_grandbar').select('codigo,descripcion').in('codigo', lote);
+        (prods || []).forEach(p => nombreDe[p.codigo] = p.descripcion);
+      }
+      const bySku = {};
+      ventas.forEach(v => { if (nombreDe[v.sku]) (bySku[v.sku] = bySku[v.sku] || []).push(v); });
+      const hoy = new Date();
+      _histProductos = Object.entries(bySku).map(([sku, arr]) => {
+        arr.sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+        const fechas = arr.map(v => v.fecha);
+        const ultima = fechas[fechas.length - 1];
+        const diasUlt = Math.round((hoy - new Date(ultima)) / 86400000);
+        let gaps = []; for (let i = 1; i < fechas.length; i++) gaps.push((new Date(fechas[i]) - new Date(fechas[i-1])) / 86400000);
+        const freqDias = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : null;
+        const qtyProm = Math.max(1, Math.round(arr.reduce((a, v) => a + Number(v.unidades || 0), 0) / arr.length));
+        const nombre = nombreDe[sku];
+        return { sku, nombre, cat: catProducto(nombre), ultima, diasUlt, freqDias, qtyProm, nCompras: arr.length };
+      });
+      return _histProductos;
+    } catch (e) { return []; }
+  }
+
+  // Estado de un producto según cuánto hace que no compra vs su frecuencia
+  function _estadoProd(p){
+    const f = p.freqDias;
+    const overdue = f ? p.diasUlt > f * 1.15 : p.diasUlt > 30;         // posible reposición
+    const stale   = f ? p.diasUlt > f * 2.2 && p.diasUlt > 45 : p.diasUlt > 70; // baja rotación
+    let dot = 'g';
+    if (f) { if (p.diasUlt > f * 1.4) dot = 'r'; else if (p.diasUlt > f * 0.9) dot = 'y'; }
+    else   { if (p.diasUlt > 45) dot = 'r'; else if (p.diasUlt > 25) dot = 'y'; }
+    return { dot, overdue, stale };
+  }
+
+  function _herrModalEnsure(){
+    if (document.getElementById('herr-ov')) return;
+    const d = document.createElement('div');
+    d.className = 'herr-ov'; d.id = 'herr-ov';
+    d.innerHTML = `<div class="herr-modal">
+      <div class="herr-head">
+        <div class="t"><b id="herr-titulo">Herramientas IA</b><span>Stock &amp; Rotación · según lo que le vendimos</span></div>
+        <button class="herr-x" onclick="cerrarHerramientas()">×</button>
+      </div>
+      <div class="herr-body" id="herr-body"></div>
+    </div>`;
+    d.addEventListener('click', e => { if (e.target === d) cerrarHerramientas(); });
+    document.body.appendChild(d);
+  }
+  function cerrarHerramientas(){ const o = document.getElementById('herr-ov'); if (o) o.classList.remove('open'); document.body.style.overflow = ''; }
+
+  let _herrCat = 'spirits';
+  async function abrirHerramientas(cat){
+    _herrCat = cat;
+    _herrModalEnsure();
+    const o = document.getElementById('herr-ov');
+    document.getElementById('herr-titulo').textContent = 'Herramientas IA — ' + (cat === 'spirits' ? 'Spirits' : 'Vinos & Espumantes');
+    document.getElementById('herr-body').innerHTML = `<div class="herr-loading">Cargando el historial de compra del cliente…</div>`;
+    o.classList.add('open'); document.body.style.overflow = 'hidden';
+    const todos = await cargarHistorialCompra();
+    const prods = todos.filter(p => p.cat === cat);
+    herrRender(prods);
+  }
+
+  function herrRender(prods){
+    const body = document.getElementById('herr-body');
+    if (!body) return;
+    if (!prods.length){
+      body.innerHTML = `<div class="herr-note">Todavía no tenemos historial de compra de este cliente para esta categoría (o el sistema aún no lo sincronizó). Cuando haya compras registradas, acá vas a ver qué reponer y qué dejó de rotar.</div>`;
+      return;
+    }
+    const repo  = prods.slice().sort((a, b) => b.diasUlt - a.diasUlt);
+    const bajas = prods.filter(p => _estadoProd(p).stale).sort((a, b) => b.diasUlt - a.diasUlt);
+
+    const repoRows = repo.map(p => {
+      const e = _estadoProd(p);
+      return `<div class="prod-row">
+        <span class="prod-dot ${e.dot}"></span>
+        <div class="prod-info"><div class="prod-nom">${esc(p.nombre)}</div>
+          <div class="prod-sub">Última compra hace <b>${p.diasUlt}</b> días${p.freqDias ? ` · suele comprar cada ~${p.freqDias}` : ''}</div></div>
+      </div>`;
+    }).join('');
+
+    const bajasHtml = bajas.length ? bajas.map(p => `
+      <div class="baja-card" id="baja-${p.sku}">
+        <div class="prod-nom">🐢 ${esc(p.nombre)}</div>
+        <div class="prod-sub">Sin comprar hace <b>${p.diasUlt}</b> días${p.freqDias ? ` (suele comprar cada ~${p.freqDias})` : ''}</div>
+        <div class="baja-q">¿Qué está pasando?</div>
+        <div class="baja-opts">
+          ${['Todavía tiene stock','Baja salida','Dejó de trabajarlo','Compra a otro proveedor','Otro'].map(o =>
+            `<button class="baja-opt" onclick="bajaMotivo('${p.sku}', this, '${_e2(o)}')">${o}</button>`).join('')}
+        </div>
+        <div id="baja-ia-${p.sku}"></div>
+      </div>`).join('')
+      : `<div class="herr-empty">No hay productos frenados en esta categoría. 👌</div>`;
+
+    body.innerHTML = `
+      <div class="herr-tool">
+        <div class="herr-tool-h"><span class="herr-tool-ic">⚠️</span><div class="th"><b>Reposición &amp; Quiebres</b><span>Qué le estaría por faltar</span></div></div>
+        <div class="herr-tool-body">
+          <div class="prod-sub" style="margin-bottom:4px">Productos para revisar</div>
+          ${repoRows}
+          <button class="herr-btn" onclick="herrSugerirRepo()">✨ Sugerir reposición</button>
+          <div id="repo-sug"></div>
+          <div class="herr-note" style="margin-top:11px">Es una <b>posible</b> falta: GrandBar sabe lo que te vendió, no el stock real del bar. Confirmalo en la visita.</div>
+        </div>
+      </div>
+      <div class="herr-tool">
+        <div class="herr-tool-h"><span class="herr-tool-ic">🐢</span><div class="th"><b>Baja Rotación</b><span>Compró pero dejó de reponer</span></div></div>
+        <div class="herr-tool-body">${bajasHtml}</div>
+      </div>`;
+    window._herrRepo = repo;
+  }
+
+  function herrSugerirRepo(){
+    const cont = document.getElementById('repo-sug');
+    const repo = window._herrRepo || [];
+    const flag = repo.filter(p => _estadoProd(p).overdue);
+    if (!flag.length){ cont.innerHTML = `<div class="herr-empty">No detectamos faltas probables por ahora. ✅</div>`; return; }
+    cont.innerHTML = flag.map(p => `
+      <div class="repo-card">
+        <div class="rn">${esc(p.nombre)}</div>
+        ${p.freqDias ? `<div class="repo-line">Compra habitual: <b>${p.qtyProm}</b> ${p.qtyProm===1?'unidad':'unidades'} cada <b>${p.freqDias}</b> días</div>` : `<div class="repo-line">Compró <b>${p.qtyProm}</b> ${p.qtyProm===1?'unidad':'unidades'} la última vez</div>`}
+        <div class="repo-line">Última compra: hace <b>${p.diasUlt}</b> días</div>
+        <div class="repo-flag">Posible necesidad de reposición</div>
+        <div style="margin-top:9px"><button class="herr-btn sec" onclick="herrAddPedido('${p.sku}', this)">+ Agregar al pedido</button></div>
+      </div>`).join('');
+  }
+
+  function herrAddPedido(sku, btn){
+    const p = (window._herrRepo || []).find(x => x.sku === sku); if (!p) return;
+    cartAdd('Reposición', p.nombre, 'Reposición', p.qtyProm, 'cajas');
+    if (btn){ btn.textContent = '✓ Agregado al pedido'; btn.disabled = true; }
+    showToast(`🛒 Agregado: ${p.nombre}`, 'success');
+  }
+
+  function bajaMotivo(sku, btn, motivo){
+    const card = document.getElementById('baja-'+sku); if (!card) return;
+    card.querySelectorAll('.baja-opt').forEach(b => b.classList.toggle('on', b === btn));
+    const iaSlot = document.getElementById('baja-ia-'+sku);
+    if (motivo === 'Baja salida'){
+      iaSlot.innerHTML = `<button class="herr-btn" onclick="bajaSugerir('${sku}', this)">✨ Sugerir acción de rotación</button>`;
+    } else {
+      iaSlot.innerHTML = `<div class="herr-note" style="margin-top:9px">Anotado: <b>${esc(motivo)}</b>. Es info comercial valiosa para GrandBar.</div>`;
+    }
+  }
+
+  async function bajaSugerir(sku, btn){
+    const p = (_histProductos || []).find(x => x.sku === sku); if (!p) return;
+    const slot = document.getElementById('baja-ia-'+sku);
+    btn.disabled = true; btn.textContent = '✨ Pensando…';
+    try {
+      const r = await fetch('/.netlify/functions/sugerir-rotacion', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ producto: p.nombre, dias_sin_comprar: p.diasUlt, motivo: 'Baja salida' })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok) throw new Error(j.error || ('error '+r.status));
+      slot.innerHTML = `<div class="baja-ia"><b>✨ Sugerencia:</b> ${esc(j.sugerencia || 'Sin sugerencia.')}</div>`;
+    } catch(e){
+      slot.innerHTML = `<div class="herr-note" style="margin-top:9px">No se pudo generar: ${esc(e.message||e)}</div>`;
+    }
+  }
+
+  const _e2 = s => String(s==null?'':s).replace(/'/g,"\\'");
 
   // ── DESARROLLO DE COCTELERÍA: buscador de producto + IA + costeo por medida ──
   const _cocState = {};     // uid → { secId, nombre, codigo, categoria, precio, desc, volumen, cocteles }
