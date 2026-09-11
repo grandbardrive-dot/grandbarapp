@@ -3,8 +3,8 @@
 //
 //  Salen de la reunión de discos (minuta de septiembre 2026):
 //   · CON PREVIA o SIN PREVIA: al entrar al manual de un boliche se elige cómo
-//     trabaja ("Boliche con previa" o "Boliche sin previa", sin más detalle: así lo(?
-)//     pidió el usuario). Queda en la ficha del cliente (clientes.perfil) y las
+//     trabaja ("Boliche con previa" o "Boliche sin previa", sin más detalle: así lo
+//     pidió el usuario). Queda en la ficha del cliente (clientes.perfil) y las
 //     próximas visitas ya entran con eso. Según la respuesta, el manual se arma
 //     SIN las secciones que no corresponden: cada sección dice en qué caso se
 //     muestra (checklist_secciones.solo_formato, se edita en Secciones → Discos).
@@ -66,7 +66,11 @@ const DC_LISTAS = {
   },
 };
 
-const _esDisco = cl => !!cl && cl.id === 'disco';
+// Solo el manual NUEVO de discos (secciones dc_*, las crea manual-disco-v2.sql). Con el
+// manual viejo (la copia de bares) no se pregunta nada: no habría qué filtrar y la
+// ficha todavía no tiene dónde guardar el formato.
+const _esDisco = cl => !!cl && cl.id === 'disco'
+  && (cl.secciones || []).some(s => String(s.id || '').startsWith('dc_'));
 
 // ── Con previa / sin previa ─────────────────────────────────
 // Lo llama init() de visita.html ANTES de dibujar el manual. Si el boliche
