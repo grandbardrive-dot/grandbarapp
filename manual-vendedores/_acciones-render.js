@@ -356,47 +356,49 @@ function amToggle(id, accionJson) {
   const btn    = document.getElementById(`am-btn-${id}`);
   if (!card || !btn) return;
 
-  const qty = document.getElementById(`am-qty-${id}`);
   if (_amSeleccionadas.has(id)) {
     // Deseleccionar
     _amSeleccionadas.delete(id);
     card.classList.remove('am-seleccionada');
     btn.textContent = '+ Agregar';
     btn.classList.remove('agregada');
-    if (qty) qty.style.display = 'none';
   } else {
-    // Seleccionar — arranca con 1 caja por defecto (el vendedor lo ajusta)
-    accion.unidad   = accion.unidad   || 'cajas';
-    accion.cantidad = accion.cantidad || 1;
+    // Seleccionar — toma la unidad/cantidad elegidas en la tarjeta (default 1 caja)
+    const q = _amQtyFromCard(id);
+    accion.unidad   = q.unidad;
+    accion.cantidad = q.cantidad;
     _amSeleccionadas.set(id, accion);
     card.classList.add('am-seleccionada');
     btn.innerHTML = '✓ Agregada';
     btn.classList.add('agregada');
-    if (qty) qty.style.display = 'flex';
   }
   _amActualizarResumen();
+}
+
+// Lee la unidad (botellas/cajas) y cantidad elegidas en la tarjeta
+function _amQtyFromCard(id) {
+  const cont = document.getElementById(`am-qty-${id}`);
+  const u = cont?.querySelector('.am-qty-u.on')?.dataset.u || 'cajas';
+  const n = Math.max(1, Math.floor(Number(cont?.querySelector('.am-qty-input')?.value) || 1));
+  return { unidad: u, cantidad: n };
 }
 
 // Cantidad seleccionada de una acción (para pintar la tarjeta ya seleccionada al re-render)
 function _selUnidad(id)   { const a = _amSeleccionadas.get(id); return (a && a.unidad) || 'cajas'; }
 function _selCantidad(id) { const a = _amSeleccionadas.get(id); return (a && a.cantidad) || 1; }
 
-// Cambiar unidad (botellas / cajas) de una acción ya agregada
+// Cambiar unidad (botellas / cajas). Marca el botón siempre; si ya está agregada, la actualiza.
 function amSetUnidad(id, u) {
-  const a = _amSeleccionadas.get(id);
-  if (!a) return;
-  a.unidad = u;
   const cont = document.getElementById(`am-qty-${id}`);
   if (cont) cont.querySelectorAll('.am-qty-u').forEach(b => b.classList.toggle('on', b.dataset.u === u));
-  _amActualizarResumen();
+  const a = _amSeleccionadas.get(id);
+  if (a) { a.unidad = u; _amActualizarResumen(); }
 }
 
-// Cambiar cantidad de una acción ya agregada
+// Cambiar cantidad. Si ya está agregada, la actualiza (si no, queda lista para cuando la agregue).
 function amSetCantidad(id, val) {
   const a = _amSeleccionadas.get(id);
-  if (!a) return;
-  a.cantidad = Math.max(1, Math.floor(Number(val) || 1));
-  _amActualizarResumen();
+  if (a) { a.cantidad = Math.max(1, Math.floor(Number(val) || 1)); _amActualizarResumen(); }
 }
 
 // ── Actualizar el resumen dinámico en el DOM ──────────────────────────────────
@@ -477,7 +479,7 @@ function renderAccionCard(a, opts = {}) {
         </div>` : ''}
         ${btnHtml}
         ${seleccionable ? `
-        <div class="am-qty" id="am-qty-${_amEsc(a.id)}" style="display:${yaAgregada ? 'flex' : 'none'}">
+        <div class="am-qty" id="am-qty-${_amEsc(a.id)}" style="display:flex">
           <span class="am-qty-label">Cantidad</span>
           <div class="am-qty-units">
             <button type="button" class="am-qty-u${_selUnidad(a.id) === 'botellas' ? ' on' : ''}" data-u="botellas" onclick="amSetUnidad('${_amEsc(a.id)}','botellas')">Botellas</button>
