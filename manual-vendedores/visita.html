@@ -383,6 +383,28 @@
   .baja-ia { margin-top:10px; background:#F0EEFF; border:1px solid #d9d2ff; border-radius:10px; padding:11px 12px; font-size:12.5px; color:#2c2450; line-height:1.5; }
   .baja-ia b { color:#6a4fd0; }
   .herr-note { font-size:11px; color:var(--text3,#9E9B96); background:var(--card-2,#faf5ea); border:1px dashed var(--border,rgba(31,68,127,.18)); border-radius:9px; padding:9px 11px; margin-top:4px; line-height:1.45; }
+  /* ── Fechas & Activaciones (bar) ── */
+  .fb-chips { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; }
+  .fb-chip { font-size:11.5px; font-weight:600; padding:6px 11px; border-radius:20px; border:1.5px solid var(--border,rgba(31,68,127,.2)); background:var(--surface,#fff); color:var(--text2,#5a5650); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .fb-chip.on { background:#1F447F; color:#fff; border-color:#1F447F; }
+  .fb-label { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text3,#9E9B96); margin-top:8px; }
+  .fb-in { width:100%; padding:9px 11px; border:1.5px solid var(--border-strong,rgba(31,68,127,.28)); border-radius:9px; font-family:inherit; font-size:13.5px; color:var(--text,#1A1814); margin-top:4px; box-sizing:border-box; }
+  .fb-row2 { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .fb-save { width:100%; margin-top:11px; background:#1F447F; color:#fff; border:none; border-radius:9px; font-family:inherit; font-size:13px; font-weight:700; padding:11px; cursor:pointer; }
+  .fb-card { background:var(--surface2,#faf9f7); border:1px solid var(--border,rgba(31,68,127,.14)); border-left:3px solid var(--dorado,#CBB86A); border-radius:11px; padding:11px 12px; margin-top:9px; }
+  .fb-card-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .fb-fecha { font-family:'DM Mono',monospace; font-size:12px; font-weight:700; color:#a8461f; background:#FDECEA; border-radius:7px; padding:3px 8px; }
+  .fb-nom { flex:1; font-size:13.5px; font-weight:800; color:var(--azul,#1F447F); min-width:120px; }
+  .fb-tipo-tag { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:#6a4fd0; background:#efeaff; border:1px solid #dcd2ff; padding:2px 7px; border-radius:20px; }
+  .fb-est { font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px; }
+  .fb-est.sin_trabajar { background:#eee; color:#777; } .fb-est.pendiente { background:#f6ecd3; color:#a3761a; }
+  .fb-est.aprobada { background:#E6F0E9; color:#2f7d5f; } .fb-est.hecha { background:#E6EEF6; color:#1F447F; }
+  .fb-sub { font-size:11.5px; color:var(--text3,#9E9B96); margin-top:4px; }
+  .fb-x { background:none; border:none; color:#C0341D; font-size:15px; cursor:pointer; line-height:1; }
+  .fb-ia { margin-top:9px; background:#F0EEFF; border:1px solid #d9d2ff; border-radius:9px; padding:10px 11px; font-size:12px; color:#2c2450; line-height:1.5; }
+  .fb-ia b { color:#6a4fd0; }
+  .fb-mini { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .fb-mini select, .fb-mini input { padding:6px 8px; border:1.5px solid var(--border,rgba(31,68,127,.2)); border-radius:7px; font-family:inherit; font-size:12px; }
   /* Aperitivos: párrafo opcional + botón "Ver material" */
   .oferta-desc { font-size: 10.5px; color: var(--text2); line-height: 1.35; margin: 4px 0 6px; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .oferta-desc.expanded { -webkit-line-clamp: unset; }
@@ -4380,6 +4402,7 @@ body { background:transparent !important; }
       else if (w.tipo === 'ofertas') cargarOfertasWidget(w.dataKey, sec.id);
       else if (w.tipo === 'mix_ideal') cargarMixIdeal(sec.id);
       else if (w.tipo === 'vino_copa') cargarVinoCopa(sec.id);
+      else if (w.tipo === 'fechas') cargarFechasBar(sec.id, w.modo);
       else if (w.tipo === 'calendario') renderCalendarioMes(sec.id, calRefMes, w.rubro);
       else if (w.tipo === 'materiales_pop') cargarMaterialesPOP(sec.id);
       else if (w.tipo === 'cafe_preguntas') cargarPropuestasIncorp('cafe_preguntas', 'cafe', 'Café');
@@ -4936,6 +4959,9 @@ body { background:transparent !important; }
     'oportunidades_en_carta':{ tipo: 'mix_ideal' },   // SPIRITS > Propuestas "Mix Ideal" (bar)
     'desarrollo_de_cocteleria':{ tipo: 'cocteleria' }, // SPIRITS > Desarrollo de Coctelería (bar)
     'vino_por_copa':        { tipo: 'vino_copa' },     // VINOS > Vino por Copa (bar)
+    'proximas_fechas':      { tipo: 'fechas', modo: 'registro' },    // ACTIVACIONES > Próximas fechas
+    'proponer_activacion':  { tipo: 'fechas', modo: 'activacion' },  // ACTIVACIONES > Proponer Activación
+    'seguimiento':          { tipo: 'fechas', modo: 'seguimiento' }, // ACTIVACIONES > Seguimiento
     // Fechas especiales (restaurante)
     'fe_materiales':        { tipo: 'materiales_pop' },   // Restaurantes: catálogo POP + pedido (igual que Vinotecas)
     'fe_fechas':            { tipo: 'calendario', rubro: 'restaurante' },
@@ -4995,6 +5021,7 @@ body { background:transparent !important; }
     if (w.tipo === 'mix_ideal')         return `<div class="mix-wrap" id="mix-ideal-${sec.id}"><div class="prop-loading">Cargando mixes…</div></div>`;
     if (w.tipo === 'cocteleria')        return renderCocteleria(sec);
     if (w.tipo === 'vino_copa')         return `<div class="vc-wrap" id="vino-copa-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
+    if (w.tipo === 'fechas')            return `<div class="fb-wrap" id="fb-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
     if (w.tipo === 'campari')           return renderEspCampari(sec);
     if (w.tipo === 'calendario')        return renderVtCalendario(sec);
     if (w.tipo === 'materiales_pop')    return renderVtMateriales(sec);   // ← catálogo POP + form de pedido (Vinotecas)
@@ -5683,6 +5710,157 @@ body { background:transparent !important; }
   }
 
   const _e2 = s => String(s==null?'':s).replace(/'/g,"\\'");
+
+  // ═══ FECHAS & ACTIVACIONES (bar) — ① registro · ② activación IA · ③ seguimiento ═══
+  const FB_TIPOS = ['Evento propio','DJ / show','Aniversario','Fecha especial','Happy Hour'];
+  const FB_ACCIONES = ['Trago especial','Happy Hour','Combo','Degustación','Presencia de marca','Materiales'];
+  const FB_EST_LABEL = { sin_trabajar:'Sin trabajar', pendiente:'Pendiente aprobación', aprobada:'Aprobada', hecha:'Hecha' };
+  let _fbCargado = false, _fbFechas = [], _fbConts = {}, _fbNuevo = { tipo:null };
+
+  async function cargarFechasBar(secId, modo){
+    _fbConts[modo] = secId;
+    const el = document.getElementById('fb-'+secId); if (!el) return;
+    if (!_fbCargado){
+      _fbCargado = true;
+      try { const { data } = await sb.from('fechas_bar').select('*').eq('cliente_id', cliente.id).order('fecha'); _fbFechas = Array.isArray(data) ? data : []; }
+      catch(e){ _fbFechas = []; }
+    }
+    fbRender(secId, modo);
+  }
+  function fbRefreshAll(){ Object.entries(_fbConts).forEach(([modo, secId]) => fbRender(secId, modo)); }
+  function fbRender(secId, modo){
+    const el = document.getElementById('fb-'+secId); if (!el) return;
+    el.innerHTML = modo === 'registro' ? fbRegistroHtml() : modo === 'activacion' ? fbActivacionHtml() : fbSeguimientoHtml();
+  }
+  function _fbFmt(f){ if (!f) return ''; return new Date(f+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short'}).toUpperCase(); }
+  function fbFecha(id){ return _fbFechas.find(f => f.id === id); }
+
+  // ① REGISTRO
+  function fbRegistroHtml(){
+    const chips = FB_TIPOS.map(t => `<button class="fb-chip ${_fbNuevo.tipo===t?'on':''}" onclick="fbSetTipo('${_e2(t)}')">${t}</button>`).join('');
+    const lista = _fbFechas.length ? _fbFechas.map(fbCardHtml).join('') : `<div class="herr-empty">Todavía no registraste fechas para este bar.</div>`;
+    return `<div class="fb-label">¿Tiene próximas fechas relevantes?</div>
+      <div class="fb-chips">${chips}</div>
+      <input class="fb-in" id="fb-nom" placeholder="Nombre del evento (ej: Aniversario del bar)">
+      <div class="fb-row2" style="margin-top:9px">
+        <div><div class="fb-label">Fecha</div><input class="fb-in" id="fb-fecha" type="date"></div>
+        <div><div class="fb-label">Asistencia estimada</div><input class="fb-in" id="fb-asis" type="number" min="0" placeholder="ej: 350"></div>
+      </div>
+      <button class="fb-save" onclick="fbGuardar()">+ Registrar fecha</button>
+      <div class="fb-label" style="margin-top:16px">Fechas del bar</div>
+      ${lista}`;
+  }
+  function fbSetTipo(t){ _fbNuevo.tipo = (_fbNuevo.tipo === t ? null : t); const s = _fbConts['registro']; if (s) fbRender(s, 'registro'); }
+  async function fbGuardar(){
+    const tipo = _fbNuevo.tipo,
+          nombre = (document.getElementById('fb-nom')?.value || '').trim(),
+          fecha = document.getElementById('fb-fecha')?.value || '',
+          asis = document.getElementById('fb-asis')?.value || '';
+    if (!nombre && !tipo){ showToast('Poné el tipo o el nombre de la fecha.', 'error'); return; }
+    if (!fecha){ showToast('Elegí la fecha.', 'error'); return; }
+    const fila = { cliente_id: cliente.id, vendedor_id: (vendedor && vendedor.id) || null, tipo, nombre: nombre || tipo, fecha, asistencia: asis ? Number(asis) : null, estado: 'sin_trabajar' };
+    try {
+      const { data, error } = await sb.from('fechas_bar').insert(fila).select().single();
+      if (error) throw error;
+      _fbFechas.push(data); _fbFechas.sort((a, b) => (a.fecha||'') < (b.fecha||'') ? -1 : 1);
+      _fbNuevo.tipo = null;
+      fbRefreshAll();
+      showToast('✓ Fecha registrada', 'success');
+    } catch(e){ showToast('No se pudo guardar: '+(e.message||e), 'error'); }
+  }
+  function fbCardHtml(f){
+    return `<div class="fb-card">
+      <div class="fb-card-top">
+        ${f.fecha ? `<span class="fb-fecha">${_fbFmt(f.fecha)}</span>` : ''}
+        <span class="fb-nom">${esc(f.nombre||'')}</span>
+        ${f.tipo ? `<span class="fb-tipo-tag">${esc(f.tipo)}</span>` : ''}
+        <button class="fb-x" onclick="fbBorrar('${f.id}')" title="Quitar">✕</button>
+      </div>
+      ${f.asistencia ? `<div class="fb-sub">Asistencia estimada: <b>${f.asistencia}</b> personas</div>` : ''}
+      <div class="fb-sub"><span class="fb-est ${f.estado||'sin_trabajar'}">${FB_EST_LABEL[f.estado||'sin_trabajar']}</span></div>
+    </div>`;
+  }
+  async function fbBorrar(id){
+    if (!confirm('¿Quitar esta fecha?')) return;
+    try { await sb.from('fechas_bar').delete().eq('id', id); _fbFechas = _fbFechas.filter(f => f.id !== id); fbRefreshAll(); } catch(e){}
+  }
+
+  // ② ACTIVACIÓN
+  function fbActivacionHtml(){
+    if (!_fbFechas.length) return `<div class="herr-empty">Primero registrá una fecha en "Próximas fechas".</div>`;
+    return _fbFechas.map(f => {
+      const sel = Array.isArray(f.activacion_tipos) ? f.activacion_tipos : [];
+      const chips = FB_ACCIONES.map(a => `<button class="fb-chip ${sel.includes(a)?'on':''}" onclick="fbToggleAccion('${f.id}','${_e2(a)}')">${a}</button>`).join('');
+      return `<div class="fb-card">
+        <div class="fb-card-top">${f.fecha ? `<span class="fb-fecha">${_fbFmt(f.fecha)}</span>` : ''}<span class="fb-nom">${esc(f.nombre||'')}</span></div>
+        <div class="fb-label" style="margin-top:9px">Tipo de acción</div>
+        <div class="fb-chips">${chips}</div>
+        <div class="fb-label">Marca / producto</div>
+        <input class="fb-in" value="${esc(f.activacion_producto||'')}" placeholder="Ej: Aperol" onchange="fbSetProducto('${f.id}',this.value)">
+        <button class="fb-save" style="margin-top:10px;background:linear-gradient(135deg,#1F447F,#6a4fd0)" onclick="fbSugerir('${f.id}',this)">✨ Sugerir activación</button>
+        <div id="fb-ia-${f.id}">${f.activacion_sugerencia ? `<div class="fb-ia"><b>✨ Idea:</b> ${esc(f.activacion_sugerencia)}</div>` : ''}</div>
+      </div>`;
+    }).join('');
+  }
+  async function fbToggleAccion(id, a){
+    const f = fbFecha(id); if (!f) return;
+    let arr = Array.isArray(f.activacion_tipos) ? f.activacion_tipos.slice() : [];
+    const i = arr.indexOf(a); if (i >= 0) arr.splice(i, 1); else arr.push(a);
+    f.activacion_tipos = arr;
+    const s = _fbConts['activacion']; if (s) fbRender(s, 'activacion');
+    try { await sb.from('fechas_bar').update({ activacion_tipos: arr }).eq('id', id); } catch(e){}
+  }
+  async function fbSetProducto(id, val){ const f = fbFecha(id); if (!f) return; f.activacion_producto = val.trim() || null; try { await sb.from('fechas_bar').update({ activacion_producto: f.activacion_producto }).eq('id', id); } catch(e){} }
+  async function fbSugerir(id, btn){
+    const f = fbFecha(id); if (!f) return;
+    btn.disabled = true; btn.textContent = '✨ Pensando…';
+    try {
+      const r = await fetch('/.netlify/functions/sugerir-activacion', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ fecha:f.nombre, tipo_fecha:f.tipo, tipo_bar:(cliente.tipo||'bar'), producto:f.activacion_producto||'', tipos_accion:f.activacion_tipos||[] }) });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok) throw new Error(j.error || ('error '+r.status));
+      const ideas = Array.isArray(j.ideas) ? j.ideas : [];
+      const txt = ideas.join('  ·  ');
+      f.activacion_sugerencia = txt;
+      const slot = document.getElementById('fb-ia-'+id);
+      slot.innerHTML = ideas.length ? ideas.map((it,k) => `<div class="fb-ia" ${k?'style="margin-top:6px"':''}><b>✨ Idea ${k+1}:</b> ${esc(it)}</div>`).join('') : `<div class="herr-empty">Sin ideas.</div>`;
+      const patch = { activacion_sugerencia: txt };
+      if (f.estado === 'sin_trabajar'){ f.estado = 'pendiente'; patch.estado = 'pendiente'; fbRefreshAll(); }
+      sb.from('fechas_bar').update(patch).eq('id', id);
+    } catch(e){ document.getElementById('fb-ia-'+id).innerHTML = `<div class="herr-empty">No se pudo generar: ${esc(e.message||e)}</div>`; }
+    finally { btn.disabled = false; btn.textContent = '✨ Sugerir activación'; }
+  }
+
+  // ③ SEGUIMIENTO
+  function fbSeguimientoHtml(){
+    const conAct = _fbFechas.filter(f => (Array.isArray(f.activacion_tipos) && f.activacion_tipos.length) || f.activacion_producto || f.activacion_sugerencia);
+    if (!conAct.length) return `<div class="herr-empty">Todavía no hay activaciones para seguir. Cargá una en "Proponer Activación".</div>`;
+    return conAct.map(f => `<div class="fb-card">
+      <div class="fb-card-top">${f.fecha ? `<span class="fb-fecha">${_fbFmt(f.fecha)}</span>` : ''}<span class="fb-nom">${esc((f.activacion_producto ? f.activacion_producto+' — ' : '')+(f.nombre||''))}</span></div>
+      ${(Array.isArray(f.activacion_tipos) && f.activacion_tipos.length) ? `<div class="fb-sub">${esc(f.activacion_tipos.join(' + '))}</div>` : ''}
+      <div class="fb-mini"><span class="fb-label" style="margin:0">Estado</span>
+        <select onchange="fbSetEstado('${f.id}',this.value)">${Object.entries(FB_EST_LABEL).map(([v,l]) => `<option value="${v}" ${((f.estado||'sin_trabajar')===v)?'selected':''}>${l}</option>`).join('')}</select></div>
+      <div class="fb-mini"><span class="fb-label" style="margin:0">Recordarme</span>
+        <select id="fb-rec-${f.id}"><option value="1">1 día antes</option><option value="3">3 días antes</option><option value="7" ${f.recordar_dias===7?'selected':''}>7 días antes</option><option value="15">15 días antes</option></select>
+        <button class="fb-chip" onclick="fbCrearTarea('${f.id}',this)">📌 Crear tarea en la agenda</button></div>
+      <div id="fb-tarea-${f.id}"></div>
+    </div>`).join('');
+  }
+  async function fbSetEstado(id, val){ const f = fbFecha(id); if (!f) return; f.estado = val; fbRefreshAll(); try { await sb.from('fechas_bar').update({ estado: val }).eq('id', id); } catch(e){} }
+  async function fbCrearTarea(id, btn){
+    const f = fbFecha(id); if (!f) return;
+    const dias = Number(document.getElementById('fb-rec-'+id)?.value || 7);
+    let fechaRec = null;
+    if (f.fecha){ const d = new Date(f.fecha+'T12:00:00'); d.setDate(d.getDate() - dias); fechaRec = d.toISOString().slice(0,10); }
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      await sb.from('fechas_bar').update({ recordar_dias: dias }).eq('id', id); f.recordar_dias = dias;
+      const desc = `Activación ${f.activacion_producto ? f.activacion_producto+' ' : ''}— ${f.nombre||''}${f.fecha ? ' ('+_fbFmt(f.fecha)+')' : ''}`;
+      await sb.from('compromisos').insert({ vendedor_id: (vendedor && vendedor.id) || null, cliente_id: cliente.id, seccion: 'Fechas & Activaciones', descripcion: desc, fecha_ejecucion: fechaRec || f.fecha || null, estado: 'pendiente' });
+      document.getElementById('fb-tarea-'+id).innerHTML = `<div class="fb-ia" style="background:#E6F0E9;border-color:#bfe0cf;color:#2f7d5f"><b>✓ Tarea creada</b> en tu agenda para el ${fechaRec ? _fbFmt(fechaRec) : '—'} (${dias} días antes).</div>`;
+      showToast('📌 Tarea creada en la agenda', 'success');
+    } catch(e){ showToast('No se pudo crear la tarea: '+(e.message||e), 'error'); btn.disabled = false; btn.textContent = '📌 Crear tarea en la agenda'; }
+  }
 
   // ── DESARROLLO DE COCTELERÍA: buscador de producto + IA + costeo por medida ──
   const _cocState = {};     // uid → { secId, nombre, codigo, categoria, precio, desc, volumen, cocteles }
