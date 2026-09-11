@@ -328,6 +328,16 @@
   .coc-chip.costo { background: #FDECEA; color: #a8461f; }
   .coc-chip.margen { background: #E6F0E9; color: #2f7d5f; }
   .coc-chip b { font-family: 'DM Mono',monospace; }
+  /* ── Vino por Copa (lista de Luci + calculadora) ── */
+  .vc-list { display: flex; flex-direction: column; gap: 9px; margin-bottom: 12px; }
+  .vc-empty { font-size: 12.5px; color: var(--text3); font-style: italic; padding: 6px 0 12px; }
+  .vc-card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid #7a243e; border-radius: 12px; padding: 11px 13px; }
+  .vc-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .vc-nom { flex: 1; font-size: 14px; font-weight: 800; color: var(--azul); }
+  .vc-prov { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #7a243e; background: #fbeaf0; border: 1px solid #eccdd7; padding: 2px 8px; border-radius: 20px; }
+  .vc-cond { font-size: 12.5px; color: var(--text); margin-top: 7px; }
+  .vc-desc { font-size: 11.5px; color: var(--text3); margin-top: 5px; }
+  .vc-usar { margin-top: 9px; width: 100%; background: var(--dorado-lt,rgba(203,184,106,.15)); border: 1px solid rgba(203,184,106,.4); color: #7a6830; border-radius: 9px; font-family: inherit; font-size: 12px; font-weight: 700; padding: 8px; cursor: pointer; }
   /* Aperitivos: párrafo opcional + botón "Ver material" */
   .oferta-desc { font-size: 10.5px; color: var(--text2); line-height: 1.35; margin: 4px 0 6px; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .oferta-desc.expanded { -webkit-line-clamp: unset; }
@@ -4323,6 +4333,7 @@ body { background:transparent !important; }
       if (w.tipo === 'propuestas') cargarPropuestasIncorp(sec.id, w.categoria, w.cartLabel);
       else if (w.tipo === 'ofertas') cargarOfertasWidget(w.dataKey, sec.id);
       else if (w.tipo === 'mix_ideal') cargarMixIdeal(sec.id);
+      else if (w.tipo === 'vino_copa') cargarVinoCopa(sec.id);
       else if (w.tipo === 'calendario') renderCalendarioMes(sec.id, calRefMes, w.rubro);
       else if (w.tipo === 'materiales_pop') cargarMaterialesPOP(sec.id);
       else if (w.tipo === 'cafe_preguntas') cargarPropuestasIncorp('cafe_preguntas', 'cafe', 'Café');
@@ -4878,6 +4889,7 @@ body { background:transparent !important; }
     'sp_campari':           { tipo: 'campari' },
     'oportunidades_en_carta':{ tipo: 'mix_ideal' },   // SPIRITS > Propuestas "Mix Ideal" (bar)
     'desarrollo_de_cocteleria':{ tipo: 'cocteleria' }, // SPIRITS > Desarrollo de Coctelería (bar)
+    'vino_por_copa':        { tipo: 'vino_copa' },     // VINOS > Vino por Copa (bar)
     // Fechas especiales (restaurante)
     'fe_materiales':        { tipo: 'materiales_pop' },   // Restaurantes: catálogo POP + pedido (igual que Vinotecas)
     'fe_fechas':            { tipo: 'calendario', rubro: 'restaurante' },
@@ -4918,6 +4930,8 @@ body { background:transparent !important; }
     if (/mix\s*ideal/i.test(nombre)) return { tipo: 'mix_ideal' };
     // "Desarrollo de Coctelería": IA propone cócteles + costeo por medida.
     if (/cocteler/i.test(nombre)) return { tipo: 'cocteleria' };
+    // "Vino por Copa": vinos que carga Luci + calculadora de costo por copa.
+    if (/vino\s+por\s+copa/i.test(nombre)) return { tipo: 'vino_copa' };
     if (!_ES_SLOT_OFERTAS.test(nombre)) return null;
     const cat = _categoriaDeSeccion(sec.id);
     // Sin rubro reconocible (o café, que el catálogo no tiene) no se pone nada:
@@ -4934,6 +4948,7 @@ body { background:transparent !important; }
     if (w.tipo === 'ofertas')           return `<div class="ofertas-wrap" id="ofertas-bodegas-${sec.id}"><div class="prop-loading">Cargando ofertas…</div></div>`;
     if (w.tipo === 'mix_ideal')         return `<div class="mix-wrap" id="mix-ideal-${sec.id}"><div class="prop-loading">Cargando mixes…</div></div>`;
     if (w.tipo === 'cocteleria')        return renderCocteleria(sec);
+    if (w.tipo === 'vino_copa')         return `<div class="vc-wrap" id="vino-copa-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
     if (w.tipo === 'campari')           return renderEspCampari(sec);
     if (w.tipo === 'calendario')        return renderVtCalendario(sec);
     if (w.tipo === 'materiales_pop')    return renderVtMateriales(sec);   // ← catálogo POP + form de pedido (Vinotecas)
@@ -5386,6 +5401,47 @@ body { background:transparent !important; }
       if (card) card.classList.add('added');
       showToast(`🛒 Agregado: ${nombre}`, 'success');
     }
+  }
+
+  // ── VINO POR COPA: vinos que carga Luciana + calculadora de costo por copa ──
+  async function cargarVinoCopa(secId) {
+    const el = document.getElementById(`vino-copa-${secId}`);
+    if (!el) return;
+    let vinos = [];
+    try {
+      const { data } = await sb.from('vinos_por_copa').select('*').eq('activo', true).order('orden');
+      vinos = data || [];
+    } catch (e) { vinos = []; }
+
+    const lista = vinos.length ? `<div class="vc-list">` + vinos.map(v => `
+      <div class="vc-card">
+        <div class="vc-head"><div class="vc-nom">${esc(v.nombre)}</div>${v.proveedor ? `<span class="vc-prov">${esc(v.proveedor)}</span>` : ''}</div>
+        ${v.condicion ? `<div class="vc-cond">🎁 ${esc(v.condicion)}</div>` : ''}
+        ${v.descripcion ? `<div class="vc-desc">${esc(v.descripcion)}</div>` : ''}
+        ${v.precio_botella ? `<button class="vc-usar" onclick="vcUsar(${Number(v.precio_botella)})">Botella $${Number(v.precio_botella).toLocaleString('es-AR')} · usar en la calculadora ↓</button>` : ''}
+      </div>`).join('') + `</div>`
+      : `<div class="vc-empty">Todavía no hay vinos por copa cargados. Las condiciones las carga administración.</div>`;
+
+    const calc = `
+      <div class="calc-copa">
+        <div class="calc-copa-title">Calculadora precio por copa</div>
+        <div class="calc-input-wrap">
+          <span class="calc-prefix">$</span>
+          <input class="calc-input" id="calc-botella" type="number" min="0" placeholder="Precio de la botella" oninput="calcCopa()" inputmode="numeric">
+        </div>
+        <div class="calc-results">
+          <div class="calc-result-card"><span class="calc-result-label">Costo por copa<br>(botella ÷ 5)</span><span class="calc-result-val" id="calc-costo">—</span></div>
+          <div class="calc-result-card destacado"><span class="calc-result-label">Precio sugerido<br>al público (×3)</span><span class="calc-result-val" id="calc-sugerido">—</span></div>
+        </div>
+        <div class="calc-hint">Margen recomendado: 2,5× a 3× el costo por copa</div>
+      </div>`;
+
+    el.innerHTML = lista + calc;
+  }
+
+  function vcUsar(precio) {
+    const inp = document.getElementById('calc-botella');
+    if (inp) { inp.value = precio; if (typeof calcCopa === 'function') calcCopa(); inp.scrollIntoView({ behavior:'smooth', block:'center' }); }
   }
 
   // ── DESARROLLO DE COCTELERÍA: buscador de producto + IA + costeo por medida ──
