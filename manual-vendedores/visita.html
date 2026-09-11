@@ -1842,6 +1842,7 @@ body { background:transparent !important; }
 <script src="_torneo.js"></script>
 <script src="_acciones-render.js"></script>
 <script src="_celebracion.js"></script>
+<script src="_disco-tools.js"></script>
 <script>
   const vendedor = JSON.parse(sessionStorage.getItem('vendedor') || 'null');
   const cliente  = JSON.parse(sessionStorage.getItem('cliente')  || 'null');
@@ -2746,6 +2747,7 @@ body { background:transparent !important; }
     cargarTorneoFicha();
     cargarProgresos();
     cargarSeccionesEspeciales();
+    if (typeof dcInit === 'function') dcInit();   // manual de discos (_disco-tools.js)
     // Habilitar botón Agregar en acciones mensuales
     initAccionesCallbacks();
     // Refactor Vinotecas: alertas + oportunidades automáticas
@@ -3421,6 +3423,8 @@ body { background:transparent !important; }
       }
     }
 
+    // Manual de discos: formato, relevamiento por marca, sunset, activaciones… (_disco-tools.js)
+    if (typeof dcProgreso === 'function') { const dc = dcProgreso(); if (dc) progreso['_disco'] = dc; }
     // Incluir acompañantes
     const acomp = getAcompanantes();
     if (acomp.length) progreso['acompanantes'] = acomp;
@@ -5026,6 +5030,8 @@ body { background:transparent !important; }
     if (!sec) return null;
     const explicito = WIDGET_SUBSEC[sec.id];
     if (explicito) return explicito;
+    // Herramientas del manual de discos (formato, acuerdos por marca, sunset…): _disco-tools.js
+    if (typeof DC_WIDGETS !== 'undefined' && DC_WIDGETS[sec.id]) return { tipo: DC_WIDGETS[sec.id] };
     const nombre = String(sec.titulo || sec.nombre || '');
     // "Mix Ideal": combos de productos que carga Luciana — vale para cualquier rubro.
     if (/mix\s*ideal/i.test(nombre)) return { tipo: 'mix_ideal' };
@@ -5059,6 +5065,7 @@ body { background:transparent !important; }
     if (w.tipo === 'materiales_fechas') return renderFechasMateriales(sec);
     if (w.tipo === 'catalogo_cafe')     return renderCafeCatalogo(sec);
     if (w.tipo === 'cafe_preguntas')    return renderCafePreguntas(sec);
+    if (String(w.tipo).startsWith('dc_') && typeof dcRender === 'function') return dcRender(w.tipo);
     return '';
   }
 
@@ -7087,7 +7094,8 @@ body { background:transparent !important; }
     const prox = d.proximaAccion ? [`${d.proximaAccion}${d.fechaSeguimiento?` (${d.fechaSeguimiento})`:''}`] : [];
     const obs = d.observaciones ? [d.observaciones] : [];
     const html = bloque('Acuerdos tomados', acuerdos) + bloque('Materiales solicitados', d.materiales)
-               + bloque('Próximo seguimiento', prox) + bloque('Observaciones', obs);
+               + bloque('Próximo seguimiento', prox) + bloque('Observaciones', obs)
+               + (typeof dcMinuta === 'function' ? dcMinuta(bloque) : '');
     el.innerHTML = html || `<div class="minuta-empty">Todavía no agregaste acuerdos.</div>`;
   }
 
