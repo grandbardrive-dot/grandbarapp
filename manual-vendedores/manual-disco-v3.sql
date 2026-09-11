@@ -115,8 +115,8 @@ update public.checklist_secciones s
   from (values
     ('dc_eventos',        5, 'EVENTOS PRE ARMADOS',   'Eventos con marcas para ofrecerle al boliche',   null),
     ('dc_eventos_mes',    0, 'Eventos para ofrecer',  'Condiciones de compra, materiales y beneficios', 'Los carga Luciana. Cuando el cliente toma uno, tocá "Cerrar evento" y queda como vendido.'),
-    ('dc_acuerdos',       6, 'ACUERDOS CON PARTNERS', 'Pedido a las marcas de spirits',                 null),
-    ('dc_acuerdos_marca', 0, 'Pedido a la marca',     'Lo que el cliente necesita de la marca',         'El pedido queda pendiente hasta que lo valida el supervisor.'),
+    ('dc_acuerdos',       6, 'ACUERDOS CON PARTNERS', 'Pedidos de acción a las marcas de spirits',      null),
+    ('dc_acuerdos_marca', 0, 'Pedido de acción',      'Lo que el cliente necesita de la marca',         'El pedido de acción queda pendiente hasta que lo valida el supervisor.'),
     ('dc_cierre',         7, 'CIERRE DE VISITA',      'Resumen, próxima acción y envío al cliente',     null)
   ) as v (codigo, orden, nombre, descripcion, intro)
  where s.canal = 'disco' and s.zona = 'mendoza' and s.codigo = v.codigo;

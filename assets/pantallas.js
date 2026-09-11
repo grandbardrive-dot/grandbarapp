@@ -52,7 +52,7 @@ const PANTALLAS = [
       { n:'Agendas del equipo', r:'supervisor-agendas.html',           nota:'Qué tiene planificado cada uno.' },
       { n:'Tareas del equipo',  r:'supervisor-tareas.html',            nota:'Pendientes por vendedor.' },
       { n:'Visitas del equipo', r:'supervisor-visitas.html',           nota:'Visitas cargadas y su detalle.' },
-      { n:'Pedidos a validar',  r:'supervisor-pedidos.html',           nota:'Pedidos de los boliches a las marcas partner.' },
+      { n:'Pedidos de acción',  r:'supervisor-pedidos.html',           nota:'Pedidos de acción de los boliches a las marcas partner.' },
       { n:'Asignar leads',      r:'leads-asignar.html',                nota:'Repartir posibles clientes.' },
     ],
   },

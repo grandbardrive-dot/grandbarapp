@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GrandBar Hub — Pedidos a validar</title>
+  <title>GrandBar Hub — Pedidos de acción</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <!-- Pedidos de los boliches a las marcas partner (manual de discos → Acuerdos
        con partners). Los carga el vendedor en la visita; acá el supervisor los
@@ -107,7 +107,7 @@
   <div class="main">
     <div class="content">
       <div class="head">
-        <div><h1>Pedidos a validar 📨</h1><p id="sub">Cargando pedidos…</p></div>
+        <div><h1>Pedidos de acción 📨</h1><p id="sub">Cargando pedidos de acción…</p></div>
         <div class="badge" id="badge"></div>
       </div>
 
@@ -154,7 +154,7 @@
       `<button class="tab ${FILTRO===k?'on':''}" onclick="FILTRO='${k}';render()">${l} · ${k==='todos'?PEDIDOS.length:n(k)}</button>`).join('');
     const lista = FILTRO==='todos' ? PEDIDOS : PEDIDOS.filter(p=>p.estado===FILTRO);
     document.getElementById('plist').innerHTML = lista.length ? lista.map(card).join('')
-      : `<div class="empty">${FILTRO==='pendiente' ? 'No hay pedidos esperando tu validación. 🎉' : 'No hay pedidos en esta lista.'}</div>`;
+      : `<div class="empty">${FILTRO==='pendiente' ? 'No hay pedidos de acción esperando tu validación. 🎉' : 'No hay pedidos de acción en esta lista.'}</div>`;
   }
 
   function card(p){
@@ -189,13 +189,13 @@
     if(estado==='rechazado'){
       nota = prompt('¿Por qué lo rechazás? Lo ve el vendedor en la ficha del cliente.', '');
       if(nota===null) return;
-    } else if(!confirm(`¿Aprobar el pedido de ${p.cliente_nombre||'este cliente'} a ${p.marca}?`)) return;
+    } else if(!confirm(`¿Aprobar el pedido de acción de ${p.cliente_nombre||'este cliente'} a ${p.marca}?`)) return;
     btn.disabled = true;
     const cambios = { estado, nota_supervisor: (nota||'').trim()||null, revisado_por: NOMBRE_SUP||'Supervisor', revisado_at: new Date().toISOString() };
     const { data, error } = await man.from('partner_pedidos').update(cambios).eq('id', id).eq('estado','pendiente').select('*');
     if(error || !data || !data.length){
       btn.disabled = false;
-      alert(error ? 'No se pudo guardar: '+error.message : 'Ese pedido ya lo había resuelto otra persona. Actualizo la lista.');
+      alert(error ? 'No se pudo guardar: '+error.message : 'Ese pedido de acción ya lo había resuelto otra persona. Actualizo la lista.');
       return cargar();
     }
     Object.assign(p, data[0]);
@@ -228,14 +228,14 @@
       .order('created_at',{ascending:false}).limit(500);
     if(error){
       const falta = /partner_pedidos/.test(error.message||'');
-      document.getElementById('sub').textContent = falta ? 'Falta crear la tabla de pedidos (manual-disco-v3.sql).' : 'No se pudieron traer los pedidos.';
+      document.getElementById('sub').textContent = falta ? 'Falta crear la tabla de pedidos de acción (manual-disco-v3.sql).' : 'No se pudieron traer los pedidos de acción.';
       PEDIDOS=[]; render(); return;
     }
     PEDIDOS = data||[];
     const pend = PEDIDOS.filter(p=>p.estado==='pendiente').length;
     document.getElementById('sub').textContent = pend
-      ? `${pend} pedido${pend!==1?'s':''} de tu equipo esperando tu validación.`
-      : 'No hay pedidos pendientes de tu equipo.';
+      ? `${pend} pedido${pend!==1?'s':''} de acción de tu equipo esperando tu validación.`
+      : 'No hay pedidos de acción pendientes de tu equipo.';
     render();
   }
 

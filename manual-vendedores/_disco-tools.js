@@ -230,13 +230,13 @@ function dcHtmlMarcas() {
   return `<div class="cafe-q-label">¿Qué le pide el cliente a la marca?</div>
     <div class="sega-chips">${chips}</div>
     ${fichas}
-    <div class="dc-nota">El pedido le llega al supervisor para validarlo. Hasta que lo apruebe, queda pendiente.</div>
+    <div class="dc-nota">El pedido de acción le llega al supervisor para validarlo. Hasta que lo apruebe, queda pendiente.</div>
     ${dcHtmlPedidos()}`;
 }
 
 function dcHtmlPedidos() {
   if (!DC.pedidos.length) return '';
-  return `<div class="dc-ped-tit">Pedidos de este cliente</div>` + DC.pedidos.map(p => {
+  return `<div class="dc-ped-tit">Pedidos de acción de este cliente</div>` + DC.pedidos.map(p => {
     const e = DC_ESTADOS[p.estado] || DC_ESTADOS.pendiente;
     return `<div class="dc-ped">
       <div class="dc-ped-info"><b>${esc(p.marca)}</b>
@@ -355,11 +355,11 @@ async function dcEnviarPedido(m, btn) {
     DC.enviados.push(data[0].id);
     delete DC.marcas[m];
     dcPintar('dc_marcas'); dcCambio();
-    showToast('📨 Pedido enviado al supervisor', 'success');
+    showToast('📨 Pedido de acción enviado al supervisor', 'success');
   } catch (e) {
     console.warn('[discos] no se pudo enviar el pedido:', e.message);
     if (btn) btn.disabled = false;
-    showToast('No se pudo enviar el pedido', 'error');
+    showToast('No se pudo enviar el pedido de acción', 'error');
   }
 }
 
@@ -461,8 +461,8 @@ function dcMinuta(bloque) {
   const s = d.sunset_info || {};
   return bloque('Formato del boliche', f ? [f.nombre] : [])
     + bloque('Eventos vendidos', d.eventos_vendidos.map(e => e.nombre))
-    + bloque('Pedidos a partners (a validar)', d.pedidos_enviados.map(p => unir([p.marca, p.necesita])))
-    + bloque('Pedidos sin enviar', d.pedidos_sin_enviar.map(p => p.marca + ': todavía no se mandó a validar'))
+    + bloque('Pedidos de acción (a validar)', d.pedidos_enviados.map(p => unir([p.marca, p.necesita])))
+    + bloque('Pedidos de acción sin enviar', d.pedidos_sin_enviar.map(p => p.marca + ': todavía no se mandó a validar'))
     + bloque('Activación pedida', d.activacion ? [unir([d.activacion.recursos.join(', '), d.activacion.marca, fecha(d.activacion.fecha), d.activacion.nota])] : [])
     + bloque('Sunset', d.sunset ? [unir(['Hace sunset', s.dias, s.publico && s.publico + ' personas', s.necesita])] : [])
     + bloque('Materiales restringidos (a aprobar)', d.restringidos.map(r => unir([r.material, r.cantidad && r.cantidad + ' u.', r.motivo])))
