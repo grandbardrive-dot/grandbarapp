@@ -4432,6 +4432,7 @@ body { background:transparent !important; }
       if (w.tipo === 'propuestas') cargarPropuestasIncorp(sec.id, w.categoria, w.cartLabel);
       else if (w.tipo === 'ofertas') cargarOfertasWidget(w.dataKey, sec.id);
       else if (w.tipo === 'mix_ideal') cargarMixIdeal(sec.id);
+      else if (w.tipo === 'frigobar') cargarFrigobar(sec.id);
       else if (w.tipo === 'vino_copa') cargarVinoCopa(sec.id);
       else if (w.tipo === 'fechas') cargarFechasBar(sec.id, w.modo);
       else if (w.tipo === 'evidencias') cargarEvidencias(sec.id);
@@ -4997,6 +4998,7 @@ body { background:transparent !important; }
     'seguimiento':          { tipo: 'fechas', modo: 'seguimiento' }, // ACTIVACIONES > Seguimiento
     'materiales_entregados_evid':{ tipo: 'evidencias' },  // MATERIALES > Evidencias en el PDV
     'oportunidades_de_visibilid':{ tipo: 'visibilidad' }, // MATERIALES > Oportunidades de Visibilidad
+    'pre_armados':          { tipo: 'frigobar' },         // FRIGOBAR > Pre-armados (hotel)
     // Fechas especiales (restaurante)
     'fe_materiales':        { tipo: 'materiales_pop' },   // Restaurantes: catálogo POP + pedido (igual que Vinotecas)
     'fe_fechas':            { tipo: 'calendario', rubro: 'restaurante' },
@@ -5056,6 +5058,7 @@ body { background:transparent !important; }
     if (w.tipo === 'propuestas')        return `<div class="prop-wrap" id="propuestas-incorp-${sec.id}"><div class="prop-loading">Cargando propuestas…</div></div>`;
     if (w.tipo === 'ofertas')           return `<div class="ofertas-wrap" id="ofertas-bodegas-${sec.id}"><div class="prop-loading">Cargando ofertas…</div></div>`;
     if (w.tipo === 'mix_ideal')         return `<div class="mix-wrap" id="mix-ideal-${sec.id}"><div class="prop-loading">Cargando mixes…</div></div>`;
+    if (w.tipo === 'frigobar')          return `<div class="mix-wrap" id="frigobar-${sec.id}"><div class="prop-loading">Cargando packs…</div></div>`;
     if (w.tipo === 'cocteleria')        return renderCocteleria(sec);
     if (w.tipo === 'vino_copa')         return `<div class="vc-wrap" id="vino-copa-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
     if (w.tipo === 'fechas')            return `<div class="fb-wrap" id="fb-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
@@ -5514,6 +5517,41 @@ body { background:transparent !important; }
       if (card) card.classList.add('added');
       showToast(`🛒 Agregado: ${nombre}`, 'success');
     }
+  }
+
+  // ── FRIGOBAR: packs pre-armados que carga Luciana (packs_frigobar), reusa las tarjetas de Mix ──
+  async function cargarFrigobar(secId) {
+    const el = document.getElementById(`frigobar-${secId}`);
+    if (!el) return;
+    let packs = [];
+    try {
+      const { data } = await sb.from('packs_frigobar').select('*').eq('activo', true).order('orden');
+      packs = data || [];
+    } catch (e) { el.innerHTML = ''; return; }
+    if (!packs.length) {
+      el.innerHTML = `<div class="mix-empty">Todavía no hay packs de frigobar cargados para proponer.</div>`;
+      return;
+    }
+    const secLabel = (buscarSec(secId)?.titulo) || 'Pre-armados';
+    el.innerHTML = `<div class="mix-list">` + packs.map(m => {
+      const items = String(m.contenido || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      const nombreCart = 'Pack: ' + m.nombre;
+      const added = !!cartFind(secLabel, nombreCart);
+      return `
+        <div class="mix-card ${added ? 'added' : ''}" id="mix-card-${m.id}">
+          <div class="mix-card-head">
+            <div class="mix-card-nom">${esc(m.nombre)}</div>
+            ${m.nivel ? `<span class="mix-nivel">${esc(m.nivel)}</span>` : ''}
+          </div>
+          ${items.length ? `<ul class="mix-items">${items.map(it => `<li>${esc(it)}</li>`).join('')}</ul>` : ''}
+          ${m.descripcion ? `<div class="mix-desc">${esc(m.descripcion)}</div>` : ''}
+          <div class="mix-foot">
+            ${m.precio ? `<div class="mix-precio">$ ${Number(m.precio).toLocaleString('es-AR')}</div>` : '<span></span>'}
+            <button class="mix-add ${added ? 'added' : ''}" data-seccion="${esc(secLabel)}" data-nombre="${esc(nombreCart)}"
+              onclick="toggleMixCarrito(this)">${added ? '✓ Agregado' : '+ Agregar al carrito'}</button>
+          </div>
+        </div>`;
+    }).join('') + `</div>`;
   }
 
   // ── VINO POR COPA: vinos que carga Luciana + calculadora de costo por copa ──
