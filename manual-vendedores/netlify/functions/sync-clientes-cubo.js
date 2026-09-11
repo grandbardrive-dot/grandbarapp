@@ -57,14 +57,14 @@ const RUBROS = {
 };
 
 // Vendedores cuyos clientes la sincronización NO mueve de cartera, ni para
-// adentro ni para afuera. Juan Pablo Fransó (024) y Juan Pablo Mollar (005) son
-// dos personas distintas, y CUBO pasaba 13 clientes del 024 al 005: se respeta
-// el manual.
-// Las Carolinas (003 Carrada, 039 Heluani) estuvieron protegidas hasta el
-// 11/09/2026: el usuario confirmó que en la planilla de junio estaban cruzadas y
-// que CUBO tiene razón, así que ahora siguen a CUBO como el resto.
-// Se puede cambiar sin tocar código con SYNC_VENDEDORES_PROTEGIDOS.
-const PROTEGIDOS = String((process.env && process.env.SYNC_VENDEDORES_PROTEGIDOS) || '005,024')
+// adentro ni para afuera. Hoy no hay ninguno: todo sigue a CUBO.
+// Estuvieron protegidas las Carolinas (003 Carrada, 039 Heluani) y los Juan Pablo
+// (024 Fransó, 005 Mollar), porque CUBO los tenía distinto que el manual. El
+// 11/09/2026 el usuario revisó cliente por cliente y confirmó que CUBO tenía
+// razón: la planilla de junio los había cruzado.
+// Si hace falta volver a proteger una cartera, sin tocar código:
+// SYNC_VENDEDORES_PROTEGIDOS=003,039 (códigos separados por coma).
+const PROTEGIDOS = String((process.env && process.env.SYNC_VENDEDORES_PROTEGIDOS) || '')
   .split(',').map(s => s.trim()).filter(Boolean);
 
 const norm = s => String(s == null ? '' : s).trim().toLowerCase()
