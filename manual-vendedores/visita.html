@@ -292,6 +292,42 @@
   .mix-add { background: var(--green); color: #fff; border: none; border-radius: 20px; font-family: inherit;
     font-size: 12px; font-weight: 700; padding: 8px 15px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .mix-add.added { background: #1B4332; }
+  /* ── Desarrollo de Coctelería ── */
+  .coc-search { position: relative; }
+  .coc-lupa { position: absolute; left: 12px; top: 12px; font-size: 15px; opacity: .5; pointer-events: none; }
+  .coc-input { width: 100%; padding: 11px 12px 11px 38px; border: 1.5px solid var(--border-strong,rgba(31,68,127,.28)); border-radius: 10px; font-family: inherit; font-size: 14px; color: var(--text); background: var(--surface); outline: none; }
+  .coc-input:focus { border-color: var(--azul); }
+  .coc-drop { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 12px 30px rgba(13,34,48,.16); overflow: hidden; max-height: 260px; overflow-y: auto; display: none; }
+  .coc-drop.open { display: block; }
+  .coc-drop-item { padding: 10px 13px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 8px; }
+  .coc-drop-item:last-child { border-bottom: none; }
+  .coc-drop-item:hover { background: #faf7f0; }
+  .coc-drop-item .stk { font-size: 11px; color: var(--text3); flex-shrink: 0; }
+  .coc-drop-empty { padding: 11px 13px; font-size: 12.5px; color: var(--text3); font-style: italic; }
+  .coc-sel { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+  .coc-prod { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid #1F447F; border-radius: 12px; padding: 12px 14px; }
+  .coc-prod-head { display: flex; align-items: center; gap: 10px; }
+  .coc-prod-nom { flex: 1; font-size: 14.5px; font-weight: 800; color: var(--azul); }
+  .coc-prod-x { background: none; border: none; color: #C0341D; font-size: 18px; cursor: pointer; line-height: 1; padding: 0 3px; }
+  .coc-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
+  .coc-fld { display: flex; flex-direction: column; gap: 4px; }
+  .coc-fld.wide { grid-column: 1 / -1; }
+  .coc-fld label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text3); }
+  .coc-fld input { padding: 8px 10px; border: 1.5px solid var(--border-strong,rgba(31,68,127,.28)); border-radius: 8px; font-family: 'DM Mono',monospace; font-size: 14px; font-weight: 700; color: var(--azul); }
+  .coc-fld .u { font-size: 11px; color: var(--text3); font-family: system-ui,sans-serif; font-weight: 500; }
+  .coc-ia-btn { width: 100%; margin-top: 11px; background: linear-gradient(135deg,#1F447F,#6a4fd0); color: #fff; border: none; border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 700; padding: 11px; cursor: pointer; }
+  .coc-ia-btn:disabled { opacity: .6; }
+  .coc-props { display: flex; flex-direction: column; gap: 9px; margin-top: 11px; }
+  .coc-hint { font-size: 11px; color: var(--text3); margin-top: 6px; }
+  .coc-card { border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; background: var(--surface2,#faf9f7); }
+  .coc-card-nom { font-size: 14px; font-weight: 800; color: var(--text); }
+  .coc-card-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 7px; font-size: 12px; color: var(--text2); }
+  .coc-card-meta b { color: var(--azul); font-family: 'DM Mono',monospace; }
+  .coc-calc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+  .coc-chip { font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 8px; background: rgba(31,68,127,.06); color: var(--azul); }
+  .coc-chip.costo { background: #FDECEA; color: #a8461f; }
+  .coc-chip.margen { background: #E6F0E9; color: #2f7d5f; }
+  .coc-chip b { font-family: 'DM Mono',monospace; }
   /* Aperitivos: párrafo opcional + botón "Ver material" */
   .oferta-desc { font-size: 10.5px; color: var(--text2); line-height: 1.35; margin: 4px 0 6px; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .oferta-desc.expanded { -webkit-line-clamp: unset; }
@@ -4841,6 +4877,7 @@ body { background:transparent !important; }
     // SPIRITS > Acciones de Rotación, para no repetir la misma lista.
     'sp_campari':           { tipo: 'campari' },
     'oportunidades_en_carta':{ tipo: 'mix_ideal' },   // SPIRITS > Propuestas "Mix Ideal" (bar)
+    'desarrollo_de_cocteleria':{ tipo: 'cocteleria' }, // SPIRITS > Desarrollo de Coctelería (bar)
     // Fechas especiales (restaurante)
     'fe_materiales':        { tipo: 'materiales_pop' },   // Restaurantes: catálogo POP + pedido (igual que Vinotecas)
     'fe_fechas':            { tipo: 'calendario', rubro: 'restaurante' },
@@ -4879,6 +4916,8 @@ body { background:transparent !important; }
     const nombre = String(sec.titulo || sec.nombre || '');
     // "Mix Ideal": combos de productos que carga Luciana — vale para cualquier rubro.
     if (/mix\s*ideal/i.test(nombre)) return { tipo: 'mix_ideal' };
+    // "Desarrollo de Coctelería": IA propone cócteles + costeo por medida.
+    if (/cocteler/i.test(nombre)) return { tipo: 'cocteleria' };
     if (!_ES_SLOT_OFERTAS.test(nombre)) return null;
     const cat = _categoriaDeSeccion(sec.id);
     // Sin rubro reconocible (o café, que el catálogo no tiene) no se pone nada:
@@ -4894,6 +4933,7 @@ body { background:transparent !important; }
     if (w.tipo === 'propuestas')        return `<div class="prop-wrap" id="propuestas-incorp-${sec.id}"><div class="prop-loading">Cargando propuestas…</div></div>`;
     if (w.tipo === 'ofertas')           return `<div class="ofertas-wrap" id="ofertas-bodegas-${sec.id}"><div class="prop-loading">Cargando ofertas…</div></div>`;
     if (w.tipo === 'mix_ideal')         return `<div class="mix-wrap" id="mix-ideal-${sec.id}"><div class="prop-loading">Cargando mixes…</div></div>`;
+    if (w.tipo === 'cocteleria')        return renderCocteleria(sec);
     if (w.tipo === 'campari')           return renderEspCampari(sec);
     if (w.tipo === 'calendario')        return renderVtCalendario(sec);
     if (w.tipo === 'materiales_pop')    return renderVtMateriales(sec);   // ← catálogo POP + form de pedido (Vinotecas)
@@ -5346,6 +5386,152 @@ body { background:transparent !important; }
       if (card) card.classList.add('added');
       showToast(`🛒 Agregado: ${nombre}`, 'success');
     }
+  }
+
+  // ── DESARROLLO DE COCTELERÍA: buscador de producto + IA + costeo por medida ──
+  const _cocState = {};     // uid → { secId, nombre, codigo, categoria, precio, desc, volumen, cocteles }
+  const _cocResults = {};   // secId → últimos resultados de búsqueda
+  let _cocBuscarT = null;
+
+  function renderCocteleria(sec) {
+    const id = sec.id;
+    return `<div class="coc-wrap">
+      <div class="coc-search">
+        <span class="coc-lupa">🔍</span>
+        <input class="coc-input" id="coc-input-${id}" type="text" autocomplete="off"
+               placeholder="Buscá el producto (escribí 3 letras)…"
+               oninput="cocBuscar('${id}', this.value)" onblur="setTimeout(()=>cocCerrarDrop('${id}'),160)">
+        <div class="coc-drop" id="coc-drop-${id}"></div>
+      </div>
+      <div class="coc-hint">Elegí una botella del sistema. La IA propone cócteles y calculás el costo por trago con el precio de la botella y el descuento del cliente.</div>
+      <div class="coc-sel" id="coc-sel-${id}"></div>
+    </div>`;
+  }
+
+  function cocCerrarDrop(secId){ const d=document.getElementById('coc-drop-'+secId); if(d) d.classList.remove('open'); }
+
+  function cocCategoria(desc){
+    const p=String(desc||'').toLowerCase();
+    if(/\bgin\b/.test(p)) return 'Gin';
+    if(/vodka/.test(p)) return 'Vodka';
+    if(/whisky|whiskey|bourbon/.test(p)) return 'Whisky';
+    if(/\bron\b|rum/.test(p)) return 'Ron';
+    if(/tequila/.test(p)) return 'Tequila';
+    if(/campari|aperol|cynar|fernet|vermut|vermú|ramazzotti/.test(p)) return 'Aperitivo';
+    return '';
+  }
+
+  function cocBuscar(secId, q){
+    q = String(q||'').trim();
+    const drop = document.getElementById('coc-drop-'+secId);
+    if(!drop) return;
+    if(q.length < 3){ drop.classList.remove('open'); drop.innerHTML=''; return; }
+    clearTimeout(_cocBuscarT);
+    _cocBuscarT = setTimeout(async () => {
+      drop.classList.add('open');
+      drop.innerHTML = `<div class="coc-drop-empty">Buscando…</div>`;
+      try{
+        const { data } = await sb.from('productos_grandbar')
+          .select('codigo,descripcion,stock')
+          .ilike('descripcion', '%'+q+'%').order('descripcion').limit(10);
+        const items = data || [];
+        _cocResults[secId] = items;
+        if(!items.length){ drop.innerHTML = `<div class="coc-drop-empty">Sin coincidencias para "${esc(q)}".</div>`; return; }
+        drop.innerHTML = items.map((p,idx) => `
+          <div class="coc-drop-item" onclick="cocElegir('${secId}',${idx})">
+            <span>${esc(p.descripcion)}</span>${p.stock!=null?`<span class="stk">stock ${p.stock}</span>`:''}
+          </div>`).join('');
+      }catch(e){ drop.innerHTML = `<div class="coc-drop-empty">No se pudo buscar.</div>`; }
+    }, 260);
+  }
+
+  function cocElegir(secId, idx){
+    const p = (_cocResults[secId]||[])[idx]; if(!p) return;
+    cocCerrarDrop(secId);
+    const inp = document.getElementById('coc-input-'+secId); if(inp) inp.value='';
+    const uid = 'coc'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    _cocState[uid] = { secId, nombre:p.descripcion, codigo:p.codigo, categoria:cocCategoria(p.descripcion),
+                       precio: (p.precio!=null?Number(p.precio):null), desc:0, volumen:750, cocteles:null };
+    const cont = document.getElementById('coc-sel-'+secId);
+    const div = document.createElement('div'); div.className='coc-prod'; div.id='coc-prod-'+uid;
+    div.innerHTML = cocProdHtml(uid);
+    cont.appendChild(div);
+  }
+
+  function cocProdHtml(uid){
+    const s=_cocState[uid];
+    return `
+      <div class="coc-prod-head">
+        <div class="coc-prod-nom">${esc(s.nombre)}</div>
+        <button class="coc-prod-x" onclick="cocQuitar('${uid}')" title="Quitar">✕</button>
+      </div>
+      <div class="coc-fields">
+        <div class="coc-fld"><label>Precio botella <span class="u">(del sistema)</span></label>
+          <input type="number" min="0" inputmode="numeric" value="${s.precio!=null?s.precio:''}" placeholder="$"
+                 oninput="cocSet('${uid}','precio',this.value)"></div>
+        <div class="coc-fld"><label>Desc. del cliente <span class="u">%</span></label>
+          <input type="number" min="0" max="100" inputmode="numeric" value="${s.desc||0}"
+                 oninput="cocSet('${uid}','desc',this.value)"></div>
+        <div class="coc-fld"><label>Volumen botella <span class="u">ml</span></label>
+          <input type="number" min="1" inputmode="numeric" value="${s.volumen||750}"
+                 oninput="cocSet('${uid}','volumen',this.value)"></div>
+      </div>
+      <button class="coc-ia-btn" id="coc-ia-${uid}" onclick="cocProponer('${uid}')">✨ Proponer cócteles con IA</button>
+      <div class="coc-props" id="coc-props-${uid}"></div>`;
+  }
+
+  function cocSet(uid, campo, val){
+    const s=_cocState[uid]; if(!s) return;
+    const n = Number(val); s[campo] = isNaN(n)?0:n;
+    cocRenderProps(uid);
+  }
+
+  function cocQuitar(uid){ const el=document.getElementById('coc-prod-'+uid); if(el) el.remove(); delete _cocState[uid]; }
+
+  async function cocProponer(uid){
+    const s=_cocState[uid]; if(!s) return;
+    const btn=document.getElementById('coc-ia-'+uid);
+    if(btn){ btn.disabled=true; btn.textContent='✨ Pensando cócteles…'; }
+    try{
+      const r = await fetch('/.netlify/functions/sugerir-cocteles', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ producto:s.nombre, categoria:s.categoria })
+      });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(j.error||('error '+r.status));
+      s.cocteles = Array.isArray(j.cocteles)?j.cocteles:[];
+      cocRenderProps(uid);
+      if(!s.cocteles.length) showToast('La IA no encontró cócteles para ese producto.', '');
+    }catch(e){ showToast('No se pudo generar: '+(e.message||e), 'error'); }
+    finally{ if(btn){ btn.disabled=false; btn.textContent='✨ Proponer cócteles con IA'; } }
+  }
+
+  function cocRenderProps(uid){
+    const s=_cocState[uid]; const el=document.getElementById('coc-props-'+uid);
+    if(!s || !el) return;
+    if(!s.cocteles || !s.cocteles.length){ el.innerHTML=''; return; }
+    const precio = Number(s.precio)||0;
+    const desc = Math.min(100, Math.max(0, Number(s.desc)||0));
+    const vol = Number(s.volumen)||750;
+    const precioDesc = precio * (1 - desc/100);
+    el.innerHTML = s.cocteles.map(c => {
+      const rinde = c.medida_ml>0 ? Math.floor(vol / c.medida_ml) : null;
+      const costo = (precioDesc>0 && c.medida_ml>0) ? Math.round(precioDesc * (c.medida_ml / vol)) : null;
+      const margen = (costo!=null && c.precio_sugerido) ? c.precio_sugerido - costo : null;
+      return `<div class="coc-card">
+        <div class="coc-card-nom">🍸 ${esc(c.nombre)}</div>
+        <div class="coc-card-meta">
+          <span>Medida: <b>${c.medida_ml} ml</b></span>
+          <span>Diluyente: <b>${c.diluyente?esc(c.diluyente):'—'}</b></span>
+          ${c.precio_sugerido?`<span>Precio sugerido: <b>$${c.precio_sugerido.toLocaleString('es-AR')}</b></span>`:''}
+        </div>
+        <div class="coc-calc">
+          ${rinde!=null?`<span class="coc-chip">Rinde <b>${rinde}</b> tragos/botella</span>`:''}
+          ${costo!=null?`<span class="coc-chip costo">Costo del trago <b>$${costo.toLocaleString('es-AR')}</b></span>`:`<span class="coc-chip">Cargá el precio de la botella para el costo</span>`}
+          ${margen!=null?`<span class="coc-chip margen">Ganancia <b>$${margen.toLocaleString('es-AR')}</b></span>`:''}
+        </div>
+      </div>`;
+    }).join('');
   }
 
   // Abrir modal con las tarjetas de oferta de una bodega
