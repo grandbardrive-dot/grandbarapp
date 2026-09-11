@@ -97,6 +97,7 @@ function calcular(cubo, manual, vendedores) {
   const porCampo = { nombre: 0, tipo: 0, vendedor: 0, direccion: 0 };
   const codDe = {}; vendedores.forEach(v => { codDe[v.id] = cod3(v.codigo); });
   const pares = {}; let protegidos = 0, nuevosProtegidos = 0;
+  const protDet = [];   // los que CUBO pone en otra cartera pero quedan quietos por protección
   const vistos = new Set();
 
   for (const o of cubo) {
@@ -135,7 +136,7 @@ function calcular(cubo, manual, vendedores) {
     }
     if (vid && vid !== ex.vendedor_id) {
       const de = codDe[ex.vendedor_id] || '', a = ven;
-      if (PROTEGIDOS.includes(de) || PROTEGIDOS.includes(a)) protegidos++;   // cartera protegida: no se mueve
+      if (PROTEGIDOS.includes(de) || PROTEGIDOS.includes(a)) { protegidos++; protDet.push({ ex, vid, ven: a }); }   // cartera protegida: no se mueve
       else {
         fila.vendedor_id = vid; que.push('vendedor'); porCampo.vendedor++;
         const k = (de || 'sin vendedor') + ' → ' + a;
@@ -147,7 +148,7 @@ function calcular(cubo, manual, vendedores) {
   }
 
   const noEnCubo = manual.filter(c => !vistos.has(cod5(c.codigo_cliente))).length;
-  return { nuevos, cambios, sinMapear, vendSinMatch, cambiosRubro, porCampo, noEnCubo, vistos: vistos.size, pares, protegidos, nuevosProtegidos };
+  return { nuevos, cambios, sinMapear, vendSinMatch, cambiosRubro, porCampo, noEnCubo, vistos: vistos.size, pares, protegidos, nuevosProtegidos, protDet };
 }
 
 // ── CUBO ────────────────────────────────────────────────────
@@ -248,6 +249,13 @@ async function sincronizar(modo, t0 = Date.now()) {
       vendedor_sin_mover_por_proteccion: r.protegidos,
       vendedores_protegidos: PROTEGIDOS,
       nuevos_en_carteras_protegidas: r.nuevosProtegidos,
+      // Los que CUBO pone en otra cartera pero no se mueven por la protección,
+      // para poder revisar a mano si la protección sigue teniendo sentido.
+      protegido_detalle: r.protDet.map(p => ({
+        codigo: p.ex.codigo_cliente, nombre: p.ex.nombre, tipo: p.ex.tipo,
+        de: nomVend[p.ex.vendedor_id] || '—', a: nomVend[p.vid] || p.ven,
+        par: (codVend[p.ex.vendedor_id] || 'sin vendedor') + ' → ' + p.ven,
+      })),
       // La lista COMPLETA de los que cambian de vendedor, para poder revisar un
       // traspaso cliente por cliente antes de aplicar. "par" es la misma clave
       // que usan los grupos (cambios_de_vendedor), así la pantalla puede filtrar.

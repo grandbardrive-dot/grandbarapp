@@ -108,6 +108,11 @@
       ${(d.vendedores_protegidos || []).length ? `<p class="sc-nota">Carteras protegidas: <b>${esc(d.vendedores_protegidos.join(', '))}</b> —
         ningún cliente que ya está en el manual se mueve de ni hacia ellas.${d.vendedor_sin_mover_por_proteccion ? ` <b>${n(d.vendedor_sin_mover_por_proteccion)}</b> se quedan donde están aunque CUBO diga otra cosa.` : ''}
         ${d.nuevos_en_carteras_protegidas ? `<br>Ojo: <b>${n(d.nuevos_en_carteras_protegidas)}</b> de los clientes nuevos CUBO los asigna a una de estas carteras, y entran ahí.` : ''}</p>` : ''}
+      ${(() => { const c = {}; (d.protegido_detalle || []).forEach(x => { c[x.par] = (c[x.par] || 0) + 1; });
+        const e = Object.entries(c).sort((a, b) => b[1] - a[1]);
+        return e.length ? `<p class="sc-nota" style="margin-top:12px">Lo que CUBO dice de esos clientes que quedan quietos — <b>tocá un grupo para verlos</b>:</p>
+          <div class="sc-chips">${e.map(([k, v]) =>
+            `<button type="button" class="sc-chip sc-chip-b" data-par="${esc(k)}" onclick="verPar(this)">🔒 ${esc(k)} · <b>${n(v)}</b></button>`).join('')}</div>` : ''; })()}
       <p class="sc-nota">Muestra:</p>
       ${tabla([['codigo','Código'],['nombre','Cliente'],['antes','Hoy lo tiene'],['despues','Pasa a']], d.muestras.vendedor)}
 
@@ -120,7 +125,7 @@
 
       <p class="sc-nota" style="margin-top:26px">Columnas que manda CUBO: ${esc((d.cubo.columnas || []).join(', '))}.
         Campo de baja: ${esc(d.cubo.campo_estado || 'no encontrado — los nuevos entran visibles')}. Tardó ${n(d.ms)} ms.</p>`;
-    window._VD = d.vendedor_detalle || [];
+    window._VD = (d.vendedor_detalle || []).concat(d.protegido_detalle || []);
   }
 
   // Al tocar un grupo de "Cambios de vendedor", muestra TODOS sus clientes, para
