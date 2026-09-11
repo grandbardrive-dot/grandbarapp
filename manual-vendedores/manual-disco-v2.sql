@@ -25,7 +25,7 @@
 alter table public.clientes add column if not exists perfil jsonb not null default '{}'::jsonb;
 
 -- 0b) Cada sección dice en qué boliches se muestra: null = siempre,
---     'con_previa' = solo con previa (cena + boliche), 'sin_previa' = solo sin previa.
+--     'con_previa' = solo boliches con previa, 'sin_previa' = solo boliches sin previa.
 --     Se cambia desde Secciones → Discos ("¿Cuándo se muestra?").
 alter table public.checklist_secciones add column if not exists solo_formato text
   check (solo_formato in ('con_previa', 'sin_previa'));
@@ -38,7 +38,7 @@ update public.checklist_secciones
 -- 2) Secciones madre
 with m (codigo, nombre, descripcion, icono, especial, intro, orden) as (values
   ('dc_intro',       'INTRODUCCIÓN & PREPARACIÓN', 'Preparación de la visita',                              '🎧', null,             null, 0),
-  ('dc_carta',       'CARTA',                      'Solo boliches con previa: cena desde las 21 h',         '🍽️', null,             'Solo para boliches con previa (cena + boliche).', 1),
+  ('dc_carta',       'CARTA',                      'Solo boliches con previa',                              '🍽️', null,             'Solo para boliches con previa.', 1),
   ('dc_acuerdos',    'ACUERDOS',                   'Relevamiento: volumen, marcas, fee y plata solicitada', '🤝', null,             null, 2),
   ('dc_eventos',     'EVENTOS & ACTIVACIONES',     'Eventos prearmados del mes y activaciones en el boliche','🎉', null,             null, 3),
   ('dc_materiales',  'MATERIALES',                 'Disponibles y restringidos',                            '📦', null,             null, 4),

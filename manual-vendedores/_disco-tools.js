@@ -3,8 +3,8 @@
 //
 //  Salen de la reunión de discos (minuta de septiembre 2026):
 //   · CON PREVIA o SIN PREVIA: al entrar al manual de un boliche se elige cómo
-//     trabaja (con previa = cena desde las 21 h + boliche; sin previa = solo
-//     boliche nocturno). Queda en la ficha del cliente (clientes.perfil) y las
+//     trabaja ("Boliche con previa" o "Boliche sin previa", sin más detalle: así lo(?
+)//     pidió el usuario). Queda en la ficha del cliente (clientes.perfil) y las
 //     próximas visitas ya entran con eso. Según la respuesta, el manual se arma
 //     SIN las secciones que no corresponden: cada sección dice en qué caso se
 //     muestra (checklist_secciones.solo_formato, se edita en Secciones → Discos).
@@ -29,8 +29,8 @@ const DC_OTRA     = 'Otra marca';
 const DC_RECURSOS = ['Bartender', 'Bandejas de shot', 'Tragos regalados', 'Merchandise de marca', 'Precintos'];
 
 const DC_FORMATOS = {
-  con_previa: { ico: '🍽️', nombre: 'Con previa', detalle: 'Cena desde las 21 h + boliche' },
-  sin_previa: { ico: '🌙', nombre: 'Sin previa', detalle: 'Solo boliche nocturno' },
+  con_previa: { ico: '🍽️', nombre: 'Boliche con previa' },
+  sin_previa: { ico: '🌙', nombre: 'Boliche sin previa' },
 };
 
 // Qué herramienta va en cada subsección (código → herramienta).
@@ -106,7 +106,7 @@ function dcPedirFormato(cancelable) {
   return new Promise(resolve => {
     document.getElementById('dc-modal')?.remove();
     const op = v => { const f = DC_FORMATOS[v];
-      return `<button type="button" class="dc-op${DC.formato === v ? ' on' : ''}" data-v="${v}"><b>${f.ico} ${f.nombre}</b><small>${f.detalle}</small></button>`; };
+      return `<button type="button" class="dc-op${DC.formato === v ? ' on' : ''}" data-v="${v}"><b>${f.ico} ${f.nombre}</b></button>`; };
     document.body.insertAdjacentHTML('beforeend', `
       <div class="dc-modal-ov" id="dc-modal"><div class="dc-modal" role="dialog" aria-modal="true">
         <div class="dc-modal-tit">¿Cómo trabaja ${esc((cliente && cliente.nombre) || 'este boliche')}?</div>
@@ -132,7 +132,7 @@ function dcPintarBarra() {
   if (!barra) { cont.insertAdjacentHTML('beforebegin', '<div class="dc-barra" id="dc-barra"></div>'); barra = document.getElementById('dc-barra'); }
   const f = DC_FORMATOS[DC.formato];
   barra.innerHTML = `<span class="dc-barra-ico">${f.ico}</span>
-    <div class="dc-barra-txt"><b>${f.nombre}</b><small>${f.detalle}</small></div>
+    <div class="dc-barra-txt"><b>${f.nombre}</b></div>
     <button type="button" class="dc-barra-btn" onclick="dcCambiarFormato()">Cambiar</button>`;
 }
 
@@ -300,7 +300,7 @@ function dcMinuta(bloque) {
   const fecha = f => f ? new Date(f + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : '';
   const f = DC_FORMATOS[d.formato];
   const s = d.sunset_info || {};
-  return bloque('Formato del boliche', f ? [`${f.nombre} (${f.detalle.toLowerCase()})`] : [])
+  return bloque('Formato del boliche', f ? [f.nombre] : [])
     + bloque('Relevamiento por marca', d.marcas.map(m => `${m.marca}: ` + (unir([
         m.volumen, m.preferidas && 'prefiere ' + m.preferidas, m.fee && 'fee ' + pesos(m.fee), m.plata && 'pide ' + pesos(m.plata),
       ]) || 'sin datos todavía')))
