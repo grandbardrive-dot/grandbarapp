@@ -227,7 +227,7 @@
     const { data, error } = await sb.from('vinos_por_copa').select('*').order('orden').order('created_at');
     if(error){
       $('aviso').innerHTML = `<div class="aviso error"><span>⚠️</span><div>
-        Todavía no está creada la tabla de Mix Ideal. Andá a <b>Supabase → SQL Editor</b>, pegá el contenido de
+        Todavía no está creada la tabla de Vino por Copa. Andá a <b>Supabase → SQL Editor</b>, pegá el contenido de
         <code>manual-vendedores/vino-copa-setup.sql</code> y ejecutalo. Después recargá esta página.
         <div style="margin-top:6px;font-size:12px;color:var(--ink3)">Detalle: ${esc(error.message)}</div></div></div>`;
       $('lista').innerHTML='';
