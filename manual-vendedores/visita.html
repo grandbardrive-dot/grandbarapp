@@ -405,6 +405,10 @@
   .fb-ia b { color:#6a4fd0; }
   .fb-mini { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:8px; }
   .fb-mini select, .fb-mini input { padding:6px 8px; border:1.5px solid var(--border,rgba(31,68,127,.2)); border-radius:7px; font-family:inherit; font-size:12px; }
+  .fb-placas-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:6px 0 14px; }
+  .fb-placa { padding:0; border:1px solid var(--border,rgba(31,68,127,.16)); border-radius:10px; background:var(--surface,#fff); cursor:pointer; overflow:hidden; display:flex; flex-direction:column; -webkit-tap-highlight-color:transparent; }
+  .fb-placa img { width:100%; aspect-ratio:9/16; object-fit:cover; background:#000; display:block; }
+  .fb-placa span { font-size:10px; font-weight:600; color:var(--text2,#5a5650); padding:5px 6px; line-height:1.2; text-align:left; }
   /* Aperitivos: párrafo opcional + botón "Ver material" */
   .oferta-desc { font-size: 10.5px; color: var(--text2); line-height: 1.35; margin: 4px 0 6px; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .oferta-desc.expanded { -webkit-line-clamp: unset; }
@@ -5730,13 +5734,28 @@ body { background:transparent !important; }
   function fbRefreshAll(){ Object.entries(_fbConts).forEach(([modo, secId]) => fbRender(secId, modo)); }
   function fbRender(secId, modo){
     const el = document.getElementById('fb-'+secId); if (!el) return;
-    el.innerHTML = modo === 'registro' ? fbRegistroHtml() : modo === 'activacion' ? fbActivacionHtml() : fbSeguimientoHtml();
+    if (modo === 'registro'){ el.innerHTML = fbRegistroHtml(secId); try { renderCalendarioMes(secId, calRefMes, checklist.id); } catch(e){} }
+    else if (modo === 'activacion'){ el.innerHTML = fbActivacionHtml(); fbCargarPlacas(); }
+    else el.innerHTML = fbSeguimientoHtml();
+  }
+  // Galería de placas de fechas (las que cargó GrandBar para el rubro) — se personalizan con el logo del cliente
+  async function fbCargarPlacas(){
+    const el = document.getElementById('fb-placas'); if (!el) return;
+    let evs = [];
+    try { evs = await _getFechasCal(checklist.id); } catch(e){ evs = []; }
+    const conImg = (evs || []).filter(e => e.imagen_url);
+    if (!conImg.length){ el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="fb-label" style="margin-top:2px">Placas de fechas — personalizá con el logo del cliente</div>
+      <div class="fb-placas-grid">` + conImg.map(e => `
+        <button class="fb-placa" data-url="${esc(e.imagen_url)}" data-titulo="${esc(e.nombre||'')}" data-ctx="${esc(cliente.nombre||'')}" onclick="abrirPlacaDesde(this)">
+          <img src="${esc(e.imagen_url)}" loading="lazy" alt=""><span>${esc(e.nombre||'')}</span>
+        </button>`).join('') + `</div>`;
   }
   function _fbFmt(f){ if (!f) return ''; return new Date(f+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short'}).toUpperCase(); }
   function fbFecha(id){ return _fbFechas.find(f => f.id === id); }
 
   // ① REGISTRO
-  function fbRegistroHtml(){
+  function fbRegistroHtml(secId){
     const chips = FB_TIPOS.map(t => `<button class="fb-chip ${_fbNuevo.tipo===t?'on':''}" onclick="fbSetTipo('${_e2(t)}')">${t}</button>`).join('');
     const lista = _fbFechas.length ? _fbFechas.map(fbCardHtml).join('') : `<div class="herr-empty">Todavía no registraste fechas para este bar.</div>`;
     return `<div class="fb-label">¿Tiene próximas fechas relevantes?</div>
@@ -5748,7 +5767,9 @@ body { background:transparent !important; }
       </div>
       <button class="fb-save" onclick="fbGuardar()">+ Registrar fecha</button>
       <div class="fb-label" style="margin-top:16px">Fechas del bar</div>
-      ${lista}`;
+      ${lista}
+      <div class="fb-label" style="margin-top:16px">Calendario comercial GrandBar</div>
+      <div class="esp-block" style="padding:0;border:none;background:none"><div id="vt-cal-${secId}"><div class="esp-loading">Cargando calendario…</div></div></div>`;
   }
   function fbSetTipo(t){ _fbNuevo.tipo = (_fbNuevo.tipo === t ? null : t); const s = _fbConts['registro']; if (s) fbRender(s, 'registro'); }
   async function fbGuardar(){
@@ -5787,8 +5808,9 @@ body { background:transparent !important; }
 
   // ② ACTIVACIÓN
   function fbActivacionHtml(){
-    if (!_fbFechas.length) return `<div class="herr-empty">Primero registrá una fecha en "Próximas fechas".</div>`;
-    return _fbFechas.map(f => {
+    const placas = `<div id="fb-placas"></div>`;
+    if (!_fbFechas.length) return placas + `<div class="herr-empty">Registrá una fecha en "Próximas fechas" para asociarle una activación.</div>`;
+    return placas + _fbFechas.map(f => {
       const sel = Array.isArray(f.activacion_tipos) ? f.activacion_tipos : [];
       const chips = FB_ACCIONES.map(a => `<button class="fb-chip ${sel.includes(a)?'on':''}" onclick="fbToggleAccion('${f.id}','${_e2(a)}')">${a}</button>`).join('');
       return `<div class="fb-card">
