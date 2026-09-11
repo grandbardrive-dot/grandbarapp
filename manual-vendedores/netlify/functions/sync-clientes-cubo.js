@@ -61,8 +61,10 @@ const RUBROS = {
 // personas con clientes propios, pero en CUBO casi toda la cartera figura bajo
 // el 039 (125 cuentas contra 5). Aplicar eso le vaciaba la cartera al 003, que
 // en el manual tiene 113 clientes. Hasta que CUBO lo refleje bien, se respeta el
-// manual. Se puede cambiar sin tocar código con SYNC_VENDEDORES_PROTEGIDOS.
-const PROTEGIDOS = String((process.env && process.env.SYNC_VENDEDORES_PROTEGIDOS) || '003,039')
+// manual. Lo mismo con Juan Pablo Fransó (024) y Juan Pablo Mollar (005): dos
+// personas distintas, y CUBO pasaba 13 clientes del 024 al 005.
+// Se puede cambiar sin tocar código con SYNC_VENDEDORES_PROTEGIDOS.
+const PROTEGIDOS = String((process.env && process.env.SYNC_VENDEDORES_PROTEGIDOS) || '003,039,005,024')
   .split(',').map(s => s.trim()).filter(Boolean);
 
 const norm = s => String(s == null ? '' : s).trim().toLowerCase()
