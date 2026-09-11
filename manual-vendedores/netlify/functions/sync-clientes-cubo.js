@@ -214,7 +214,15 @@ exports.handler = async (event) => {
   try {
     if (!(await autorizado(event))) return json(401, { error: 'Solo Desarrollo, Diseño o admin pueden correr la sincronización.' });
     const modo = ((event.queryStringParameters || {}).modo || 'simulacro').toLowerCase() === 'aplicar' ? 'aplicar' : 'simulacro';
+    return json(200, await sincronizar(modo, t0));
+  } catch (e) {
+    return json(500, { error: (e && e.message) || String(e), ms: Date.now() - t0 });
+  }
+};
 
+// Lee CUBO y el manual, calcula y (si modo=aplicar) escribe. Devuelve el informe.
+// La usan esta función (pantalla sync-clientes.html) y sync-clientes-cron (cada hora).
+async function sincronizar(modo, t0 = Date.now()) {
     const [cubo, manual, vendedores] = await Promise.all([
       clientesDeCubo(),
       traerTodo(man, 'clientes?select=id,codigo_cliente,nombre,direccion,tipo,vendedor_id&order=id'),
@@ -264,10 +272,8 @@ exports.handler = async (event) => {
       informe.escrito = { insertados: ins.ok, actualizados: act.ok, errores: ins.errores.concat(act.errores) };
     }
     informe.ms = Date.now() - t0;
-    return json(200, informe);
-  } catch (e) {
-    return json(500, { error: (e && e.message) || String(e), ms: Date.now() - t0 });
-  }
-};
+    return informe;
+}
 
-exports.calcular = calcular;   // para probar el cálculo sin conectarse a CUBO
+exports.calcular = calcular;         // para probar el cálculo sin conectarse a CUBO
+exports.sincronizar = sincronizar;   // la usa sync-clientes-cron

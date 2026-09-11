@@ -15,3 +15,9 @@
 # antes / una hora antes). Ver manual-vendedores/netlify/functions/push-cron.js
 [functions."push-cron"]
   schedule = "*/15 * * * *"
+
+# Clientes del manual al día con CUBO: cada hora trae los nuevos y corrige
+# nombre, rubro y vendedor. CUBO no avisa cambios, así que se le pregunta seguido.
+# Ver manual-vendedores/netlify/functions/sync-clientes-cron.js
+[functions."sync-clientes-cron"]
+  schedule = "0 * * * *"
