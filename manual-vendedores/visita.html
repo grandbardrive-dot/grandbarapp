@@ -2841,7 +2841,7 @@ body { background:transparent !important; }
   // Contenido interno de una sección hoja (planes + ítems + widgets + obs)
   function seccionContenido(sec) {
     // Incorporaciones (s1) no muestra tarjetas de planes: usa el widget de proveedores
-    const planesHtml = (sec.planes && sec.planes.length && sec.id !== 's1') ? `<div class="plans-zone">
+    const planesHtml = (sec.planes && sec.planes.length && sec.id !== 's1' && sec.id !== 'dc_eventos_mes') ? `<div class="plans-zone">
       <div class="plans-zone-label">Planes activos</div>
       ${sec.planes.map(p=>`<div class="plan-card">
         <div class="plan-header" onclick="togglePlan('${p.id}')">
@@ -5035,7 +5035,7 @@ body { background:transparent !important; }
     const explicito = WIDGET_SUBSEC[sec.id];
     if (explicito) return explicito;
     // Herramientas del manual de discos (formato, acuerdos por marca, sunset…): _disco-tools.js
-    if (typeof DC_WIDGETS !== 'undefined' && DC_WIDGETS[sec.id]) return { tipo: DC_WIDGETS[sec.id] };
+    if (typeof dcWidgetDe === 'function') { const dw = dcWidgetDe(sec); if (dw) return dw; }
     const nombre = String(sec.titulo || sec.nombre || '');
     // "Mix Ideal": combos de productos que carga Luciana — vale para cualquier rubro.
     if (/mix\s*ideal/i.test(nombre)) return { tipo: 'mix_ideal' };
@@ -5070,7 +5070,7 @@ body { background:transparent !important; }
     if (w.tipo === 'materiales_fechas') return renderFechasMateriales(sec);
     if (w.tipo === 'catalogo_cafe')     return renderCafeCatalogo(sec);
     if (w.tipo === 'cafe_preguntas')    return renderCafePreguntas(sec);
-    if (String(w.tipo).startsWith('dc_') && typeof dcRender === 'function') return dcRender(w.tipo);
+    if (String(w.tipo).startsWith('dc_') && typeof dcRender === 'function') return dcRender(w.tipo, sec);
     return '';
   }
 
