@@ -269,6 +269,15 @@
       <div class="fld" style="margin-top:16px">
         <label class="sw"><input type="checkbox" id="f-activa" checked> Visible en el manual</label>
       </div>
+      <!-- Solo en Discos: el manual se arma distinto según el boliche tenga previa o no -->
+      <div class="fld" id="f-formato-wrap" style="margin-top:12px;display:none">
+        <label>¿Cuándo se muestra?</label>
+        <select id="f-formato">
+          <option value="">Siempre</option>
+          <option value="con_previa">Solo boliches con previa (cena + boliche)</option>
+          <option value="sin_previa">Solo boliches sin previa (solo boliche)</option>
+        </select>
+      </div>
       <div class="msg" id="m-msg"></div>
     </div>
     <div class="modal-foot">
@@ -460,7 +469,7 @@
         ? hs.map((h,j)=>`<div class="sub ${h.activa===false?'off':''}">
               <div class="sub-ico" style="background:${h.icono_bg||'#EAF2FB'};color:${h.icono_color||'#1F447F'}">${h.icono||'📋'}</div>
               <div class="sub-info">
-                <div class="sub-name">${esc(h.nombre)} ${h.activa===false?'<span class="tag off">Oculta</span>':''} ${tagItems(h)} ${tagUso(h.codigo)}</div>
+                <div class="sub-name">${esc(h.nombre)} ${h.activa===false?'<span class="tag off">Oculta</span>':''} ${tagItems(h)} ${tagFormato(h)} ${tagUso(h.codigo)}</div>
                 ${h.descripcion?`<div class="sub-desc">${esc(h.descripcion)}</div>`:''}
               </div>
               <div class="acts">
@@ -477,7 +486,7 @@
         <div class="sec-head">
           <div class="sec-ico" style="background:${m.icono_bg||'#EAF2FB'};color:${m.icono_color||'#1F447F'}">${m.icono||'📋'}</div>
           <div class="sec-info">
-            <div class="sec-name">${esc(m.nombre)} ${m.activa===false?'<span class="tag off">Oculta</span>':''} ${hs.length?`<span class="tag">${hs.length} ${hs.length>1?'subsecciones':'subsección'}</span>`:tagItems(m)} ${hs.length?'':tagUso(m.codigo)}</div>
+            <div class="sec-name">${esc(m.nombre)} ${m.activa===false?'<span class="tag off">Oculta</span>':''} ${tagFormato(m)} ${hs.length?`<span class="tag">${hs.length} ${hs.length>1?'subsecciones':'subsección'}</span>`:tagItems(m)} ${hs.length?'':tagUso(m.codigo)}</div>
             ${m.descripcion?`<div class="sec-desc">${esc(m.descripcion)}</div>`:''}
           </div>
           <div class="acts">
@@ -510,6 +519,7 @@
     document.getElementById('f-nombre').value=''; document.getElementById('f-desc').value='';
     document.getElementById('f-intro').value='';  document.getElementById('f-icono').value='📋';
     document.getElementById('f-activa').checked=true; document.getElementById('m-msg').textContent='';
+    document.getElementById('f-formato').value=''; document.getElementById('f-formato-wrap').style.display = canal==='disco' ? '' : 'none';
     colorSel=0; pintarColores(); pintarEmojis();
     document.getElementById('ov').classList.add('open');
     setTimeout(()=>document.getElementById('f-nombre').focus(),80);
@@ -522,10 +532,18 @@
     document.getElementById('f-nombre').value=edit.nombre||''; document.getElementById('f-desc').value=edit.descripcion||'';
     document.getElementById('f-intro').value=edit.intro||'';   document.getElementById('f-icono').value=edit.icono||'📋';
     document.getElementById('f-activa').checked=edit.activa!==false; document.getElementById('m-msg').textContent='';
+    document.getElementById('f-formato').value=edit.solo_formato||''; document.getElementById('f-formato-wrap').style.display = canal==='disco' ? '' : 'none';
     colorSel=Math.max(0, COLORES.findIndex(c=>c.bg===edit.icono_bg)); pintarColores(); pintarEmojis();
     document.getElementById('ov').classList.add('open');
   }
   function cerrarModal(){ document.getElementById('ov').classList.remove('open'); }
+
+  // Discos: en qué boliches se muestra la sección (con previa / sin previa).
+  function tagFormato(s){
+    if(s.solo_formato==='con_previa') return '<span class="tag">🍽️ Solo con previa</span>';
+    if(s.solo_formato==='sin_previa') return '<span class="tag">🌙 Solo sin previa</span>';
+    return '';
+  }
 
   // Código interno (lo usa el manual y las campañas). Se arma solo desde el nombre.
   function generarCodigo(nombre){
@@ -552,6 +570,7 @@
       icono_color: col.fg,
       activa:      document.getElementById('f-activa').checked,
     };
+    if(canal==='disco') fila.solo_formato = document.getElementById('f-formato').value || null;
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…';
     document.getElementById('m-save').disabled=true;
     try{

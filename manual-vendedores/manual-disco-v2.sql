@@ -24,6 +24,12 @@
 --    con CUBO no toca esta columna.
 alter table public.clientes add column if not exists perfil jsonb not null default '{}'::jsonb;
 
+-- 0b) Cada sección dice en qué boliches se muestra: null = siempre,
+--     'con_previa' = solo con previa (cena + boliche), 'sin_previa' = solo sin previa.
+--     Se cambia desde Secciones → Discos ("¿Cuándo se muestra?").
+alter table public.checklist_secciones add column if not exists solo_formato text
+  check (solo_formato in ('con_previa', 'sin_previa'));
+
 -- 1) Apagar el manual anterior (la copia de Bares)
 update public.checklist_secciones
    set activa = false
@@ -31,8 +37,8 @@ update public.checklist_secciones
 
 -- 2) Secciones madre
 with m (codigo, nombre, descripcion, icono, especial, intro, orden) as (values
-  ('dc_intro',       'INTRODUCCIÓN & PREPARACIÓN', 'Formato del boliche y preparación de la visita',        '🎧', null,             null, 0),
-  ('dc_carta',       'CARTA',                      'Solo boliches con previa: cena desde las 21 h',         '🍽️', null,             'Aparece solo si el boliche tiene previa (cena + boliche).', 1),
+  ('dc_intro',       'INTRODUCCIÓN & PREPARACIÓN', 'Preparación de la visita',                              '🎧', null,             null, 0),
+  ('dc_carta',       'CARTA',                      'Solo boliches con previa: cena desde las 21 h',         '🍽️', null,             'Solo para boliches con previa (cena + boliche).', 1),
   ('dc_acuerdos',    'ACUERDOS',                   'Relevamiento: volumen, marcas, fee y plata solicitada', '🤝', null,             null, 2),
   ('dc_eventos',     'EVENTOS & ACTIVACIONES',     'Eventos prearmados del mes y activaciones en el boliche','🎉', null,             null, 3),
   ('dc_materiales',  'MATERIALES',                 'Disponibles y restringidos',                            '📦', null,             null, 4),
@@ -67,6 +73,10 @@ select 'disco', 'mendoza', h.codigo, h.nombre, h.descripcion, h.icono, h.especia
   from h
 on conflict (canal, zona, codigo) do nothing;
 
+-- 3b) Carta (Vino por Copa, Mix Ideal, Coctelería…) va solo en los boliches con previa.
+update public.checklist_secciones set solo_formato = 'con_previa'
+ where canal = 'disco' and codigo = 'dc_carta' and solo_formato is null;
+
 -- 4) Tareas para tildar
 with i (codigo, texto, orden) as (values
   ('dc_intro',        'Revisé el historial del cliente antes de la visita',                            0),
@@ -83,7 +93,7 @@ select s.id, i.texto, i.orden, true
  where not exists (select 1 from public.checklist_items x where x.seccion_id = s.id and x.texto = i.texto);
 
 -- 5) Comprobar: tiene que listar 7 madres y 13 subsecciones activas, y 6 tareas
-select coalesce(m.nombre || '  ›  ', '') || s.nombre as seccion, s.codigo, s.especial,
+select coalesce(m.nombre || '  ›  ', '') || s.nombre as seccion, s.codigo, s.especial, s.solo_formato,
        (select count(*) from public.checklist_items i where i.seccion_id = s.id) as tareas
   from public.checklist_secciones s
   left join public.checklist_secciones m on m.id = s.parent_id

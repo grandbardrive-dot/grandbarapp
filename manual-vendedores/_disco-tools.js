@@ -2,10 +2,13 @@
 //  Manual de DISCOS · herramientas de la visita (las usa visita.html)
 //
 //  Salen de la reunión de discos (minuta de septiembre 2026):
-//   · El FORMATO del boliche se define la primera vez y queda en la ficha del
-//     cliente (clientes.perfil): con previa = cena desde las 21 h + boliche;
-//     sin previa = solo boliche nocturno. La sección CARTA solo aparece en los
-//     boliches con previa.
+//   · CON PREVIA o SIN PREVIA: al entrar al manual de un boliche se elige cómo
+//     trabaja (con previa = cena desde las 21 h + boliche; sin previa = solo
+//     boliche nocturno). Queda en la ficha del cliente (clientes.perfil) y las
+//     próximas visitas ya entran con eso. Según la respuesta, el manual se arma
+//     SIN las secciones que no corresponden: cada sección dice en qué caso se
+//     muestra (checklist_secciones.solo_formato, se edita en Secciones → Discos).
+//     Ej: Carta (Vino por Copa, Mix Ideal…) va solo con previa.
 //   · Los ACUERDOS son un relevamiento (volumen, marcas preferidas, fee, plata
 //     solicitada), no un documento cerrado: Comercial los define después.
 //   · SUNSET va dentro de Acuerdos, con la pregunta previa de si lo hace
@@ -25,9 +28,13 @@ const DC_MARCAS   = ['Pernod Ricard', 'Campari', 'Viajero'];
 const DC_OTRA     = 'Otra marca';
 const DC_RECURSOS = ['Bartender', 'Bandejas de shot', 'Tragos regalados', 'Merchandise de marca', 'Precintos'];
 
+const DC_FORMATOS = {
+  con_previa: { ico: '🍽️', nombre: 'Con previa', detalle: 'Cena desde las 21 h + boliche' },
+  sin_previa: { ico: '🌙', nombre: 'Sin previa', detalle: 'Solo boliche nocturno' },
+};
+
 // Qué herramienta va en cada subsección (código → herramienta).
 const DC_WIDGETS = {
-  dc_intro:            'dc_formato',
   dc_acuerdos_marca:   'dc_marcas',
   dc_sunset:           'dc_sunset',
   dc_activaciones:     'dc_activacion',
@@ -59,7 +66,87 @@ const DC_LISTAS = {
   },
 };
 
-// ── Render ──────────────────────────────────────────────────
+const _esDisco = cl => !!cl && cl.id === 'disco';
+
+// ── Con previa / sin previa ─────────────────────────────────
+// Lo llama init() de visita.html ANTES de dibujar el manual. Si el boliche
+// todavía no tiene formato, pregunta y espera la respuesta. Devuelve el manual
+// sin las secciones que no corresponden (una copia: el original queda en caché).
+async function dcPrepararChecklist(cl) {
+  if (!_esDisco(cl)) return cl;
+  // La ficha que viene de la lista puede no traer el perfil: se lee acá.
+  try {
+    const { data, error } = await sb.from('clientes').select('perfil').eq('id', cliente.id).maybeSingle();
+    if (!error && data) cliente.perfil = data.perfil || {};
+  } catch (e) { /* sin columna perfil todavía: se usa lo que haya en la sesión */ }
+  const p = cliente.perfil || {};
+  DC.formato = DC_FORMATOS[p.formato] ? p.formato : null;
+  if (typeof p.sunset === 'boolean') DC.sunset = p.sunset;
+  if (!DC.formato) {
+    DC.formato = await dcPedirFormato(false);
+    dcGuardarPerfil({ formato: DC.formato });   // no hace falta esperarlo para seguir
+  }
+  return dcFiltrar(cl, DC.formato);
+}
+
+// Saca las secciones marcadas para el otro formato. Una sección madre que se
+// queda sin subsecciones (y no tiene tareas propias) sale también.
+function dcFiltrar(cl, formato) {
+  const va = s => !s.soloFormato || !formato || s.soloFormato === formato;
+  const secciones = cl.secciones.filter(va).map(m => {
+    if (!m.subsecciones || !m.subsecciones.length) return m;
+    return { ...m, subsecciones: m.subsecciones.filter(va) };
+  }).filter(m => !(m.subsecciones && !m.subsecciones.length && !(m.items && m.items.length) && !m.especial));
+  return { ...cl, secciones };
+}
+
+// Ventana para elegir el formato. Devuelve una promesa con 'con_previa' |
+// 'sin_previa', o null si se canceló (solo cuando se está cambiando).
+function dcPedirFormato(cancelable) {
+  return new Promise(resolve => {
+    document.getElementById('dc-modal')?.remove();
+    const op = v => { const f = DC_FORMATOS[v];
+      return `<button type="button" class="dc-op${DC.formato === v ? ' on' : ''}" data-v="${v}"><b>${f.ico} ${f.nombre}</b><small>${f.detalle}</small></button>`; };
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="dc-modal-ov" id="dc-modal"><div class="dc-modal" role="dialog" aria-modal="true">
+        <div class="dc-modal-tit">¿Cómo trabaja ${esc((cliente && cliente.nombre) || 'este boliche')}?</div>
+        <div class="dc-modal-sub">Según esto, el manual te muestra qué ofrecerle. Queda guardado para las próximas visitas.</div>
+        <div class="dc-ops">${op('con_previa')}${op('sin_previa')}</div>
+        ${cancelable ? '<button type="button" class="dc-modal-x" data-v="">Cancelar</button>' : ''}
+      </div></div>`);
+    const ov = document.getElementById('dc-modal');
+    ov.addEventListener('click', e => {
+      const b = e.target.closest('[data-v]');
+      if (!b) return;
+      ov.remove();
+      resolve(b.dataset.v || null);
+    });
+  });
+}
+
+// Barra arriba del manual con el formato elegido y el botón para cambiarlo.
+function dcPintarBarra() {
+  const cont = document.getElementById('checklist-container');
+  if (!cont || !DC.formato) return;
+  let barra = document.getElementById('dc-barra');
+  if (!barra) { cont.insertAdjacentHTML('beforebegin', '<div class="dc-barra" id="dc-barra"></div>'); barra = document.getElementById('dc-barra'); }
+  const f = DC_FORMATOS[DC.formato];
+  barra.innerHTML = `<span class="dc-barra-ico">${f.ico}</span>
+    <div class="dc-barra-txt"><b>${f.nombre}</b><small>${f.detalle}</small></div>
+    <button type="button" class="dc-barra-btn" onclick="dcCambiarFormato()">Cambiar</button>`;
+}
+
+// Cambiar el formato en medio de una visita vuelve a armar el manual (se recarga).
+async function dcCambiarFormato() {
+  const v = await dcPedirFormato(true);
+  if (!v || v === DC.formato) return;
+  if (!confirm('El manual se vuelve a armar con lo que corresponde a "' + DC_FORMATOS[v].nombre +
+               '".\nLo que marcaste en esta visita se pierde. ¿Seguir?')) return;
+  await dcGuardarPerfil({ formato: v });
+  location.reload();
+}
+
+// ── Render de las herramientas ──────────────────────────────
 const _dcAttr = s => esc(String(s == null ? '' : s));
 
 function dcCampo(label, path, valor, ph, tipo) {
@@ -78,7 +165,6 @@ function dcPintar(tipo) {
 }
 function dcHtml(tipo) {
   switch (tipo) {
-    case 'dc_formato':      return dcHtmlFormato();
     case 'dc_marcas':       return dcHtmlMarcas();
     case 'dc_sunset':       return dcHtmlSunset();
     case 'dc_activacion':   return dcHtmlActivacion();
@@ -86,16 +172,6 @@ function dcHtml(tipo) {
     case 'dc_eventos':      return dcHtmlLista('eventos');
   }
   return '';
-}
-
-function dcHtmlFormato() {
-  const op = (v, ico, tit, sub) => `<button type="button" class="dc-op${DC.formato === v ? ' on' : ''}" onclick="dcElegirFormato('${v}')">
-      <b>${ico} ${tit}</b><small>${sub}</small></button>`;
-  return `<div class="cafe-q-label">¿Cómo trabaja este boliche?</div>
-    <div class="dc-ops">${op('con_previa', '🍽️', 'Con previa', 'Cena desde las 21 h + boliche')}${op('sin_previa', '🌙', 'Sin previa', 'Solo boliche nocturno')}</div>
-    <div class="dc-nota">${DC.formato
-      ? 'Queda guardado en la ficha: la próxima visita ya aparece elegido. La sección Carta se muestra solo con previa.'
-      : 'Se elige la primera vez y queda guardado para las próximas visitas.'}</div>`;
 }
 
 function dcHtmlMarcas() {
@@ -174,17 +250,6 @@ function dcToggleRecurso(r) {
 function dcAgregar(clave) { DC[clave].push({}); dcPintar(DC_LISTAS[clave].tipo); }
 function dcQuitar(clave, i) { DC[clave].splice(i, 1); dcPintar(DC_LISTAS[clave].tipo); dcCambio(); }
 
-// Carta solo en los boliches con previa. Sin formato elegido todavía, se muestra.
-function dcAplicarFormato() {
-  const el = document.getElementById('sec-dc_carta');
-  if (el) el.style.display = DC.formato === 'sin_previa' ? 'none' : '';
-}
-
-async function dcElegirFormato(v) {
-  DC.formato = v;
-  dcPintar('dc_formato'); dcAplicarFormato(); dcCambio();
-  await dcGuardarPerfil({ formato: v });
-}
 async function dcElegirSunset(v) {
   DC.sunset = v;
   dcPintar('dc_sunset'); dcCambio();
@@ -193,24 +258,26 @@ async function dcElegirSunset(v) {
 
 // Guarda en la ficha del cliente (clientes.perfil), sumando a lo que ya tenía.
 // Con RLS un update bloqueado vuelve sin error y sin filas: por eso el select.
+// Aunque no se pueda guardar en la base, queda en la sesión: así un cambio de
+// formato sobrevive a la recarga del manual.
 async function dcGuardarPerfil(cambios) {
   const perfil = { ...(cliente.perfil || {}), ...cambios };
+  cliente.perfil = perfil;
+  if (typeof persistClienteSession === 'function') persistClienteSession();
   try {
     const { data, error } = await sb.from('clientes').update({ perfil }).eq('id', cliente.id).select('id');
     if (error || !data || !data.length) throw new Error(error ? error.message : 'sin permiso');
-    cliente.perfil = perfil;
-    if (typeof persistClienteSession === 'function') persistClienteSession();
     showToast('✓ Guardado en la ficha del cliente', 'success');
   } catch (e) {
     console.warn('[discos] no se pudo guardar el perfil:', e.message);
-    showToast('No se pudo guardar en la ficha (queda solo en esta visita)', 'error');
+    showToast('No se pudo guardar en la ficha (queda solo por hoy)', 'error');
   }
 }
 
 // ── Guardar y resumir ───────────────────────────────────────
 // Lo que va a progreso._disco al guardar la visita (null si no es un disco).
 function dcProgreso() {
-  if (typeof checklist === 'undefined' || !checklist || checklist.id !== 'disco') return null;
+  if (typeof checklist === 'undefined' || !_esDisco(checklist)) return null;
   const lleno = o => Object.values(o || {}).some(v => String(v == null ? '' : v).trim() !== '');
   const a = DC.activacion;
   return {
@@ -231,9 +298,9 @@ function dcMinuta(bloque) {
   const pesos = n => n ? '$' + Number(n).toLocaleString('es-AR') : '';
   const unir  = a => a.filter(Boolean).join(' · ');
   const fecha = f => f ? new Date(f + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : '';
-  const FORMATO = { con_previa: 'Con previa (cena + boliche)', sin_previa: 'Sin previa (solo boliche)' };
+  const f = DC_FORMATOS[d.formato];
   const s = d.sunset_info || {};
-  return bloque('Formato del boliche', d.formato ? [FORMATO[d.formato]] : [])
+  return bloque('Formato del boliche', f ? [`${f.nombre} (${f.detalle.toLowerCase()})`] : [])
     + bloque('Relevamiento por marca', d.marcas.map(m => `${m.marca}: ` + (unir([
         m.volumen, m.preferidas && 'prefiere ' + m.preferidas, m.fee && 'fee ' + pesos(m.fee), m.plata && 'pide ' + pesos(m.plata),
       ]) || 'sin datos todavía')))
@@ -243,34 +310,21 @@ function dcMinuta(bloque) {
     + bloque('Eventos del cliente', d.eventos_cliente.map(e => unir([fecha(e.fecha), e.evento, e.necesita])));
 }
 
-// ── Arranque (lo llama init() de visita.html) ───────────────
-async function dcInit() {
-  if (typeof checklist === 'undefined' || !checklist || checklist.id !== 'disco') return;
-  // La ficha que viene de la lista puede no traer el perfil: se lee acá.
-  try {
-    const { data, error } = await sb.from('clientes').select('perfil').eq('id', cliente.id).maybeSingle();
-    if (!error && data) cliente.perfil = data.perfil || {};
-  } catch (e) { /* sin columna perfil todavía: se pregunta igual, queda solo en la visita */ }
-  const p = cliente.perfil || {};
-  DC.formato = p.formato || null;
-  if (typeof p.sunset === 'boolean') DC.sunset = p.sunset;
-  dcPintar('dc_formato'); dcPintar('dc_sunset');
-  dcAplicarFormato();
-  // Primera visita: abrir la introducción para que el vendedor elija el formato.
-  if (!DC.formato) {
-    const sec = document.getElementById('sec-dc_intro');
-    if (sec && !sec.classList.contains('expanded') && typeof toggleSec === 'function') toggleSec('dc_intro');
-  }
+// ── Después de dibujar el manual (lo llama init() de visita.html) ──
+function dcInit() {
+  if (typeof checklist === 'undefined' || !_esDisco(checklist)) return;
+  dcPintarBarra();
+  dcPintar('dc_sunset');
 }
 
 // ── Estilos ─────────────────────────────────────────────────
 document.head.insertAdjacentHTML('beforeend', `<style>
   .dc-block { background: var(--crema); border: 1px solid rgba(31,68,127,.12); }
   .dc-ops { display: flex; gap: 8px; }
-  .dc-op { flex: 1; display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 11px 12px;
+  .dc-op { flex: 1; display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 12px;
     background: #fff; border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm);
     font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .dc-op b { font-size: 13.5px; color: var(--azul); }
+  .dc-op b { font-size: 14px; color: var(--azul); }
   .dc-op small { font-size: 11.5px; color: var(--text3); line-height: 1.35; }
   .dc-op.on { background: var(--azul); border-color: var(--azul); }
   .dc-op.on b, .dc-op.on small { color: #fff; }
@@ -283,4 +337,27 @@ document.head.insertAdjacentHTML('beforeend', `<style>
     border-radius: var(--radius-sm); font-family: inherit; font-size: 13px; font-weight: 700; color: var(--azul); cursor: pointer; }
   .dc-quitar { margin-top: 8px; background: none; border: 0; padding: 0; font-family: inherit; font-size: 11.5px;
     font-weight: 700; color: #b3261e; cursor: pointer; }
+
+  /* Ventana "¿con previa o sin previa?" */
+  .dc-modal-ov { position: fixed; inset: 0; z-index: 9999; background: rgba(13,34,56,.55);
+    display: flex; align-items: flex-end; justify-content: center; padding: 16px; }
+  .dc-modal { width: 100%; max-width: 440px; background: var(--surface, #fff); border-radius: 16px;
+    padding: 20px 18px 18px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+  .dc-modal-tit { font-size: 17px; font-weight: 800; color: var(--azul); line-height: 1.3; }
+  .dc-modal-sub { font-size: 12.5px; color: var(--text3); margin: 6px 0 14px; line-height: 1.45; }
+  .dc-modal .dc-ops { flex-direction: column; }
+  .dc-modal .dc-op { padding: 14px; }
+  .dc-modal-x { margin-top: 12px; width: 100%; padding: 10px; background: none; border: 0; font-family: inherit;
+    font-size: 13px; font-weight: 700; color: var(--text2); cursor: pointer; }
+  @media (min-width: 600px) { .dc-modal-ov { align-items: center; } }
+
+  /* Barra arriba del manual */
+  .dc-barra { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 10px 12px;
+    background: var(--crema); border: 1px solid rgba(31,68,127,.14); border-radius: var(--radius-sm); }
+  .dc-barra-ico { font-size: 22px; }
+  .dc-barra-txt { flex: 1; display: flex; flex-direction: column; }
+  .dc-barra-txt b { font-size: 13.5px; color: var(--azul); }
+  .dc-barra-txt small { font-size: 11.5px; color: var(--text3); }
+  .dc-barra-btn { background: #fff; border: 1.5px solid var(--border-strong); border-radius: 20px; padding: 6px 13px;
+    font-family: inherit; font-size: 12px; font-weight: 700; color: var(--azul); cursor: pointer; }
 </style>`);

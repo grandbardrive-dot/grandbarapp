@@ -2716,6 +2716,8 @@ body { background:transparent !important; }
 
   async function init() {
     checklist = await getChecklistDynamic(cliente.tipo);
+    // Discos: pregunta con previa / sin previa (la primera vez) y saca lo que no corresponde (_disco-tools.js)
+    if (typeof dcPrepararChecklist === 'function') checklist = await dcPrepararChecklist(checklist);
     document.getElementById('tb-nombre').textContent   = cliente.nombre;
     renderFichaAvatar();
     document.getElementById('fc-nombre').textContent   = cliente.nombre;

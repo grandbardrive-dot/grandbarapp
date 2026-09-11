@@ -661,6 +661,7 @@ async function getChecklistDynamic(tipo, zonaPedida) {
       especial:   sec.especial    || undefined,
       intro:      sec.intro       || '',
       pdf_url:    sec.pdf_url      || null,   // PDF por sección (ej: propuestas de vidriera)
+      soloFormato: sec.solo_formato || null,  // discos: 'con_previa' | 'sin_previa' | null = siempre
       items: (itemsPorSec[sec.id] || []).map(i => ({
         texto:   i.texto,
         detalle: i.descripcion || '',
