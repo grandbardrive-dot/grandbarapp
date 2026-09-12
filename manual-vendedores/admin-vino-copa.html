@@ -137,7 +137,7 @@
     <div class="sb-spacer"></div>
     <div class="sb-help">
       <div class="sb-help-t">💡 Dónde se ven</div>
-      <div class="sb-help-p">El vendedor los ve en <b>Vino por Copa</b> de los manuales que elijas (restaurantes, bares o discos), junto a la calculadora.</div>
+      <div class="sb-help-p">El vendedor los ve en <b>Vino por Copa</b> de los manuales que elijas (restaurantes, bares, discos u hoteles), junto a la calculadora.</div>
     </div>
   </aside>
 
@@ -155,7 +155,7 @@
       <div class="page-head">
         <div>
           <div class="page-title"><span class="ico">🍷</span>Vino por Copa</div>
-          <div class="page-sub">Vinos que los proveedores dan para vender por copa con una condición especial. El vendedor los ve en la sección Vino por Copa de los manuales que elijas (restaurantes, bares o discos), junto a la calculadora de costo por copa.</div>
+          <div class="page-sub">Vinos que los proveedores dan para vender por copa con una condición especial. El vendedor los ve en la sección Vino por Copa de los manuales que elijas (restaurantes, bares, discos u hoteles), junto a la calculadora de costo por copa.</div>
         </div>
         <button class="btn-new" onclick="abrirNuevo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nuevo vino</button>
       </div>
@@ -210,8 +210,9 @@
           <label class="sw"><input type="checkbox" value="restaurante"> 🍽️ Restaurantes</label>
           <label class="sw"><input type="checkbox" value="bar"> 🍺 Bares</label>
           <label class="sw"><input type="checkbox" value="disco"> 🕺 Discos</label>
+          <label class="sw"><input type="checkbox" value="hotel"> 🏨 Hoteles</label>
         </div>
-        <div class="hint">Si no marcás ninguno, aparece en los tres.</div>
+        <div class="hint">Si no marcás ninguno, aparece en todos.</div>
       </div>
       <div class="fld"><label class="sw"><input type="checkbox" id="f-activo" checked> Visible para los vendedores</label></div>
       <div class="msg" id="m-msg"></div>
@@ -234,7 +235,7 @@
   let MIXES=[], edit=null;
 
   // En qué manuales aparece cada vino (vinos_por_copa.rubros). Vacío = en todos.
-  const RUBROS_VC = { restaurante:'Restaurantes', bar:'Bares', disco:'Discos' };
+  const RUBROS_VC = { restaurante:'Restaurantes', bar:'Bares', disco:'Discos', hotel:'Hoteles' };
   const getRubros = () => [...document.querySelectorAll('#f-rubros input:checked')].map(i=>i.value);
   const setRubros = a => document.querySelectorAll('#f-rubros input').forEach(i=>{ i.checked = (a||[]).includes(i.value); });
   const rubrosTxt = c => (Array.isArray(c.rubros) && c.rubros.length) ? c.rubros.map(r=>RUBROS_VC[r]||r).join(' · ') : 'Todos los rubros';
