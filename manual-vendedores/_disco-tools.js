@@ -26,7 +26,7 @@
 // ============================================================
 
 // Marcas partner de spirits para el pedido de acción: las definió el usuario
-// (Diageo, Pernod Ricard, Campari). Sin "Otra marca": solo estas tres.
+// (Diageo, Pernod Ricard, Campari), más "Otra marca" para escribir una distinta.
 const DC_MARCAS   = ['Diageo', 'Pernod Ricard', 'Campari'];
 const DC_OTRA     = 'Otra marca';
 const DC_RECURSOS = ['Bartender', 'Bandejas de shot', 'Tragos regalados', 'Merchandise de marca', 'Precintos'];
@@ -213,7 +213,7 @@ function dcHtml(tipo, sec) {
 
 // ACUERDOS CON PARTNERS: pedido a la marca + los pedidos que ya tiene el cliente.
 function dcHtmlMarcas() {
-  const chips = DC_MARCAS.map(m =>
+  const chips = [...DC_MARCAS, DC_OTRA].map(m =>
     `<span class="sega-chip${DC.marcas[m] ? ' sel' : ''}" data-m="${_dcAttr(m)}" onclick="dcToggleMarca(this.dataset.m)">${esc(m)}</span>`).join('');
   const fichas = Object.keys(DC.marcas).map(m => {
     const d = DC.marcas[m], p = 'marcas.' + m + '.';
