@@ -4993,6 +4993,7 @@ body { background:transparent !important; }
     'oportunidades_en_carta':{ tipo: 'mix_ideal' },   // SPIRITS > Propuestas "Mix Ideal" (bar)
     'desarrollo_de_cocteleria':{ tipo: 'cocteleria' }, // SPIRITS > Desarrollo de Coctelería (bar)
     'vino_por_copa':        { tipo: 'vino_copa' },     // VINOS > Vino por Copa (bar)
+    'vino_por_copa_de_bienvenid':{ tipo: 'vino_copa' },// VINOS > Copa de bienvenida (hotel)
     'proximas_fechas':      { tipo: 'fechas', modo: 'registro' },    // ACTIVACIONES > Próximas fechas
     'proponer_activacion':  { tipo: 'fechas', modo: 'activacion' },  // ACTIVACIONES > Proponer Activación
     'seguimiento':          { tipo: 'fechas', modo: 'seguimiento' }, // ACTIVACIONES > Seguimiento
@@ -5042,7 +5043,7 @@ body { background:transparent !important; }
     // "Desarrollo de Coctelería": IA propone cócteles + costeo por medida.
     if (/cocteler/i.test(nombre)) return { tipo: 'cocteleria' };
     // "Vino por Copa": vinos que carga Luci + calculadora de costo por copa.
-    if (/vino\s+por\s+copa/i.test(nombre)) return { tipo: 'vino_copa' };
+    if (/vino\s+por\s+copa/i.test(nombre) || /copa\s+de\s+bienvenida/i.test(nombre)) return { tipo: 'vino_copa' };
     if (!_ES_SLOT_OFERTAS.test(nombre)) return null;
     const cat = _categoriaDeSeccion(sec.id);
     // Sin rubro reconocible (o café, que el catálogo no tiene) no se pone nada:
