@@ -106,6 +106,10 @@
   .ab:hover{border-color:var(--navy);color:var(--navy)}
   .ab:disabled{opacity:.35;cursor:default}
   .ab.danger:hover{border-color:var(--red);color:var(--red)}
+  .prov-txt{display:flex;align-items:flex-start;gap:10px;padding:10px 18px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink2);line-height:1.5;background:#fffdf7}
+  .prov-txt .t{flex:1}
+  .prov-txt .t i{color:var(--ink3)}
+  .fld textarea{width:100%;min-height:110px;padding:11px 13px;border:1.5px solid var(--line-2);border-radius:11px;font-size:14px;font-family:inherit;color:var(--ink);outline:none;background:var(--surface);resize:vertical;line-height:1.55}
   .empty{padding:40px 18px;text-align:center;color:var(--ink3);font-size:13.5px;background:var(--surface);border:1px dashed var(--line-2);border-radius:16px;margin-top:18px}
 
   .ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9998;align-items:flex-start;justify-content:center;padding:36px 16px;overflow-y:auto}
@@ -220,6 +224,28 @@
   </div>
 </div>
 
+<div class="ov" id="ov-txt" onclick="if(event.target===this)cerrarTexto()">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="t-title">Texto del proveedor</h3>
+      <div class="sub">Aparece arriba de sus propuestas, en el manual del vendedor</div>
+      <button class="modal-x" onclick="cerrarTexto()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fld">
+        <label>Texto</label>
+        <textarea id="t-texto" placeholder="Ej: Condición especial 1+2 para las líneas participantes."></textarea>
+        <div class="hint">Si lo dejás vacío, no se muestra ningún texto para este proveedor.</div>
+      </div>
+      <div class="msg" id="t-msg"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="mb" onclick="cerrarTexto()">Cancelar</button>
+      <button class="mb primary" id="t-save" onclick="guardarTexto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
 <script>
@@ -244,6 +270,14 @@
 
   let TODAS=[], CAT='vino', edit=null;
 
+  // Texto por proveedor (arriba de sus propuestas en la visita). Tabla propuestas_textos.
+  // Si un proveedor no tiene fila, la visita usa su texto fijo: el mismo que TEXTO_FIJO.
+  const TEXTO_FIJO = {
+    'Peñaflor': 'Condición especial 1+2 para las líneas participantes de Peñaflor. Ideal para activar múltiples etiquetas en un solo pedido y maximizar el beneficio para el cliente.',
+  };
+  let TEXTOS = {}, TEXTOS_OK = true, provTexto = null;
+  const textoDe = prov => (prov in TEXTOS) ? TEXTOS[prov] : (TEXTO_FIJO[prov] || '');
+
   async function cargar(){
     const { data, error } = await sb.from('propuestas_incorporacion').select('*').order('orden');
     if(error){
@@ -253,6 +287,9 @@
     }
     $('aviso').innerHTML='';
     TODAS = data || [];
+    const rt = await sb.from('propuestas_textos').select('proveedor,texto');
+    TEXTOS_OK = !rt.error; TEXTOS = {};
+    (rt.data || []).forEach(t => { TEXTOS[t.proveedor] = t.texto || ''; });
     render();
   }
 
@@ -286,6 +323,7 @@
       }).join('');
       return `<div class="prov">
         <div class="prov-h"><span class="prov-n">${esc(prov)}</span><span class="prov-c">${deProv.length} propuesta${deProv.length!==1?'s':''}</span></div>
+        <div class="prov-txt"><div class="t">${textoDe(prov) ? esc(textoDe(prov)) : '<i>Sin texto arriba de las propuestas</i>'}</div><button class="ab" data-prov="${esc(prov)}" onclick="editarTexto(this.dataset.prov)">✏️ Texto</button></div>
         ${filas(sueltas)}
         ${grupos.map(g => `<div class="grp-t">${esc(grupoTxt(g))}</div>${filas(deProv.filter(p=>p.grupo===g).sort((a,b)=>(a.orden||0)-(b.orden||0)))}`).join('')}
       </div>`;
@@ -371,6 +409,28 @@
     const r = await sb.from('propuestas_incorporacion').delete().eq('id', id).select('id');
     if(r.error || sinFilas(r)){ alert('No se pudo eliminar: '+(r.error ? r.error.message : 'la base no dejó (permisos).')); return; }
     await cargar();
+  }
+
+  // ── Texto del proveedor ──
+  function editarTexto(prov){
+    if(!TEXTOS_OK){ alert('Para editar este texto falta crear la tabla: corré propuestas-textos-setup.sql en Supabase.'); return; }
+    provTexto = prov;
+    $('t-title').textContent = 'Texto de ' + prov;
+    $('t-texto').value = textoDe(prov); $('t-msg').textContent='';
+    $('ov-txt').classList.add('open'); setTimeout(()=>$('t-texto').focus(),80);
+  }
+  function cerrarTexto(){ $('ov-txt').classList.remove('open'); }
+  async function guardarTexto(){
+    const msg=$('t-msg'); msg.style.color='var(--ink2)'; msg.textContent='Guardando…'; $('t-save').disabled=true;
+    try{
+      const r = await sb.from('propuestas_textos')
+        .upsert({ proveedor: provTexto, texto: $('t-texto').value.trim(), updated_at: new Date().toISOString() }, { onConflict:'proveedor' })
+        .select('proveedor');
+      if(r.error) throw r.error;
+      if(sinFilas(r)) throw new Error('la base no dejó guardar (permisos).');
+      cerrarTexto(); await cargar();
+    }catch(e){ msg.style.color='#c0392b'; msg.textContent='No se pudo guardar: '+(e.message||e); }
+    finally{ $('t-save').disabled=false; }
   }
 
   function toggleMenu(ev){ ev.stopPropagation(); $('perfil-menu').classList.toggle('open'); }

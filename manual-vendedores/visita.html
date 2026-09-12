@@ -5211,6 +5211,20 @@ body { background:transparent !important; }
     'Peñaflor': 'Condición especial 1+2 para las líneas participantes de Peñaflor. Ideal para activar múltiples etiquetas en un solo pedido y maximizar el beneficio para el cliente.',
   };
 
+  // Texto por proveedor que se muestra arriba de sus propuestas. Lo edita Luciana en
+  // admin-propuestas.html (tabla propuestas_textos). Si la tabla no está o el proveedor
+  // no tiene fila, se usa el texto fijo de PROP_PROVEEDOR_TEXTO.
+  let _propTextos = null;
+  async function _getPropTextos() {
+    if (_propTextos) return _propTextos;
+    _propTextos = {};
+    try {
+      const { data, error } = await sb.from('propuestas_textos').select('proveedor,texto');
+      if (!error) (data || []).forEach(t => { _propTextos[t.proveedor] = t.texto || ''; });
+    } catch (e) { /* sin tabla: quedan los textos fijos */ }
+    return _propTextos;
+  }
+
   // HOY devuelve todas las propuestas, sin filtrar.
   // TODO(filtro-6-meses): cuando exista el Google Sheet por cliente (estilo 5T),
   // filtrar acá las propuestas que el cliente ya compró en los últimos 6 meses.
@@ -5244,6 +5258,7 @@ body { background:transparent !important; }
       props = data || [];
     } catch {}
     props = filtrarPropuestasPorCliente(props, cliente.id);
+    const textosProv = await _getPropTextos();
     props.forEach(p => marcarOfrecido(p.nombre, sec));   // Mejora 3: registrar lo ofrecido
     if (!props.length) { el.innerHTML = ''; return; }
 
@@ -5261,7 +5276,8 @@ body { background:transparent !important; }
       const provBody = `prov-body-${secId}-${pi}`, provChev = `prov-chev-${secId}-${pi}`;
 
       let inner = '';
-      if (PROP_PROVEEDOR_TEXTO[prov]) inner += `<div class="prop-prov-texto">${esc(PROP_PROVEEDOR_TEXTO[prov])}</div>`;
+      const textoProv = (prov in textosProv) ? textosProv[prov] : PROP_PROVEEDOR_TEXTO[prov];
+      if (textoProv) inner += `<div class="prop-prov-texto">${esc(textoProv)}</div>`;
 
       // Proveedor CON grupos → sub-desplegables por grupo
       if (conGrupo.length) {
