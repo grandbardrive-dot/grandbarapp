@@ -5435,9 +5435,15 @@ body { background:transparent !important; }
     const cat = await _getOfertasCatalogo();
     const canal = _canalCatalogo();
     const quiere = _categoriaDeSeccion(secId);
+    // Una subsección que se llama "Espumantes" (discos sin previa) muestra solo
+    // espumantes. El catálogo no los marca aparte: se reconocen por el nombre de la
+    // acción (la palabra "espumante" o marcas de espumante conocidas).
+    const soloEspumantes = /espumant/i.test(String((buscarSec(secId) || {}).titulo || ''));
+    const ES_ESPUMANTE = /espumant|champag|champ[aá]n|\bbrut\b|prosecco|sidra|codorn|chandon|bar[oó]n\s*b\b|\bmumm\b|\bcava\b|sparkling/i;
     return cat.filter(o =>
       (o.canal === canal || o.canal === 'ambos') &&
-      (!quiere || o.categoria === quiere)
+      (!quiere || o.categoria === quiere) &&
+      (!soloEspumantes || ES_ESPUMANTE.test(o.producto + ' ' + (o.descripcion_larga || '')))
     );
   }
 

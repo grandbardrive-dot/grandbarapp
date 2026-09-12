@@ -48,6 +48,7 @@ const DC_WIDGETS = {
   incorporaciones_2:   { tipo: 'propuestas', categoria: 'vino' },         // VINOS > Acciones de Incorporación
   incorporaciones:     { tipo: 'propuestas', categoria: 'spirit' },       // SPIRITS > Acciones de Incorporación
   dc_cervezas_rtd:     { tipo: 'ofertas', dataKey: 'dc_cervezas_rtd' },   // SPIRITS > Cervezas y RTD (catálogo: cervezas)
+  dc_espumantes:       { tipo: 'ofertas', dataKey: 'dc_espumantes' },     // VINOS > Espumantes (solo sin previa: ofertas de espumantes)
   proponer_activacion: 'dc_activacion',                                   // ACTIVACIONES > Proponer Activación
   dc_eventos_mes:      'dc_eventos_pa',                                   // EVENTOS PRE ARMADOS
   dc_acuerdos_marca:   'dc_marcas',                                       // ACUERDOS CON PARTNERS
