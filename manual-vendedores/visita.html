@@ -5566,6 +5566,9 @@ body { background:transparent !important; }
     try {
       const { data } = await sb.from('vinos_por_copa').select('*').eq('activo', true).order('orden');
       vinos = data || [];
+      // Cada vino dice en qué rubros aparece (vinos_por_copa.rubros). Sin ninguno = en todos.
+      const rubro = (typeof checklist !== 'undefined' && checklist && checklist.id) || cliente.tipo;
+      vinos = vinos.filter(v => !Array.isArray(v.rubros) || !v.rubros.length || v.rubros.includes(rubro));
     } catch (e) { vinos = []; }
 
     const lista = vinos.length ? `<div class="vc-list">` + vinos.map(v => `

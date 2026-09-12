@@ -114,6 +114,7 @@
   .mb{display:inline-flex;align-items:center;gap:8px;border-radius:11px;padding:11px 20px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--line-2);background:var(--surface);color:var(--ink2)}
   .mb.primary{background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none}
   .msg{font-size:12.5px;font-weight:600}
+  .rub{display:flex;gap:18px;flex-wrap:wrap;padding:4px 0}
 </style>
 </head>
 <body>
@@ -136,7 +137,7 @@
     <div class="sb-spacer"></div>
     <div class="sb-help">
       <div class="sb-help-t">💡 Dónde se ven</div>
-      <div class="sb-help-p">El vendedor los ve en el manual de un bar, en <b>VINOS & ESPUMANTES → Vino por Copa</b>, junto a la calculadora.</div>
+      <div class="sb-help-p">El vendedor los ve en <b>Vino por Copa</b> de los manuales que elijas (restaurantes, bares o discos), junto a la calculadora.</div>
     </div>
   </aside>
 
@@ -154,7 +155,7 @@
       <div class="page-head">
         <div>
           <div class="page-title"><span class="ico">🍷</span>Vino por Copa</div>
-          <div class="page-sub">Vinos que los proveedores dan para vender por copa con una condición especial. El vendedor los ve en el manual del bar, en VINOS & ESPUMANTES → Vino por Copa, junto a la calculadora de costo por copa.</div>
+          <div class="page-sub">Vinos que los proveedores dan para vender por copa con una condición especial. El vendedor los ve en la sección Vino por Copa de los manuales que elijas (restaurantes, bares o discos), junto a la calculadora de costo por copa.</div>
         </div>
         <button class="btn-new" onclick="abrirNuevo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nuevo vino</button>
       </div>
@@ -169,7 +170,7 @@
   <div class="modal">
     <div class="modal-head">
       <h3 id="m-title">Nuevo vino por copa</h3>
-      <div class="sub">Lo va a ver el vendedor para proponérselo al bar</div>
+      <div class="sub">Lo va a ver el vendedor para proponérselo al cliente</div>
       <button class="modal-x" onclick="cerrar()">×</button>
     </div>
     <div class="modal-body">
@@ -203,6 +204,15 @@
         <label>Nota para el vendedor <span style="text-transform:none;font-weight:400">(opcional)</span></label>
         <input type="text" id="f-desc" placeholder="Ej: buena rotación, copa accesible" maxlength="140">
       </div>
+      <div class="fld">
+        <label>¿En qué manuales aparece?</label>
+        <div class="rub" id="f-rubros">
+          <label class="sw"><input type="checkbox" value="restaurante"> 🍽️ Restaurantes</label>
+          <label class="sw"><input type="checkbox" value="bar"> 🍺 Bares</label>
+          <label class="sw"><input type="checkbox" value="disco"> 🕺 Discos</label>
+        </div>
+        <div class="hint">Si no marcás ninguno, aparece en los tres.</div>
+      </div>
       <div class="fld"><label class="sw"><input type="checkbox" id="f-activo" checked> Visible para los vendedores</label></div>
       <div class="msg" id="m-msg"></div>
     </div>
@@ -222,6 +232,12 @@
   const $=id=>document.getElementById(id);
 
   let MIXES=[], edit=null;
+
+  // En qué manuales aparece cada vino (vinos_por_copa.rubros). Vacío = en todos.
+  const RUBROS_VC = { restaurante:'Restaurantes', bar:'Bares', disco:'Discos' };
+  const getRubros = () => [...document.querySelectorAll('#f-rubros input:checked')].map(i=>i.value);
+  const setRubros = a => document.querySelectorAll('#f-rubros input').forEach(i=>{ i.checked = (a||[]).includes(i.value); });
+  const rubrosTxt = c => (Array.isArray(c.rubros) && c.rubros.length) ? c.rubros.map(r=>RUBROS_VC[r]||r).join(' · ') : 'Todos los rubros';
 
   async function cargar(){
     const { data, error } = await sb.from('vinos_por_copa').select('*').order('orden').order('created_at');
@@ -246,6 +262,7 @@
         <div class="combo-info">
           <div class="combo-nom">${esc(c.nombre)}
             ${c.proveedor?`<span class="tag nivel">${esc(c.proveedor)}</span>`:''}
+            <span class="tag">${esc(rubrosTxt(c))}</span>
             ${c.precio_botella?`<span class="tag precio">botella $ ${Number(c.precio_botella).toLocaleString('es-AR')}</span>`:''}
             ${c.activo===false?'<span class="tag off">Oculto</span>':''}</div>
           ${c.condicion?`<div class="combo-cont">${esc(c.condicion)}</div>`:''}
@@ -264,7 +281,7 @@
   function abrirNuevo(){
     edit=null; $('m-title').textContent='Nuevo vino por copa';
     $('f-nombre').value=''; $('f-proveedor').value=''; $('f-condicion').value=''; $('f-precio').value=''; $('f-imagen').value=''; $('f-desc').value='';
-    $('f-activo').checked=true; $('m-msg').textContent='';
+    $('f-activo').checked=true; setRubros([]); $('m-msg').textContent='';
     $('ov').classList.add('open'); setTimeout(()=>$('f-nombre').focus(),80);
   }
   function abrirEdicion(id){
@@ -272,7 +289,7 @@
     $('m-title').textContent='Editar vino por copa';
     $('f-nombre').value=edit.nombre||''; $('f-proveedor').value=edit.proveedor||''; $('f-condicion').value=edit.condicion||'';
     $('f-precio').value=edit.precio_botella||''; $('f-imagen').value=edit.imagen_url||'';
-    $('f-desc').value=edit.descripcion||''; $('f-activo').checked=edit.activo!==false; $('m-msg').textContent='';
+    $('f-desc').value=edit.descripcion||''; $('f-activo').checked=edit.activo!==false; setRubros(edit.rubros); $('m-msg').textContent='';
     $('ov').classList.add('open');
   }
   function cerrar(){ $('ov').classList.remove('open'); }
@@ -289,6 +306,7 @@
       precio_botella: $('f-precio').value ? Number($('f-precio').value) : null,
       imagen_url:     $('f-imagen').value.trim() || null,
       activo:         $('f-activo').checked,
+      rubros:         getRubros(),
     };
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…'; $('m-save').disabled=true;
     try{
@@ -298,7 +316,7 @@
              ({ error } = await sb.from('vinos_por_copa').insert(fila)); }
       if(error) throw error;
       cerrar(); await cargar();
-    }catch(e){ msg.style.color='#c0392b'; msg.textContent='No se pudo guardar: '+(e.message||e); }
+    }catch(e){ msg.style.color='#c0392b'; msg.textContent = /rubros/.test(e.message||'') ? 'Falta crear el campo de rubros: corré vinos-por-copa-rubros.sql en Supabase.' : 'No se pudo guardar: '+(e.message||e); }
     finally{ $('m-save').disabled=false; }
   }
 
