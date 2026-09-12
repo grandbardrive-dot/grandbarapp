@@ -2894,8 +2894,11 @@ body { background:transparent !important; }
               : renderEspecialVinoteca(sec))
       : '';
 
-    // Calculadora de copa — solo para sección s7
-    const calcHtml = sec.id === 's7' ? `
+    // Calculadora de copa — solo para sección s7, y solo si la sección no tiene ya la
+    // herramienta "Vino por Copa" (vinos de Luciana + su propia calculadora): con las
+    // dos se veía la calculadora repetida, con los mismos ids, y "usar en la
+    // calculadora" llenaba la de arriba en vez de la que está debajo de los vinos.
+    const calcHtml = (sec.id === 's7' && (widgetDe(sec) || {}).tipo !== 'vino_copa') ? `
       <div class="calc-copa">
         <div class="calc-copa-title">Calculadora precio por copa</div>
         <div class="calc-input-wrap">
