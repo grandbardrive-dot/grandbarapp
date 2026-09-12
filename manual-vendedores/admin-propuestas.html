@@ -11,11 +11,13 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GrandBar — Aperitivos de bienvenida</title>
-<!-- Aperitivos que las marcas dan para recibir a la gente antes de la cena.
-     Los ve el vendedor en la sección "Aperitivos de bienvenida o pre cena"
-     (hoy, en el manual de Discos con previa). Misma forma que Vino por Copa.
-     Tabla: aperitivos_bienvenida (aperitivos-bienvenida-setup.sql). -->
+<title>GrandBar — Propuestas de incorporación</title>
+<!-- Propuestas de incorporación (tabla propuestas_incorporacion). Hasta ahora no
+     tenían pantalla: estaban solo en la base. El vendedor las ve en "Acciones de
+     Incorporación" (vinos / spirits), en "Futuras incorporaciones" y en Café.
+     La visita las agrupa por PROVEEDOR y, dentro, por GRUPO (ej. innovaciones,
+     11_titulares, Whisky): por eso acá se eligen de los que ya existen, para que
+     caigan en el mismo lugar. -->
 <style>
   :root{
     --navy:#1F447F; --navy-d:#16305a; --navy-dd:#0f2340;
@@ -78,20 +80,31 @@
   .aviso.error{background:var(--red-bg);border-color:rgba(192,57,43,.25);color:#8a2b20}
   .aviso code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:5px;font-size:12px}
 
-  .combos{margin-top:18px;display:flex;flex-direction:column;gap:14px}
-  .combo{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);display:flex;align-items:flex-start;gap:14px;padding:15px 18px}
-  .combo.off{opacity:.6}
-  .combo-img{width:54px;height:54px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);object-fit:cover;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px}
-  .combo-info{flex:1;min-width:0}
-  .combo-nom{font-size:15.5px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-  .combo-cont{font-size:13px;color:var(--ink2);margin-top:5px;white-space:pre-line;line-height:1.5}
-  .combo-desc{font-size:12.5px;color:var(--ink3);margin-top:5px}
+  /* Pestañas por categoría */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}
+  .tab{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line-2);background:var(--surface);border-radius:12px;padding:10px 15px;font:inherit;font-size:14px;font-weight:700;color:var(--ink2);cursor:pointer}
+  .tab.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .tab .n{font-size:11.5px;font-weight:800;background:rgba(31,68,127,.08);color:var(--navy);border-radius:20px;padding:1px 8px}
+  .tab.on .n{background:rgba(255,255,255,.18);color:#fff}
+  .donde{font-size:12.5px;color:var(--ink3);margin-top:10px}
+  .donde b{color:var(--ink2)}
+
+  /* Lista agrupada por proveedor */
+  .prov{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .prov-h{display:flex;align-items:center;gap:10px;padding:13px 18px;background:var(--surface2);border-bottom:1px solid var(--line)}
+  .prov-n{font-size:15px;font-weight:800}
+  .prov-c{font-size:11.5px;font-weight:700;color:var(--ink3)}
+  .grp-t{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--amber);padding:12px 18px 2px}
+  .prop{display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid var(--line)}
+  .grp-t + .prop{border-top:0}
+  .prop.off{opacity:.55}
+  .prop-n{flex:1;min-width:0;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .tag{font-size:10.5px;font-weight:700;border-radius:6px;padding:3px 8px;background:rgba(31,68,127,.07);color:var(--navy)}
-  .tag.nivel{background:var(--amber-bg);color:var(--amber)}
   .tag.off{background:var(--red-bg);color:var(--red)}
   .acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-  .ab{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line-2);border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;white-space:nowrap}
+  .ab{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line-2);border-radius:10px;padding:7px 11px;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;white-space:nowrap}
   .ab:hover{border-color:var(--navy);color:var(--navy)}
+  .ab:disabled{opacity:.35;cursor:default}
   .ab.danger:hover{border-color:var(--red);color:var(--red)}
   .empty{padding:40px 18px;text-align:center;color:var(--ink3);font-size:13.5px;background:var(--surface);border:1px dashed var(--line-2);border-radius:16px;margin-top:18px}
 
@@ -105,9 +118,8 @@
   .modal-body{padding:20px 24px;max-height:64vh;overflow-y:auto}
   .fld{margin-bottom:15px}
   .fld label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
-  .fld input,.fld textarea{width:100%;padding:11px 13px;border:1.5px solid var(--line-2);border-radius:11px;font-size:14px;font-family:inherit;color:var(--ink);outline:none;background:var(--surface)}
-  .fld input:focus,.fld textarea:focus{border-color:var(--navy)}
-  .fld textarea{min-height:90px;resize:vertical;line-height:1.6}
+  .fld input,.fld select{width:100%;padding:11px 13px;border:1.5px solid var(--line-2);border-radius:11px;font-size:14px;font-family:inherit;color:var(--ink);outline:none;background:var(--surface)}
+  .fld input:focus,.fld select:focus{border-color:var(--navy)}
   .fld .hint{font-size:11.5px;color:var(--ink3);margin-top:5px;line-height:1.45}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .sw{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink2);cursor:pointer;font-weight:600}
@@ -130,16 +142,15 @@
       <a class="sb-item" href="admin-comercial.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v9h14v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Inicio</div></div></a>
       <a class="sb-item" href="admin-campanias.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Campañas</div><div class="sb-txt-sub">Acciones comerciales</div></div></a>
       <a class="sb-item" href="admin-secciones.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Secciones</div><div class="sb-txt-sub">Estructura del manual</div></div></a>
-      <a class="sb-item" href="admin-mixes.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h14l-6 8v7l-2 1v-8z" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Mix Ideal</div><div class="sb-txt-sub">Combos para bares</div></div></a>
-      <a class="sb-item" href="admin-propuestas.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/><rect x="3" y="3" width="18" height="18" rx="4"/></svg><div><div class="sb-txt-main">Propuestas</div><div class="sb-txt-sub">De incorporación</div></div></a>
+      <a class="sb-item active" href="admin-propuestas.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/><rect x="3" y="3" width="18" height="18" rx="4"/></svg><div><div class="sb-txt-main">Propuestas</div><div class="sb-txt-sub">De incorporación</div></div></a>
       <a class="sb-item" href="admin-vino-copa.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3h8l-1 6a3 3 0 0 1-6 0zM12 15v5M9 21h6" stroke-linejoin="round" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Vino por Copa</div><div class="sb-txt-sub">Copa de la casa</div></div></a>
-      <a class="sb-item active" href="admin-aperitivos.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4h12l-6 8zM12 12v7M8 20h8" stroke-linejoin="round" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Aperitivos</div><div class="sb-txt-sub">De bienvenida o pre cena</div></div></a>
+      <a class="sb-item" href="admin-aperitivos.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4h12l-6 8zM12 12v7M8 20h8" stroke-linejoin="round" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Aperitivos</div><div class="sb-txt-sub">De bienvenida o pre cena</div></div></a>
       <a class="sb-item" href="admin-catalogo.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 7v10l8 4 8-4V7" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Catálogo</div><div class="sb-txt-sub">Proveedores y productos</div></div></a>
     </nav>
     <div class="sb-spacer"></div>
     <div class="sb-help">
       <div class="sb-help-t">💡 Dónde se ven</div>
-      <div class="sb-help-p">El vendedor los ve en <b>SPIRITS → Aperitivos de bienvenida o pre cena</b>. Hoy esa sección está en el manual de <b>Discos</b>, en los boliches con previa.</div>
+      <div class="sb-help-p">En el manual del vendedor, en <b>Acciones de Incorporación</b> de Vinos y de Spirits (restaurantes, vinotecas, discos…), en <b>Futuras incorporaciones</b> y en <b>Café</b>. Cada proveedor es un desplegable y adentro se ordena por grupo.</div>
     </div>
   </aside>
 
@@ -156,13 +167,15 @@
     <main class="content">
       <div class="page-head">
         <div>
-          <div class="page-title"><span class="ico">🍹</span>Aperitivos de bienvenida</div>
-          <div class="page-sub">Aperitivos que las marcas dan para recibir a la gente antes de la cena, con una condición especial. El vendedor los ve en SPIRITS → Aperitivos de bienvenida o pre cena (hoy, en el manual de Discos con previa).</div>
+          <div class="page-title"><span class="ico">➕</span>Propuestas de incorporación</div>
+          <div class="page-sub">Los productos que el vendedor le propone al cliente para que sume. Se agrupan por proveedor y, dentro de cada proveedor, por grupo (por ejemplo "innovaciones" o "Whisky").</div>
         </div>
-        <button class="btn-new" onclick="abrirNuevo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nuevo aperitivo</button>
+        <button class="btn-new" onclick="abrirNuevo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nueva propuesta</button>
       </div>
 
       <div id="aviso"></div>
+      <div class="tabs" id="tabs"></div>
+      <div class="donde" id="donde"></div>
       <div id="lista"><div class="empty">Cargando…</div></div>
     </main>
   </div>
@@ -171,33 +184,31 @@
 <div class="ov" id="ov" onclick="if(event.target===this)cerrar()">
   <div class="modal">
     <div class="modal-head">
-      <h3 id="m-title">Nuevo aperitivo de bienvenida</h3>
-      <div class="sub">Lo va a ver el vendedor para proponérselo al cliente</div>
+      <h3 id="m-title">Nueva propuesta</h3>
+      <div class="sub">La va a ver el vendedor para proponérsela al cliente</div>
       <button class="modal-x" onclick="cerrar()">×</button>
     </div>
     <div class="modal-body">
+      <div class="fld">
+        <label>Producto</label>
+        <input type="text" id="f-nombre" placeholder="Ej: Don David Red Blend" maxlength="90">
+      </div>
       <div class="row2">
         <div class="fld">
-          <label>Aperitivo</label>
-          <input type="text" id="f-nombre" placeholder="Ej: Aperol Spritz de bienvenida" maxlength="80">
+          <label>Categoría</label>
+          <select id="f-categoria" onchange="pintarSugerencias()"></select>
         </div>
         <div class="fld">
-          <label>Marca</label>
-          <input type="text" id="f-marca" placeholder="Ej: Campari" maxlength="50">
+          <label>Proveedor</label>
+          <input type="text" id="f-proveedor" list="dl-proveedores" placeholder="Ej: Peñaflor" maxlength="50">
+          <datalist id="dl-proveedores"></datalist>
         </div>
       </div>
       <div class="fld">
-        <label>Condición especial</label>
-        <textarea id="f-condicion" placeholder="Ej: comprando 2 cajas de Aperol, 24 copas de regalo para la bienvenida"></textarea>
-        <div class="hint">La condición que da la marca. Es lo que ve el vendedor.</div>
-      </div>
-      <div class="fld">
-        <label>Nota para el vendedor <span style="text-transform:none;font-weight:400">(opcional)</span></label>
-        <input type="text" id="f-desc" placeholder="Ej: ideal para boliches que abren con cena" maxlength="140">
-      </div>
-      <div class="fld">
-        <label>Foto <span style="text-transform:none;font-weight:400">(opcional)</span></label>
-        <input type="text" id="f-imagen" placeholder="https://…">
+        <label>Grupo <span style="text-transform:none;font-weight:400">(opcional)</span></label>
+        <input type="text" id="f-grupo" list="dl-grupos" placeholder="Ej: innovaciones, Whisky" maxlength="40">
+        <datalist id="dl-grupos"></datalist>
+        <div class="hint" id="h-grupo">Elegí uno de la lista para que quede junto a los demás de ese grupo. Si lo dejás vacío, va suelto dentro del proveedor.</div>
       </div>
       <div class="fld"><label class="sw"><input type="checkbox" id="f-activo" checked> Visible para los vendedores</label></div>
       <div class="msg" id="m-msg"></div>
@@ -217,104 +228,148 @@
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const $=id=>document.getElementById(id);
 
-  let ITEMS=[], edit=null;
+  // Las categorías que usa la visita (propuestas_incorporacion.categoria).
+  const CATS = [
+    { k:'vino',    lbl:'Vinos',                   ico:'🍷', donde:'VINOS → Acciones de Incorporación' },
+    { k:'spirit',  lbl:'Spirits',                 ico:'🥃', donde:'SPIRITS → Acciones de Incorporación' },
+    { k:'futuras', lbl:'Futuras incorporaciones', ico:'🆕', donde:'Futuras incorporaciones' },
+    { k:'cafe',    lbl:'Café',                    ico:'☕', donde:'Café Segafreddo' },
+  ];
+  // Mismo orden que usa la visita (PROP_PROVEEDOR_ORDEN / PROP_GRUPO_ORDEN en visita.html).
+  const ORDEN_PROV = ['Peñaflor', 'Salentein', 'Diageo', 'Campari', 'Pernod Ricard', 'Jack Daniels', 'Absolut'];
+  const ORDEN_GRUPO = ['innovaciones', '11_titulares', 'Whisky', 'Vodka', 'Gin'];
+  const GRUPO_LBL = { innovaciones:'Innovaciones', '11_titulares':'11 titulares' };
+  const grupoTxt = g => GRUPO_LBL[g] || g;
+  const ordenar = (lista, base) => base.filter(x => lista.includes(x)).concat(lista.filter(x => !base.includes(x)).sort((a,b)=>a.localeCompare(b,'es')));
+
+  let TODAS=[], CAT='vino', edit=null;
 
   async function cargar(){
-    const { data, error } = await sb.from('aperitivos_bienvenida').select('*').order('orden').order('created_at');
+    const { data, error } = await sb.from('propuestas_incorporacion').select('*').order('orden');
     if(error){
-      $('aviso').innerHTML = `<div class="aviso error"><span>⚠️</span><div>
-        Todavía no está creada la tabla de Aperitivos de bienvenida. Andá a <b>Supabase → SQL Editor</b>, pegá el contenido de
-        <code>manual-vendedores/aperitivos-bienvenida-setup.sql</code> y ejecutalo. Después recargá esta página.
+      $('aviso').innerHTML = `<div class="aviso error"><span>⚠️</span><div>No se pudieron traer las propuestas.
         <div style="margin-top:6px;font-size:12px;color:var(--ink3)">Detalle: ${esc(error.message)}</div></div></div>`;
-      $('lista').innerHTML='';
-      return;
+      $('lista').innerHTML=''; return;
     }
     $('aviso').innerHTML='';
-    ITEMS = data || [];
+    TODAS = data || [];
     render();
   }
 
+  // Hermanas = mismo categoría + proveedor + grupo (es el bloque que ordena la visita).
+  const clave = p => [p.categoria, p.proveedor||'', p.grupo||''].join('|');
+  const hermanas = p => TODAS.filter(x => clave(x) === clave(p)).sort((a,b)=>(a.orden||0)-(b.orden||0));
+
   function render(){
-    if(!ITEMS.length){ $('lista').innerHTML='<div class="empty">Todavía no cargaste ningún aperitivo. Tocá <b>Nuevo aperitivo</b> para el primero.</div>'; return; }
-    $('lista').innerHTML='<div class="combos">'+ITEMS.map((c,i)=>`
-      <div class="combo ${c.activo===false?'off':''}">
-        ${c.imagen_url?`<img class="combo-img" src="${esc(c.imagen_url)}" alt="">`:`<div class="combo-img">🍹</div>`}
-        <div class="combo-info">
-          <div class="combo-nom">${esc(c.nombre)}
-            ${c.marca?`<span class="tag nivel">${esc(c.marca)}</span>`:''}
-            ${c.activo===false?'<span class="tag off">Oculto</span>':''}</div>
-          ${c.condicion?`<div class="combo-cont">${esc(c.condicion)}</div>`:''}
-          ${c.descripcion?`<div class="combo-desc">${esc(c.descripcion)}</div>`:''}
-        </div>
-        <div class="acts">
-          <button class="ab" onclick="mover('${c.id}',-1)" ${i===0?'disabled style="opacity:.35"':''}>↑</button>
-          <button class="ab" onclick="mover('${c.id}',1)" ${i===ITEMS.length-1?'disabled style="opacity:.35"':''}>↓</button>
-          <button class="ab" onclick="abrirEdicion('${c.id}')">Editar</button>
-          <button class="ab" onclick="toggleActivo('${c.id}')">${c.activo===false?'Mostrar':'Ocultar'}</button>
-          <button class="ab danger" onclick="borrar('${c.id}')">Eliminar</button>
-        </div>
-      </div>`).join('')+'</div>';
+    const n = k => TODAS.filter(p=>p.categoria===k).length;
+    $('tabs').innerHTML = CATS.map(c => `<button class="tab ${CAT===c.k?'on':''}" onclick="CAT='${c.k}';render()">${c.ico} ${c.lbl} <span class="n">${n(c.k)}</span></button>`).join('');
+    const cat = CATS.find(c=>c.k===CAT);
+    $('donde').innerHTML = `El vendedor las ve en <b>${esc(cat.donde)}</b>.`;
+    const lista = TODAS.filter(p=>p.categoria===CAT);
+    if(!lista.length){ $('lista').innerHTML = `<div class="empty">Todavía no hay propuestas de ${esc(cat.lbl.toLowerCase())}. Tocá <b>Nueva propuesta</b>.</div>`; return; }
+    const provs = ordenar([...new Set(lista.map(p=>p.proveedor||'Otros'))], ORDEN_PROV);
+    $('lista').innerHTML = provs.map(prov => {
+      const deProv = lista.filter(p => (p.proveedor||'Otros') === prov);
+      const sueltas = deProv.filter(p => !p.grupo).sort((a,b)=>(a.orden||0)-(b.orden||0));
+      const grupos = ordenar([...new Set(deProv.filter(p=>p.grupo).map(p=>p.grupo))], ORDEN_GRUPO);
+      const filas = arr => arr.map(p => {
+        const hs = hermanas(p), i = hs.findIndex(x=>x.id===p.id);
+        return `<div class="prop ${p.activo===false?'off':''}">
+          <div class="prop-n">${esc(p.nombre)} ${p.activo===false?'<span class="tag off">Oculta</span>':''}</div>
+          <div class="acts">
+            <button class="ab" title="Subir" onclick="mover('${p.id}',-1)" ${i<=0?'disabled':''}>↑</button>
+            <button class="ab" title="Bajar" onclick="mover('${p.id}',1)" ${i>=hs.length-1?'disabled':''}>↓</button>
+            <button class="ab" onclick="abrirEdicion('${p.id}')">Editar</button>
+            <button class="ab" onclick="toggleActivo('${p.id}')">${p.activo===false?'Mostrar':'Ocultar'}</button>
+            <button class="ab danger" onclick="borrar('${p.id}')">Eliminar</button>
+          </div></div>`;
+      }).join('');
+      return `<div class="prov">
+        <div class="prov-h"><span class="prov-n">${esc(prov)}</span><span class="prov-c">${deProv.length} propuesta${deProv.length!==1?'s':''}</span></div>
+        ${filas(sueltas)}
+        ${grupos.map(g => `<div class="grp-t">${esc(grupoTxt(g))}</div>${filas(deProv.filter(p=>p.grupo===g).sort((a,b)=>(a.orden||0)-(b.orden||0)))}`).join('')}
+      </div>`;
+    }).join('');
+  }
+
+  // Sugerencias del formulario: los proveedores y grupos que ya existen en esa categoría.
+  function pintarSugerencias(){
+    const c = $('f-categoria').value;
+    const deCat = TODAS.filter(p=>p.categoria===c);
+    $('dl-proveedores').innerHTML = [...new Set(deCat.map(p=>p.proveedor).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join('');
+    const grupos = [...new Set(deCat.map(p=>p.grupo).filter(Boolean))];
+    $('dl-grupos').innerHTML = grupos.map(v=>`<option value="${esc(v)}">${esc(grupoTxt(v))}</option>`).join('');
+    $('h-grupo').textContent = grupos.length
+      ? `Grupos que ya hay en esta categoría: ${grupos.join(', ')}. Elegí uno para que quede junto a los demás; vacío = suelto dentro del proveedor.`
+      : 'Opcional. Si lo dejás vacío, va suelto dentro del proveedor.';
   }
 
   function abrirNuevo(){
-    edit=null; $('m-title').textContent='Nuevo aperitivo de bienvenida';
-    $('f-nombre').value=''; $('f-marca').value=''; $('f-condicion').value=''; $('f-imagen').value=''; $('f-desc').value='';
+    edit=null; $('m-title').textContent='Nueva propuesta';
+    $('f-categoria').innerHTML = CATS.map(c=>`<option value="${c.k}">${c.ico} ${c.lbl}</option>`).join('');
+    $('f-categoria').value = CAT;
+    $('f-nombre').value=''; $('f-proveedor').value=''; $('f-grupo').value='';
     $('f-activo').checked=true; $('m-msg').textContent='';
+    pintarSugerencias();
     $('ov').classList.add('open'); setTimeout(()=>$('f-nombre').focus(),80);
   }
   function abrirEdicion(id){
-    edit=ITEMS.find(c=>c.id===id); if(!edit) return;
-    $('m-title').textContent='Editar aperitivo de bienvenida';
-    $('f-nombre').value=edit.nombre||''; $('f-marca').value=edit.marca||''; $('f-condicion').value=edit.condicion||'';
-    $('f-imagen').value=edit.imagen_url||''; $('f-desc').value=edit.descripcion||'';
+    edit=TODAS.find(p=>p.id===id); if(!edit) return;
+    $('m-title').textContent='Editar propuesta';
+    $('f-categoria').innerHTML = CATS.map(c=>`<option value="${c.k}">${c.ico} ${c.lbl}</option>`).join('');
+    $('f-categoria').value = edit.categoria;
+    $('f-nombre').value=edit.nombre||''; $('f-proveedor').value=edit.proveedor||''; $('f-grupo').value=edit.grupo||'';
     $('f-activo').checked=edit.activo!==false; $('m-msg').textContent='';
+    pintarSugerencias();
     $('ov').classList.add('open');
   }
   function cerrar(){ $('ov').classList.remove('open'); }
 
+  // Con RLS un cambio bloqueado vuelve sin error y sin filas: por eso el select.
+  const sinFilas = r => !r.error && (!r.data || !r.data.length);
+
   async function guardar(){
     const msg=$('m-msg');
     const nombre=$('f-nombre').value.trim();
-    if(!nombre){ msg.style.color='#c0392b'; msg.textContent='Poné el nombre del aperitivo.'; return; }
-    const fila={
-      nombre,
-      marca:       $('f-marca').value.trim() || null,
-      condicion:   $('f-condicion').value.trim() || null,
-      descripcion: $('f-desc').value.trim() || null,
-      imagen_url:  $('f-imagen').value.trim() || null,
-      activo:      $('f-activo').checked,
-    };
+    const proveedor=$('f-proveedor').value.trim();
+    if(!nombre){ msg.style.color='#c0392b'; msg.textContent='Poné el nombre del producto.'; return; }
+    if(!proveedor){ msg.style.color='#c0392b'; msg.textContent='Poné el proveedor: la visita agrupa las propuestas por proveedor.'; return; }
+    const fila={ nombre, proveedor, categoria:$('f-categoria').value, grupo:$('f-grupo').value.trim() || null, activo:$('f-activo').checked };
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…'; $('m-save').disabled=true;
     try{
-      let error;
-      if(edit){ ({ error } = await sb.from('aperitivos_bienvenida').update(fila).eq('id', edit.id)); }
-      else { fila.orden = ITEMS.length ? Math.max(...ITEMS.map(c=>c.orden||0))+1 : 0;
-             ({ error } = await sb.from('aperitivos_bienvenida').insert(fila)); }
-      if(error) throw error;
+      let r;
+      const cambiaBloque = !edit || clave(edit) !== clave(fila);
+      if(cambiaBloque){ const hs = TODAS.filter(x => clave(x) === clave(fila) && (!edit || x.id !== edit.id)); fila.orden = hs.length ? Math.max(...hs.map(x=>x.orden||0))+1 : 1; }
+      if(edit){ r = await sb.from('propuestas_incorporacion').update(fila).eq('id', edit.id).select('id'); }
+      else    { r = await sb.from('propuestas_incorporacion').insert(fila).select('id'); }
+      if(r.error) throw r.error;
+      if(sinFilas(r)) throw new Error('la base no dejó guardar (permisos).');
       cerrar(); await cargar();
     }catch(e){ msg.style.color='#c0392b'; msg.textContent='No se pudo guardar: '+(e.message||e); }
     finally{ $('m-save').disabled=false; }
   }
 
   async function toggleActivo(id){
-    const c=ITEMS.find(x=>x.id===id); if(!c) return;
-    await sb.from('aperitivos_bienvenida').update({ activo: c.activo===false }).eq('id', id);
+    const p=TODAS.find(x=>x.id===id); if(!p) return;
+    const r = await sb.from('propuestas_incorporacion').update({ activo: p.activo===false }).eq('id', id).select('id');
+    if(r.error || sinFilas(r)) alert('No se pudo cambiar: '+(r.error ? r.error.message : 'la base no dejó guardar (permisos).'));
     await cargar();
   }
 
   async function mover(id, dir){
-    const i=ITEMS.findIndex(c=>c.id===id), j=i+dir;
-    if(i<0||j<0||j>=ITEMS.length) return;
-    const arr=ITEMS.slice(); arr.splice(j,0,arr.splice(i,1)[0]);
-    await Promise.all(arr.map((c,k)=> c.orden===k ? null : sb.from('aperitivos_bienvenida').update({orden:k}).eq('id',c.id)).filter(Boolean));
+    const p=TODAS.find(x=>x.id===id); if(!p) return;
+    const hs=hermanas(p), i=hs.findIndex(x=>x.id===id), j=i+dir;
+    if(i<0||j<0||j>=hs.length) return;
+    const arr=hs.slice(); arr.splice(j,0,arr.splice(i,1)[0]);
+    await Promise.all(arr.map((x,k)=> x.orden===k+1 ? null : sb.from('propuestas_incorporacion').update({orden:k+1}).eq('id',x.id)).filter(Boolean));
     await cargar();
   }
 
   async function borrar(id){
-    const c=ITEMS.find(x=>x.id===id); if(!c) return;
-    if(!confirm(`¿Eliminar el aperitivo "${c.nombre}"?\n\nDeja de verse en el manual de los vendedores.\nSi solo querés sacarlo por ahora, cancelá y usá "Ocultar".`)) return;
-    const { error } = await sb.from('aperitivos_bienvenida').delete().eq('id', id);
-    if(error){ alert('No se pudo eliminar: '+error.message); return; }
+    const p=TODAS.find(x=>x.id===id); if(!p) return;
+    if(!confirm(`¿Eliminar la propuesta "${p.nombre}" (${p.proveedor||'sin proveedor'})?\n\nDeja de verse en el manual de los vendedores.\nSi solo querés sacarla por ahora, cancelá y usá "Ocultar".`)) return;
+    const r = await sb.from('propuestas_incorporacion').delete().eq('id', id).select('id');
+    if(r.error || sinFilas(r)){ alert('No se pudo eliminar: '+(r.error ? r.error.message : 'la base no dejó (permisos).')); return; }
     await cargar();
   }
 
