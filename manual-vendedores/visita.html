@@ -4437,6 +4437,7 @@ body { background:transparent !important; }
       else if (w.tipo === 'mix_ideal') cargarMixIdeal(sec.id);
       else if (w.tipo === 'frigobar') cargarFrigobar(sec.id);
       else if (w.tipo === 'vino_copa') cargarVinoCopa(sec.id);
+      else if (w.tipo === 'aperitivos') cargarAperitivos(sec.id);
       else if (w.tipo === 'fechas') cargarFechasBar(sec.id, w.modo);
       else if (w.tipo === 'evidencias') cargarEvidencias(sec.id);
       else if (w.tipo === 'visibilidad') cargarVisibilidad(sec.id);
@@ -5047,6 +5048,8 @@ body { background:transparent !important; }
     if (/cocteler/i.test(nombre)) return { tipo: 'cocteleria' };
     // "Vino por Copa": vinos que carga Luci + calculadora de costo por copa.
     if (/vino\s+por\s+copa/i.test(nombre) || /copa\s+de\s+bienvenida/i.test(nombre)) return { tipo: 'vino_copa' };
+    // "Aperitivos de bienvenida o pre cena": los que carga Luciana (admin-aperitivos.html).
+    if (/aperitivos?\s+de\s+bienvenida|pre\s*cena/i.test(nombre)) return { tipo: 'aperitivos' };
     if (!_ES_SLOT_OFERTAS.test(nombre)) return null;
     const cat = _categoriaDeSeccion(sec.id);
     // Sin rubro reconocible (o café, que el catálogo no tiene) no se pone nada:
@@ -5065,6 +5068,7 @@ body { background:transparent !important; }
     if (w.tipo === 'frigobar')          return `<div class="mix-wrap" id="frigobar-${sec.id}"><div class="prop-loading">Cargando packs…</div></div>`;
     if (w.tipo === 'cocteleria')        return renderCocteleria(sec);
     if (w.tipo === 'vino_copa')         return `<div class="vc-wrap" id="vino-copa-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
+    if (w.tipo === 'aperitivos')        return `<div class="vc-wrap" id="aperitivos-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
     if (w.tipo === 'fechas')            return `<div class="fb-wrap" id="fb-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
     if (w.tipo === 'evidencias')        return `<div class="ev-wrap" id="ev-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
     if (w.tipo === 'visibilidad')       return `<div class="vis-wrap" id="vis-${sec.id}"><div class="prop-loading">Cargando…</div></div>`;
@@ -5600,6 +5604,27 @@ body { background:transparent !important; }
   function vcUsar(precio) {
     const inp = document.getElementById('calc-botella');
     if (inp) { inp.value = precio; if (typeof calcCopa === 'function') calcCopa(); inp.scrollIntoView({ behavior:'smooth', block:'center' }); }
+  }
+
+  // ── APERITIVOS DE BIENVENIDA O PRE CENA ──────────────────────────────────────
+  // Los carga Luciana en admin-aperitivos.html (tabla aperitivos_bienvenida). Cada uno
+  // puede decir en qué rubros aparece (rubros); sin ninguno, en todos.
+  async function cargarAperitivos(secId) {
+    const el = document.getElementById(`aperitivos-${secId}`);
+    if (!el) return;
+    let items = [];
+    try {
+      const { data } = await sb.from('aperitivos_bienvenida').select('*').eq('activo', true).order('orden');
+      const rubro = (typeof checklist !== 'undefined' && checklist && checklist.id) || cliente.tipo;
+      items = (data || []).filter(a => !Array.isArray(a.rubros) || !a.rubros.length || a.rubros.includes(rubro));
+    } catch (e) { items = []; }
+    el.innerHTML = items.length ? `<div class="vc-list">` + items.map(a => `
+      <div class="vc-card">
+        <div class="vc-head"><div class="vc-nom">${esc(a.nombre)}</div>${a.marca ? `<span class="vc-prov">${esc(a.marca)}</span>` : ''}</div>
+        ${a.condicion ? `<div class="vc-cond">🎁 ${esc(a.condicion)}</div>` : ''}
+        ${a.descripcion ? `<div class="vc-desc">${esc(a.descripcion)}</div>` : ''}
+      </div>`).join('') + `</div>`
+      : `<div class="vc-empty">Todavía no hay aperitivos de bienvenida cargados. Los carga administración.</div>`;
   }
 
   // ═══ HERRAMIENTAS IA — Stock & Rotación (Reposición/Quiebres + Baja Rotación) ═══

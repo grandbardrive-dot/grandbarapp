@@ -11,7 +11,11 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GrandBar — Vino por Copa</title>
+<title>GrandBar — Aperitivos de bienvenida</title>
+<!-- Aperitivos que las marcas dan para recibir a la gente antes de la cena.
+     Los ve el vendedor en la sección "Aperitivos de bienvenida o pre cena"
+     (hoy, en el manual de Discos con previa). Misma forma que Vino por Copa.
+     Tabla: aperitivos_bienvenida (aperitivos-bienvenida-setup.sql). -->
 <style>
   :root{
     --navy:#1F447F; --navy-d:#16305a; --navy-dd:#0f2340;
@@ -72,7 +76,6 @@
 
   .aviso{display:flex;align-items:flex-start;gap:11px;background:rgba(31,68,127,.05);border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:13px;color:var(--ink2);margin-top:18px;line-height:1.5}
   .aviso.error{background:var(--red-bg);border-color:rgba(192,57,43,.25);color:#8a2b20}
-  .aviso svg{width:18px;height:18px;color:var(--navy);flex:none;margin-top:1px}
   .aviso code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:5px;font-size:12px}
 
   .combos{margin-top:18px;display:flex;flex-direction:column;gap:14px}
@@ -85,7 +88,6 @@
   .combo-desc{font-size:12.5px;color:var(--ink3);margin-top:5px}
   .tag{font-size:10.5px;font-weight:700;border-radius:6px;padding:3px 8px;background:rgba(31,68,127,.07);color:var(--navy)}
   .tag.nivel{background:var(--amber-bg);color:var(--amber)}
-  .tag.precio{background:var(--green-bg);color:var(--green)}
   .tag.off{background:var(--red-bg);color:var(--red)}
   .acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
   .ab{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line-2);border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;white-space:nowrap}
@@ -114,7 +116,6 @@
   .mb{display:inline-flex;align-items:center;gap:8px;border-radius:11px;padding:11px 20px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--line-2);background:var(--surface);color:var(--ink2)}
   .mb.primary{background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none}
   .msg{font-size:12.5px;font-weight:600}
-  .rub{display:flex;gap:18px;flex-wrap:wrap;padding:4px 0}
 </style>
 </head>
 <body>
@@ -129,16 +130,15 @@
       <a class="sb-item" href="admin-comercial.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v9h14v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Inicio</div></div></a>
       <a class="sb-item" href="admin-campanias.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Campañas</div><div class="sb-txt-sub">Acciones comerciales</div></div></a>
       <a class="sb-item" href="admin-secciones.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Secciones</div><div class="sb-txt-sub">Estructura del manual</div></div></a>
-      <a class="sb-item" href="admin-combos.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8h14l-1 12H6z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Combos</div><div class="sb-txt-sub">Para eventos</div></div></a>
       <a class="sb-item" href="admin-mixes.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h14l-6 8v7l-2 1v-8z" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Mix Ideal</div><div class="sb-txt-sub">Combos para bares</div></div></a>
-      <a class="sb-item active" href="admin-vino-copa.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3h8l-1 6a3 3 0 0 1-6 0zM12 15v5M9 21h6" stroke-linejoin="round" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Vino por Copa</div><div class="sb-txt-sub">Copa de la casa</div></div></a>
-      <a class="sb-item" href="admin-aperitivos.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4h12l-6 8zM12 12v7M8 20h8" stroke-linejoin="round" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Aperitivos</div><div class="sb-txt-sub">De bienvenida o pre cena</div></div></a>
+      <a class="sb-item" href="admin-vino-copa.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3h8l-1 6a3 3 0 0 1-6 0zM12 15v5M9 21h6" stroke-linejoin="round" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Vino por Copa</div><div class="sb-txt-sub">Copa de la casa</div></div></a>
+      <a class="sb-item active" href="admin-aperitivos.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4h12l-6 8zM12 12v7M8 20h8" stroke-linejoin="round" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Aperitivos</div><div class="sb-txt-sub">De bienvenida o pre cena</div></div></a>
       <a class="sb-item" href="admin-catalogo.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 7v10l8 4 8-4V7" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Catálogo</div><div class="sb-txt-sub">Proveedores y productos</div></div></a>
     </nav>
     <div class="sb-spacer"></div>
     <div class="sb-help">
       <div class="sb-help-t">💡 Dónde se ven</div>
-      <div class="sb-help-p">El vendedor los ve en <b>Vino por Copa</b> de los manuales que elijas (restaurantes, bares, discos u hoteles), junto a la calculadora.</div>
+      <div class="sb-help-p">El vendedor los ve en <b>SPIRITS → Aperitivos de bienvenida o pre cena</b>. Hoy esa sección está en el manual de <b>Discos</b>, en los boliches con previa.</div>
     </div>
   </aside>
 
@@ -155,10 +155,10 @@
     <main class="content">
       <div class="page-head">
         <div>
-          <div class="page-title"><span class="ico">🍷</span>Vino por Copa</div>
-          <div class="page-sub">Vinos que los proveedores dan para vender por copa con una condición especial. El vendedor los ve en la sección Vino por Copa de los manuales que elijas (restaurantes, bares, discos u hoteles), junto a la calculadora de costo por copa.</div>
+          <div class="page-title"><span class="ico">🍹</span>Aperitivos de bienvenida</div>
+          <div class="page-sub">Aperitivos que las marcas dan para recibir a la gente antes de la cena, con una condición especial. El vendedor los ve en SPIRITS → Aperitivos de bienvenida o pre cena (hoy, en el manual de Discos con previa).</div>
         </div>
-        <button class="btn-new" onclick="abrirNuevo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nuevo vino</button>
+        <button class="btn-new" onclick="abrirNuevo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nuevo aperitivo</button>
       </div>
 
       <div id="aviso"></div>
@@ -170,50 +170,33 @@
 <div class="ov" id="ov" onclick="if(event.target===this)cerrar()">
   <div class="modal">
     <div class="modal-head">
-      <h3 id="m-title">Nuevo vino por copa</h3>
+      <h3 id="m-title">Nuevo aperitivo de bienvenida</h3>
       <div class="sub">Lo va a ver el vendedor para proponérselo al cliente</div>
       <button class="modal-x" onclick="cerrar()">×</button>
     </div>
     <div class="modal-body">
       <div class="row2">
         <div class="fld">
-          <label>Nombre del vino</label>
-          <input type="text" id="f-nombre" placeholder="Ej: Alma Mora Malbec" maxlength="80">
+          <label>Aperitivo</label>
+          <input type="text" id="f-nombre" placeholder="Ej: Aperol Spritz de bienvenida" maxlength="80">
         </div>
         <div class="fld">
-          <label>Proveedor</label>
-          <input type="text" id="f-proveedor" placeholder="Ej: Peñaflor" maxlength="50">
+          <label>Marca</label>
+          <input type="text" id="f-marca" placeholder="Ej: Campari" maxlength="50">
         </div>
       </div>
       <div class="fld">
         <label>Condición especial</label>
-        <textarea id="f-condicion" placeholder="Ej: 1+1 en la primera compra para copa de la casa"></textarea>
-        <div class="hint">La condición que da el proveedor para venderlo por copa. Es lo que ve el vendedor.</div>
-      </div>
-      <div class="row2">
-        <div class="fld">
-          <label>Precio de la botella <span style="text-transform:none;font-weight:400">(opcional)</span></label>
-          <input type="number" id="f-precio" min="0" placeholder="Ej: 8000">
-          <div class="hint">Con esto el vendedor calcula el costo por copa directo.</div>
-        </div>
-        <div class="fld">
-          <label>Foto <span style="text-transform:none;font-weight:400">(opcional)</span></label>
-          <input type="text" id="f-imagen" placeholder="https://…">
-        </div>
+        <textarea id="f-condicion" placeholder="Ej: comprando 2 cajas de Aperol, 24 copas de regalo para la bienvenida"></textarea>
+        <div class="hint">La condición que da la marca. Es lo que ve el vendedor.</div>
       </div>
       <div class="fld">
         <label>Nota para el vendedor <span style="text-transform:none;font-weight:400">(opcional)</span></label>
-        <input type="text" id="f-desc" placeholder="Ej: buena rotación, copa accesible" maxlength="140">
+        <input type="text" id="f-desc" placeholder="Ej: ideal para boliches que abren con cena" maxlength="140">
       </div>
       <div class="fld">
-        <label>¿En qué manuales aparece?</label>
-        <div class="rub" id="f-rubros">
-          <label class="sw"><input type="checkbox" value="restaurante"> 🍽️ Restaurantes</label>
-          <label class="sw"><input type="checkbox" value="bar"> 🍺 Bares</label>
-          <label class="sw"><input type="checkbox" value="disco"> 🕺 Discos</label>
-          <label class="sw"><input type="checkbox" value="hotel"> 🏨 Hoteles</label>
-        </div>
-        <div class="hint">Si no marcás ninguno, aparece en todos.</div>
+        <label>Foto <span style="text-transform:none;font-weight:400">(opcional)</span></label>
+        <input type="text" id="f-imagen" placeholder="https://…">
       </div>
       <div class="fld"><label class="sw"><input type="checkbox" id="f-activo" checked> Visible para los vendedores</label></div>
       <div class="msg" id="m-msg"></div>
@@ -233,46 +216,38 @@
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const $=id=>document.getElementById(id);
 
-  let MIXES=[], edit=null;
-
-  // En qué manuales aparece cada vino (vinos_por_copa.rubros). Vacío = en todos.
-  const RUBROS_VC = { restaurante:'Restaurantes', bar:'Bares', disco:'Discos', hotel:'Hoteles' };
-  const getRubros = () => [...document.querySelectorAll('#f-rubros input:checked')].map(i=>i.value);
-  const setRubros = a => document.querySelectorAll('#f-rubros input').forEach(i=>{ i.checked = (a||[]).includes(i.value); });
-  const rubrosTxt = c => (Array.isArray(c.rubros) && c.rubros.length) ? c.rubros.map(r=>RUBROS_VC[r]||r).join(' · ') : 'Todos los rubros';
+  let ITEMS=[], edit=null;
 
   async function cargar(){
-    const { data, error } = await sb.from('vinos_por_copa').select('*').order('orden').order('created_at');
+    const { data, error } = await sb.from('aperitivos_bienvenida').select('*').order('orden').order('created_at');
     if(error){
       $('aviso').innerHTML = `<div class="aviso error"><span>⚠️</span><div>
-        Todavía no está creada la tabla de Vino por Copa. Andá a <b>Supabase → SQL Editor</b>, pegá el contenido de
-        <code>manual-vendedores/vino-copa-setup.sql</code> y ejecutalo. Después recargá esta página.
+        Todavía no está creada la tabla de Aperitivos de bienvenida. Andá a <b>Supabase → SQL Editor</b>, pegá el contenido de
+        <code>manual-vendedores/aperitivos-bienvenida-setup.sql</code> y ejecutalo. Después recargá esta página.
         <div style="margin-top:6px;font-size:12px;color:var(--ink3)">Detalle: ${esc(error.message)}</div></div></div>`;
       $('lista').innerHTML='';
       return;
     }
     $('aviso').innerHTML='';
-    MIXES = data || [];
+    ITEMS = data || [];
     render();
   }
 
   function render(){
-    if(!MIXES.length){ $('lista').innerHTML='<div class="empty">Todavía no cargaste ningún vino por copa. Tocá <b>Nuevo vino</b> para el primero.</div>'; return; }
-    $('lista').innerHTML='<div class="combos">'+MIXES.map((c,i)=>`
+    if(!ITEMS.length){ $('lista').innerHTML='<div class="empty">Todavía no cargaste ningún aperitivo. Tocá <b>Nuevo aperitivo</b> para el primero.</div>'; return; }
+    $('lista').innerHTML='<div class="combos">'+ITEMS.map((c,i)=>`
       <div class="combo ${c.activo===false?'off':''}">
-        ${c.imagen_url?`<img class="combo-img" src="${esc(c.imagen_url)}" alt="">`:`<div class="combo-img">🍷</div>`}
+        ${c.imagen_url?`<img class="combo-img" src="${esc(c.imagen_url)}" alt="">`:`<div class="combo-img">🍹</div>`}
         <div class="combo-info">
           <div class="combo-nom">${esc(c.nombre)}
-            ${c.proveedor?`<span class="tag nivel">${esc(c.proveedor)}</span>`:''}
-            <span class="tag">${esc(rubrosTxt(c))}</span>
-            ${c.precio_botella?`<span class="tag precio">botella $ ${Number(c.precio_botella).toLocaleString('es-AR')}</span>`:''}
+            ${c.marca?`<span class="tag nivel">${esc(c.marca)}</span>`:''}
             ${c.activo===false?'<span class="tag off">Oculto</span>':''}</div>
           ${c.condicion?`<div class="combo-cont">${esc(c.condicion)}</div>`:''}
           ${c.descripcion?`<div class="combo-desc">${esc(c.descripcion)}</div>`:''}
         </div>
         <div class="acts">
           <button class="ab" onclick="mover('${c.id}',-1)" ${i===0?'disabled style="opacity:.35"':''}>↑</button>
-          <button class="ab" onclick="mover('${c.id}',1)" ${i===MIXES.length-1?'disabled style="opacity:.35"':''}>↓</button>
+          <button class="ab" onclick="mover('${c.id}',1)" ${i===ITEMS.length-1?'disabled style="opacity:.35"':''}>↓</button>
           <button class="ab" onclick="abrirEdicion('${c.id}')">Editar</button>
           <button class="ab" onclick="toggleActivo('${c.id}')">${c.activo===false?'Mostrar':'Ocultar'}</button>
           <button class="ab danger" onclick="borrar('${c.id}')">Eliminar</button>
@@ -281,17 +256,17 @@
   }
 
   function abrirNuevo(){
-    edit=null; $('m-title').textContent='Nuevo vino por copa';
-    $('f-nombre').value=''; $('f-proveedor').value=''; $('f-condicion').value=''; $('f-precio').value=''; $('f-imagen').value=''; $('f-desc').value='';
-    $('f-activo').checked=true; setRubros([]); $('m-msg').textContent='';
+    edit=null; $('m-title').textContent='Nuevo aperitivo de bienvenida';
+    $('f-nombre').value=''; $('f-marca').value=''; $('f-condicion').value=''; $('f-imagen').value=''; $('f-desc').value='';
+    $('f-activo').checked=true; $('m-msg').textContent='';
     $('ov').classList.add('open'); setTimeout(()=>$('f-nombre').focus(),80);
   }
   function abrirEdicion(id){
-    edit=MIXES.find(c=>c.id===id); if(!edit) return;
-    $('m-title').textContent='Editar vino por copa';
-    $('f-nombre').value=edit.nombre||''; $('f-proveedor').value=edit.proveedor||''; $('f-condicion').value=edit.condicion||'';
-    $('f-precio').value=edit.precio_botella||''; $('f-imagen').value=edit.imagen_url||'';
-    $('f-desc').value=edit.descripcion||''; $('f-activo').checked=edit.activo!==false; setRubros(edit.rubros); $('m-msg').textContent='';
+    edit=ITEMS.find(c=>c.id===id); if(!edit) return;
+    $('m-title').textContent='Editar aperitivo de bienvenida';
+    $('f-nombre').value=edit.nombre||''; $('f-marca').value=edit.marca||''; $('f-condicion').value=edit.condicion||'';
+    $('f-imagen').value=edit.imagen_url||''; $('f-desc').value=edit.descripcion||'';
+    $('f-activo').checked=edit.activo!==false; $('m-msg').textContent='';
     $('ov').classList.add('open');
   }
   function cerrar(){ $('ov').classList.remove('open'); }
@@ -299,47 +274,45 @@
   async function guardar(){
     const msg=$('m-msg');
     const nombre=$('f-nombre').value.trim();
-    if(!nombre){ msg.style.color='#c0392b'; msg.textContent='Poné un nombre para el vino.'; return; }
+    if(!nombre){ msg.style.color='#c0392b'; msg.textContent='Poné el nombre del aperitivo.'; return; }
     const fila={
       nombre,
-      proveedor:      $('f-proveedor').value.trim() || null,
-      condicion:      $('f-condicion').value.trim() || null,
-      descripcion:    $('f-desc').value.trim() || null,
-      precio_botella: $('f-precio').value ? Number($('f-precio').value) : null,
-      imagen_url:     $('f-imagen').value.trim() || null,
-      activo:         $('f-activo').checked,
-      rubros:         getRubros(),
+      marca:       $('f-marca').value.trim() || null,
+      condicion:   $('f-condicion').value.trim() || null,
+      descripcion: $('f-desc').value.trim() || null,
+      imagen_url:  $('f-imagen').value.trim() || null,
+      activo:      $('f-activo').checked,
     };
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…'; $('m-save').disabled=true;
     try{
       let error;
-      if(edit){ ({ error } = await sb.from('vinos_por_copa').update(fila).eq('id', edit.id)); }
-      else { fila.orden = MIXES.length ? Math.max(...MIXES.map(c=>c.orden||0))+1 : 0;
-             ({ error } = await sb.from('vinos_por_copa').insert(fila)); }
+      if(edit){ ({ error } = await sb.from('aperitivos_bienvenida').update(fila).eq('id', edit.id)); }
+      else { fila.orden = ITEMS.length ? Math.max(...ITEMS.map(c=>c.orden||0))+1 : 0;
+             ({ error } = await sb.from('aperitivos_bienvenida').insert(fila)); }
       if(error) throw error;
       cerrar(); await cargar();
-    }catch(e){ msg.style.color='#c0392b'; msg.textContent = /rubros/.test(e.message||'') ? 'Falta crear el campo de rubros: corré vinos-por-copa-rubros.sql en Supabase.' : 'No se pudo guardar: '+(e.message||e); }
+    }catch(e){ msg.style.color='#c0392b'; msg.textContent='No se pudo guardar: '+(e.message||e); }
     finally{ $('m-save').disabled=false; }
   }
 
   async function toggleActivo(id){
-    const c=MIXES.find(x=>x.id===id); if(!c) return;
-    await sb.from('vinos_por_copa').update({ activo: c.activo===false }).eq('id', id);
+    const c=ITEMS.find(x=>x.id===id); if(!c) return;
+    await sb.from('aperitivos_bienvenida').update({ activo: c.activo===false }).eq('id', id);
     await cargar();
   }
 
   async function mover(id, dir){
-    const i=MIXES.findIndex(c=>c.id===id), j=i+dir;
-    if(i<0||j<0||j>=MIXES.length) return;
-    const arr=MIXES.slice(); arr.splice(j,0,arr.splice(i,1)[0]);
-    await Promise.all(arr.map((c,k)=> c.orden===k ? null : sb.from('vinos_por_copa').update({orden:k}).eq('id',c.id)).filter(Boolean));
+    const i=ITEMS.findIndex(c=>c.id===id), j=i+dir;
+    if(i<0||j<0||j>=ITEMS.length) return;
+    const arr=ITEMS.slice(); arr.splice(j,0,arr.splice(i,1)[0]);
+    await Promise.all(arr.map((c,k)=> c.orden===k ? null : sb.from('aperitivos_bienvenida').update({orden:k}).eq('id',c.id)).filter(Boolean));
     await cargar();
   }
 
   async function borrar(id){
-    const c=MIXES.find(x=>x.id===id); if(!c) return;
-    if(!confirm(`¿Eliminar el vino por copa "${c.nombre}"?\n\nDeja de verse en el manual de los vendedores.\nSi solo querés sacarlo por ahora, cancelá y usá "Ocultar".`)) return;
-    const { error } = await sb.from('vinos_por_copa').delete().eq('id', id);
+    const c=ITEMS.find(x=>x.id===id); if(!c) return;
+    if(!confirm(`¿Eliminar el aperitivo "${c.nombre}"?\n\nDeja de verse en el manual de los vendedores.\nSi solo querés sacarlo por ahora, cancelá y usá "Ocultar".`)) return;
+    const { error } = await sb.from('aperitivos_bienvenida').delete().eq('id', id);
     if(error){ alert('No se pudo eliminar: '+error.message); return; }
     await cargar();
   }
