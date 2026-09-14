@@ -92,6 +92,10 @@
          ancho 100%): acá se anula para que el árbol se vea igual en todas. */
       .seg .seg-it,.seg .seg-todo{display:flex;margin:0;text-transform:none;letter-spacing:normal}
       .seg .seg-it{font-size:13.5px;font-weight:500;color:#1F1B16}
+      /* Subsecciones con sangría debajo de su sección; una sección sin subsecciones va al
+         mismo nivel que los títulos de sección (si no, parecía parte de la anterior). */
+      .seg .seg-it.seg-sub{padding-left:14px}
+      .seg .seg-it.seg-sola{margin-top:8px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#9A6B0E}
       .seg .seg-todo{font-size:12.5px;font-weight:700;color:#1F447F}
       .seg input[type=checkbox]{width:16px;height:16px;min-width:16px;padding:0;margin:0;border:0;box-shadow:none}
     </style>`);
@@ -147,9 +151,9 @@
               <label class="seg-todo"><input type="checkbox" data-todo="${gi}" ${n && n === hojas.length ? 'checked' : ''}> Todo ${esc(lbl)}</label>
               ${g.madres.map(m => {
                 const hs = S.filter(s => s.parent_id === m.id).sort(porOrden);
-                if (!hs.length) return `<label class="seg-it"><input type="checkbox" value="${m.id}" ${st.secciones.has(m.id) ? 'checked' : ''}> ${esc(m.nombre)}</label>`;
+                if (!hs.length) return `<label class="seg-it seg-sola"><input type="checkbox" value="${m.id}" ${st.secciones.has(m.id) ? 'checked' : ''}> ${esc(m.nombre)}</label>`;
                 return `<div class="seg-madre-t">${esc(m.nombre)}</div>` + hs.map(h =>
-                  `<label class="seg-it"><input type="checkbox" value="${h.id}" ${st.secciones.has(h.id) ? 'checked' : ''}> ${esc(h.nombre)}</label>`).join('');
+                  `<label class="seg-it seg-sub"><input type="checkbox" value="${h.id}" ${st.secciones.has(h.id) ? 'checked' : ''}> ${esc(h.nombre)}</label>`).join('');
               }).join('')}
             </div></details>`;
         }).join('')}</div>
