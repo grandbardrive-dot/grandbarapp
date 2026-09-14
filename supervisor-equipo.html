@@ -182,6 +182,16 @@
 
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const fmt = n => { n=Number(n)||0; return '$ '+Math.round(n).toLocaleString('es-AR'); };
+  const haceTxt = iso => {
+    const t = new Date(iso).getTime(); if(isNaN(t)) return '';
+    const min = Math.round((Date.now()-t)/60000);
+    if(min < 2) return 'recién';
+    if(min < 60) return 'hace '+min+' min';
+    const h = Math.round(min/60);
+    if(h < 24) return 'hace '+h+(h===1?' hora':' horas');
+    const d = Math.round(h/24);
+    return 'hace '+d+(d===1?' día':' días');
+  };
   const ini = n => (String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('')||'?').toUpperCase();
 
   function setTab(t){
@@ -283,7 +293,9 @@
       EQUIPO = d.equipo||[];
       const reg = d.region==='san_luis'?'San Luis':(d.region==='mendoza'?'Mendoza':'');
       const can = d.canal==='ambos'?'ambos canales':(d.canal?d.canal.toUpperCase()+' Trade':'');
-      document.getElementById('sub').textContent = `Resumen de todo tu equipo — ${can}${reg?' · '+reg:''}.`;
+      const hace = d.actualizado ? haceTxt(d.actualizado) : null;
+      document.getElementById('sub').innerHTML = `Resumen de todo tu equipo — ${can}${reg?' · '+reg:''}.` +
+        (hace ? ` <span style="color:var(--muted)">· 💲 saldos del ERP actualizados ${hace}</span>` : '');
       document.getElementById('badge').textContent = `${can}${reg?' · '+reg:''}`;
       document.getElementById('kVend').textContent = d.totales.vendedores;
       document.getElementById('kCli').textContent = d.totales.clientes.toLocaleString('es-AR');

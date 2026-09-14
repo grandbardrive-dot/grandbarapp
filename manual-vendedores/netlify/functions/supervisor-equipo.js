@@ -65,9 +65,12 @@ exports.handler = async (event) => {
     if (!codigos.length) return json(200, { nombre: perfil.nombre, canal: perfil.canal, region: perfil.region, equipo: [], totales: { vendedores: 0, clientes: 0, saldo: 0, vencida: 0 }, clientes: [] });
 
     // Clientes de todo el equipo desde cuentas_cubo
-    const cRes = await cob('cuentas_cubo?vendedor=in.(' + qvals(codigos) + ')&select=codigo,nombre,saldo,vencida,telefono,vendedor&order=nombre.asc');
+    const cRes = await cob('cuentas_cubo?vendedor=in.(' + qvals(codigos) + ')&select=codigo,nombre,saldo,vencida,telefono,vendedor,actualizado&order=nombre.asc');
     let clientes = await cRes.json();
     if (!Array.isArray(clientes)) clientes = [];
+    // Fecha real del último sync con el ERP (Aikon) — la más reciente del cubo.
+    let actualizado = null;
+    for (const c of clientes) { if (c.actualizado && (!actualizado || c.actualizado > actualizado)) actualizado = c.actualizado; }
     // La deuda vencida no puede superar el saldo neto: una nota de crédito / anticipo
     // baja la deuda aunque el cubo viejo la dejara inflada. (Corrige la vista al toque.)
     clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, Math.min(num(c.vencida), num(c.saldo))) }));
@@ -106,7 +109,7 @@ exports.handler = async (event) => {
       listaClientes = await enriquecerGeo(clientes.map(c => ({ ...c, vendedor_nombre: nombreDeCod[String(c.vendedor)] || c.vendedor })), hubService);
     }
 
-    return json(200, { nombre: perfil.nombre, canal: perfil.canal, region: perfil.region, equipo: equipoOut, totales, clientes: listaClientes });
+    return json(200, { nombre: perfil.nombre, canal: perfil.canal, region: perfil.region, equipo: equipoOut, totales, clientes: listaClientes, actualizado });
   } catch (e) {
     return json(500, { error: (e && e.message) || String(e) });
   }
