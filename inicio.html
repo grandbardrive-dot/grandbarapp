@@ -211,7 +211,7 @@
       <div class="grid3">
         <!-- Agenda -->
         <div class="card">
-          <div class="card-h"><span class="t">📅 Tu agenda de hoy</span><a class="lnk" href="agenda.html">Ver agenda completa ›</a></div>
+          <div class="card-h"><span class="t">📅 Tu agenda de hoy</span><a class="lnk" href="agenda-eficiente.html">Ver agenda completa ›</a></div>
           <div class="ag" id="agendaHoy">
             <div class="ag-row first"><div class="time">09:00</div><div class="dot"></div><div><div class="nm">3er Tiempo</div><div class="meta">Colon 1951 · Guaymallén</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
             <div class="ag-row"><div class="time">11:00</div><div class="dot"></div><div><div class="nm">A tu Salud Minimarket</div><div class="meta">Bandera de los Andes 4315 · Guaymallén</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
@@ -342,6 +342,51 @@
   let hub;
   // El menú "Cerrar sesión" del usuario lo maneja assets/hub-nav.js, igual en todas las páginas.
 
+  // ── ¿Qué manda en "Tu agenda de hoy"? ───────────────────────────────────────
+  // Tres fuentes pueden llenar la tarjeta, y cargan en paralelo. Una prioridad
+  // decide cuál gana, sin importar cuál conteste primero:
+  //   3 = Agenda Eficiente (el plan que armó el vendedor) · manda siempre
+  //   2 = Compromisos sueltos de Agenda
+  //   1 = Ruta sugerida por cercanía (una propuesta, no una agenda)
+  function setAgenda(prio, html){
+    const c = document.getElementById("agendaHoy");
+    if(!c || Number(c.dataset.prio||0) >= prio) return;
+    c.dataset.prio = prio; c.innerHTML = html;
+  }
+  function setVisitasStat(prio, n, sub){
+    const el = document.getElementById("stVisitas"), es = document.getElementById("stVisitasSub");
+    if(el && Number(el.dataset.prio||0) < prio){ el.dataset.prio = prio; el.textContent = n; if(es){ es.textContent = sub; es.className = "sub mut"; } }
+  }
+
+  // Agenda Eficiente: el plan del día que el propio vendedor cargó (qué clientes
+  // visita hoy). Es la fuente PRINCIPAL de la agenda de hoy y de "Visitas de hoy".
+  async function cargarAgendaEficiente(token){
+    try{
+      const r = await fetch("/.netlify/functions/agenda-eficiente?vista=dia", { headers:{ Authorization:"Bearer "+token } });
+      if(!r.ok) return;
+      const j = await r.json();
+      const vis = (j.visitas||[]).slice();
+      if(!vis.length) return;   // sin plan para hoy → dejan trabajar a las otras fuentes
+      const rank = e => e==='visitado'?2 : e==='no_visitada'?3 : 1;   // pendientes primero
+      vis.sort((a,b)=> rank(a.estado)-rank(b.estado));
+
+      const pend = vis.filter(v => v.estado==='pendiente').length;
+      setVisitasStat(3, vis.length, pend ? (pend===1?"1 sin visitar":pend+" sin visitar") : "Todo visitado ✓");
+
+      setAgenda(3, vis.slice(0,6).map((v,i)=>{
+        const done = v.estado==='visitado', no = v.estado==='no_visitada';
+        const chip = done ? '<span class="chip ok">Visitada</span>'
+                   : no   ? '<span class="chip pend" style="background:#fbe9e4;color:#c0603e">No visitada</span>'
+                          : '<span class="chip pend">Agendada</span>';
+        return `<div class="ag-row ${i===0?'first':''}">
+          <div class="time" style="font-size:16px">🏪</div><div class="dot"></div>
+          <div><div class="nm">${escTxt(v.cliente_nombre||"Sin cliente")}</div>
+               <div class="meta">${escTxt(v.cliente_codigo?('Cód. '+v.cliente_codigo):'Plan del día')}${v.duracion_min?(' · '+v.duracion_min+' min'):''}</div></div>
+          ${chip}<span class="chev">›</span></div>`;
+      }).join(""));
+    }catch(e){}
+  }
+
   // Agenda de hoy = ruta sugerida con los CLIENTES REALES del vendedor (igual criterio que el Planificador).
   async function cargarAgenda(token){
     try{
@@ -356,15 +401,12 @@
       const rem=day.slice(), route=[rem.shift()];
       while(rem.length){ const last=route[route.length-1]; let bi=0,bd=1e9; rem.forEach((p,i)=>{const d=hav(last,p); if(d<bd){bd=d;bi=i;}}); route.push(rem.splice(bi,1)[0]); }
       const horas=["09:00","10:30","12:00","13:30","15:00","16:30"];
-      const cont=document.getElementById("agendaHoy"); if(!cont) return;
-      if(cont.dataset.real === "1") return;   // ya la llenó la agenda de verdad
-      cont.dataset.ruta = "1";
-      cont.innerHTML = route.slice(0,5).map((c,i)=>`
+      setAgenda(1, route.slice(0,5).map((c,i)=>`
         <div class="ag-row ${i===0?'first':''}">
           <div class="time">${horas[i]||""}</div><div class="dot"></div>
           <div><div class="nm">${c.nombre||"—"}</div><div class="meta">${[c.direccion,c.localidad].filter(Boolean).join(" · ")}</div></div>
           <span class="chip pend" style="background:var(--gold-soft);color:#8a6a1e">Sugerida</span><span class="chev">›</span>
-        </div>`).join("");
+        </div>`).join(""));
     }catch(e){}
   }
 
@@ -396,28 +438,25 @@
       const deHoy = comp.filter(c => c.fecha === hoy).sort((a,b)=>(a.hora||'99:99').localeCompare(b.hora||'99:99'));
 
       // Tarjeta "Visitas de hoy": las visitas agendadas para hoy + la próxima por hora.
+      // (La Agenda Eficiente, si el vendedor la cargó, gana por prioridad.)
       const visitas = deHoy.filter(c => (c.tipo||'visita') === 'visita');
-      const elV = document.getElementById("stVisitas"), elVS = document.getElementById("stVisitasSub");
-      if(elV) elV.textContent = visitas.length;
-      if(elVS){
+      if(deHoy.length){
         const ahora = new Date().toTimeString().slice(0,5);
         const prox = deHoy.find(c => c.estado !== 'completado' && c.hora && c.hora >= ahora) || deHoy.find(c => c.estado !== 'completado');
-        elVS.textContent = prox ? (prox.hora ? "Próxima: "+prox.hora+" hs" : "Próxima: "+(prox.cliente_nombre||"sin hora"))
-                                : (deHoy.length ? "Todo completado ✓" : "Sin visitas agendadas");
+        const sub = prox ? (prox.hora ? "Próxima: "+prox.hora+" hs" : "Próxima: "+(prox.cliente_nombre||"sin hora")) : "Todo completado ✓";
+        setVisitasStat(2, visitas.length, sub);
       }
 
-      // Listado del día: si hay compromisos cargados, mandan ellos; si no, queda la
-      // ruta sugerida por cercanía (que es una propuesta, no una agenda).
-      const cont = document.getElementById("agendaHoy");
-      if(cont && deHoy.length){
-        cont.dataset.real = "1";
-        cont.innerHTML = deHoy.slice(0,5).map((c,i)=>`
+      // Listado del día: si hay compromisos cargados, mandan ellos (salvo que haya
+      // Agenda Eficiente, que tiene prioridad); si no, queda la ruta sugerida.
+      if(deHoy.length){
+        setAgenda(2, deHoy.slice(0,5).map((c,i)=>`
           <div class="ag-row ${i===0?'first':''}">
             <div class="time">${c.hora||"—"}</div><div class="dot"></div>
             <div><div class="nm">${(TIPO_ICONO[c.tipo]||'')} ${escTxt(c.cliente_nombre||"Sin cliente")}</div>
                  <div class="meta">${escTxt(c.objetivo||capTxt(c.tipo||"visita"))}</div></div>
             <span class="chip ${c.estado==='completado'?'ok':'pend'}">${c.estado==='completado'?'Hecha':'Agendada'}</span><span class="chev">›</span>
-          </div>`).join("");
+          </div>`).join(""));
       }
 
       // Resumen semanal: realizadas vs agendadas de la semana en curso (lunes a domingo).
@@ -615,16 +654,19 @@
         }
       }
       if(perfil && perfil.codigo_vendedor) cargarVentas(perfil.codigo_vendedor);
+      cargarAgendaEficiente(session.access_token); // plan del vendedor (Agenda Eficiente): manda
       cargarAgenda(session.access_token);        // ruta sugerida (si no hay nada agendado)
-      cargarAgendaReal(session.access_token);    // agenda real: tarjetas + listado del día
+      cargarAgendaReal(session.access_token);    // compromisos sueltos + resumen semanal
       cargarTareas(session.access_token);
       cargarAvisos(session.access_token);
-      // Si no hubo ni agenda ni ruta sugerida, no dejar el ejemplo de la maqueta.
+      // Si ninguna fuente llenó la agenda, no dejar el ejemplo de la maqueta.
       setTimeout(()=>{
         const c=document.getElementById("agendaHoy");
-        if(c && !c.dataset.real && !c.dataset.ruta){
-          c.innerHTML = `<div style="padding:18px 4px;color:var(--muted);font-size:13px">No tenés nada agendado para hoy.<br>Entrá a <b>Agenda</b> y agregá tu primera visita.</div>`;
+        if(c && !c.dataset.prio){
+          c.innerHTML = `<div style="padding:18px 4px;color:var(--muted);font-size:13px">No tenés nada agendado para hoy.<br>Armá tu <b>Agenda Eficiente</b> o agregá una visita en <b>Agenda</b>.</div>`;
         }
+        const sv=document.getElementById("stVisitas");
+        if(sv && !sv.dataset.prio){ sv.textContent="0"; const s=document.getElementById("stVisitasSub"); if(s){ s.textContent="Sin visitas agendadas"; s.className="sub mut"; } }
       }, 4000);
       document.getElementById("greet").innerHTML = "¡Hola, " + firstName(nombre) + "! 👋";
       document.getElementById("uName").textContent = nombre;
