@@ -54,6 +54,22 @@ window.GBVentas = (function () {
       });
       if (c.vend != null && c.monto != null) { col = c; desde = i + 1; }
     }
+    // El encabezado y los datos pueden venir corridos: en sep 2026 la tabla dinámica se
+    // publicó con "Nro. Vendedor" en la columna E pero los códigos en la D (y el monto en
+    // H bajo el título de I), y la tarjeta decía "No se pudo leer la planilla". Se prueba
+    // correr las columnas y se usa el corrimiento con el que más filas se entienden
+    // (a igualdad, sin correr).
+    if (col) {
+      var mejor = 0, mejorCuenta = -1;
+      [0, -1, 1, -2, 2].forEach(function (off) {
+        var cuenta = 0;
+        for (var r = desde; r < Math.min(filas.length, desde + 300); r++) {
+          if (num(filas[r][col.vend + off]) != null && aMonto(filas[r][col.monto + off]) != null) cuenta++;
+        }
+        if (cuenta > mejorCuenta) { mejorCuenta = cuenta; mejor = off; }
+      });
+      if (mejor) Object.keys(col).forEach(function (k) { col[k] += mejor; });
+    }
     // Sin fila de encabezado (la tabla dinámica a veces se publica sin ella) las
     // columnas se deducen por la forma de los datos: la del dinero, y las numéricas
     // de la izquierda son los códigos (vendedor y cliente); el nombre va al lado.
