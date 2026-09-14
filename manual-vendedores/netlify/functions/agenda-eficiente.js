@@ -16,6 +16,25 @@ const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 const FREC = ['semanal', 'quincenal', 'mensual'];
 
+// Dado el primer día y la frecuencia, devuelve todas las fechas del MISMO mes en
+// las que hay que visitar al cliente: semanal +7, quincenal +14, mensual solo ese día.
+// Ancla al mediodía para que el corrimiento horario no cambie el día.
+function fechasDelMes(fechaISO, frecuencia) {
+  const step = frecuencia === 'semanal' ? 7 : frecuencia === 'quincenal' ? 14 : 0;
+  const [Y, M] = fechaISO.slice(0, 7).split('-').map(Number);
+  const out = [fechaISO];
+  if (step) {
+    let t = new Date(fechaISO + 'T12:00:00Z').getTime();
+    while (true) {
+      t += step * 86400000;
+      const d = new Date(t);
+      if (d.getUTCFullYear() !== Y || (d.getUTCMonth() + 1) !== M) break;
+      out.push(d.toISOString().slice(0, 10));
+    }
+  }
+  return out;
+}
+
 // Cruce con el manual: visitas registradas (con cronómetro) por un vendedor en un rango.
 // Devuelve un mapa "codigo|YYYY-MM-DD" -> { duracion } (matchea por código crudo y numérico).
 async function visitasManual(codVend, desdeISO, hastaISO) {
@@ -136,6 +155,35 @@ exports.handler = async (event) => {
           const r = await sb('agenda_plan', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filas) });
           if (!r.ok) return json(502, { error: 'No pude guardar el día: ' + (await r.text()).slice(0, 150) });
         }
+        return json(200, { ok: true });
+      }
+
+      // Ubicar un cliente UNA sola vez: se elige el primer día y, según su
+      // frecuencia, se replica solo en el resto del mes. No duplica fechas.
+      if (b.accion === 'ubicar') {
+        if (String(perfil.codigo_vendedor) !== vend) return json(403, { error: 'Solo el vendedor arma su plan.' });
+        if (!b.cliente_codigo || !b.fecha) return json(400, { error: 'Faltan datos.' });
+        const mes = String(b.fecha).slice(0, 7);
+        const frow = (await (await sb('agenda_frecuencia?vendedor=eq.' + encodeURIComponent(vend) + '&cliente_codigo=eq.' + encodeURIComponent(b.cliente_codigo) + '&select=frecuencia&limit=1')).json())[0];
+        const frec = frow && FREC.includes(frow.frecuencia) ? frow.frecuencia : 'mensual';
+        const fechas = fechasDelMes(String(b.fecha), frec);
+        const ya = await (await sb('agenda_plan?vendedor=eq.' + encodeURIComponent(vend) + '&mes=eq.' + mes + '&cliente_codigo=eq.' + encodeURIComponent(b.cliente_codigo) + '&select=fecha')).json();
+        const yaSet = new Set((Array.isArray(ya) ? ya : []).map(r => String(r.fecha).slice(0, 10)));
+        const nuevas = fechas.filter(f => !yaSet.has(f));
+        if (nuevas.length) {
+          const filas = nuevas.map(f => ({ vendedor: vend, mes, fecha: f, cliente_codigo: String(b.cliente_codigo), cliente_nombre: b.cliente_nombre || null, estado: 'pendiente' }));
+          const r = await sb('agenda_plan', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filas) });
+          if (!r.ok) return json(502, { error: 'No pude ubicar: ' + (await r.text()).slice(0, 150) });
+        }
+        return json(200, { ok: true, frecuencia: frec, fechas });
+      }
+
+      // Sacar un cliente de todo el mes (solo las visitas pendientes; las ya
+      // hechas quedan en el historial).
+      if (b.accion === 'quitar') {
+        if (String(perfil.codigo_vendedor) !== vend) return json(403, { error: 'No autorizado.' });
+        if (!b.cliente_codigo || !b.mes) return json(400, { error: 'Faltan datos.' });
+        await sb('agenda_plan?vendedor=eq.' + encodeURIComponent(vend) + '&mes=eq.' + encodeURIComponent(b.mes) + '&cliente_codigo=eq.' + encodeURIComponent(b.cliente_codigo) + '&estado=eq.pendiente', { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
         return json(200, { ok: true });
       }
 

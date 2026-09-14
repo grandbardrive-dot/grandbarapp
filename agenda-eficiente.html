@@ -97,13 +97,35 @@
 
     <!-- MENSUAL -->
     <div class="pane" id="pMes">
-      <div class="hint"><b>Paso 2.</b> Tocá un día y elegí qué clientes vas a visitar ese día. Cuando termines, mandásela al supervisor en la pestaña <b>Envío</b>.</div>
+      <div class="hint"><b>Paso 2.</b> Ubicá cada cliente <b>una sola vez</b>: elegís el día y, según su frecuencia, se repite solo en el mes (semanal cada 7 días, quincenal cada 15). Lo que ya ubicaste desaparece de la lista. Cuando termines, mandásela al supervisor en <b>Envío</b>.</div>
       <div class="mnav"><button id="mPrev">‹</button><div class="lbl" id="mLbl">—</div><button id="mNext">›</button></div>
+
+      <!-- Progreso -->
+      <div class="card" style="padding:12px 14px">
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:800"><span>Clientes ubicados</span><span id="progTxt">0 / 0</span></div>
+        <div style="height:9px;background:#eee7d8;border-radius:20px;margin-top:8px;overflow:hidden"><div id="progBar" style="height:100%;width:0;background:var(--green);transition:width .3s"></div></div>
+        <div id="progSin" style="font-size:11.5px;color:var(--muted);margin-top:7px"></div>
+      </div>
+
+      <!-- Calendario (vista general + ajuste fino) -->
       <div class="card">
         <div class="cal" id="calH"></div>
         <div class="cal" id="cal" style="margin-top:5px"></div>
+        <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:9px">Tocá un día para ver o ajustar sus visitas · Total del mes: <b id="mTot">0</b></div>
       </div>
-      <div style="font-size:12px;color:var(--muted);text-align:center">Total de visitas planificadas este mes: <b id="mTot">0</b></div>
+
+      <!-- Clientes por ubicar -->
+      <div class="card">
+        <div style="font-weight:800;font-size:14px;margin-bottom:9px">📍 Clientes por ubicar</div>
+        <div class="frcs" id="ubFiltros">
+          <button class="frc on" data-fr="">Todos</button>
+          <button class="frc" data-fr="semanal">Semanal</button>
+          <button class="frc" data-fr="quincenal">Quincenal</button>
+          <button class="frc" data-fr="mensual">Mensual</button>
+        </div>
+        <input class="search" id="ubSearch" placeholder="Buscar cliente…">
+        <div id="ubList"><div class="empty">Cargando…</div></div>
+      </div>
     </div>
 
     <!-- ENVÍO -->
@@ -131,6 +153,17 @@
     </div>
   </div>
 
+  <!-- Modal elegir día para ubicar un cliente (con replicación por frecuencia) -->
+  <div class="ov" id="dov">
+    <div class="sheet">
+      <h3 id="dovTit">¿Qué día lo visitás?</h3>
+      <div class="s" id="dovSub">Elegí el primer día. Si es semanal o quincenal, se repite solo.</div>
+      <div class="mnav" style="margin-bottom:8px"><button id="dovPrev">‹</button><div class="lbl" id="dovLbl" style="min-width:130px;font-size:14px">—</div><button id="dovNext">›</button></div>
+      <div class="cal" id="dovCalH"></div>
+      <div class="cal" id="dovCal" style="margin-top:5px"></div>
+    </div>
+  </div>
+
   <!-- Modal día -->
   <div class="ov" id="ov">
     <div class="sheet">
@@ -143,7 +176,8 @@
         <button class="frc" data-fr="mensual">Mensual</button>
         <button class="frc" data-fr="__none">Sin categorizar</button>
       </div>
-      <input class="search" id="ovSearch" placeholder="Buscar cliente…">
+      <input class="search" id="ovSearch" placeholder="Buscar cliente…" style="margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:10px;cursor:pointer"><input type="checkbox" id="ovVerTodos"> Mostrar también los que ya ubiqué en otros días</label>
       <div id="ovList"></div>
       <button class="btn green" id="ovSave" style="margin-top:12px">Guardar día</button>
     </div>
@@ -210,11 +244,91 @@ $('catSearch').oninput=pintaCat;
 // -------- Mensual --------
 async function cargarPlan(){
   try{
+    if(!CLIENTES.length) await cargarClientes();   // hace falta la frecuencia de cada cliente
     const r=await fetch(FN+'?vista=plan&mes='+MES,{headers:{Authorization:'Bearer '+TOKEN}});
     const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
     PLAN=d.plan||[]; ENVIO=d.envio||{estado:'borrador'};
-    pintaCal(); pintaEnv();
+    pintaCal(); pintaEnv(); pintaProgreso(); pintaUbicar();
   }catch(e){ toast(e.message,true); }
+}
+
+// ---- Progreso + "Clientes por ubicar" (la lista que se achica al ubicar) ----
+let ubFrec='';
+const codsEnPlan=()=>new Set(PLAN.map(p=>String(p.cliente_codigo)));
+function clientesPorUbicar(){
+  const enPlan=codsEnPlan();
+  return CLIENTES.filter(c=>c.frecuencia && !enPlan.has(String(c.codigo)));
+}
+function pintaProgreso(){
+  const conFrec=CLIENTES.filter(c=>c.frecuencia);
+  const enPlan=codsEnPlan();
+  const ubic=conFrec.filter(c=>enPlan.has(String(c.codigo))).length, tot=conFrec.length;
+  $('progTxt').textContent=ubic+' / '+tot;
+  $('progBar').style.width=(tot?Math.round(ubic/tot*100):0)+'%';
+  const sin=CLIENTES.length-tot;
+  $('progSin').textContent = sin>0
+    ? ('Te faltan categorizar '+sin+' cliente'+(sin>1?'s':'')+' → pestaña Categorizar.')
+    : (tot? (ubic>=tot?'🎉 Ubicaste todos los clientes del mes.':'') : 'Todavía no categorizaste clientes.');
+}
+function pintaUbicar(){
+  const q=($('ubSearch').value||'').toLowerCase();
+  let arr=clientesPorUbicar();
+  const totalPend=arr.length;
+  if(ubFrec) arr=arr.filter(c=>c.frecuencia===ubFrec);
+  if(q) arr=arr.filter(c=>(c.nombre||'').toLowerCase().includes(q)||String(c.codigo).includes(q));
+  if(!arr.length){ $('ubList').innerHTML='<div class="empty">'+(totalPend?'Sin resultados con ese filtro.':'🎉 Ubicaste a todos. Andá a <b>Envío</b>.')+'</div>'; return; }
+  $('ubList').innerHTML=arr.slice(0,400).map(c=>`<div class="cl ub" data-cod="${esc(c.codigo)}">
+    <div style="flex:1"><div class="nm">${esc(c.nombre||('Cliente '+c.codigo))}</div><div class="cod">Cód ${esc(c.codigo)}</div></div>
+    <span class="fr" style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--gold-s);color:var(--gold-d)">${FRLBL[c.frecuencia]}</span>
+    <button class="btn ubBtn" style="width:auto;padding:8px 13px;font-size:12.5px;background:var(--green);color:#fff;margin-left:8px">📅 Ubicar</button></div>`).join('');
+  $('ubList').querySelectorAll('.cl.ub').forEach(el=>el.querySelector('.ubBtn').onclick=()=>abrirDayPicker(el.dataset.cod));
+}
+$('ubSearch').oninput=pintaUbicar;
+$('ubFiltros').querySelectorAll('.frc').forEach(b=>b.onclick=()=>{
+  ubFrec=b.dataset.fr; $('ubFiltros').querySelectorAll('.frc').forEach(x=>x.classList.toggle('on',x===b)); pintaUbicar();
+});
+
+// ---- Elegir el día (mini-calendario) y ubicar con replicación ----
+let ubCliente=null, DOVMES=MES;
+function abrirDayPicker(cod){
+  const c=CLIENTES.find(x=>String(x.codigo)===cod); if(!c) return;
+  ubCliente=c; DOVMES=MES;
+  $('dovTit').textContent='¿Qué día visitás a '+(c.nombre||('Cliente '+cod))+'?';
+  $('dovSub').textContent = c.frecuencia==='semanal'?'Semanal: se repite cada 7 días del mes.'
+    : c.frecuencia==='quincenal'?'Quincenal: se vuelve a agregar a los 15 días.'
+    : 'Mensual: una sola visita en el mes.';
+  pintaDov(); $('dov').classList.add('open');
+}
+function pintaDov(){
+  const [y,m]=DOVMES.split('-').map(Number);
+  $('dovLbl').textContent=MESES[m-1]+' '+y;
+  $('dovCalH').innerHTML=['L','M','M','J','V','S','D'].map(d=>`<div class="h">${d}</div>`).join('');
+  const first=new Date(y,m-1,1), off=(first.getDay()+6)%7, dias=new Date(y,m,0).getDate();
+  const hoy=new Date().toISOString().slice(0,10);
+  const cntBy={}; PLAN.forEach(p=>{ if(String(p.fecha).slice(0,7)===DOVMES) cntBy[p.fecha]=(cntBy[p.fecha]||0)+1; });
+  let html='';
+  for(let i=0;i<off;i++) html+='<div class="day mut"></div>';
+  for(let d=1;d<=dias;d++){
+    const iso=DOVMES+'-'+String(d).padStart(2,'0'); const n=cntBy[iso]||0; const past=iso<hoy;
+    html+=`<div class="day ${n?'tiene':''} ${iso===hoy?'today':''} ${past?'mut':''}" ${past?'':`data-pick="${iso}"`}><div class="n">${d}</div>${n?`<span class="cnt">${n}</span>`:''}</div>`;
+  }
+  $('dovCal').innerHTML=html;
+  $('dovCal').querySelectorAll('.day[data-pick]').forEach(el=>el.onclick=()=>ubicarCliente(el.dataset.pick));
+}
+$('dovPrev').onclick=()=>{ let[y,m]=DOVMES.split('-').map(Number); m--; if(m<1){m=12;y--;} DOVMES=y+'-'+String(m).padStart(2,'0'); pintaDov(); };
+$('dovNext').onclick=()=>{ let[y,m]=DOVMES.split('-').map(Number); m++; if(m>12){m=1;y++;} DOVMES=y+'-'+String(m).padStart(2,'0'); pintaDov(); };
+$('dov').onclick=e=>{ if(e.target.id==='dov') $('dov').classList.remove('open'); };
+async function ubicarCliente(fecha){
+  if(!ubCliente) return;
+  $('dov').classList.remove('open');
+  try{
+    const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'ubicar',cliente_codigo:ubCliente.codigo,cliente_nombre:ubCliente.nombre,fecha})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    const n=(d.fechas||[]).length;
+    toast(FRLBL[d.frecuencia]+': '+n+' visita'+(n>1?'s':'')+' este mes ✓');
+    if(MES!==fecha.slice(0,7)){ MES=fecha.slice(0,7); }
+    await cargarPlan();
+  }catch(e){ toast(e.message||'No se pudo',true); }
 }
 function pintaCal(){
   const [y,m]=MES.split('-').map(Number);
@@ -242,7 +356,7 @@ function abrirDia(fecha){
   const [y,m,d]=fecha.split('-').map(Number);
   $('ovTit').textContent='Visitas del '+d+' de '+MESES[m-1];
   const asignados=new Set(PLAN.filter(p=>p.fecha===fecha).map(p=>String(p.cliente_codigo)));
-  $('ovSearch').value='';
+  $('ovSearch').value=''; $('ovVerTodos').checked=false;
   ovFrec=''; $('ovFiltros').querySelectorAll('.frc').forEach(x=>x.classList.toggle('on',x.dataset.fr===''));
   window._ovAsign=asignados;
   pintaOv();
@@ -251,16 +365,23 @@ function abrirDia(fecha){
 function pintaOv(){
   const q=($('ovSearch').value||'').toLowerCase();
   const asign=window._ovAsign;
+  const verTodos=$('ovVerTodos').checked;
+  // clientes ya ubicados en OTRO día del mes (para no perderlos de vista ni repetirlos)
+  const enOtroDia=new Set(PLAN.filter(p=>p.fecha!==ovFecha).map(p=>String(p.cliente_codigo)));
+  let ocultos=0;
   const arr=CLIENTES.filter(c=>{
     if(ovFrec==='__none'){ if(c.frecuencia) return false; }
     else if(ovFrec && c.frecuencia!==ovFrec) return false;
+    if(!verTodos && enOtroDia.has(String(c.codigo)) && !asign.has(String(c.codigo))){ ocultos++; return false; }
     if(q && !((c.nombre||'').toLowerCase().includes(q)||String(c.codigo).includes(q))) return false;
     return true;
   });
-  $('ovList').innerHTML=arr.map(c=>`<div class="pick ${asign.has(String(c.codigo))?'on':''}" data-cod="${esc(c.codigo)}"><div class="pbox">${chkSvg}</div><div class="nm">${esc(c.nombre||('Cliente '+c.codigo))}</div>${c.frecuencia?`<span class="fr">${FRLBL[c.frecuencia]}</span>`:''}</div>`).join('')||'<div class="empty">Sin clientes</div>';
+  const aviso = (!verTodos && ocultos) ? `<div class="empty" style="padding:10px">Se ocultaron ${ocultos} que ya ubicaste en otros días.</div>` : '';
+  $('ovList').innerHTML=(arr.map(c=>`<div class="pick ${asign.has(String(c.codigo))?'on':''}" data-cod="${esc(c.codigo)}"><div class="pbox">${chkSvg}</div><div class="nm">${esc(c.nombre||('Cliente '+c.codigo))}</div>${c.frecuencia?`<span class="fr">${FRLBL[c.frecuencia]}</span>`:''}</div>`).join('')||'<div class="empty">Sin clientes</div>')+aviso;
   $('ovList').querySelectorAll('.pick').forEach(p=>p.onclick=()=>{ const cod=p.dataset.cod; if(asign.has(cod))asign.delete(cod);else asign.add(cod); p.classList.toggle('on'); });
 }
 $('ovSearch').oninput=pintaOv;
+$('ovVerTodos').onchange=pintaOv;
 $('ovFiltros').querySelectorAll('.frc').forEach(b=>b.onclick=()=>{
   ovFrec=b.dataset.fr;
   $('ovFiltros').querySelectorAll('.frc').forEach(x=>x.classList.toggle('on',x===b));
