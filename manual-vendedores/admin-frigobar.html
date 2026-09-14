@@ -136,7 +136,7 @@
     <div class="sb-spacer"></div>
     <div class="sb-help">
       <div class="sb-help-t">💡 Dónde se ven</div>
-      <div class="sb-help-p">El vendedor los ve en el manual de un bar, en <b>FRIGOBAR → Pre-armados</b>.</div>
+      <div class="sb-help-p">El vendedor los ve en el manual de un hotel, en <b>FRIGOBAR → Pre-armados</b>.</div>
     </div>
   </aside>
 
@@ -200,7 +200,12 @@
       </div>
       <div class="fld">
         <label>Nota para el vendedor <span style="text-transform:none;font-weight:400">(opcional)</span></label>
-        <input type="text" id="f-desc" placeholder="Ej: ideal para bares que recién ordenan su barra" maxlength="140">
+        <input type="text" id="f-desc" placeholder="Ej: ideal para hoteles que recién arman el frigobar de las habitaciones" maxlength="140">
+      </div>
+      <div class="fld">
+        <label>¿Dónde se ve? <span style="text-transform:none;font-weight:400">(zona y secciones, opcional)</span></label>
+        <div id="seg-dest"></div>
+        <div class="hint">Si no marcás nada, se ve donde corresponde, como hasta ahora. Si marcás secciones, aparece solo en esas.</div>
       </div>
       <div class="fld"><label class="sw"><input type="checkbox" id="f-activo" checked> Visible para los vendedores</label></div>
       <div class="msg" id="m-msg"></div>
@@ -214,6 +219,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="_segmentacion.js"></script>
 <script>
   sessionStorage.setItem('admin_auth','1');
   sessionStorage.setItem('admin_perfil','comercial');
@@ -221,6 +227,17 @@
   const $=id=>document.getElementById(id);
 
   let MIXES=[], edit=null;
+  // Dónde se ve (zona + secciones), con el selector de _segmentacion.js. Vacío = como hasta ahora.
+  let SEG = null, MAPA = {};
+  const segmentado = c => !!(((c && c.secciones) || []).length || ((c && c.zonas) || []).length);
+  // Las columnas secciones/zonas pueden no existir todavía (segmentacion-combos-frigobar.sql):
+  // se mandan solo si hay algo marcado o si la fila ya las trae (para poder vaciarlas).
+  function segFila(){
+    if(!SEG) return {};
+    const v = SEG.valor();
+    const yaTiene = edit && ('secciones' in edit || 'zonas' in edit);
+    return (v.secciones.length || v.zonas.length || yaTiene) ? v : {};
+  }
 
   async function cargar(){
     const { data, error } = await sb.from('packs_frigobar').select('*').order('orden').order('created_at');
@@ -246,6 +263,7 @@
           <div class="combo-nom">${esc(c.nombre)}
             ${c.nivel?`<span class="tag nivel">${esc(c.nivel)}</span>`:''}
             ${c.precio?`<span class="tag precio">$ ${Number(c.precio).toLocaleString('es-AR')}</span>`:''}
+            ${segmentado(c)?`<span class="tag">${esc(Segmentacion.texto(c, MAPA))}</span>`:''}
             ${c.activo===false?'<span class="tag off">Oculto</span>':''}</div>
           ${c.contenido?`<div class="combo-cont">${esc(c.contenido)}</div>`:''}
           ${c.descripcion?`<div class="combo-desc">${esc(c.descripcion)}</div>`:''}
@@ -263,7 +281,7 @@
   function abrirNuevo(){
     edit=null; $('m-title').textContent='Nuevo pack';
     $('f-nombre').value=''; $('f-nivel').value=''; $('f-contenido').value=''; $('f-precio').value=''; $('f-imagen').value=''; $('f-desc').value='';
-    $('f-activo').checked=true; $('m-msg').textContent='';
+    $('f-activo').checked=true; $('m-msg').textContent=''; SEG && SEG.set({});
     $('ov').classList.add('open'); setTimeout(()=>$('f-nombre').focus(),80);
   }
   function abrirEdicion(id){
@@ -271,7 +289,7 @@
     $('m-title').textContent='Editar pack';
     $('f-nombre').value=edit.nombre||''; $('f-nivel').value=edit.nivel||''; $('f-contenido').value=edit.contenido||'';
     $('f-precio').value=edit.precio||''; $('f-imagen').value=edit.imagen_url||'';
-    $('f-desc').value=edit.descripcion||''; $('f-activo').checked=edit.activo!==false; $('m-msg').textContent='';
+    $('f-desc').value=edit.descripcion||''; $('f-activo').checked=edit.activo!==false; $('m-msg').textContent=''; SEG && SEG.set({ secciones: edit.secciones || [], zonas: edit.zonas || [] });
     $('ov').classList.add('open');
   }
   function cerrar(){ $('ov').classList.remove('open'); }
@@ -288,6 +306,7 @@
       precio:      $('f-precio').value ? Number($('f-precio').value) : null,
       imagen_url:  $('f-imagen').value.trim() || null,
       activo:      $('f-activo').checked,
+      ...segFila(),
     };
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…'; $('m-save').disabled=true;
     try{
@@ -297,7 +316,7 @@
              ({ error } = await sb.from('packs_frigobar').insert(fila)); }
       if(error) throw error;
       cerrar(); await cargar();
-    }catch(e){ msg.style.color='#c0392b'; msg.textContent='No se pudo guardar: '+(e.message||e); }
+    }catch(e){ msg.style.color='#c0392b'; msg.textContent = /secciones|zonas/.test(e.message||'') ? 'Falta correr segmentacion-combos-frigobar.sql en Supabase (proyecto del manual).' : 'No se pudo guardar: '+(e.message||e); }
     finally{ $('m-save').disabled=false; }
   }
 
@@ -333,7 +352,11 @@
     location.href='/index.html';
   }
 
-  cargar();
+  (async () => {
+    try { MAPA = await Segmentacion.mapa(); } catch (e) {}
+    SEG = await Segmentacion.montar('#seg-dest');
+    cargar();
+  })();
 </script>
 <script src="_admin-sidebar.js"></script>
 </body>

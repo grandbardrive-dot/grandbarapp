@@ -340,7 +340,7 @@
   sessionStorage.setItem('admin_auth','1');
   sessionStorage.setItem('admin_perfil','comercial');
 
-  const CANAL_LABEL = { restaurantes:'Restaurantes', vinotecas:'Vinotecas', bares:'Bares', discos:'Discos', hoteles:'Hoteles', eventos:'Eventos', autoservicios:'Autoservicios', todos:'Todos' };
+  const CANAL_LABEL = { restaurantes:'Restaurantes', vinotecas:'Vinotecas', tiendas_bebidas:'Tienda de Bebidas', bares:'Bares', discos:'Discos', hoteles:'Hoteles', eventos:'Eventos', autoservicios:'Autoservicios', kioscos:'Kioscos', mayoristas:'Mayoristas', mayorista_mendoza:'Mayorista Mendoza', mayorista_sanluis:'Mayorista San Luis', todos:'Todos' };
   const esc = s => String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   // Ojo con las fechas sueltas (2026-08-17, sin hora): new Date() las lee como
@@ -371,12 +371,14 @@
   // mira solo acciones_mensuales, los 14 planes cargados no aparecen en ningún lado y
   // el tablero dice "0 activas" cuando en realidad hay 14 andando.
   function normalizarPlan(p, canalDeSeccion){
-    const canal = canalDeSeccion[p.seccion_id] || null;
+    // Un plan puede estar en varias secciones (columna secciones): se juntan todos sus canales.
+    const ids = (Array.isArray(p.secciones) && p.secciones.length) ? p.secciones : [p.seccion_id];
+    const canalesPlan = [...new Set(ids.map(id => canalDeSeccion[id]).filter(Boolean))];
     return { ...p, _tipo:'plan',
       producto: p.nombre,
       accion: p.condicion ? ('Plan ' + p.condicion) : 'Plan',
       categoria: null, imagen_url: null,
-      aplica_a: canal ? [CANAL_DE_MANUAL[canal] || canal] : [] };
+      aplica_a: canalesPlan.map(c => CANAL_DE_MANUAL[c] || c) };
   }
   // Los canales del manual se llaman en singular; los de las campañas, en plural.
   const CANAL_DE_MANUAL = { restaurante:'restaurantes', vinoteca:'vinotecas', tienda_bebidas:'tiendas_bebidas',

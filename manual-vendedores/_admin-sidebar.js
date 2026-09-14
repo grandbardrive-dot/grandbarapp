@@ -112,17 +112,35 @@
     'admin-comercial.html', 'admin-campanias.html', 'admin-nueva-campania.html', 'admin-fechas.html',
     'admin-secciones.html', 'admin-combos.html', 'admin-catalogo.html',
     'admin-catalogo-clientes.html', 'admin-resultados.html', 'admin-11t.html', 'admin-comparador.html',
+    'admin-mixes.html', 'admin-vino-copa.html', 'admin-aperitivos.html', 'admin-propuestas.html', 'admin-frigobar.html',
   ];
+  // Las opciones van en grupos (el grupo se muestra como título chico arriba de sus opciones).
   const MENU = [
     { key:'inicio',    href:'admin-comercial.html', label:'Inicio',
       ico:'<path d="M3 11l9-7 9 7M5 10v9h14v-9" stroke-linecap="round" stroke-linejoin="round"/>' },
     { key:'campanias', href:'admin-campanias.html', label:'Campañas', sub:'Acciones comerciales',
       ico:'<path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/>' },
+    { key:'borradores', href:'admin-campanias.html?estado=borrador', label:'Borradores', sub:'En edición',
+      ico:'<path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" stroke-linecap="round"/>' },
+    { key:'planes',    href:'admin-planes.html', label:'Planes', sub:'Planes de proveedores',
+      ico:'<path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5" stroke-linecap="round"/>' },
+    { key:'fechas',    href:'admin-fechas.html', label:'Fechas especiales', sub:'Calendario del manual',
+      ico:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/>' },
     { key:'secciones', href:'admin-secciones.html', label:'Secciones', sub:'Estructura del manual',
       ico:'<path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/><circle cx="4" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.4" fill="currentColor" stroke="none"/>' },
+    { grupo:'Herramientas del manual', key:'propuestas', href:'admin-propuestas.html', label:'Propuestas', sub:'Incorporaciones',
+      ico:'<path d="M12 5v14M5 12h14" stroke-linecap="round"/>' },
+    { key:'vinocopa',  href:'admin-vino-copa.html', label:'Vino por copa', sub:'Vinos y condiciones',
+      ico:'<path d="M8 3h8l-1 7a3 3 0 0 1-6 0zM12 13v8M8 21h8" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { key:'aperitivos', href:'admin-aperitivos.html', label:'Aperitivos', sub:'De bienvenida o pre cena',
+      ico:'<path d="M5 4h14l-7 9zM12 13v8M8 21h8" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { key:'mixes',     href:'admin-mixes.html', label:'Mix Ideal', sub:'Combos de productos',
+      ico:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>' },
     { key:'combos',    href:'admin-combos.html', label:'Combos', sub:'Para eventos',
       ico:'<path d="M5 8h14l-1 12H6z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke-linecap="round"/>' },
-    { key:'catalogo',  href:'admin-catalogo.html', label:'Catálogo', sub:'Proveedores y productos',
+    { key:'frigobar',  href:'admin-frigobar.html', label:'Frigobar', sub:'Packs para hoteles',
+      ico:'<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M6 10h12M9 6v2M9 13v3" stroke-linecap="round"/>' },
+    { grupo:'Catálogo y resultados', key:'catalogo',  href:'admin-catalogo.html', label:'Catálogo', sub:'Proveedores y productos',
       ico:'<path d="M4 7l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 7v10l8 4 8-4V7" stroke-linecap="round" stroke-linejoin="round"/>' },
     { key:'catclientes', href:'admin-catalogo-clientes.html', label:'Catálogo clientes', sub:'Catálogo público de acciones',
       ico:'<path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2zM20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z" stroke-linejoin="round"/>' },
@@ -130,8 +148,6 @@
       ico:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke-linecap="round"/>' },
     { key:'reporte11t', href:'admin-11t.html', label:'Plan 11T', sub:'Peñaflor · por canal y línea',
       ico:'<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 14l3-3 2 2 4-5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="8" r="1.6" fill="currentColor" stroke="none"/>' },
-    { key:'borradores', href:'admin-campanias.html?estado=borrador', label:'Borradores', sub:'En edición',
-      ico:'<path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" stroke-linecap="round"/>' },
   ];
   const AYUDA = [
     { fn:'verGuias', label:'Guías y tutoriales',
@@ -146,7 +162,7 @@
   function activo() {
     const f = archivo(), esBorrador = /estado=borrador/.test(location.search);
     if (f === 'admin-campanias.html')      return esBorrador ? 'borradores' : 'campanias';
-    if (f === 'admin-nueva-campania.html' || f === 'admin-fechas.html') return 'campanias';
+    if (f === 'admin-nueva-campania.html') return 'campanias';
     const it = MENU.find(m => m.href.split('?')[0] === f);
     return it ? it.key : '';
   }
@@ -178,7 +194,8 @@
       ? `<a class="sb-item" href="/hub.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Volver al Hub</div><div class="sb-txt-sub">Todas las herramientas</div></div></a>`
       : '';
     const html = `
-      <nav class="sb-nav">${volverHub}${MENU.map(m => itemHTML(m, m.key === act)).join('')}</nav>
+      <nav class="sb-nav">${volverHub}${MENU.map(m =>
+        (m.grupo ? `</nav><div class="sb-label" style="padding:14px 22px 4px;margin:0;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45)">${m.grupo}</div><nav class="sb-nav" style="padding-top:0">` : '') + itemHTML(m, m.key === act)).join('')}</nav>
       <div class="sb-label">Ayuda</div>
       <nav class="sb-nav" style="padding-top:0">
         ${AYUDA.map(a => `<button class="sb-item" style="background:none;border:none;font-family:inherit;text-align:left;width:100%" onclick="${a.fn}()">
@@ -189,6 +206,10 @@
       <div class="sb-spacer"></div>
       ${ayudaHTML}`;
     aside.insertAdjacentHTML('beforeend', html);
+    // Con el menú más largo, que la barra se pueda desplazar; y en el celular, menú
+    // hamburguesa en todas las pantallas (varias escondían la barra sin reemplazo).
+    aside.style.overflowY = 'auto';
+    window.hacerSidebarResponsive();
 
     // Guías y Soporte estaban en el menú de varias pantallas pero solo Inicio tenía
     // las funciones: al tocarlos no pasaba nada. Acá van los respaldos.

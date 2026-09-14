@@ -105,6 +105,10 @@
   .drop img{max-height:90px;border-radius:8px;margin-bottom:6px}
   .btn-guardar{width:100%;background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;gap:9px}
   .btn-guardar:disabled{opacity:.6}
+  .btn-cancelar{width:100%;margin-top:8px;background:var(--surface);color:var(--ink2);border:1.5px solid var(--line-2);border-radius:12px;padding:11px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn-cancelar:hover{border-color:var(--navy);color:var(--navy)}
+  .btn-cancelar[hidden]{display:none}
+  .fcard.editando{border-color:var(--gold);box-shadow:0 0 0 2px rgba(203,184,106,.35),var(--shadow)}
   .form-msg{font-size:12.5px;text-align:center;margin-top:10px;font-weight:700}
 
   /* Lista de fechas */
@@ -171,8 +175,8 @@
       <div class="cols">
         <!-- Formulario -->
         <div class="card">
-          <div class="card-h"><span class="dot"></span>Nueva fecha especial</div>
-          <div class="card-sub">Completá los datos y guardá. Se puede pausar o eliminar después.</div>
+          <div class="card-h"><span class="dot"></span><span id="f-titulo">Nueva fecha especial</span></div>
+          <div class="card-sub" id="f-sub">Completá los datos y guardá. Se puede editar, pausar o eliminar después.</div>
 
           <div class="fg"><label>Nombre de la fecha *</label><input id="f-nombre" type="text" placeholder="Ej: Promo Día de la Madre"></div>
           <div class="fg"><label>Descripción *</label><textarea id="f-desc" placeholder="Qué es y qué tiene que hacer el vendedor…"></textarea></div>
@@ -199,6 +203,7 @@
             <input id="f-file" type="file" accept="image/*" style="display:none" onchange="previsualizar(this)">
           </div>
           <button class="btn-guardar" id="f-save" onclick="guardarFecha()">Guardar fecha</button>
+          <button class="btn-cancelar" id="f-cancel" type="button" onclick="cancelarEdicion()" hidden>Cancelar edición</button>
           <div class="form-msg" id="f-msg"></div>
         </div>
 
@@ -252,15 +257,25 @@
     return ['todos'];
   }
   const fmtF=d=>{ if(!d) return '—'; const x=new Date(d+'T12:00:00'); return x.toLocaleDateString('es-AR',{day:'2-digit',month:'short'}); };
-  const hoyISO=()=>new Date().toISOString().slice(0,10);
+  // Fecha de hoy en hora local (toISOString usa UTC y después de las 21 h en Argentina ya da mañana).
+  const hoyISO=()=>{ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
 
   let DATA=[], FILTRO='todas', _imgFile=null;
+  // Edición: id de la fecha que se está editando (null = alta nueva) y su imagen actual.
+  let editId=null, editImg=null;
   // Segmentación (secciones + zona): se monta una vez; MAPA es para los textos de la lista.
   let SEG=null, MAPA=null;
 
   function toggleMenu(ev){ ev.stopPropagation(); $('perfil-menu').classList.toggle('open'); }
   document.addEventListener('click',()=>$('perfil-menu').classList.remove('open'));
-  function cerrarSesion(){ sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil'); try{sb.auth.signOut();}catch(e){} location.replace('admin.html'); }
+  function cerrarSesion(){
+    sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil');
+    try{
+      localStorage.removeItem('gb_demo');
+      Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k));
+    }catch(e){}
+    location.href='/index.html';
+  }
 
   async function cargar(){
     try{
@@ -310,7 +325,7 @@
         : rubros.map(r=>`<span class="rmini">${esc(RUBRO_L[r]||r)}</span>`).join(' ');
       const conSeg=(Array.isArray(a.secciones)&&a.secciones.length)||(Array.isArray(a.zonas)&&a.zonas.length);
       const segChip = conSeg&&MAPA ? ` <span class="rmini" style="background:var(--amber-bg);color:var(--amber)">🎯 ${esc(Segmentacion.texto(a,MAPA))}</span>` : '';
-      return `<div class="fcard">
+      return `<div class="fcard${a.id===editId?' editando':''}">
         <div class="fcard-img">${a.imagen_url?`<img src="${esc(a.imagen_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`:'📅'}</div>
         <div class="fcard-info">
           <div class="fcard-nombre">${esc(a.nombre)}</div>
@@ -323,6 +338,7 @@
           </div>
         </div>
         <div class="fcard-acts">
+          <button class="mini" onclick="editarFecha('${a.id}')">✏️ Editar</button>
           <button class="mini" onclick="toggleFecha('${a.id}',${a.activa===false})">${a.activa===false?'Activar':'Pausar'}</button>
           <button class="mini del" onclick="eliminarFecha('${a.id}')">Eliminar</button>
         </div>
@@ -364,15 +380,19 @@
       const allOn=rubros.every(r=>ON_TRADE.includes(r)), allOff=rubros.every(r=>OFF_TRADE.includes(r));
       canal = allOn ? 'restaurantes' : allOff ? 'vinotecas' : 'todos';
     }
+    const editando=editId;
     btn.disabled=true; btn.innerHTML='<span class="spin"></span> Guardando…'; msg.textContent='';
     try{
       let img=null; try{ img=await subirImagen(); }catch(e){ /* si falla la imagen, guardamos igual sin ella */ }
-      const { error } = await sb.from('acciones_fechas').insert({ nombre, descripcion:desc, condicion:cond||null, canal, rubros, imagen_url:img, fecha_inicio:inicio, fecha_fin:fin, activa:true, ...(SEG ? SEG.valor() : {}) });
+      // En edición, si no eligieron imagen nueva se conserva la actual.
+      if(!img && editando) img=editImg;
+      const fila={ nombre, descripcion:desc, condicion:cond||null, canal, rubros, imagen_url:img, fecha_inicio:inicio, fecha_fin:fin, ...(SEG ? SEG.valor() : {}) };
+      const { error } = editando
+        ? await sb.from('acciones_fechas').update(fila).eq('id',editando)
+        : await sb.from('acciones_fechas').insert({ ...fila, activa:true });
       if(error) throw error;
-      // limpiar
-      ['f-nombre','f-desc','f-cond','f-inicio','f-fin'].forEach(id=>$(id).value='');
-      selRubros=new Set(); renderChips(); SEG && SEG.set({}); _imgFile=null; $('f-drop').innerHTML='<div id="f-drop-txt">📷 Tocá para subir una imagen</div>'; $('f-file').value='';
-      msg.style.color='var(--green)'; msg.textContent='✓ Fecha guardada.';
+      limpiarForm();
+      msg.style.color='var(--green)'; msg.textContent= editando ? '✓ Cambios guardados.' : '✓ Fecha guardada.';
       await cargar();
       setTimeout(()=>{ msg.textContent=''; },2500);
     }catch(e){
@@ -382,11 +402,57 @@
         ? 'No se pudo guardar: falta correr segmentacion-setup.sql en Supabase (proyecto del manual).'
         : 'No se pudo guardar: '+txt;
     }
-    finally{ btn.disabled=false; btn.textContent='Guardar fecha'; }
+    finally{ btn.disabled=false; btn.textContent= editId ? 'Guardar cambios' : 'Guardar fecha'; }
   }
 
-  async function toggleFecha(id,activa){ await sb.from('acciones_fechas').update({activa}).eq('id',id); cargar(); }
-  async function eliminarFecha(id){ if(!confirm('¿Eliminar esta fecha especial?')) return; await sb.from('acciones_fechas').delete().eq('id',id); cargar(); }
+  // Deja el formulario vacío y en modo alta.
+  function limpiarForm(){
+    ['f-nombre','f-desc','f-cond','f-inicio','f-fin'].forEach(id=>$(id).value='');
+    selRubros=new Set(); renderChips(); SEG && SEG.set({}); _imgFile=null; $('f-drop').innerHTML='<div id="f-drop-txt">📷 Tocá para subir una imagen</div>'; $('f-file').value='';
+    editId=null; editImg=null;
+    $('f-titulo').textContent='Nueva fecha especial';
+    $('f-sub').textContent='Completá los datos y guardá. Se puede editar, pausar o eliminar después.';
+    $('f-save').textContent='Guardar fecha';
+    $('f-cancel').hidden=true;
+    render();
+  }
+
+  // Carga una fecha existente en el formulario para editarla.
+  function editarFecha(id){
+    const a=DATA.find(x=>String(x.id)===String(id)); if(!a) return;
+    editId=a.id; editImg=a.imagen_url||null; _imgFile=null; $('f-file').value='';
+    $('f-nombre').value=a.nombre||'';
+    $('f-desc').value=a.descripcion||'';
+    $('f-cond').value=a.condicion||'';
+    $('f-inicio').value=a.fecha_inicio||'';
+    $('f-fin').value=a.fecha_fin||'';
+    selRubros=new Set(rubrosDe(a)); renderChips();
+    SEG && SEG.set({ secciones:a.secciones||[], zonas:a.zonas||[] });
+    $('f-drop').innerHTML = editImg
+      ? `<img src="${esc(editImg)}"><div>Imagen actual — tocá para cambiarla</div>`
+      : '<div id="f-drop-txt">📷 Tocá para subir una imagen</div>';
+    $('f-titulo').textContent='Editar fecha especial';
+    $('f-sub').textContent='Estás editando “'+(a.nombre||'')+'”. Guardá los cambios o cancelá.';
+    $('f-save').textContent='Guardar cambios';
+    $('f-cancel').hidden=false;
+    $('f-msg').textContent='';
+    render();
+    $('f-titulo').closest('.card').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function cancelarEdicion(){ limpiarForm(); $('f-msg').textContent=''; }
+
+  async function toggleFecha(id,activa){
+    const { error } = await sb.from('acciones_fechas').update({activa}).eq('id',id);
+    if(error){ alert('No se pudo '+(activa?'activar':'pausar')+' la fecha: '+(error.message||error)); return; }
+    cargar();
+  }
+  async function eliminarFecha(id){
+    if(!confirm('¿Eliminar esta fecha especial?')) return;
+    const { error } = await sb.from('acciones_fechas').delete().eq('id',id);
+    if(error){ alert('No se pudo eliminar la fecha: '+(error.message||error)); return; }
+    if(String(id)===String(editId)) limpiarForm();
+    cargar();
+  }
 
   renderChips();
   cargar();

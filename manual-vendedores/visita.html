@@ -3717,7 +3717,9 @@ body { background:transparent !important; }
     let items = [];
     try {
       const { data } = await sb.from('combos_evento').select('*').eq('activo', true).order('orden');
-      items = data || [];
+      // Zona y secciones que marcó Luciana (sin marcar = se ve como siempre)
+      const uuidSec = (buscarSec(secId) || {})._uuid;
+      items = (data || []).filter(c => segVa(c, uuidSec));
     } catch (e) { items = []; }
 
     if (!items.length) {
@@ -4576,6 +4578,15 @@ body { background:transparent !important; }
 
   // Campañas segmentadas primero, sin repetir las que ya entran por la lógica de siempre.
   const _expConSeg = (seg, lista) => _expandirCampanias(seg.concat(lista.filter(a => !seg.includes(a))));
+  // Una campaña general (sin sección elegida) de una categoría va a UNA sola sección de este
+  // manual: la primera del recorrido que sea de esa categoría. Antes, en vinotecas y tiendas,
+  // "Acciones de Rotación" y "Acciones de Volumen" eran las dos de vinos y la misma campaña
+  // salía dos veces; y en restaurantes la de spirits salía también en la sección general.
+  function _seccionCanonica(cat) {
+    if (!cat) return null;
+    const h = seccionesHoja(checklist).find(s => SECCION_CATEGORIA[s.id] === cat);
+    return h ? h.id : null;
+  }
   async function _campaniasSeccion(secId) {
     const todasZona = (await _getAccionesMensuales()).filter(a => segVa(a, null));   // zona del vendedor
     // Las que Luciana segmentó (marcó secciones) van SOLO a esas secciones, sin mirar
@@ -4599,7 +4610,8 @@ body { background:transparent !important; }
     const catDeSeccion = SECCION_CATEGORIA[secId];
     if (catDeSeccion) {
       return _expConSeg(segmentadas, porCanal.filter(a =>
-        asignadaAqui(a) || (enBucketGeneral(a) && String(a.categoria || '').toLowerCase() === catDeSeccion)
+        asignadaAqui(a) || (enBucketGeneral(a) && String(a.categoria || '').toLowerCase() === catDeSeccion
+                            && _seccionCanonica(catDeSeccion) === secId)
       ));
     }
 
@@ -4612,7 +4624,9 @@ body { background:transparent !important; }
     if (esGeneral) {
       const idsHoja = new Set(seccionesHoja(checklist).map(s => s.id));
       const huerfana = a => { const p = partes(a); return p.length > 0 && !p.some(c => idsHoja.has(c)); };
-      return _expConSeg(segmentadas, porCanal.filter(a => asignadaAqui(a) || enBucketGeneral(a) || huerfana(a)));
+      // Las generales cuya categoría ya tiene su sección en este manual se ven allá, no acá.
+      const vaASuCategoria = a => !!_seccionCanonica(String(a.categoria || '').toLowerCase());
+      return _expConSeg(segmentadas, porCanal.filter(a => asignadaAqui(a) || (enBucketGeneral(a) && !vaASuCategoria(a)) || huerfana(a)));
     }
 
     // 3) Cualquier otra sección específica: solo las asignadas explícitamente a ella.
@@ -5591,7 +5605,9 @@ body { background:transparent !important; }
     let packs = [];
     try {
       const { data } = await sb.from('packs_frigobar').select('*').eq('activo', true).order('orden');
-      packs = data || [];
+      // Zona y secciones que marcó Luciana (sin marcar = se ve como siempre)
+      const uuidSec = (buscarSec(secId) || {})._uuid;
+      packs = (data || []).filter(p => segVa(p, uuidSec));
     } catch (e) { el.innerHTML = ''; return; }
     if (!packs.length) {
       el.innerHTML = `<div class="mix-empty">Todavía no hay packs de frigobar cargados para proponer.</div>`;
@@ -5818,7 +5834,7 @@ body { background:transparent !important; }
           ${repoRows}
           <button class="herr-btn" onclick="herrSugerirRepo()">✨ Sugerir reposición</button>
           <div id="repo-sug"></div>
-          <div class="herr-note" style="margin-top:11px">Es una <b>posible</b> falta: GrandBar sabe lo que te vendió, no el stock real del bar. Confirmalo en la visita.</div>
+          <div class="herr-note" style="margin-top:11px">Es una <b>posible</b> falta: GrandBar sabe lo que te vendió, no el stock real del local. Confirmalo en la visita.</div>
         </div>
       </div>
       <div class="herr-tool">
@@ -5922,16 +5938,16 @@ body { background:transparent !important; }
   // ① REGISTRO
   function fbRegistroHtml(secId){
     const chips = FB_TIPOS.map(t => `<button class="fb-chip ${_fbNuevo.tipo===t?'on':''}" onclick="fbSetTipo('${_e2(t)}')">${t}</button>`).join('');
-    const lista = _fbFechas.length ? _fbFechas.map(fbCardHtml).join('') : `<div class="herr-empty">Todavía no registraste fechas para este bar.</div>`;
+    const lista = _fbFechas.length ? _fbFechas.map(fbCardHtml).join('') : `<div class="herr-empty">Todavía no registraste fechas para este cliente.</div>`;
     return `<div class="fb-label">¿Tiene próximas fechas relevantes?</div>
       <div class="fb-chips">${chips}</div>
-      <input class="fb-in" id="fb-nom" placeholder="Nombre del evento (ej: Aniversario del bar)">
+      <input class="fb-in" id="fb-nom" placeholder="Nombre del evento (ej: Aniversario del local)">
       <div class="fb-row2" style="margin-top:9px">
         <div><div class="fb-label">Fecha</div><input class="fb-in" id="fb-fecha" type="date"></div>
         <div><div class="fb-label">Asistencia estimada</div><input class="fb-in" id="fb-asis" type="number" min="0" placeholder="ej: 350"></div>
       </div>
       <button class="fb-save" onclick="fbGuardar()">+ Registrar fecha</button>
-      <div class="fb-label" style="margin-top:16px">Fechas del bar</div>
+      <div class="fb-label" style="margin-top:16px">Fechas del cliente</div>
       ${lista}
       <div class="fb-label" style="margin-top:16px">Calendario comercial GrandBar</div>
       <div class="esp-block" style="padding:0;border:none;background:none"><div id="vt-cal-${secId}"><div class="esp-loading">Cargando calendario…</div></div></div>`;
@@ -6720,7 +6736,7 @@ body { background:transparent !important; }
   const _fechasCalCache = {};        // cache por set de canales
   const _calCanales = {};            // secId -> canales (para que calNav recuerde)
   const _calEvById = {};             // id de fecha -> objeto completo (imagen, mecánica, rubros)
-  const _RUBRO_LBL = { restaurante:'Restaurantes', bar:'Bares', hotel:'Hoteles', disco:'Discos', discoteca:'Discos', evento:'Eventos', vinoteca:'Vinotecas', autoservicio:'Autoservicios', kiosco:'Kioscos', mayorista:'Mayoristas', todos:'Todos los rubros' };
+  const _RUBRO_LBL = { restaurante:'Restaurantes', bar:'Bares', hotel:'Hoteles', disco:'Discos', discoteca:'Discos', evento:'Eventos', vinoteca:'Vinotecas', tienda_bebidas:'Tiendas de bebidas', autoservicio:'Autoservicios', kiosco:'Kioscos', mayorista:'Mayoristas', todos:'Todos los rubros' };
   const rubroLbl = r => _RUBRO_LBL[String(r||'').toLowerCase()] || (String(r||'').charAt(0).toUpperCase()+String(r||'').slice(1));
   function renderVtCalendario(sec) {
     return `<div class="esp-block"><div id="vt-cal-${sec.id}"><div class="esp-loading">Cargando calendario…</div></div></div>`;

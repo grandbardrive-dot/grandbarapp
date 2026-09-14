@@ -319,10 +319,7 @@
   let colorSel=0;
 
   async function cargar(){
-    const [secRes, accRes] = await Promise.all([
-      sb.from('checklist_secciones').select('*').eq('canal',canal).eq('zona',zona).order('orden'),
-      sb.from('acciones_mensuales').select('seccion_checklist'),
-    ]);
+    const secRes = await sb.from('checklist_secciones').select('*').eq('canal',canal).eq('zona',zona).order('orden');
     SECS = secRes.data || [];
     const ids = SECS.map(s=>s.id);
     // Los ítems completos (también los ocultos): se editan desde esta misma pantalla.
@@ -331,13 +328,138 @@
       const { data:its } = await sb.from('checklist_items').select('*').in('seccion_id', ids).order('orden');
       (its||[]).forEach(i=>{ (ITEMS[i.seccion_id] = ITEMS[i.seccion_id] || []).push(i); });
     }
-    // Cuántas campañas usan cada código de sección (para avisar antes de borrar)
+    // Qué hay cargado en cada sección (campañas, planes, vinos por copa…), contado por
+    // el id de la sección y no por el código: los códigos se repiten entre rubros y
+    // entre Mendoza y San Luis, y así el número salía inflado.
     USOS = {};
-    (accRes.data||[]).forEach(a=>{
-      (a.seccion_checklist||'').split(',').map(s=>s.trim()).filter(Boolean)
-        .forEach(c=>{ USOS[c]=(USOS[c]||0)+1; });
-    });
+    if(ids.length){
+      try{
+        const u = await usosDeSecciones(ids);
+        u.registros.forEach(r=>{
+          r.marcadas.forEach(sid=>{ if(ids.includes(sid)) (USOS[sid] = USOS[sid] || []).push(r); });
+        });
+      }catch(e){ console.warn('No se pudo contar el uso de las secciones', e); }
+    }
     renderTabs(); renderLista();
+  }
+
+  // ── Qué se pierde si una sección se borra o se oculta ────────────────────────
+  // Luciana "segmenta" acciones y planes a secciones (columna secciones uuid[]). Si la
+  // sección desaparece, lo que estaba marcado SOLO ahí deja de verse en la visita,
+  // sin aviso. Por eso antes de borrar u ocultar se cuenta qué queda afectado.
+  const TABLAS_SEG = [
+    { tabla:'acciones_mensuales',       uno:'campaña',             varios:'campañas' },
+    { tabla:'checklist_planes',         uno:'plan',                varios:'planes' },
+    { tabla:'vinos_por_copa',           uno:'vino por copa',       varios:'vinos por copa' },
+    { tabla:'aperitivos_bienvenida',    uno:'aperitivo de bienvenida', varios:'aperitivos de bienvenida' },
+    { tabla:'propuestas_incorporacion', uno:'propuesta de incorporación', varios:'propuestas de incorporación' },
+    { tabla:'mixes_ideales',            uno:'mix ideal',           varios:'mixes ideales' },
+    { tabla:'acciones_fechas',          uno:'acción por fecha',    varios:'acciones por fecha' },
+  ];
+  const CAT_TIPO = { tabla:'catalogo_acciones', uno:'acción del catálogo', varios:'acciones del catálogo' };
+  let _sbCat = null;
+  const sbCatalogo = () => _sbCat || (_sbCat = supabase.createClient(
+    'https://zlwnoqdxendsgbfvfyue.supabase.co', 'sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4',
+    { auth:{ persistSession:false } }));
+
+  // Cómo figura cada rubro en aplica_a de las campañas viejas (mismos alias que la visita).
+  const ALIAS_APLICA = {
+    restaurante:['restaurantes','restaurante'], vinoteca:['vinotecas','vinoteca'],
+    tienda_bebidas:['tiendas_bebidas','tienda_bebidas','tienda de bebidas'],
+    autoservicio:['autoservicios','autoservicio','kioscos'], hotel:['hoteles','hotel'],
+    bar:['bares','bar'], disco:['discos','discotecas','disco'],
+    mayorista:['mayorista','mayoristas','mayorista_mendoza','mayorista_sanluis'],
+  };
+
+  // Como traerTodo (_config.js) pero corta con error en vez de devolver lo que llegó:
+  // acá un "0" por una consulta fallida haría borrar algo creyendo que no afecta nada.
+  async function paginar(armar){
+    const filas=[], tam=1000;
+    for(let desde=0; desde<20000; desde+=tam){
+      const { data, error } = await armar().range(desde, desde+tam-1);
+      if(error) throw error;
+      filas.push(...(data||[]));
+      if(!data || data.length<tam) break;
+    }
+    return filas;
+  }
+
+  // ids: la sección y sus subsecciones. Devuelve cada registro que las tiene marcadas,
+  // con todas sus secciones marcadas, más las campañas viejas (por código) del rubro.
+  async function usosDeSecciones(ids){
+    const registros=[], fallas=[];
+    const consultas = TABLAS_SEG.map(async t=>{
+      const cols = t.tabla==='checklist_planes' ? 'id,secciones,seccion_id' : 'id,secciones';
+      const filas = await paginar(()=>sb.from(t.tabla).select(cols).overlaps('secciones', ids));
+      // Los planes también se ubican por seccion_id (el campo de antes).
+      if(t.tabla==='checklist_planes'){
+        const extra = await paginar(()=>sb.from(t.tabla).select(cols).in('seccion_id', ids));
+        extra.forEach(p=>{ if(!filas.some(f=>f.id===p.id)) filas.push(p); });
+      }
+      filas.forEach(f=>{
+        const marcadas = [...new Set([...(f.secciones||[]), ...(f.seccion_id?[f.seccion_id]:[])])];
+        registros.push({ tipo:t, id:f.id, marcadas });
+      });
+    });
+    consultas.push((async()=>{
+      const filas = await paginar(()=>sbCatalogo().from('catalogo_acciones').select('id,secciones').overlaps('secciones', ids));
+      filas.forEach(f=>registros.push({ tipo:CAT_TIPO, id:f.id, marcadas:[...new Set(f.secciones||[])] }));
+    })());
+    const res = await Promise.allSettled(consultas);
+    res.forEach((r,i)=>{ if(r.status==='rejected') fallas.push(i<TABLAS_SEG.length ? TABLAS_SEG[i].varios : CAT_TIPO.varios); });
+    if(fallas.length===res.length) throw new Error('no se pudo consultar ninguna tabla');
+
+    // Sistema viejo de campañas: sin secciones marcadas, ubicadas por código de sección.
+    // Solo cuentan las del rubro de esta pantalla (aplica_a) y de esta zona.
+    const alias = ALIAS_APLICA[canal] || [canal];
+    const viejas = [];
+    try{
+      const camps = await paginar(()=>sb.from('acciones_mensuales').select('id,seccion_checklist,aplica_a,secciones,zonas').not('seccion_checklist','is',null));
+      camps.forEach(a=>{
+        if((a.secciones||[]).length) return;
+        if((a.zonas||[]).length && !a.zonas.includes(zona)) return;
+        if(!(a.aplica_a||[]).some(v=>alias.includes(v) || v==='todos')) return;
+        const cods = String(a.seccion_checklist||'').split(',').map(x=>x.trim()).filter(Boolean);
+        const sids = SECS.filter(s=>ids.includes(s.id) && cods.includes(s.codigo)).map(s=>s.id);
+        if(sids.length) viejas.push({ tipo:TABLAS_SEG[0], id:a.id, marcadas:sids, vieja:true });
+      });
+    }catch(e){ fallas.push('campañas por código'); }
+    return { registros: registros.concat(viejas), fallas };
+  }
+
+  // Arma el aviso para borrar u ocultar. ids = la sección y sus subsecciones.
+  async function avisoDeUso(ids, verbo){
+    const { registros, fallas } = await usosDeSecciones(ids);
+    const nuevos = registros.filter(r=>!r.vieja), viejas = registros.filter(r=>r.vieja);
+    // ¿Siguen viéndose en otra sección? Solo si alguna de las otras marcadas existe y está visible.
+    const otras = [...new Set(nuevos.flatMap(r=>r.marcadas).filter(x=>!ids.includes(x)))];
+    let vivas = new Set();
+    if(otras.length){
+      try{
+        const filas = await paginar(()=>sb.from('checklist_secciones').select('id').in('id', otras).eq('activa', true));
+        vivas = new Set(filas.map(f=>f.id));
+      }catch(e){ vivas = new Set(otras); } // si no se puede chequear, no exagerar el aviso
+    }
+    const seCaen = nuevos.filter(r=>!r.marcadas.some(x=>!ids.includes(x) && vivas.has(x)));
+    const siguen = nuevos.filter(r=>!seCaen.includes(r));
+    const detalle = lista=>{
+      const n={}; lista.forEach(r=>{ n[r.tipo.tabla]=(n[r.tipo.tabla]||{t:r.tipo,c:0}); n[r.tipo.tabla].c++; });
+      return Object.values(n).map(x=>`${x.c} ${x.c>1?x.t.varios:x.t.uno}`).join(', ');
+    };
+    let txt='';
+    if(seCaen.length){
+      txt+=`\n\nOJO, marcado solo en esta sección${ids.length>1?' (o en sus subsecciones)':''}: ${detalle(seCaen)}.`;
+      txt+=`\nLo que está marcado solo en esta sección deja de verse en el manual. Antes de ${verbo}la, cambiá dónde se ve cada uno.`;
+    }
+    if(siguen.length) txt+=`\n\nMarcado acá y también en otras secciones (se sigue viendo allá): ${detalle(siguen)}.`;
+    if(viejas.length){
+      const esGeneral = SECS.some(s=>ids.includes(s.id) && s.especial==='acciones_mensuales');
+      txt+= esGeneral
+        ? `\n\nOJO: esta es la sección general de "Acciones Mensuales". Sin ella, ${viejas.length} campaña(s) cargadas por código (y las que no tienen sección) no tienen dónde verse.`
+        : `\n\n${viejas.length} campaña(s) cargadas a la vieja usanza (por código) están en esta sección. Esas se reubican solas en la sección general de "Acciones Mensuales" del rubro.`;
+    }
+    if(fallas.length) txt+=`\n\nNo pude revisar: ${fallas.join(', ')}. Puede haber más cosas cargadas acá.`;
+    return txt;
   }
 
   const canalActual = () => CANALES.find(c=>c.id===canal) || CANALES[0];
@@ -415,7 +537,13 @@
   const madres = ()=> SECS.filter(s=>!s.parent_id).sort((a,b)=>(a.orden||0)-(b.orden||0));
   const hijas  = m => SECS.filter(s=>s.parent_id===m.id).sort((a,b)=>(a.orden||0)-(b.orden||0));
 
-  function tagUso(cod){ const n=USOS[cod]||0; return n? `<span class="tag uso">${n} campaña${n>1?'s':''}</span>`:''; }
+  // Cuántas cosas (campañas, planes, vinos por copa…) están marcadas en esta sección.
+  function tagUso(s){
+    const rs=USOS[s.id]||[]; if(!rs.length) return '';
+    const n={}; rs.forEach(r=>{ n[r.tipo.tabla]=n[r.tipo.tabla]||{t:r.tipo,c:0}; n[r.tipo.tabla].c++; });
+    const det=Object.values(n).map(x=>`${x.c} ${x.c>1?x.t.varios:x.t.uno}`).join(', ');
+    return `<span class="tag uso" title="Marcados en esta sección: ${esc(det)}">${rs.length} cargado${rs.length>1?'s':''} acá</span>`;
+  }
   const itemsDe = id => (ITEMS[id]||[]).slice().sort((a,b)=>(a.orden||0)-(b.orden||0));
   function tagItems(s){ const n=itemsDe(s.id).filter(i=>i.activo!==false).length; return n? `<span class="tag">${n} ítem${n>1?'s':''}</span>`:''; }
 
@@ -469,7 +597,7 @@
         ? hs.map((h,j)=>`<div class="sub ${h.activa===false?'off':''}">
               <div class="sub-ico" style="background:${h.icono_bg||'#EAF2FB'};color:${h.icono_color||'#1F447F'}">${h.icono||'📋'}</div>
               <div class="sub-info">
-                <div class="sub-name">${esc(h.nombre)} ${h.activa===false?'<span class="tag off">Oculta</span>':''} ${tagItems(h)} ${tagFormato(h)} ${tagUso(h.codigo)}</div>
+                <div class="sub-name">${esc(h.nombre)} ${h.activa===false?'<span class="tag off">Oculta</span>':''} ${tagItems(h)} ${tagFormato(h)} ${tagUso(h)}</div>
                 ${h.descripcion?`<div class="sub-desc">${esc(h.descripcion)}</div>`:''}
               </div>
               <div class="acts">
@@ -486,7 +614,7 @@
         <div class="sec-head">
           <div class="sec-ico" style="background:${m.icono_bg||'#EAF2FB'};color:${m.icono_color||'#1F447F'}">${m.icono||'📋'}</div>
           <div class="sec-info">
-            <div class="sec-name">${esc(m.nombre)} ${m.activa===false?'<span class="tag off">Oculta</span>':''} ${tagFormato(m)} ${hs.length?`<span class="tag">${hs.length} ${hs.length>1?'subsecciones':'subsección'}</span>`:tagItems(m)} ${hs.length?'':tagUso(m.codigo)}</div>
+            <div class="sec-name">${esc(m.nombre)} ${m.activa===false?'<span class="tag off">Oculta</span>':''} ${tagFormato(m)} ${hs.length?`<span class="tag">${hs.length} ${hs.length>1?'subsecciones':'subsección'}</span>`:tagItems(m)} ${tagUso(m)}</div>
             ${m.descripcion?`<div class="sec-desc">${esc(m.descripcion)}</div>`:''}
           </div>
           <div class="acts">
@@ -657,7 +785,21 @@
   }
   async function toggleActiva(id){
     const s=SECS.find(x=>x.id===id); if(!s) return;
-    await sb.from('checklist_secciones').update({ activa: s.activa===false }).eq('id', id);
+    const ocultar = s.activa!==false;
+    if(ocultar){
+      // Al ocultar una madre, sus subsecciones tampoco se ven: cuentan igual.
+      const hs = s.parent_id ? [] : hijas(s);
+      const ids = [s.id, ...hs.map(h=>h.id)];
+      let uso='';
+      try{ uso = await avisoDeUso(ids, 'ocultar'); }
+      catch(e){ uso = `\n\nNo pude revisar qué hay cargado en esta sección (${e.message||e}). Puede haber campañas o planes que dejen de verse.`; }
+      if(uso){
+        const aviso = `¿Ocultar "${s.nombre}"${hs.length?` y sus ${hs.length} subsección(es)`:''}?` + uso + `\n\n¿Ocultarla igual?`;
+        if(!confirm(aviso)) return;
+      }
+    }
+    const { error } = await sb.from('checklist_secciones').update({ activa: !ocultar }).eq('id', id);
+    if(error){ alert('No se pudo '+(ocultar?'ocultar':'mostrar')+' la sección: '+error.message); return; }
     await cargar();
   }
 
@@ -688,11 +830,13 @@
     const s=SECS.find(x=>x.id===id); if(!s) return;
     const hs=hijas(s);
     if(hs.length){ alert(`"${s.nombre}" tiene ${hs.length} subsección(es). Borrá o mové primero las subsecciones.`); return; }
-    const usos=USOS[s.codigo]||0, its=(ITEMS[s.id]||[]).length;
-    const otrosLabels = CANALES.filter(c=>c.id!==canal).map(c=>c.label).join(' y ');
-    let aviso=`¿Eliminar "${s.nombre}"?\n\nSe borra del manual de ${canalActual().label.toUpperCase()}.\nLos manuales de ${otrosLabels} no se tocan.`;
+    const its=(ITEMS[s.id]||[]).length;
+    let uso='';
+    try{ uso = await avisoDeUso([s.id], 'borrar'); }
+    catch(e){ uso = `\n\nNo pude revisar qué hay cargado en esta sección (${e.message||e}). Puede haber campañas o planes que dejen de verse.`; }
+    let aviso=`¿Eliminar "${s.nombre}"?\n\nSe borra del manual de ${canalActual().label.toUpperCase()} de ${zonaActual().label}.\nLos otros rubros y la otra zona no se tocan.`;
     if(its)  aviso+=`\n\nTambién se borran sus ${its} ítem(s) de checklist.`;
-    if(usos) aviso+=`\n\nOJO: ${usos} campaña(s) están publicadas en esta sección. Van a pasar a "Acciones Mensuales" del canal.`;
+    aviso+=uso;
     aviso+=`\n\nSi solo querés dejar de usarla, cancelá y usá "Ocultar".`;
     if(!confirm(aviso)) return;
     // Los ítems son de esta sección: se borran con ella (por si la base no cascadea).

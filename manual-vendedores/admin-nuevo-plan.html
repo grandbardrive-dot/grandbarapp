@@ -29,8 +29,10 @@
   label{display:block;font-size:13px;font-weight:700;color:var(--azul);margin-bottom:6px}
   label .opt{color:var(--ink3);font-weight:400}
   .hint{font-size:12px;color:var(--ink3);margin-top:5px;line-height:1.4}
-  input[type=text],select,textarea{width:100%;padding:12px 13px;border:1px solid var(--line-2);border-radius:11px;font:inherit;font-size:14.5px;color:var(--ink);background:#fff;outline:none;box-sizing:border-box}
-  input[type=text]:focus,select:focus,textarea:focus{border-color:var(--dorado);box-shadow:0 0 0 3px rgba(203,184,106,.18)}
+  input[type=text],input[type=date],select,textarea{width:100%;padding:12px 13px;border:1px solid var(--line-2);border-radius:11px;font:inherit;font-size:14.5px;color:var(--ink);background:#fff;outline:none;box-sizing:border-box}
+  input[type=text]:focus,input[type=date]:focus,select:focus,textarea:focus{border-color:var(--dorado);box-shadow:0 0 0 3px rgba(203,184,106,.18)}
+  .fechas{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .sub-l{font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:4px}
   textarea{resize:vertical;min-height:84px;line-height:1.5}
   .secbox{border:1px solid var(--line-2);border-radius:11px;max-height:270px;overflow-y:auto;background:#fff;padding:6px}
   .secbox .grp{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);padding:9px 8px 4px}
@@ -101,20 +103,29 @@
       </div>
 
       <div class="fld">
-        <label>Duración <span class="opt">(opcional)</span></label>
-        <input type="text" id="f-duracion" placeholder="Ej: 3 meses" maxlength="40">
-        <div class="hint">Se muestra como una etiqueta destacada al lado del título.</div>
+        <label>Condición <span class="opt">(opcional)</span></label>
+        <input type="text" id="f-condicion" placeholder="Ej: 1+2, 5+1" maxlength="40">
+        <div class="hint">Texto corto. Se muestra como la etiqueta destacada al lado del título (si lo dejás vacío dice “Plan”).</div>
       </div>
 
       <div class="fld">
-        <label>Detalle del plan <span class="opt">(opcional)</span></label>
-        <textarea id="f-detalle" placeholder="Breve descripción del plan: en qué consiste, qué incluye…"></textarea>
+        <label>Líneas participantes <span class="opt">(opcional)</span></label>
+        <textarea id="f-lineas" placeholder="Una línea por renglón. Ej:&#10;Alma Mora&#10;Los Intocables&#10;Navarro Correas Espumantes"></textarea>
+        <div class="hint">Una por renglón, o separadas por comas si las escribís todas en un solo renglón. Se muestran como etiquetas. Vacío = todas las líneas del proveedor.</div>
       </div>
 
       <div class="fld">
-        <label>Condiciones <span class="opt">(opcional)</span></label>
-        <textarea id="f-condiciones" placeholder="Una condición por línea. Ej:&#10;Copa de la casa&#10;3 meses de vigencia&#10;Sin mínimo de cajas"></textarea>
-        <div class="hint">Escribí una condición por línea. Se muestran como etiquetas.</div>
+        <label>Descripción <span class="opt">(opcional)</span></label>
+        <textarea id="f-detalle" placeholder="Breve descripción del plan: en qué consiste, qué incluye, topes…"></textarea>
+      </div>
+
+      <div class="fld">
+        <label>Vigencia <span class="opt">(opcional)</span></label>
+        <div class="fechas">
+          <div><div class="sub-l">Desde</div><input type="date" id="f-desde"></div>
+          <div><div class="sub-l">Hasta</div><input type="date" id="f-hasta"></div>
+        </div>
+        <div class="hint">Si no ponés fechas, el plan queda sin límite de tiempo. En Campañas se usan para marcarlo como Vigente o Vencido.</div>
       </div>
 
       <div class="fld">
@@ -161,9 +172,14 @@
       const secsSel = (Array.isArray(p.secciones)&&p.secciones.length) ? p.secciones : (p.seccion_id?[p.seccion_id]:[]);
       SEG.set({ secciones: secsSel, zonas: p.zonas || [] });
       document.getElementById('f-proveedor').value = p.proveedor || '';
-      document.getElementById('f-duracion').value  = p.condicion || '';
+      document.getElementById('f-condicion').value = p.condicion || '';
       document.getElementById('f-detalle').value   = p.descripcion || '';
-      document.getElementById('f-condiciones').value = (Array.isArray(p.lineas_participantes)?p.lineas_participantes:[]).join('\n');
+      const lin = Array.isArray(p.lineas_participantes) ? p.lineas_participantes : [];
+      // Un renglón por línea. Si hay una sola, se agrega un salto final para que al
+      // guardar no se parta por las comas que pueda tener adentro.
+      document.getElementById('f-lineas').value = lin.join('\n') + (lin.length===1 ? '\n' : '');
+      document.getElementById('f-desde').value = p.fecha_inicio || '';
+      document.getElementById('f-hasta').value = p.fecha_fin || '';
       planPdfActual = p.pdf_url || null;
       if(planPdfActual) document.getElementById('pdf-name').innerHTML = 'PDF actual cargado — elegí otro solo si querés reemplazarlo';
       document.querySelector('.top-t').textContent = 'Editar plan';
@@ -191,13 +207,16 @@
     const titulo   = document.getElementById('f-titulo').value.trim();
     const { secciones, zonas } = SEG ? SEG.valor() : { secciones: [], zonas: [] };
     const proveedor= document.getElementById('f-proveedor').value.trim();
-    const duracion = document.getElementById('f-duracion').value.trim();
+    const condicion= document.getElementById('f-condicion').value.trim();
     const detalle  = document.getElementById('f-detalle').value.trim();
-    const condsTxt = document.getElementById('f-condiciones').value;
+    const linTxt   = document.getElementById('f-lineas').value;
+    const desde    = document.getElementById('f-desde').value || null;
+    const hasta    = document.getElementById('f-hasta').value || null;
     const pdfFile  = document.getElementById('f-pdf').files[0] || null;
 
     if(!titulo){ msg.style.color='#c0392b'; msg.textContent='Poné un título para el plan.'; return; }
     if(!secciones.length){ msg.style.color='#c0392b'; msg.textContent='Elegí al menos una sección.'; return; }
+    if(desde && hasta && hasta < desde){ msg.style.color='#c0392b'; msg.textContent='La fecha “Hasta” no puede ser anterior a “Desde”.'; return; }
 
     btn.disabled = true;
     msg.style.color='var(--ink2)'; msg.textContent = pdfFile ? 'Subiendo PDF y guardando…' : 'Guardando…';
@@ -206,27 +225,26 @@
       let pdf_url = editId ? planPdfActual : null;   // en edición, conserva el PDF si no suben otro
       if(pdfFile) pdf_url = await subirPDF(pdfFile);
 
-      const lineas = condsTxt.split('\n').map(s=>s.trim()).filter(Boolean);
+      // Con saltos de renglón: una línea por renglón (las comas quedan adentro).
+      // Todo en un solo renglón: se separa por comas.
+      const lineas = (/\n/.test(linTxt) ? linTxt.split('\n') : linTxt.split(','))
+        .map(s=>s.trim()).filter(Boolean);
       const row = {
         seccion_id: secciones[0],   // primera (compatibilidad)
         secciones: secciones,       // todas las secciones donde aparece
         zonas: zonas,               // vacío = Mendoza y San Luis
         nombre: titulo,
         proveedor: proveedor || null,
-        condicion: duracion || null,
+        condicion: condicion || null,
         descripcion: detalle || null,
         lineas_participantes: lineas,
+        fecha_inicio: desde,
+        fecha_fin: hasta,
         pdf_url,
       };
-      const persistir=(r)=> editId
-        ? sb.from('checklist_planes').update(r).eq('id', editId)
-        : sb.from('checklist_planes').insert(Object.assign({activo:true}, r));
-      let { error } = await persistir(row);
-      // Fallback: si todavía no existe la columna "secciones", guardar solo con seccion_id.
-      if(error && /secciones|zonas/i.test(error.message||'')){
-        const { secciones:_omit, zonas:_omitZ, ...rowSin } = row;
-        ({ error } = await persistir(rowSin));
-      }
+      const { error } = editId
+        ? await sb.from('checklist_planes').update(row).eq('id', editId)
+        : await sb.from('checklist_planes').insert(Object.assign({activo:true}, row));
       if(error) throw error;
 
       msg.style.color='var(--green)'; msg.textContent = editId ? '✓ Cambios guardados. Redirigiendo…' : '✓ Plan publicado. Redirigiendo…';

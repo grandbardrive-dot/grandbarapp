@@ -347,7 +347,9 @@
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
   sessionStorage.setItem('admin_auth','1'); if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
-  const CANAL_LABEL={restaurantes:'Restaurantes',vinotecas:'Vinotecas',tiendas_bebidas:'Tienda de Bebidas',bares:'Bares',discos:'Discos',hoteles:'Hoteles',eventos:'Eventos',autoservicios:'Autoservicios',mayoristas:'Mayoristas',todos:'Todos'};
+  const CANAL_LABEL={restaurantes:'Restaurantes',vinotecas:'Vinotecas',tiendas_bebidas:'Tienda de Bebidas',bares:'Bares',discos:'Discos',hoteles:'Hoteles',eventos:'Eventos',autoservicios:'Autoservicios',kioscos:'Kioscos',mayoristas:'Mayoristas',mayorista_mendoza:'Mayorista Mendoza',mayorista_sanluis:'Mayorista San Luis',todos:'Todos'};
+  // Para el filtro: las dos sucursales mayoristas cuentan como "Mayoristas".
+  const grupoCanal = c => String(c||'').startsWith('mayorista') ? 'mayoristas' : c;
   // Los planes guardan el canal del manual en singular (vinoteca) y las campañas en
   // plural (vinotecas). Se unifica para que el filtro de canal sirva para los dos.
   const CANAL_DE_MANUAL={restaurante:'restaurantes',vinoteca:'vinotecas',tienda_bebidas:'tiendas_bebidas',autoservicio:'autoservicios',hotel:'hoteles',bar:'bares',disco:'discos',mayorista:'mayoristas'};
@@ -361,7 +363,10 @@
   // la misma lista normalizando los campos, así los filtros, el buscador y las
   // tarjetas de estado funcionan igual para los dos.
   function normalizarPlan(p, canalDeSeccion){
-    const canal = canalDeSeccion[p.seccion_id] || null;
+    // Un plan puede estar en varias secciones (columna secciones): se juntan todos sus canales.
+    const ids = (Array.isArray(p.secciones) && p.secciones.length) ? p.secciones : [p.seccion_id];
+    const canalesPlan = [...new Set(ids.map(id => canalDeSeccion[id]).filter(Boolean))];
+    const canal = canalesPlan[0] || null;
     return {
       ...p,
       _tipo:'plan',
@@ -369,7 +374,7 @@
       accion: p.condicion ? `Plan ${p.condicion}` : 'Plan',
       categoria: null,
       imagen_url: null,
-      aplica_a: canal ? [CANAL_DE_MANUAL[canal] || canal] : [],
+      aplica_a: canalesPlan.map(c => CANAL_DE_MANUAL[c] || c),
       activa: p.activo !== false,
       pausada: false,
     };
@@ -417,7 +422,7 @@
       PLANES=(rp.data||[]).map(p=>normalizarPlan(p, canalDeSeccion));
     }catch(e){ console.warn(e); }
     // llenar filtro de canales con los que existan (campañas y planes)
-    const canales=[...new Set(CAMP.concat(PLANES).flatMap(a=>a.aplica_a||[]))];
+    const canales=[...new Set(CAMP.concat(PLANES).flatMap(a=>(a.aplica_a||[]).map(grupoCanal)))];
     const selC=document.getElementById('f-canal');
     canales.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=CANAL_LABEL[c]||c; selC.appendChild(o); });
     // estado inicial desde URL (?estado=borrador, ?tab=planes)
@@ -457,7 +462,7 @@
     return items().filter(a=>{
       const texto = `${a.producto||''} ${a.proveedor||''} ${a.accion||''} ${a.categoria||''} ${(a.lineas_participantes||[]).join(' ')}`;
       if(q && !texto.toLowerCase().includes(q)) return false;
-      if(fc && !(a.aplica_a||[]).includes(fc)) return false;
+      if(fc && !(a.aplica_a||[]).some(c=>grupoCanal(c)===fc || c==='todos')) return false;
       if(fe && estadoDe(a).k!==fe) return false;
       if(ff==='vencidas' && estadoDe(a).k!=='vencida') return false;
       if(ff==='vigentes' && estadoDe(a).k!=='activa') return false;

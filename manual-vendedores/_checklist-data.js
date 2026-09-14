@@ -650,6 +650,10 @@ async function getChecklistDynamic(tipo, zonaPedida) {
     const secIdSet = new Set(secIds);
     (planesRes.data || []).forEach(p => {
       if (Array.isArray(p.zonas) && p.zonas.length && !p.zonas.includes(zona)) return;   // plan solo para la otra zona
+      // Vigencia (opcional): un plan vencido o que todavía no empezó no se muestra.
+      const hoyLocal = new Date(); const hoyStr = hoyLocal.getFullYear() + '-' + String(hoyLocal.getMonth() + 1).padStart(2, '0') + '-' + String(hoyLocal.getDate()).padStart(2, '0');
+      if (p.fecha_fin && String(p.fecha_fin).slice(0, 10) < hoyStr) return;
+      if (p.fecha_inicio && String(p.fecha_inicio).slice(0, 10) > hoyStr) return;
       // Un plan puede tener varias secciones (columna `secciones`); si no, usa seccion_id.
       // Solo lo agrupamos en las secciones que pertenecen a este canal.
       const secs = (Array.isArray(p.secciones) && p.secciones.length) ? p.secciones : (p.seccion_id ? [p.seccion_id] : []);
