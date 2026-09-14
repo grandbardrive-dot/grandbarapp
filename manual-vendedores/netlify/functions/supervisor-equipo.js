@@ -32,6 +32,36 @@ async function codigosInactivos() {
   return set;
 }
 
+// Cartera REAL de cada vendedor = clientes del Manual que están activos (misma
+// definición que ve el vendedor: manda clientes_estado por código; si no figura,
+// vale la columna activo de la tabla). Devuelve:
+//   allowed          → Set de códigos activos de todo el equipo
+//   vendorsWithManual→ Set de códigos de vendedor que tienen clientes en el Manual
+//   countByVendor    → { codigoVendedor: cantidad de clientes activos }
+async function carteraManual(codigos) {
+  const man = (p) => fetch(MAN_URL + '/rest/v1/' + p, { headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON } });
+  const out = { allowed: new Set(), vendorsWithManual: new Set(), countByVendor: {} };
+  try {
+    const vends = await (await man('vendedores?codigo=in.(' + qvals(codigos) + ')&select=id,codigo')).json();
+    if (!Array.isArray(vends) || !vends.length) return out;
+    const codOf = {}; vends.forEach(v => { codOf[v.id] = String(v.codigo); });
+    const ids = vends.map(v => '"' + v.id + '"').join(',');
+    const [cli, est] = await Promise.all([
+      man('clientes?vendedor_id=in.(' + ids + ')&select=codigo_cliente,vendedor_id,activo&limit=20000').then(r => r.json()).catch(() => []),
+      man('clientes_estado?select=codigo,activo').then(r => r.json()).catch(() => []),
+    ]);
+    const estMap = {}; (Array.isArray(est) ? est : []).forEach(r => { estMap[normCod(r.codigo)] = r.activo; });
+    (Array.isArray(cli) ? cli : []).forEach(c => {
+      const vcod = codOf[c.vendedor_id]; if (!vcod) return;
+      out.vendorsWithManual.add(vcod);
+      const k = normCod(c.codigo_cliente);
+      const activo = (k in estMap) ? estMap[k] : (c.activo !== false);
+      if (activo) { out.allowed.add(k); out.countByVendor[vcod] = (out.countByVendor[vcod] || 0) + 1; }
+    });
+  } catch (e) {}
+  return out;
+}
+
 exports.handler = async (event) => {
   try {
     const cobService = process.env.COBRANZAS_SERVICE_ROLE;
@@ -75,10 +105,16 @@ exports.handler = async (event) => {
     // baja la deuda aunque el cubo viejo la dejara inflada. (Corrige la vista al toque.)
     clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, Math.min(num(c.vencida), num(c.saldo))) }));
 
-    // Excluir los clientes quitados de la cartera: no cuentan ni en los totales ni
-    // en la lista, para que el número coincida con lo que ve el vendedor.
-    const inactivos = await codigosInactivos();
-    if (inactivos.size) clientes = clientes.filter(c => !inactivos.has(normCod(c.codigo)));
+    // La cartera real es la del Manual (activa). Para cada vendedor que tiene
+    // clientes en el Manual, dejamos SOLO esos (así el número coincide con lo que
+    // ve el vendedor: 116, no 121). Para un vendedor sin datos en el Manual,
+    // usamos Cobranzas tal cual pero sacando los que estén quitados.
+    const [cartera, inactivos] = await Promise.all([carteraManual(codigos), codigosInactivos()]);
+    clientes = clientes.filter(c => {
+      const v = String(c.vendedor), k = normCod(c.codigo);
+      if (cartera.vendorsWithManual.has(v)) return cartera.allowed.has(k);
+      return !inactivos.has(k);
+    });
 
     // ¿drill-in de un vendedor puntual?
     const qp = event.queryStringParameters || {};
@@ -93,6 +129,8 @@ exports.handler = async (event) => {
     const agg = {};
     codigos.forEach(cod => { agg[cod] = { codigo: cod, nombre: nombreDeCod[cod] || cod, clientes: 0, saldo: 0, vencida: 0 }; });
     clientes.forEach(c => { const a = agg[String(c.vendedor)]; if (a) { a.clientes++; a.saldo += num(c.saldo); a.vencida += num(c.vencida); } });
+    // El número de clientes lo manda la cartera del Manual (lo que ve el vendedor).
+    codigos.forEach(cod => { if (cartera.vendorsWithManual.has(cod)) agg[cod].clientes = cartera.countByVendor[cod] || 0; });
 
     // Tareas completadas hoy por vendedor (señal de cumplimiento)
     let compHoy = {};

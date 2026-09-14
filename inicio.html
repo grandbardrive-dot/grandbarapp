@@ -646,13 +646,15 @@
         const { data: vend } = await man.from("vendedores").select("id, nombre").eq("codigo", perfil.codigo_vendedor).maybeSingle();
         if(vend){
           if(vend.nombre) nombre = vend.nombre;
-          // Clientes asignados = los de la cartera SIN los quitados (clientes_estado.activo=false).
-          const { data: cliRows } = await man.from("clientes").select("codigo_cliente").eq("vendedor_id", vend.id);
+          // Clientes asignados = cartera del Manual ACTIVA. Un cliente está activo si
+          // clientes_estado manda (override por código) y, si no figura ahí, según la
+          // columna activo de la tabla. Misma definición que la lista de Clientes.
+          const { data: cliRows } = await man.from("clientes").select("codigo_cliente,activo").eq("vendedor_id", vend.id);
           if(cliRows){
-            const { data: est } = await man.from("clientes_estado").select("codigo").eq("activo", false);
+            const { data: est } = await man.from("clientes_estado").select("codigo,activo");
             const norm = x => (String(x==null?'':x).trim().replace(/^0+/,'') || '0');
-            const inact = new Set((est||[]).map(r=>norm(r.codigo)));
-            const activos = cliRows.filter(c=>!inact.has(norm(c.codigo_cliente))).length;
+            const estMap = {}; (est||[]).forEach(r=>{ estMap[norm(r.codigo)] = r.activo; });
+            const activos = cliRows.filter(c=>{ const k=norm(c.codigo_cliente); return (k in estMap) ? estMap[k] : (c.activo!==false); }).length;
             document.getElementById("stClientes").textContent = activos;
             document.getElementById("stClientesSub").textContent = "Activos " + activos;
           }
