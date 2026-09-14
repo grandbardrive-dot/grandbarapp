@@ -646,10 +646,15 @@
         const { data: vend } = await man.from("vendedores").select("id, nombre").eq("codigo", perfil.codigo_vendedor).maybeSingle();
         if(vend){
           if(vend.nombre) nombre = vend.nombre;
-          const { count } = await man.from("clientes").select("id",{count:"exact",head:true}).eq("vendedor_id", vend.id);
-          if(count != null){
-            document.getElementById("stClientes").textContent = count;
-            document.getElementById("stClientesSub").textContent = "Activos " + count;
+          // Clientes asignados = los de la cartera SIN los quitados (clientes_estado.activo=false).
+          const { data: cliRows } = await man.from("clientes").select("codigo_cliente").eq("vendedor_id", vend.id);
+          if(cliRows){
+            const { data: est } = await man.from("clientes_estado").select("codigo").eq("activo", false);
+            const norm = x => (String(x==null?'':x).trim().replace(/^0+/,'') || '0');
+            const inact = new Set((est||[]).map(r=>norm(r.codigo)));
+            const activos = cliRows.filter(c=>!inact.has(norm(c.codigo_cliente))).length;
+            document.getElementById("stClientes").textContent = activos;
+            document.getElementById("stClientesSub").textContent = "Activos " + activos;
           }
         }
       }

@@ -13,10 +13,24 @@
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
+const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
+const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const qvals = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
 const num = v => { const n = Number(v); return isNaN(n) ? 0 : n; };
+const normCod = x => (String(x == null ? '' : x).trim().replace(/^0+/, '') || '0');
+
+// Códigos de clientes "quitados de la cartera" (clientes_estado.activo=false en el Manual).
+async function codigosInactivos() {
+  const set = new Set();
+  try {
+    const r = await fetch(MAN_URL + '/rest/v1/clientes_estado?activo=eq.false&select=codigo', { headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON } });
+    const arr = await r.json().catch(() => []);
+    if (Array.isArray(arr)) arr.forEach(x => set.add(normCod(x.codigo)));
+  } catch (e) {}
+  return set;
+}
 
 exports.handler = async (event) => {
   try {
@@ -57,6 +71,11 @@ exports.handler = async (event) => {
     // La deuda vencida no puede superar el saldo neto: una nota de crédito / anticipo
     // baja la deuda aunque el cubo viejo la dejara inflada. (Corrige la vista al toque.)
     clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, Math.min(num(c.vencida), num(c.saldo))) }));
+
+    // Excluir los clientes quitados de la cartera: no cuentan ni en los totales ni
+    // en la lista, para que el número coincida con lo que ve el vendedor.
+    const inactivos = await codigosInactivos();
+    if (inactivos.size) clientes = clientes.filter(c => !inactivos.has(normCod(c.codigo)));
 
     // ¿drill-in de un vendedor puntual?
     const qp = event.queryStringParameters || {};
