@@ -193,6 +193,12 @@
 
       <div class="stepper" id="stepper"></div>
       <div class="panel" id="panel"><div class="empty">Cargando…</div></div>
+      <!-- Segmentación: fuera de #panel (que se re-dibuja en cada paso) para no perder lo marcado. Se muestra en el paso 4. -->
+      <div class="panel" id="seg-bloque" style="margin-top:16px" hidden>
+        <div class="panel-h">¿Dónde se ve? (zona y secciones)</div>
+        <div class="panel-sub">Si no marcás nada, la campaña se ve donde corresponde, como hasta ahora.</div>
+        <div id="seg-dest"></div>
+      </div>
 
       <div class="nav">
         <button class="btn sec" id="btn-atras" onclick="atras()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M11 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>Atrás</button>
@@ -215,6 +221,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="_segmentacion.js"></script>
 <script src="_admin-sidebar.js"></script>
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
@@ -317,6 +324,8 @@
 
   let paso=1, PROV=[], PROD=[], SECS=[], MAT=[]; const BRANDS={};
   let _matVerTodos=false, _ubicVerTodas=false;
+  // Segmentación (zona + secciones): se monta una sola vez en #seg-dest
+  let SEG=null, SEG_OK=false, SEG_MAPA=null;
   let editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
   let prodPage=1, prodCat='', prodQ='';
   const st={ proveedor:null, productos:[], canales:[], ubicaciones:[], mecanica:'', precioReg:'', precioAcc:'', fechaIni:'', fechaFin:'', materiales:[] };
@@ -350,6 +359,7 @@
           st.fechaFin  = row.fecha_fin||'';
           st.materiales= Array.isArray(row.materiales)?row.materiales.slice():[];
           st._activa   = row.activa;
+          st._seg      = { secciones: Array.isArray(row.secciones)?row.secciones.slice():[], zonas: Array.isArray(row.zonas)?row.zonas.slice():[] };
           document.getElementById('page-title-txt').textContent='Editar campaña';
           document.getElementById('page-sub').textContent='Modificá lo que quieras y guardá los cambios.';
           document.title='GrandBar — Editar campaña';
@@ -358,6 +368,22 @@
     }
 
     renderStepper(); renderPaso(); renderResumen();
+
+    // Segmentación: montar una vez y, si es edición, precargar lo que tenía la campaña
+    if(window.Segmentacion){
+      try{
+        SEG=await Segmentacion.montar('#seg-dest');
+        SEG_OK=!!document.querySelector('#seg-dest .seg');   // si no cargó, montar() devuelve un stub vacío
+        if(SEG_OK && st._seg) SEG.set(st._seg);
+        if(SEG_OK) SEG_MAPA=await Segmentacion.mapa();
+      }catch(e){ console.warn(e); }
+      if(paso===7) renderPaso();   // por si ya estaba en la revisión
+    }
+  }
+  // Lo elegido en el selector. Si no se pudo montar, se conserva lo que ya tenía la campaña.
+  function segValor(){
+    if(SEG && SEG_OK) return SEG.valor();
+    return st._seg ? { secciones: st._seg.secciones, zonas: st._seg.zonas } : { secciones: [], zonas: [] };
   }
 
   function renderStepper(){
@@ -493,6 +519,7 @@
           ${filaRev('Categoría', [...new Set(st.productos.map(p=>p.categoria).filter(Boolean))].join(', '))}
           ${filaRev('Canales', st.canales.map(c=>CANAL_LABELS[c]||c).join(', '))}
           ${filaRev('Ubicaciones', st.ubicaciones.length? ubicNombres().join(', '):'Acciones Mensuales (general)')}
+          ${filaRev('Dónde se ve', SEG_MAPA? Segmentacion.texto(segValor(), SEG_MAPA) : 'Sin segmentar (se ve donde corresponde)')}
           ${filaRev('Mecánica', st.mecanica)}
           ${filaRev('Precios', (st.precioReg||st.precioAcc)?`$${st.precioReg||'—'} → $${st.precioAcc||'—'}`:'')}
           ${filaRev('Vigencia', (st.fechaIni||st.fechaFin)?`${st.fechaIni||'—'} a ${st.fechaFin||'—'}`:'Sin límite de tiempo')}
@@ -507,6 +534,8 @@
         </div>
         <div id="guardar-msg" style="margin-top:12px;font-weight:700;font-size:13px"></div>`;
     }
+    // el bloque de segmentación vive fuera del panel: solo se muestra en el paso 4
+    document.getElementById('seg-bloque').hidden = paso!==4;
     // nav buttons
     document.getElementById('btn-atras').style.visibility = paso===1?'hidden':'visible';
     document.getElementById('btn-siguiente').style.display = paso===7?'none':'inline-flex';
@@ -636,7 +665,8 @@
       fecha_inicio: st.fechaIni||null,
       fecha_fin: st.fechaFin||null,
       materiales: st.materiales,
-      activa: !!activa
+      activa: !!activa,
+      ...segValor()   // secciones uuid[] + zonas text[] (vacío = se ve como hasta ahora)
     };
     const persistir=(r)=> editId
       ? sb.from('acciones_mensuales').update(r).eq('id',editId)
@@ -659,6 +689,8 @@
       const campo=(m.match(/column "([^"]+)"/)||[])[1];
       const NOMBRE={accion:'la mecánica de la promoción (paso 5)', producto:'el producto (paso 2)', proveedor:'el proveedor (paso 1)'};
       msg.style.color='#c0392b';
+      // Faltan las columnas nuevas de segmentación: no se reintenta sin ellas
+      if(/\b(secciones|zonas)\b/i.test(m)){ msg.textContent='Falta correr segmentacion-setup.sql en Supabase (proyecto del manual).'; return; }
       msg.textContent = /not-null/.test(m)&&campo
         ? 'Falta completar '+(NOMBRE[campo]||`el campo "${campo}"`)+'.'
         : 'No se pudo guardar: '+m;

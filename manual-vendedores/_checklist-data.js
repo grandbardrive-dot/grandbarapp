@@ -573,6 +573,21 @@ function zonaActual() {
   } catch (e) { return 'mendoza'; }
 }
 
+// Segmentación que marca Luciana en cada acción o plan (_segmentacion.js):
+//   secciones uuid[] (checklist_secciones.id) y zonas text[] ('mendoza'/'sanluis').
+// Vacío = se ve como siempre. secUuid = la sección donde se está mostrando (null =
+// solo se mira la zona).
+function segMarcado(item) {
+  return !!(item && Array.isArray(item.secciones) && item.secciones.length);
+}
+function segVa(item, secUuid) {
+  if (!item) return false;
+  const zonas = Array.isArray(item.zonas) ? item.zonas : [];
+  if (zonas.length && !zonas.includes(zonaActual())) return false;
+  if (segMarcado(item) && secUuid && !item.secciones.includes(secUuid)) return false;
+  return true;
+}
+
 async function getChecklistDynamic(tipo, zonaPedida) {
   const canal = manualDe(tipo);
   const zona  = zonaPedida || zonaActual();
@@ -634,6 +649,7 @@ async function getChecklistDynamic(tipo, zonaPedida) {
     });
     const secIdSet = new Set(secIds);
     (planesRes.data || []).forEach(p => {
+      if (Array.isArray(p.zonas) && p.zonas.length && !p.zonas.includes(zona)) return;   // plan solo para la otra zona
       // Un plan puede tener varias secciones (columna `secciones`); si no, usa seccion_id.
       // Solo lo agrupamos en las secciones que pertenecen a este canal.
       const secs = (Array.isArray(p.secciones) && p.secciones.length) ? p.secciones : (p.seccion_id ? [p.seccion_id] : []);

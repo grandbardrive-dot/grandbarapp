@@ -102,11 +102,12 @@
   .modal-x{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.14);border:none;color:#fff;width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:20px;line-height:1}
   .modal-body{padding:20px 24px;max-height:64vh;overflow-y:auto}
   .fld{margin-bottom:15px}
-  .fld label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+  .fld>label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
   .fld input,.fld textarea{width:100%;padding:11px 13px;border:1.5px solid var(--line-2);border-radius:11px;font-size:14px;font-family:inherit;color:var(--ink);outline:none;background:var(--surface)}
   .fld input:focus,.fld textarea:focus{border-color:var(--navy)}
   .fld textarea{min-height:90px;resize:vertical;line-height:1.6}
   .fld .hint{font-size:11.5px;color:var(--ink3);margin-top:5px;line-height:1.45}
+  .fld .seg input{padding:0;border:0}  /* checkboxes del selector de segmentación */
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .sw{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink2);cursor:pointer;font-weight:600}
   .sw input{width:18px;height:18px;accent-color:var(--navy)}
@@ -201,6 +202,11 @@
         <label>Nota para el vendedor <span style="text-transform:none;font-weight:400">(opcional)</span></label>
         <input type="text" id="f-desc" placeholder="Ej: ideal para bares que recién ordenan su barra" maxlength="140">
       </div>
+      <div class="fld">
+        <label>¿Dónde se ve? <span style="text-transform:none;font-weight:400">(zona y secciones)</span></label>
+        <div id="seg-dest"></div>
+        <div class="hint">Si no marcás nada, el mix se ve donde corresponde, como hasta ahora.</div>
+      </div>
       <div class="fld"><label class="sw"><input type="checkbox" id="f-activo" checked> Visible para los vendedores</label></div>
       <div class="msg" id="m-msg"></div>
     </div>
@@ -213,6 +219,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="_segmentacion.js"></script>
 <script>
   sessionStorage.setItem('admin_auth','1');
   sessionStorage.setItem('admin_perfil','comercial');
@@ -220,6 +227,11 @@
   const $=id=>document.getElementById(id);
 
   let MIXES=[], edit=null;
+
+  // Segmentación (zona + secciones): el selector se monta una vez; el mapa es para las etiquetas de la lista
+  let SEG=null, MAPA=null;
+  (async()=>{ try{ SEG = await Segmentacion.montar('#seg-dest'); }catch(e){ console.warn('segmentación', e); } })();
+  (async()=>{ try{ MAPA = await Segmentacion.mapa(); if(MIXES.length) render(); }catch(e){ console.warn('segmentación', e); } })();
 
   async function cargar(){
     const { data, error } = await sb.from('mixes_ideales').select('*').order('orden').order('created_at');
@@ -245,7 +257,8 @@
           <div class="combo-nom">${esc(c.nombre)}
             ${c.nivel?`<span class="tag nivel">${esc(c.nivel)}</span>`:''}
             ${c.precio?`<span class="tag precio">$ ${Number(c.precio).toLocaleString('es-AR')}</span>`:''}
-            ${c.activo===false?'<span class="tag off">Oculto</span>':''}</div>
+            ${c.activo===false?'<span class="tag off">Oculto</span>':''}
+            ${MAPA && ((c.secciones||[]).length || (c.zonas||[]).length) ? `<span class="tag">📍 ${esc(Segmentacion.texto(c, MAPA))}</span>` : ''}</div>
           ${c.contenido?`<div class="combo-cont">${esc(c.contenido)}</div>`:''}
           ${c.descripcion?`<div class="combo-desc">${esc(c.descripcion)}</div>`:''}
         </div>
@@ -263,6 +276,7 @@
     edit=null; $('m-title').textContent='Nuevo mix';
     $('f-nombre').value=''; $('f-nivel').value=''; $('f-contenido').value=''; $('f-precio').value=''; $('f-imagen').value=''; $('f-desc').value='';
     $('f-activo').checked=true; $('m-msg').textContent='';
+    SEG && SEG.set({});
     $('ov').classList.add('open'); setTimeout(()=>$('f-nombre').focus(),80);
   }
   function abrirEdicion(id){
@@ -271,6 +285,7 @@
     $('f-nombre').value=edit.nombre||''; $('f-nivel').value=edit.nivel||''; $('f-contenido').value=edit.contenido||'';
     $('f-precio').value=edit.precio||''; $('f-imagen').value=edit.imagen_url||'';
     $('f-desc').value=edit.descripcion||''; $('f-activo').checked=edit.activo!==false; $('m-msg').textContent='';
+    SEG && SEG.set({ secciones: edit.secciones||[], zonas: edit.zonas||[] });
     $('ov').classList.add('open');
   }
   function cerrar(){ $('ov').classList.remove('open'); }
@@ -287,6 +302,7 @@
       precio:      $('f-precio').value ? Number($('f-precio').value) : null,
       imagen_url:  $('f-imagen').value.trim() || null,
       activo:      $('f-activo').checked,
+      ...(SEG ? SEG.valor() : {}),   // secciones[] y zonas[]: vacío = como hasta ahora
     };
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…'; $('m-save').disabled=true;
     try{
@@ -296,7 +312,12 @@
              ({ error } = await sb.from('mixes_ideales').insert(fila)); }
       if(error) throw error;
       cerrar(); await cargar();
-    }catch(e){ msg.style.color='#c0392b'; msg.textContent='No se pudo guardar: '+(e.message||e); }
+    }catch(e){
+      const t=String(e.message||e);
+      msg.style.color='#c0392b';
+      // sin las columnas nuevas en la base, Supabase se queja de secciones/zonas
+      msg.textContent = /secciones|zonas/i.test(t) ? 'Falta correr segmentacion-setup.sql en Supabase (proyecto del manual).' : 'No se pudo guardar: '+t;
+    }
     finally{ $('m-save').disabled=false; }
   }
 

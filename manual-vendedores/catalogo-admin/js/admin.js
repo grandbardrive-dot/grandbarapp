@@ -334,7 +334,7 @@ function renderAccionesTab() {
 
   // ---- tabla ----
   const cols = ['estado', 'proveedor', 'producto', 'sku promo', 'accionado', 'regular', 'sugerido', '% off',
-    'mecánica', 'info adicional', 'canal', 'flag', 'foto', 'placa', 'activo', 'orden', ''];
+    'mecánica', 'info adicional', 'canal', 'dónde se ve', 'flag', 'foto', 'placa', 'activo', 'orden', ''];
   const thead = el('thead', {}, el('tr', {}, cols.map((c) => el('th', {}, c))));
   const tbody = el('tbody', { id: 'acc-body' });
   accionesFiltradas().forEach((a) => tbody.appendChild(filaAccion(a)));
@@ -360,6 +360,89 @@ async function updateAccion(id, patch, statusEl) {
   if (a && !error) Object.assign(a, patch);
   if (statusEl) flashStatus(statusEl, !error, error?.message);
   return !error;
+}
+
+// ============================================================
+//  SEGMENTACIÓN · dónde se ve cada acción en el manual de vendedores
+//  (usa window.Segmentacion de ../_segmentacion.js; vacío = se ubica sola)
+// ============================================================
+const AVISO_SQL_SEG = 'Falta correr segmentacion-catalogo-setup.sql en Supabase (proyecto del catálogo).';
+const errorDeSeg = (msg) => /secciones|zonas/i.test(String(msg || ''));
+let MAPA_SEG = null;
+let mapaSegPromise = null;
+// el mapa de secciones se trae una sola vez (null si falla o no cargó el script)
+function cargarMapaSeg() {
+  if (!window.Segmentacion) return Promise.resolve(null);
+  if (!mapaSegPromise) {
+    mapaSegPromise = window.Segmentacion.mapa()
+      .then((m) => { MAPA_SEG = m; return m; })
+      .catch(() => null);
+  }
+  return mapaSegPromise;
+}
+const tieneSeg = (a) => (a.secciones || []).length > 0 || (a.zonas || []).length > 0;
+
+function pintarBotonSeg(btn, a) {
+  if (!tieneSeg(a)) { btn.textContent = '📍 Dónde se ve'; btn.title = 'Sin segmentar: se ubica sola según su categoría'; return; }
+  if (MAPA_SEG && window.Segmentacion) {
+    const t = window.Segmentacion.texto(a, MAPA_SEG);
+    btn.textContent = '📍 ' + t; btn.title = t;
+  } else {
+    btn.textContent = '📍 Segmentada'; btn.title = 'Tiene zona o secciones marcadas';
+    cargarMapaSeg().then((m) => { if (m && btn.isConnected) pintarBotonSeg(btn, a); });
+  }
+}
+
+async function abrirSegmentacion(a, btn, statusEl) {
+  if (!window.Segmentacion) { alert('No se pudo cargar el selector de secciones del manual. Recargá la página e intentá de nuevo.'); return; }
+  const cont = el('div', {}, el('div', { class: 'muted' }, 'Cargando secciones…'));
+  const err = el('div', { class: 'login-err' });
+  const btnGuardar = el('button', { class: 'btn', type: 'button', disabled: '' }, 'Guardar');
+
+  const back = el('div', { class: 'modal-back' });
+  const cerrar = () => back.remove();
+  back.addEventListener('click', (e) => { if (e.target === back) cerrar(); });
+
+  back.appendChild(el('div', { class: 'modal', style: 'max-width:560px;max-height:92vh;overflow-y:auto' }, [
+    el('h3', {}, '¿Dónde se ve en el manual?'),
+    el('div', { class: 'muted', style: 'margin-bottom:10px' }, a.nombre_producto || ''),
+    cont,
+    el('div', { class: 'muted', style: 'margin-top:8px' }, 'Si no marcás nada, la oferta se ubica sola según su categoría, como hasta ahora.'),
+    err,
+    el('div', { class: 'actions' }, [
+      el('button', { class: 'btn btn-ghost', type: 'button', onclick: cerrar }, 'Cancelar'),
+      btnGuardar,
+    ]),
+  ]));
+  document.body.appendChild(back);
+
+  let seg;
+  try {
+    seg = await window.Segmentacion.montar(cont);
+    seg.set({ secciones: a.secciones || [], zonas: a.zonas || [] });
+  } catch (e) {
+    cont.innerHTML = '';
+    cont.appendChild(el('div', { class: 'login-err' }, 'No se pudo armar el selector: ' + (e.message || e)));
+    return;
+  }
+  btnGuardar.removeAttribute('disabled');
+  btnGuardar.addEventListener('click', async () => {
+    err.textContent = '';
+    btnGuardar.disabled = true; btnGuardar.textContent = 'Guardando…';
+    const { secciones, zonas } = seg.valor();
+    // directo contra la tabla (como updateAccion) para tener el mensaje de error
+    const patch = { secciones, zonas, updated_at: new Date().toISOString() };
+    const { error } = await supabase.from('catalogo_acciones').update(patch).eq('id', a.id);
+    if (error) {
+      err.textContent = errorDeSeg(error.message) ? AVISO_SQL_SEG : 'No se pudo guardar: ' + error.message;
+      btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar';
+      return;
+    }
+    Object.assign(a, patch);
+    if (statusEl) flashStatus(statusEl, true);
+    pintarBotonSeg(btn, a);
+    cerrar();
+  });
 }
 
 function filaAccion(a) {
@@ -474,6 +557,12 @@ function filaAccion(a) {
     el('button', { type: 'button', title: 'bajar', onclick: () => moverAccion(a, 1) }, '▼'),
   ]);
 
+  // dónde se ve en el manual (zona + secciones)
+  const btnSeg = el('button', { class: 'btn-sm btn-ghost', type: 'button',
+    style: 'max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' });
+  btnSeg.addEventListener('click', () => abrirSegmentacion(a, btnSeg, status));
+  pintarBotonSeg(btnSeg, a);
+
   // eliminar
   const del = el('button', { class: 'btn-sm btn-danger', type: 'button', onclick: () => eliminarAccion(a) }, '✕');
 
@@ -489,6 +578,7 @@ function filaAccion(a) {
     el('td', {}, inTxt('mecanica', 'w-mecanica')),
     el('td', {}, inTxt('info_adicional', 'w-mecanica')),
     el('td', {}, selCanal),
+    el('td', {}, btnSeg),
     el('td', {}, selFlag),
     el('td', {}, el('div', { class: 'thumb-cell' }, [thumb, btnFoto, fileInp])),
     el('td', {}, el('div', { class: 'thumb-cell' }, [verP, btnP, fileP])),
@@ -537,6 +627,18 @@ function abrirNuevaAccion() {
   CANALES.forEach((c) => selCanal.appendChild(el('option', { value: c, ...(c === 'ambos' ? { selected: '' } : {}) }, c)));
   const err = el('div', { class: 'login-err' });
 
+  // dónde se ve en el manual (opcional): contenedor nuevo en cada apertura
+  const segCont = el('div');
+  let seg = null;
+  if (window.Segmentacion) {
+    window.Segmentacion.montar(segCont).then((s) => { seg = s; }).catch(() => {
+      segCont.innerHTML = '';
+      segCont.appendChild(el('div', { class: 'muted' }, 'No se pudo cargar el selector de secciones.'));
+    });
+  } else {
+    segCont.appendChild(el('div', { class: 'muted' }, 'No se pudo cargar el selector de secciones (recargá la página).'));
+  }
+
   const back = el('div', { class: 'modal-back' });
   const cerrar = () => back.remove();
   back.addEventListener('click', (e) => { if (e.target === back) cerrar(); });
@@ -544,6 +646,9 @@ function abrirNuevaAccion() {
   const crear = async () => {
     if (!selProv.value) { err.textContent = 'Elegí un proveedor.'; return; }
     if (!nombre.value.trim()) { err.textContent = 'Poné un nombre de producto.'; return; }
+    // solo se manda si hay algo marcado: vacío es el default de la base
+    const segVal = seg ? seg.valor() : null;
+    const extraSeg = segVal && (segVal.secciones.length || segVal.zonas.length) ? segVal : {};
     const { data, error } = await supabase.from('catalogo_acciones').insert({
       proveedor_id: selProv.value,
       nombre_producto: nombre.value.trim(),
@@ -553,8 +658,9 @@ function abrirNuevaAccion() {
       mecanica: strOrNull(mecanica.value),
       info_adicional: strOrNull(infoAd.value),
       canal: selCanal.value,
+      ...extraSeg,
     }).select('*, proveedor:catalogo_proveedores(id,nombre,categoria)').single();
-    if (error) { err.textContent = error.message; return; }
+    if (error) { err.textContent = errorDeSeg(error.message) ? AVISO_SQL_SEG : error.message; return; }
     state.acciones.push(data);
     sortAcciones();
     cerrar();
@@ -564,7 +670,7 @@ function abrirNuevaAccion() {
     document.querySelector('#panel-body').appendChild(renderAccionesTab());
   };
 
-  back.appendChild(el('div', { class: 'modal' }, [
+  back.appendChild(el('div', { class: 'modal', style: 'max-width:560px;max-height:92vh;overflow-y:auto' }, [
     el('h3', {}, 'Nueva acción'),
     el('label', {}, 'Proveedor'), selProv,
     el('label', {}, 'Producto'), nombre,
@@ -574,6 +680,9 @@ function abrirNuevaAccion() {
     el('label', {}, 'Mecánica'), mecanica,
     el('label', {}, 'Info adicional'), infoAd,
     el('label', {}, 'Canal'), selCanal,
+    el('label', {}, '¿Dónde se ve en el manual? (opcional)'),
+    segCont,
+    el('div', { class: 'muted', style: 'margin-top:6px' }, 'Si no marcás nada, la oferta se ubica sola según su categoría, como hasta ahora.'),
     err,
     el('div', { class: 'actions' }, [
       el('button', { class: 'btn btn-ghost', type: 'button', onclick: cerrar }, 'Cancelar'),

@@ -214,6 +214,11 @@
         <datalist id="dl-grupos"></datalist>
         <div class="hint" id="h-grupo">Elegí uno de la lista para que quede junto a los demás de ese grupo. Si lo dejás vacío, va suelto dentro del proveedor.</div>
       </div>
+      <div class="fld">
+        <label>¿Dónde se ve? <span style="text-transform:none;font-weight:400">(zona y secciones, opcional)</span></label>
+        <div id="seg-dest"></div>
+        <div class="hint">Si no marcás nada, se ve donde corresponde, como hasta ahora. Si marcás secciones, aparece solo en esas.</div>
+      </div>
       <div class="fld"><label class="sw"><input type="checkbox" id="f-activo" checked> Visible para los vendedores</label></div>
       <div class="msg" id="m-msg"></div>
     </div>
@@ -248,6 +253,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="_segmentacion.js"></script>
 <script>
   sessionStorage.setItem('admin_auth','1');
   sessionStorage.setItem('admin_perfil','comercial');
@@ -269,6 +275,9 @@
   const ordenar = (lista, base) => base.filter(x => lista.includes(x)).concat(lista.filter(x => !base.includes(x)).sort((a,b)=>a.localeCompare(b,'es')));
 
   let TODAS=[], CAT='vino', edit=null;
+  // Dónde se ve (zona + secciones), con el selector de _segmentacion.js. Vacío = como hasta ahora.
+  let SEG = null, MAPA = {};
+  const segmentado = c => !!(((c && c.secciones) || []).length || ((c && c.zonas) || []).length);
 
   // Texto por proveedor (arriba de sus propuestas en la visita). Tabla propuestas_textos.
   // Si un proveedor no tiene fila, la visita usa su texto fijo: el mismo que TEXTO_FIJO.
@@ -312,7 +321,7 @@
       const filas = arr => arr.map(p => {
         const hs = hermanas(p), i = hs.findIndex(x=>x.id===p.id);
         return `<div class="prop ${p.activo===false?'off':''}">
-          <div class="prop-n">${esc(p.nombre)} ${p.activo===false?'<span class="tag off">Oculta</span>':''}</div>
+          <div class="prop-n">${esc(p.nombre)} ${p.activo===false?'<span class="tag off">Oculta</span>':''} ${segmentado(p)?`<span class="tag">${esc(Segmentacion.texto(p, MAPA))}</span>`:''}</div>
           <div class="acts">
             <button class="ab" title="Subir" onclick="mover('${p.id}',-1)" ${i<=0?'disabled':''}>↑</button>
             <button class="ab" title="Bajar" onclick="mover('${p.id}',1)" ${i>=hs.length-1?'disabled':''}>↓</button>
@@ -347,7 +356,7 @@
     $('f-categoria').innerHTML = CATS.map(c=>`<option value="${c.k}">${c.ico} ${c.lbl}</option>`).join('');
     $('f-categoria').value = CAT;
     $('f-nombre').value=''; $('f-proveedor').value=''; $('f-grupo').value='';
-    $('f-activo').checked=true; $('m-msg').textContent='';
+    $('f-activo').checked=true; $('m-msg').textContent=''; SEG && SEG.set({});
     pintarSugerencias();
     $('ov').classList.add('open'); setTimeout(()=>$('f-nombre').focus(),80);
   }
@@ -357,7 +366,7 @@
     $('f-categoria').innerHTML = CATS.map(c=>`<option value="${c.k}">${c.ico} ${c.lbl}</option>`).join('');
     $('f-categoria').value = edit.categoria;
     $('f-nombre').value=edit.nombre||''; $('f-proveedor').value=edit.proveedor||''; $('f-grupo').value=edit.grupo||'';
-    $('f-activo').checked=edit.activo!==false; $('m-msg').textContent='';
+    $('f-activo').checked=edit.activo!==false; $('m-msg').textContent=''; SEG && SEG.set({ secciones: edit.secciones || [], zonas: edit.zonas || [] });
     pintarSugerencias();
     $('ov').classList.add('open');
   }
@@ -372,7 +381,7 @@
     const proveedor=$('f-proveedor').value.trim();
     if(!nombre){ msg.style.color='#c0392b'; msg.textContent='Poné el nombre del producto.'; return; }
     if(!proveedor){ msg.style.color='#c0392b'; msg.textContent='Poné el proveedor: la visita agrupa las propuestas por proveedor.'; return; }
-    const fila={ nombre, proveedor, categoria:$('f-categoria').value, grupo:$('f-grupo').value.trim() || null, activo:$('f-activo').checked };
+    const fila={ nombre, proveedor, categoria:$('f-categoria').value, grupo:$('f-grupo').value.trim() || null, activo:$('f-activo').checked, ...(SEG ? SEG.valor() : {}) };
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…'; $('m-save').disabled=true;
     try{
       let r;
@@ -383,7 +392,7 @@
       if(r.error) throw r.error;
       if(sinFilas(r)) throw new Error('la base no dejó guardar (permisos).');
       cerrar(); await cargar();
-    }catch(e){ msg.style.color='#c0392b'; msg.textContent='No se pudo guardar: '+(e.message||e); }
+    }catch(e){ msg.style.color='#c0392b'; msg.textContent = /secciones|zonas/.test(e.message||'') ? 'Falta correr segmentacion-setup.sql en Supabase (proyecto del manual).' : 'No se pudo guardar: '+(e.message||e); }
     finally{ $('m-save').disabled=false; }
   }
 
@@ -429,7 +438,7 @@
       if(r.error) throw r.error;
       if(sinFilas(r)) throw new Error('la base no dejó guardar (permisos).');
       cerrarTexto(); await cargar();
-    }catch(e){ msg.style.color='#c0392b'; msg.textContent='No se pudo guardar: '+(e.message||e); }
+    }catch(e){ msg.style.color='#c0392b'; msg.textContent = /secciones|zonas/.test(e.message||'') ? 'Falta correr segmentacion-setup.sql en Supabase (proyecto del manual).' : 'No se pudo guardar: '+(e.message||e); }
     finally{ $('t-save').disabled=false; }
   }
 
@@ -443,7 +452,12 @@
     location.href='/index.html';
   }
 
-  cargar();
+  (async () => {
+    try { MAPA = await Segmentacion.mapa(); } catch (e) {}
+    SEG = await Segmentacion.montar('#seg-dest');
+    cargar();
+  })();
+
 </script>
 <script src="_admin-sidebar.js"></script>
 </body>

@@ -4574,8 +4574,15 @@ body { background:transparent !important; }
     return out;
   }
 
+  // Campañas segmentadas primero, sin repetir las que ya entran por la lógica de siempre.
+  const _expConSeg = (seg, lista) => _expandirCampanias(seg.concat(lista.filter(a => !seg.includes(a))));
   async function _campaniasSeccion(secId) {
-    const todas = await _getAccionesMensuales();
+    const todasZona = (await _getAccionesMensuales()).filter(a => segVa(a, null));   // zona del vendedor
+    // Las que Luciana segmentó (marcó secciones) van SOLO a esas secciones, sin mirar
+    // rubro ni código de sección. Las demás siguen la lógica de siempre.
+    const uuidSec = (buscarSec(secId) || {})._uuid;
+    const segmentadas = todasZona.filter(a => segMarcado(a) && segVa(a, uuidSec));
+    const todas = todasZona.filter(a => !segMarcado(a));
     const canales = _canalesCliente();
     const porCanal = todas.filter(a =>
       (a.aplica_a || []).some(v => canales.includes(v) || v === 'todos')
@@ -4591,7 +4598,7 @@ body { background:transparent !important; }
     //    muestre en Spirits aunque no se haya elegido la sección exacta.
     const catDeSeccion = SECCION_CATEGORIA[secId];
     if (catDeSeccion) {
-      return _expandirCampanias(porCanal.filter(a =>
+      return _expConSeg(segmentadas, porCanal.filter(a =>
         asignadaAqui(a) || (enBucketGeneral(a) && String(a.categoria || '').toLowerCase() === catDeSeccion)
       ));
     }
@@ -4605,11 +4612,11 @@ body { background:transparent !important; }
     if (esGeneral) {
       const idsHoja = new Set(seccionesHoja(checklist).map(s => s.id));
       const huerfana = a => { const p = partes(a); return p.length > 0 && !p.some(c => idsHoja.has(c)); };
-      return _expandirCampanias(porCanal.filter(a => asignadaAqui(a) || enBucketGeneral(a) || huerfana(a)));
+      return _expConSeg(segmentadas, porCanal.filter(a => asignadaAqui(a) || enBucketGeneral(a) || huerfana(a)));
     }
 
     // 3) Cualquier otra sección específica: solo las asignadas explícitamente a ella.
-    return _expandirCampanias(porCanal.filter(asignadaAqui));
+    return _expConSeg(segmentadas, porCanal.filter(asignadaAqui));
   }
 
   // Convertir una campaña (acciones_mensuales) al formato de "oferta" del widget de bodegas.
@@ -5256,10 +5263,11 @@ body { background:transparent !important; }
     const sec = cartLabel || PROP_SECCION_CARRITO;
     let props = [];
     try {
-      let q = sb.from('propuestas_incorporacion').select('*').eq('activo', true);
-      if (categoria) q = q.eq('categoria', categoria);
-      const { data } = await q.order('orden');
-      props = data || [];
+      const { data } = await sb.from('propuestas_incorporacion').select('*').eq('activo', true).order('orden');
+      // Segmentadas por Luciana: solo en sus secciones (sin mirar la categoría).
+      // Las demás, por categoría como siempre. La zona vale siempre.
+      const uuidSec = (buscarSec(secId) || {})._uuid;
+      props = (data || []).filter(p => segVa(p, uuidSec) && (segMarcado(p) || !categoria || p.categoria === categoria));
     } catch {}
     props = filtrarPropuestasPorCliente(props, cliente.id);
     const textosProv = await _getPropTextos();
@@ -5419,6 +5427,8 @@ body { background:transparent !important; }
           precio_regular: a.precio_regular || 0,
           foto_url: a.imagen_url || '',
           orden: a.orden || 0,
+          secciones: Array.isArray(a.secciones) ? a.secciones : [],
+          zonas: Array.isArray(a.zonas) ? a.zonas : [],
         };
       }).filter(o => o.producto);
     } catch (e) { console.warn('catálogo:', e); _catCache = []; }
@@ -5460,11 +5470,14 @@ body { background:transparent !important; }
     // acción (la palabra "espumante" o marcas de espumante conocidas).
     const soloEspumantes = /espumant/i.test(String((buscarSec(secId) || {}).titulo || ''));
     const ES_ESPUMANTE = /espumant|champag|champ[aá]n|\bbrut\b|prosecco|sidra|codorn|chandon|bar[oó]n\s*b\b|\bmumm\b|\bcava\b|sparkling/i;
-    return cat.filter(o =>
+    // Si Luciana segmentó la oferta (secciones marcadas), va SOLO a esas secciones, sin
+    // mirar canal ni categoría. Si no, se ubica sola como siempre. La zona vale siempre.
+    const uuidSec = (buscarSec(secId) || {})._uuid;
+    return cat.filter(o => segVa(o, uuidSec) && (segMarcado(o) || (
       (o.canal === canal || o.canal === 'ambos') &&
       (!quiere || o.categoria === quiere) &&
       (!soloEspumantes || ES_ESPUMANTE.test(o.producto + ' ' + (o.descripcion_larga || '')))
-    );
+    )));
   }
 
   const fmtPesos = n => '$' + Number(n || 0).toLocaleString('es-AR');
@@ -5509,7 +5522,8 @@ body { background:transparent !important; }
     let mixes = [];
     try {
       const { data } = await sb.from('mixes_ideales').select('*').eq('activo', true).order('orden');
-      mixes = data || [];
+      const uuidSec = (buscarSec(secId) || {})._uuid;   // segmentación de Luciana (zona / secciones)
+      mixes = (data || []).filter(m => segVa(m, uuidSec));
     } catch (e) { el.innerHTML = ''; return; }
     if (!mixes.length) {
       el.innerHTML = `<div class="mix-empty">Todavía no hay mixes cargados para proponer.</div>`;
@@ -5598,7 +5612,8 @@ body { background:transparent !important; }
       vinos = data || [];
       // Cada vino dice en qué rubros aparece (vinos_por_copa.rubros). Sin ninguno = en todos.
       const rubro = (typeof checklist !== 'undefined' && checklist && checklist.id) || cliente.tipo;
-      vinos = vinos.filter(v => !Array.isArray(v.rubros) || !v.rubros.length || v.rubros.includes(rubro));
+      const uuidSec = (buscarSec(secId) || {})._uuid;   // segmentación de Luciana (zona / secciones)
+      vinos = vinos.filter(v => segVa(v, uuidSec) && (segMarcado(v) || !Array.isArray(v.rubros) || !v.rubros.length || v.rubros.includes(rubro)));
     } catch (e) { vinos = []; }
 
     const lista = vinos.length ? `<div class="vc-list">` + vinos.map(v => `
@@ -5642,7 +5657,8 @@ body { background:transparent !important; }
     try {
       const { data } = await sb.from('aperitivos_bienvenida').select('*').eq('activo', true).order('orden');
       const rubro = (typeof checklist !== 'undefined' && checklist && checklist.id) || cliente.tipo;
-      items = (data || []).filter(a => !Array.isArray(a.rubros) || !a.rubros.length || a.rubros.includes(rubro));
+      const uuidSec = (buscarSec(secId) || {})._uuid;   // segmentación de Luciana (zona / secciones)
+      items = (data || []).filter(a => segVa(a, uuidSec) && (segMarcado(a) || !Array.isArray(a.rubros) || !a.rubros.length || a.rubros.includes(rubro)));
     } catch (e) { items = []; }
     el.innerHTML = items.length ? `<div class="vc-list">` + items.map(a => `
       <div class="vc-card">
@@ -5874,7 +5890,7 @@ body { background:transparent !important; }
   async function fbCargarPlacas(){
     const el = document.getElementById('fb-placas'); if (!el) return;
     let evs = [];
-    try { evs = await _getFechasCal(checklist.id); } catch(e){ evs = []; }
+    try { evs = (await _getFechasCal(checklist.id)).filter(ev => segVa(ev, null)); } catch(e){ evs = []; }
     const conImg = (evs || []).filter(e => e.imagen_url);
     if (!conImg.length){ el.innerHTML = ''; return; }
     el.innerHTML = `<div class="fb-label" style="margin-top:2px">Placas de fechas — personalizá con el logo del cliente</div>
@@ -6695,6 +6711,7 @@ body { background:transparent !important; }
   // ¿la fecha aplica al rubro pedido? Usa la lista `rubros` (nueva); si la fila es
   // vieja (solo tenía `canal`), mapea canal→rubros por compatibilidad.
   function _fechaAplicaRubro(a, rubro) {
+    if (segMarcado(a)) return true;   // segmentada por Luciana: decide la sección (renderCalendarioMes)
     let rr = (Array.isArray(a.rubros) && a.rubros.length) ? a.rubros : null;
     if (!rr) {
       const c = a.canal;
@@ -6723,7 +6740,8 @@ body { background:transparent !important; }
     _calCanales[secId] = rubro;
     const el = document.getElementById(`vt-cal-${secId}`);
     if (!el) return;
-    const eventos = await _getFechasCal(rubro);
+    const uuidSec = (buscarSec(secId) || {})._uuid;   // segmentación de Luciana (zona / secciones)
+    const eventos = (await _getFechasCal(rubro)).filter(ev => segVa(ev, uuidSec));
     const y = ref.getFullYear(), m = ref.getMonth();
     const primerDia = new Date(y, m, 1).getDay(); // 0=Dom
     const diasMes = new Date(y, m+1, 0).getDate();

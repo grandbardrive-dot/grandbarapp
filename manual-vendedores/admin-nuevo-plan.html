@@ -90,16 +90,9 @@
       </div>
 
       <div class="fld">
-        <label>¿En qué secciones aparece? <span class="req">*</span></label>
-        <div class="zonabar" id="f-zonabar">
-          <button type="button" class="zb on"  data-zona="mendoza" onclick="elegirZona('mendoza')">Mendoza</button>
-          <button type="button" class="zb"     data-zona="sanluis" onclick="elegirZona('sanluis')">San Luis</button>
-          <button type="button" class="zb"     data-zona="todas"   onclick="elegirZona('todas')">Las dos</button>
-        </div>
-        <div class="secbox" id="f-secbox"><div class="secbox-load">Cargando secciones…</div></div>
-        <div class="sec-count" id="sec-count"></div>
-        <div class="hint">Marcá una o varias secciones. El plan se muestra en todas las que elijas, en la visita del vendedor.
-          Mendoza y San Luis tienen sus propias secciones: elegí la zona arriba.</div>
+        <label>¿Dónde aparece? <span class="req">*</span></label>
+        <div id="seg-dest"></div>
+        <div class="hint">Marcá una o varias secciones (el plan se muestra en todas). Elegí la zona si es solo para Mendoza o solo para San Luis.</div>
       </div>
 
       <div class="fld">
@@ -143,6 +136,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="_segmentacion.js"></script>
 <script>
   sessionStorage.setItem('admin_auth','1');
   if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
@@ -155,112 +149,8 @@
   const editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
   let planPdfActual = null;   // pdf_url existente (para conservarlo si no suben otro)
 
-  // Las secciones del manual tienen dos niveles: una sección madre (VINOS, SPIRITS,
-  // RTD y FRIOS…) y adentro sus subsecciones (Acciones de Incorporación, de Rotación,
-  // de Volumen…). Por eso "Acciones de Rotación" aparece varias veces: no está
-  // repetida, es la de VINOS, la de SPIRITS y la de RTD, que son distintas.
-  //
-  // Antes la lista las mostraba todas planas y no había forma de saber a cuál de las
-  // tres se estaba apuntando. Ahora se elige igual que en la visita del vendedor:
-  // zona → canal → sección madre → subsección.
-  const ZONA_LBL = { mendoza: 'Mendoza', sanluis: 'San Luis' };
-  let ZONA_VISTA = 'mendoza';
-
-  async function cargarSecciones(){
-    const box = document.getElementById('f-secbox');
-    try{
-      const { data } = await sb.from('checklist_secciones')
-        .select('id,codigo,nombre,descripcion,canal,zona,parent_id,orden,icono,icono_bg,icono_color,activa')
-        .eq('activa',true).order('orden');
-      const secs = data || [];
-      if(!secs.length){ box.innerHTML = '<div class="secbox-load">No hay secciones cargadas</div>'; return; }
-
-      const esc = t => String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-      const porOrden = (a,b) => (a.orden||0) - (b.orden||0);
-
-      // canal + zona → madres, y cada madre con sus hijas
-      const grupos = {};
-      secs.filter(s=>!s.parent_id).sort(porOrden).forEach(m=>{
-        const k = (m.zona||'mendoza') + '|' + (m.canal||'otros');
-        (grupos[k] = grupos[k] || []).push(m);
-      });
-
-      let html = '';
-      Object.keys(grupos).sort().forEach(k=>{
-        const [zona, canal] = k.split('|');
-        html += `<div class="secgrupo" data-zona="${zona}">`;
-        html += `<div class="grp">${esc(canal.toUpperCase())} · ${ZONA_LBL[zona] || zona}</div>`;
-        grupos[k].forEach(m=>{
-          const hijas = secs.filter(s=>s.parent_id===m.id).sort(porOrden);
-          const ico = `<span class="madre-ico" style="background:${esc(m.icono_bg||'#EAF2FB')};color:${esc(m.icono_color||'#1F447F')}">${esc(m.icono||'📋')}</span>`;
-          const nom = `<span class="madre-n">${esc(m.nombre)}${m.descripcion?`<small>${esc(m.descripcion)}</small>`:''}</span>`;
-          if(!hijas.length){
-            // Sección sin subsecciones: se elige la sección entera.
-            html += `<div class="madre"><label class="madre-h sola">
-                <input type="checkbox" value="${m.id}" data-zona="${zona}" onchange="actualizarContadorSec()">
-                ${ico}${nom}</label></div>`;
-            return;
-          }
-          html += `<div class="madre" data-madre="${m.id}">
-              <button type="button" class="madre-h" onclick="abrirMadre(this)">
-                ${ico}${nom}
-                <span class="madre-c" data-cuenta="${m.id}">0/${hijas.length}</span>
-                <span class="madre-fl">▾</span>
-              </button>
-              <div class="madre-b" hidden>` +
-            hijas.map(s=>`<label class="secitem">
-                <input type="checkbox" value="${s.id}" data-zona="${zona}" data-madre="${m.id}" onchange="actualizarContadorSec()">
-                ${esc(s.nombre)}</label>`).join('') +
-            `</div></div>`;
-        });
-        html += `</div>`;
-      });
-      box.innerHTML = html;
-      elegirZona(ZONA_VISTA);
-    }catch(e){ box.innerHTML = '<div class="secbox-load">Error al cargar secciones</div>'; }
-  }
-
-  function abrirMadre(btn){
-    const caja = btn.parentElement;
-    const cuerpo = caja.querySelector('.madre-b');
-    cuerpo.hidden = !cuerpo.hidden;
-    caja.classList.toggle('abierta', !cuerpo.hidden);
-  }
-
-  function elegirZona(z){
-    ZONA_VISTA = z;
-    document.querySelectorAll('#f-zonabar .zb').forEach(b=>{
-      b.classList.toggle('on', b.dataset.zona === z);
-    });
-    document.querySelectorAll('#f-secbox .secgrupo').forEach(g=>{
-      g.hidden = (z !== 'todas' && g.dataset.zona !== z);
-    });
-    document.getElementById('f-secbox').scrollTop = 0;
-    actualizarContadorSec();
-  }
-
-  function seccionesElegidas(){ return [...document.querySelectorAll('#f-secbox input[type=checkbox]:checked')].map(c=>c.value); }
-
-  function actualizarContadorSec(){
-    // El contadorcito de cada sección madre (0/3), para ver de un vistazo dónde hay algo elegido.
-    document.querySelectorAll('#f-secbox .madre[data-madre]').forEach(caja=>{
-      const hijas = caja.querySelectorAll('.madre-b input[type=checkbox]');
-      const listas = caja.querySelectorAll('.madre-b input[type=checkbox]:checked').length;
-      const chip = caja.querySelector('.madre-c');
-      if (chip) { chip.textContent = listas + '/' + hijas.length; chip.classList.toggle('con', listas > 0); }
-    });
-
-    const marcadas = [...document.querySelectorAll('#f-secbox input[type=checkbox]:checked')];
-    const n = marcadas.length;
-    // Lo marcado en la zona que no se está mirando hay que decirlo: si no, parece que
-    // el plan tiene menos secciones de las que en realidad va a guardar.
-    const escondidas = ZONA_VISTA === 'todas' ? 0
-      : marcadas.filter(c => c.dataset.zona !== ZONA_VISTA).length;
-    const otra = ZONA_VISTA === 'mendoza' ? 'San Luis' : 'Mendoza';
-    document.getElementById('sec-count').innerHTML = !n ? ''
-      : `${n} ${n>1?'secciones seleccionadas':'sección seleccionada'}` +
-        (escondidas ? ` <span class="sec-otra">— ${escondidas} en ${otra}, que no estás viendo</span>` : '');
-  }
+  // Dónde aparece el plan: zona + secciones, con el selector compartido (_segmentacion.js).
+  let SEG = null;
 
   // Modo edición: precargar el plan existente
   async function cargarPlan(id){
@@ -269,19 +159,7 @@
       if(!p) return;
       document.getElementById('f-titulo').value    = p.nombre || '';
       const secsSel = (Array.isArray(p.secciones)&&p.secciones.length) ? p.secciones : (p.seccion_id?[p.seccion_id]:[]);
-      document.querySelectorAll('#f-secbox input[type=checkbox]').forEach(c=>{ c.checked = secsSel.includes(c.value); });
-      // Abrir la vista en la zona del plan, para no dejarlo mirando una lista vacía
-      // si el plan es de San Luis. Si tiene secciones de las dos, se muestran todas.
-      const zonasDelPlan = [...new Set([...document.querySelectorAll('#f-secbox input[type=checkbox]:checked')]
-        .map(c => c.dataset.zona))];
-      if (zonasDelPlan.length === 1) elegirZona(zonasDelPlan[0]);
-      else if (zonasDelPlan.length > 1) elegirZona('todas');
-      // Abrir las secciones madre que tengan algo marcado adentro.
-      document.querySelectorAll('#f-secbox .madre-b input[type=checkbox]:checked').forEach(c=>{
-        const caja = c.closest('.madre'); if(!caja) return;
-        caja.querySelector('.madre-b').hidden = false; caja.classList.add('abierta');
-      });
-      actualizarContadorSec();
+      SEG.set({ secciones: secsSel, zonas: p.zonas || [] });
       document.getElementById('f-proveedor').value = p.proveedor || '';
       document.getElementById('f-duracion').value  = p.condicion || '';
       document.getElementById('f-detalle').value   = p.descripcion || '';
@@ -295,7 +173,7 @@
   }
 
   (async function init(){
-    await cargarSecciones();
+    SEG = await Segmentacion.montar('#seg-dest');
     if(editId) await cargarPlan(editId);
   })();
 
@@ -311,7 +189,7 @@
     const msg = document.getElementById('msg');
     const btn = document.getElementById('btn-guardar');
     const titulo   = document.getElementById('f-titulo').value.trim();
-    const secciones= seccionesElegidas();
+    const { secciones, zonas } = SEG ? SEG.valor() : { secciones: [], zonas: [] };
     const proveedor= document.getElementById('f-proveedor').value.trim();
     const duracion = document.getElementById('f-duracion').value.trim();
     const detalle  = document.getElementById('f-detalle').value.trim();
@@ -332,6 +210,7 @@
       const row = {
         seccion_id: secciones[0],   // primera (compatibilidad)
         secciones: secciones,       // todas las secciones donde aparece
+        zonas: zonas,               // vacío = Mendoza y San Luis
         nombre: titulo,
         proveedor: proveedor || null,
         condicion: duracion || null,
@@ -344,8 +223,8 @@
         : sb.from('checklist_planes').insert(Object.assign({activo:true}, r));
       let { error } = await persistir(row);
       // Fallback: si todavía no existe la columna "secciones", guardar solo con seccion_id.
-      if(error && /secciones/i.test(error.message||'')){
-        const { secciones:_omit, ...rowSin } = row;
+      if(error && /secciones|zonas/i.test(error.message||'')){
+        const { secciones:_omit, zonas:_omitZ, ...rowSin } = row;
         ({ error } = await persistir(rowSin));
       }
       if(error) throw error;

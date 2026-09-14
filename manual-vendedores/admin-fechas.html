@@ -182,6 +182,11 @@
             <div class="rchips" id="f-rubros"></div>
             <div class="hint">La fecha aparece en el calendario del manual de los rubros elegidos.</div>
           </div>
+          <div class="fg">
+            <label>¿En qué secciones y zona? <span style="color:var(--ink3);font-weight:600">(opcional)</span></label>
+            <div id="seg-dest"></div>
+            <div class="hint">Si no marcás nada, la fecha aparece en el calendario de los rubros elegidos, como hasta ahora. Si marcás secciones, aparece solo en esas.</div>
+          </div>
           <div class="fg-row">
             <div class="fg"><label>Desde *</label><input id="f-inicio" type="date"></div>
             <div class="fg"><label>Hasta *</label><input id="f-fin" type="date"></div>
@@ -217,6 +222,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="_segmentacion.js"></script>
 <script src="_admin-sidebar.js"></script>
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
@@ -249,6 +255,8 @@
   const hoyISO=()=>new Date().toISOString().slice(0,10);
 
   let DATA=[], FILTRO='todas', _imgFile=null;
+  // Segmentación (secciones + zona): se monta una vez; MAPA es para los textos de la lista.
+  let SEG=null, MAPA=null;
 
   function toggleMenu(ev){ ev.stopPropagation(); $('perfil-menu').classList.toggle('open'); }
   document.addEventListener('click',()=>$('perfil-menu').classList.remove('open'));
@@ -300,13 +308,15 @@
       const rubChips = rubros.includes('todos')
         ? '<span class="rmini" style="background:rgba(203,184,106,.18);color:var(--gold-d)">Todos los rubros</span>'
         : rubros.map(r=>`<span class="rmini">${esc(RUBRO_L[r]||r)}</span>`).join(' ');
+      const conSeg=(Array.isArray(a.secciones)&&a.secciones.length)||(Array.isArray(a.zonas)&&a.zonas.length);
+      const segChip = conSeg&&MAPA ? ` <span class="rmini" style="background:var(--amber-bg);color:var(--amber)">🎯 ${esc(Segmentacion.texto(a,MAPA))}</span>` : '';
       return `<div class="fcard">
         <div class="fcard-img">${a.imagen_url?`<img src="${esc(a.imagen_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`:'📅'}</div>
         <div class="fcard-info">
           <div class="fcard-nombre">${esc(a.nombre)}</div>
           ${a.descripcion?`<div class="fcard-desc">${esc(a.descripcion)}</div>`:''}
           <div class="fcard-meta">
-            ${rubChips}
+            ${rubChips}${segChip}
             <span>📅 ${fmtF(a.fecha_inicio)} → ${fmtF(a.fecha_fin)}</span>
             ${a.condicion?`<span>· ${esc(a.condicion)}</span>`:''}
             <span class="badge-est ${estCls}">${estLbl}</span>
@@ -357,15 +367,21 @@
     btn.disabled=true; btn.innerHTML='<span class="spin"></span> Guardando…'; msg.textContent='';
     try{
       let img=null; try{ img=await subirImagen(); }catch(e){ /* si falla la imagen, guardamos igual sin ella */ }
-      const { error } = await sb.from('acciones_fechas').insert({ nombre, descripcion:desc, condicion:cond||null, canal, rubros, imagen_url:img, fecha_inicio:inicio, fecha_fin:fin, activa:true });
+      const { error } = await sb.from('acciones_fechas').insert({ nombre, descripcion:desc, condicion:cond||null, canal, rubros, imagen_url:img, fecha_inicio:inicio, fecha_fin:fin, activa:true, ...(SEG ? SEG.valor() : {}) });
       if(error) throw error;
       // limpiar
       ['f-nombre','f-desc','f-cond','f-inicio','f-fin'].forEach(id=>$(id).value='');
-      selRubros=new Set(); renderChips(); _imgFile=null; $('f-drop').innerHTML='<div id="f-drop-txt">📷 Tocá para subir una imagen</div>'; $('f-file').value='';
+      selRubros=new Set(); renderChips(); SEG && SEG.set({}); _imgFile=null; $('f-drop').innerHTML='<div id="f-drop-txt">📷 Tocá para subir una imagen</div>'; $('f-file').value='';
       msg.style.color='var(--green)'; msg.textContent='✓ Fecha guardada.';
       await cargar();
       setTimeout(()=>{ msg.textContent=''; },2500);
-    }catch(e){ msg.style.color='var(--red)'; msg.textContent='No se pudo guardar: '+(e.message||e); }
+    }catch(e){
+      const txt=String(e.message||e);
+      msg.style.color='var(--red)';
+      msg.textContent = /secciones|zonas/i.test(txt)
+        ? 'No se pudo guardar: falta correr segmentacion-setup.sql en Supabase (proyecto del manual).'
+        : 'No se pudo guardar: '+txt;
+    }
     finally{ btn.disabled=false; btn.textContent='Guardar fecha'; }
   }
 
@@ -374,6 +390,11 @@
 
   renderChips();
   cargar();
+  // Selector de secciones/zona + mapa para la lista (si falla, la pantalla sigue andando por rubros).
+  (async()=>{
+    try{ SEG = await Segmentacion.montar('#seg-dest'); }catch(e){ SEG=null; }
+    try{ MAPA = await Segmentacion.mapa(); if(DATA.length) render(); }catch(e){ MAPA=null; }
+  })();
 </script>
 </body>
 </html>

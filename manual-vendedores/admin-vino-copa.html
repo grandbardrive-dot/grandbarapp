@@ -207,14 +207,9 @@
         <input type="text" id="f-desc" placeholder="Ej: buena rotación, copa accesible" maxlength="140">
       </div>
       <div class="fld">
-        <label>¿En qué manuales aparece?</label>
-        <div class="rub" id="f-rubros">
-          <label class="sw"><input type="checkbox" value="restaurante"> 🍽️ Restaurantes</label>
-          <label class="sw"><input type="checkbox" value="bar"> 🍺 Bares</label>
-          <label class="sw"><input type="checkbox" value="disco"> 🕺 Discos</label>
-          <label class="sw"><input type="checkbox" value="hotel"> 🏨 Hoteles</label>
-        </div>
-        <div class="hint">Si no marcás ninguno, aparece en todos.</div>
+        <label>¿Dónde se ve? <span style="text-transform:none;font-weight:400">(zona y secciones, opcional)</span></label>
+        <div id="seg-dest"></div>
+        <div class="hint">Si no marcás nada, se ve donde corresponde, como hasta ahora. Si marcás secciones, aparece solo en esas.</div>
       </div>
       <div class="fld"><label class="sw"><input type="checkbox" id="f-activo" checked> Visible para los vendedores</label></div>
       <div class="msg" id="m-msg"></div>
@@ -228,6 +223,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="_segmentacion.js"></script>
 <script>
   sessionStorage.setItem('admin_auth','1');
   sessionStorage.setItem('admin_perfil','comercial');
@@ -235,6 +231,9 @@
   const $=id=>document.getElementById(id);
 
   let MIXES=[], edit=null;
+  // Dónde se ve (zona + secciones), con el selector de _segmentacion.js. Vacío = como hasta ahora.
+  let SEG = null, MAPA = {};
+  const segmentado = c => !!(((c && c.secciones) || []).length || ((c && c.zonas) || []).length);
 
   // En qué manuales aparece cada vino (vinos_por_copa.rubros). Vacío = en todos.
   const RUBROS_VC = { restaurante:'Restaurantes', bar:'Bares', disco:'Discos', hotel:'Hoteles' };
@@ -265,7 +264,7 @@
         <div class="combo-info">
           <div class="combo-nom">${esc(c.nombre)}
             ${c.proveedor?`<span class="tag nivel">${esc(c.proveedor)}</span>`:''}
-            <span class="tag">${esc(rubrosTxt(c))}</span>
+            <span class="tag">${esc(segmentado(c) ? Segmentacion.texto(c, MAPA) : rubrosTxt(c))}</span>
             ${c.precio_botella?`<span class="tag precio">botella $ ${Number(c.precio_botella).toLocaleString('es-AR')}</span>`:''}
             ${c.activo===false?'<span class="tag off">Oculto</span>':''}</div>
           ${c.condicion?`<div class="combo-cont">${esc(c.condicion)}</div>`:''}
@@ -284,7 +283,7 @@
   function abrirNuevo(){
     edit=null; $('m-title').textContent='Nuevo vino por copa';
     $('f-nombre').value=''; $('f-proveedor').value=''; $('f-condicion').value=''; $('f-precio').value=''; $('f-imagen').value=''; $('f-desc').value='';
-    $('f-activo').checked=true; setRubros([]); $('m-msg').textContent='';
+    $('f-activo').checked=true; SEG && SEG.set({}); $('m-msg').textContent='';
     $('ov').classList.add('open'); setTimeout(()=>$('f-nombre').focus(),80);
   }
   function abrirEdicion(id){
@@ -292,7 +291,7 @@
     $('m-title').textContent='Editar vino por copa';
     $('f-nombre').value=edit.nombre||''; $('f-proveedor').value=edit.proveedor||''; $('f-condicion').value=edit.condicion||'';
     $('f-precio').value=edit.precio_botella||''; $('f-imagen').value=edit.imagen_url||'';
-    $('f-desc').value=edit.descripcion||''; $('f-activo').checked=edit.activo!==false; setRubros(edit.rubros); $('m-msg').textContent='';
+    $('f-desc').value=edit.descripcion||''; $('f-activo').checked=edit.activo!==false; SEG && SEG.set({ secciones: edit.secciones || [], zonas: edit.zonas || [] }); $('m-msg').textContent='';
     $('ov').classList.add('open');
   }
   function cerrar(){ $('ov').classList.remove('open'); }
@@ -309,7 +308,7 @@
       precio_botella: $('f-precio').value ? Number($('f-precio').value) : null,
       imagen_url:     $('f-imagen').value.trim() || null,
       activo:         $('f-activo').checked,
-      rubros:         getRubros(),
+      ...(SEG ? SEG.valor() : {}),
     };
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…'; $('m-save').disabled=true;
     try{
@@ -319,7 +318,7 @@
              ({ error } = await sb.from('vinos_por_copa').insert(fila)); }
       if(error) throw error;
       cerrar(); await cargar();
-    }catch(e){ msg.style.color='#c0392b'; msg.textContent = /rubros/.test(e.message||'') ? 'Falta crear el campo de rubros: corré vinos-por-copa-rubros.sql en Supabase.' : 'No se pudo guardar: '+(e.message||e); }
+    }catch(e){ msg.style.color='#c0392b'; msg.textContent = /secciones|zonas/.test(e.message||'') ? 'Falta correr segmentacion-setup.sql en Supabase (proyecto del manual).' : 'No se pudo guardar: '+(e.message||e); }
     finally{ $('m-save').disabled=false; }
   }
 
@@ -355,7 +354,12 @@
     location.href='/index.html';
   }
 
-  cargar();
+  (async () => {
+    try { MAPA = await Segmentacion.mapa(); } catch (e) {}
+    SEG = await Segmentacion.montar('#seg-dest');
+    cargar();
+  })();
+
 </script>
 <script src="_admin-sidebar.js"></script>
 </body>
