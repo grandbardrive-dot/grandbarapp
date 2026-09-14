@@ -4385,7 +4385,8 @@ body { background:transparent !important; }
       if (sec.especial === 'ev_materiales') cargarEvMateriales(sec.id);
     });
 
-    if (checklist.id === 'vinoteca') {
+    // Tienda de bebidas usa el mismo manual de origen que vinoteca (mismas secciones vt_*).
+    if (checklist.id === 'vinoteca' || checklist.id === 'tienda_bebidas') {
       // Compatibilidad estructura anterior
       const secVidrieraOld = checklist.secciones.find(s => s.especial === 'vidriera');
       const secFechasOld   = checklist.secciones.find(s => s.especial === 'fechas');
@@ -4456,7 +4457,7 @@ body { background:transparent !important; }
       }
       // Materiales POP (catálogo de Marketing + pedido) en cualquier rubro.
       // Vinoteca ya lo carga en su bloque propio, no repetir.
-      if (sec.especial === 'vt_materiales' && checklist.id !== 'vinoteca') {
+      if (sec.especial === 'vt_materiales' && checklist.id !== 'vinoteca' && checklist.id !== 'tienda_bebidas') {
         cargarMaterialesPOP(sec.id);
       }
     });
@@ -4515,7 +4516,7 @@ body { background:transparent !important; }
   // Mapeo tipo de cliente → valor en aplica_a
   const TIPO_CANAL = {
     restaurante:'restaurantes', vinoteca:'vinotecas', hotel:'hoteles',
-    evento:'eventos', bar:'bar', disco:'discos', autoservicio:'autoservicios',
+    evento:'eventos', bar:'bar', disco:'discos', autoservicio:'autoservicios', 'tienda de bebidas':'tiendas_bebidas',
   };
 
   // Alias de canal aceptados para el cliente actual. El asistente de campañas usa
@@ -4524,6 +4525,7 @@ body { background:transparent !important; }
     const CANAL_ALIAS = {
       restaurante:  ['restaurantes','restaurante'],
       vinoteca:     ['vinotecas','vinoteca'],
+      'tienda de bebidas': ['tiendas_bebidas','tienda_bebidas','tienda de bebidas'],
       bar:          ['bares','bar'],
       hotel:        ['hoteles','hotel'],
       evento:       ['eventos','evento'],
@@ -6695,7 +6697,7 @@ body { background:transparent !important; }
     if (!rr) {
       const c = a.canal;
       if (c === 'restaurantes') rr = ['restaurante','bar','hotel','disco','evento'];
-      else if (c === 'vinotecas') rr = ['vinoteca','autoservicio','kiosco','mayorista'];
+      else if (c === 'vinotecas') rr = ['vinoteca','tienda_bebidas','autoservicio','kiosco','mayorista'];
       else rr = ['todos'];
     }
     return rr.includes('todos') || rr.includes(rubro);
@@ -7020,7 +7022,7 @@ body { background:transparent !important; }
     let items = [];
     try {
       const { data } = await sb.from('nuevos_productos').select('*').eq('activo', true);
-      items = (data || []).filter(p => !p.canal || !p.canal.length || p.canal.includes('vinoteca'));
+      items = (data || []).filter(p => !p.canal || !p.canal.length || p.canal.includes('vinoteca') || (checklist.id === 'tienda_bebidas' && p.canal.includes('tienda_bebidas')));
     } catch {}
     if (!items.length) { el.innerHTML = `<div class="esp-loading">Sin novedades cargadas por administración.</div>`; return; }
     el.innerHTML = items.map(p => {

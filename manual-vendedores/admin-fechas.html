@@ -224,10 +224,10 @@
   if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const $=id=>document.getElementById(id);
-  const RUBROS=[['todos','Todos los rubros'],['restaurante','Restaurantes'],['bar','Bares'],['hotel','Hoteles'],['disco','Discos'],['evento','Eventos'],['vinoteca','Vinotecas'],['autoservicio','Autoservicios'],['kiosco','Kioscos'],['mayorista','Mayoristas']];
+  const RUBROS=[['todos','Todos los rubros'],['restaurante','Restaurantes'],['bar','Bares'],['hotel','Hoteles'],['disco','Discos'],['evento','Eventos'],['vinoteca','Vinotecas'],['tienda_bebidas','Tiendas de bebidas'],['autoservicio','Autoservicios'],['kiosco','Kioscos'],['mayorista','Mayoristas']];
   const RUBRO_L=Object.fromEntries(RUBROS);
   let selRubros=new Set();
-  const ON_TRADE=['restaurante','bar','hotel','disco','evento'], OFF_TRADE=['vinoteca','autoservicio','kiosco','mayorista'];
+  const ON_TRADE=['restaurante','bar','hotel','disco','evento'], OFF_TRADE=['vinoteca','tienda_bebidas','autoservicio','kiosco','mayorista'];
 
   function renderChips(){
     $('f-rubros').innerHTML=RUBROS.map(([k,l])=>`<button type="button" class="rchip ${k==='todos'?'todos':''} ${selRubros.has(k)?'on':''}" onclick="toggleRubro('${k}')">${l}</button>`).join('');
