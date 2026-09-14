@@ -343,7 +343,7 @@
         <div><div class="nm">${c.nombre}</div><div class="meta">${c.vendedor_nombre ? c.vendedor_nombre+(c.direccion?' · '+c.direccion:'') : cap(c.tipo)+(c.direccion? ' · '+c.direccion:'')}</div></div>
         <div class="right"><div class="lv">${lv}</div><button class="badge tog off" onclick="event.stopPropagation();toggleActivo(${i})" title="Sacar de la cartera">✕ Quitar</button></div>
       </div>`;
-    }).join("") + `<div class="list-foot">${rows.length} de ${CLIENTES.length} clientes</div>`;
+    }).join("") + `<div class="list-foot">${rows.length===nAct ? rows.length+' clientes' : rows.length+' de '+nAct+' clientes'}</div>`;
   }
 
   // ── Menús de la barra (deuda / filtro / orden) ──
