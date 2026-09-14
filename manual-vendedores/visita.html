@@ -4394,7 +4394,9 @@ body { background:transparent !important; }
       if (secFechasOld)   cargarFechasVinoteca(secFechasOld.id);
 
       // Estructura nueva (recorrido físico)
-      checklist.secciones.forEach(sec => {
+      // Secciones y también SUBSECCIONES: "Catálogo de Materiales" o "Activaciones con
+      // Materiales" son subsecciones y antes quedaban en "Cargando…".
+      [...checklist.secciones, ...checklist.secciones.flatMap(s => s.subsecciones || [])].forEach(sec => {
         switch (sec.especial) {
           case 'vt_vidrieras':        cargarVidriera(sec.id); cargarPlanesVidriera(sec.id); break;
           case 'vt_gondola_vinos':    cargarGondola(sec.id, 'vinos');   break;
