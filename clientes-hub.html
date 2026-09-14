@@ -382,7 +382,9 @@
     if(volverAtras && history.state && history.state.ficha) history.back();
   }
 
-  let _MAN=null; const mansb=()=>(_MAN||(_MAN=supabase.createClient(MANUAL.url,MANUAL.key)));
+  // persistSession:false → usa siempre la anon key y no arrastra una sesión vieja
+  // del portal del manual (un JWT vencido hacía fallar el guardado con 401).
+  let _MAN=null; const mansb=()=>(_MAN||(_MAN=supabase.createClient(MANUAL.url,MANUAL.key,{ auth:{ persistSession:false } })));
   const _e=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
   let fichaTab='resumen';
 
