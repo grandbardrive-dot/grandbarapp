@@ -275,10 +275,26 @@
     const nuevo = !esActivo(c);
     c.activo = nuevo;
     sel=-1; renderList();
+    const revertir = msg => { c.activo = !nuevo; renderList(); avisoFicha(msg||'No se pudo guardar el cambio. Reintentá.'); };
     try{
-      const { error } = await mansb().from('clientes').update({ activo:nuevo }).eq('id', c.id);
-      if(error){ c.activo = !nuevo; renderList(); avisoFicha('No se pudo guardar el cambio. Reintentá.'); }
-    }catch(e){ c.activo = !nuevo; renderList(); }
+      // Vendedor: c.id es el UUID del cliente en el Manual → se matchea por id.
+      // Supervisor: los clientes vienen de cuentas_cubo y c.id es el CÓDIGO de
+      // cliente (no un UUID), así que hay que matchear por codigo_cliente
+      // probando las variantes con/sin ceros a la izquierda.
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(c.id));
+      let q = mansb().from('clientes').update({ activo:nuevo });
+      if(isUuid){
+        q = q.eq('id', c.id);
+      }else{
+        const cod = String(c.codigo_cliente || c.id);
+        const num = cod.replace(/^0+/,'') || cod;
+        const cands = Array.from(new Set([cod, num, num.padStart(5,'0')]));
+        q = q.or(cands.map(x=>`codigo_cliente.eq.${x}`).join(','));
+      }
+      const { data, error } = await q.select('id');
+      if(error){ revertir(); return; }
+      if(!data || !data.length){ revertir('Ese cliente todavía no está cargado en el Manual, no se pudo guardar.'); return; }
+    }catch(e){ revertir(); }
   }
   window.toggleActivo = toggleActivo;
 
