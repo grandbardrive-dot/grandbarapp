@@ -209,8 +209,7 @@
 
       <div class="toolbar">
         <div class="seg">
-          <button class="seg-b on" id="segAct" onclick="setVerOcultos(false)">Activos <span id="cntAct"></span></button>
-          <button class="seg-b" id="segOcu" onclick="setVerOcultos(true)">Ocultos <span id="cntOcu"></span></button>
+          <button class="seg-b on" id="segAct">Clientes <span id="cntAct"></span></button>
         </div>
         <div class="pill" id="fDeudaBtn" onclick="menuDeuda(event)"><span class="pl">Todos los clientes</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
         <div class="pill" id="fDimBtn" onclick="menuDim(event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> <span class="pl">Filtros</span></div>
@@ -290,6 +289,9 @@
   async function toggleActivo(i){
     const c = CLIENTES[i]; if(!c) return;
     const nuevo = !esActivo(c);
+    // Sacar de la cartera es una acción que hace desaparecer al cliente de la
+    // lista (no hay pestaña de ocultos), así que se confirma para no errar.
+    if(!nuevo && !confirm('¿Sacar a "'+(c.nombre||'este cliente')+'" de la cartera?\n\nDeja de aparecer en tu lista de clientes.')) return;
     c.activo = nuevo;
     sel=-1; renderList();
     const revertir = msg => { c.activo = !nuevo; renderList(); avisoFicha(msg||'No se pudo guardar el cambio. Reintentá.'); };
@@ -310,11 +312,10 @@
   function renderList(filter){
     const qEl=document.getElementById("q");
     const q = (filter!=null ? filter : (qEl?qEl.value:"")).toLowerCase().trim();
-    // Contadores de las pestañas (sobre el total)
-    const nOcu = CLIENTES.filter(c=>!esActivo(c)).length;
-    const ca=document.getElementById('cntAct'), co=document.getElementById('cntOcu');
-    if(ca) ca.textContent = '('+(CLIENTES.length-nOcu)+')';
-    if(co) co.textContent = '('+nOcu+')';
+    // Solo se muestran los clientes activos; los quitados desaparecen de la cartera.
+    const nAct = CLIENTES.filter(c=>esActivo(c)).length;
+    const ca=document.getElementById('cntAct'); if(ca) ca.textContent = '('+nAct+')';
+    const st=document.getElementById('stCount'); if(st) st.textContent = nAct;
     let rows = CLIENTES.map((c,i)=>({c,i}))
       .filter(({c}) => esActivo(c) !== verOcultos)
       .filter(({c}) => !q || ((c.nombre||"")+" "+(c.direccion||"")+" "+(c.tipo||"")+" "+(c.vendedor_nombre||"")+" "+(c.codigo_cliente||"")).toLowerCase().includes(q))
@@ -340,7 +341,7 @@
       return `<div class="crow ${i===sel?'sel':''}${act?'':' oculto'}" onclick="selCliente(${i})">
         <div class="n">${pos+1}</div>
         <div><div class="nm">${c.nombre}</div><div class="meta">${c.vendedor_nombre ? c.vendedor_nombre+(c.direccion?' · '+c.direccion:'') : cap(c.tipo)+(c.direccion? ' · '+c.direccion:'')}</div></div>
-        <div class="right"><div class="lv">${lv}</div><button class="badge tog ${act?'':'off'}" onclick="event.stopPropagation();toggleActivo(${i})" title="${act?'Tocá para ocultar este cliente':'Tocá para reactivar'}">${act?'Activo':'Inactivo'}</button></div>
+        <div class="right"><div class="lv">${lv}</div><button class="badge tog off" onclick="event.stopPropagation();toggleActivo(${i})" title="Sacar de la cartera">✕ Quitar</button></div>
       </div>`;
     }).join("") + `<div class="list-foot">${rows.length} de ${CLIENTES.length} clientes</div>`;
   }
@@ -420,7 +421,7 @@
       <div class="d-head">
         <div class="num">${i+1}</div>
         <div>
-          <div class="nm">${c.nombre} <button class="badge tog ${esActivo(c)?'':'off'}" onclick="event.stopPropagation();toggleActivo(${i})" title="${esActivo(c)?'Tocá para ocultar este cliente':'Tocá para reactivar'}">${esActivo(c)?'Activo':'Inactivo'}</button></div>
+          <div class="nm">${c.nombre} <button class="badge tog off" onclick="event.stopPropagation();toggleActivo(${i})" title="Sacar de la cartera">✕ Quitar</button></div>
           <div class="sub">${cap(c.tipo)} · ${c.direccion||"—"}</div>
         </div>
         <div class="d-actions">

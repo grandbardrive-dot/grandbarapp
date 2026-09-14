@@ -301,8 +301,7 @@ body { background:transparent !important; }
   </a>
 
   <div class="view-tabs">
-    <button class="view-tab active" id="tab-activos" onclick="setVista(false)">Activos <span class="cnt" id="cnt-activos"></span></button>
-    <button class="view-tab" id="tab-ocultos" onclick="setVista(true)">Ocultos <span class="cnt" id="cnt-ocultos"></span></button>
+    <button class="view-tab active" id="tab-activos">Clientes <span class="cnt" id="cnt-activos"></span></button>
   </div>
 
   <div class="search-wrap">
@@ -362,6 +361,8 @@ body { background:transparent !important; }
     const c = todosClientes.find(x => x.id === id);
     if (!c) return;
     const nuevo = !esActivo(c);
+    // Quitar de la cartera hace desaparecer al cliente de la lista → confirmar.
+    if (!nuevo && !confirm('¿Sacar a "' + (c.nombre || 'este cliente') + '" de la cartera?\n\nDeja de aparecer en tu lista de clientes.')) return;
     c.activo = nuevo;
     filtrar();
     const codigo = normCodCli(c.codigo_cliente || c.codigo || id);
@@ -484,21 +485,19 @@ body { background:transparent !important; }
   }
 
   function filtrar() {
-    // Contadores de las pestañas (sobre el total, sin búsqueda/tipo)
-    const nOcultos = todosClientes.filter(c => !esActivo(c)).length;
-    document.getElementById('cnt-activos').textContent = `(${todosClientes.length - nOcultos})`;
-    document.getElementById('cnt-ocultos').textContent = `(${nOcultos})`;
+    // Solo se muestran los clientes activos; los quitados salen de la cartera.
+    const nAct = todosClientes.filter(c => esActivo(c)).length;
+    document.getElementById('cnt-activos').textContent = `(${nAct})`;
 
     const q = document.getElementById('search').value.trim().toLowerCase();
-    // Universo según la pestaña: Activos o Ocultos
-    let universo = todosClientes.filter(c => esActivo(c) !== verOcultos);
+    let universo = todosClientes.filter(c => esActivo(c));
     let lista = universo;
     if (tipoActivo) lista = lista.filter(c => c.tipo === tipoActivo);
     if (q) lista = lista.filter(c =>
       c.nombre.toLowerCase().includes(q) || c.codigo_cliente.toLowerCase().includes(q));
     document.getElementById('list-label').textContent =
       lista.length === universo.length
-        ? `${lista.length} cliente${lista.length !== 1 ? 's' : ''}${verOcultos ? ' oculto' + (lista.length !== 1 ? 's' : '') : ''}`
+        ? `${lista.length} cliente${lista.length !== 1 ? 's' : ''}`
         : `${lista.length} resultado${lista.length !== 1 ? 's' : ''}`;
     renderLista(lista);
   }
@@ -506,10 +505,7 @@ body { background:transparent !important; }
   function renderLista(lista) {
     const cont = document.getElementById('list-container');
     if (!lista.length) {
-      const vacio = verOcultos
-        ? `<div class="emoji">👁</div><p>No tenés clientes ocultos.<br>Los que marques como <b>inactivos</b> van a aparecer acá.</p>`
-        : `<div class="emoji">🔍</div><p>No se encontraron clientes.</p>`;
-      cont.innerHTML = `<div class="empty-state">${vacio}</div>`;
+      cont.innerHTML = `<div class="empty-state"><div class="emoji">🔍</div><p>No se encontraron clientes.</p></div>`;
       return;
     }
     cont.innerHTML = lista.map(c => {
@@ -519,7 +515,7 @@ body { background:transparent !important; }
       const pctHtml = v
         ? `<span class="client-pct">${v.porcentaje_total}%</span><span class="client-fecha">${fmtFecha(v.fecha)}</span>`
         : `<span class="pct-none">Sin visitas</span>`;
-      const toggleBtn = `<button class="cli-toggle ${activo ? 'on' : 'off'}" onclick="event.stopPropagation();toggleActivo('${c.id}')">${activo ? '● Activo' : '○ Inactivo'}</button>`;
+      const toggleBtn = `<button class="cli-toggle off" onclick="event.stopPropagation();toggleActivo('${c.id}')" title="Sacar de la cartera">✕ Quitar</button>`;
       // Llamador "Sin Campari": solo si el Sheet está cargado, el cliente está en el Sheet y campari=0
       const cod = normCod5T(c.codigo_cliente);
       const sinCampari = _campariLoaded && _campariMap.has(cod) && _campariMap.get(cod) === false;
