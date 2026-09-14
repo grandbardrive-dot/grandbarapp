@@ -352,15 +352,34 @@ body { background:transparent !important; }
     filtrar();
   }
 
+  // Código de cliente normalizado (sin ceros a la izquierda) = clave del estado.
+  const normCodCli = s => (String(s == null ? '' : s).trim().replace(/^0+/, '') || '0');
+
   // Cambia activo/inactivo. Optimista: actualiza la vista y guarda en la base.
+  // Fuente de verdad: clientes_estado (por código) + espejo en clientes (por id),
+  // así el supervisor (que ve por código) y el vendedor quedan sincronizados.
   async function toggleActivo(id) {
     const c = todosClientes.find(x => x.id === id);
     if (!c) return;
     const nuevo = !esActivo(c);
     c.activo = nuevo;
     filtrar();
-    const { error } = await sb.from('clientes').update({ activo: nuevo }).eq('id', id);
-    if (error) { c.activo = !nuevo; filtrar(); alert('No se pudo guardar el cambio. Reintentá.'); }
+    const codigo = normCodCli(c.codigo_cliente || c.codigo || id);
+    const { error } = await sb.from('clientes_estado')
+      .upsert({ codigo, activo: nuevo, updated_at: new Date().toISOString() }, { onConflict: 'codigo' });
+    if (error) { c.activo = !nuevo; filtrar(); alert('No se pudo guardar el cambio. Reintentá.'); return; }
+    try { await sb.from('clientes').update({ activo: nuevo }).eq('id', id); } catch (e) {}
+  }
+
+  // Aplica los estados guardados por código (override) sobre la lista cargada.
+  async function aplicarEstadoCli() {
+    try {
+      const { data } = await sb.from('clientes_estado').select('codigo,activo');
+      if (!data) return;
+      const m = {}; data.forEach(r => { m[normCodCli(r.codigo)] = r.activo; });
+      todosClientes.forEach(c => { const k = normCodCli(c.codigo_cliente || c.codigo || c.id); if (k in m) c.activo = m[k]; });
+      filtrar();
+    } catch (e) {}
   }
 
   // ── Llamador "Sin Campari" (lee el Sheet del Plan Campari 5T, solo lectura) ──
@@ -408,6 +427,7 @@ body { background:transparent !important; }
     if (error || !clientes) { renderError(); return; }
 
     todosClientes = clientes;
+    aplicarEstadoCli();   // aplica los estados guardados por código (override)
 
     if (clientes.length > 0) {
       const ids = clientes.map(c => c.id);

@@ -270,30 +270,39 @@
   window.setVerOcultos = setVerOcultos;
 
   // Cambia activo/inactivo del cliente. Optimista + guarda en el Manual.
+  // Código de cliente normalizado (sin ceros a la izquierda) = clave del estado.
+  const normCod = s => (String(s==null?'':s).trim().replace(/^0+/,'') || '0');
+
+  // Trae los estados guardados (los clientes inactivados) y los aplica a la lista.
+  // Sirve igual para el vendedor y para el supervisor, matchee por código.
+  async function aplicarEstado(){
+    try{
+      const { data } = await mansb().from('clientes_estado').select('codigo,activo');
+      if(!data) return;
+      const m={}; data.forEach(r=>{ m[normCod(r.codigo)] = r.activo; });
+      CLIENTES.forEach(c=>{ const k=normCod(c.codigo_cliente||c.id); if(k in m) c.activo = m[k]; });
+      const act = CLIENTES.filter(c=>esActivo(c)).length;
+      const st=document.getElementById("stCount"); if(st) st.textContent = act;
+      sel=-1; renderList();
+    }catch(e){}
+  }
+
   async function toggleActivo(i){
     const c = CLIENTES[i]; if(!c) return;
     const nuevo = !esActivo(c);
     c.activo = nuevo;
     sel=-1; renderList();
     const revertir = msg => { c.activo = !nuevo; renderList(); avisoFicha(msg||'No se pudo guardar el cambio. Reintentá.'); };
+    const codigo = normCod(c.codigo_cliente || c.id);
+    if(!codigo || codigo==='0'){ revertir(); return; }
     try{
-      // Vendedor: c.id es el UUID del cliente en el Manual → se matchea por id.
-      // Supervisor: los clientes vienen de cuentas_cubo y c.id es el CÓDIGO de
-      // cliente (no un UUID), así que hay que matchear por codigo_cliente
-      // probando las variantes con/sin ceros a la izquierda.
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(c.id));
-      let q = mansb().from('clientes').update({ activo:nuevo });
-      if(isUuid){
-        q = q.eq('id', c.id);
-      }else{
-        const cod = String(c.codigo_cliente || c.id);
-        const num = cod.replace(/^0+/,'') || cod;
-        const cands = Array.from(new Set([cod, num, num.padStart(5,'0')]));
-        q = q.or(cands.map(x=>`codigo_cliente.eq.${x}`).join(','));
-      }
-      const { data, error } = await q.select('id');
+      // Fuente de verdad: tabla por código, funciona para todo cliente.
+      const { error } = await mansb().from('clientes_estado')
+        .upsert({ codigo, activo:nuevo, updated_at:new Date().toISOString() }, { onConflict:'codigo' });
       if(error){ revertir(); return; }
-      if(!data || !data.length){ revertir('Ese cliente todavía no está cargado en el Manual, no se pudo guardar.'); return; }
+      // Espejo en la tabla del Manual si el cliente existe ahí (para el portal del vendedor).
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(c.id));
+      if(isUuid){ try{ await mansb().from('clientes').update({ activo:nuevo }).eq('id', c.id); }catch(e){} }
     }catch(e){ revertir(); }
   }
   window.toggleActivo = toggleActivo;
@@ -614,7 +623,7 @@
         document.getElementById("stCount").textContent = CLIENTES.length;
         const h1=document.querySelector(".htxt h1"); if(h1) h1.textContent="Clientes del equipo";
         const hp=document.querySelector(".htxt p"); if(hp) hp.textContent="Todos los clientes de tus vendedores.";
-        sel=-1; renderList(""); reason=""; return;
+        sel=-1; renderList(""); aplicarEstado(); reason=""; return;
       }
 
       if(!perfil.codigo_vendedor){ reason="tu usuario ("+session.user.email+") no tiene código de vendedor cargado"; return; }
@@ -633,6 +642,7 @@
 
       CLIENTES = cli;
       document.getElementById("stCount").textContent = cli.filter(c=>c.activo!==false).length;
+      aplicarEstado();   // aplica los estados guardados por código (override)
 
       // Última visita por cliente (si la tabla lo permite)
       try{
