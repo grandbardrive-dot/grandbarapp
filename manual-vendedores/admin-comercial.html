@@ -288,7 +288,7 @@
         <div class="sec-tools">
           <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg>
             <input id="buscar" type="text" placeholder="Buscar por producto, proveedor o campaña…" oninput="renderTabla()"></div>
-          <button class="btn-filtros" onclick="location.href='admin.html?tab=acciones'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z" stroke-linejoin="round"/></svg>Filtros</button>
+          <button class="btn-filtros" onclick="location.href='admin-campanias.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z" stroke-linejoin="round"/></svg>Filtros</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -418,7 +418,7 @@
         </div>
         <div class="stat-num num">${c.num}</div>
         <div class="stat-cap">${c.cap}</div>
-        <div class="stat-link" onclick="location.href='admin.html?tab=acciones'">${c.link}
+        <div class="stat-link" onclick="location.href='admin-campanias.html?estado=${c.key}'">${c.link}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>`).join('');
     const badge = document.getElementById('bell-badge');
@@ -450,7 +450,7 @@
           <div><div class="warn-chip-n">${esc(a.producto||'Campaña')}</div><div class="warn-chip-s">${esc(canales||'—')}</div></div>
           <span class="pill-danger">${etiqueta}</span>
         </div>
-        <button class="warn-edit" onclick="location.href='admin.html?tab=acciones'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16z" stroke-linejoin="round"/></svg>Editar campaña</button>
+        <button class="warn-edit" onclick="location.href='${a._tipo==='plan' ? 'admin-nuevo-plan.html?id=' : 'admin-nueva-campania.html?id='}${a.id}'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16z" stroke-linejoin="round"/></svg>Editar campaña</button>
       </div>`;
   }
 
@@ -467,13 +467,13 @@
       const thumb = a.imagen_url?`<img class="camp-thumb" src="${esc(a.imagen_url)}" alt="">`:`<span class="camp-thumb ph">🍾</span>`;
       const vig = (a.fecha_inicio||a.fecha_fin)?`${fmtFecha(a.fecha_inicio)}<br>– ${fmtFecha(a.fecha_fin)}`:'—';
       return `<tr>
-        <td><div class="camp">${thumb}<div><div class="camp-n">${esc(a.producto||"—")}${a._tipo==="plan"?` <span class="chip-plan">Plan</span>`:""}</div><div class="camp-t">${esc(a.accion||a.categoria||a._tipo==='plan'?'Plan':'Campaña')}</div></div></div></td>
+        <td><div class="camp">${thumb}<div><div class="camp-n">${esc(a.producto||"—")}${a._tipo==="plan"?` <span class="chip-plan">Plan</span>`:""}</div><div class="camp-t">${esc(a.accion || a.categoria || (a._tipo==='plan' ? 'Plan' : 'Campaña'))}</div></div></div></td>
         <td>${a.proveedor?`<span class="prov">${esc(a.proveedor)}</span>`:'<span style="color:var(--ink3)">—</span>'}</td>
         <td><div class="chips">${canales||'<span style="color:var(--ink3)">—</span>'}</div></td>
         <td><span class="vig">${vig}</span></td>
         <td><span class="estado ${e.cls}">${e.txt}</span></td>
         <td><div class="edicion">${fmtFecha(a.created_at)}<small>última carga</small></div></td>
-        <td style="text-align:right"><button class="dots" onclick="location.href='${a._tipo==="plan" ? "admin-nuevo-plan.html?id="+a.id : "admin.html?tab=acciones"}'" title="Abrir">⋯</button></td>
+        <td style="text-align:right"><button class="dots" onclick="location.href='${a._tipo==="plan" ? "admin-nuevo-plan.html?id="+a.id : "admin-nueva-campania.html?id="+a.id}'" title="Abrir">⋯</button></td>
       </tr>`;
     }).join('');
   }

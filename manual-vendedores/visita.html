@@ -2197,7 +2197,7 @@ body { background:transparent !important; }
       }
       wrap.innerHTML = `<div class="carta-galeria">${
         data.map(c => `<img class="carta-thumb" src="${esc(c.foto_url)}" alt="${palCartaC()}"
-          onclick="abrirCartaGrande('${esc(c.foto_url)}')">`).join('')
+          onclick="abrirCartaGrande('${escJs(c.foto_url)}')">`).join('')
       }</div>`;
     } catch (e) {
       console.warn('Cartas cliente load error:', e.message);
@@ -3889,7 +3889,7 @@ body { background:transparent !important; }
       { id:'salentein',  bodega:'Salentein',  tipo:'Compartida',        detalle:'Mínimo 6 cajas/mes Killka o Numina', regalo:'🎁 Cenefa + display' },
     ];
     const pdfBtn = sec.pdf_url
-      ? `<button class="esp-ac-btn pdf" onclick="abrirCatalogoPdf('${esc(sec.pdf_url)}','🪟 Propuestas de vidriera')">📄 Ver propuestas</button>`
+      ? `<button class="esp-ac-btn pdf" onclick="abrirCatalogoPdf('${escJs(sec.pdf_url)}','🪟 Propuestas de vidriera')">📄 Ver propuestas</button>`
       : `<button class="esp-ac-btn pdf" onclick="showToast('Sin propuestas cargadas','info')" style="opacity:.6">📄 Ver propuestas</button>`;
     return `
       <div class="esp-block">
@@ -3905,7 +3905,7 @@ body { background:transparent !important; }
               <div class="acuerdo-opcion-desc">${esc(op.detalle)}</div>
               <div class="acuerdo-opcion-regalo">${op.regalo}</div>
               <button class="btn-cerrar-acuerdo"
-                onclick="abrirCompModal('Vidriera','Acuerdo vidriera ${esc(op.bodega)} — ${esc(op.tipo)}')">
+                onclick="abrirCompModal('Vidriera','Acuerdo vidriera ${escJs(op.bodega)} — ${escJs(op.tipo)}')">
                 Cerrar acuerdo →
               </button>
             </div>`).join('')}
@@ -3932,7 +3932,7 @@ body { background:transparent !important; }
                   <span class="incorp-nombre">${esc(p)}</span>
                   <span class="incorp-cond">${esc(g.cond)}</span>
                   <button class="btn-incorp"
-                    onclick="abrirCompModal('Heladera','Incorporación ${esc(p)} — condición ${esc(g.cond)}')">
+                    onclick="abrirCompModal('Heladera','Incorporación ${escJs(p)} — condición ${escJs(g.cond)}')">
                     + Incorporar
                   </button>
                 </div>`).join('')}
@@ -3977,7 +3977,7 @@ body { background:transparent !important; }
               <div class="promo-cond">${esc(p.cond)}</div>
             </div>
             <button class="btn-promo-comp"
-              onclick="abrirCompModal('${tipo==='vinos'?'Góndola vinos':'Góndola spirits'}','${esc(p.bodega)} — ${esc(p.nombre)}')">
+              onclick="abrirCompModal('${tipo==='vinos'?'Góndola vinos':'Góndola spirits'}','${escJs(p.bodega)} — ${escJs(p.nombre)}')">
               + Comprometer
             </button>
           </div>`).join('')}
@@ -4136,7 +4136,7 @@ body { background:transparent !important; }
               <div class="acuerdo-opcion-desc">${esc(op.detalle)}</div>
               <div class="acuerdo-opcion-regalo">${op.regalo}</div>
               <button class="btn-cerrar-acuerdo"
-                onclick="abrirCompModal('Vidriera','Acuerdo vidriera ${esc(op.bodega)} — ${esc(op.tipo)}')">
+                onclick="abrirCompModal('Vidriera','Acuerdo vidriera ${escJs(op.bodega)} — ${escJs(op.tipo)}')">
                 Cerrar acuerdo →
               </button>
             </div>`).join('')}
@@ -4172,7 +4172,7 @@ body { background:transparent !important; }
               <span class="incorp-nombre">${esc(p)}</span>
               <span class="incorp-cond">${esc(g.cond)}</span>
               <button class="btn-incorp"
-                onclick="abrirCompModal('Heladera','Incorporación ${esc(p)} — ${esc(g.cond)}')">
+                onclick="abrirCompModal('Heladera','Incorporación ${escJs(p)} — ${escJs(g.cond)}')">
                 + Agregar
               </button>
             </div>`).join('')
@@ -4246,7 +4246,7 @@ body { background:transparent !important; }
                   <span class="as-product-nombre">${esc(p.nombre)}</span>
                   <span class="as-product-precio">$${p.precio.toLocaleString('es-AR')}</span>
                   <button class="as-product-btn" id="as-vp-${ri}-${esc(p.nombre.replace(/\s/g,''))}-${sec.id}"
-                    onclick="asAgregarProducto(this,'${esc(p.nombre)}',${p.precio},'Vinos')">
+                    onclick="asAgregarProducto(this,'${escJs(p.nombre)}',${p.precio},'Vinos')">
                     + Agregar
                   </button>
                 </div>`).join('')}
@@ -4278,7 +4278,7 @@ body { background:transparent !important; }
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           ${p.precio ? `<span class="as-product-precio">$${p.precio.toLocaleString('es-AR')}</span>` : ''}
           <span style="background:var(--dorado);color:#1F447F;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px">${esc(p.cond)}</span>
-          <button class="as-product-btn" onclick="asAgregarProducto(this,'${esc(p.nombre)}',${p.precio||0},'Spirits')">
+          <button class="as-product-btn" onclick="asAgregarProducto(this,'${escJs(p.nombre)}',${p.precio||0},'Spirits')">
             + Agregar
           </button>
         </div>
@@ -4726,8 +4726,8 @@ body { background:transparent !important; }
           <div class="fecha-card-nombre">${esc(a.nombre)}</div>
           <div class="fecha-card-cond">${esc(a.condicion || a.descripcion)}</div>
           <div class="fecha-card-btns">
-            ${a.imagen_url ? `<button class="btn-fecha-dl" onclick="descargarImagen('${esc(a.imagen_url)}','${esc(a.nombre)}')">⬇ Descargar placa</button>` : ''}
-            <button class="btn-fecha-sum" onclick="abrirCompModal('Fechas especiales','${esc(a.nombre)} — ${esc(a.condicion||'')}')">
+            ${a.imagen_url ? `<button class="btn-fecha-dl" onclick="descargarImagen('${escJs(a.imagen_url)}','${escJs(a.nombre)}')">⬇ Descargar placa</button>` : ''}
+            <button class="btn-fecha-sum" onclick="abrirCompModal('Fechas especiales','${escJs(a.nombre)} — ${escJs(a.condicion||'')}')">
               Cliente se suma →
             </button>
           </div>
@@ -4884,6 +4884,21 @@ body { background:transparent !important; }
   // ══════════════════════════════════════════════════════════════════════════
 
   function scrollToSec(id) {
+    // Con la vista de recorrido (camino) la lista de secciones está oculta: se abre la
+    // estación (la sección madre) en su ventana y se despliega la subsección pedida.
+    const lista = document.getElementById('checklist-container');
+    if (lista && lista.style.display === 'none' && typeof abrirEstacion === 'function') {
+      const madre = madreDe(id);
+      if (_estacionAbierta) cerrarEstacion();
+      abrirEstacion(madre ? madre.id : id);
+      if (madre) {
+        const b = document.getElementById(`sb-${id}`);
+        if (b && !b.classList.contains('open')) toggleSec(id);
+        const el = document.getElementById(`sec-${id}`);
+        if (el) setTimeout(() => el.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
+      }
+      return;
+    }
     const sb = document.getElementById(`sb-${id}`);
     if (sb && !sb.classList.contains('open')) toggleSec(id);
     const sec = document.getElementById(`sec-${id}`);
@@ -4987,7 +5002,9 @@ body { background:transparent !important; }
 
   function finalizarDesdeCarrito() {
     cerrarCartDrawer();
-    const cierre = checklist.secciones.find(s => s.especial === 'vt_cierre');
+    const todas = [...checklist.secciones, ...checklist.secciones.flatMap(s => s.subsecciones || [])];
+    const cierre = todas.find(s => s.especial === 'vt_cierre' || s.especial === 'cierre_resumen')
+                || todas.find(s => /cierre/i.test(s.titulo || ''));
     if (cierre) scrollToSec(cierre.id);
     else document.getElementById('btn-guardar').scrollIntoView({ behavior:'smooth' });
   }
@@ -6565,7 +6582,7 @@ body { background:transparent !important; }
   function espAccionCard(seccion, opts) {
     // opts: { marca, nombre, cond, desc, img, pdf, botones:[{label,estado,cls}] }
     const botones = (opts.botones || []).map(b =>
-      `<button class="esp-ac-btn ${b.cls||''}" onclick="cartAddBtn(this,'${esc(seccion)}','${esc(opts.nombre)}','${esc(b.estado)}')">${esc(b.label)}</button>`
+      `<button class="esp-ac-btn ${b.cls||''}" onclick="cartAddBtn(this,'${escJs(seccion)}','${escJs(opts.nombre)}','${escJs(b.estado)}')">${esc(b.label)}</button>`
     ).join('');
     const pdfBtn = opts.pdf ? `<a class="esp-ac-btn pdf" href="${esc(opts.pdf)}" target="_blank" rel="noopener">📄 Ver PDF</a>` : '';
     return `
@@ -6845,7 +6862,7 @@ body { background:transparent !important; }
       acciones = data || [];
     } catch {}
 
-    const programar = `<button class="cal-acc-programar" onclick="abrirCompModal('Fechas especiales','${esc(evNombre)}','${esc(fechaId)}','${esc(evNombre)}')">📌 Programar esta fecha</button>`;
+    const programar = `<button class="cal-acc-programar" onclick="abrirCompModal('Fechas especiales','${escJs(evNombre)}','${escJs(fechaId)}','${escJs(evNombre)}')">📌 Programar esta fecha</button>`;
 
     // Cabecera con los datos de la fecha misma (imagen/placa + mecánica + rubros).
     const ev = _calEvById[fechaId] || {};
@@ -7104,7 +7121,7 @@ body { background:transparent !important; }
           </div>
         </div>
         <div class="esp-ac-btns">
-          <button class="esp-ac-btn primary" onclick="addMatItemPrefill('${secId}','${esc(m.nombre)}')">+ Solicitar</button>
+          <button class="esp-ac-btn primary" onclick="addMatItemPrefill('${secId}','${escJs(m.nombre)}')">+ Solicitar</button>
         </div>
       </div>`).join('');
   }
@@ -7229,8 +7246,8 @@ body { background:transparent !important; }
             ${op.regalo?`<div class="acuerdo-opcion-regalo">${esc(op.regalo)}</div>`:''}
             <div class="esp-ac-btns" style="margin-top:8px">
               ${op.pdf_url?`<a class="esp-ac-btn pdf" href="${esc(op.pdf_url)}" target="_blank" rel="noopener">📄 Ver plan</a>`:''}
-              <button class="esp-ac-btn primary" onclick="cartAddBtn(this,'Vidrieras','Plan vidriera ${esc(op.bodega)}','Aceptada')">Agregar a visita</button>
-              <button class="esp-ac-btn" onclick="abrirCompModal('Vidriera','Acuerdo vidriera ${esc(op.bodega)}')">Programar</button>
+              <button class="esp-ac-btn primary" onclick="cartAddBtn(this,'Vidrieras','Plan vidriera ${escJs(op.bodega)}','Aceptada')">Agregar a visita</button>
+              <button class="esp-ac-btn" onclick="abrirCompModal('Vidriera','Acuerdo vidriera ${escJs(op.bodega)}')">Programar</button>
             </div>
           </div>`).join('');
       }
@@ -7770,6 +7787,9 @@ Cualquier consulta estoy a disposición. ${vend} - GrandBar Distribuciones`;
 
   function capitalize(s){return String(s).charAt(0).toUpperCase()+String(s).slice(1);}
   function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  // Para valores que van dentro de un texto entre comillas simples en un onclick="...":
+  // además de escapar el HTML, escapa la comilla simple (si no, "Ballantine's" rompe el botón).
+  function escJs(s){return esc(String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"));}
 
   init();
 </script>

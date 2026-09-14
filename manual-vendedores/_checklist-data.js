@@ -709,8 +709,8 @@ async function getChecklistDynamic(tipo, zonaPedida) {
 
     const result = {
       id:            canal,
-      label:         base.label         || canal,
-      heroSubtitulo: base.heroSubtitulo || '',
+      label:         RUBRO_LABELS[canal] || base.label || canal,
+      heroSubtitulo: (CHECKLISTS[canal] || {}).heroSubtitulo || '',
       secciones:     topLevel,
     };
 

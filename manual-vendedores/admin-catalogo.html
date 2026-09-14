@@ -436,16 +436,22 @@
       if(tipo==='prov'){
         const row={ nombre };
         if(imgUrl) row.logo_url=imgUrl;
-        if(editId) await sb.from('proveedores').update(row).eq('id',editId);
-        else await sb.from('proveedores').insert(row);
+        const r = editId
+          ? await sb.from('proveedores').update(row).eq('id',editId).select('id')
+          : await sb.from('proveedores').insert(row).select('id');
+        if(r.error) throw r.error;
+        if(!r.data || !r.data.length) throw new Error('la base no aceptó el cambio (permisos).');
       } else {
         const row={ nombre,
           categoria: document.getElementById('f-cat').value,
           volumen: document.getElementById('f-vol').value.trim()||null,
           proveedor_id: document.getElementById('f-prov').value||null };
         if(imgUrl) row.imagen_url=imgUrl;
-        if(editId) await sb.from('productos').update(row).eq('id',editId);
-        else await sb.from('productos').insert(row);
+        const r = editId
+          ? await sb.from('productos').update(row).eq('id',editId).select('id')
+          : await sb.from('productos').insert(row).select('id');
+        if(r.error) throw r.error;
+        if(!r.data || !r.data.length) throw new Error('la base no aceptó el cambio (permisos).');
       }
       cerrarModal(); await cargar();
     }catch(e){ mostrarMsg('No se pudo guardar: '+(e.message||e),'err'); btn.disabled=false; }
@@ -455,7 +461,12 @@
   async function borrar(tipo,id){
     const obj=(tipo==='prov'?PROV:PROD).find(x=>x.id===id);
     if(!confirm(`¿Borrar "${obj?.nombre||''}"? No se puede deshacer.`)) return;
-    try{ await sb.from(tipo==='prov'?'proveedores':'productos').delete().eq('id',id); await cargar(); }
+    try{
+      const r = await sb.from(tipo==='prov'?'proveedores':'productos').delete().eq('id',id).select('id');
+      if(r.error) throw r.error;
+      if(!r.data || !r.data.length) throw new Error('la base no aceptó el borrado (permisos).');
+      await cargar();
+    }
     catch(e){ alert('No se pudo borrar: '+(e.message||e)); }
   }
 

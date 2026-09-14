@@ -142,7 +142,9 @@
 
   // Precio manual guardado por competidor + búsqueda.
   const manKey=(id)=>'gb_comp_'+id+'_'+normq($('q').value);
-  function setMan(id,val){ try{ if(val)localStorage.setItem(manKey(id),val); else localStorage.removeItem(manKey(id)); }catch(e){} render(); }
+  // Mientras escribe solo se guarda; la tabla se redibuja al salir del campo
+  // (si se redibuja en cada tecla, el campo pierde el foco).
+  function setMan(id,val,redibujar){ try{ if(val)localStorage.setItem(manKey(id),val); else localStorage.removeItem(manKey(id)); }catch(e){} if(redibujar!==false) render(); }
   function getMan(id){ try{ return localStorage.getItem(manKey(id))||''; }catch(e){ return ''; } }
 
   function chipVs(precio,gb){
@@ -195,7 +197,7 @@
         const linkHtml=link?`<a href="${esc(link)}" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">abrir 🔗</a> <span style="color:var(--ink3)">y pegá el precio</span>`:'<span style="color:var(--ink3)">cargá el precio que veas</span>';
         html+=`<tr class="grow-row"><td><span class="comp">${esc(f.comp)}</span> <span class="badge-man">manual</span></td>
           <td class="prod">${linkHtml}</td>
-          <td class="r"><input class="minput" type="number" inputmode="numeric" placeholder="$" value="${getMan(f.id)}" oninput="setMan('${f.id}',this.value)"></td>
+          <td class="r"><input class="minput" type="number" inputmode="numeric" placeholder="$" value="${getMan(f.id)}" oninput="setMan('${f.id}',this.value,false)" onchange="render()"></td>
           <td class="r">${chipVs(f.precio,gb)}</td></tr>`;
       }else if(f.tipo==='auto-vacio'){
         html+=`<tr><td><span class="comp">${esc(f.comp)}</span> <span class="badge-auto">auto</span></td>

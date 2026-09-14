@@ -354,7 +354,9 @@ function refreshAcciones() {
 
 async function updateAccion(id, patch, statusEl) {
   patch.updated_at = new Date().toISOString();
-  const { error } = await supabase.from('catalogo_acciones').update(patch).eq('id', id);
+  const r = await supabase.from('catalogo_acciones').update(patch).eq('id', id).select('id');
+  // Si la base no deja editar, Supabase no da error: devuelve 0 filas. Se avisa igual.
+  const error = r.error || (!r.data || !r.data.length ? { message: 'no se guardó (permisos)' } : null);
   // reflejar en cache local
   const a = state.acciones.find((x) => x.id === id);
   if (a && !error) Object.assign(a, patch);
@@ -432,7 +434,8 @@ async function abrirSegmentacion(a, btn, statusEl) {
     const { secciones, zonas } = seg.valor();
     // directo contra la tabla (como updateAccion) para tener el mensaje de error
     const patch = { secciones, zonas, updated_at: new Date().toISOString() };
-    const { error } = await supabase.from('catalogo_acciones').update(patch).eq('id', a.id);
+    const r = await supabase.from('catalogo_acciones').update(patch).eq('id', a.id).select('id');
+    const error = r.error || (!r.data || !r.data.length ? { message: 'la base no aceptó el cambio (permisos)' } : null);
     if (error) {
       err.textContent = errorDeSeg(error.message) ? AVISO_SQL_SEG : 'No se pudo guardar: ' + error.message;
       btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar';
@@ -607,7 +610,8 @@ async function moverAccion(a, dir) {
 
 async function eliminarAccion(a) {
   if (!confirm(`¿Eliminar la acción "${a.nombre_producto}"?`)) return;
-  const { error } = await supabase.from('catalogo_acciones').delete().eq('id', a.id);
+  const r = await supabase.from('catalogo_acciones').delete().eq('id', a.id).select('id');
+  const error = r.error || (!r.data || !r.data.length ? { message: 'la base no aceptó el borrado (permisos)' } : null);
   if (error) { alert('Error al eliminar: ' + error.message); return; }
   state.acciones = state.acciones.filter((x) => x.id !== a.id);
   refreshAcciones();
@@ -729,7 +733,8 @@ function refreshProveedores() {
 }
 
 async function updateProveedor(id, patch, statusEl) {
-  const { error } = await supabase.from('catalogo_proveedores').update(patch).eq('id', id);
+  const r = await supabase.from('catalogo_proveedores').update(patch).eq('id', id).select('id');
+  const error = r.error || (!r.data || !r.data.length ? { message: 'no se guardó (permisos)' } : null);
   const p = state.proveedores.find((x) => x.id === id);
   if (p && !error) Object.assign(p, patch);
   if (statusEl) flashStatus(statusEl, !error, error?.message);
@@ -821,7 +826,8 @@ async function moverProveedor(p, dir) {
 
 async function eliminarProveedor(p) {
   if (!confirm(`¿Eliminar "${p.nombre}"?\nSe borran también TODAS sus acciones (cascade).`)) return;
-  const { error } = await supabase.from('catalogo_proveedores').delete().eq('id', p.id);
+  const r = await supabase.from('catalogo_proveedores').delete().eq('id', p.id).select('id');
+  const error = r.error || (!r.data || !r.data.length ? { message: 'la base no aceptó el borrado (permisos)' } : null);
   if (error) { alert('Error al eliminar: ' + error.message); return; }
   state.proveedores = state.proveedores.filter((x) => x.id !== p.id);
   state.acciones = state.acciones.filter((x) => x.proveedor_id !== p.id);

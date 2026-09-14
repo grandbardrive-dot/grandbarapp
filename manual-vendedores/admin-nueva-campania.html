@@ -330,10 +330,29 @@
   let prodPage=1, prodCat='', prodQ='';
   const st={ proveedor:null, productos:[], canales:[], ubicaciones:[], mecanica:'', precioReg:'', precioAcc:'', fechaIni:'', fechaFin:'', materiales:[] };
 
+  // Mendoza y San Luis usan los mismos códigos de sección: cada sección se muestra una
+  // sola vez (la de Mendoza). Las que existen solo en San Luis se suman colgadas de la
+  // madre de Mendoza con el mismo código. Así no aparece todo repetido en el paso 4.
+  function unaPorCodigo(lista){
+    const esSL = s => s.zona === 'sanluis';
+    const clave = s => s.canal + '|' + s.codigo;
+    const porId = Object.fromEntries(lista.map(s => [s.id, s]));
+    const vistas = new Map(lista.filter(s => !esSL(s)).map(s => [clave(s), s]));
+    const out = lista.filter(s => !esSL(s));
+    lista.filter(esSL).forEach(s => {
+      if (vistas.has(clave(s))) return;
+      const madre = s.parent_id ? porId[s.parent_id] : null;
+      const madreMza = madre ? vistas.get(clave(madre)) : null;
+      const fila = { ...s, parent_id: madreMza ? madreMza.id : s.parent_id };
+      vistas.set(clave(s), fila); out.push(fila);
+    });
+    return out;
+  }
+
   async function cargar(){
     try{ PROV=(await sb.from('proveedores').select('*').order('nombre')).data||[]; }catch(e){}
     try{ PROD=(await sb.from('productos').select('*').order('nombre')).data||[]; }catch(e){}
-    try{ SECS=(await sb.from('checklist_secciones').select('id,codigo,nombre,canal,parent_id,orden,icono,icono_bg,icono_color,activa').eq('activa',true).order('orden')).data||[]; }catch(e){}
+    try{ SECS=(await sb.from('checklist_secciones').select('id,codigo,nombre,canal,zona,parent_id,orden,icono,icono_bg,icono_color,activa').eq('activa',true).order('orden')).data||[]; SECS=unaPorCodigo(SECS); }catch(e){}
     // Materiales que Marketing cargó y marcó como visibles para Luciana (con stock y proveedor/línea).
     try{ MAT=(await sb.from('materials_with_stock').select('id,name,processed_image_url,original_image_url,unit_type,supplier_id,brand_id,stock_actual').eq('is_active',true).eq('visible_to_luciana',true).order('name')).data||[]; }catch(e){}
     try{ (await sb.from('brands').select('id,name')).data?.forEach(b=>BRANDS[b.id]=b.name); }catch(e){}

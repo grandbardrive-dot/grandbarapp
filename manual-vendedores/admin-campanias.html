@@ -276,9 +276,9 @@
       <div class="filters">
         <div class="search"><input id="buscar" type="text" placeholder="Buscar por campaña, producto o proveedor…" oninput="render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg></div>
         <div class="fsel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M7 12h10M10 19h4" stroke-linecap="round"/></svg><select id="f-canal" onchange="render()"><option value="">Todos los canales</option></select></div>
-        <div class="fsel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg><select id="f-estado" onchange="render()"><option value="">Todos los estados</option><option value="activa">Activa</option><option value="proxima">Próxima</option><option value="pausada">Pausada</option><option value="vencida">Vencida</option><option value="borrador">Borrador</option></select></div>
+        <div class="fsel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg><select id="f-estado" onchange="render()"><option value="">Todos los estados</option><option value="activa">Activa</option><option value="proxima">Próxima</option><option value="vencida">Vencida</option><option value="borrador">Borrador</option></select></div>
         <div class="fsel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg><select id="f-fecha" onchange="render()"><option value="">Todas las fechas</option><option value="vigentes">Vigentes</option><option value="vencidas">Vencidas</option></select></div>
-        <button class="btn-filtros" onclick="location.href='admin.html?tab=acciones'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z" stroke-linejoin="round"/></svg>Filtros</button>
+        <button class="btn-filtros" onclick="const s=document.getElementById('f-canal'); s.scrollIntoView({block:'center',behavior:'smooth'}); s.focus();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z" stroke-linejoin="round"/></svg>Filtros</button>
       </div>
 
       <div class="table-wrap">
@@ -298,22 +298,22 @@
           <div class="qa" onclick="location.href='admin-secciones.html'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 6h14M5 12h14M5 18h9" stroke-linecap="round"/></svg></div><div><div class="qa-t">Secciones del manual</div><div class="qa-d">Crear y ordenar secciones</div></div></div>
           <div class="qa" onclick="location.href='admin-nuevo-plan.html'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5M9.5 14h5M12 11.5v5" stroke-linecap="round"/></svg></div><div><div class="qa-t">Nuevo plan</div><div class="qa-d">Cargar un plan o programa</div></div></div>
           <div class="qa" onclick="location.href='admin-planes.html'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/><circle cx="2" cy="6" r="0.6" fill="currentColor"/></svg></div><div><div class="qa-t">Ver planes</div><div class="qa-d">Todos los planes cargados</div></div></div>
-          <div class="qa" onclick="location.href='admin.html?tab=acciones'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8" stroke-linecap="round"/></svg></div><div><div class="qa-t">Duplicar campaña</div><div class="qa-d">Copia una campaña existente</div></div></div>
+          <div class="qa" onclick="alert('Para duplicar: tocá ⋯ en la campaña o el plan que querés copiar y elegí 📄 Duplicar. La copia queda como borrador.')"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8" stroke-linecap="round"/></svg></div><div><div class="qa-t">Duplicar campaña</div><div class="qa-d">Copia una campaña existente</div></div></div>
           <div class="qa" onclick="location.href='admin-fechas.html'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg></div><div><div class="qa-t">Fechas especiales</div><div class="qa-d">Calendario del manual</div></div></div>
-          <div class="qa" onclick="location.href='admin.html?tab=vtadmin'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 8v8l8 4 8-4V8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><div class="qa-t">Materiales disponibles</div><div class="qa-d">Ver biblioteca de POP</div></div></div>
+          <div class="qa" onclick="location.href='admin-materiales.html'"><div class="qa-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8l8-4 8 4-8 4z" stroke-linejoin="round"/><path d="M4 8v8l8 4 8-4V8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><div class="qa-t">Materiales disponibles</div><div class="qa-d">Ver biblioteca de POP</div></div></div>
         </div>
       </div>
 
       <div class="rail-card">
         <div class="rail-h">Top proveedores <select id="tp-periodo" onchange="renderTopProv()"><option value="mes">Este mes</option><option value="todo">Histórico</option></select></div>
         <div id="top-prov" style="margin-top:10px"></div>
-        <button class="rail-btn" onclick="location.href='admin.html?tab=acciones'">Ver todos</button>
+        <button class="rail-btn" onclick="document.getElementById('tp-periodo').value='todo'; renderTopProv(true)">Ver todos</button>
       </div>
 
       <div class="tip">
         <div class="tip-h">💡 ¿Sabías que?</div>
         <div class="tip-p">Podés vincular materiales POP a tus campañas para que los vendedores los vean sugeridos en la app.</div>
-        <div class="tip-link" onclick="alert('Próximamente: vincular materiales POP a campañas.')">Más info <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tip-link" onclick="alert('Los materiales POP se eligen en Nueva campaña, en el paso de materiales: ahí ves el stock de cada uno.')">Más info <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
     </aside>
   </div>
@@ -493,12 +493,12 @@
     slot.innerHTML = rows.length>_limite ? `<button onclick="_limite+=6;render()">Ver más <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` : '';
   }
 
-  function renderTopProv(){
+  function renderTopProv(todos){
     const cont=document.getElementById('top-prov');
     const conProv=items().filter(a=>a.proveedor&&a.proveedor.trim());
     if(!conProv.length){ cont.innerHTML=`<div style="font-size:12px;color:var(--ink3);padding:8px 0;line-height:1.5">Cargá el <b>Proveedor</b> en tus campañas para ver el ranking acá.</div>`; return; }
     const map={}; conProv.forEach(a=>{const p=a.proveedor.trim(); map[p]=(map[p]||0)+1;});
-    const top=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const top=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0, todos ? 999 : 5);
     cont.innerHTML=top.map(([p,n])=>`
       <div class="prov-row"><div class="prov-logo">${esc(p.slice(0,2).toUpperCase())}</div><div class="prov-name">${esc(p)}</div><div class="prov-count">${n} campaña${n===1?'':'s'}</div></div>`).join('');
   }
@@ -531,7 +531,7 @@
     m.innerHTML=`
       <button onclick="editCamp()">✏️ Editar</button>
       <button onclick="dupCamp()">📄 Duplicar</button>
-      <button onclick="toggleCamp()">${pausada?'▶️ Reactivar':'⏸️ Pausar'}</button>
+      <button onclick="toggleCamp()">${pausada?'▶️ Publicar':'⏸️ Pasar a borrador'}</button>
       ${verResultados}
       <div class="fm-sep"></div>
       <button class="fm-del" onclick="delCamp()">🗑️ Eliminar</button>`;
@@ -651,7 +651,7 @@
   // Solo se guardan las columnas propias de cada tabla: los campos que agrega la
   // pantalla para poder mostrarlos juntos (_tipo, producto, activa…) no existen en
   // checklist_planes y harían fallar el insert.
-  const CAMPOS_PLAN = ['seccion_id','nombre','proveedor','condicion','descripcion','lineas_participantes','fecha_inicio','fecha_fin','activo','pdf_url'];
+  const CAMPOS_PLAN = ['seccion_id','secciones','zonas','nombre','proveedor','condicion','descripcion','lineas_participantes','fecha_inicio','fecha_fin','activo','pdf_url'];
   const soloPlan = p => CAMPOS_PLAN.reduce((o,k)=>{ if(p[k]!==undefined) o[k]=p[k]; return o; }, {});
 
   async function dupCamp(){
