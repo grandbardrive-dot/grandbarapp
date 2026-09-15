@@ -10,8 +10,8 @@ import {
 } from './supabase.js';
 
 // ---- constantes de dominio ----
-const CAT_ORDER = { spirits: 0, vinos: 1, cervezas: 2 };
-const CATEGORIAS = ['spirits', 'vinos', 'cervezas'];
+const CAT_ORDER = { spirits: 0, vinos: 1, cervezas: 2, aceites: 3 };
+const CATEGORIAS = ['spirits', 'vinos', 'cervezas', 'aceites'];
 const CANALES = ['on', 'off', 'ambos', 'mayorista'];
 const TIPOS_BANNER = ['carrusel', 'popup'];
 const FLAGS = [
