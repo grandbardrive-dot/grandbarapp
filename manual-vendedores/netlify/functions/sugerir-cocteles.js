@@ -10,6 +10,7 @@
 //   Env: ANTHROPIC_API_KEY
 // ============================================================
 
+const { rubroIA } = require('./_rubro-ia');
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = process.env.IA_MODEL_COCTELES || 'claude-haiku-4-5-20251001';
 
@@ -35,23 +36,24 @@ exports.handler = async (event) => {
     const producto = String(body.producto || '').trim();
     const categoria = String(body.categoria || '').trim();
     if (!producto) return json(400, { error: 'Falta el producto' });
+    const R = rubroIA(body.rubro || 'bar');
 
-    const prompt = `Sos un asesor de coctelería para bares. El bar ya compra esta botella:
+    const prompt = `Sos un asesor de coctelería de GrandBar. El cliente es ${R.lugar} y ya compra esta botella:
 Producto: "${producto}"${categoria ? `\nCategoría: ${categoria}` : ''}
 
-Proponé COMO MÁXIMO 2 cócteles clásicos y vendibles que se preparen con ESE destilado como base, ideales para sumar a la carta del bar. Elegí tragos conocidos y fáciles de vender.
+Proponé COMO MÁXIMO 2 cócteles clásicos y vendibles que se preparen con ESE destilado como base, ideales para sumar a la carta de ${R.lugar}. Elegí tragos conocidos y fáciles de vender.
 
 Devolvé ÚNICAMENTE un JSON array (sin texto antes ni después, sin markdown). Cada objeto con EXACTAMENTE estas claves:
 - "nombre": string. Nombre del trago (ej: "Gin Tonic", "Negroni").
 - "medida_ml": number. Mililitros del destilado principal que lleva UNA unidad del trago (típico 45; usá 30 o 60 según el trago).
 - "diluyente": string o null. El mixer/diluyente con el que se sirve (ej: "Agua tónica", "Jugo de pomelo"). null si el trago no lleva diluyente (ej: Negroni, que es solo destilados).
-- "precio_sugerido": number. Precio de venta al público del trago en un bar de ARGENTINA HOY (2026), en pesos argentinos.
+- "precio_sugerido": number. Precio de venta al público del trago en ${R.lugar} de ARGENTINA HOY (2026), en pesos argentinos.
 
 MUY IMPORTANTE sobre el precio (por la inflación en Argentina los precios son ALTOS):
 - Un trago simple (gin tonic, fernet, vodka con jugo) cuesta entre $9.000 y $13.000.
 - Un trago premium o de coctelería elaborada (negroni, old fashioned, tragos de autor) cuesta entre $13.000 y $22.000.
 - Devolvé SIEMPRE un número realista dentro de esos rangos, redondeado al millar (ej: 11000, 15000).
-- NUNCA devuelvas un precio menor a $8.000. Un trago por menos de $8.000 no existe hoy en un bar.
+- NUNCA devuelvas un precio menor a $8.000. Un trago por menos de $8.000 no existe hoy en un bar ni en un restaurante.
 
 Máximo 2 objetos. Si solo hay 1 trago claro, devolvé 1.`;
 

@@ -9,6 +9,7 @@
 //   Env: ANTHROPIC_API_KEY
 // ============================================================
 
+const { rubroIA } = require('./_rubro-ia');
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = process.env.IA_MODEL_ACTIVACION || 'claude-haiku-4-5-20251001';
 
@@ -36,13 +37,15 @@ exports.handler = async (event) => {
     const producto = String(body.producto || '').trim();
     const tiposAccion = Array.isArray(body.tipos_accion) ? body.tipos_accion.filter(Boolean) : [];
     if (!fecha && !tipoFecha) return json(400, { error: 'Falta la fecha' });
+    // rubro = manual de la visita; tipo_bar queda por compatibilidad (antes mandaba el tipo del cliente)
+    const R = rubroIA(body.rubro || body.tipo_bar);
 
-    const prompt = `Sos del equipo de Trade Marketing de GrandBar (distribuidora de bebidas) ayudando al vendedor en la visita a un BAR.
+    const prompt = `Sos del equipo de Trade Marketing de GrandBar (distribuidora de bebidas) ayudando al vendedor en la visita a ${R.lugar}.
 
-El bar tiene esta oportunidad:
+El cliente tiene esta oportunidad:
 - Fecha/evento: "${fecha || tipoFecha}"${tipoFecha ? `\n- Tipo de fecha: ${tipoFecha}` : ''}${producto ? `\n- Producto/marca a impulsar: ${producto}` : ''}${tiposAccion.length ? `\n- Tipo(s) de acción que piensa el vendedor: ${tiposAccion.join(', ')}` : ''}
 
-Proponé 1 o 2 ideas de ACTIVACIÓN concretas y realizables para esa fecha, pensadas para que el CONSUMIDOR pida el producto y rote en el bar (trago especial en la carta, happy hour, combo, degustación, presencia de marca, materiales). Nada genérico, nada de listas largas.
+Proponé 1 o 2 ideas de ACTIVACIÓN concretas y realizables para esa fecha, pensadas para que el CONSUMIDOR ${R.off ? 'compre' : 'pida'} el producto y rote en ${R.lugar} (por ejemplo: ${R.activar}).${R.off ? ' Es un negocio de venta para llevar: no propongas tragos, barra, happy hour ni bartender.' : ''} Nada genérico, nada de listas largas.
 
 Devolvé ÚNICAMENTE un JSON array de 1 o 2 strings (cada string una idea de 1-2 oraciones, español rioplatense, concreta). Sin texto antes ni después, sin markdown.`;
 

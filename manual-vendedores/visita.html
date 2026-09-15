@@ -5986,7 +5986,7 @@ body { background:transparent !important; }
     try {
       const r = await fetch('/.netlify/functions/sugerir-rotacion', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ producto: p.nombre, dias_sin_comprar: p.diasUlt, motivo: 'Baja salida' })
+        body: JSON.stringify({ producto: p.nombre, dias_sin_comprar: p.diasUlt, motivo: 'Baja salida', rubro: checklist.id })
       });
       const j = await r.json().catch(()=>({}));
       if (!r.ok) throw new Error(j.error || ('error '+r.status));
@@ -5999,8 +5999,15 @@ body { background:transparent !important; }
   const _e2 = s => String(s==null?'':s).replace(/'/g,"\\'");
 
   // ═══ FECHAS & ACTIVACIONES (bar) — ① registro · ② activación IA · ③ seguimiento ═══
-  const FB_TIPOS = ['Evento propio','DJ / show','Aniversario','Fecha especial','Happy Hour'];
-  const FB_ACCIONES = ['Trago especial','Happy Hour','Combo','Degustación','Presencia de marca','Materiales'];
+  // Las opciones de la herramienta de fechas eran de bar (DJ, happy hour, trago especial).
+  // En los manuales de venta para llevar se usan opciones propias.
+  const _FB_OFF = () => ['vinoteca','tienda_bebidas','autoservicio','mayorista'].includes(checklist && checklist.id);
+  const _FB_TIPOS_ON  = ['Evento propio','DJ / show','Aniversario','Fecha especial','Happy Hour'];
+  const _FB_TIPOS_OFF = ['Aniversario del local','Fecha especial','Temporada / feriado','Lanzamiento','Promo del local'];
+  const _FB_ACC_ON  = ['Trago especial','Happy Hour','Combo','Degustación','Presencia de marca','Materiales'];
+  const _FB_ACC_OFF = ['Degustación','Combo / pack','Precio promocional','Exhibición / puntera','Presencia de marca','Materiales'];
+  const fbTipos    = () => _FB_OFF() ? _FB_TIPOS_OFF : _FB_TIPOS_ON;
+  const fbAcciones = () => _FB_OFF() ? _FB_ACC_OFF : _FB_ACC_ON;
   const FB_EST_LABEL = { sin_trabajar:'Sin trabajar', pendiente:'Pendiente aprobación', aprobada:'Aprobada', hecha:'Hecha' };
   let _fbCargado = false, _fbFechas = [], _fbConts = {}, _fbNuevo = { tipo:null };
 
@@ -6039,7 +6046,7 @@ body { background:transparent !important; }
 
   // ① REGISTRO
   function fbRegistroHtml(secId){
-    const chips = FB_TIPOS.map(t => `<button class="fb-chip ${_fbNuevo.tipo===t?'on':''}" onclick="fbSetTipo('${_e2(t)}')">${t}</button>`).join('');
+    const chips = fbTipos().map(t => `<button class="fb-chip ${_fbNuevo.tipo===t?'on':''}" onclick="fbSetTipo('${_e2(t)}')">${t}</button>`).join('');
     const lista = _fbFechas.length ? _fbFechas.map(fbCardHtml).join('') : `<div class="herr-empty">Todavía no registraste fechas para este cliente.</div>`;
     return `<div class="fb-label">¿Tiene próximas fechas relevantes?</div>
       <div class="fb-chips">${chips}</div>
@@ -6095,7 +6102,7 @@ body { background:transparent !important; }
     if (!_fbFechas.length) return placas + `<div class="herr-empty">Registrá una fecha en "Próximas fechas" para asociarle una activación.</div>`;
     return placas + _fbFechas.map(f => {
       const sel = Array.isArray(f.activacion_tipos) ? f.activacion_tipos : [];
-      const chips = FB_ACCIONES.map(a => `<button class="fb-chip ${sel.includes(a)?'on':''}" onclick="fbToggleAccion('${f.id}','${_e2(a)}')">${a}</button>`).join('');
+      const chips = fbAcciones().map(a => `<button class="fb-chip ${sel.includes(a)?'on':''}" onclick="fbToggleAccion('${f.id}','${_e2(a)}')">${a}</button>`).join('');
       return `<div class="fb-card">
         <div class="fb-card-top">${f.fecha ? `<span class="fb-fecha">${_fbFmt(f.fecha)}</span>` : ''}<span class="fb-nom">${esc(f.nombre||'')}</span></div>
         <div class="fb-label" style="margin-top:9px">Tipo de acción</div>
@@ -6121,7 +6128,7 @@ body { background:transparent !important; }
     btn.disabled = true; btn.textContent = '✨ Pensando…';
     try {
       const r = await fetch('/.netlify/functions/sugerir-activacion', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ fecha:f.nombre, tipo_fecha:f.tipo, tipo_bar:(cliente.tipo||'bar'), producto:f.activacion_producto||'', tipos_accion:f.activacion_tipos||[] }) });
+        body: JSON.stringify({ fecha:f.nombre, tipo_fecha:f.tipo, tipo_bar:(cliente.tipo||'bar'), rubro: checklist.id, producto:f.activacion_producto||'', tipos_accion:f.activacion_tipos||[] }) });
       const j = await r.json().catch(()=>({}));
       if (!r.ok) throw new Error(j.error || ('error '+r.status));
       const ideas = Array.isArray(j.ideas) ? j.ideas : [];
@@ -6405,7 +6412,7 @@ body { background:transparent !important; }
     try{
       const r = await fetch('/.netlify/functions/sugerir-cocteles', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ producto:s.nombre, categoria:s.categoria })
+        body: JSON.stringify({ producto:s.nombre, categoria:s.categoria, rubro: checklist.id })
       });
       const j = await r.json().catch(()=>({}));
       if(!r.ok) throw new Error(j.error||('error '+r.status));

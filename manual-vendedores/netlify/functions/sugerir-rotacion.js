@@ -9,6 +9,7 @@
 //   Env: ANTHROPIC_API_KEY
 // ============================================================
 
+const { rubroIA } = require('./_rubro-ia');
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = process.env.IA_MODEL_ROTACION || 'claude-haiku-4-5-20251001';
 
@@ -26,13 +27,14 @@ exports.handler = async (event) => {
     const dias = Number(body.dias_sin_comprar) || null;
     const motivo = String(body.motivo || '').trim();
     if (!producto) return json(400, { error: 'Falta el producto' });
+    const R = rubroIA(body.rubro);
 
-    const prompt = `Sos un asesor comercial de GrandBar (distribuidora de bebidas) que ayuda al vendedor en la visita a un BAR.
+    const prompt = `Sos un asesor comercial de GrandBar (distribuidora de bebidas) que ayuda al vendedor en la visita a ${R.lugar}.
 
-El bar compró este producto pero dejó de rotarlo (baja salida):
+El cliente compró este producto pero dejó de rotarlo (baja salida):
 Producto: "${producto}"${dias ? `\nSin comprar hace: ${dias} días` : ''}${motivo ? `\nMotivo que marcó el vendedor: ${motivo}` : ''}
 
-Dale al vendedor UNA sugerencia de ACCIÓN para REACTIVAR la rotación de ese producto en el bar. La idea NO es venderle otra caja, sino que el producto empiece a salir de nuevo: sumarlo a un trago de la carta, darle visibilidad en la barra, una activación/promo, capacitación al bartender, combos, etc.
+Dale al vendedor UNA sugerencia de ACCIÓN para REACTIVAR la rotación de ese producto en ${R.lugar}. La idea NO es venderle otra caja, sino que el producto empiece a salir de nuevo. Ideas que tienen sentido en este tipo de negocio: ${R.rotar}.${R.off ? ' Es un negocio de venta para llevar: no propongas tragos, barra ni bartender.' : ''}
 
 Respondé en español rioplatense, en 2 o 3 oraciones cortas, concreto y accionable, sin títulos ni listas ni markdown. Empezá directo con la sugerencia.`;
 
