@@ -275,7 +275,49 @@ body { background:transparent !important; }
 <script src="_config.js"></script>
 <script src="_sucursales.js"></script>
 <script>
-  if (sessionStorage.getItem('vendedor')) window.location.href = 'clientes.html';
+  // ── Entrada directa desde el Hub ──────────────────────────────────────────
+  // Si el vendedor ya inició sesión en el Hub (portalgrandbar.com) y su usuario tiene
+  // el código de vendedor cargado (usuarios.codigo_vendedor), entra directo a su
+  // cartera sin volver a escribir el código. Si no hay sesión, el usuario no tiene
+  // código o acaba de tocar "Salir" en el manual, se muestra el formulario de siempre.
+  (async function entrarDesdeHub() {
+    const pagina = document.querySelector('.page');
+    if (pagina) pagina.style.visibility = 'hidden';          // sin parpadeo del formulario
+    const mostrarFormulario = () => { if (pagina) pagina.style.visibility = ''; };
+    let guardado = null;
+    try { guardado = JSON.parse(sessionStorage.getItem('vendedor') || 'null'); } catch (e) {}
+    // "Salió" vale solo si vuelve desde el propio manual; si viene de nuevo desde el Hub, entra.
+    const vieneDelHub = !!document.referrer && !/\/manual-vendedores\//.test(document.referrer);
+    const salio = sessionStorage.getItem('manual_salio') === '1' && !vieneDelHub;
+    if (vieneDelHub) sessionStorage.removeItem('manual_salio');
+
+    if (!salio) {
+      try {
+        const buscar = (async () => {
+          const hub = supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co',
+            'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc');
+          const { data: { session } } = await hub.auth.getSession();
+          if (!session) return null;
+          const { data: perfil } = await hub.from('usuarios').select('codigo_vendedor')
+            .eq('id', session.user.id).maybeSingle();
+          const cod = perfil && String(perfil.codigo_vendedor || '').trim().toUpperCase();
+          if (!cod) return null;
+          if (guardado && String(guardado.codigo || '').toUpperCase() === cod) return guardado;
+          const { data } = await sb.from('vendedores').select('*').eq('codigo', cod).maybeSingle();
+          return data || null;
+        })();
+        // Si la conexión tarda, no dejar la pantalla en blanco: a los 6 s, formulario.
+        const vend = await Promise.race([buscar, new Promise(r => setTimeout(() => r(null), 6000))]);
+        if (vend) {
+          sessionStorage.setItem('vendedor', JSON.stringify(vend));
+          location.replace('clientes.html');
+          return;
+        }
+      } catch (e) { console.warn('[ingreso] no se pudo leer la sesión del Hub:', e && e.message); }
+    }
+    if (guardado && !salio) { location.replace('clientes.html'); return; }
+    mostrarFormulario();
+  })();
 
   // Badge de compromisos (se carga si ya hay sesión activa - raro en login, pero útil)
   async function cargarBadgeCompromisos(vendedorId) {
@@ -316,6 +358,7 @@ body { background:transparent !important; }
     if (!data)  { showError('Código no encontrado. Verificá e intentá de nuevo.'); return; }
 
     sessionStorage.setItem('vendedor', JSON.stringify(data));
+    sessionStorage.removeItem('manual_salio');
     window.location.href = 'clientes.html';
   }
 

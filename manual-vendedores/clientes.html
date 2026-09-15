@@ -568,7 +568,9 @@ body { background:transparent !important; }
       `${meses[mes]} · ${totalPts} pts acumulados`;
   }
 
-  function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
+  // Al salir se marca que salió a propósito: si no, la pantalla de ingreso lo volvería
+  // a entrar solo con la sesión del Hub.
+  function logout() { sessionStorage.clear(); sessionStorage.setItem('manual_salio', '1'); window.location.href = 'index.html'; }
   function renderError() {
     document.getElementById('list-container').innerHTML =
       `<div class="empty-state"><div class="emoji">⚠️</div><p>No se pudieron cargar los clientes.</p></div>`;
