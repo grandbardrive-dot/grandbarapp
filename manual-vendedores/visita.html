@@ -2111,7 +2111,7 @@ body { background:transparent !important; }
   // Bloque destacado dentro de "Introducción & preparación"
   // Un restaurante tiene "carta"; una vinoteca, un autoservicio o un mayorista tienen
   // "catálogo". Es la misma función: solo cambia cómo se llama en cada rubro.
-  const MANUALES_CATALOGO = ['vinoteca'];
+  const MANUALES_CATALOGO = ['vinoteca', 'tienda_bebidas'];
   const esCatalogo = () => MANUALES_CATALOGO.includes((typeof checklist !== 'undefined' && checklist) ? checklist.id : '');
   const palCarta   = () => esCatalogo() ? 'catálogo' : 'carta';
   const palCartas  = () => esCatalogo() ? 'catálogos' : 'cartas';
@@ -2752,7 +2752,7 @@ body { background:transparent !important; }
     // Dónde tiene sentido: en el ON, restaurantes y bares tienen CARTA; en el OFF, las
     // vinotecas tienen CATÁLOGO. En el resto (hoteles, discos, autoservicios,
     // mayoristas) el bloque no aparece.
-    const CON_CARTA = ['restaurante', 'bar', 'vinoteca'];
+    const CON_CARTA = ['restaurante', 'bar', 'vinoteca', 'tienda_bebidas'];
     const slotCarta = document.getElementById('carta-ficha-slot');
     if (slotCarta) slotCarta.innerHTML =
       ((checklist.secciones || []).length && CON_CARTA.includes(checklist.id)) ? renderBloqueCarta() : '';
@@ -2774,7 +2774,8 @@ body { background:transparent !important; }
     // Habilitar botón Agregar en acciones mensuales
     initAccionesCallbacks();
     // Refactor Vinotecas: alertas + oportunidades automáticas
-    if (checklist.id === 'vinoteca') {
+    // Tienda de bebidas usa el mismo manual de origen (mismas secciones vt_*)
+    if (checklist.id === 'vinoteca' || checklist.id === 'tienda_bebidas') {
       cargarAlertas();
       cargarOportunidades();
     }
@@ -4504,7 +4505,7 @@ body { background:transparent !important; }
           case 'vt_nuevos_productos': cargarNuevosProductos(sec.id);    break;
           case 'vt_materiales':       cargarMaterialesPOP(sec.id);      break;
           case 'vt_partners':         cargarPartners(sec.id);           break;
-          case 'vt_fechas_cal':       renderCalendarioMes(sec.id, calRefMes, 'vinoteca');  break;
+          case 'vt_fechas_cal':       renderCalendarioMes(sec.id, calRefMes, checklist.id);  break;
         }
       });
     }
@@ -6631,7 +6632,8 @@ body { background:transparent !important; }
     } catch {}
 
     // 1) Si en las últimas 2 visitas no se trabajó Incorporaciones
-    const trabajoIncorp = visitas2.some(v => (v.progreso?.['vt_incorporaciones'] || v.progreso?.['vt4'])?.checks?.some(Boolean));
+    const trabajoIncorp = visitas2.some(v => (v.progreso?.['vt_incorporaciones'] || v.progreso?.['vt4'])?.checks?.some(Boolean)
+      || (v.progreso?._trabajadas || []).includes('vt_incorporaciones'));
     if (visitas2.length >= 1 && !trabajoIncorp)
       ops.push({ id:'op_incorp', txt:'Presentar nuevas etiquetas — no se trabajaron incorporaciones recientemente', target:'vt_incorporaciones' });
 
@@ -7268,7 +7270,9 @@ body { background:transparent !important; }
     let items = [];
     try {
       const { data } = await sb.from('partners_bodegas').select('*').eq('activo', true);
-      items = (data || []).filter(p => !p.canal || !p.canal.length || p.canal.includes('vinoteca'));
+      // Los beneficios marcados para vinotecas también valen para tiendas de bebidas
+      const canalesOk = checklist.id === 'tienda_bebidas' ? ['vinoteca', 'tienda_bebidas', 'tienda de bebidas'] : ['vinoteca'];
+      items = (data || []).filter(p => !p.canal || !p.canal.length || p.canal.some(c => canalesOk.includes(c)));
     } catch {}
     if (!items.length) { el.innerHTML = `<div class="esp-loading">Sin beneficios de bodegas partner cargados.</div>`; return; }
     const TIPO_LABEL = { degustacion:'Degustación', capacitacion:'Capacitación', visita:'Visita a bodega', evento:'Evento' };
