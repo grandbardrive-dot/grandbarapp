@@ -14,6 +14,7 @@ const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 
 const json = (s, b) => ({ statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) });
+const qvals = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
 
 // Rubros de cada canal (los que tienen manual armado).
 const RUBROS_ON  = ['restaurante', 'bar', 'hotel', 'disco'];
@@ -134,6 +135,50 @@ exports.handler = async (event) => {
         return json(200, { ok: true, nota, aprobado, nota_minima: notaMin, correctas: ok, total: banco.length });
       }
       return json(400, { error: 'Acción inválida' });
+    }
+
+    const qp = event.queryStringParameters || {};
+
+    // ---------- GET: estado rápido (para el banner del inicio) ----------
+    if (qp.vista === 'estado') {
+      const total = rubrosDe(canal).length;
+      let aprobados = 0;
+      if (vend) {
+        const prog = await (await man('curso_progreso?vendedor_codigo=eq.' + encodeURIComponent(vend) + '&tipo=eq.modulo&aprobado=eq.true&select=rubro')).json();
+        aprobados = new Set((Array.isArray(prog) ? prog : []).map(p => p.rubro)).size;
+      }
+      return json(200, { canal, total, aprobados, completo: total > 0 && aprobados >= total, fecha_limite: cfg.fecha_limite, activo: cfg.activo !== false });
+    }
+
+    // ---------- GET: equipo (supervisor) ----------
+    if (qp.vista === 'equipo') {
+      if (!perfil.es_supervisor) return json(403, { error: 'Solo para supervisores.' });
+      const hubService = process.env.HUB_SERVICE_ROLE;
+      const eqRes = await fetch(HUB_URL + '/rest/v1/usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region', { headers: { apikey: hubService || HUB_ANON, Authorization: 'Bearer ' + (hubService || token) } });
+      const pc = String(perfil.canal || '').toLowerCase(), preg = String(perfil.region || '').toLowerCase();
+      const team = (await eqRes.json() || []).filter(u => {
+        if (!u.codigo_vendedor) return false;
+        if (preg && u.region && String(u.region).toLowerCase() !== preg) return false;
+        const uc = String(u.canal || '').toLowerCase();
+        return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
+      });
+      const codigos = team.map(u => String(u.codigo_vendedor));
+      let prog = [];
+      if (codigos.length) {
+        prog = await (await man('curso_progreso?tipo=eq.modulo&vendedor_codigo=in.(' + qvals(codigos) + ')&select=vendedor_codigo,rubro,aprobado,nota,updated_at')).json();
+        if (!Array.isArray(prog)) prog = [];
+      }
+      const porV = {};
+      prog.forEach(p => { (porV[String(p.vendedor_codigo)] = porV[String(p.vendedor_codigo)] || []).push(p); });
+      const equipo = team.map(u => {
+        const cod = String(u.codigo_vendedor);
+        const total = rubrosDe(u.canal).length;
+        const filas = porV[cod] || [];
+        const aprobados = new Set(filas.filter(f => f.aprobado).map(f => f.rubro)).size;
+        const ultima = filas.map(f => f.updated_at).filter(Boolean).sort().slice(-1)[0] || null;
+        return { codigo: cod, nombre: u.nombre || cod, canal: String(u.canal || 'on').toLowerCase(), total, aprobados, completo: total > 0 && aprobados >= total, ultima };
+      }).sort((a, b) => (a.aprobados / (a.total || 1)) - (b.aprobados / (b.total || 1)));
+      return json(200, { equipo, nota_minima: notaMin, fecha_limite: cfg.fecha_limite });
     }
 
     // ---------- GET: mi curso ----------
