@@ -4476,55 +4476,37 @@ body { background:transparent !important; }
   // ── Carga async de datos especiales ──────────────────────────────────────────
 
   async function cargarSeccionesEspeciales() {
-    // Widgets del manual de EVENTOS. Van ANTES y fuera del bloque de vinoteca: si no,
-    // no se cargan nunca en el manual de eventos (que es donde viven).
-    seccionesHoja(checklist).forEach(sec => {
-      if (sec.especial === 'ev_combos') cargarEvCombos(sec.id);
-      if (sec.especial === 'ev_materiales') cargarEvMateriales(sec.id);
+    // TODAS las herramientas, en CUALQUIER manual y tanto en secciones como en
+    // subsecciones. Antes las vt_* solo se cargaban si el manual era vinoteca o tienda,
+    // y las as_* solo en autoservicio (y solo en secciones madre): una sección copiada
+    // a otro rubro quedaba en "Cargando…" para siempre.
+    const todasLasSecciones = [...checklist.secciones, ...checklist.secciones.flatMap(s => s.subsecciones || [])];
+    todasLasSecciones.forEach(sec => {
+      switch (sec.especial) {
+        // Eventos
+        case 'ev_combos':           cargarEvCombos(sec.id);           break;
+        case 'ev_materiales':       cargarEvMateriales(sec.id);       break;
+        // Vidrieras y fechas (nombres nuevos y los viejos, que siguen en manuales armados antes)
+        case 'vt_vidrieras':        cargarVidriera(sec.id); cargarPlanesVidriera(sec.id); break;
+        case 'vidriera':
+        case 'as_frente':           cargarVidriera(sec.id);           break;
+        case 'fechas':              cargarFechasVinoteca(sec.id);     break;
+        case 'vt_fechas_cal':       renderCalendarioMes(sec.id, calRefMes, checklist.id); break;
+        // Góndolas, incorporaciones y demás del recorrido físico
+        case 'vt_gondola_vinos':    cargarGondola(sec.id, 'vinos');   break;
+        case 'vt_gondola_spirits':  cargarGondola(sec.id, 'spirits'); break;
+        case 'vt_incorporaciones':  cargarIncorporaciones(sec.id);    break;
+        case 'vt_isla':             cargarIsla(sec.id);               break;
+        case 'vt_heladera':         /* el render ya trae el contenido */ break;
+        case 'vt_nuevos_productos': cargarNuevosProductos(sec.id);    break;
+        case 'vt_materiales':       cargarMaterialesPOP(sec.id);      break;
+        case 'vt_partners':         cargarPartners(sec.id);           break;
+        // Autoservicio
+        case 'as_heladera':         cargarAccionesAutoservicioSeccion(`acm-as2-heladera-${sec.id}`, 'heladera'); break;
+        case 'as_gondola_spirits':  cargarAccionesAutoservicioSeccion(`acm-as4-spirits-${sec.id}`, 'spirits');   break;
+      }
     });
-
-    // Tienda de bebidas usa el mismo manual de origen que vinoteca (mismas secciones vt_*).
-    if (checklist.id === 'vinoteca' || checklist.id === 'tienda_bebidas') {
-      // Compatibilidad estructura anterior
-      const secVidrieraOld = checklist.secciones.find(s => s.especial === 'vidriera');
-      const secFechasOld   = checklist.secciones.find(s => s.especial === 'fechas');
-      if (secVidrieraOld) cargarVidriera(secVidrieraOld.id);
-      if (secFechasOld)   cargarFechasVinoteca(secFechasOld.id);
-
-      // Estructura nueva (recorrido físico)
-      // Secciones y también SUBSECCIONES: "Catálogo de Materiales" o "Activaciones con
-      // Materiales" son subsecciones y antes quedaban en "Cargando…".
-      [...checklist.secciones, ...checklist.secciones.flatMap(s => s.subsecciones || [])].forEach(sec => {
-        switch (sec.especial) {
-          case 'vt_vidrieras':        cargarVidriera(sec.id); cargarPlanesVidriera(sec.id); break;
-          case 'vt_gondola_vinos':    cargarGondola(sec.id, 'vinos');   break;
-          case 'vt_gondola_spirits':  cargarGondola(sec.id, 'spirits'); break;
-          case 'vt_incorporaciones':  cargarIncorporaciones(sec.id);    break;
-          case 'vt_isla':             cargarIsla(sec.id);               break;
-          case 'vt_heladera':         /* hardcoded en el render */      break;
-          case 'vt_nuevos_productos': cargarNuevosProductos(sec.id);    break;
-          case 'vt_materiales':       cargarMaterialesPOP(sec.id);      break;
-          case 'vt_partners':         cargarPartners(sec.id);           break;
-          case 'vt_fechas_cal':       renderCalendarioMes(sec.id, calRefMes, checklist.id);  break;
-        }
-      });
-    }
-    if (checklist.id === 'autoservicio') {
-      // Vidriera en sección as_frente
-      const secFrente = checklist.secciones.find(s => s.especial === 'as_frente');
-      if (secFrente) cargarVidriera(secFrente.id);
-      // Fechas especiales
-      const secFechas = checklist.secciones.find(s => s.especial === 'fechas');
-      if (secFechas) cargarFechasVinoteca(secFechas.id);
-      // Acciones mensuales de heladera (as2)
-      const secHel = checklist.secciones.find(s => s.especial === 'as_heladera');
-      if (secHel) cargarAccionesAutoservicioSeccion(`acm-as2-heladera-${secHel.id}`, 'heladera');
-      // Acciones mensuales de spirits (as4)
-      const secSp = checklist.secciones.find(s => s.especial === 'as_gondola_spirits');
-      if (secSp) cargarAccionesAutoservicioSeccion(`acm-as4-spirits-${secSp.id}`, 'spirits');
-      // Sincronizar label de torneo en programas satélites
-      sincronizarLabelTorneoAS();
-    }
+    if (checklist.id === 'autoservicio') sincronizarLabelTorneoAS();
     // Cargar acciones/campañas en TODAS las hojas: la general muestra las 'general',
     // y cada sección específica muestra las campañas que el admin le asignó.
     seccionesHoja(checklist).forEach(sec => { cargarAccionesMensualesSeccion(sec.id); });
@@ -4554,11 +4536,6 @@ body { background:transparent !important; }
     seccionesHoja(checklist).forEach(sec => {
       if (sec.especial === 'calendario_fechas') {
         renderCalendarioMes(sec.id, calRefMes, checklist.id);
-      }
-      // Materiales POP (catálogo de Marketing + pedido) en cualquier rubro.
-      // Vinoteca ya lo carga en su bloque propio, no repetir.
-      if (sec.especial === 'vt_materiales' && checklist.id !== 'vinoteca' && checklist.id !== 'tienda_bebidas') {
-        cargarMaterialesPOP(sec.id);
       }
     });
   }
@@ -5179,8 +5156,45 @@ body { background:transparent !important; }
   // Con eso queda parejo en todos los manuales, y una sección nueva que cree
   // Luciana funciona sin tocar código.
   const _ES_SLOT_OFERTAS = /ACCIONES?\s+(DE\s+)?(ROTACI|MENSUAL)/i;
+
+  // Herramienta elegida a mano en el panel (Secciones → Herramienta). Se guarda en
+  // `especial` con el prefijo "w:" y vale para cualquier manual: así una sección creada
+  // de cero o copiada de otro rubro tiene su herramienta aunque su código sea otro.
+  const WIDGET_ELEGIDO = {
+    propuestas_vino:     { tipo: 'propuestas', categoria: 'vino' },
+    propuestas_spirit:   { tipo: 'propuestas', categoria: 'spirit' },
+    propuestas_futuras:  { tipo: 'propuestas', categoria: 'futuras', cartLabel: 'Futuras incorporaciones' },
+    ofertas:             { tipo: 'ofertas' },          // el dataKey se completa con el código de la sección
+    vino_copa:           { tipo: 'vino_copa' },
+    aperitivos:          { tipo: 'aperitivos' },
+    mix_ideal:           { tipo: 'mix_ideal' },
+    cocteleria:          { tipo: 'cocteleria' },
+    fechas_registro:     { tipo: 'fechas', modo: 'registro' },
+    fechas_activacion:   { tipo: 'fechas', modo: 'activacion' },
+    fechas_seguimiento:  { tipo: 'fechas', modo: 'seguimiento' },
+    evidencias:          { tipo: 'evidencias' },
+    visibilidad:         { tipo: 'visibilidad' },
+    frigobar:            { tipo: 'frigobar' },
+    materiales_pop:      { tipo: 'materiales_pop' },
+    catalogo_cafe:       { tipo: 'catalogo_cafe' },
+    cafe_preguntas:      { tipo: 'cafe_preguntas' },
+    campari:             { tipo: 'campari' },
+    calendario:          { tipo: 'calendario' },       // el rubro se completa con el del manual
+  };
+  function widgetElegido(sec) {
+    const v = String((sec && sec.especial) || '');
+    if (!v.startsWith('w:')) return null;
+    const base = WIDGET_ELEGIDO[v.slice(2)];
+    if (!base) return null;
+    if (base.tipo === 'ofertas')    return { ...base, dataKey: sec.id };
+    if (base.tipo === 'calendario') return { ...base, rubro: checklist.id };
+    return base;
+  }
+
   function widgetDe(sec) {
     if (!sec) return null;
+    const aMano = widgetElegido(sec);
+    if (aMano) return aMano;
     const explicito = WIDGET_SUBSEC[sec.id];
     if (explicito) return explicito;
     // Herramientas del manual de discos (formato, acuerdos por marca, sunset…): _disco-tools.js

@@ -2412,6 +2412,8 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
         <div class="form-group form-full"><label>Especial</label>
           <select class="form-input" id="cm-especial">
             <option value="" ${!sec.especial?'selected':''}>— Ninguna —</option>
+            ${sec.especial && !['acciones_mensuales','vidriera','heladera','gondola_vinos','gondola_spirits','incorporaciones','materiales','fechas'].includes(sec.especial)
+              ? `<option value="${esc(sec.especial)}" selected>Actual: ${esc(sec.especial)} (se elige en Secciones)</option>` : ''}
             <option value="acciones_mensuales"  ${sec.especial==='acciones_mensuales'?'selected':''}>acciones_mensuales</option>
             <option value="vidriera"            ${sec.especial==='vidriera'?'selected':''}>vidriera</option>
             <option value="heladera"            ${sec.especial==='heladera'?'selected':''}>heladera</option>

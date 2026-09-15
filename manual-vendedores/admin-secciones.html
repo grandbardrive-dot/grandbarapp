@@ -103,6 +103,7 @@
   .tag{font-size:10.5px;font-weight:700;border-radius:6px;padding:3px 8px;background:rgba(31,68,127,.07);color:var(--navy);letter-spacing:.02em}
   .tag.off{background:var(--red-bg);color:var(--red)}
   .tag.uso{background:var(--green-bg);color:var(--green)}
+  .tag.herr{background:var(--amber-bg);color:var(--amber)}
   .acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
   .ab{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line-2);border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;white-space:nowrap}
   .ab:hover{border-color:var(--navy);color:var(--navy)}
@@ -214,7 +215,11 @@
           <div class="page-title"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10" stroke-linecap="round"/></svg></span>Secciones del manual</div>
           <div class="page-sub">Armá las secciones, las subsecciones y los ítems que el vendedor tilda en su visita. Son también las ubicaciones donde podés publicar campañas.</div>
         </div>
-        <button class="btn-new" onclick="abrirNueva(null)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nueva sección</button>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <!-- Traer la estructura armada de otro rubro (ej: Vinotecas → Tienda de Bebidas). -->
+          <button class="ab" style="padding:14px 18px;font-size:13.5px" onclick="abrirCopia()">📥 Copiar de otro manual</button>
+          <button class="btn-new" onclick="abrirNueva(null)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nueva sección</button>
+        </div>
       </div>
 
       <div class="zona-tabs" id="zona-tabs"></div>
@@ -255,6 +260,13 @@
         <label>Texto de ayuda para el vendedor <span style="text-transform:none;font-weight:400">(opcional)</span></label>
         <textarea id="f-intro" placeholder="Ej: Revisá con el cliente las acciones de verano y cerrá al menos una."></textarea>
       </div>
+      <!-- Qué pantalla especial dibuja la visita en esta sección. Se guarda en 'especial'. -->
+      <div class="fld">
+        <label>Herramienta</label>
+        <select id="f-herr" onchange="avisarHerr()"></select>
+        <div class="hint">Lo que el vendedor puede usar en esta sección, además de las tareas para tildar.</div>
+        <div class="hint" id="f-herr-aviso" style="display:none;color:var(--amber);font-weight:700"></div>
+      </div>
       <div class="row2">
         <div class="fld">
           <label>Ícono</label>
@@ -287,6 +299,41 @@
   </div>
 </div>
 
+<!-- Modal: copiar la estructura de otro rubro al manual que estoy editando -->
+<div class="ov" id="ov-copia" onclick="if(event.target===this)cerrarCopia()">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <h3>Copiar de otro manual</h3>
+      <div class="sub">Trae las secciones armadas de otro rubro</div>
+      <button class="modal-x" onclick="cerrarCopia()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fld">
+        <label>Copiar desde el manual de</label>
+        <select id="cp-canal" onchange="actualizarInfoCopia()"></select>
+      </div>
+      <div class="fld">
+        <label>Zona del manual de origen</label>
+        <select id="cp-zona" onchange="actualizarInfoCopia()"></select>
+      </div>
+      <div class="aviso" style="margin-top:0" id="cp-info-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>
+        <div id="cp-info">Contando…</div>
+      </div>
+      <div class="fld" style="margin-top:15px">
+        <label class="sw"><input type="checkbox" id="cp-items" checked> Copiar también las tareas para tildar</label>
+        <div class="hint">Son los ítems del checklist de cada sección.</div>
+      </div>
+      <div class="hint" id="cp-destino" style="font-size:12.5px;color:var(--ink2);line-height:1.5"></div>
+      <div class="msg" id="cp-msg" style="margin-top:10px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="mb" onclick="cerrarCopia()">Cancelar</button>
+      <button class="mb primary" id="cp-save" onclick="copiarDeOtroManual()">Copiar secciones</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
 <script>
@@ -312,6 +359,47 @@
     { bg:'#FBEAF0', fg:'#72243E' }, { bg:'#EEEDF8', fg:'#4A3D8F' }, { bg:'#FAECE7', fg:'#712B13' },
   ];
   const EMOJIS=['📋','🍷','🥃','🍾','🍺','☕','📦','📅','🏷','🪟','🏝️','🧊','🏆','⭐','🔄','📷','✅','🎁'];
+
+  // Herramientas: la pantalla que la visita dibuja dentro de la sección, además de los
+  // ítems para tildar. Se guarda en la columna 'especial'. Los valores que arrancan con
+  // "w:" los resuelve visita.html por nombre; los otros son los códigos de siempre.
+  const HERRAMIENTAS=[
+    { v:'',                     t:'Ninguna (solo tareas y observaciones)' },
+    { v:'w:propuestas_vino',    t:'Propuestas de incorporación · Vinos' },
+    { v:'w:propuestas_spirit',  t:'Propuestas de incorporación · Spirits' },
+    { v:'w:propuestas_futuras', t:'Propuestas · Futuras incorporaciones' },
+    { v:'w:ofertas',            t:'Ofertas del catálogo (por proveedor)' },
+    { v:'acciones_mensuales',   t:'Acciones del mes (sección general del manual)' },
+    { v:'w:vino_copa',          t:'Vino por copa (con calculadora)' },
+    { v:'w:aperitivos',         t:'Aperitivos de bienvenida o pre cena' },
+    { v:'w:mix_ideal',          t:'Mix Ideal' },
+    { v:'w:cocteleria',         t:'Desarrollo de coctelería' },
+    { v:'w:fechas_registro',    t:'Fechas · Registrar próximas fechas' },
+    { v:'w:fechas_activacion',  t:'Fechas · Proponer activación' },
+    { v:'w:fechas_seguimiento', t:'Fechas · Seguimiento' },
+    { v:'calendario_fechas',    t:'Calendario de fechas especiales' },
+    { v:'vt_materiales',        t:'Materiales POP (catálogo + pedido)' },
+    { v:'w:evidencias',         t:'Evidencias de materiales en el PDV' },
+    { v:'w:visibilidad',        t:'Oportunidades de visibilidad' },
+    { v:'w:frigobar',           t:'Packs de frigobar' },
+    { v:'w:catalogo_cafe',      t:'Café · Catálogos' },
+    { v:'w:cafe_preguntas',     t:'Café · Preguntas' },
+    { v:'vt_vidrieras',         t:'Acuerdos de vidriera' },
+    { v:'vt_partners',          t:'Beneficios de bodegas partner' },
+    { v:'vt_incorporaciones',   t:'Incorporaciones (vinotecas, formato viejo)' },
+    { v:'vt_gondola_vinos',     t:'Góndola de vinos (vinotecas)' },
+    { v:'vt_gondola_spirits',   t:'Góndola de spirits (vinotecas)' },
+    { v:'vt_heladera',          t:'Heladera / frío (vinotecas)' },
+    { v:'vt_nuevos_productos',  t:'Nuevos productos (vinotecas)' },
+    { v:'vt_isla',              t:'Isla / exhibición (vinotecas)' },
+    { v:'ev_paquetes',          t:'Eventos · Paquetes por invitados' },
+    { v:'ev_combos',            t:'Eventos · Combos' },
+    { v:'ev_materiales',        t:'Eventos · Materiales' },
+    { v:'cierre_resumen',       t:'Cierre de visita (resumen de la visita)' },
+    { v:'vt_cierre',            t:'Cierre de visita (formato vinotecas)' },
+    { v:'segafredo',            t:'Café Segafreddo (encabezado)' },
+  ];
+  const nombreHerr = v => { const h=HERRAMIENTAS.find(x=>x.v===v && x.v); return h ? h.t : v; };
 
   let canal='restaurante', zona='mendoza', SECS=[], ITEMS={}, USOS={};
   const ZONAS=[{id:'mendoza',label:'Mendoza',ico:'🍇'},{id:'sanluis',label:'San Luis',ico:'⛰️'}];
@@ -536,6 +624,127 @@
     }
   }
 
+  // ── Copiar la estructura de OTRO RUBRO al manual que estoy editando ──────────
+  // Distinto de copiarDeMendoza: ahí se copia el mismo rubro entre zonas y solo con la
+  // zona vacía. Acá se trae el armado de otro rubro (ej: Vinotecas → Tienda de Bebidas)
+  // y se AGREGA al final: no borra ni pisa nada de lo que ya hay.
+  let _cpToken = 0;
+  function abrirCopia(){
+    document.getElementById('cp-canal').innerHTML = CANALES.filter(c=>c.id!==canal)
+      .map(c=>`<option value="${c.id}">${c.ico} ${esc(c.label)}</option>`).join('');
+    document.getElementById('cp-zona').innerHTML = ZONAS
+      .map(z=>`<option value="${z.id}"${z.id===zona?' selected':''}>${z.ico} ${esc(z.label)}</option>`).join('');
+    document.getElementById('cp-items').checked = true;
+    document.getElementById('cp-msg').textContent = '';
+    document.getElementById('cp-destino').innerHTML =
+      `Las secciones se agregan al manual de <b>${esc(canalActual().label)}</b> de <b>${esc(zonaActual().label)}</b>, después de las que ya tenés. No se borra ni se pisa nada.`;
+    document.getElementById('ov-copia').classList.add('open');
+    actualizarInfoCopia();
+  }
+  function cerrarCopia(){ document.getElementById('ov-copia').classList.remove('open'); }
+
+  async function actualizarInfoCopia(){
+    const info = document.getElementById('cp-info'), btn = document.getElementById('cp-save');
+    const c = document.getElementById('cp-canal').value, z = document.getElementById('cp-zona').value;
+    const token = ++_cpToken;
+    info.textContent = 'Contando…'; btn.disabled = true;
+    const { count, error } = await sb.from('checklist_secciones')
+      .select('id', { count:'exact', head:true }).eq('canal', c).eq('zona', z);
+    if(token !== _cpToken) return;   // cambió la selección mientras contaba
+    const lbl = (CANALES.find(x=>x.id===c)||{}).label || c;
+    const zl  = (ZONAS.find(x=>x.id===z)||{}).label || z;
+    if(error){ info.textContent = 'No pude contar las secciones: '+error.message; return; }
+    if(!count){ info.textContent = `El manual de ${lbl} de ${zl} no tiene secciones para copiar.`; return; }
+    info.textContent = `El manual de ${lbl} de ${zl} tiene ${count} ${count>1?'secciones':'sección'} (contando madres y subsecciones).`;
+    btn.disabled = false;
+  }
+
+  async function copiarDeOtroManual(){
+    const cOrig = document.getElementById('cp-canal').value;
+    const zOrig = document.getElementById('cp-zona').value;
+    const conItems = document.getElementById('cp-items').checked;
+    const msg = document.getElementById('cp-msg'), btn = document.getElementById('cp-save');
+    if(!cOrig) return;
+    msg.style.color='var(--ink2)'; msg.textContent='Copiando…'; btn.disabled=true;
+    try{
+      const { data:origen, error:e1 } = await sb.from('checklist_secciones')
+        .select('*').eq('canal',cOrig).eq('zona',zOrig).order('orden');
+      if(e1) throw e1;
+      if(!origen || !origen.length) throw new Error('Ese manual no tiene secciones para copiar.');
+
+      // El código se respeta; si ya está usado en este manual, va con sufijo _2, _3…
+      const usados = new Set(SECS.map(s=>s.codigo).filter(Boolean));
+      const codigoLibre = cod => {
+        const base = String(cod||'seccion');
+        if(!usados.has(base)){ usados.add(base); return base; }
+        let n=2; while(usados.has(base+'_'+n)) n++;
+        usados.add(base+'_'+n); return base+'_'+n;
+      };
+      const armar = s => ({
+        canal, zona,
+        codigo:       codigoLibre(s.codigo),
+        nombre:       s.nombre,
+        descripcion:  s.descripcion || null,
+        icono:        s.icono || '📋',
+        icono_bg:     s.icono_bg || null,
+        icono_color:  s.icono_color || null,
+        especial:     s.especial || null,
+        intro:        s.intro || null,
+        pdf_url:      s.pdf_url || null,
+        solo_formato: s.solo_formato || null,
+        activa:       s.activa !== false,
+      });
+
+      // Primero las madres (van al final de las que ya hay), después las hijas colgadas
+      // de su madre nueva.
+      const madresO = origen.filter(s=>!s.parent_id);
+      const hijasO  = origen.filter(s=>s.parent_id);
+      const yaHay   = madres();
+      let orden = yaHay.length ? Math.max(...yaHay.map(s=>s.orden||0))+1 : 0;
+      const mapa = {};                 // id del origen → id nuevo
+
+      for(const m of madresO){
+        const fila = armar(m); fila.parent_id = null; fila.orden = orden++;
+        const { data, error } = await sb.from('checklist_secciones').insert(fila).select().single();
+        if(error) throw error;
+        mapa[m.id] = data.id;
+      }
+      const ordenHija = {};
+      for(const h of hijasO){
+        const nuevoPadre = mapa[h.parent_id];
+        if(!nuevoPadre) continue;      // hija cuya madre no vino (no debería pasar)
+        const fila = armar(h); fila.parent_id = nuevoPadre;
+        fila.orden = ordenHija[nuevoPadre] || 0;
+        ordenHija[nuevoPadre] = fila.orden + 1;
+        const { data, error } = await sb.from('checklist_secciones').insert(fila).select().single();
+        if(error) throw error;
+        mapa[h.id] = data.id;
+      }
+
+      let nItems = 0;
+      if(conItems){
+        const { data:items, error:e2 } = await sb.from('checklist_items')
+          .select('*').in('seccion_id', origen.map(s=>s.id)).order('orden');
+        if(e2) throw e2;
+        const nuevos = (items||[]).map(i=>{ const {id, created_at, ...r} = i; r.seccion_id = mapa[i.seccion_id]; return r; })
+                                  .filter(r=>r.seccion_id);
+        if(nuevos.length){
+          const { error } = await sb.from('checklist_items').insert(nuevos);
+          if(error) throw error;
+          nItems = nuevos.length;
+        }
+      }
+      const nSecs = Object.keys(mapa).length;
+      cerrarCopia();
+      await cargar();
+      alert(`Listo: se copiaron ${nSecs} ${nSecs===1?'sección':'secciones'}`
+        + (conItems ? ` y ${nItems} ${nItems===1?'tarea':'tareas'}` : '')
+        + `.\n\nQuedaron al final del manual de ${canalActual().label} de ${zonaActual().label}. Revisalas y cambiales lo que haga falta.`);
+    }catch(e){
+      msg.style.color='#c0392b'; msg.textContent='No se pudo copiar: '+(e.message||e);
+    }finally{ btn.disabled=false; }
+  }
+
   const madres = ()=> SECS.filter(s=>!s.parent_id).sort((a,b)=>(a.orden||0)-(b.orden||0));
   const hijas  = m => SECS.filter(s=>s.parent_id===m.id).sort((a,b)=>(a.orden||0)-(b.orden||0));
 
@@ -599,7 +808,7 @@
         ? hs.map((h,j)=>`<div class="sub ${h.activa===false?'off':''}">
               <div class="sub-ico" style="background:${h.icono_bg||'#EAF2FB'};color:${h.icono_color||'#1F447F'}">${h.icono||'📋'}</div>
               <div class="sub-info">
-                <div class="sub-name">${esc(h.nombre)} ${h.activa===false?'<span class="tag off">Oculta</span>':''} ${tagItems(h)} ${tagFormato(h)} ${tagUso(h)}</div>
+                <div class="sub-name">${esc(h.nombre)} ${h.activa===false?'<span class="tag off">Oculta</span>':''} ${tagItems(h)} ${tagFormato(h)} ${tagHerr(h)} ${tagUso(h)}</div>
                 ${h.descripcion?`<div class="sub-desc">${esc(h.descripcion)}</div>`:''}
               </div>
               <div class="acts">
@@ -616,7 +825,7 @@
         <div class="sec-head">
           <div class="sec-ico" style="background:${m.icono_bg||'#EAF2FB'};color:${m.icono_color||'#1F447F'}">${m.icono||'📋'}</div>
           <div class="sec-info">
-            <div class="sec-name">${esc(m.nombre)} ${m.activa===false?'<span class="tag off">Oculta</span>':''} ${tagFormato(m)} ${hs.length?`<span class="tag">${hs.length} ${hs.length>1?'subsecciones':'subsección'}</span>`:tagItems(m)} ${tagUso(m)}</div>
+            <div class="sec-name">${esc(m.nombre)} ${m.activa===false?'<span class="tag off">Oculta</span>':''} ${tagFormato(m)} ${tagHerr(m)} ${hs.length?`<span class="tag">${hs.length} ${hs.length>1?'subsecciones':'subsección'}</span>`:tagItems(m)} ${tagUso(m)}</div>
             ${m.descripcion?`<div class="sec-desc">${esc(m.descripcion)}</div>`:''}
           </div>
           <div class="acts">
@@ -650,6 +859,7 @@
     document.getElementById('f-intro').value='';  document.getElementById('f-icono').value='📋';
     document.getElementById('f-activa').checked=true; document.getElementById('m-msg').textContent='';
     document.getElementById('f-formato').value=''; document.getElementById('f-formato-wrap').style.display = canal==='disco' ? '' : 'none';
+    pintarHerr('');
     colorSel=0; pintarColores(); pintarEmojis();
     document.getElementById('ov').classList.add('open');
     setTimeout(()=>document.getElementById('f-nombre').focus(),80);
@@ -663,6 +873,7 @@
     document.getElementById('f-intro').value=edit.intro||'';   document.getElementById('f-icono').value=edit.icono||'📋';
     document.getElementById('f-activa').checked=edit.activa!==false; document.getElementById('m-msg').textContent='';
     document.getElementById('f-formato').value=edit.solo_formato||''; document.getElementById('f-formato-wrap').style.display = canal==='disco' ? '' : 'none';
+    pintarHerr(edit.especial||'');
     colorSel=Math.max(0, COLORES.findIndex(c=>c.bg===edit.icono_bg)); pintarColores(); pintarEmojis();
     document.getElementById('ov').classList.add('open');
   }
@@ -673,6 +884,37 @@
     if(s.solo_formato==='con_previa') return '<span class="tag">🍽️ Solo con previa</span>';
     if(s.solo_formato==='sin_previa') return '<span class="tag">🌙 Solo sin previa</span>';
     return '';
+  }
+
+  // Qué herramienta tiene cargada la sección (columna 'especial').
+  function tagHerr(s){
+    if(!s.especial) return '';
+    const t = nombreHerr(s.especial);
+    return `<span class="tag herr" title="Herramienta: ${esc(t)}">🧰 ${esc(t)}</span>`;
+  }
+
+  // Llena el select de herramientas. Si la sección trae un valor que no está en la
+  // lista (algo viejo), se agrega como opción para no borrarlo al guardar.
+  function pintarHerr(valor){
+    const v = valor || '';
+    const sel = document.getElementById('f-herr');
+    const opciones = (v && !HERRAMIENTAS.some(h=>h.v===v)) ? [{ v, t:'Actual: '+v }].concat(HERRAMIENTAS) : HERRAMIENTAS;
+    sel.innerHTML = opciones.map(h=>`<option value="${esc(h.v)}">${esc(h.t)}</option>`).join('');
+    sel.value = v;
+    avisarHerr();
+  }
+
+  // Una madre con subsecciones no dibuja su herramienta en el manual (la visita entra
+  // a las hijas). Se avisa, pero se deja guardar.
+  function avisarHerr(){
+    const av = document.getElementById('f-herr-aviso');
+    const conHijas = !!(edit && !edit.parent_id && hijas(edit).length);
+    if(document.getElementById('f-herr').value && conHijas){
+      av.textContent = 'Las secciones con subsecciones no muestran herramientas: ponela en una subsección.';
+      av.style.display = '';
+    }else{
+      av.style.display = 'none';
+    }
   }
 
   // Código interno (lo usa el manual y las campañas). Se arma solo desde el nombre.
@@ -699,6 +941,7 @@
       icono_bg:    col.bg,
       icono_color: col.fg,
       activa:      document.getElementById('f-activa').checked,
+      especial:    document.getElementById('f-herr').value || null,
     };
     if(canal==='disco') fila.solo_formato = document.getElementById('f-formato').value || null;
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…';
