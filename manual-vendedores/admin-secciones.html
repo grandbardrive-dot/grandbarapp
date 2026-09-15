@@ -299,6 +299,38 @@
   </div>
 </div>
 
+<!-- Modal: traer las tareas (ítems) de otra sección a esta -->
+<div class="ov" id="ov-tareas" onclick="if(event.target===this)cerrarTareas()">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <h3>Traer tareas de otra sección</h3>
+      <div class="sub" id="tr-destino">—</div>
+      <button class="modal-x" onclick="cerrarTareas()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fld">
+        <label>Manual</label>
+        <select id="tr-canal" onchange="cargarSeccionesTareas()"></select>
+      </div>
+      <div class="fld">
+        <label>Zona</label>
+        <select id="tr-zona" onchange="cargarSeccionesTareas()"></select>
+      </div>
+      <div class="fld">
+        <label>Sección de la que copiar</label>
+        <select id="tr-sec" onchange="tareasInfo()"></select>
+        <div class="hint" id="tr-info">Elegí de dónde traer las tareas.</div>
+      </div>
+      <div class="hint" style="font-size:12.5px;color:var(--ink2);line-height:1.5">Las tareas se agregan al final de las que ya tiene esta sección. No se borra nada.</div>
+      <div class="msg" id="tr-msg" style="margin-top:10px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="mb" onclick="cerrarTareas()">Cancelar</button>
+      <button class="mb primary" id="tr-save" onclick="traerTareas()">Traer tareas</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: copiar la estructura de otro rubro al manual que estoy editando -->
 <div class="ov" id="ov-copia" onclick="if(event.target===this)cerrarCopia()">
   <div class="modal" style="max-width:520px">
@@ -624,6 +656,68 @@
     }
   }
 
+  // ── Traer las TAREAS de otra sección (de este manual o de otro) ──────────────
+  // Sirve cuando una sección ya existe y solo faltan sus ítems: se agregan al final,
+  // sin tocar los que ya tiene.
+  let _trDestino = null, _trSecs = [], _trItems = {};
+  function abrirTareas(secId){
+    _trDestino = SECS.find(s=>s.id===secId); if(!_trDestino) return;
+    document.getElementById('tr-destino').textContent = 'Se agregan a "' + _trDestino.nombre + '"';
+    document.getElementById('tr-canal').innerHTML = CANALES.map(c=>`<option value="${c.id}"${c.id===canal?' selected':''}>${c.ico} ${esc(c.label)}</option>`).join('');
+    document.getElementById('tr-zona').innerHTML  = ZONAS.map(z=>`<option value="${z.id}"${z.id===zona?' selected':''}>${z.ico} ${esc(z.label)}</option>`).join('');
+    document.getElementById('tr-msg').textContent = '';
+    document.getElementById('ov-tareas').classList.add('open');
+    cargarSeccionesTareas();
+  }
+  function cerrarTareas(){ document.getElementById('ov-tareas').classList.remove('open'); }
+
+  // Lista las secciones del manual elegido que TIENEN tareas, con su madre adelante.
+  async function cargarSeccionesTareas(){
+    const sel = document.getElementById('tr-sec'), info = document.getElementById('tr-info'), btn = document.getElementById('tr-save');
+    const c = document.getElementById('tr-canal').value, z = document.getElementById('tr-zona').value;
+    sel.innerHTML = '<option value="">Cargando…</option>'; btn.disabled = true; info.textContent = '';
+    const { data:secs, error } = await sb.from('checklist_secciones').select('id,nombre,parent_id,orden')
+      .eq('canal', c).eq('zona', z).order('orden');
+    if(error){ sel.innerHTML = '<option value="">—</option>'; info.textContent = 'No pude leer ese manual: '+error.message; return; }
+    _trSecs = secs || [];
+    if(!_trSecs.length){ sel.innerHTML = '<option value="">—</option>'; info.textContent = 'Ese manual todavía no tiene secciones.'; return; }
+    const { data:its } = await sb.from('checklist_items').select('id,seccion_id,texto,descripcion,orden,activo')
+      .in('seccion_id', _trSecs.map(s=>s.id)).order('orden');
+    _trItems = {}; (its||[]).forEach(i => (_trItems[i.seccion_id] = _trItems[i.seccion_id] || []).push(i));
+    const conTareas = _trSecs.filter(s => (_trItems[s.id]||[]).length && s.id !== (_trDestino||{}).id);
+    if(!conTareas.length){ sel.innerHTML = '<option value="">—</option>'; info.textContent = 'Ninguna sección de ese manual tiene tareas cargadas.'; return; }
+    const nombreDe = s => { const m = s.parent_id ? _trSecs.find(x=>x.id===s.parent_id) : null; return (m ? m.nombre + ' › ' : '') + s.nombre; };
+    sel.innerHTML = conTareas.map(s=>`<option value="${s.id}">${esc(nombreDe(s))} (${(_trItems[s.id]||[]).length})</option>`).join('');
+    btn.disabled = false; tareasInfo();
+  }
+  function tareasInfo(){
+    const id = document.getElementById('tr-sec').value;
+    const its = _trItems[id] || [];
+    document.getElementById('tr-info').textContent = its.length
+      ? 'Se van a copiar ' + its.length + (its.length>1?' tareas: ':' tarea: ') + its.slice(0,3).map(i=>i.texto||'(sin texto)').join(' · ') + (its.length>3?'…':'')
+      : 'Elegí de dónde traer las tareas.';
+  }
+  async function traerTareas(){
+    const id = document.getElementById('tr-sec').value;
+    const its = _trItems[id] || [];
+    const msg = document.getElementById('tr-msg'), btn = document.getElementById('tr-save');
+    if(!_trDestino || !its.length) return;
+    msg.style.color='var(--ink2)'; msg.textContent='Copiando…'; btn.disabled=true;
+    try{
+      const yaHay = itemsDe(_trDestino.id);
+      let orden = yaHay.length ? Math.max(...yaHay.map(i=>i.orden||0)) + 1 : 0;
+      const nuevos = its.map(i => ({ seccion_id: _trDestino.id, texto: i.texto || '', descripcion: i.descripcion || '', orden: orden++, activo: i.activo !== false }));
+      const { error } = await sb.from('checklist_items').insert(nuevos);
+      if(error) throw error;
+      cerrarTareas();
+      alert('Listo: se trajeron ' + nuevos.length + (nuevos.length>1?' tareas a "':' tarea a "') + _trDestino.nombre + '".');
+      await cargar();
+      const w = document.getElementById('items-'+_trDestino.id); if(w) w.classList.add('open');
+    }catch(e){
+      msg.style.color='#c0392b'; msg.textContent='No se pudo copiar: '+(e.message||e);
+    }finally{ btn.disabled=false; }
+  }
+
   // ── Copiar la estructura de OTRO RUBRO al manual que estoy editando ──────────
   // Distinto de copiarDeMendoza: ahí se copia el mismo rubro entre zonas y solo con la
   // zona vacía. Acá se trae el armado de otro rubro (ej: Vinotecas → Tienda de Bebidas)
@@ -781,6 +875,7 @@
         </div>`).join('')
         : '<div class="items-vacio">Esta sección todavía no tiene ítems. Agregá el primero abajo.</div>'}
       <button class="items-add" onclick="agregarItem('${sec.id}')">+ Agregar ítem</button>
+      <button class="items-add" style="margin-left:8px" onclick="abrirTareas('${sec.id}')">📋 Traer tareas de otra sección</button>
       <div class="items-nota">El texto se guarda solo al salir del campo. Los ítems ocultos no le aparecen al vendedor, pero no se pierden.</div>
     </div>`;
   }
