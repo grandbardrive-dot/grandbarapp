@@ -6033,7 +6033,9 @@ body { background:transparent !important; }
     const el = document.getElementById('fb-placas'); if (!el) return;
     let evs = [];
     try { evs = (await _getFechasCal(checklist.id)).filter(ev => segVa(ev, null)); } catch(e){ evs = []; }
-    const conImg = (evs || []).filter(e => e.imagen_url);
+    // Solo placas de fechas que no pasaron (las vencidas quedan en el panel como historial)
+    const _h = new Date(), hoyStr = _h.getFullYear() + '-' + String(_h.getMonth() + 1).padStart(2, '0') + '-' + String(_h.getDate()).padStart(2, '0');
+    const conImg = (evs || []).filter(e => e.imagen_url && (!e.fecha_fin || String(e.fecha_fin).slice(0, 10) >= hoyStr));
     if (!conImg.length){ el.innerHTML = ''; return; }
     el.innerHTML = `<div class="fb-label" style="margin-top:2px">Placas de fechas — personalizá con el logo del cliente</div>
       <div class="fb-placas-grid">` + conImg.map(e => `

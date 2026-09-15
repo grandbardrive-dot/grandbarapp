@@ -693,7 +693,9 @@ async function getChecklistDynamic(tipo, zonaPedida) {
         pill:      p.condicion || 'Plan',
         pillColor: 'green',
         titulo:    p.nombre,
-        subtitulo: p.proveedor || '',
+        // Proveedor y hasta cuándo vale (antes el mes iba escrito en la condición)
+        subtitulo: [p.proveedor, p.fecha_fin ? 'hasta el ' + new Date(String(p.fecha_fin).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : '']
+          .filter(Boolean).join(' · '),
         desc:      p.descripcion || '',
         tags:      p.lineas_participantes || [],
         pdf_url:   p.pdf_url   || null,
