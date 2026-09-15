@@ -341,6 +341,9 @@ body { background:transparent !important; }
   document.getElementById('perfil-sub').textContent = vendedor.zona ? `📍 ${vendedor.zona}` : (vendedor.codigo || '');
 
   let todosClientes = [], ultimasVisitas = {}, tipoActivo = '', verOcultos = false;
+  // Un ícono por tipo de cliente (los mismos que usa el panel). Sin tipo reconocido: 🏢
+  const EMOJI_TIPO = { restaurante:'🍽', bar:'🍺', disco:'🕺', discoteca:'🕺', hotel:'🏨', evento:'🎉',
+    vinoteca:'🍷', 'tienda de bebidas':'🏬', tienda_bebidas:'🏬', autoservicio:'🏪', kiosco:'🏪', mayorista:'🛒' };
   // Un cliente se considera activo salvo que activo === false (default: activo).
   const esActivo = c => c.activo !== false;
 
@@ -445,7 +448,7 @@ body { background:transparent !important; }
     tipos.forEach(t => {
       const btn = document.createElement('button');
       btn.className = 'filter-btn'; btn.dataset.tipo = t;
-      btn.textContent = capitalize(t);
+      btn.textContent = (EMOJI_TIPO[String(t).toLowerCase()] ? EMOJI_TIPO[String(t).toLowerCase()] + ' ' : '') + capitalize(t);
       btn.onclick = function() { setTipo(this); };
       row.appendChild(btn);
     });
@@ -511,7 +514,7 @@ body { background:transparent !important; }
     cont.innerHTML = lista.map(c => {
       const v = ultimasVisitas[c.id];
       const activo = esActivo(c);
-      const emoji = { restaurante:'🍽', vinoteca:'🍷', hotel:'🏨', bar:'🍺', evento:'🎉' }[c.tipo] || '🏢';
+      const emoji = EMOJI_TIPO[String(c.tipo || '').toLowerCase()] || '🏢';
       const pctHtml = v
         ? `<span class="client-pct">${v.porcentaje_total}%</span><span class="client-fecha">${fmtFecha(v.fecha)}</span>`
         : `<span class="pct-none">Sin visitas</span>`;
