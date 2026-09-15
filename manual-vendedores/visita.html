@@ -2652,6 +2652,15 @@ body { background:transparent !important; }
   const CRONO_KEY = 'grandbar_visita_inicio_' + (cliente?.id || 'unknown');
   let _cronoInterval = null;
 
+  // Un inicio guardado vale solo si es de HOY y de menos de 12 horas. Si alguien tocó
+  // INICIO otro día y no guardó, esa hora vieja quedaba pegada y la visita siguiente se
+  // guardaba con fecha vieja y una duración enorme.
+  function _inicioVigente(ms) {
+    if (!ms) return false;
+    const i = new Date(ms), h = new Date();
+    return i.toDateString() === h.toDateString() && h - i >= 0 && h - i < 12 * 3600000;
+  }
+
   function iniciarVisita() {
     const ahora = Date.now();
     localStorage.setItem(CRONO_KEY, ahora.toString());
@@ -2679,7 +2688,8 @@ body { background:transparent !important; }
   // Al cargar: verificar si hay visita en curso (survives recarga)
   (function checkCronometroAlCargar() {
     const guardado = localStorage.getItem(CRONO_KEY);
-    if (guardado) {
+    if (guardado && !_inicioVigente(parseInt(guardado, 10))) localStorage.removeItem(CRONO_KEY);
+    else if (guardado) {
       const inicioMs = parseInt(guardado, 10);
       document.getElementById('btn-inicio-wrap').style.display = 'none';
       arrancarCronometro(inicioMs);
@@ -2703,6 +2713,17 @@ body { background:transparent !important; }
       // Contexto de entrega: habilita el botón "Entregué" en las campañas con
       // materiales vinculados → descuenta stock (movimiento en material_stock_movements).
       entrega: (vendedor && cliente) ? { sellerId: vendedor.id, customerId: cliente.id, clienteNombre: cliente.nombre } : null,
+      // Cada campaña que el vendedor agrega con "+ Agregar" pasa también al carrito de la
+      // visita (con su cantidad): así sale en el cierre, el PDF, el WhatsApp y la minuta.
+      onCambio: (a, seleccionada) => {
+        if (!a) return;
+        const prev = cartItems.find(c => c._amId === a.id);
+        if (!seleccionada) { if (prev) cartRemove(prev.id); return; }
+        const nombre = (a.producto || 'Acción') + (a.accion ? ' — ' + a.accion : '');
+        const it = prev || cartAdd('Acciones del mes', nombre, 'Aceptada', a.cantidad || 1, a.unidad || 'cajas');
+        it._amId = a.id; it.cantidad = a.cantidad || 1; it.unidad = a.unidad || 'cajas';
+        renderCartBar();
+      },
       onGuardar: async (seleccionadas) => {
         // Guarda las acciones seleccionadas en progreso.s_acciones_mensuales
         // Si ya existe una visita en curso (no guardada), las incluimos en guardarVisita()
@@ -2844,12 +2865,12 @@ body { background:transparent !important; }
     const planesHtml = (sec.planes && sec.planes.length && sec.id !== 's1' && sec.id !== 'dc_eventos_mes') ? `<div class="plans-zone">
       <div class="plans-zone-label">Planes activos</div>
       ${sec.planes.map(p=>`<div class="plan-card">
-        <div class="plan-header" onclick="togglePlan('${p.id}')">
+        <div class="plan-header" onclick="togglePlan('${sec.id}__${p.id}')">
           <span class="plan-pill pill-${p.pillColor}">${esc(p.pill)}</span>
           <div class="plan-info"><strong>${esc(p.titulo)}</strong><span>${esc(p.subtitulo)}</span></div>
-          <span class="plan-chev" id="pc-${p.id}">⌄</span>
+          <span class="plan-chev" id="pc-${sec.id}__${p.id}">⌄</span>
         </div>
-        <div class="plan-body" id="pb-${p.id}">
+        <div class="plan-body" id="pb-${sec.id}__${p.id}">
           <div class="plan-desc">${esc(p.desc)}</div>
           <div class="tags-row">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
           ${p.pdf_url ? `<a href="${esc(p.pdf_url)}" target="_blank" rel="noopener"
@@ -2992,11 +3013,43 @@ body { background:transparent !important; }
     const madre = madreDe(secId);
     if (madre) { const a = contarAgregado(madre); pintarBadge(madre.id, a.done, a.tot); }
   }
+  // Secciones que el vendedor trabajó (tocó un botón, escribió, tildó algo adentro).
+  // Sirve para los manuales sin ítems para tildar (autoservicio, eventos, mayoristas):
+  // antes quedaban siempre en 0% y el recorrido no avanzaba nunca.
+  const _secTrabajadas = new Set();
+  function _marcarTrabajada(el) {
+    let n = el && el.closest && el.closest('.subsec, .section'), cambio = false;
+    while (n) {
+      const id = String(n.id || '').replace(/^sec-/, '');
+      if (id && !_secTrabajadas.has(id)) { _secTrabajadas.add(id); cambio = true; }
+      n = n.parentElement ? n.parentElement.closest('.subsec, .section') : null;
+    }
+    if (cambio && typeof checklist !== 'undefined' && checklist) updProg();
+  }
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if (!t || !t.closest || t.closest('.sec-header, .subsec-header, .plan-header')) return;
+    if (t.closest('button, .chkbox, .chk-label, label, input')) _marcarTrabajada(t);
+  }, true);
+  document.addEventListener('input', e => { if (e.target && e.target.value) _marcarTrabajada(e.target); }, true);
+  function _hojaTrabajada(sec) {
+    return _secTrabajadas.has(sec.id) || !!(document.getElementById('obs-' + sec.id)?.value.trim());
+  }
+
   function updProg() {
     let tot=0,done=0;
     seccionesHoja(checklist).forEach(sec=>sec.items.forEach((_,j)=>{
       tot++; if(document.getElementById(`chk-${sec.id}-${j}`)?.classList.contains('checked')) done++;
     }));
+    if (!tot) {
+      // Manual sin ítems: el avance se mide por secciones trabajadas
+      const hojas = seccionesHoja(checklist), hechas = hojas.filter(_hojaTrabajada).length;
+      const p = hojas.length ? Math.round(hechas / hojas.length * 100) : 0;
+      document.getElementById('prog-label').textContent = `${hechas} de ${hojas.length} secciones trabajadas`;
+      document.getElementById('prog-pct').textContent   = `${p}%`;
+      document.getElementById('pbar').style.width       = `${p}%`;
+      return;
+    }
     const pct = tot?Math.round(done/tot*100):0;
     document.getElementById('prog-label').textContent = `${done} de ${tot} acciones`;
     document.getElementById('prog-pct').textContent   = `${pct}%`;
@@ -3377,7 +3430,11 @@ body { background:transparent !important; }
     `</div>`;
   }
 
+  let _visitaGuardando = false;
   async function guardarVisita() {
+    // Un segundo toque mientras guarda (o ya guardada, antes de salir) creaba otra visita.
+    if (_visitaGuardando) return;
+    _visitaGuardando = true;
     setLoading(true);
     const progreso = {};
     // Recorrer secciones HOJA (incluye subsecciones; las madres no guardan nada)
@@ -3392,7 +3449,7 @@ body { background:transparent !important; }
     if (accionesSelec.length) {
       progreso['s_acciones_mensuales'] = {
         ...(progreso['s_acciones_mensuales'] || {}),
-        seleccionadas: accionesSelec.map(a => ({ id:a.id, producto:a.producto, accion:a.accion, precio_accionado:a.precio_accionado||null }))
+        seleccionadas: accionesSelec.map(a => ({ id:a.id, producto:a.producto, accion:a.accion, precio_accionado:a.precio_accionado||null, cantidad:a.cantidad||1, unidad:a.unidad||'cajas' }))
       };
     }
     // Datos extra sección s8 (Segafreddo)
@@ -3441,7 +3498,14 @@ body { background:transparent !important; }
       const c = row.querySelector('.mat-item-cant')?.value?.trim();
       if (n) matsSolic.push({ nombre:n, cantidad:c||'1' });
     });
+    // Eventos: los materiales elegidos para el evento también son materiales solicitados
+    if (typeof evMatCache !== 'undefined' && typeof evMatSel !== 'undefined') {
+      evMatCache.filter(m => (evMatSel[m.id] || 0) > 0)
+        .forEach(m => matsSolic.push({ nombre: m.name, cantidad: String(evMatSel[m.id]) }));
+    }
     if (matsSolic.length) progreso['materiales_solicitados'] = matsSolic;
+    // Secciones trabajadas (para el % de los manuales sin ítems)
+    progreso['_trabajadas'] = seccionesHoja(checklist).filter(_hojaTrabajada).map(s => s.id);
 
     // Mejora 3: registrar lo OFRECIDO en esta visita (propuestas + ofertas mostradas)
     // para poder calcular a futuro "ofrecido y no cerrado".
@@ -3454,15 +3518,13 @@ body { background:transparent !important; }
 
     const porcentaje_total = calcPorcentaje(checklist,progreso);
 
-    // Cronómetro: calcular duración
-    detenerCronometro();
+    // Cronómetro: calcular duración (el inicio se borra recién cuando se guardó bien)
     const inicioGuardado = localStorage.getItem(CRONO_KEY);
     const horaFin = new Date();
     let horaInicio = null, duracionMinutos = null;
-    if (inicioGuardado) {
+    if (inicioGuardado && _inicioVigente(parseInt(inicioGuardado, 10))) {
       horaInicio = new Date(parseInt(inicioGuardado, 10));
       duracionMinutos = Math.round((horaFin - horaInicio) / 60000);
-      localStorage.removeItem(CRONO_KEY);
     }
 
     const basePayload = {
@@ -3491,8 +3553,13 @@ body { background:transparent !important; }
       ins = r2.data; error = r2.error;
     }
 
-    setLoading(false);
-    if(error){showToast('Error al guardar. Intentá de nuevo.','error');return;}
+    if(error){ setLoading(false); _visitaGuardando = false; showToast('Error al guardar. Intentá de nuevo.','error'); return; }
+    // Guardada: el botón queda deshabilitado hasta salir, así no se duplica
+    detenerCronometro();
+    localStorage.removeItem(CRONO_KEY);
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('btn-txt').style.display = 'inline';
+    document.getElementById('btn-txt').textContent = '✓ Visita guardada';
     showToast(`✓ Visita guardada — ${porcentaje_total}% completado`,'success');
     if (porcentaje_total >= 80) celebrarVenta(`Visita a ${cliente.nombre} — ${porcentaje_total}% completado`);
 
@@ -3626,18 +3693,18 @@ body { background:transparent !important; }
         <div class="ev-linea"><span>🥃 Aperitivos</span><b>${calc.aperitivo} botellas</b></div>
         <div class="ev-linea"><span>🥤 Sin alcohol</span><b>${calc.sinAlcohol} litros</b></div>
         <div class="ev-linea destacada"><span>🧊 Hielo</span><b>${calc.hielo} kg</b></div>
-        <div class="ev-nota">Cantidades de referencia para que el mayorista arranque la cotización. Ajustalas con él.</div>
+        <div class="ev-nota">Cantidades de referencia para que el cliente arranque la cotización. Ajustalas con él.</div>
       </div>
 
-      <div class="ev-paso">4 · Servicios que le sumamos al mayorista (los cotiza la empresa)</div>
+      <div class="ev-paso">4 · Servicios que le sumamos al cliente (los cotiza la empresa)</div>
       <label class="ev-check ${e.barra?'on':''}"><input type="checkbox" ${e.barra?'checked':''} onchange="evSet('barra',this.checked,'${secId}')"> 🍸 Barra montada <small>Se contrata con un tercero</small></label>
       <label class="ev-check ${e.hielo?'on':''}"><input type="checkbox" ${e.hielo?'checked':''} onchange="evSet('hielo',this.checked,'${secId}')"> 🧊 Servicio de hielo <small>Entrega desde la fábrica</small></label>
       <label class="ev-check ${e.bartender?'on':''}"><input type="checkbox" ${e.bartender?'checked':''} onchange="evSet('bartender',this.checked,'${secId}')"> 👨‍🍳 Bartender <small>A confirmar disponibilidad</small></label>
-      <div class="ev-nota">Marcá lo que le interesa al mayorista para revender: queda en la propuesta y lo cotiza la empresa. Todavía no tienen precio de lista.</div>
+      <div class="ev-nota">Marcá lo que le interesa al cliente: queda en la propuesta y lo cotiza la empresa. Todavía no tienen precio de lista.</div>
 
       <div class="ev-paso">5 · Diseño del evento</div>
       <button type="button" class="esp-ac-btn primary" onclick="evPedirDiseno()">🎨 Pedir diseño y flyers a Marketing</button>
-      <div class="ev-nota">Se abre WhatsApp con el pedido armado; Marketing se comunica con el mayorista.</div>
+      <div class="ev-nota">Se abre WhatsApp con el pedido armado; Marketing se comunica con el cliente.</div>
 
       <button type="button" class="esp-ac-btn" style="margin-top:12px" onclick="evGuardar('${secId}')">📋 Guardar esta propuesta en la visita</button>
     `;
@@ -3648,6 +3715,23 @@ body { background:transparent !important; }
     if (campo === 'total') evEstado.menores = Math.min(evEstado.menores, valor);
     const cont = document.getElementById('ev-paq-' + secId);
     if (cont) cont.innerHTML = evPaquetesHTML(secId);
+    if (campo === 'total') {
+      // Cambió la cantidad de invitados: se recalculan las sugerencias de combos que el
+      // vendedor no tocó a mano, y se actualiza el texto de materiales.
+      Object.keys(evCombosSel).forEach(id => { if (!evCombosManual.has(id)) delete evCombosSel[id]; });
+      seccionesHoja(checklist).forEach(s => {
+        if (s.especial === 'ev_combos') cargarEvCombos(s.id);
+        if (s.especial === 'ev_materiales') cargarEvMateriales(s.id);
+      });
+    }
+  }
+
+  // Lo que arma el vendedor en Eventos va también al carrito de la visita: así aparece
+  // en el cierre, el PDF, el WhatsApp y la minuta de la próxima visita.
+  function evCarrito(seccion, items) {
+    cartItems = cartItems.filter(c => c.seccion !== seccion);
+    items.forEach(i => cartAdd(seccion, i.nombre, 'Propuesta', i.cantidad, i.unidad));
+    renderCartBar();
   }
 
   function evResumen() {
@@ -3669,6 +3753,11 @@ body { background:transparent !important; }
     const obs = document.getElementById('obs-' + secId);
     if (!obs) { showToast('No pude guardar la propuesta', 'error'); return; }
     obs.value = (obs.value ? obs.value.replace(/PAQUETE PARA[\s\S]*?(?=\n\n|$)/, '').trim() + '\n\n' : '') + evResumen();
+    {
+      const e = evEstado, c = EV_REGLAS.clima[e.clima] || EV_REGLAS.clima.templado;
+      const extras = [e.barra && 'barra montada', e.hielo && 'servicio de hielo', e.bartender && 'bartender'].filter(Boolean);
+      evCarrito('Eventos · Paquete', [{ nombre: `Paquete para ${e.total} personas (${Math.max(0, e.total - e.menores)} adultos) · ${c.label}` + (extras.length ? ' · a cotizar: ' + extras.join(', ') : ''), cantidad: 1, unidad: 'paquete' }]);
+    }
     obs.dispatchEvent(new Event('input', { bubbles: true }));
     obs.dispatchEvent(new Event('change', { bubbles: true }));
     showToast('Propuesta guardada en la visita');
@@ -3706,6 +3795,7 @@ body { background:transparent !important; }
   // combo dice para cuánta gente rinde, se sugiere cuántos hacen falta según el
   // tamaño de evento elegido en Paquetes.
   let evCombosSel = {};   // id de combo → cantidad elegida
+  const evCombosManual = new Set();   // combos que el vendedor ajustó a mano
 
   function renderEvCombos(sec) {
     return `<div class="esp-block"><div id="ev-combos-${sec.id}"><div class="esp-loading">Cargando combos…</div></div></div>`;
@@ -3760,6 +3850,7 @@ body { background:transparent !important; }
     })();
     const nuevo = Math.max(0, actual + delta);
     evCombosSel[id] = nuevo;
+    evCombosManual.add(id);   // lo tocó a mano: no se pisa si cambia la cantidad de invitados
     const s = document.getElementById('ev-cant-' + id);
     if (s) s.textContent = nuevo;
     const card = document.getElementById('ev-combo-' + id);
@@ -3777,6 +3868,8 @@ body { background:transparent !important; }
     const elegidos = items.filter(c => (evCombosSel[c.id] || 0) > 0)
       .map(c => `• ${evCombosSel[c.id]} × ${c.nombre}${c.contenido ? ' (' + c.contenido + ')' : ''}`);
     if (!elegidos.length) { showToast('Elegí al menos un combo', 'error'); return; }
+    evCarrito('Eventos · Combos', items.filter(c => (evCombosSel[c.id] || 0) > 0)
+      .map(c => ({ nombre: c.nombre, cantidad: evCombosSel[c.id], unidad: 'combos' })));
     const bloque = 'COMBOS PARA EL EVENTO\n' + elegidos.join('\n');
     obs.value = (obs.value ? obs.value.replace(/COMBOS PARA EL EVENTO[\s\S]*?(?=\n\n|$)/, '').trim() + '\n\n' : '') + bloque;
     obs.dispatchEvent(new Event('input', { bubbles: true }));
@@ -3878,6 +3971,8 @@ body { background:transparent !important; }
     const elegidos = evMatCache.filter(m => (evMatSel[m.id] || 0) > 0)
       .map(m => `• ${evMatSel[m.id]} × ${m.name}`);
     if (!elegidos.length) { showToast('Elegí al menos un material', 'error'); return; }
+    evCarrito('Eventos · Materiales', evMatCache.filter(m => (evMatSel[m.id] || 0) > 0)
+      .map(m => ({ nombre: m.name, cantidad: evMatSel[m.id], unidad: m.unit_type || 'unidades' })));
     const bloque = 'MATERIALES PARA EL EVENTO\n' + elegidos.join('\n');
     obs.value = (obs.value ? obs.value.replace(/MATERIALES PARA EL EVENTO[\s\S]*?(?=\n\n|$)/, '').trim() + '\n\n' : '') + bloque;
     obs.dispatchEvent(new Event('input',  { bubbles: true }));
@@ -4952,7 +5047,13 @@ body { background:transparent !important; }
   }
 
   function cartRemove(id) {
+    const quitado = cartItems.find(c => c.id === id);
     cartItems = cartItems.filter(c => c.id !== id);
+    // Si era una campaña del mes, también se desmarca su tarjeta
+    if (quitado && quitado._amId && typeof amGetSeleccionadas === 'function') {
+      const a = amGetSeleccionadas().find(x => x.id === quitado._amId);
+      if (a) amToggle(quitado._amId, a);
+    }
     renderCartBar();
     renderCartDrawer();
   }
@@ -5861,7 +5962,7 @@ body { background:transparent !important; }
 
   function herrAddPedido(sku, btn){
     const p = (window._herrRepo || []).find(x => x.sku === sku); if (!p) return;
-    cartAdd('Reposición', p.nombre, 'Reposición', p.qtyProm, 'cajas');
+    cartAdd('Reposición', p.nombre, 'Reposición', p.qtyProm, 'unidades');
     if (btn){ btn.textContent = '✓ Agregado al pedido'; btn.disabled = true; }
     showToast(`🛒 Agregado: ${p.nombre}`, 'success');
   }
@@ -7587,7 +7688,9 @@ Cualquier consulta estoy a disposición. ${vend} - GrandBar Distribuciones`;
   function esSeccionCompleta(sec) {
     const esMadre = sec.subsecciones && sec.subsecciones.length;
     const { done, tot } = esMadre ? contarAgregado(sec) : (sec.items ? contarSec(sec) : { done:0, tot:0 });
-    return tot > 0 && done === tot;
+    // Sin ítems para tildar: cuenta como hecha si el vendedor la trabajó
+    if (!tot) return esMadre ? sec.subsecciones.some(_hojaTrabajada) || _hojaTrabajada(sec) : _hojaTrabajada(sec);
+    return done === tot;
   }
 
   function _caminoInjectCSS() {

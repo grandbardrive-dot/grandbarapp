@@ -290,10 +290,12 @@ const _amSeleccionadas = new Map();
 
 // Callbacks registrables desde visita.html
 let _amOnGuardar  = null;  // fn(seleccionadas[]) → Promise — llamado al "Guardar en visita"
+let _amOnCambio   = null;  // fn(accion, seleccionada) — cada vez que se agrega, quita o cambia la cantidad
 let _amClienteCtx = null;  // { nombre, telefono } del cliente actual
 let _amEntregaCtx = null;  // { sellerId, customerId, clienteNombre } — si está, las cards muestran "Entregué material"
 
-function amRegistrarCallbacks({ onGuardar, cliente, entrega }) {
+function amRegistrarCallbacks({ onGuardar, cliente, entrega, onCambio }) {
+  _amOnCambio = onCambio || null;
   _amOnGuardar  = onGuardar  || null;
   _amClienteCtx = cliente    || null;
   if (entrega !== undefined) _amEntregaCtx = entrega || null;
@@ -373,6 +375,7 @@ function amToggle(id, accionJson) {
     btn.classList.add('agregada');
   }
   _amActualizarResumen();
+  if (_amOnCambio) _amOnCambio(_amSeleccionadas.get(id) || accion, _amSeleccionadas.has(id));
 }
 
 // Lee la unidad (botellas/cajas) y cantidad elegidas en la tarjeta
@@ -392,33 +395,36 @@ function amSetUnidad(id, u) {
   const cont = document.getElementById(`am-qty-${id}`);
   if (cont) cont.querySelectorAll('.am-qty-u').forEach(b => b.classList.toggle('on', b.dataset.u === u));
   const a = _amSeleccionadas.get(id);
-  if (a) { a.unidad = u; _amActualizarResumen(); }
+  if (a) { a.unidad = u; _amActualizarResumen(); if (_amOnCambio) _amOnCambio(a, true); }
 }
 
 // Cambiar cantidad. Si ya está agregada, la actualiza (si no, queda lista para cuando la agregue).
 function amSetCantidad(id, val) {
   const a = _amSeleccionadas.get(id);
-  if (a) { a.cantidad = Math.max(1, Math.floor(Number(val) || 1)); _amActualizarResumen(); }
+  if (a) { a.cantidad = Math.max(1, Math.floor(Number(val) || 1)); _amActualizarResumen(); if (_amOnCambio) _amOnCambio(a, true); }
 }
 
 // ── Actualizar el resumen dinámico en el DOM ──────────────────────────────────
 function _amActualizarResumen() {
-  const wrap = document.getElementById('am-resumen-dinamico');
-  if (!wrap) return;
+  // Puede haber un recuadro por sección con campañas: se actualizan todos (antes solo el primero).
+  const wraps = document.querySelectorAll('.am-resumen-wrap');
+  if (!wraps.length) return;
 
   const items = [..._amSeleccionadas.values()];
   const count = items.length;
+  wraps.forEach(wrap => {
+  const q = sel => wrap.querySelector(sel);
+  if (q('.am-resumen-count')) q('.am-resumen-count').textContent = `${count} seleccionada${count !== 1 ? 's' : ''}`;
 
-  document.getElementById('am-resumen-count').textContent = `${count} seleccionada${count !== 1 ? 's' : ''}`;
-
-  const listaEl = document.getElementById('am-resumen-lista');
+  const listaEl = q('.am-resumen-lista');
+  if (!listaEl) return;
   if (!count) {
     listaEl.innerHTML = `<div class="am-resumen-empty">Tocá "+ Agregar" en las acciones que vas a gestionar con este cliente.</div>`;
-    document.getElementById('am-resumen-footer').style.display = 'none';
+    if (q('.am-resumen-footer')) q('.am-resumen-footer').style.display = 'none';
     return;
   }
 
-  document.getElementById('am-resumen-footer').style.display = 'flex';
+  if (q('.am-resumen-footer')) q('.am-resumen-footer').style.display = 'flex';
   listaEl.innerHTML = items.map(a => `
     <div class="am-resumen-item">
       <span class="am-resumen-item-icon">${a.categoria === 'vinos' ? '🍷' : '🥃'}</span>
@@ -427,6 +433,7 @@ function _amActualizarResumen() {
         <div class="am-resumen-item-cond">${_amEsc(a.accion)}${a.cantidad ? ' · <b>' + a.cantidad + ' ' + (a.unidad || 'cajas') + '</b>' : ''}${a.precio_accionado ? ' · $' + Number(a.precio_accionado).toLocaleString('es-AR') : ''}</div>
       </div>
     </div>`).join('');
+  });
 }
 
 // ── Render de tarjeta individual ─────────────────────────────────────────────
@@ -448,8 +455,9 @@ function renderAccionCard(a, opts = {}) {
 
   // Payload para el toggle (serializado en data attribute)
   const payloadEnc = seleccionable
+    // encodeURIComponent no codifica la comilla simple: "Gordon's" rompía el onclick
     ? encodeURIComponent(JSON.stringify({ id:a.id, producto:a.producto, accion:a.accion,
-        precio_accionado:a.precio_accionado, categoria:a.categoria, imagen_url:a.imagen_url||null }))
+        precio_accionado:a.precio_accionado, categoria:a.categoria, imagen_url:a.imagen_url||null })).replace(/'/g, '%27')
     : '';
 
   const btnHtml = seleccionable
@@ -720,7 +728,7 @@ async function amGuardarEnVisita() {
   btn.disabled = true; statusEl.textContent = 'Guardando…';
   try {
     await _amOnGuardar(items);
-    statusEl.textContent = '✅ Acciones guardadas en la visita.';
+    statusEl.textContent = '✅ Listo: quedan en el resumen de la visita. Se guardan al tocar “Guardar visita”.';
     setTimeout(() => amCerrarModal(), 1200);
   } catch(e) {
     statusEl.textContent = '❌ Error: ' + (e.message || e);

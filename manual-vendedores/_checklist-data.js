@@ -771,5 +771,11 @@ function calcPorcentaje(cl, progreso) {
       if (progreso[s.id]?.checks?.[i]) done++;
     });
   });
+  if (!total && Array.isArray(progreso._trabajadas)) {
+    // Manual sin ítems para tildar: % de secciones trabajadas
+    const hojas = seccionesHoja(cl);
+    const hechas = hojas.filter(s => progreso._trabajadas.includes(s.id)).length;
+    return hojas.length ? Math.round(hechas / hojas.length * 100) : 0;
+  }
   return total ? Math.round(done / total * 100) : 0;
 }

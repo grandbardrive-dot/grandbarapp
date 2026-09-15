@@ -445,6 +445,11 @@ function dcProgreso() {
     pedidos_sin_enviar: Object.entries(DC.marcas).map(([m, d]) => ({ ...d, marca: m === DC_OTRA ? (d.nombre || DC_OTRA) : m })),
     eventos_vendidos: DC.cerrados.map(id => ({ plan_id: id, nombre: nombreEvento(id) })),
     activacion: (a.recursos.length || a.marca || a.fecha || a.nota) ? a : null,
+    // "Proponer activación" en discos usa la herramienta de fechas de bares: lo que se
+    // propuso ahí (tipo de activación / producto por fecha) va también a la minuta.
+    activaciones_fechas: (typeof _fbFechas !== 'undefined' && Array.isArray(_fbFechas) ? _fbFechas : [])
+      .filter(f => (f.activacion_tipos || []).length || f.activacion_producto)
+      .map(f => ({ fecha: f.fecha, nombre: f.nombre, tipos: f.activacion_tipos || [], producto: f.activacion_producto || '', estado: f.estado || '' })),
     sunset: DC.sunset,
     sunset_info: DC.sunset ? DC.sunsetInfo : null,
     restringidos: DC.restringidos.filter(lleno),
@@ -465,6 +470,7 @@ function dcMinuta(bloque) {
     + bloque('Pedidos de acción (a validar)', d.pedidos_enviados.map(p => unir([p.marca, p.necesita])))
     + bloque('Pedidos de acción sin enviar', d.pedidos_sin_enviar.map(p => p.marca + ': todavía no se mandó a validar'))
     + bloque('Activación pedida', d.activacion ? [unir([d.activacion.recursos.join(', '), d.activacion.marca, fecha(d.activacion.fecha), d.activacion.nota])] : [])
+    + bloque('Activaciones propuestas', d.activaciones_fechas.map(x => unir([fecha(x.fecha), x.nombre, x.tipos.join(', '), x.producto, x.estado])))
     + bloque('Sunset', d.sunset ? [unir(['Hace sunset', s.dias, s.publico && s.publico + ' personas', s.necesita])] : [])
     + bloque('Materiales restringidos (a aprobar)', d.restringidos.map(r => unir([r.material, r.cantidad && r.cantidad + ' u.', r.motivo])))
     + bloque('Eventos del cliente', d.eventos_cliente.map(e => unir([fecha(e.fecha), e.evento, e.necesita])));
