@@ -93,7 +93,15 @@ const QUIZ = {
     { q: 'Las 🛠️ Herramientas IA en la góndola detectan…', o: ['Qué dejó de reponer según lo que le vendimos', 'La deuda vencida', 'El clima'], c: 0 },
   ],
 };
-function bancoDe(rubro) { return (QUIZ._comunes || []).concat(QUIZ[rubro] || []); }
+// Rota las opciones de cada pregunta para que la correcta NO caiga siempre
+// primera. Es determinístico (depende del índice), así el mismo orden se usa al
+// mostrar (GET) y al corregir (POST) — la nota sigue saliendo bien.
+function rotar(q, i) {
+  const n = q.o.length, shift = (i + 1) % n;
+  const o = q.o.map((_, k) => q.o[(k - shift + n) % n]);
+  return { q: q.q, o, c: (q.c + shift) % n };
+}
+function bancoDe(rubro) { return (QUIZ._comunes || []).concat(QUIZ[rubro] || []).map(rotar); }
 
 // ── Ejemplo práctico por SECCIÓN (por nombre normalizado). Se muestra en cada lección. ──
 const norm = s => String(s || '').toLowerCase().trim();
