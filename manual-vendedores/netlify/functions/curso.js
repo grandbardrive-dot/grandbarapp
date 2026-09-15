@@ -46,38 +46,89 @@ const QUIZ = {
     { q: '¿Qué hacés cuando una acción tiene el botón "+" con selector de botellas o cajas?', o: ['La agregás al carrito de la visita eligiendo la cantidad', 'La enviás por mail', 'Solo la leés'], c: 0 },
     { q: 'Las 🛠️ Herramientas IA (Stock & Rotación) se basan en…', o: ['Lo que efectivamente le vendimos a ese cliente', 'Una lista fija igual para todos', 'El clima'], c: 0 },
     { q: 'En "Proponer Activación", ¿qué suma la IA además de la idea?', o: ['La placa lista, con opción de ponerle el logo del cliente', 'Nada, solo texto', 'El precio de la competencia'], c: 0 },
+    { q: 'En "Propuestas de incorporación", ¿qué pasa con lo que proponés?', o: ['Queda registrado para seguir en la próxima visita', 'Se borra al salir', 'Lo ve solo el cliente'], c: 0 },
+    { q: '"Oportunidades de Visibilidad" te deja registrar…', o: ['Dónde hay lugar (barra, backbar, heladera…) con una foto', 'El saldo del cliente', 'La ruta del día'], c: 0 },
+    { q: 'Cuando entregás un material, la sección de Evidencias…', o: ['Te recuerda presentar la foto de evidencia en la próxima visita', 'Cobra el material', 'No hace nada'], c: 0 },
   ],
   restaurante: [
     { q: 'En "Desarrollo de Coctelería", ¿de dónde sale el precio de la botella?', o: ['Del sistema, y dejás un casillero para el descuento', 'Lo inventás', 'Lo pide el cliente'], c: 0 },
     { q: '¿Para qué sirve "Vino por Copa"?', o: ['Calcular el costo por copa de vinos con condición especial', 'Vender botellas cerradas', 'Pedir materiales'], c: 0 },
+    { q: '¿Cuántas propuestas de coctelería te da la IA por producto?', o: ['Como máximo dos', 'Diez', 'Ninguna'], c: 0 },
+    { q: 'En SPIRITS, "Aperitivos en Carta" sirve para…', o: ['Revisar y proponer los aperitivos que van en la carta', 'Armar el frigobar', 'Calcular punteras'], c: 0 },
   ],
   bar: [
     { q: '"Mix Ideal" son…', o: ['Combos de productos de distintas categorías que arma Luci', 'Tragos sin alcohol', 'Precios de la competencia'], c: 0 },
     { q: 'En FRÍOS & RTD el foco está en…', o: ['Disponibilidad y heladera (producto frío listo para servir)', 'Coctelería de autor', 'Vinos de guarda'], c: 0 },
+    { q: 'Las 🛠️ Herramientas IA de la barra sirven para detectar…', o: ['Quiebres y productos de baja rotación de ese bar', 'El horario del bar', 'La competencia'], c: 0 },
+    { q: 'La calculadora de "Vino por Copa" te da…', o: ['El costo por copa a partir de la botella', 'El precio de la competencia', 'La deuda del cliente'], c: 0 },
   ],
   hotel: [
     { q: 'Los "Pre-armados" de FRIGOBAR son…', o: ['Packs de productos ya armados que carga Luci', 'Botellas sueltas', 'Materiales POP'], c: 0 },
     { q: '"Copa de bienvenida" funciona igual que…', o: ['Vino por Copa (lista + calculadora de costo por copa)', 'Un combo de previa', 'El catálogo de café'], c: 0 },
     { q: 'La sección SEGAFREDO te permite…', o: ['Mostrar el catálogo y relevar si el cliente usa máquina de café', 'Cargar espumantes', 'Pedir materiales de vidriera'], c: 0 },
+    { q: '"Botella de bienvenida" es…', o: ['Una botella de cortesía para el huésped al ingresar', 'Un material POP', 'Una acción de previa'], c: 0 },
   ],
   disco: [
     { q: 'En "Aperitivos de bienvenida o pre cena", los productos los carga…', o: ['Luci desde su panel', 'El cliente', 'La IA sola'], c: 0 },
     { q: '"Eventos pre-armados" sirven para…', o: ['Ofrecer eventos ya armados al local', 'Calcular vino por copa', 'Registrar visibilidad'], c: 0 },
+    { q: 'Para una fecha fuerte de la temporada usás…', o: ['"Proponer Activación", que arma la propuesta y la placa', 'El catálogo de café', 'La lista amarilla'], c: 0 },
+    { q: 'En "Acuerdos con Partners" cargás…', o: ['El pedido de una acción con un partner', 'La copa de bienvenida', 'El frigobar'], c: 0 },
   ],
   vinoteca: [
     { q: '"Acciones de Volumen y Exhibidores" son…', o: ['Acuerdos por volumen y espacios de exhibición destacada', 'Preguntas de café', 'Combos de previa'], c: 0 },
     { q: 'En "Plan de Degustaciones" vos…', o: ['Programás degustaciones en el punto de venta', 'Cargás precios', 'Sacás una foto de evidencia'], c: 0 },
+    { q: '"Combos Previa" están agrupados por…', o: ['Proveedor (Campari, Pernod Ricard, Diageo)', 'Precio', 'Color'], c: 0 },
+    { q: 'En RTD y Fríos, la herramienta te deja…', o: ['Sumar acciones de heladera al carrito', 'Calcular coctelería', 'Registrar café'], c: 0 },
   ],
   tienda_bebidas: [
     { q: '"Combos Previa" están organizados por…', o: ['Proveedor (Grupo Campari, Pernod Ricard, Diageo)', 'Color de la botella', 'Fecha'], c: 0 },
     { q: 'En "Acciones de Incorporación" el vendedor…', o: ['Propone etiquetas nuevas que quedan para seguimiento', 'Cobra la factura', 'Arma el frigobar'], c: 0 },
+    { q: 'En FRIOS & RTD la idea es…', o: ['Ofrecer acciones para llenar la heladera', 'Vender vinos de guarda', 'Registrar visibilidad'], c: 0 },
+    { q: '"Acciones de Volumen y Exhibidores" sirven para…', o: ['Acordar volumen y espacios de exhibición', 'Calcular vino por copa', 'Pedir materiales de café'], c: 0 },
   ],
   autoservicio: [
     { q: '¿Qué es la "Lista Amarilla"?', o: ['Productos foco con precios competitivos para autoservicios', 'La lista de morosos', 'Un combo de previa'], c: 0 },
     { q: '"Plan de Punteras" sirve para…', o: ['Acordar punteras / cabeceras de góndola', 'Calcular coctelería', 'Registrar café'], c: 0 },
+    { q: 'El "Buscador de Precios" te sirve para…', o: ['Comparar contra la competencia y defender la propuesta', 'Cobrar la factura', 'Armar el frigobar'], c: 0 },
+    { q: 'Las 🛠️ Herramientas IA en la góndola detectan…', o: ['Qué dejó de reponer según lo que le vendimos', 'La deuda vencida', 'El clima'], c: 0 },
   ],
 };
 function bancoDe(rubro) { return (QUIZ._comunes || []).concat(QUIZ[rubro] || []); }
+
+// ── Ejemplo práctico por SECCIÓN (por nombre normalizado). Se muestra en cada lección. ──
+const norm = s => String(s || '').toLowerCase().trim();
+const EJEMPLO_SEC = {
+  'introduccion & preparación': 'Antes de entrar, mirás qué venía comprando y qué dejó de comprar: llegás sabiendo qué proponerle.',
+  'introducción & preparación': 'Antes de entrar, mirás qué venía comprando y qué dejó de comprar: llegás sabiendo qué proponerle.',
+  'introduccion & preparacion': 'Antes de entrar, mirás qué venía comprando y qué dejó de comprar: llegás sabiendo qué proponerle.',
+  'vinos': 'Abrís VINOS, tocás 🛠️ Herramientas IA y ves qué vino dejó de comprar; le armás la reposición ahí mismo.',
+  'spirits': 'En SPIRITS usás las 🛠️ Herramientas IA para detectar un quiebre y sumás la reposición al carrito por cajas.',
+  'acciones de incorporación': 'El cliente duda con una etiqueta nueva: la cargás como propuesta y en la próxima visita retomás.',
+  'acciones de rotación': 'Hay una oferta 6+2 vigente: la agregás al carrito eligiendo 3 cajas y cerrás el pedido.',
+  'acciones mensuales': 'Tomás la acción del mes y la sumás al carrito eligiendo botellas o cajas según lo que necesita.',
+  'vino por copa': 'El cliente quiere sumar un vino por copa: con la calculadora le mostrás el costo por copa y el margen.',
+  'copa de bienvenida': 'Le proponés una copa de bienvenida para el huésped y le calculás el costo por copa en el momento.',
+  'desarrollo de coctelería': 'Elegís un gin del sistema, la IA te tira dos tragos con precio sugerido y le mostrás el margen.',
+  'frigobar': 'Le mostrás un pack pre-armado de frigobar y lo sumás al carrito completo, sin armar botella por botella.',
+  'segafredo': 'Preguntás si tiene máquina de café, mostrás el catálogo Segafreddo y con la calculadora le mostrás la rentabilidad.',
+  'café segafreddo': 'Preguntás si tiene máquina de café, mostrás el catálogo Segafreddo y le calculás la rentabilidad.',
+  'activaciones & fechas especiales': 'Se viene una fecha fuerte: con "Proponer Activación" la IA arma la propuesta y la placa con el logo del local.',
+  'fechas especiales': 'Anticipás la próxima fecha clave y dejás agendada la activación con su material.',
+  'materiales & visibilidad': 'Detectás lugar en la barra, sacás una foto y queda el recordatorio para presentar la propuesta.',
+  'materiales': 'Le dejás material POP del depósito y queda registrado para pedir la evidencia después.',
+  'vidriera & carteleria': 'Revisás vidriera y cartelería y proponés mejorar la visibilidad de la marca en el frente.',
+  'vidrieras y cartelería': 'Revisás vidriera y cartelería y proponés mejorar la visibilidad de la marca en el frente.',
+  'góndola de vinos': 'Recorrés la góndola de vinos: incorporás etiquetas, acordás punteras y sumás una acción de rotación.',
+  'góndola de spirits': 'En la góndola de spirits detectás faltantes con la IA y acordás un exhibidor.',
+  'frios & ready to drink': 'Revisás la heladera y le ofrecés una acción para llenarla de cara al finde.',
+  'rtd y frios': 'Revisás la heladera y le ofrecés una acción para llenarla de cara al finde.',
+  'combos previa': 'Le ofrecés un combo de previa de Campari armado para la ocasión.',
+  'eventos': 'Le ofrecés un evento pre-armado listo para su salón.',
+  'eventos pre armados': 'Le ofrecés un evento pre-armado listo para su salón.',
+  'beneficios exclusivos': 'Le contás los beneficios de las bodegas partner (capacitaciones, experiencias) para cerrar el vínculo.',
+  'cierre de visita': 'Repasás lo acordado, descargás el PDF y se lo mandás al cliente.',
+  'cierre de la visita': 'Repasás lo acordado, descargás el PDF y se lo mandás al cliente.',
+};
 
 async function man(path, opts = {}) {
   return fetch(MAN_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
@@ -90,6 +141,7 @@ async function leccionesDe(rubro) {
   const madres = rows.filter(r => !r.parent_id).sort((a, b) => a.orden - b.orden);
   return madres.map(m => ({
     codigo: m.codigo, nombre: m.nombre, icono: m.icono || '📄', intro: m.intro || '',
+    ejemplo: EJEMPLO_SEC[norm(m.nombre)] || '',
     incluye: rows.filter(r => r.parent_id === m.id).sort((a, b) => a.orden - b.orden).map(s => s.nombre),
   }));
 }

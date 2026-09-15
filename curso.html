@@ -40,6 +40,15 @@
   .lec-n{font-weight:700;font-size:14px}
   .lec-inc{font-size:11.5px;color:var(--muted);margin-top:1px}
   .lec-p{font-size:13px;color:#4a5860;margin:7px 0 0;line-height:1.5}
+  .lec-ej{font-size:12.5px;color:#6a5312;background:var(--gold-s);border:1px solid #ecdcb2;border-radius:9px;padding:8px 11px;margin:8px 0 0;line-height:1.5}
+  .lec-ej b{color:#7c5713}
+  .cert{background:linear-gradient(160deg,#fff,#faf4e6);border:2px solid var(--gold);border-radius:16px;padding:26px 20px;margin-bottom:18px;text-align:center}
+  .cert-seal{width:56px;height:56px;margin:0 auto 12px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:28px;box-shadow:0 6px 18px rgba(47,143,110,.3)}
+  .cert-k{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-d)}
+  .cert-name{font-size:22px;font-weight:800;margin:6px 0 2px}
+  .cert-txt{font-size:13.5px;color:var(--muted);max-width:44ch;margin:0 auto}
+  .cert-date{font-size:12px;color:var(--muted);margin:10px 0 14px}
+  @media print{body *{visibility:hidden}.cert,.cert *{visibility:visible}.cert{position:absolute;left:0;top:0;width:100%;border:none} .cert button{display:none}}
   .lec-chk{margin-top:9px}
   .btn{border:0;border-radius:10px;padding:9px 13px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
   .btn.ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
@@ -122,14 +131,26 @@ function pintar(){
   } else $('limWrap').innerHTML='';
 
   if(!mods.length){ $('mods').innerHTML='<div class="empty">Todavía no hay curso disponible para tu canal.</div>'; return; }
-  $('mods').innerHTML=mods.map((m,mi)=>{
+  const completo = aprob===mods.length;
+  let certHtml='';
+  if(completo){
+    const hoy=new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+    certHtml=`<div class="cert"><div class="cert-seal">✓</div>
+      <div class="cert-k">Certificado de finalización</div>
+      <div class="cert-name">${esc(CURSO.nombre||'Vendedor')}</div>
+      <div class="cert-txt">completó el Curso de Vendedores GrandBar — ${canalLbl} · ${mods.length} módulos aprobados</div>
+      <div class="cert-date">${hoy}</div>
+      <button class="btn ghost" onclick="window.print()">🖨️ Imprimir / guardar</button></div>`;
+  }
+  $('mods').innerHTML=certHtml+mods.map((m,mi)=>{
     const [cls,txt]=estadoMod(m);
     const lecs=m.lecciones.map(l=>{
       const done=DONE.has(m.rubro+'|'+l.codigo);
       const inc=l.incluye&&l.incluye.length?`<div class="lec-inc">Incluye: ${l.incluye.map(esc).join(' · ')}</div>`:'';
       const p=l.intro?`<p class="lec-p">${esc(l.intro)}</p>`:'';
+      const ej=l.ejemplo?`<p class="lec-ej">💡 <b>En la visita:</b> ${esc(l.ejemplo)}</p>`:'';
       return `<div class="lec"><div class="lec-h"><div class="lec-em">${l.icono||'📄'}</div>
-        <div style="flex:1"><div class="lec-n">${esc(l.nombre)}</div>${inc}${p}
+        <div style="flex:1"><div class="lec-n">${esc(l.nombre)}</div>${inc}${p}${ej}
         <div class="lec-chk">${done
           ? '<button class="btn ok" disabled>✓ Leída</button>'
           : `<button class="btn ghost" onclick="marcarLeida('${m.rubro}','${l.codigo}',this)">Marcar como leída</button>`}</div>
