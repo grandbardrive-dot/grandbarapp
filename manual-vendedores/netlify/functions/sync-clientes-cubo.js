@@ -129,7 +129,9 @@ function calcular(cubo, manual, vendedores) {
                    tipo: ex.tipo, vendedor_id: ex.vendedor_id };
     const que = [];
     if (nombre && norm(nombre) !== norm(ex.nombre)) { fila.nombre = nombre; que.push('nombre'); porCampo.nombre++; }
-    if (tipo && tipo !== ex.tipo) {
+    // Eventos no existe como rubro en CUBO: se marca a mano en el manual y la
+    // sincronización no lo pisa con el rubro de CUBO.
+    if (tipo && tipo !== ex.tipo && ex.tipo !== 'evento') {
       fila.tipo = tipo; que.push('tipo'); porCampo.tipo++;
       const k = (ex.tipo || '(vacío)') + ' → ' + tipo;
       cambiosRubro[k] = (cambiosRubro[k] || 0) + 1;

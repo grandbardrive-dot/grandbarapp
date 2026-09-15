@@ -554,10 +554,12 @@ const MANUAL_POR_TIPO = {
   bar: 'bar',
   disco: 'disco',
   discoteca: 'disco',
-  mayorista: 'mayorista',         // manual propio; adentro lleva EVENTOS
+  mayorista: 'mayorista',         // manual propio
+  evento: 'evento',               // Eventos: tipo de cliente con manual propio (15/09/2026)
+  eventos: 'evento',
 };
 // Nombre lindo de cada rubro (para el manual vacío recién creado).
-const RUBRO_LABELS = { restaurante: 'Restaurantes', vinoteca: 'Vinotecas', tienda_bebidas: 'Tienda de Bebidas', autoservicio: 'Autoservicios', hotel: 'Hoteles', bar: 'Bares', disco: 'Discos', mayorista: 'Mayoristas' };
+const RUBRO_LABELS = { restaurante: 'Restaurantes', vinoteca: 'Vinotecas', tienda_bebidas: 'Tienda de Bebidas', autoservicio: 'Autoservicios', hotel: 'Hoteles', bar: 'Bares', disco: 'Discos', mayorista: 'Mayoristas', evento: 'Eventos' };
 function manualDe(tipo) {
   const t = String(tipo || '').toLowerCase();
   return MANUAL_POR_TIPO[t] || 'restaurante';   // sin mapeo (mayorista, otros…) → Restaurantes

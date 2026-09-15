@@ -24,7 +24,7 @@
   const CANALES = [
     ['restaurante', '🍽️', 'Restaurantes'], ['bar', '🍺', 'Bares'], ['disco', '🕺', 'Discos'],
     ['hotel', '🏨', 'Hoteles'], ['vinoteca', '🍷', 'Vinotecas'], ['tienda_bebidas', '🏬', 'Tienda de Bebidas'],
-    ['autoservicio', '🏪', 'Autoservicios'], ['mayorista', '🛒', 'Mayoristas'], ['evento', '🎉', 'Eventos (mayorista)'],
+    ['autoservicio', '🏪', 'Autoservicios'], ['mayorista', '🛒', 'Mayoristas'], ['evento', '🎉', 'Eventos'],
   ];
   const ZONAS = [['mendoza', 'Mendoza'], ['sanluis', 'San Luis']];
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
