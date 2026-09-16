@@ -95,6 +95,13 @@
   .secs{margin-top:18px;display:flex;flex-direction:column;gap:14px}
   .sec{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
   .sec.off{opacity:.6}
+  .dragh{flex:none;width:26px;height:30px;border:none;background:none;color:var(--ink3);font-size:16px;line-height:1;
+         cursor:grab;touch-action:none;border-radius:8px;padding:0}
+  .dragh:hover{background:var(--surface2);color:var(--azul)}
+  .dragh:active{cursor:grabbing}
+  .arrastrando{opacity:.7;box-shadow:0 10px 26px rgba(31,68,127,.22);border-radius:14px}
+  body.arrastrando-algo{user-select:none;-webkit-user-select:none}
+  .sub-wrap{display:block}
   .sec-head{display:flex;align-items:center;gap:13px;padding:15px 18px}
   .sec-ico{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex:none}
   .sec-info{flex:1;min-width:0}
@@ -1065,32 +1072,30 @@
     document.getElementById('lista').innerHTML='<div class="secs">'+ms.map((m,i)=>{
       const hs=hijas(m);
       const subsHtml = hs.length
-        ? hs.map((h,j)=>`<div class="sub ${h.activa===false?'off':''}">
+        ? hs.map((h,j)=>`<div class="sub-wrap" data-id="${h.id}"><div class="sub ${h.activa===false?'off':''}">
+              <button class="dragh" title="Arrastrá para cambiarla de lugar" onpointerdown="dragInicio(event,'hija')">⠿</button>
               <div class="sub-ico" style="background:${h.icono_bg||'#EAF2FB'};color:${h.icono_color||'#1F447F'}">${h.icono||'📋'}</div>
               <div class="sub-info">
                 <div class="sub-name">${esc(h.nombre)} ${h.activa===false?'<span class="tag off">Oculta</span>':''} ${tagItems(h)} ${tagFormato(h)} ${tagHerr(h)} ${tagUso(h)}</div>
                 ${h.descripcion?`<div class="sub-desc">${esc(h.descripcion)}</div>`:''}
               </div>
               <div class="acts">
-                <button class="ab icon" title="Subir"  onclick="mover('${h.id}',-1)" ${j===0?'disabled style="opacity:.35"':''}>↑</button>
-                <button class="ab icon" title="Bajar"  onclick="mover('${h.id}',1)" ${j===hs.length-1?'disabled style="opacity:.35"':''}>↓</button>
                 <button class="ab" onclick="verItems('${h.id}')">☑️ Ítems (${itemsDe(h.id).length})</button>
                 <button class="ab" onclick="abrirEdicion('${h.id}')">Editar</button>
                 <button class="ab" onclick="toggleActiva('${h.id}')">${h.activa===false?'Mostrar':'Ocultar'}</button>
                 <button class="ab danger" onclick="borrar('${h.id}')">Eliminar</button>
               </div>
-            </div>${itemsHTML(h)}`).join('')
+            </div>${itemsHTML(h)}</div>`).join('')
         : '<div class="sin-subs">Sin subsecciones. Podés agregar una para dividir esta sección (ej: Vinos → Góndola, Incorporaciones).</div>';
-      return `<div class="sec ${m.activa===false?'off':''}">
+      return `<div class="sec ${m.activa===false?'off':''}" data-id="${m.id}">
         <div class="sec-head">
+          <button class="dragh" title="Arrastrá para cambiarla de lugar" onpointerdown="dragInicio(event,'madre')">⠿</button>
           <div class="sec-ico" style="background:${m.icono_bg||'#EAF2FB'};color:${m.icono_color||'#1F447F'}">${m.icono||'📋'}</div>
           <div class="sec-info">
             <div class="sec-name">${esc(m.nombre)} ${m.activa===false?'<span class="tag off">Oculta</span>':''} ${tagFormato(m)} ${tagHerr(m)} ${hs.length?`<span class="tag">${hs.length} ${hs.length>1?'subsecciones':'subsección'}</span>`:tagItems(m)} ${tagUso(m)}</div>
             ${m.descripcion?`<div class="sec-desc">${esc(m.descripcion)}</div>`:''}
           </div>
           <div class="acts">
-            <button class="ab icon" title="Subir" onclick="mover('${m.id}',-1)" ${i===0?'disabled style="opacity:.35"':''}>↑</button>
-            <button class="ab icon" title="Bajar" onclick="mover('${m.id}',1)" ${i===ms.length-1?'disabled style="opacity:.35"':''}>↓</button>
             <button class="ab" onclick="verItems('${m.id}')">☑️ Ítems (${itemsDe(m.id).length})</button>
             <button class="ab" onclick="abrirNueva('${m.id}')">+ Subsección</button>
             <button class="ab" onclick="abrirEdicion('${m.id}')">Editar</button>
@@ -1312,6 +1317,56 @@
   // comparten el mismo (ej. dos con orden 4) y ahí el intercambio no cambiaba nada.
   // Se mueve la sección de lugar y se renumera toda la lista 0,1,2,… así el orden
   // queda sin empates y el manual del vendedor lo respeta.
+  // ── Reordenar arrastrando ───────────────────────────────────────────────────
+  // Se agarra del ⠿ y se mueve con el mouse o con el dedo. Al soltar se guarda el
+  // orden nuevo de esa lista (las secciones entre sí, o las subsecciones de su madre).
+  let _drag = null;
+  function dragInicio(ev, tipo){
+    if(ev.button != null && ev.button !== 0) return;      // solo botón izquierdo
+    const mango = ev.currentTarget;
+    const el = mango.closest(tipo==='madre' ? '.sec' : '.sub-wrap');
+    if(!el || !el.parentElement) return;
+    ev.preventDefault();
+    _drag = { el, cont: el.parentElement, sel: tipo==='madre' ? '.sec' : '.sub-wrap', mango };
+    el.classList.add('arrastrando');
+    document.body.classList.add('arrastrando-algo');
+    try{ mango.setPointerCapture(ev.pointerId); }catch(e){}
+    mango.addEventListener('pointermove', dragMover);
+    mango.addEventListener('pointerup', dragSoltar);
+    mango.addEventListener('pointercancel', dragSoltar);
+  }
+  function dragMover(ev){
+    if(!_drag) return;
+    ev.preventDefault();
+    const hermanas = [..._drag.cont.children].filter(x => x !== _drag.el && x.matches && x.matches(_drag.sel));
+    let despues = null;
+    for(const x of hermanas){
+      const r = x.getBoundingClientRect();
+      if(ev.clientY > r.top + r.height / 2) despues = x;
+    }
+    if(despues) despues.after(_drag.el);
+    else if(hermanas.length) hermanas[0].before(_drag.el);
+  }
+  async function dragSoltar(ev){
+    if(!_drag) return;
+    const { el, cont, sel, mango } = _drag; _drag = null;
+    mango.removeEventListener('pointermove', dragMover);
+    mango.removeEventListener('pointerup', dragSoltar);
+    mango.removeEventListener('pointercancel', dragSoltar);
+    el.classList.remove('arrastrando');
+    document.body.classList.remove('arrastrando-algo');
+    const ids = [...cont.children].filter(x => x.matches && x.matches(sel) && x.dataset.id).map(x => x.dataset.id);
+    const cambios = ids.map((id,k)=>{
+      const s = SECS.find(x=>x.id===id);
+      return (s && s.orden===k) ? null : sb.from('checklist_secciones').update({ orden:k }).eq('id', id);
+    }).filter(Boolean);
+    if(!cambios.length) return;                          // lo soltó donde estaba
+    const res = await Promise.all(cambios);
+    const err = res.find(r=>r && r.error);
+    if(err) alert('No se pudo guardar el orden: '+err.error.message);
+    await cargar();
+  }
+
   async function mover(id, dir){
     const s=SECS.find(x=>x.id===id); if(!s) return;
     const hermanas = s.parent_id ? hijas(SECS.find(x=>x.id===s.parent_id)) : madres();
