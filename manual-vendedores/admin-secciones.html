@@ -688,10 +688,13 @@
     const sel = document.getElementById('tr-sec'), info = document.getElementById('tr-info'), btn = document.getElementById('tr-save');
     const c = document.getElementById('tr-canal').value, z = document.getElementById('tr-zona').value;
     sel.innerHTML = '<option value="">Cargando…</option>'; btn.disabled = true; info.textContent = '';
-    const { data:secs, error } = await sb.from('checklist_secciones').select('id,nombre,parent_id,orden')
+    const { data:secs, error } = await sb.from('checklist_secciones').select('id,nombre,parent_id,orden,activa')
       .eq('canal', c).eq('zona', z).order('orden');
     if(error){ sel.innerHTML = '<option value="">—</option>'; info.textContent = 'No pude leer ese manual: '+error.message; return; }
-    _trSecs = secs || [];
+    // Tampoco se ofrecen las secciones ocultas
+    const visiblesTr = (secs || []).filter(s => s.activa !== false);
+    const madresTr = new Set(visiblesTr.filter(s => !s.parent_id).map(s => s.id));
+    _trSecs = visiblesTr.filter(s => !s.parent_id || madresTr.has(s.parent_id));
     if(!_trSecs.length){ sel.innerHTML = '<option value="">—</option>'; info.textContent = 'Ese manual todavía no tiene secciones.'; return; }
     const { data:its } = await sb.from('checklist_items').select('id,seccion_id,texto,descripcion,orden,activo')
       .in('seccion_id', _trSecs.map(s=>s.id)).order('orden');
@@ -776,9 +779,15 @@
     const lbl = (CANALES.find(x=>x.id===c)||{}).label || c;
     const zl  = (ZONAS.find(x=>x.id===z)||{}).label || z;
     if(error){ info.textContent = 'No pude leer ese manual: '+error.message; arbol.innerHTML=''; return; }
-    _cpSecs = secs || []; _cpItems = {};
+    // Las secciones ocultas no se ofrecen para copiar (y si una madre está oculta,
+    // tampoco sus subsecciones).
+    const visibles = (secs || []).filter(s => s.activa !== false);
+    const madresOk = new Set(visibles.filter(s => !s.parent_id).map(s => s.id));
+    _cpSecs = visibles.filter(s => !s.parent_id || madresOk.has(s.parent_id));
+    const ocultas = (secs || []).length - _cpSecs.length;
+    _cpItems = {};
     if(!_cpSecs.length){
-      info.textContent = `El manual de ${lbl} de ${zl} no tiene secciones para copiar.`;
+      info.textContent = `El manual de ${lbl} de ${zl} no tiene secciones visibles para copiar.`;
       arbol.innerHTML = '<div style="color:var(--ink3);padding:6px 2px">—</div>';
       document.getElementById('cp-cuenta').textContent = '';
       return;
@@ -786,12 +795,12 @@
     const { data:its } = await sb.from('checklist_items').select('id,seccion_id')
       .in('seccion_id', _cpSecs.map(s=>s.id));
     (its||[]).forEach(i => _cpItems[i.seccion_id] = (_cpItems[i.seccion_id]||0) + 1);
-    info.textContent = `El manual de ${lbl} de ${zl} tiene ${_cpSecs.length} ${_cpSecs.length>1?'secciones':'sección'} (contando madres y subsecciones).`;
+    info.textContent = `El manual de ${lbl} de ${zl} tiene ${_cpSecs.length} ${_cpSecs.length>1?'secciones':'sección'} (contando madres y subsecciones).`
+      + (ocultas ? ` No se muestran ${ocultas} ${ocultas>1?'ocultas':'oculta'}.` : '');
     const tareas = s => { const n = _cpItems[s.id]||0; return n ? ` <span style="color:var(--ink3);font-weight:400">· ${n} ${n>1?'tareas':'tarea'}</span>` : ''; };
-    const oculta = s => s.activa===false ? ' <span style="color:var(--ink3);font-weight:400">· oculta</span>' : '';
     const fila = (s, hija) => `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;${hija?'padding-left:20px;':'font-weight:700;margin-top:4px;'}cursor:pointer">
         <input type="checkbox" class="cp-ck" value="${s.id}" data-madre="${s.parent_id||''}" checked onchange="cpMarcar(this)" style="width:16px;height:16px;flex:none">
-        <span>${esc(s.nombre)}${tareas(s)}${oculta(s)}</span></label>`;
+        <span>${esc(s.nombre)}${tareas(s)}</span></label>`;
     arbol.innerHTML = _cpSecs.filter(s=>!s.parent_id).map(m =>
       fila(m, false) + _cpSecs.filter(h=>h.parent_id===m.id).map(h=>fila(h, true)).join('')
     ).join('') || '<div style="color:var(--ink3);padding:6px 2px">—</div>';
