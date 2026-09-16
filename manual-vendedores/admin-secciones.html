@@ -839,13 +839,15 @@
       ? `${sel.length} ${sel.length>1?'marcadas':'marcada'}${tareas?` · ${tareas} ${tareas>1?'tareas':'tarea'}`:''}`
       : 'Nada marcado';
     const btn = document.getElementById('cp-save'); if(btn) btn.disabled = !sel.length;
-    // Reemplazar solo tiene sentido si alguna sección va a una que ya existe
+    // Reemplazar necesita que alguna sección vaya a una que ya existe. El botón NO se
+    // deshabilita (un botón apagado no explica nada): al tocarlo avisa qué falta.
     const rb = document.getElementById('cp-reemplazar');
     if(rb){
       const conDestino = [...document.querySelectorAll('.cp-dest')].some(s=>s.value);
-      rb.disabled = !sel.length || !conDestino;
+      rb.disabled = !sel.length;
+      rb.style.opacity = conDestino ? '' : '.75';
       rb.title = conDestino ? 'Borra las subsecciones y las tareas que tiene esa sección acá, y deja las del otro manual'
-                            : 'Elegí en "va a" una sección que ya tengas';
+                            : 'Primero elegí en "va a" la sección de acá que querés reemplazar';
     }
   }
 
@@ -863,7 +865,13 @@
     if(modo === 'reemplazar'){
       const aBorrar = [...document.querySelectorAll('.cp-dest')].filter(s=>s.value)
         .map(s=>(SECS.find(x=>x.id===s.value)||{}).nombre).filter(Boolean);
-      if(!aBorrar.length){ msg.style.color='#c0392b'; msg.textContent='Elegí en "va a" al menos una sección que ya tengas.'; return; }
+      if(!aBorrar.length){
+        msg.style.color='#c0392b';
+        msg.textContent='Para reemplazar, elegí primero en "va a" la sección de acá que querés reemplazar.';
+        msg.scrollIntoView({ block:'center', behavior:'smooth' });
+        alert('Para reemplazar tenés que elegir a qué sección de este manual va.\n\nDebajo de cada sección de la lista hay un "va a": elegí ahí la sección que ya tenés y se reemplaza su contenido.');
+        return;
+      }
       const detalle = aBorrar.map(n=>{
         const m = SECS.find(x=>x.nombre===n && !x.parent_id);
         const h = m ? hijas(m).length : 0;
