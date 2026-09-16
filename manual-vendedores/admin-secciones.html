@@ -736,10 +736,14 @@
   // y se AGREGA al final: no borra ni pisa nada de lo que ya hay.
   let _cpToken = 0;
   function abrirCopia(){
-    document.getElementById('cp-canal').innerHTML = CANALES.filter(c=>c.id!==canal)
-      .map(c=>`<option value="${c.id}">${c.ico} ${esc(c.label)}</option>`).join('');
+    // Están TODOS los rubros, incluido en el que estás: sirve para traer el mismo rubro
+    // de la otra zona (ej: Autoservicios de Mendoza → Autoservicios de San Luis).
+    // Lo único que no se puede elegir es el mismo manual Y la misma zona.
+    document.getElementById('cp-canal').innerHTML = CANALES
+      .map(c=>`<option value="${c.id}"${c.id===canal?' selected':''}>${c.ico} ${esc(c.label)}</option>`).join('');
+    const otraZona = (ZONAS.find(z=>z.id!==zona)||ZONAS[0]).id;
     document.getElementById('cp-zona').innerHTML = ZONAS
-      .map(z=>`<option value="${z.id}"${z.id===zona?' selected':''}>${z.ico} ${esc(z.label)}</option>`).join('');
+      .map(z=>`<option value="${z.id}"${z.id===otraZona?' selected':''}>${z.ico} ${esc(z.label)}</option>`).join('');
     document.getElementById('cp-items').checked = true;
     document.getElementById('cp-msg').textContent = '';
     document.getElementById('cp-destino').innerHTML =
@@ -757,6 +761,13 @@
     const arbol = document.getElementById('cp-arbol');
     const c = document.getElementById('cp-canal').value, z = document.getElementById('cp-zona').value;
     const token = ++_cpToken;
+    if(c === canal && z === zona){
+      info.textContent = 'Ese es el manual que estás editando. Elegí otro rubro u otra zona.';
+      arbol.innerHTML = '<div style="color:var(--ink3);padding:6px 2px">—</div>';
+      document.getElementById('cp-cuenta').textContent = '';
+      btn.disabled = true;
+      return;
+    }
     info.textContent = 'Leyendo ese manual…'; btn.disabled = true;
     arbol.innerHTML = '<div style="color:var(--ink3);padding:6px 2px">Cargando…</div>';
     const { data:secs, error } = await sb.from('checklist_secciones')
