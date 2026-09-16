@@ -373,7 +373,8 @@
     </div>
     <div class="modal-foot">
       <button class="mb" onclick="cerrarCopia()">Cancelar</button>
-      <button class="mb primary" id="cp-save" onclick="copiarDeOtroManual()">Copiar secciones</button>
+      <button class="mb" id="cp-reemplazar" onclick="copiarDeOtroManual('reemplazar')" title="Borra lo que tiene la sección de acá y deja lo del otro manual">♻️ Reemplazar contenido</button>
+      <button class="mb primary" id="cp-save" onclick="copiarDeOtroManual('agregar')">Copiar secciones</button>
     </div>
   </div>
 </div>
@@ -838,15 +839,41 @@
       ? `${sel.length} ${sel.length>1?'marcadas':'marcada'}${tareas?` · ${tareas} ${tareas>1?'tareas':'tarea'}`:''}`
       : 'Nada marcado';
     const btn = document.getElementById('cp-save'); if(btn) btn.disabled = !sel.length;
+    // Reemplazar solo tiene sentido si alguna sección va a una que ya existe
+    const rb = document.getElementById('cp-reemplazar');
+    if(rb){
+      const conDestino = [...document.querySelectorAll('.cp-dest')].some(s=>s.value);
+      rb.disabled = !sel.length || !conDestino;
+      rb.title = conDestino ? 'Borra las subsecciones y las tareas que tiene esa sección acá, y deja las del otro manual'
+                            : 'Elegí en "va a" una sección que ya tengas';
+    }
   }
 
-  async function copiarDeOtroManual(){
+  // modo 'agregar'   → suma lo elegido a lo que ya hay.
+  // modo 'reemplazar' → en las secciones que van a una que ya existe, primero borra sus
+  //                     subsecciones y sus tareas, y deja las del manual de origen.
+  async function copiarDeOtroManual(modo){
+    modo = modo === 'reemplazar' ? 'reemplazar' : 'agregar';
     const cOrig = document.getElementById('cp-canal').value;
     const zOrig = document.getElementById('cp-zona').value;
     const conItems = document.getElementById('cp-items').checked;
     const msg = document.getElementById('cp-msg'), btn = document.getElementById('cp-save');
+    const btnR = document.getElementById('cp-reemplazar');
     if(!cOrig) return;
-    msg.style.color='var(--ink2)'; msg.textContent='Copiando…'; btn.disabled=true;
+    if(modo === 'reemplazar'){
+      const aBorrar = [...document.querySelectorAll('.cp-dest')].filter(s=>s.value)
+        .map(s=>(SECS.find(x=>x.id===s.value)||{}).nombre).filter(Boolean);
+      if(!aBorrar.length){ msg.style.color='#c0392b'; msg.textContent='Elegí en "va a" al menos una sección que ya tengas.'; return; }
+      const detalle = aBorrar.map(n=>{
+        const m = SECS.find(x=>x.nombre===n && !x.parent_id);
+        const h = m ? hijas(m).length : 0;
+        const t = m ? [m, ...hijas(m)].reduce((a,s)=>a+itemsDe(s.id).length, 0) : 0;
+        return `• ${n}: ${h} ${h===1?'subsección':'subsecciones'} y ${t} ${t===1?'tarea':'tareas'}`;
+      }).join('\n');
+      if(!confirm(`Se va a BORRAR el contenido de:\n\n${detalle}\n\ny queda lo que copiés del otro manual.\n\nNo se puede deshacer. ¿Seguir?`)) return;
+    }
+    msg.style.color='var(--ink2)'; msg.textContent = modo==='reemplazar' ? 'Reemplazando…' : 'Copiando…';
+    btn.disabled=true; if(btnR) btnR.disabled=true;
     try{
       const elegidas = new Set([...document.querySelectorAll('.cp-ck')].filter(x=>x.checked).map(x=>x.value));
       // Dónde va cada sección del origen: '' = crear una nueva, o el id de una que ya tengo
@@ -898,6 +925,26 @@
       // Las que van a una sección que ya existe: no se crean, se apunta a la de acá.
       (todas||[]).filter(s=>!s.parent_id && destinoDe[s.id]).forEach(m => { mapa[m.id] = destinoDe[m.id]; });
 
+      // Reemplazar: vaciar esas secciones (sus subsecciones y todas las tareas) antes de copiar.
+      let nBorradas = 0;
+      if(modo === 'reemplazar'){
+        for(const idDest of [...new Set(Object.values(destinoDe))]){
+          const madreDest = SECS.find(s=>s.id===idDest); if(!madreDest) continue;
+          const hs = hijas(madreDest);
+          const ids = [idDest, ...hs.map(h=>h.id)];
+          const { error:eb1 } = await sb.from('checklist_items').delete().in('seccion_id', ids);
+          if(eb1) throw eb1;
+          if(hs.length){
+            const { error:eb2 } = await sb.from('checklist_secciones').delete().in('id', hs.map(h=>h.id));
+            if(eb2) throw eb2;
+            nBorradas += hs.length;
+          }
+          // se vacía en memoria para que el orden de las nuevas arranque en 0
+          SECS = SECS.filter(s => !hs.some(h=>h.id===s.id));
+          ids.forEach(id => { ITEMS[id] = []; });
+        }
+      }
+
       for(const m of madresO){
         if(mapa[m.id]) continue;       // va a una sección que ya existe
         const fila = armar(m); fila.parent_id = null; fila.orden = orden++;
@@ -942,10 +989,11 @@
       await cargar();
       alert(`Listo: se copiaron ${nSecs} ${nSecs===1?'sección':'secciones'}`
         + (conItems ? ` y ${nItems} ${nItems===1?'tarea':'tareas'}` : '')
-        + `.\n\nQuedaron al final del manual de ${canalActual().label} de ${zonaActual().label}. Revisalas y cambiales lo que haga falta.`);
+        + (modo==='reemplazar' && nBorradas ? (nBorradas===1 ? `.\nSe borró la subsección que estaba antes` : `.\nSe borraron las ${nBorradas} subsecciones que estaban antes`) : '')
+        + `.\n\nEstán en el manual de ${canalActual().label} de ${zonaActual().label}. Revisalas y cambiales lo que haga falta.`);
     }catch(e){
       msg.style.color='#c0392b'; msg.textContent='No se pudo copiar: '+(e.message||e);
-    }finally{ btn.disabled=false; }
+    }finally{ btn.disabled=false; if(btnR) btnR.disabled=false; }
   }
 
   const madres = ()=> SECS.filter(s=>!s.parent_id).sort((a,b)=>(a.orden||0)-(b.orden||0));
