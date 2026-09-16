@@ -358,7 +358,7 @@
           <button type="button" class="ab" onclick="marcarTodoCopia(false)">Desmarcar todo</button>
           <span id="cp-cuenta" style="margin-left:auto;color:var(--ink2);font-weight:700"></span>
         </div>
-        <div class="hint">Si marcás una subsección, su sección madre se copia también (es la que la contiene).</div>
+        <div class="hint">Debajo de cada sección elegís si se crea nueva o si sus subsecciones se agregan a una que ya tenés (así no te quedan dos iguales). Si se crea nueva y marcás una subsección, la madre se copia también.</div>
       </div>
       <div class="aviso" style="margin-top:0" id="cp-info-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>
@@ -801,17 +801,29 @@
     const fila = (s, hija) => `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;${hija?'padding-left:20px;':'font-weight:700;margin-top:4px;'}cursor:pointer">
         <input type="checkbox" class="cp-ck" value="${s.id}" data-madre="${s.parent_id||''}" checked onchange="cpMarcar(this)" style="width:16px;height:16px;flex:none">
         <span>${esc(s.nombre)}${tareas(s)}</span></label>`;
+    // Para cada sección del origen: ¿se crea nueva acá, o sus subsecciones se agregan a
+    // una sección que ya tengo? Así no quedan dos "FECHAS ESPECIALES", una vacía.
+    const destinos = madres();
+    const selDestino = m => `<div style="display:flex;align-items:center;gap:7px;padding:2px 0 6px 24px;font-size:12px;color:var(--ink2)">
+        <span>va a</span>
+        <select class="cp-dest" data-madre="${m.id}" onchange="cpContar()" style="flex:1;min-width:0;padding:5px 7px;border:1px solid var(--line-2);border-radius:8px;font:inherit;font-size:12px;background:#fff">
+          <option value="">➕ una sección nueva</option>
+          ${destinos.map(d=>`<option value="${d.id}">${esc(d.nombre)} (la que ya tengo)</option>`).join('')}
+        </select></div>`;
     arbol.innerHTML = _cpSecs.filter(s=>!s.parent_id).map(m =>
-      fila(m, false) + _cpSecs.filter(h=>h.parent_id===m.id).map(h=>fila(h, true)).join('')
+      fila(m, false) + selDestino(m) + _cpSecs.filter(h=>h.parent_id===m.id).map(h=>fila(h, true)).join('')
     ).join('') || '<div style="color:var(--ink3);padding:6px 2px">—</div>';
     cpContar();
     btn.disabled = false;
   }
   // Marcar una subsección arrastra a su madre; desmarcar una madre desmarca sus hijas.
+  const cpDestinoDe = madreId => (document.querySelector(`.cp-dest[data-madre="${madreId}"]`)||{}).value || '';
   function cpMarcar(ck){
     const cks = [...document.querySelectorAll('.cp-ck')];
     const madre = ck.dataset.madre;
-    if(ck.checked && madre){ const m = cks.find(x=>x.value===madre); if(m) m.checked = true; }
+    // Si la madre se va a crear nueva, marcar una subsección la arrastra. Si sus
+    // subsecciones van a una sección que ya existe, no hace falta copiar la madre.
+    if(ck.checked && madre && !cpDestinoDe(madre)){ const m = cks.find(x=>x.value===madre); if(m) m.checked = true; }
     if(!ck.checked && !madre) cks.filter(x=>x.dataset.madre===ck.value).forEach(x=>x.checked=false);
     cpContar();
   }
@@ -837,13 +849,17 @@
     msg.style.color='var(--ink2)'; msg.textContent='Copiando…'; btn.disabled=true;
     try{
       const elegidas = new Set([...document.querySelectorAll('.cp-ck')].filter(x=>x.checked).map(x=>x.value));
+      // Dónde va cada sección del origen: '' = crear una nueva, o el id de una que ya tengo
+      const destinoDe = {};
+      document.querySelectorAll('.cp-dest').forEach(s => { if(s.value) destinoDe[s.dataset.madre] = s.value; });
       if(!elegidas.size) throw new Error('Marcá al menos una sección.');
       const { data:todas, error:e1 } = await sb.from('checklist_secciones')
         .select('*').eq('canal',cOrig).eq('zona',zOrig).order('orden');
       if(e1) throw e1;
       if(!todas || !todas.length) throw new Error('Ese manual no tiene secciones para copiar.');
-      // Solo lo marcado. Si eligieron una subsección, su madre va igual (la contiene).
-      (todas||[]).forEach(s => { if(s.parent_id && elegidas.has(s.id)) elegidas.add(s.parent_id); });
+      // Si eligieron una subsección y su madre se crea nueva, la madre va igual (la contiene).
+      // Si sus subsecciones van a una sección que ya existe, la madre no se copia.
+      (todas||[]).forEach(s => { if(s.parent_id && elegidas.has(s.id) && !destinoDe[s.parent_id]) elegidas.add(s.parent_id); });
       const origen = todas.filter(s => elegidas.has(s.id));
       if(!origen.length) throw new Error('Marcá al menos una sección.');
 
@@ -876,30 +892,43 @@
       const hijasO  = origen.filter(s=>s.parent_id);
       const yaHay   = madres();
       let orden = yaHay.length ? Math.max(...yaHay.map(s=>s.orden||0))+1 : 0;
-      const mapa = {};                 // id del origen → id nuevo
+      const mapa = {};                 // id del origen → id en este manual
+      let nSecs = 0;                   // secciones creadas de verdad
+
+      // Las que van a una sección que ya existe: no se crean, se apunta a la de acá.
+      (todas||[]).filter(s=>!s.parent_id && destinoDe[s.id]).forEach(m => { mapa[m.id] = destinoDe[m.id]; });
 
       for(const m of madresO){
+        if(mapa[m.id]) continue;       // va a una sección que ya existe
         const fila = armar(m); fila.parent_id = null; fila.orden = orden++;
         const { data, error } = await sb.from('checklist_secciones').insert(fila).select().single();
         if(error) throw error;
-        mapa[m.id] = data.id;
+        mapa[m.id] = data.id; nSecs++;
       }
+      // Las subsecciones que ya tiene cada destino: las nuevas van después.
       const ordenHija = {};
+      Object.values(mapa).forEach(idDest => {
+        const hs = hijas({ id: idDest });
+        ordenHija[idDest] = hs.length ? Math.max(...hs.map(h=>h.orden||0)) + 1 : 0;
+      });
       for(const h of hijasO){
         const nuevoPadre = mapa[h.parent_id];
-        if(!nuevoPadre) continue;      // hija cuya madre no vino (no debería pasar)
+        if(!nuevoPadre) continue;      // hija cuya madre no vino
         const fila = armar(h); fila.parent_id = nuevoPadre;
         fila.orden = ordenHija[nuevoPadre] || 0;
         ordenHija[nuevoPadre] = fila.orden + 1;
         const { data, error } = await sb.from('checklist_secciones').insert(fila).select().single();
         if(error) throw error;
-        mapa[h.id] = data.id;
+        mapa[h.id] = data.id; nSecs++;
       }
 
       let nItems = 0;
       if(conItems){
+        // Solo las tareas de lo que se copió (una madre que solo prestó su destino no
+        // trae sus tareas si no la marcaron).
+        const conTareas = origen.filter(s => mapa[s.id] && !(!s.parent_id && destinoDe[s.id] && !elegidas.has(s.id)));
         const { data:items, error:e2 } = await sb.from('checklist_items')
-          .select('*').in('seccion_id', origen.map(s=>s.id)).order('orden');
+          .select('*').in('seccion_id', conTareas.map(s=>s.id)).order('orden');
         if(e2) throw e2;
         const nuevos = (items||[]).map(i=>{ const {id, created_at, ...r} = i; r.seccion_id = mapa[i.seccion_id]; return r; })
                                   .filter(r=>r.seccion_id);
@@ -909,7 +938,6 @@
           nItems = nuevos.length;
         }
       }
-      const nSecs = Object.keys(mapa).length;
       cerrarCopia();
       await cargar();
       alert(`Listo: se copiaron ${nSecs} ${nSecs===1?'sección':'secciones'}`
