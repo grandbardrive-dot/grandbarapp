@@ -99,7 +99,9 @@
          cursor:grab;touch-action:none;border-radius:8px;padding:0}
   .dragh:hover{background:var(--surface2);color:var(--azul)}
   .dragh:active{cursor:grabbing}
-  .arrastrando{opacity:.7;box-shadow:0 10px 26px rgba(31,68,127,.22);border-radius:14px}
+  .arrastrando{position:fixed;z-index:80;margin:0;pointer-events:none;opacity:.95;
+    box-shadow:0 16px 40px rgba(15,25,50,.28);border-radius:14px;transform:rotate(-.6deg) scale(1.01);background:var(--surface)}
+  .hueco-drag{border:2px dashed var(--line-2);border-radius:14px;background:rgba(31,68,127,.05);margin:0 0 12px}
   body.arrastrando-algo{user-select:none;-webkit-user-select:none}
   .sub-wrap{display:block}
   .sec-head{display:flex;align-items:center;gap:13px;padding:15px 18px}
@@ -1320,6 +1322,8 @@
   // ── Reordenar arrastrando ───────────────────────────────────────────────────
   // Se agarra del ⠿ y se mueve con el mouse o con el dedo. Al soltar se guarda el
   // orden nuevo de esa lista (las secciones entre sí, o las subsecciones de su madre).
+  // La fila que se arrastra queda "levantada" siguiendo al dedo o al mouse, y en la
+  // lista queda un hueco punteado mostrando dónde va a caer.
   let _drag = null;
   function dragInicio(ev, tipo){
     if(ev.button != null && ev.button !== 0) return;      // solo botón izquierdo
@@ -1327,12 +1331,22 @@
     const el = mango.closest(tipo==='madre' ? '.sec' : '.sub-wrap');
     if(!el || !el.parentElement) return;
     ev.preventDefault();
-    _drag = { el, cont: el.parentElement, sel: tipo==='madre' ? '.sec' : '.sub-wrap', mango };
+    const r = el.getBoundingClientRect();
+    // Hueco del mismo tamaño en el lugar donde está: marca dónde va a caer
+    const hueco = document.createElement('div');
+    hueco.className = 'hueco-drag';
+    hueco.style.height = r.height + 'px';
+    el.parentElement.insertBefore(hueco, el);
+    _drag = {
+      el, hueco, cont: el.parentElement, sel: tipo==='madre' ? '.sec' : '.sub-wrap',
+      dx: ev.clientX - r.left, dy: ev.clientY - r.top, ancho: r.width,
+    };
     el.classList.add('arrastrando');
+    el.style.width = r.width + 'px';
+    el.style.left  = r.left + 'px';
+    el.style.top   = r.top + 'px';
     document.body.classList.add('arrastrando-algo');
-    // Se escucha en TODA la página, no en el agarre: al cambiar la fila de lugar el
-    // navegador la saca y la vuelve a poner en la lista, y ahí se perdía el seguimiento
-    // (quedaba trabada a mitad de camino).
+    // Se escucha en TODA la página: si no, al cambiar de lugar se perdía el seguimiento.
     document.addEventListener('pointermove', dragMover, { passive:false });
     document.addEventListener('pointerup', dragSoltar);
     document.addEventListener('pointercancel', dragSoltar);
@@ -1340,26 +1354,34 @@
   function dragMover(ev){
     if(!_drag) return;
     if(ev.cancelable) ev.preventDefault();
+    // La fila sigue al puntero
+    _drag.el.style.left = (ev.clientX - _drag.dx) + 'px';
+    _drag.el.style.top  = (ev.clientY - _drag.dy) + 'px';
     // Si la lista es larga, al llegar a los bordes la pantalla acompaña
     const margen = 80;
     if(ev.clientY < margen) window.scrollBy(0, -14);
     else if(ev.clientY > window.innerHeight - margen) window.scrollBy(0, 14);
-    const hermanas = [..._drag.cont.children].filter(x => x !== _drag.el && x.matches && x.matches(_drag.sel));
+    // El hueco se va corriendo al lugar donde caería
+    const hermanas = [..._drag.cont.children].filter(x => x !== _drag.el && x !== _drag.hueco && x.matches && x.matches(_drag.sel));
     let despues = null;
     for(const x of hermanas){
       const r = x.getBoundingClientRect();
       if(ev.clientY > r.top + r.height / 2) despues = x;
     }
-    if(despues) despues.after(_drag.el);
-    else if(hermanas.length) hermanas[0].before(_drag.el);
+    if(despues) despues.after(_drag.hueco);
+    else if(hermanas.length) hermanas[0].before(_drag.hueco);
   }
   async function dragSoltar(ev){
     if(!_drag) return;
-    const { el, cont, sel } = _drag; _drag = null;
+    const { el, hueco, cont, sel } = _drag; _drag = null;
     document.removeEventListener('pointermove', dragMover);
     document.removeEventListener('pointerup', dragSoltar);
     document.removeEventListener('pointercancel', dragSoltar);
+    // La fila cae en el hueco y vuelve a ser una fila normal
+    hueco.parentElement.insertBefore(el, hueco);
+    hueco.remove();
     el.classList.remove('arrastrando');
+    el.style.width = el.style.left = el.style.top = '';
     document.body.classList.remove('arrastrando-algo');
     const ids = [...cont.children].filter(x => x.matches && x.matches(sel) && x.dataset.id).map(x => x.dataset.id);
     const cambios = ids.map((id,k)=>{
