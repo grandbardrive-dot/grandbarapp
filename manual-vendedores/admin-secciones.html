@@ -1330,14 +1330,20 @@
     _drag = { el, cont: el.parentElement, sel: tipo==='madre' ? '.sec' : '.sub-wrap', mango };
     el.classList.add('arrastrando');
     document.body.classList.add('arrastrando-algo');
-    try{ mango.setPointerCapture(ev.pointerId); }catch(e){}
-    mango.addEventListener('pointermove', dragMover);
-    mango.addEventListener('pointerup', dragSoltar);
-    mango.addEventListener('pointercancel', dragSoltar);
+    // Se escucha en TODA la página, no en el agarre: al cambiar la fila de lugar el
+    // navegador la saca y la vuelve a poner en la lista, y ahí se perdía el seguimiento
+    // (quedaba trabada a mitad de camino).
+    document.addEventListener('pointermove', dragMover, { passive:false });
+    document.addEventListener('pointerup', dragSoltar);
+    document.addEventListener('pointercancel', dragSoltar);
   }
   function dragMover(ev){
     if(!_drag) return;
-    ev.preventDefault();
+    if(ev.cancelable) ev.preventDefault();
+    // Si la lista es larga, al llegar a los bordes la pantalla acompaña
+    const margen = 80;
+    if(ev.clientY < margen) window.scrollBy(0, -14);
+    else if(ev.clientY > window.innerHeight - margen) window.scrollBy(0, 14);
     const hermanas = [..._drag.cont.children].filter(x => x !== _drag.el && x.matches && x.matches(_drag.sel));
     let despues = null;
     for(const x of hermanas){
@@ -1349,10 +1355,10 @@
   }
   async function dragSoltar(ev){
     if(!_drag) return;
-    const { el, cont, sel, mango } = _drag; _drag = null;
-    mango.removeEventListener('pointermove', dragMover);
-    mango.removeEventListener('pointerup', dragSoltar);
-    mango.removeEventListener('pointercancel', dragSoltar);
+    const { el, cont, sel } = _drag; _drag = null;
+    document.removeEventListener('pointermove', dragMover);
+    document.removeEventListener('pointerup', dragSoltar);
+    document.removeEventListener('pointercancel', dragSoltar);
     el.classList.remove('arrastrando');
     document.body.classList.remove('arrastrando-algo');
     const ids = [...cont.children].filter(x => x.matches && x.matches(sel) && x.dataset.id).map(x => x.dataset.id);
