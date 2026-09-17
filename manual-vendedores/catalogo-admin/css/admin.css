@@ -164,8 +164,18 @@
 .toolbar .spacer { flex: 1; }
 
 /* ---------- TABLA ---------- */
-.table-wrap { overflow-x: auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 14px rgba(31, 68, 127, 0.06); }
-table.grid { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+/* La tabla scrollea DENTRO de su caja: así la barra de costado queda siempre a la
+   vista (antes estaba al final de toda la página) y el encabezado se mantiene arriba. */
+.table-wrap { overflow: auto; max-height: calc(100vh - 210px); background: #fff; border-radius: 12px; box-shadow: 0 4px 14px rgba(31, 68, 127, 0.06); }
+/* Barras visibles, no las finitas que aparecen y desaparecen */
+.table-wrap { scrollbar-width: thin; scrollbar-color: #b9c4cc #eef1f4; }
+.table-wrap::-webkit-scrollbar { height: 12px; width: 12px; }
+.table-wrap::-webkit-scrollbar-track { background: #eef1f4; border-radius: 8px; }
+.table-wrap::-webkit-scrollbar-thumb { background: #b9c4cc; border-radius: 8px; border: 3px solid #eef1f4; }
+.table-wrap::-webkit-scrollbar-thumb:hover { background: #8fa0ab; }
+/* Si no entra a lo ancho, se corre de costado en vez de aplastar las columnas */
+table.grid { border-collapse: collapse; width: 100%; min-width: 900px; font-size: 0.85rem; }
+@media (max-width: 640px) { .table-wrap { max-height: calc(100vh - 170px); } }
 table.grid th {
   background: var(--gb-azul);
   color: #fff;
