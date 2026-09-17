@@ -23,7 +23,7 @@ exports.handler = async (event) => {
     const hoy = todayLocal.toISOString().slice(0, 10);
     const finVentana = new Date(todayLocal.getTime() + 2 * 86400000).toISOString().slice(0, 10);
 
-    const reus = await (await sb('reuniones?estado=in.(programada,confirmada)&fecha=gte.' + hoy + '&fecha=lte.' + finVentana + '&select=id,usuario_id,titulo,fecha,hora,lugar,aviso_dia_at,aviso_hora_at&limit=1000')).json();
+    const reus = await (await sb('reuniones?estado=in.(programada,confirmada)&fecha=gte.' + hoy + '&fecha=lte.' + finVentana + '&select=id,usuario_id,creado_por,titulo,fecha,hora,lugar,aviso_dia_at,aviso_hora_at&limit=1000')).json();
     if (!Array.isArray(reus)) return json(502, { error: 'No pude leer reuniones' });
 
     const subsCache = {};
@@ -57,6 +57,9 @@ exports.handler = async (event) => {
       if (conHora && !r.aviso_hora_at && diffMin >= 0 && diffMin <= 70) {
         const body = r.titulo + ' · ' + pad(h) + ':' + pad(mi) + ' hs' + (r.lugar ? ' · ' + r.lugar : '');
         await enviar(r.usuario_id, { title: '⏰ Reunión en 1 hora', body, url: '/agenda.html', tag: 'reu-h-' + r.id });
+        // También a quien la programó (Dirección), si es otra persona
+        if (r.creado_por && String(r.creado_por) !== String(r.usuario_id))
+          await enviar(r.creado_por, { title: '⏰ Reunión en 1 hora', body, url: '/dir-agenda.html', tag: 'reu-h-dir-' + r.id });
         await sb('reuniones?id=eq.' + encodeURIComponent(r.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ aviso_hora_at: new Date().toISOString() }) });
         avisosHora++;
       }
@@ -65,6 +68,8 @@ exports.handler = async (event) => {
       if (!r.aviso_dia_at && diffMin >= 1380 && diffMin <= 1500) {
         const cuando = pad(D) + '/' + pad(M) + (conHora ? ' ' + pad(h) + ':' + pad(mi) + ' hs' : '');
         await enviar(r.usuario_id, { title: '📅 Mañana tenés una reunión', body: r.titulo + ' · ' + cuando + (r.lugar ? ' · ' + r.lugar : ''), url: '/agenda.html', tag: 'reu-d-' + r.id });
+        if (r.creado_por && String(r.creado_por) !== String(r.usuario_id))
+          await enviar(r.creado_por, { title: '📅 Mañana tenés una reunión', body: r.titulo + ' · ' + cuando + (r.lugar ? ' · ' + r.lugar : ''), url: '/dir-agenda.html', tag: 'reu-d-dir-' + r.id });
         await sb('reuniones?id=eq.' + encodeURIComponent(r.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ aviso_dia_at: new Date().toISOString() }) });
         avisosDia++;
       }

@@ -52,8 +52,7 @@
       <span class="ic" style="background:var(--purple-soft);color:var(--purple)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
       <div><h1>Agenda</h1><div class="sub">Planificación y seguimiento de actividades del equipo comercial</div></div>
       <span class="sp"></span>
-      <span class="pill">‹ 19 - 25 mayo, 2025 ›</span>
-      <span class="pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> Filtros</span>
+
       <div class="ic-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">3</span></div>
       <button class="acc" id="btnReunion" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Programar reunión</button>
     </div>
@@ -68,6 +67,10 @@
       </div>
 
       <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card" id="pendCard">
+          <div class="c-h"><div class="t">✅ Pendientes de las reuniones</div><span class="lnk" id="pendVerHechos" style="cursor:pointer"></span></div>
+          <div id="pendLista"><div style="color:#6d7d85;font-size:12.5px;padding:6px 0">Cargando…</div></div>
+        </div>
         <div class="card" id="reuMinutasCard" style="display:none">
           <div class="c-h"><div class="t">📋 Minutas de reuniones</div></div>
           <div id="reuMinutas"></div>
@@ -80,8 +83,8 @@
 </div>
 <div id="rov" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:50;align-items:center;justify-content:center;padding:16px">
   <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:90vh;overflow:auto;padding:20px">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><b style="font-size:16px;flex:1">Programar reunión</b><button id="rX" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6d7d85">×</button></div>
-    <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:8px 0 4px">Usuario</label>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><b id="rTitulo" style="font-size:16px;flex:1">Programar reunión</b><button id="rX" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6d7d85">×</button></div>
+    <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:8px 0 4px">Con quién</label>
     <select id="rUser" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit"><option value="">Cargando usuarios…</option></select>
     <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Título</label>
     <input id="rTit" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit" placeholder="Ej: Revisión de objetivos del mes" maxlength="120">
@@ -104,6 +107,7 @@
   <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:92vh;overflow:auto;padding:20px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px"><b id="dmTit" style="font-size:16px;flex:1">Minuta</b><button onclick="cerrarMin()" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6d7d85">×</button></div>
     <div id="dmMeta" style="font-size:12px;color:#6d7d85;margin-bottom:12px"></div>
+    <div id="dmPrevPend"></div>
     <div id="miaMount"></div>
     <div style="margin-bottom:13px"><label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px">📝 Temas que se hablaron</label><div id="dmTemas"></div><button type="button" class="min-add" onclick="minAdd('temas')">+ Agregar tema</button></div>
     <div style="margin-bottom:13px"><label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px">⏭️ Pendientes para la próxima</label><div id="dmPend"></div><button type="button" class="min-add" onclick="minAdd('pend')">+ Agregar pendiente</button></div>
@@ -144,7 +148,9 @@
   const $=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const estBadge={programada:['tag tr','Programada'],confirmada:['tag ok','Confirmada'],realizada:['tag ok','Realizada'],cancelada:['tag','Cancelada'],rechazada:['tag alto','No asiste']};
-  let LISTA_REU=[], _minReu=null, calRef=new Date(), selDia=null, _minTranscript='';
+  let LISTA_REU=[], _minReu=null, calRef=new Date(), selDia=null, _minTranscript='', EDIT_ID=null, VER_HECHOS=false;
+  const post=(body)=>fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify(body)}).then(async r=>{ const d=await r.json().catch(()=>({})); if(!r.ok||d.error) throw new Error(d.error||'No se pudo guardar'); return d; });
+  const conQuien=x=>x.personal?'🙋 Personal':'👤 '+esc(x.destinatario||'—');
   const _bs='font:inherit;font-weight:700;font-size:11.5px;cursor:pointer;border-radius:8px;padding:6px 11px';
   function minBtns(id, tieneMin){
     if(!tieneMin) return '<button data-min="'+id+'" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;'+_bs+'">📝 Hacer minuta</button>';
@@ -179,36 +185,64 @@
     const box=$('miAgendaDia');
     if(!selDia){ box.innerHTML='<div style="color:#6d7d85;font-size:12.5px;text-align:center;padding:10px 0">Tocá un día para ver tus reuniones.</div>'; return; }
     const fl=new Date(selDia+'T00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
-    const rows=LISTA_REU.filter(x=>x.fecha===selDia && x.estado!=='cancelada').sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
+    // Las canceladas se siguen viendo (tachadas) para que quede el registro
+    const rows=LISTA_REU.filter(x=>x.fecha===selDia).sort((a,b)=>(a.estado==='cancelada')-(b.estado==='cancelada') || String(a.hora||'99').localeCompare(String(b.hora||'99')));
     let html=`<div style="font-weight:800;font-size:12.5px;color:#a97c22;text-transform:capitalize;margin-bottom:8px">${fl}</div>`;
     if(!rows.length){ html+='<div style="color:#6d7d85;font-size:12.5px;padding:6px 0">No hay reuniones este día.</div>'; box.innerHTML=html; return; }
-    html+=rows.map(x=>{const b=estBadge[x.estado]||estBadge.programada;
+    const btn='background:none;border:1px solid #e7ded0;color:#6d7d85;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer';
+    html+=rows.map(x=>{const b=estBadge[x.estado]||estBadge.programada; const cancel=x.estado==='cancelada';
       const tieneMin=x.minuta&&((x.minuta.temas&&x.minuta.temas.length)||(x.minuta.pendientes&&x.minuta.pendientes.length)||x.minuta.notas);
-      return `<div style="display:flex;gap:11px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-left:4px solid #6b5bd0;border-radius:11px;margin-bottom:8px">
+      return `<div style="display:flex;gap:11px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-left:4px solid ${cancel?'#c9c2b6':(x.personal?'#2f8f6e':'#6b5bd0')};border-radius:11px;margin-bottom:8px;${cancel?'opacity:.6':''}">
         <div style="min-width:44px;text-align:center"><div style="font-weight:800;font-size:13px">${x.hora?esc(x.hora.slice(0,5)):'—'}</div></div>
-        <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">${esc(x.titulo)}</div>
-          <div style="font-size:11.5px;color:#6d7d85">👤 ${esc(x.destinatario||'—')}${x.lugar?' · '+esc(x.lugar):''}</div>
+        <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px;${cancel?'text-decoration:line-through':''}">${esc(x.titulo)}</div>
+          <div style="font-size:11.5px;color:#6d7d85">${conQuien(x)}${x.lugar?' · '+esc(x.lugar):''}</div>
           ${(x.estado==='rechazada'&&x.respuesta)?'<div style="font-size:11px;color:#c0603e;font-weight:600">No asiste: '+esc(x.respuesta)+'</div>':''}
+          ${x.detalle?'<div style="font-size:11.5px;color:#4a5a62;margin-top:3px">'+esc(x.detalle)+'</div>':''}
           <div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">
-            ${minBtns(x.id,tieneMin)}
-            <button data-del="${x.id}" style="background:none;border:1px solid #e7cfc6;color:#c0603e;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">Cancelar</button>
+            ${cancel
+              ? `<button data-borrar="${x.id}" style="${btn}">🗑 Borrar</button>`
+              : `${minBtns(x.id,tieneMin)}
+                 <button data-edit="${x.id}" style="${btn}">✏️ Editar</button>
+                 <button data-cancel="${x.id}" style="background:none;border:1px solid #e7cfc6;color:#c0603e;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">Cancelar</button>`}
           </div></div>
         <span class="${b[0]}">${b[1]}</span></div>`;
     }).join('');
     box.innerHTML=html;
-    box.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{ if(!confirm('¿Borrar esta reunión?'))return; await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'borrar',id:b.dataset.del})}); cargarLista(); });
+    box.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=async()=>{
+      const x=_findReu(b.dataset.cancel); if(!x) return;
+      if(!confirm('¿Cancelar "'+x.titulo+'"?'+(x.personal?'':'\n\nA '+(x.destinatario||'la persona')+' le llega el aviso.'))) return;
+      try{ await post({accion:'estado',id:x.id,estado:'cancelada'}); }catch(e){ alert(e.message); }
+      cargarLista(); });
+    box.querySelectorAll('[data-borrar]').forEach(b=>b.onclick=async()=>{ if(!confirm('¿Borrar del todo esta reunión cancelada? No se puede deshacer.'))return; try{ await post({accion:'borrar',id:b.dataset.borrar}); }catch(e){ alert(e.message); } cargarLista(); });
+    box.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>abrirEditar(b.dataset.edit));
     box.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>abrirMinuta(b.dataset.min));
     wireMinBtns(box);
   }
 
-  function abrir(){ $('rov').style.display='flex'; $('rMsg').textContent=''; }
+  function abrir(){
+    EDIT_ID=null;
+    $('rTitulo').textContent='Programar reunión'; $('rGuardar').textContent='Programar y avisar';
+    $('rUser').value='__yo__'; $('rTit').value=''; $('rHora').value=''; $('rTipo').value='reunion'; $('rLugar').value=''; $('rDet').value='';
+    $('rFecha').value=selDia||isoOf(new Date());
+    $('rov').style.display='flex'; $('rMsg').textContent='';
+  }
+  function abrirEditar(id){
+    const x=_findReu(id); if(!x) return;
+    EDIT_ID=x.id;
+    $('rTitulo').textContent='Editar reunión'; $('rGuardar').textContent='Guardar cambios';
+    $('rUser').value = x.personal ? '__yo__' : x.usuario_id;
+    if($('rUser').value!==(x.personal?'__yo__':String(x.usuario_id))) $('rUser').insertAdjacentHTML('beforeend',`<option value="${esc(x.usuario_id)}">${esc(x.destinatario||'Usuario')}</option>`), $('rUser').value=x.usuario_id;
+    $('rTit').value=x.titulo||''; $('rFecha').value=x.fecha||''; $('rHora').value=x.hora?String(x.hora).slice(0,5):'';
+    $('rTipo').value=x.tipo||'reunion'; $('rLugar').value=x.lugar||''; $('rDet').value=x.detalle||'';
+    $('rov').style.display='flex'; $('rMsg').textContent='';
+  }
   function cerrar(){ $('rov').style.display='none'; }
 
   async function cargarUsuarios(){
     try{
       const r=await fetch(FN+'?usuarios=1',{headers:{Authorization:'Bearer '+TOKEN}});
       const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
-      $('rUser').innerHTML='<option value="">— Elegí un usuario —</option>'+d.usuarios.map(u=>`<option value="${u.id}">${esc(u.nombre||u.email)}${u.canal?' ('+esc(u.canal)+')':''}</option>`).join('');
+      $('rUser').innerHTML='<option value="__yo__">🙋 Solo para mí (evento personal)</option>'+d.usuarios.map(u=>`<option value="${u.id}">${esc(u.nombre||u.email)}${u.canal?' ('+esc(u.canal)+')':''}</option>`).join('');
     }catch(e){ $('rUser').innerHTML='<option value="">Error: '+esc(e.message)+'</option>'; }
   }
 
@@ -218,7 +252,7 @@
       const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
       LISTA_REU=(d.reuniones||[]);
       if(!selDia){ const hoyISO=isoOf(new Date()); selDia = LISTA_REU.some(x=>x.fecha===hoyISO && x.estado!=='cancelada') ? hoyISO : (LISTA_REU.filter(x=>x.fecha>=hoyISO && x.estado!=='cancelada').sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)))[0]||{}).fecha || hoyISO; if(selDia){ const [Y,M]=selDia.split('-').map(Number); calRef=new Date(Y,M-1,1); } }
-      renderCalendario(); renderDiaSel(); renderMinutasDir();
+      renderCalendario(); renderDiaSel(); renderMinutasDir(); renderPendientes();
     }catch(e){ $('miAgendaCal').innerHTML='<div style="color:#c0603e;font-size:12px;padding:12px 0;text-align:center">'+esc(e.message)+'</div>'; }
   }
 
@@ -231,6 +265,64 @@
       return `<div data-min="${x.id}" style="cursor:pointer;display:flex;gap:9px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line-2)"><div style="min-width:40px;text-align:center;font-weight:800;font-size:12px">${f}</div><div style="flex:1"><div style="font-weight:700;font-size:12.5px">${esc(x.titulo)}</div><div style="font-size:11px;color:#6d7d85">${esc(x.destinatario||'')} · ${nt} tema(s)${np?' · '+np+' pend.':''}</div></div><span style="color:#2c5a80;font-size:14px">›</span></div>`;
     }).join('');
     box.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>verMin(b.dataset.min));
+  }
+
+  // ── Pendientes de las minutas ────────────────────────────────────────────
+  // Cada "Pendiente para la próxima" queda abierto hasta que se marca como hecho.
+  function pendientesDe(filtro){
+    const out=[];
+    LISTA_REU.filter(x=>x.estado!=='cancelada' && x.minuta && (x.minuta.pendientes||[]).length && (!filtro||filtro(x)))
+      .sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)))
+      .forEach(x=>(x.minuta.pendientes||[]).forEach(t=>{ const e=(x.minuta.pend_estado||{})[t]; out.push({reu:x, texto:t, hecho:!!(e&&e.hecho), est:e}); }));
+    return out;
+  }
+  function pendRow(p, conRecordar){
+    const f=new Date(p.reu.fecha+'T00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
+    return `<div style="display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line-2)">
+      <input type="checkbox" data-pid="${esc(p.reu.id)}" data-ptxt="${esc(p.texto)}" ${p.hecho?'checked':''} style="width:17px;height:17px;margin-top:2px;flex:none;cursor:pointer">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12.5px;font-weight:600;${p.hecho?'text-decoration:line-through;color:#8a959b':''}">${esc(p.texto)}</div>
+        <div style="font-size:10.5px;color:#6d7d85">${conQuien(p.reu)} · ${esc(p.reu.titulo)} · ${f}</div>
+      </div>
+      ${(conRecordar && !p.hecho && !p.reu.personal)?`<button data-precordar="${esc(p.reu.id)}" data-ptxt="${esc(p.texto)}" title="Mandarle un aviso" style="background:#fff8e6;border:1px solid #efdca8;color:#8a6414;border-radius:8px;padding:5px 9px;font:inherit;font-weight:700;font-size:11px;cursor:pointer;flex:none">🔔 Recordar</button>`:''}
+    </div>`;
+  }
+  function wirePend(cont){
+    cont.querySelectorAll('[data-pid]').forEach(ck=>ck.onchange=async()=>{
+      const x=_findReu(ck.dataset.pid); if(!x) return;
+      ck.disabled=true;
+      try{
+        await post({accion:'pendiente',id:x.id,texto:ck.dataset.ptxt,hecho:ck.checked});
+        x.minuta.pend_estado=x.minuta.pend_estado||{};
+        if(ck.checked) x.minuta.pend_estado[ck.dataset.ptxt]={hecho:true}; else delete x.minuta.pend_estado[ck.dataset.ptxt];
+        renderPendientes(); if($('dmov').style.display==='flex' && _minReu) renderPrevPend(_minReu);
+      }catch(e){ alert(e.message); ck.checked=!ck.checked; ck.disabled=false; }
+    });
+    cont.querySelectorAll('[data-precordar]').forEach(b=>b.onclick=async()=>{
+      b.disabled=true; b.textContent='Enviando…';
+      try{ await post({accion:'recordar-pendiente',id:b.dataset.precordar,texto:b.dataset.ptxt}); b.textContent='✓ Avisado'; }
+      catch(e){ alert(e.message); b.disabled=false; b.textContent='🔔 Recordar'; }
+    });
+  }
+  function renderPendientes(){
+    const todos=pendientesDe(), abiertos=todos.filter(p=>!p.hecho), hechos=todos.filter(p=>p.hecho);
+    const box=$('pendLista');
+    $('pendVerHechos').textContent = hechos.length ? (VER_HECHOS?'Ocultar hechos':'Ver hechos ('+hechos.length+')') : '';
+    $('pendVerHechos').onclick=()=>{ VER_HECHOS=!VER_HECHOS; renderPendientes(); };
+    const lista = VER_HECHOS ? abiertos.concat(hechos) : abiertos;
+    box.innerHTML = lista.length ? lista.slice(0,60).map(p=>pendRow(p,true)).join('')
+      : `<div style="color:#6d7d85;font-size:12.5px;padding:6px 0">${todos.length?'No quedan pendientes abiertos. 👌':'Los pendientes que anotes en las minutas van a aparecer acá.'}</div>`;
+    wirePend(box);
+  }
+  // Al hacer la minuta: los pendientes que siguen abiertos de reuniones anteriores con esa persona
+  function renderPrevPend(x){
+    const box=$('dmPrevPend'); if(!box) return;
+    const prev=pendientesDe(r=>String(r.id)!==String(x.id) && String(r.usuario_id)===String(x.usuario_id) && String(r.fecha)<=String(x.fecha)).filter(p=>!p.hecho);
+    if(!prev.length){ box.innerHTML=''; return; }
+    box.innerHTML=`<div style="background:#fffaf0;border:1px solid #f0e2bf;border-radius:11px;padding:10px 12px;margin-bottom:13px">
+      <div style="font-weight:800;font-size:12.5px;color:#8a6414;margin-bottom:4px">⏭️ Pendientes abiertos de reuniones anteriores${x.personal?'':' con '+esc(x.destinatario||'')}</div>
+      ${prev.map(p=>pendRow(p,false)).join('')}</div>`;
+    wirePend(box);
   }
 
   function minRowHtml(v){ return `<div class="min-row"><input type="text" value="${esc(v||'')}" placeholder="Escribí acá…"><button type="button" class="del" onclick="this.parentElement.remove()">×</button></div>`; }
@@ -246,6 +338,7 @@
     (m.pendientes&&m.pendientes.length?m.pendientes:['']).forEach(t=>minAdd('pend',t));
     $('dmNotas').value=m.notas||'';
     $('dmSave').disabled=false; $('dmSave').textContent='✔ Guardar minuta';
+    renderPrevPend(x);
     $('dmov').style.display='flex';
     if(window.mountMinutaIA) window.mountMinutaIA($('miaMount'), fillMinutaIA);
   }
@@ -264,7 +357,8 @@
     try{
       const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'minuta',id:_minReu.id,temas,pendientes:pend,notas,transcript:_minTranscript||undefined})});
       const d=await r.json(); if(!r.ok||!d.ok){ alert(d.error||'No se pudo guardar'); btn.disabled=false; btn.textContent='✔ Guardar minuta'; return; }
-      _minReu.minuta={temas,pendientes:pend,notas:notas||null,transcript:_minTranscript||(_minReu.minuta&&_minReu.minuta.transcript)||null,resumen_html:(_minReu.minuta&&_minReu.minuta.resumen_html)||null}; _minReu.estado='realizada';
+      const peAnt=(_minReu.minuta&&_minReu.minuta.pend_estado)||{}, pe={}; pend.forEach(t=>{ if(peAnt[t]) pe[t]=peAnt[t]; });
+      _minReu.minuta={temas,pendientes:pend,notas:notas||null,transcript:_minTranscript||(_minReu.minuta&&_minReu.minuta.transcript)||null,resumen_html:(_minReu.minuta&&_minReu.minuta.resumen_html)||null,pend_estado:pe}; _minReu.estado='realizada';
       cerrarMin(); cargarLista();
     }catch(e){ alert('Error de conexión'); btn.disabled=false; btn.textContent='✔ Guardar minuta'; }
   }
@@ -272,18 +366,19 @@
   window.minAdd=minAdd; window.cerrarMin=cerrarMin; window.guardarMinuta=guardarMinuta; window.abrirMinuta=abrirMinuta; window.verMin=verMin; window.verRes=verRes;
 
   $('rGuardar').onclick=async()=>{
-    const usuario_id=$('rUser').value, titulo=$('rTit').value.trim();
-    if(!usuario_id){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent='Elegí un usuario.'; return; }
+    const usuario_id=$('rUser').value||'__yo__', titulo=$('rTit').value.trim();
     if(!titulo){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent='Poné un título.'; return; }
     if(!$('rFecha').value){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent='Elegí la fecha.'; return; }
-    $('rGuardar').disabled=true; $('rMsg').style.color='#6d7d85'; $('rMsg').textContent='Programando…';
+    $('rGuardar').disabled=true; $('rMsg').style.color='#6d7d85'; $('rMsg').textContent= EDIT_ID ? 'Guardando…' : 'Programando…';
     try{
-      const body={accion:'crear',usuario_id,titulo,tipo:$('rTipo').value,fecha:$('rFecha').value,hora:$('rHora').value||null,lugar:$('rLugar').value.trim(),detalle:$('rDet').value.trim()};
-      const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify(body)});
-      const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
-      $('rTit').value='';$('rLugar').value='';$('rDet').value='';
-      $('rMsg').style.color='#256f54'; $('rMsg').textContent='✓ Programada. Al usuario le aparece en su agenda.';
-      cargarLista(); setTimeout(cerrar,900);
+      const body={accion:EDIT_ID?'editar':'crear',id:EDIT_ID||undefined,usuario_id,titulo,tipo:$('rTipo').value,fecha:$('rFecha').value,hora:$('rHora').value||null,lugar:$('rLugar').value.trim(),detalle:$('rDet').value.trim()};
+      await post(body);
+      const personal = usuario_id==='__yo__';
+      $('rMsg').style.color='#256f54';
+      $('rMsg').textContent = EDIT_ID ? '✓ Cambios guardados.'+(personal?'':' Si cambió el día, la hora o la persona, le llega el aviso.')
+                                      : (personal ? '✓ Anotado en tu agenda.' : '✓ Programada. Le aparece en su agenda.');
+      selDia=$('rFecha').value; const [Y,M]=selDia.split('-').map(Number); calRef=new Date(Y,M-1,1);
+      EDIT_ID=null; cargarLista(); setTimeout(cerrar,900);
     }catch(e){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent=e.message; }
     finally{ $('rGuardar').disabled=false; }
   };

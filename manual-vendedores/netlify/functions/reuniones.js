@@ -34,9 +34,10 @@ exports.handler = async (event) => {
 
       if (b.accion === 'crear') {
         if (!isDir) return json(403, { error: 'Solo Dirección puede programar reuniones.' });
-        if (!b.usuario_id) return json(400, { error: 'Falta el usuario.' });
         if (!b.titulo)     return json(400, { error: 'Falta el título.' });
         if (!b.fecha)      return json(400, { error: 'Falta la fecha.' });
+        // Evento personal (sin otro usuario): queda a nombre de quien lo crea.
+        if (!b.usuario_id || b.usuario_id === '__yo__') b.usuario_id = user.id;
         const fila = {
           usuario_id: b.usuario_id, titulo: b.titulo, detalle: b.detalle || null,
           tipo: ['reunion', 'llamada', 'visita', 'capacitacion'].includes(b.tipo) ? b.tipo : 'reunion',
@@ -45,14 +46,76 @@ exports.handler = async (event) => {
         };
         const r = await sb('reuniones', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) });
         if (!r.ok) return json(502, { error: 'No pude crear: ' + (await r.text()).slice(0, 160) });
-        // aviso al usuario en su campanita
-        try {
+        // aviso al usuario en su campanita (no si es un evento personal)
+        if (String(b.usuario_id) !== String(user.id)) try {
           const quien = (perfil.nombre && !/@/.test(perfil.nombre)) ? String(perfil.nombre).split(/\s+/)[0] : 'Dirección';
           const detalle = fila.titulo + ' · ' + fila.fecha + (fila.hora ? ' ' + String(fila.hora).slice(0, 5) : '');
           await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ destinatario_id: b.usuario_id, icono: '📌', titulo: quien + ' te programó una reunión', detalle, link: 'agenda.html' }) });
           await pushA(sb, b.usuario_id, { title: '📌 ' + quien + ' te programó una reunión', body: detalle, url: '/agenda.html', tag: 'reu-new-' + b.usuario_id });
         } catch (e) {}
         return json(200, { ok: true, reunion: (await r.json())[0] });
+      }
+
+      // Editar una reunión (fecha, hora, persona, título…). Si cambia cuándo o con quién,
+      // vuelve a pedir confirmación y los recordatorios se reprograman.
+      if (b.accion === 'editar' && b.id) {
+        if (!isDir) return json(403, { error: 'Solo Dirección puede editar reuniones.' });
+        const cur = (await (await sb('reuniones?id=eq.' + encodeURIComponent(b.id) + '&select=*')).json())[0];
+        if (!cur) return json(404, { error: 'No existe.' });
+        if (!b.titulo) return json(400, { error: 'Falta el título.' });
+        if (!b.fecha)  return json(400, { error: 'Falta la fecha.' });
+        const destino = (!b.usuario_id || b.usuario_id === '__yo__') ? user.id : b.usuario_id;
+        const patch = {
+          usuario_id: destino, titulo: b.titulo, detalle: b.detalle || null,
+          tipo: ['reunion', 'llamada', 'visita', 'capacitacion'].includes(b.tipo) ? b.tipo : 'reunion',
+          fecha: b.fecha, hora: b.hora || null, lugar: b.lugar || null,
+        };
+        const hora5 = h => (h ? String(h).slice(0, 5) : '');
+        const cambioCuando = String(cur.fecha) !== String(patch.fecha) || hora5(cur.hora) !== hora5(patch.hora);
+        const cambioQuien  = String(cur.usuario_id) !== String(destino);
+        if (cambioCuando || cambioQuien) {
+          patch.aviso_dia_at = null; patch.aviso_hora_at = null;
+          if (['confirmada', 'rechazada'].includes(cur.estado)) { patch.estado = 'programada'; patch.respuesta = null; }
+        }
+        const r = await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
+        if (!r.ok) return json(502, { error: 'No pude guardar: ' + (await r.text()).slice(0, 160) });
+        if ((cambioCuando || cambioQuien) && String(destino) !== String(user.id)) {
+          try {
+            const quien = (perfil.nombre && !/@/.test(perfil.nombre)) ? String(perfil.nombre).split(/\s+/)[0] : 'Dirección';
+            const detalle = patch.titulo + ' · ' + patch.fecha + (patch.hora ? ' ' + hora5(patch.hora) : '');
+            const titulo = cambioQuien ? quien + ' te programó una reunión' : quien + ' cambió la reunión';
+            await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ destinatario_id: destino, icono: '📌', titulo, detalle, link: 'agenda.html' }) });
+            await pushA(sb, destino, { title: '📌 ' + titulo, body: detalle, url: '/agenda.html', tag: 'reu-edit-' + b.id });
+          } catch (e) {}
+        }
+        return json(200, { ok: true });
+      }
+
+      // Marcar un pendiente de la minuta como hecho (o volver a abrirlo)
+      if (b.accion === 'pendiente' && b.id && b.texto) {
+        const cur = (await (await sb('reuniones?id=eq.' + encodeURIComponent(b.id) + '&select=usuario_id,minuta')).json())[0];
+        if (!cur) return json(404, { error: 'No existe.' });
+        if (!isDir && String(cur.usuario_id) !== String(user.id)) return json(403, { error: 'No autorizado.' });
+        const minuta = cur.minuta || {};
+        minuta.pend_estado = minuta.pend_estado || {};
+        const t = String(b.texto);
+        if (b.hecho) minuta.pend_estado[t] = { hecho: true, at: new Date().toISOString(), por: perfil.nombre || user.email };
+        else delete minuta.pend_estado[t];
+        await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ minuta }) });
+        return json(200, { ok: true });
+      }
+
+      // Recordarle a la persona un pendiente de la reunión (campanita + aviso al celular)
+      if (b.accion === 'recordar-pendiente' && b.id && b.texto) {
+        if (!isDir) return json(403, { error: 'Solo Dirección.' });
+        const cur = (await (await sb('reuniones?id=eq.' + encodeURIComponent(b.id) + '&select=usuario_id,titulo,fecha')).json())[0];
+        if (!cur) return json(404, { error: 'No existe.' });
+        if (String(cur.usuario_id) === String(user.id)) return json(400, { error: 'Es un evento personal: no hay a quién avisarle.' });
+        const quien = (perfil.nombre && !/@/.test(perfil.nombre)) ? String(perfil.nombre).split(/\s+/)[0] : 'Dirección';
+        const detalle = String(b.texto).slice(0, 200) + ' · de la reunión "' + (cur.titulo || '') + '"';
+        await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ destinatario_id: cur.usuario_id, icono: '⏭️', titulo: quien + ' te recuerda un pendiente', detalle, link: 'agenda.html' }) });
+        try { await pushA(sb, cur.usuario_id, { title: '⏭️ ' + quien + ' te recuerda un pendiente', body: detalle, url: '/agenda.html', tag: 'reu-pend-' + b.id }); } catch (e) {}
+        return json(200, { ok: true });
       }
 
       if (b.accion === 'estado' && b.id) {
@@ -67,6 +130,14 @@ exports.handler = async (event) => {
         const patch = { estado: est };
         if (b.motivo !== undefined) patch.respuesta = String(b.motivo || '').trim() || null;
         await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
+        // Si Dirección la cancela, se le avisa a la persona (salvo que sea un evento personal)
+        if (est === 'cancelada' && isDir && cur.usuario_id && String(cur.usuario_id) !== String(user.id)) {
+          try {
+            const quien = (perfil.nombre && !/@/.test(perfil.nombre)) ? String(perfil.nombre).split(/\s+/)[0] : 'Dirección';
+            await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ destinatario_id: cur.usuario_id, icono: '❌', titulo: quien + ' canceló la reunión', detalle: cur.titulo || '', link: 'agenda.html' }) });
+            await pushA(sb, cur.usuario_id, { title: '❌ ' + quien + ' canceló la reunión', body: cur.titulo || '', url: '/agenda.html', tag: 'reu-cancel-' + b.id });
+          } catch (e) {}
+        }
         // Avisar a quien la programó (Dirección) que el usuario respondió → push
         if (esMia && cur.creado_por && (est === 'confirmada' || est === 'rechazada')) {
           const nombre = (perfil.nombre && !/@/.test(perfil.nombre)) ? perfil.nombre : 'El usuario';
@@ -88,6 +159,10 @@ exports.handler = async (event) => {
           transcript: (b.transcript != null ? String(b.transcript).slice(0, 300000) : (prev.transcript || null)) || null,
           resumen_html: prev.resumen_html || null,
         };
+        // Se conserva qué pendientes ya estaban hechos (los que siguen en la lista)
+        const pe = {};
+        Object.entries(prev.pend_estado || {}).forEach(([t, v]) => { if (minuta.pendientes.includes(t)) pe[t] = v; });
+        minuta.pend_estado = pe;
         const patch = { minuta, minuta_at: new Date().toISOString(), estado: 'realizada' };
         const r = await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
         if (!r.ok) return json(502, { error: 'No pude guardar la minuta: ' + (await r.text()).slice(0, 160) });
@@ -132,7 +207,7 @@ exports.handler = async (event) => {
         const us = await (await sb('usuarios?id=in.(' + ids.map(x => '"' + x + '"').join(',') + ')&select=id,nombre')).json();
         (us || []).forEach(u => { nombres[u.id] = u.nombre; });
       }
-      return json(200, { reuniones: (rows || []).map(r => ({ ...r, destinatario: nombres[r.usuario_id] || '—' })) });
+      return json(200, { reuniones: (rows || []).map(r => ({ ...r, destinatario: nombres[r.usuario_id] || '—', personal: String(r.usuario_id) === String(r.creado_por) })) });
     }
 
     // Historial de minutas del usuario (reuniones ya realizadas con minuta)
