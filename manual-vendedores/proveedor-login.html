@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2230">
+<title>GrandBar — Portal de Proveedores</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#0d2230;--navy2:#123246;--gold:#c0912f;--gold-d:#a97c22;--ink:#1b2a32;--muted:#8fa3ad;--cream:#f5f1e8;--danger:#e06a45;--font:'Inter',system-ui,sans-serif}
+  *{box-sizing:border-box}body{margin:0;font-family:var(--font);background:linear-gradient(160deg,#0d2230,#14324a);min-height:100vh;display:grid;place-items:center;color:#fff;-webkit-font-smoothing:antialiased;padding:20px}
+  .box{width:100%;max-width:400px;background:#fff;color:var(--ink);border-radius:18px;padding:30px 26px;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+  .brand{text-align:center;font-weight:800;font-size:20px;letter-spacing:.02em;margin-bottom:2px}
+  .brand .g{color:var(--gold-d)}
+  .kick{text-align:center;font-size:12px;color:#6d7d85;letter-spacing:.14em;text-transform:uppercase;margin-bottom:22px}
+  h1{font-size:18px;margin:0 0 4px;font-weight:800}
+  .s{font-size:13px;color:#6d7d85;margin:0 0 18px}
+  label{display:block;font-size:12px;font-weight:700;color:#5a6870;margin:12px 0 5px}
+  input{width:100%;border:1.5px solid #e0d8c8;border-radius:10px;padding:11px 13px;font:inherit;font-size:14.5px;outline:none}
+  input:focus{border-color:var(--gold)}
+  .btn{width:100%;margin-top:20px;border:0;border-radius:11px;background:var(--gold);color:#241a06;font:inherit;font-weight:800;font-size:15px;padding:13px;cursor:pointer}
+  .btn:disabled{opacity:.6}
+  .err{color:var(--danger);font-size:13px;margin-top:12px;text-align:center;font-weight:600;min-height:18px}
+  .foot{text-align:center;font-size:11.5px;color:#9aa7ad;margin-top:16px}
+</style>
+</head>
+<body>
+  <div class="box">
+    <div class="brand"><span class="g">Grand</span>Bar · Hub</div>
+    <div class="kick">Portal de Proveedores</div>
+    <h1>Ingresá con tu usuario</h1>
+    <p class="s">Accedé para proponer acciones al manual de vendedores y ver tus reportes.</p>
+    <form id="f" onsubmit="return false">
+      <label for="u">Usuario</label>
+      <input id="u" autocomplete="username" placeholder="tu usuario">
+      <label for="p">Contraseña</label>
+      <input id="p" type="password" autocomplete="current-password" placeholder="••••••••">
+      <button class="btn" id="btn" type="submit">Entrar</button>
+      <div class="err" id="err"></div>
+    </form>
+    <div class="foot">¿No tenés acceso? Escribinos y te damos tu usuario.</div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script>
+  // Si ya hay sesión de proveedor, pasar directo al panel.
+  try{ if(localStorage.getItem('gb_prov')) location.replace('proveedor.html'); }catch(e){}
+  const $=id=>document.getElementById(id);
+  async function entrar(){
+    const u=$('u').value.trim(), p=$('p').value;
+    $('err').textContent='';
+    if(!u||!p){ $('err').textContent='Completá usuario y contraseña.'; return; }
+    $('btn').disabled=true; $('btn').textContent='Entrando…';
+    try{
+      const { data, error } = await sb.from('proveedores_carga').select('usuario,password,empresa,activo')
+        .eq('usuario',u).eq('activo',true).maybeSingle();
+      if(error || !data || data.password!==p){ $('err').textContent='Usuario o contraseña incorrectos.'; $('btn').disabled=false; $('btn').textContent='Entrar'; return; }
+      localStorage.setItem('gb_prov', JSON.stringify({ usuario:data.usuario, empresa:data.empresa }));
+      location.replace('proveedor.html');
+    }catch(e){ $('err').textContent='No se pudo conectar. Reintentá.'; $('btn').disabled=false; $('btn').textContent='Entrar'; }
+  }
+  $('f').addEventListener('submit', entrar);
+  $('btn').addEventListener('click', entrar);
+</script>
+</body>
+</html>

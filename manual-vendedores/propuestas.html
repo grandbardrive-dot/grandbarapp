@@ -764,6 +764,7 @@ function propCard(p, admin){
     <div class="prop-acc">
       <button class="mini-btn mb-ok ${p.estado==='aprobada'?'on':''}" onclick="setEstado('${p.id}','aprobada')">✓ Aprobar</button>
       <button class="mini-btn mb-pe ${p.estado==='pendiente'?'on':''}" onclick="setEstado('${p.id}','pendiente')">◷ Pendiente</button>
+      <button class="mini-btn mb-pe ${p.estado==='cambios'?'on':''}" onclick="pedirCambios('${p.id}')" title="Devolver al proveedor con un comentario">✎ Pedir cambios</button>
       <button class="mini-btn mb-no ${p.estado==='descartada'?'on':''}" onclick="setEstado('${p.id}','descartada')">✕ Descartar</button>
       <button class="mini-btn mb-del" onclick="borrarPropuesta('${p.id}')" title="Borrar">🗑</button>
     </div>` : '';
@@ -810,6 +811,17 @@ async function setEstado(id, estado){
   const { error } = await sb.from('propuestas_acciones').update({estado}).eq('id', id);
   if (error){ alert('Error: '+error.message); return; }
   const p = _propsCache.find(x=>x.id===id); if (p) p.estado = estado;
+  renderPropuestas();
+}
+
+// Devuelve la propuesta al proveedor con un comentario (estado 'cambios').
+async function pedirCambios(id){
+  const p = _propsCache.find(x=>x.id===id);
+  const nota = prompt('¿Qué cambios le pedís al proveedor?', (p && p.nota_revision) || '');
+  if (nota===null) return;
+  const { error } = await sb.from('propuestas_acciones').update({ estado:'cambios', nota_revision: nota.trim()||null }).eq('id', id);
+  if (error){ alert('Error: '+error.message); return; }
+  if (p){ p.estado='cambios'; p.nota_revision=nota.trim()||null; }
   renderPropuestas();
 }
 
