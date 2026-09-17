@@ -85,7 +85,9 @@
   <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:90vh;overflow:auto;padding:20px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><b id="rTitulo" style="font-size:16px;flex:1">Programar reunión</b><button id="rX" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6d7d85">×</button></div>
     <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:8px 0 4px">Con quién</label>
-    <select id="rUser" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit"><option value="">Cargando usuarios…</option></select>
+    <input id="rUser" list="rUserLista" autocomplete="off" placeholder="Escribí un nombre o elegí de la lista (vacío = solo para mí)" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit">
+    <datalist id="rUserLista"></datalist>
+    <div id="rUserHint" style="font-size:11.5px;color:#6d7d85;margin-top:5px;min-height:15px"></div>
     <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Título</label>
     <input id="rTit" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit" placeholder="Ej: Revisión de objetivos del mes" maxlength="120">
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
@@ -150,7 +152,23 @@
   const estBadge={programada:['tag tr','Programada'],confirmada:['tag ok','Confirmada'],realizada:['tag ok','Realizada'],cancelada:['tag','Cancelada'],rechazada:['tag alto','No asiste']};
   let LISTA_REU=[], _minReu=null, calRef=new Date(), selDia=null, _minTranscript='', EDIT_ID=null, VER_HECHOS=false;
   const post=(body)=>fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify(body)}).then(async r=>{ const d=await r.json().catch(()=>({})); if(!r.ok||d.error) throw new Error(d.error||'No se pudo guardar'); return d; });
-  const conQuien=x=>x.personal?'🙋 Personal':'👤 '+esc(x.destinatario||'—');
+  // Con quién: un usuario del Portal (le llega el aviso) o un nombre libre en un evento personal
+  const conQuien=x=>x.personal?('🙋 Personal'+(x.con_quien?' · con '+esc(x.con_quien):'')):'👤 '+esc(x.destinatario||'—');
+  let USUARIOS=[], MI_ID=null;
+  const etiquetaUsuario=u=>(u.nombre||u.email)+(u.canal?' ('+u.canal+')':'');
+  const normNom=s=>String(s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  // Si lo escrito coincide con un usuario de la lista, es ese usuario; si no, es un nombre libre.
+  function usuarioEscrito(){
+    const t=normNom($('rUser').value);
+    if(!t) return null;
+    return USUARIOS.find(u=>normNom(etiquetaUsuario(u))===t || normNom(u.nombre)===t || normNom(u.email)===t) || null;
+  }
+  function pintarHintUsuario(){
+    const v=$('rUser').value.trim(), u=usuarioEscrito();
+    $('rUserHint').textContent = !v ? '🙋 Evento personal, no se le avisa a nadie.'
+      : u ? '👤 Usuario del Portal: le llega el aviso y lo ve en su agenda.'
+      : '🙋 Evento personal con "'+v+'" (no está en el Portal, no se avisa a nadie).';
+  }
   const _bs='font:inherit;font-weight:700;font-size:11.5px;cursor:pointer;border-radius:8px;padding:6px 11px';
   function minBtns(id, tieneMin){
     if(!tieneMin) return '<button data-min="'+id+'" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;'+_bs+'">📝 Hacer minuta</button>';
@@ -222,7 +240,7 @@
   function abrir(){
     EDIT_ID=null;
     $('rTitulo').textContent='Programar reunión'; $('rGuardar').textContent='Programar y avisar';
-    $('rUser').value='__yo__'; $('rTit').value=''; $('rHora').value=''; $('rTipo').value='reunion'; $('rLugar').value=''; $('rDet').value='';
+    $('rUser').value=''; pintarHintUsuario(); $('rTit').value=''; $('rHora').value=''; $('rTipo').value='reunion'; $('rLugar').value=''; $('rDet').value='';
     $('rFecha').value=selDia||isoOf(new Date());
     $('rov').style.display='flex'; $('rMsg').textContent='';
   }
@@ -230,8 +248,9 @@
     const x=_findReu(id); if(!x) return;
     EDIT_ID=x.id;
     $('rTitulo').textContent='Editar reunión'; $('rGuardar').textContent='Guardar cambios';
-    $('rUser').value = x.personal ? '__yo__' : x.usuario_id;
-    if($('rUser').value!==(x.personal?'__yo__':String(x.usuario_id))) $('rUser').insertAdjacentHTML('beforeend',`<option value="${esc(x.usuario_id)}">${esc(x.destinatario||'Usuario')}</option>`), $('rUser').value=x.usuario_id;
+    if(x.personal) $('rUser').value = x.con_quien || '';
+    else { const u=USUARIOS.find(u=>String(u.id)===String(x.usuario_id)); $('rUser').value = u ? etiquetaUsuario(u) : (x.destinatario||''); }
+    pintarHintUsuario();
     $('rTit').value=x.titulo||''; $('rFecha').value=x.fecha||''; $('rHora').value=x.hora?String(x.hora).slice(0,5):'';
     $('rTipo').value=x.tipo||'reunion'; $('rLugar').value=x.lugar||''; $('rDet').value=x.detalle||'';
     $('rov').style.display='flex'; $('rMsg').textContent='';
@@ -242,8 +261,9 @@
     try{
       const r=await fetch(FN+'?usuarios=1',{headers:{Authorization:'Bearer '+TOKEN}});
       const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
-      $('rUser').innerHTML='<option value="__yo__">🙋 Solo para mí (evento personal)</option>'+d.usuarios.map(u=>`<option value="${u.id}">${esc(u.nombre||u.email)}${u.canal?' ('+esc(u.canal)+')':''}</option>`).join('');
-    }catch(e){ $('rUser').innerHTML='<option value="">Error: '+esc(e.message)+'</option>'; }
+      USUARIOS=(d.usuarios||[]).filter(u=>String(u.id)!==String(MI_ID));
+      $('rUserLista').innerHTML=USUARIOS.map(u=>`<option value="${esc(etiquetaUsuario(u))}"></option>`).join('');
+    }catch(e){ $('rUserHint').textContent='No se pudo cargar la lista de usuarios: '+e.message; }
   }
 
   async function cargarLista(){
@@ -317,10 +337,12 @@
   // Al hacer la minuta: los pendientes que siguen abiertos de reuniones anteriores con esa persona
   function renderPrevPend(x){
     const box=$('dmPrevPend'); if(!box) return;
-    const prev=pendientesDe(r=>String(r.id)!==String(x.id) && String(r.usuario_id)===String(x.usuario_id) && String(r.fecha)<=String(x.fecha)).filter(p=>!p.hecho);
+    // Misma persona: el mismo usuario, o en eventos personales el mismo nombre escrito
+    const misma=r=> x.personal ? (r.personal && normNom(r.con_quien)===normNom(x.con_quien)) : String(r.usuario_id)===String(x.usuario_id);
+    const prev=pendientesDe(r=>String(r.id)!==String(x.id) && misma(r) && String(r.fecha)<=String(x.fecha)).filter(p=>!p.hecho);
     if(!prev.length){ box.innerHTML=''; return; }
     box.innerHTML=`<div style="background:#fffaf0;border:1px solid #f0e2bf;border-radius:11px;padding:10px 12px;margin-bottom:13px">
-      <div style="font-weight:800;font-size:12.5px;color:#8a6414;margin-bottom:4px">⏭️ Pendientes abiertos de reuniones anteriores${x.personal?'':' con '+esc(x.destinatario||'')}</div>
+      <div style="font-weight:800;font-size:12.5px;color:#8a6414;margin-bottom:4px">⏭️ Pendientes abiertos de reuniones anteriores${x.personal?(x.con_quien?' con '+esc(x.con_quien):''):' con '+esc(x.destinatario||'')}</div>
       ${prev.map(p=>pendRow(p,false)).join('')}</div>`;
     wirePend(box);
   }
@@ -366,12 +388,15 @@
   window.minAdd=minAdd; window.cerrarMin=cerrarMin; window.guardarMinuta=guardarMinuta; window.abrirMinuta=abrirMinuta; window.verMin=verMin; window.verRes=verRes;
 
   $('rGuardar').onclick=async()=>{
-    const usuario_id=$('rUser').value||'__yo__', titulo=$('rTit').value.trim();
+    const uElegido=usuarioEscrito();
+    const usuario_id= uElegido ? uElegido.id : '__yo__';
+    const con_quien = uElegido ? null : ($('rUser').value.trim() || null);
+    const titulo=$('rTit').value.trim();
     if(!titulo){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent='Poné un título.'; return; }
     if(!$('rFecha').value){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent='Elegí la fecha.'; return; }
     $('rGuardar').disabled=true; $('rMsg').style.color='#6d7d85'; $('rMsg').textContent= EDIT_ID ? 'Guardando…' : 'Programando…';
     try{
-      const body={accion:EDIT_ID?'editar':'crear',id:EDIT_ID||undefined,usuario_id,titulo,tipo:$('rTipo').value,fecha:$('rFecha').value,hora:$('rHora').value||null,lugar:$('rLugar').value.trim(),detalle:$('rDet').value.trim()};
+      const body={accion:EDIT_ID?'editar':'crear',id:EDIT_ID||undefined,usuario_id,con_quien,titulo,tipo:$('rTipo').value,fecha:$('rFecha').value,hora:$('rHora').value||null,lugar:$('rLugar').value.trim(),detalle:$('rDet').value.trim()};
       await post(body);
       const personal = usuario_id==='__yo__';
       $('rMsg').style.color='#256f54';
@@ -391,7 +416,8 @@
   (async()=>{
     const hub=supabase.createClient(HUB.url,HUB.key);
     const {data:{session}}=await hub.auth.getSession();
-    if(!session) return; TOKEN=session.access_token;
+    if(!session) return; TOKEN=session.access_token; MI_ID=session.user && session.user.id;
+    $('rUser').addEventListener('input', pintarHintUsuario);
     cargarUsuarios(); cargarLista();
   })();
 })();

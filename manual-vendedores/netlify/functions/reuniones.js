@@ -44,7 +44,16 @@ exports.handler = async (event) => {
           fecha: b.fecha, hora: b.hora || null, lugar: b.lugar || null,
           estado: 'programada', creado_por: user.id, creado_por_nombre: perfil.nombre || user.email,
         };
-        const r = await sb('reuniones', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) });
+        // Con quién (nombre libre) solo en eventos personales
+        const conQuien = String(b.usuario_id) === String(user.id) ? (String(b.con_quien || '').trim().slice(0, 120) || null) : null;
+        if (conQuien) fila.con_quien = conQuien;
+        let r = await sb('reuniones', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) });
+        if (!r.ok && conQuien && /con_quien/i.test(await r.clone().text())) {
+          // Todavía no existe la columna: se guarda el nombre al principio del detalle
+          delete fila.con_quien;
+          fila.detalle = 'Con: ' + conQuien + (fila.detalle ? '\n' + fila.detalle : '');
+          r = await sb('reuniones', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) });
+        }
         if (!r.ok) return json(502, { error: 'No pude crear: ' + (await r.text()).slice(0, 160) });
         // aviso al usuario en su campanita (no si es un evento personal)
         if (String(b.usuario_id) !== String(user.id)) try {
@@ -70,6 +79,8 @@ exports.handler = async (event) => {
           tipo: ['reunion', 'llamada', 'visita', 'capacitacion'].includes(b.tipo) ? b.tipo : 'reunion',
           fecha: b.fecha, hora: b.hora || null, lugar: b.lugar || null,
         };
+        if (String(destino) === String(user.id)) patch.con_quien = String(b.con_quien || '').trim().slice(0, 120) || null;
+        else if ('con_quien' in cur) patch.con_quien = null;
         const hora5 = h => (h ? String(h).slice(0, 5) : '');
         const cambioCuando = String(cur.fecha) !== String(patch.fecha) || hora5(cur.hora) !== hora5(patch.hora);
         const cambioQuien  = String(cur.usuario_id) !== String(destino);
@@ -77,7 +88,12 @@ exports.handler = async (event) => {
           patch.aviso_dia_at = null; patch.aviso_hora_at = null;
           if (['confirmada', 'rechazada'].includes(cur.estado)) { patch.estado = 'programada'; patch.respuesta = null; }
         }
-        const r = await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
+        let r = await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
+        if (!r.ok && 'con_quien' in patch && /con_quien/i.test(await r.clone().text())) {
+          const nombre = patch.con_quien; delete patch.con_quien;
+          if (nombre) patch.detalle = 'Con: ' + nombre + (patch.detalle && !/^Con: /.test(patch.detalle) ? '\n' + patch.detalle : '');
+          r = await sb('reuniones?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
+        }
         if (!r.ok) return json(502, { error: 'No pude guardar: ' + (await r.text()).slice(0, 160) });
         if ((cambioCuando || cambioQuien) && String(destino) !== String(user.id)) {
           try {
