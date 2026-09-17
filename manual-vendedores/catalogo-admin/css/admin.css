@@ -183,9 +183,13 @@ table.grid th {
   padding: 8px 8px;
   position: sticky;
   top: 0;
+  /* Sin esto, los interruptores y botones de las filas se dibujaban ENCIMA del
+     encabezado al scrollear (se veía un interruptor verde arriba de todo). */
+  z-index: 5;
   white-space: nowrap;
   font-weight: 600;
 }
+table.grid tbody tr { position: relative; z-index: 0; }
 table.grid td {
   padding: 4px 6px;
   border-bottom: 1px solid rgba(31, 68, 127, 0.08);
