@@ -632,7 +632,9 @@ async function getChecklistDynamic(tipo, zonaPedida) {
     // los rubros separados sin secciones cargadas (hotel/bar/disco/mayorista) se muestran
     // VACÍOS — NO caen al manual de Restaurantes.
     if (!secciones) {
-      _clCache[clave] = CHECKLISTS[canal] || { id: canal, label: RUBRO_LABELS[canal] || canal, heroSubtitulo: '', secciones: [] };
+      // Sin secciones cargadas: manual vacío. Ya no se usa el checklist escrito en el
+      // código (tenía productos, precios y condiciones de ejemplo que no son reales).
+      _clCache[clave] = { id: canal, label: RUBRO_LABELS[canal] || canal, heroSubtitulo: '', secciones: [] };
       return _clCache[clave];
     }
 
@@ -726,9 +728,10 @@ async function getChecklistDynamic(tipo, zonaPedida) {
     return result;
 
   } catch(e) {
-    console.warn('[checklist] Fallback a datos hardcodeados:', e.message);
-    _clCache[clave] = getChecklist(tipo);
-    return _clCache[clave];
+    // Si falla la conexión NO se muestra un manual inventado: queda vacío y la visita
+    // avisa que no se pudo cargar. No se guarda en caché para reintentar al volver.
+    console.warn('[checklist] No se pudo leer el manual:', e.message);
+    return { id: canal, label: RUBRO_LABELS[canal] || canal, heroSubtitulo: '', secciones: [], errorCarga: true };
   }
 }
 

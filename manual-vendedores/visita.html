@@ -1530,33 +1530,7 @@ body { background:transparent !important; }
           </div>
         </div>
 
-        <!-- Programa Chandon — vacío -->
-        <div class="ficha-acord" style="margin-bottom:7px;border-radius:8px">
-          <button class="ficha-acord-btn" style="border-radius:8px"
-                  onclick="toggleAcord('sat-chandon-body','sat-chandon-chev')">
-            <span class="ficha-acord-title" style="font-size:12px">🥂 Programa Chandon</span>
-            <span class="ficha-acord-chev" id="sat-chandon-chev">▼</span>
-          </button>
-          <div class="ficha-acord-body" id="sat-chandon-body">
-            <div style="font-size:12px;color:var(--text3);font-style:italic;padding:6px 0">
-              Este programa se habilitará próximamente.
-            </div>
-          </div>
-        </div>
 
-        <!-- Otros incentivos — vacío -->
-        <div class="ficha-acord" style="margin-bottom:0;border-radius:8px">
-          <button class="ficha-acord-btn" style="border-radius:8px"
-                  onclick="toggleAcord('sat-otros-body','sat-otros-chev')">
-            <span class="ficha-acord-title" style="font-size:12px">🎯 Otros incentivos</span>
-            <span class="ficha-acord-chev" id="sat-otros-chev">▼</span>
-          </button>
-          <div class="ficha-acord-body" id="sat-otros-body">
-            <div style="font-size:12px;color:var(--text3);font-style:italic;padding:6px 0">
-              Este programa se habilitará próximamente.
-            </div>
-          </div>
-        </div>
 
       </div>
     </div>
@@ -1651,7 +1625,7 @@ body { background:transparent !important; }
     </div>
     <div class="camino-trofeo">
       <span class="camino-trofeo-ico">🏆</span>
-      <span class="camino-trofeo-txt">Completá todos los módulos y desbloqueá beneficios exclusivos.</span>
+      <span class="camino-trofeo-txt">Completá todos los módulos de la visita.</span>
       <span class="camino-trofeo-chev">›</span>
     </div>
   </div>
@@ -2763,7 +2737,9 @@ body { background:transparent !important; }
     if (slotCampari) slotCampari.innerHTML = hayCampariSubsec ? '' : renderEspCampari();
     document.getElementById('hero-tipo').textContent   = checklist.label;
     document.getElementById('hoy-fecha').textContent   = new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long'});
-    document.getElementById('checklist-container').innerHTML = checklist.secciones.map(renderSeccion).join('');
+    document.getElementById('checklist-container').innerHTML = checklist.errorCarga
+      ? `<div style="padding:22px 16px;text-align:center;color:var(--text2);font-size:14px;line-height:1.5">⚠️ No se pudo cargar el manual de este cliente.<br>Revisá la conexión y volvé a entrar.</div>`
+      : checklist.secciones.map(renderSeccion).join('');
     updProg();
     cargarHistorial();
     cargarAcuerdosCampari();
@@ -3083,6 +3059,21 @@ body { background:transparent !important; }
     renderMinutaAnterior(data[0]);
   }
 
+  // Abre la Introducción y muestra el bloque "Acciones programadas" de la última visita.
+  function irAAccionesProgramadas() {
+    const intro = seccionesHoja(checklist).find(esIntro) || checklist.secciones.find(esIntro);
+    if (!intro) return;
+    scrollToSec(intro.id);
+    setTimeout(() => {
+      const bloque = [...document.querySelectorAll('#minuta-anterior .minuta-block')]
+        .find(b => /Acciones programadas/i.test(b.textContent));
+      if (!bloque) return;
+      bloque.scrollIntoView({ behavior:'smooth', block:'center' });
+      bloque.style.transition = 'background .3s'; bloque.style.background = '#FFF4D6';
+      setTimeout(() => { bloque.style.background = ''; }, 1600);
+    }, 350);
+  }
+
   // ── C) MINUTA DE VISITA ANTERIOR ──────────────────────────────────────────
   async function renderMinutaAnterior(v) {
     const cont = document.getElementById('minuta-anterior');
@@ -3106,6 +3097,8 @@ body { background:transparent !important; }
       .eq('cliente_id', cliente.id)
       .order('created_at', { ascending:false })
       .limit(6);
+    // Primero las pendientes, que son las que hay que ejecutar
+    (comps||[]).sort((a,b) => ((a.estado||'pendiente')==='pendiente' ? 0 : 1) - ((b.estado||'pendiente')==='pendiente' ? 0 : 1));
     const compsHtml = (comps && comps.length)
       ? comps.map(c => {
           const est = (c.estado||'pendiente').toLowerCase();
@@ -3373,9 +3366,11 @@ body { background:transparent !important; }
       const cols = splitCSV(lines[i]);
       if (normCod(cols[0]) === codigoCliente) {
         const resultado = {};
+        // Solo las marcas que tienen columna en la planilla: si una no está, no se
+        // muestra como "sin cobertura" (no hay dato).
         MARCAS_5T.forEach(m => {
           const ci = marcaIdx[m.colName];
-          resultado[m.colName] = ci !== undefined ? cols[ci] === '1' : false;
+          if (ci !== undefined) resultado[m.colName] = cols[ci] === '1';
         });
         return resultado;
       }
@@ -3411,7 +3406,7 @@ body { background:transparent !important; }
     secEl.style.display = 'block';
 
     contEl.innerHTML = `<div class="prog-cards">` +
-      MARCAS_5T.map(marca => {
+      MARCAS_5T.filter(marca => marca.colName in datos).map(marca => {
         const tiene = datos[marca.colName] === true;
         const status = `<span class="prog-status ${tiene ? 'ok' : 'no'}">${tiene ? '✓' : '✗'}</span>`;
         return `<div class="prog-card${tiene ? '' : ' prog-card-ausente'}">
@@ -3982,10 +3977,9 @@ body { background:transparent !important; }
   }
   // S1 — Vidrieras
   function renderEspVidriera(sec) {
-    const OPCIONES_VIDRIERA = [
-      { id:'dona_paula', bodega:'Doña Paula', tipo:'Exclusiva 3 meses', detalle:'Mínimo 12 cajas/mes', regalo:'🎁 1 caja + material POP' },
-      { id:'salentein',  bodega:'Salentein',  tipo:'Compartida',        detalle:'Mínimo 6 cajas/mes Killka o Numina', regalo:'🎁 Cenefa + display' },
-    ];
+    // Sin planes escritos en el código: los planes de vidriera salen de la tabla
+    // planes_vidriera (cargarPlanesVidriera). Si no hay, se dice que no hay.
+    const OPCIONES_VIDRIERA = [];
     const pdfBtn = sec.pdf_url
       ? `<button class="esp-ac-btn pdf" onclick="abrirCatalogoPdf('${escJs(sec.pdf_url)}','🪟 Propuestas de vidriera')">📄 Ver propuestas</button>`
       : `<button class="esp-ac-btn pdf" onclick="showToast('Sin propuestas cargadas','info')" style="opacity:.6">📄 Ver propuestas</button>`;
@@ -3997,6 +3991,7 @@ body { background:transparent !important; }
           <div style="font-size:11px;color:rgba(255,255,255,.5);font-style:italic">Verificando acuerdo activo…</div>
         </div>
         <div id="vidriera-opciones-${sec.id}" style="display:none">
+          <div class="esp-loading">Todavía no hay planes de vidriera cargados.</div>
           ${OPCIONES_VIDRIERA.map(op => `
             <div class="acuerdo-opcion">
               <div class="acuerdo-opcion-bodega">${esc(op.bodega)} — ${esc(op.tipo)}</div>
@@ -4198,8 +4193,7 @@ body { background:transparent !important; }
           <span style="color:rgba(255,255,255,.4);font-size:14px">›</span>
         </div>
 
-        ${asAcord('as-chandon-'+sec.id, '🥂 Programa Chandon', '', 'Este programa se habilitará próximamente')}
-        ${asAcord('as-otros-'+sec.id,   '🎯 Otros incentivos',  '', 'Este programa se habilitará próximamente')}
+
       </div>`;
   }
 
@@ -4751,10 +4745,13 @@ body { background:transparent !important; }
       .select('*')
       .eq('cliente_id', cliente.id)
       .eq('activo', true)
+      .order('fecha_fin', { ascending:false })
+      .limit(1)
       .maybeSingle();
 
     if (data) {
-      const bodegaLabel = data.bodega === 'dona_paula' ? 'Doña Paula' : 'Salentein';
+      // La bodega tal cual está cargada (antes todo lo que no era Doña Paula decía "Salentein")
+      const bodegaLabel = data.bodega === 'dona_paula' ? 'Doña Paula' : String(data.bodega || '').replace(/_/g, ' ');
       const fin = new Date(data.fecha_fin).toLocaleDateString('es-AR', { day:'numeric', month:'short', year:'numeric' });
       el.innerHTML = `
         <div class="vidriera-activo">
@@ -5364,10 +5361,8 @@ body { background:transparent !important; }
   const PROP_SECCION_CARRITO = 'Incorporaciones';
   const PROP_PROVEEDOR_ORDEN = ['Peñaflor', 'Salentein', 'Diageo', 'Campari', 'Pernod Ricard', 'Jack Daniels', 'Absolut'];
   const PROP_GRUPO_ORDEN = ['innovaciones', '11_titulares', 'Whisky', 'Vodka', 'Gin'];
-  // Texto fijo por proveedor (lo más simple; si se quiere editable, mover a una tablita)
-  const PROP_PROVEEDOR_TEXTO = {
-    'Peñaflor': 'Condición especial 1+2 para las líneas participantes de Peñaflor. Ideal para activar múltiples etiquetas en un solo pedido y maximizar el beneficio para el cliente.',
-  };
+  // Sin textos escritos en el código: el texto de cada proveedor sale de propuestas_textos.
+  const PROP_PROVEEDOR_TEXTO = {};
 
   // Texto por proveedor que se muestra arriba de sus propuestas. Lo edita Luciana en
   // admin-propuestas.html (tabla propuestas_textos). Si la tabla no está o el proveedor
@@ -6590,7 +6585,7 @@ body { background:transparent !important; }
       if (text) {
         const datos = parse5TCSV(text);
         if (datos && typeof MARCAS_5T !== 'undefined') {
-          const faltan = MARCAS_5T.filter(m => datos[m.colName] !== true).length;
+          const faltan = MARCAS_5T.filter(m => (m.colName in datos) && datos[m.colName] !== true).length;
           if (faltan > 0) alertas.push({ tipo:'amarillo', ico:'🔴', titulo:`Le faltan ${faltan} de las 5T de Campari`, sub:'Completá el plan este mes', target:'vt_gondola_spirits' });
         }
       }
@@ -6611,7 +6606,9 @@ body { background:transparent !important; }
     try {
       const { data } = await sb.from('compromisos').select('id,estado')
         .eq('cliente_id', cliente.id).eq('estado', 'pendiente');
-      if (data && data.length) alertas.push({ tipo:'amarillo', ico:'📌', titulo:`${data.length} acción${data.length===1?'':'es'} programada${data.length===1?'':'s'} pendiente${data.length===1?'':'s'}`, sub:'Ejecutá lo acordado', target:'vt_cierre' });
+      // Lleva a donde se ven las acciones pendientes: el resumen de la última visita
+      // (Introducción). Antes mandaba al cierre, donde no aparecen.
+      if (data && data.length) alertas.push({ tipo:'amarillo', ico:'📌', titulo:`${data.length} acción${data.length===1?'':'es'} programada${data.length===1?'':'s'} pendiente${data.length===1?'':'s'}`, sub:'Ejecutá lo acordado', target:'__acciones_programadas' });
     } catch {}
 
     // 5) No incorporó nuevos vinos en los últimos 2 meses
@@ -6631,7 +6628,7 @@ body { background:transparent !important; }
     if (!alertas.length) { wrap.style.display = 'none'; return; }
     wrap.style.display = 'flex';
     wrap.innerHTML = alertas.map(a => `
-      <button class="alerta-chip ${a.tipo}" onclick="scrollToSec('${a.target}')">
+      <button class="alerta-chip ${a.tipo}" onclick="${a.target==='__acciones_programadas' ? 'irAAccionesProgramadas()' : `scrollToSec('${a.target}')`}">
         <span class="alerta-chip-ico">${a.ico}</span>
         <span class="alerta-chip-txt">
           <span class="alerta-chip-titulo">${esc(a.titulo)}</span>
@@ -6660,17 +6657,13 @@ body { background:transparent !important; }
     if (visitas2.length >= 1 && !trabajoIncorp)
       ops.push({ id:'op_incorp', txt:'Presentar nuevas etiquetas — no se trabajaron incorporaciones recientemente', target:'vt_incorporaciones' });
 
-    // 2) Si no tiene RTD en heladera → heladera integral (heurística: no se marcó heladera)
-    const trabajoHeladera = visitas2.some(v => (v.progreso?.['vt_heladera'])?.checks?.some(Boolean));
-    if (!trabajoHeladera)
-      ops.push({ id:'op_heladera', txt:'Propuesta de heladera integral (RTD, cervezas, energizantes)', target:'vt_heladera' });
 
     // 3) Si le faltan 5T → completar plan Campari
     try {
       const text = await fetchSheet5T();
       const datos = text ? parse5TCSV(text) : null;
       if (datos && typeof MARCAS_5T !== 'undefined') {
-        const faltan = MARCAS_5T.filter(m => datos[m.colName] !== true);
+        const faltan = MARCAS_5T.filter(m => (m.colName in datos) && datos[m.colName] !== true);
         if (faltan.length) ops.push({ id:'op_5t', txt:`Completar plan Campari — faltan: ${faltan.map(m=>m.nombre).join(', ')}`, target:'vt_gondola_spirits' });
       }
     } catch {}
@@ -6757,13 +6750,8 @@ body { background:transparent !important; }
       promos = data || [];
     } catch {}
     if (!promos.length) {
-      // Fallback base
-      const base = tipo === 'vinos'
-        ? [{marca:'Doña Paula', nombre:'Argentine Edition Mundial', condicion:'5+1 en caja + exhibidor de regalo'},
-           {marca:'Zuccardi',   nombre:'Valle de Uco',              condicion:'3+1 en blend Malbec'}]
-        : [{marca:'Campari',  nombre:'Campari Tonic Bundle', condicion:'Pack 6 + tónica de regalo'},
-           {marca:'SKYY',     nombre:'SKYY Vodka Sabores',   condicion:'1+1 en introducción de línea'}];
-      promos = base;
+      el.innerHTML = `<div class="esp-loading">Todavía no hay promociones de góndola cargadas.</div>`;
+      return;
     }
     el.innerHTML = promos.map(p => espAccionCard(secLabel, {
       marca: p.marca, nombre: p.nombre, cond: p.condicion, desc: p.descripcion, pdf: p.pdf_url, img: p.imagen_url,
@@ -6788,10 +6776,8 @@ body { background:transparent !important; }
       items = data || [];
     } catch {}
     if (!items.length) {
-      items = [
-        { nombre:'Condición general — todo el portafolio', condicion:'1+1 primera compra de línea', beneficios:'Sin mínimo de cajas' },
-        { nombre:'Peñaflor 11T', condicion:'1+2 condición especial 11 tintos', beneficios:'Alma Mora, Don David, Fond de Cave, Cazador, Mascota, NC, Trapiche' },
-      ];
+      el.innerHTML = `<div class="esp-loading">Todavía no hay incorporaciones cargadas.</div>`;
+      return;
     }
     el.innerHTML = items.map(p => espAccionCard('Incorporaciones', {
       nombre: p.nombre, cond: p.condicion, desc: p.beneficios || p.descripcion, pdf: p.pdf_url, img: p.imagen_url,
@@ -6840,22 +6826,8 @@ body { background:transparent !important; }
   }
 
   // ── S6 — Productos de Heladera ─────────────────────────────────────────────
-  function renderVtHeladera(sec) {
-    const productos = [
-      { marca:'RTD', nombre:'Aperol Spritz', cond:'Listo para tomar' },
-      { marca:'RTD', nombre:'Campari Spritz', cond:'Listo para tomar' },
-      { marca:'RTD', nombre:'Gin Tonic RTD', cond:'Gordon’s / línea premium' },
-      { marca:'Frío', nombre:'Cervezas', cond:'Surtido y facings' },
-      { marca:'Frío', nombre:'Energizantes', cond:'Combinables con spirits' },
-    ];
-    return `<div class="esp-block">
-      <div class="esp-block-title" style="font-size:12px;font-weight:700;color:#fff;margin-bottom:8px">Productos de heladera</div>
-      ${productos.map(p => espAccionCard('Productos de Heladera', {
-        marca:p.marca, nombre:p.nombre, cond:p.cond,
-        botones:[{label:'Agregar a visita',estado:'Presentada'},{label:'Programar ejecución',estado:'Programada',cls:'primary'}]
-      })).join('')}
-    </div>`;
-  }
+  // Sin productos escritos en el código: lo de heladera sale de las ofertas del catálogo.
+  function renderVtHeladera(sec) { return ''; }
 
   // ── S8 — Fechas Especiales (calendario) ────────────────────────────────────
   let calRefMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
