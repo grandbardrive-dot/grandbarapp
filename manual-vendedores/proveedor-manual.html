@@ -88,13 +88,19 @@ const ORDEN=['restaurante','bar','vinoteca','autoservicio','tienda_bebidas','hot
 const rLbl=r=>(RUBRO[r]?RUBRO[r][1]:r), rEm=r=>(RUBRO[r]?RUBRO[r][0]:'📘');
 function toast(m,e){const t=$('toast');t.textContent=m;t.className='toast show'+(e?' err':'');setTimeout(()=>t.className='toast',2600);}
 
-let PROV=null; try{ PROV=JSON.parse(localStorage.getItem('gb_prov')||'null'); }catch(e){}
-if(!PROV||!PROV.empresa){ location.replace('proveedor-login.html'); }
-
+// El proveedor entra por el MISMO login del Hub (index.html) con rol 'proveedor'.
+const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
+let hub, PROV=null;
 let SECS=[], MADRES={}, HIJAS={}, PROPS={};   // por canal
 let curCanal=null, curSec=null;
 
 (async()=>{
+  hub=supabase.createClient(HUB.url,HUB.key);
+  const {data:{session}}=await hub.auth.getSession();
+  if(!session){ location.replace('../index.html'); return; }
+  const {data:perfil}=await hub.from('usuarios').select('nombre,rol,empresa').eq('id',session.user.id).maybeSingle();
+  if(!perfil || perfil.rol!=='proveedor'){ location.replace('../index.html'); return; }
+  PROV={empresa: perfil.empresa || perfil.nombre, nombre: perfil.nombre};
   try{
     const [{data:secs},{data:props}]=await Promise.all([
       sb.from('checklist_secciones').select('id,canal,codigo,nombre,icono,orden,parent_id').eq('zona','mendoza').eq('activa',true).order('orden'),

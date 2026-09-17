@@ -211,6 +211,7 @@
       try {
         const s = await GBAuth.getSession();
         if (s && (s.role === "direccion" || s.role === "admin" || s.role === "duenio")) d = "direccion.html";
+        else if (s && s.role === "proveedor") d = "manual-vendedores/proveedor.html";
         else if (s && s.es_supervisor) d = "supervisor-equipo.html";
         else if (s && s.role === "ventas") d = "inicio.html";
       } catch (e) {}

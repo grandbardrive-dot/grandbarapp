@@ -69,14 +69,20 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const RUBRO={restaurante:['🍽️','Restaurante'],bar:['🍸','Bar'],vinoteca:['🍷','Vinoteca'],autoservicio:['🏪','Autoservicio'],tienda_bebidas:['🏬','Tienda de Bebidas'],hotel:['🏨','Hotel'],disco:['💿','Disco'],evento:['🎉','Evento'],mayorista:['📦','Mayorista']};
 const rLbl=r=>(RUBRO[r]?RUBRO[r][1]:r);
-let PROV=null;
-try{ PROV=JSON.parse(localStorage.getItem('gb_prov')||'null'); }catch(e){}
-if(!PROV||!PROV.empresa){ location.replace('proveedor-login.html'); }
-function salir(){ try{localStorage.removeItem('gb_prov');}catch(e){} location.replace('proveedor-login.html'); }
-
+// El proveedor entra por el MISMO login del Hub (index.html) con rol 'proveedor'.
+const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
+let hub, PROV=null;
 const ESTADO={pendiente:['pend','⏳ Pendiente'],aprobada:['ok','✓ Aprobada'],descartada:['no','✕ Descartada'],cambios:['cam','✎ Te pidieron cambios']};
+async function salir(){ try{ await hub.auth.signOut(); }catch(e){} location.replace('../index.html'); }
+window.salir=salir;
 
 (async()=>{
+  hub=supabase.createClient(HUB.url,HUB.key);
+  const {data:{session}}=await hub.auth.getSession();
+  if(!session){ location.replace('../index.html'); return; }
+  const {data:perfil}=await hub.from('usuarios').select('nombre,rol,empresa').eq('id',session.user.id).maybeSingle();
+  if(!perfil || perfil.rol!=='proveedor'){ location.replace('../index.html'); return; }
+  PROV={empresa: perfil.empresa || perfil.nombre, nombre: perfil.nombre};
   $('emp').textContent=PROV.empresa;
   $('hola').textContent='Hola, '+PROV.empresa+' 👋';
   cargarAlertas();

@@ -42,7 +42,7 @@
       // Buscar el rol en la tabla usuarios (id = auth.users.id)
       const { data: perfil } = await client
         .from("usuarios")
-        .select("nombre, rol, es_supervisor, activo")
+        .select("nombre, rol, es_supervisor, activo, empresa")
         .eq("id", session.user.id)
         .single();
       // Quien está marcado como "sin acceso" en el panel NO entra. Antes ese campo
@@ -57,6 +57,7 @@
         role: perfil?.rol || "ventas",
         nombre: perfil?.nombre || session.user.email,
         es_supervisor: !!perfil?.es_supervisor,
+        empresa: perfil?.empresa || null,
       };
     },
 
