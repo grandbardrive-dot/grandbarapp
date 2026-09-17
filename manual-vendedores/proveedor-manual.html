@@ -181,7 +181,6 @@ async function enviar(){
   try{
     const { error }=await sb.from('propuestas_acciones').insert(row);
     if(error) throw error;
-    // actualizar el estado local para reflejar "ya propusiste"
     const k=curCanal+'|'+curSec.nombre; PROPS[k]=PROPS[k]||{otras:new Set(),mia:false}; PROPS[k].mia=true;
     $('ov').classList.remove('open');
     toast('✅ Propuesta enviada a GrandBar');

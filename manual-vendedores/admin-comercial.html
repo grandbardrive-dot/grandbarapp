@@ -355,6 +355,7 @@
   const fmtFecha = d => { const x = fechaDe(d); return x ? String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear() : '—'; };
 
   let CAMPANAS = [];
+  let PROP_PEND = 0;   // propuestas de proveedores pendientes de revisar
 
   function estadoDe(a){
     const publicada = a._tipo === 'plan' ? (a.activo !== false) : !!a.activa;
@@ -398,6 +399,7 @@
     }catch(e){ console.warn(e); }
     CAMPANAS = camp.concat(planes)
       .sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
+    try{ const rpp = await sb.from('propuestas_acciones').select('id',{count:'exact',head:true}).eq('estado','pendiente'); PROP_PEND = rpp.count||0; }catch(e){ PROP_PEND = 0; }
     renderStats();
     renderWarn();
     renderTabla();
@@ -424,8 +426,8 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>`).join('');
     const badge = document.getElementById('bell-badge');
-    const porVencer = contarPorVencer();
-    if(porVencer>0){ badge.style.display='flex'; badge.textContent = porVencer; }
+    const total = contarPorVencer() + PROP_PEND;
+    if(total>0){ badge.style.display='flex'; badge.textContent = total; } else { badge.style.display='none'; }
   }
 
   function contarPorVencer(){
@@ -496,7 +498,15 @@
   }
   function verGuias(){ alert('Guías y tutoriales — próximamente.'); }
   function soporte(){ abrirSoporte(); }
-  function verNotificaciones(){ const n=contarPorVencer(); alert(n?`Tenés ${n} campaña(s) que vencen en los próximos 7 días.`:'No hay novedades por ahora.'); }
+  function verNotificaciones(){
+    const v=contarPorVencer();
+    if(PROP_PEND){
+      const extra = v?`\nAdemás, ${v} campaña(s) vencen en los próximos 7 días.`:'';
+      if(confirm(`📥 Tenés ${PROP_PEND} propuesta(s) de proveedores para revisar.${extra}\n\n¿Ir a revisarlas?`)) location.href='admin-propuestas-proveedores.html';
+      return;
+    }
+    alert(v?`Tenés ${v} campaña(s) que vencen en los próximos 7 días.`:'No hay novedades por ahora.');
+  }
 
   cargar();
 </script>

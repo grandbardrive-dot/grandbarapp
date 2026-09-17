@@ -130,6 +130,8 @@
       ico:'<path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/><circle cx="4" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.4" fill="currentColor" stroke="none"/>' },
     { grupo:'Herramientas del manual', key:'propuestas', href:'admin-propuestas.html', label:'Propuestas', sub:'Incorporaciones',
       ico:'<path d="M12 5v14M5 12h14" stroke-linecap="round"/>' },
+    { key:'propuestas-prov', href:'admin-propuestas-proveedores.html', label:'De proveedores', sub:'Acciones a revisar',
+      ico:'<path d="M4 13l2 5h12l2-5M4 13V5h16v8M9 13h6" stroke-linecap="round" stroke-linejoin="round"/>' },
     { key:'vinocopa',  href:'admin-vino-copa.html', label:'Vino por copa', sub:'Vinos y condiciones',
       ico:'<path d="M8 3h8l-1 7a3 3 0 0 1-6 0zM12 13v8M8 21h8" stroke-linecap="round" stroke-linejoin="round"/>' },
     { key:'aperitivos', href:'admin-aperitivos.html', label:'Aperitivos', sub:'De bienvenida o pre cena',
