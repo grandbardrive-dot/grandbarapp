@@ -71,7 +71,47 @@
     });
   }
 
-  function iniciar() { pintar(); }
+  // ── Quién es: Dirección no usa las pantallas de vendedor ─────────────────
+  // Si alguien de Dirección cae acá (por un link o un aviso), se lo lleva a la
+  // pantalla equivalente de su panel. Para mirar a propósito cómo lo ve un
+  // vendedor: agregar ?mirar=1 a la dirección.
+  const ROLES_DIRECCION = ['direccion', 'admin', 'duenio'];
+  const EQUIVALENTE_DIR = { 'agenda': 'dir-agenda.html', 'clientes-hub': 'dir-clientes.html', 'inicio': 'direccion.html' };
+  const ETIQUETA_ROL = { ventas:'Vendedor', direccion:'Dirección', admin:'Dirección', duenio:'Dirección', administracion:'Administración',
+    tesoreria:'Tesorería', compras:'Compras', marketing:'Marketing', diseno:'Diseño', desarrollo:'Desarrollo', deposito:'Depósito', mayorista:'Mayorista' };
+  function sesionGuardada() {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (/^sb-xqhyemccbwmzxqzkrtwa-auth-token$/.test(k)) {
+          const v = JSON.parse(localStorage.getItem(k) || 'null');
+          const s = v && (v.currentSession || v);
+          if (s && s.access_token && s.user) return s;
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+  async function revisarRol() {
+    const s = sesionGuardada(); if (!s) return;
+    let perfil = null;
+    try {
+      const r = await fetch('https://xqhyemccbwmzxqzkrtwa.supabase.co/rest/v1/usuarios?id=eq.' + encodeURIComponent(s.user.id) + '&select=rol,es_supervisor',
+        { headers: { apikey: 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc', Authorization: 'Bearer ' + s.access_token } });
+      if (r.ok) perfil = (await r.json())[0] || null;
+    } catch (e) {}
+    if (!perfil) return;
+    const rol = String(perfil.rol || '').toLowerCase();
+    if (ROLES_DIRECCION.includes(rol) && !/[?&]mirar=1\b/.test(location.search)) {
+      location.replace(EQUIVALENTE_DIR[actual] || 'direccion.html');
+      return;
+    }
+    // El rol que se ve abajo del nombre (antes decía "Vendedor" para todos)
+    const etiqueta = perfil.es_supervisor ? 'Supervisor' : (ETIQUETA_ROL[rol] || 'Vendedor');
+    document.querySelectorAll('.sb-user .s').forEach(el => { if (/^\s*Vendedor\s*$/.test(el.textContent)) el.textContent = etiqueta; });
+  }
+
+  function iniciar() { pintar(); revisarRol(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
   else iniciar();
 })();

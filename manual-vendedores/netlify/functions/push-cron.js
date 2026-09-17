@@ -56,7 +56,9 @@ exports.handler = async (event) => {
       // Una HORA antes (solo si tiene hora)
       if (conHora && !r.aviso_hora_at && diffMin >= 0 && diffMin <= 70) {
         const body = r.titulo + ' · ' + pad(h) + ':' + pad(mi) + ' hs' + (r.lugar ? ' · ' + r.lugar : '');
-        await enviar(r.usuario_id, { title: '⏰ Reunión en 1 hora', body, url: '/agenda.html', tag: 'reu-h-' + r.id });
+        // Un evento personal (creado por Dirección para sí) abre la agenda de Dirección
+        const urlAgenda = (r.creado_por && String(r.creado_por) === String(r.usuario_id)) ? '/dir-agenda.html' : '/agenda.html';
+        await enviar(r.usuario_id, { title: '⏰ Reunión en 1 hora', body, url: urlAgenda, tag: 'reu-h-' + r.id });
         // También a quien la programó (Dirección), si es otra persona
         if (r.creado_por && String(r.creado_por) !== String(r.usuario_id))
           await enviar(r.creado_por, { title: '⏰ Reunión en 1 hora', body, url: '/dir-agenda.html', tag: 'reu-h-dir-' + r.id });
@@ -67,7 +69,7 @@ exports.handler = async (event) => {
       // Un DÍA antes (~24 h)
       if (!r.aviso_dia_at && diffMin >= 1380 && diffMin <= 1500) {
         const cuando = pad(D) + '/' + pad(M) + (conHora ? ' ' + pad(h) + ':' + pad(mi) + ' hs' : '');
-        await enviar(r.usuario_id, { title: '📅 Mañana tenés una reunión', body: r.titulo + ' · ' + cuando + (r.lugar ? ' · ' + r.lugar : ''), url: '/agenda.html', tag: 'reu-d-' + r.id });
+        await enviar(r.usuario_id, { title: '📅 Mañana tenés una reunión', body: r.titulo + ' · ' + cuando + (r.lugar ? ' · ' + r.lugar : ''), url: (r.creado_por && String(r.creado_por) === String(r.usuario_id)) ? '/dir-agenda.html' : '/agenda.html', tag: 'reu-d-' + r.id });
         if (r.creado_por && String(r.creado_por) !== String(r.usuario_id))
           await enviar(r.creado_por, { title: '📅 Mañana tenés una reunión', body: r.titulo + ' · ' + cuando + (r.lugar ? ' · ' + r.lugar : ''), url: '/dir-agenda.html', tag: 'reu-d-dir-' + r.id });
         await sb('reuniones?id=eq.' + encodeURIComponent(r.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ aviso_dia_at: new Date().toISOString() }) });
