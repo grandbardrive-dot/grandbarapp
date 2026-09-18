@@ -33,7 +33,8 @@
   .ov{display:none;position:fixed;inset:0;background:rgba(13,34,48,.5);z-index:30;align-items:flex-end;justify-content:center}
   .ov.open{display:flex}
   .sheet{background:#fff;width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px}
-  .sheet h3{margin:0 0 3px;font-size:17px}.sheet .ss{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+  .sheet h3{margin:0 0 3px;font-size:17px}.sheet .ss{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  .tipo-chip{display:inline-block;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:20px;background:var(--gold-s);color:var(--gold-d);margin-bottom:12px}
   label{display:block;font-size:12px;font-weight:700;color:#5a6870;margin:12px 0 5px}
   input,textarea,select{width:100%;border:1.5px solid #e0d8c8;border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;outline:none;background:#fff}
   input:focus,textarea:focus,select:focus{border-color:var(--gold)}
@@ -61,18 +62,8 @@
     <div class="sheet">
       <h3 id="ovT">Proponer acción</h3>
       <div class="ss" id="ovS">—</div>
-      <label for="f-sub">Subsección (opcional)</label>
-      <select id="f-sub"></select>
-      <label for="f-tit">Título de la acción *</label>
-      <input id="f-tit" placeholder="Ej: 6+2 en línea Salentein">
-      <label for="f-cond">Condición (opcional)</label>
-      <input id="f-cond" placeholder="Ej: 1+1 · 3+1 · 20% OFF">
-      <label for="f-desc">Descripción / argumento</label>
-      <textarea id="f-desc" placeholder="Contá de qué se trata, en qué ayuda al vendedor, etc."></textarea>
-      <div class="row2">
-        <div><label for="f-vd">Vigencia desde</label><input id="f-vd" type="date"></div>
-        <div><label for="f-vh">Vigencia hasta</label><input id="f-vh" type="date"></div>
-      </div>
+      <span class="tipo-chip" id="ovTipo" hidden></span>
+      <div id="ovBody"></div>
       <button class="btn" id="f-btn" onclick="enviar()">Enviar propuesta</button>
     </div>
   </div>
@@ -156,26 +147,77 @@ function verRubro(canal, abrirSeccion){
   }
 }
 
+// ── Tipo de sección → qué formulario abrir (igual criterio que el manual) ──
+const MIX_COD=new Set(['oportunidades_en_carta']);
+const VC_COD=new Set(['vino_por_copa','vino_por_copa_de_bienvenid']);
+function tipoDe(sec){
+  const c=String(sec.codigo||''), n=String(sec.nombre||'');
+  if(MIX_COD.has(c) || /mix\s*ideal/i.test(n)) return 'mix_ideal';
+  if(VC_COD.has(c) || /vino\s+por\s+copa/i.test(n) || /copa\s+de\s+bienvenida/i.test(n)) return 'vino_copa';
+  return 'accion';
+}
+const TIPO_LBL={mix_ideal:'✨ Mix Ideal',vino_copa:'🍷 Vino por Copa',accion:''};
+
+function subSelHtml(hijas){
+  if(!hijas.length) return '';
+  return `<label for="f-sub">Subsección (opcional)</label><select id="f-sub"><option value="">— General (toda la sección) —</option>${hijas.map(h=>`<option value="${esc(h.nombre)}">${esc(h.nombre)}</option>`).join('')}</select>`;
+}
+function formHtml(tipo,hijas){
+  if(tipo==='mix_ideal') return `
+    <label for="f-nombre">Nombre del mix *</label><input id="f-nombre" placeholder="Ej: Mix Previa Campari">
+    <label for="f-nivel">Nivel (opcional)</label><input id="f-nivel" placeholder="Ej: Básico / Alta gama">
+    <label for="f-cont">Productos que incluye *</label><textarea id="f-cont" placeholder="Un producto por línea. Ej:&#10;1 Aperol&#10;1 Campari&#10;1 Espumante"></textarea>
+    <label for="f-precio">Precio del combo (opcional)</label><input id="f-precio" type="number" min="0" placeholder="Ej: 85000">
+    <label for="f-nota">Nota para el vendedor (opcional)</label><input id="f-nota" placeholder="Ej: ideal para bares que arman previa">
+    ${subSelHtml(hijas)}`;
+  if(tipo==='vino_copa') return `
+    <label for="f-nombre">Nombre del vino *</label><input id="f-nombre" placeholder="Ej: Alma Mora Malbec">
+    <label for="f-cond">Condición especial *</label><textarea id="f-cond" placeholder="Ej: 1+1 en la primera compra para copa de la casa"></textarea>
+    <label for="f-precio">Precio de la botella (opcional)</label><input id="f-precio" type="number" min="0" placeholder="Ej: 8000">
+    <label for="f-nota">Nota para el vendedor (opcional)</label><input id="f-nota" placeholder="Ej: buena rotación, copa accesible">
+    ${subSelHtml(hijas)}`;
+  return `
+    ${subSelHtml(hijas)}
+    <label for="f-tit">Título de la acción *</label><input id="f-tit" placeholder="Ej: 6+2 en línea Salentein">
+    <label for="f-cond">Condición (opcional)</label><input id="f-cond" placeholder="Ej: 1+1 · 3+1 · 20% OFF">
+    <label for="f-desc">Descripción / argumento</label><textarea id="f-desc" placeholder="Contá de qué se trata, en qué ayuda al vendedor, etc."></textarea>
+    <div class="row2"><div><label for="f-vd">Vigencia desde</label><input id="f-vd" type="date"></div><div><label for="f-vh">Vigencia hasta</label><input id="f-vh" type="date"></div></div>`;
+}
+
+let curTipo='accion';
 function abrir(madreId){
   const m=SECS.find(s=>s.id===madreId); if(!m) return;
-  curSec=m;
-  $('ovT').textContent='Proponer acción';
+  curSec=m; curTipo=tipoDe(m);
+  $('ovT').textContent = curTipo==='mix_ideal'?'Proponer Mix Ideal' : curTipo==='vino_copa'?'Proponer Vino por Copa' : 'Proponer acción';
   $('ovS').textContent=rLbl(curCanal)+' › '+m.nombre;
-  const hijas=HIJAS[m.id]||[];
-  $('f-sub').innerHTML='<option value="">— General (toda la sección) —</option>'+hijas.map(h=>`<option value="${esc(h.nombre)}">${esc(h.nombre)}</option>`).join('');
-  ['f-tit','f-cond','f-desc','f-vd','f-vh'].forEach(id=>$(id).value='');
+  const chip=$('ovTipo'); if(TIPO_LBL[curTipo]){ chip.textContent=TIPO_LBL[curTipo]; chip.hidden=false; } else chip.hidden=true;
+  $('ovBody').innerHTML=formHtml(curTipo, HIJAS[m.id]||[]);
   $('ov').classList.add('open');
 }
 $('ov').addEventListener('click',e=>{ if(e.target.id==='ov') $('ov').classList.remove('open'); });
 
 async function enviar(){
-  const titulo=$('f-tit').value.trim();
-  if(!titulo){ toast('Poné un título',true); return; }
+  const val=id=>{const e=$(id);return e?e.value.trim():'';};
+  const sub=($('f-sub')&&$('f-sub').value)||null;
+  let titulo, condicion=null, descripcion=null, vd=null, vh=null, payload={};
+  if(curTipo==='mix_ideal'){
+    titulo=val('f-nombre'); if(!titulo){ toast('Poné el nombre del mix',true); return; }
+    const cont=val('f-cont'); if(!cont){ toast('Cargá los productos del mix',true); return; }
+    payload={nombre:titulo,nivel:val('f-nivel')||null,contenido:cont,precio:val('f-precio')||null,nota:val('f-nota')||null};
+    descripcion=cont;
+  } else if(curTipo==='vino_copa'){
+    titulo=val('f-nombre'); if(!titulo){ toast('Poné el nombre del vino',true); return; }
+    const cond=val('f-cond'); if(!cond){ toast('Poné la condición especial',true); return; }
+    payload={nombre:titulo,proveedor:PROV.empresa,condicion:cond,precio:val('f-precio')||null,nota:val('f-nota')||null};
+    condicion=cond;
+  } else {
+    titulo=val('f-tit'); if(!titulo){ toast('Poné un título',true); return; }
+    condicion=val('f-cond')||null; descripcion=val('f-desc')||null; vd=val('f-vd')||null; vh=val('f-vh')||null;
+  }
   const row={
-    rubro:curCanal, seccion:curSec.nombre, subseccion:$('f-sub').value||null,
-    titulo, condicion:$('f-cond').value.trim()||null, descripcion:$('f-desc').value.trim()||null,
-    vigencia_desde:$('f-vd').value||null, vigencia_hasta:$('f-vh').value||null,
-    adjuntos:[], autor_nombre:PROV.empresa, autor_rol:'proveedor', autor_empresa:PROV.empresa, estado:'pendiente'
+    rubro:curCanal, seccion:curSec.nombre, subseccion:sub, titulo, condicion, descripcion,
+    vigencia_desde:vd, vigencia_hasta:vh, adjuntos:[], autor_nombre:PROV.empresa, autor_rol:'proveedor',
+    autor_empresa:PROV.empresa, estado:'pendiente', tipo:curTipo, payload
   };
   $('f-btn').disabled=true; $('f-btn').textContent='Enviando…';
   try{

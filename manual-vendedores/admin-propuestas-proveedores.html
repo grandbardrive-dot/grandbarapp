@@ -65,6 +65,10 @@
   .est{font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap}
   .est.pendiente{background:#eef1f3;color:#5a6b73}.est.aprobada{background:var(--green-bg);color:var(--green)}.est.descartada{background:var(--red-bg);color:var(--red)}.est.cambios{background:var(--amber-bg);color:var(--amber)}
   .pc-nota{font-size:12.5px;color:var(--amber);background:var(--amber-bg);border-radius:9px;padding:8px 11px;margin-top:9px}
+  .pc-pay{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:9px;font-size:13px}
+  .pc-pay b{color:var(--navy)}
+  .pc-pay pre{white-space:pre-wrap;font-family:inherit;margin:6px 0 0;font-size:13px;color:var(--ink2)}
+  .pc-tipochip{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:20px;background:#eae3f3;color:#5b3a8a;margin-left:6px}
   .pc-acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
   .ab{border:1.5px solid var(--line-2);background:var(--surface);border-radius:10px;padding:9px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink2)}
   .ab.ok{border-color:#bfe0d0;color:var(--green);background:var(--green-bg)}
@@ -115,7 +119,28 @@
   const ini=e=>(e||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
   const ESTADOS=[['pendiente','Pendientes'],['cambios','Con cambios'],['aprobada','Aprobadas'],['descartada','Descartadas'],['','Todas']];
   let TODAS=[], FILTRO='pendiente';
+  const TIPO_CHIP={mix_ideal:'✨ Mix Ideal',vino_copa:'🍷 Vino por Copa'};
   function toast(m){const t=$('toast');t.textContent=m;t.className='toast show';setTimeout(()=>t.className='toast',2400);}
+  function payloadHtml(p){
+    const d=p.payload||{}; if(!p.tipo||p.tipo==='accion') return '';
+    if(p.tipo==='mix_ideal') return `<div class="pc-pay"><b>Productos del mix</b>${d.nivel?' · '+esc(d.nivel):''}<pre>${esc(d.contenido||'')}</pre>${d.precio?'<div style="margin-top:6px">Precio combo: <b>$ '+esc(d.precio)+'</b></div>':''}${d.nota?'<div style="margin-top:4px;color:var(--ink3)">'+esc(d.nota)+'</div>':''}</div>`;
+    if(p.tipo==='vino_copa') return `<div class="pc-pay"><b>Condición especial</b><div style="margin-top:5px">${esc(d.condicion||'')}</div>${d.precio?'<div style="margin-top:6px">Botella: <b>$ '+esc(d.precio)+'</b></div>':''}${d.nota?'<div style="margin-top:4px;color:var(--ink3)">'+esc(d.nota)+'</div>':''}</div>`;
+    return '';
+  }
+  async function aprobar(id){
+    const p=TODAS.find(x=>x.id===id); if(!p) return;
+    const d=p.payload||{};
+    if(p.tipo==='mix_ideal' || p.tipo==='vino_copa'){
+      if(!confirm('¿Aprobar y cargar '+(p.tipo==='mix_ideal'?'este Mix Ideal':'este Vino por Copa')+' al manual? Después lo podés ajustar en su panel.')) return;
+      let ins;
+      if(p.tipo==='mix_ideal') ins=await sb.from('mixes_ideales').insert({nombre:d.nombre||p.titulo,nivel:d.nivel||null,contenido:d.contenido||null,descripcion:d.nota||null,precio:d.precio?Number(d.precio):null,canal:p.rubro||null,activo:true});
+      else ins=await sb.from('vinos_por_copa').insert({nombre:d.nombre||p.titulo,proveedor:d.proveedor||p.autor_empresa||null,condicion:d.condicion||null,descripcion:d.nota||null,precio_botella:d.precio?Number(d.precio):null,activo:true});
+      if(ins.error){ toast('No se pudo cargar al manual: '+ins.error.message); return; }
+      toast('✓ Cargado al manual');
+    }
+    await setEstado(id,'aprobada');
+  }
+  window.aprobar=aprobar;
   const fmtV=d=>{ if(!d) return ''; const [a,m,dd]=String(d).split('-'); return dd+'/'+m+'/'+a.slice(2); };
 
   async function cargar(){
@@ -136,15 +161,15 @@
         <div class="pc-top">
           <div class="pc-emp">${esc(ini(p.autor_empresa||p.autor_nombre))}</div>
           <div class="pc-info">
-            <div class="pc-tit">${esc(p.titulo)} ${p.condicion?`<span class="pc-cond">· ${esc(p.condicion)}</span>`:''}</div>
+            <div class="pc-tit">${esc(p.titulo)} ${p.condicion?`<span class="pc-cond">· ${esc(p.condicion)}</span>`:''}${TIPO_CHIP[p.tipo]?`<span class="pc-tipochip">${TIPO_CHIP[p.tipo]}</span>`:''}</div>
             <div class="pc-meta">${esc(p.autor_empresa||p.autor_nombre||'')} · ${esc(rLbl(p.rubro))} › ${esc(p.seccion)}${p.subseccion?' › '+esc(p.subseccion):''}</div>
-            ${p.descripcion?`<div class="pc-desc">${esc(p.descripcion)}</div>`:''}
-            ${vig}${nota}
+            ${(!p.tipo||p.tipo==='accion')&&p.descripcion?`<div class="pc-desc">${esc(p.descripcion)}</div>`:''}
+            ${payloadHtml(p)}${vig}${nota}
           </div>
           <span class="est ${p.estado}">${p.estado}</span>
         </div>
         <div class="pc-acc">
-          <button class="ab ok" onclick="setEstado('${p.id}','aprobada')">✓ Aprobar</button>
+          <button class="ab ok" onclick="aprobar('${p.id}')">✓ Aprobar${TIPO_CHIP[p.tipo]?' y cargar':''}</button>
           <button class="ab cam" onclick="pedirCambios('${p.id}')">✎ Pedir cambios</button>
           <button class="ab no" onclick="setEstado('${p.id}','descartada')">✕ Descartar</button>
         </div>
