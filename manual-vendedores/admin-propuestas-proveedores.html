@@ -49,6 +49,17 @@
   .page-title{font-size:24px;font-weight:800;display:flex;align-items:center;gap:10px}
   .page-sub{font-size:14px;color:var(--ink2);margin-top:5px;max-width:70ch}
   .filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .bn-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:20px;box-shadow:var(--shadow)}
+  .bn-head{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .bn-t{font-weight:800;font-size:15px}
+  .bn-s{font-size:12.5px;color:var(--ink2);margin-top:3px;max-width:620px}
+  .bn-acc{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .bn-btn{background:var(--navy);color:#fff;border:0;border-radius:9px;padding:9px 14px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+  .bn-btn.ghost{background:transparent;color:var(--red);border:1px solid var(--red)}
+  .bn-btn[disabled]{opacity:.6;cursor:default}
+  .bn-prev{margin-top:14px;border:1px dashed var(--line-2);border-radius:11px;overflow:hidden;background:var(--surface2)}
+  .bn-prev img{display:block;width:100%;height:auto}
+  .bn-vacio{padding:22px;text-align:center;color:var(--ink3);font-size:13px}
   .fbtn{border:1.5px solid var(--line-2);background:var(--surface);border-radius:11px;padding:9px 14px;font:inherit;font-size:13.5px;font-weight:700;color:var(--ink2);cursor:pointer}
   .fbtn.on{background:var(--navy);border-color:var(--navy);color:#fff}
   .fbtn .n{font-size:11px;font-weight:800;background:rgba(31,68,127,.10);color:var(--navy);border-radius:20px;padding:1px 7px;margin-left:5px}
@@ -100,6 +111,21 @@
         <div class="page-title"><span>📥</span> Propuestas de proveedores</div>
         <div class="page-sub">Acciones que proponen los proveedores desde su portal. Aprobalas, pediles cambios o descartalas. Al aprobar una, cargala como campaña/plan desde <b>Campañas</b>.</div>
       </div>
+      <!-- Imagen que ven los proveedores arriba de todo en su portal -->
+      <div class="bn-card">
+        <div class="bn-head">
+          <div>
+            <div class="bn-t">🖼️ Imagen del portal de proveedores</div>
+            <div class="bn-s">Se ve arriba de todo, de lado a lado, cuando el proveedor entra a su panel. Usá una imagen horizontal (por ejemplo 1920 × 400 px); si es muy alta se recorta.</div>
+          </div>
+          <div class="bn-acc">
+            <label class="bn-btn">Elegir imagen<input type="file" id="bnFile" accept="image/*" hidden onchange="bnElegir(this)"></label>
+            <button class="bn-btn ghost" id="bnQuitar" onclick="bnBorrar()" hidden>Quitar</button>
+          </div>
+        </div>
+        <div class="bn-prev" id="bnPrev"><div class="bn-vacio">Todavía no hay ninguna imagen cargada.</div></div>
+      </div>
+
       <div class="filtros" id="filtros"></div>
       <div id="lista"><div class="empty">Cargando…</div></div>
     </main>
@@ -142,6 +168,50 @@
   }
   window.aprobar=aprobar;
   const fmtV=d=>{ if(!d) return ''; const [a,m,dd]=String(d).split('-'); return dd+'/'+m+'/'+a.slice(2); };
+
+  // ── Imagen del portal de proveedores ───────────────────────────────────────
+  // Vive en el Storage (carpeta portal-proveedores). Solo queda la última: al subir
+  // una nueva se borran las anteriores, así el portal siempre muestra una sola.
+  const BN_DIR='portal-proveedores';
+  async function bnListar(){
+    const { data, error } = await sb.storage.from('Activaciones')
+      .list(BN_DIR, { limit:50, sortBy:{ column:'created_at', order:'desc' } });
+    if(error || !data) return [];
+    return data.filter(f=>f && f.name && f.name[0]!=='.');
+  }
+  async function bnCargar(){
+    const arch = (await bnListar())[0];
+    if(!arch){ $('bnPrev').innerHTML='<div class="bn-vacio">Todavía no hay ninguna imagen cargada.</div>'; $('bnQuitar').hidden=true; return; }
+    const url = sb.storage.from('Activaciones').getPublicUrl(BN_DIR+'/'+arch.name).data.publicUrl;
+    $('bnPrev').innerHTML='<img src="'+esc(url)+'" alt="Imagen del portal">';
+    $('bnQuitar').hidden=false;
+  }
+  async function bnElegir(input){
+    const file = input.files && input.files[0];
+    input.value='';
+    if(!file) return;
+    if(!/^image\//.test(file.type)){ toast('Eso no es una imagen.'); return; }
+    if(file.size > 5*1024*1024){ toast('La imagen pesa más de 5 MB: achicala y volvé a probar.'); return; }
+    const viejas = await bnListar();
+    const ext = (file.name.match(/\.[a-z0-9]+$/i)||['.jpg'])[0].toLowerCase();
+    const nombre = 'banner-'+Date.now()+ext;
+    toast('Subiendo…');
+    const { error } = await sb.storage.from('Activaciones').upload(BN_DIR+'/'+nombre, file, { upsert:true, contentType:file.type });
+    if(error){ toast('No se pudo subir: '+error.message); return; }
+    if(viejas.length) await sb.storage.from('Activaciones').remove(viejas.map(f=>BN_DIR+'/'+f.name));
+    toast('Listo: ya la ven los proveedores.');
+    bnCargar();
+  }
+  async function bnBorrar(){
+    const viejas = await bnListar();
+    if(!viejas.length) return;
+    if(!confirm('¿Sacar la imagen del portal de proveedores?')) return;
+    const { error } = await sb.storage.from('Activaciones').remove(viejas.map(f=>BN_DIR+'/'+f.name));
+    if(error){ toast('No se pudo sacar: '+error.message); return; }
+    toast('Imagen sacada.');
+    bnCargar();
+  }
+  window.bnElegir=bnElegir; window.bnBorrar=bnBorrar;
 
   async function cargar(){
     const { data, error } = await sb.from('propuestas_acciones').select('*').order('created_at',{ascending:false});
@@ -194,6 +264,7 @@
   }
   window.setFiltro=setFiltro; window.setEstado=setEstado; window.pedirCambios=pedirCambios;
   cargar();
+  bnCargar();
 </script>
 <script src="_admin-sidebar.js"></script>
 </body>

@@ -14,6 +14,10 @@
   .top .emp{margin-left:auto;font-size:12.5px;color:#b9c6cd}
   .top .out{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cdd9e0;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer}
   .wrap{max-width:820px;margin:0 auto;padding:18px 14px 70px}
+  /* Imagen del portal: ocupa todo el ancho, de borde a borde, en PC y en celular.
+     La sube Luciana desde Propuestas de proveedores; si no hay ninguna, no se ve nada. */
+  .banner{width:100%;background:var(--navy);line-height:0}
+  .banner img{display:block;width:100%;height:auto;max-height:46vh;object-fit:cover}
   .hero{margin-bottom:6px}
   .hero h1{font-size:22px;margin:0 0 3px;font-weight:800}
   .hero p{margin:0;color:var(--muted);font-size:14px}
@@ -45,6 +49,7 @@
     <div class="emp" id="emp">—</div>
     <button class="out" onclick="salir()">Salir</button>
   </div>
+  <div class="banner" id="banner" hidden><img id="bannerImg" alt=""></div>
   <div class="wrap">
     <div class="hero"><h1 id="hola">Hola 👋</h1><p>Proponé acciones al manual y seguí el estado de tus propuestas.</p></div>
 
@@ -76,6 +81,22 @@ const ESTADO={pendiente:['pend','⏳ Pendiente'],aprobada:['ok','✓ Aprobada'],
 async function salir(){ try{ await hub.auth.signOut(); }catch(e){} location.replace('../index.html'); }
 window.salir=salir;
 
+// La imagen de arriba vive en el Storage (carpeta portal-proveedores). Se toma la
+// última que subieron; si todavía no hay ninguna, o no carga, la franja no aparece.
+async function cargarBanner(){
+  try{
+    const { data, error } = await sb.storage.from('Activaciones')
+      .list('portal-proveedores', { limit:20, sortBy:{ column:'created_at', order:'desc' } });
+    if(error || !data) return;
+    const arch = data.filter(f=>f && f.name && f.name[0]!=='.')[0];
+    if(!arch) return;
+    const url = sb.storage.from('Activaciones').getPublicUrl('portal-proveedores/'+arch.name).data.publicUrl;
+    const img=$('bannerImg');
+    img.onload=()=>{ $('banner').hidden=false; };
+    img.src=url;
+  }catch(e){}
+}
+
 (async()=>{
   hub=supabase.createClient(HUB.url,HUB.key);
   const {data:{session}}=await hub.auth.getSession();
@@ -85,6 +106,7 @@ window.salir=salir;
   PROV={empresa: perfil.empresa || perfil.nombre, nombre: perfil.nombre};
   $('emp').textContent=PROV.empresa;
   $('hola').textContent='Hola, '+PROV.empresa+' 👋';
+  cargarBanner();
   cargarAlertas();
   cargarPropuestas();
 })();
