@@ -35,6 +35,10 @@
   th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   .tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--gold-s);color:var(--gold-d)}
+  .filtros{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+  .fbtn{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:7px 13px;font:inherit;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer}
+  .fbtn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  tfoot th{border-top:2px solid var(--line);font-size:12px;padding-top:9px}
   .scroll{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:12px}
   .empty{text-align:center;color:var(--muted);font-size:14px;padding:50px 16px;background:var(--card);border:1px dashed var(--line);border-radius:14px}
 </style>
@@ -104,12 +108,39 @@ function pintar(){
     <h2>Clientes que compraron (${nf((d.clientes||[]).length)})</h2>
     <input class="search" id="q" placeholder="Buscar cliente…" oninput="tablaClientes()">
     <div class="scroll"><table><thead><tr><th>Cliente</th><th class="num">Botellas</th><th class="num">Monto</th></tr></thead><tbody id="tbCli"></tbody></table></div>
-    ${STOCK.length?`<h2>Stock actual</h2><div class="scroll"><table><thead><tr><th>Artículo</th><th>Línea</th><th class="num">Botellas</th></tr></thead><tbody>${
-      STOCK.filter(s=>s.codigo).map(s=>`<tr><td>${esc(s.articulo)}</td><td>${esc(s.linea)}</td><td class="num">${s.botellas==null?'—':nf(s.botellas)}</td></tr>`).join('')
-    }</tbody></table></div>`:''}
+    ${STOCK.length?`<h2>Stock actual</h2><div class="filtros" id="stockFil"></div><div id="stockBox"></div>`:''}
   `;
   tablaClientes();
+  renderStockUI();
 }
+
+// Stock con filtro Depo Mza / Depo San Luis / Consolidado (idea de Fer).
+let _stockFil=0, _stockBtns=[];
+function renderStockUI(){
+  if(!STOCK.length || !$('stockFil')) return;
+  const ubis=[...new Set(STOCK.filter(s=>s.codigo).map(s=>s.ubicacion).filter(Boolean))];
+  _stockBtns=[{k:'consolidado',l:'Consolidado'}, ...ubis.map(u=>({k:u,l:u}))];
+  if(_stockFil>=_stockBtns.length) _stockFil=0;
+  $('stockFil').innerHTML=_stockBtns.map((b,i)=>`<button class="fbtn ${_stockFil===i?'on':''}" onclick="setStockFil(${i})">${esc(b.l)}</button>`).join('');
+  renderStock();
+}
+function setStockFil(i){ _stockFil=i; renderStockUI(); }
+function renderStock(){
+  const b=_stockBtns[_stockFil]||{k:'consolidado'};
+  let rows;
+  if(b.k==='consolidado'){
+    const m={};
+    STOCK.filter(s=>s.codigo).forEach(s=>{ const k=s.codigo||s.articulo; (m[k]=m[k]||{articulo:s.articulo,linea:s.linea,bot:0}).bot+=Number(s.botellas)||0; });
+    rows=Object.values(m).map(x=>({articulo:x.articulo,linea:x.linea,botellas:x.bot}));
+  } else {
+    rows=STOCK.filter(s=>s.codigo && s.ubicacion===b.k).map(s=>({articulo:s.articulo,linea:s.linea,botellas:s.botellas}));
+  }
+  const tot=rows.reduce((a,x)=>a+(Number(x.botellas)||0),0);
+  $('stockBox').innerHTML=`<div class="scroll"><table><thead><tr><th>Artículo</th><th>Línea</th><th class="num">Botellas</th></tr></thead><tbody>${
+    rows.map(s=>`<tr><td>${esc(s.articulo)}</td><td>${esc(s.linea)}</td><td class="num">${s.botellas==null?'—':nf(s.botellas)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--muted)">Sin stock en este depósito.</td></tr>'
+  }</tbody><tfoot><tr><th>Total</th><th></th><th class="num">${nf(tot)}</th></tr></tfoot></table></div>`;
+}
+window.setStockFil=setStockFil;
 
 function tablaClientes(){
   const q=($('q')?$('q').value:'').toLowerCase().trim();
