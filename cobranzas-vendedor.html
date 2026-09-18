@@ -72,6 +72,27 @@
     .e-ok{background:var(--green-soft);color:var(--green-d)}
     .e-rej{background:var(--coral-soft);color:#96371f}
     @media(max-width:820px){ .sidebar{display:none} .content{padding:16px} .comp{grid-template-columns:1fr} }
+    /* ── Deuda de mis clientes ── */
+    .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+    .tabs button{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 16px;font:inherit;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer}
+    .tabs button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+    .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+    .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px}
+    .kpi .k{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+    .kpi .v{font-size:21px;font-weight:800;margin-top:3px}
+    .kpi .v.rojo{color:#c0392b}
+    .filtros{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+    .filtros input,.filtros select{border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;font-size:14px;background:var(--card)}
+    .filtros input{flex:1;min-width:180px}
+    .cli-row{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px}
+    .cli-row .nm{font-weight:700;font-size:14px}
+    .cli-row .meta{font-size:11.5px;color:var(--muted)}
+    .cli-row .mto{text-align:right;min-width:104px}
+    .cli-row .mto .et{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+    .cli-row .mto .nu{font-weight:800;font-size:14.5px}
+    .cli-row .mto .nu.rojo{color:#c0392b}
+    .wa{background:var(--green-soft);border:1px solid #bfe3d2;color:var(--green-d);border-radius:9px;padding:7px 11px;font:inherit;font-weight:700;font-size:12px;cursor:pointer;text-decoration:none;white-space:nowrap}
+    @media(max-width:820px){ .kpis{grid-template-columns:1fr} .cli-row{grid-template-columns:1fr 1fr;gap:8px} .cli-row .mto{text-align:left} }
   </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
@@ -88,9 +109,40 @@
     <div class="content">
       <div class="head">
         <h1><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg> Cobranzas <span class="count" id="count" style="display:none"></span></h1>
-        <p>Comprobantes que subieron tus clientes, esperando que los cargues en Conquer.</p>
+        <p>La deuda de cada uno de tus clientes y los comprobantes que subieron esperando que los cargues en Conquer.</p>
       </div>
 
+      <div class="tabs">
+        <button id="tab-deuda" class="on" onclick="verTab('deuda')">💲 Deuda de mis clientes</button>
+        <button id="tab-comp" onclick="verTab('comp')">📄 Comprobantes</button>
+      </div>
+
+      <!-- DEUDA DE MIS CLIENTES -->
+      <div id="vista-deuda">
+        <div class="kpis">
+          <div class="kpi"><div class="k">Clientes con deuda</div><div class="v" id="kCli">—</div></div>
+          <div class="kpi"><div class="k">Total adeudado</div><div class="v" id="kSaldo">—</div></div>
+          <div class="kpi"><div class="k">Vencido</div><div class="v rojo" id="kVenc">—</div></div>
+        </div>
+        <div class="filtros">
+          <input id="dBuscar" type="search" placeholder="Buscar cliente por nombre o código…" oninput="pintarDeuda()">
+          <select id="dOrden" onchange="pintarDeuda()">
+            <option value="vencida">Primero los más vencidos</option>
+            <option value="saldo">Primero los de más saldo</option>
+            <option value="nombre">Por nombre</option>
+          </select>
+          <select id="dFiltro" onchange="pintarDeuda()">
+            <option value="deuda">Solo con deuda</option>
+            <option value="vencida">Solo con vencido</option>
+            <option value="todos">Todos mis clientes</option>
+          </select>
+        </div>
+        <div id="dLista"><div class="empty"><div class="big">⏳</div>Cargando…</div></div>
+        <div id="dNota" style="font-size:12px;color:var(--muted);margin-top:12px"></div>
+      </div>
+
+      <!-- COMPROBANTES -->
+      <div id="vista-comp" style="display:none">
       <div class="flow">
         <span class="step">1 · Cliente sube comprobante</span>
         <span>→</span>
@@ -101,6 +153,7 @@
 
       <div class="aviso" id="aviso"></div>
       <div class="list" id="list"><div class="empty"><div class="big">⏳</div>Cargando…</div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -160,6 +213,64 @@
     list.innerHTML = html;
   }
 
+  // ── Deuda de mis clientes (datos reales del ERP, tabla cuentas_cubo) ────────
+  let CLIENTES = [];
+  function verTab(cual){
+    document.getElementById("vista-deuda").style.display = cual==="deuda" ? "block" : "none";
+    document.getElementById("vista-comp").style.display  = cual==="comp"  ? "block" : "none";
+    document.getElementById("tab-deuda").classList.toggle("on", cual==="deuda");
+    document.getElementById("tab-comp").classList.toggle("on", cual==="comp");
+  }
+  window.verTab = verTab;
+
+  async function cargarDeuda(){
+    try{
+      const r = await fetch("/.netlify/functions/cuentas-vendedor", { headers:{ Authorization:"Bearer "+token } });
+      const j = await r.json();
+      if(j.error){ document.getElementById("dLista").innerHTML = `<div class="empty">No pude cargar la deuda: ${j.error}</div>`; return; }
+      if(!j.codigo){ document.getElementById("dLista").innerHTML = `<div class="empty"><div class="big">🔒</div>Tu usuario todavía no tiene código de vendedor cargado, así que no puedo mostrar tus clientes. Avisale a Desarrollo.</div>`; return; }
+      CLIENTES = (j.clientes||[]).map(c=>({ ...c, saldo:Number(c.saldo)||0, vencida:Number(c.vencida)||0 }));
+      pintarDeuda();
+    }catch(e){ document.getElementById("dLista").innerHTML = `<div class="empty">Error de conexión: ${e.message||e}</div>`; }
+  }
+
+  function pintarDeuda(){
+    const q = (document.getElementById("dBuscar").value||"").trim().toLowerCase();
+    const orden = document.getElementById("dOrden").value;
+    const filtro = document.getElementById("dFiltro").value;
+    const conDeuda = CLIENTES.filter(c=>c.saldo>0);
+    // Los totales miran SIEMPRE toda la cartera, no lo que se esté filtrando
+    document.getElementById("kCli").textContent   = conDeuda.length + " de " + CLIENTES.length;
+    document.getElementById("kSaldo").textContent = fmtMoney(CLIENTES.reduce((a,c)=>a+Math.max(0,c.saldo),0));
+    document.getElementById("kVenc").textContent  = fmtMoney(CLIENTES.reduce((a,c)=>a+c.vencida,0));
+
+    let lista = filtro==="todos" ? CLIENTES.slice() : filtro==="vencida" ? CLIENTES.filter(c=>c.vencida>0) : conDeuda;
+    if(q) lista = lista.filter(c => String(c.nombre||"").toLowerCase().includes(q) || String(c.codigo||"").toLowerCase().includes(q));
+    lista.sort((a,b)=> orden==="nombre" ? String(a.nombre||"").localeCompare(String(b.nombre||""))
+                     : orden==="saldo"  ? b.saldo - a.saldo
+                     : (b.vencida - a.vencida) || (b.saldo - a.saldo));
+
+    const box = document.getElementById("dLista");
+    if(!lista.length){ box.innerHTML = `<div class="empty"><div class="big">👌</div>${q?"Ningún cliente con ese nombre.":"No hay clientes para mostrar con ese filtro."}</div>`; }
+    else box.innerHTML = lista.map(c=>{
+      const tel = String(c.telefono||"").replace(/\D/g,"");
+      const msg = encodeURIComponent(`Hola! Te escribo de GrandBar por el saldo de tu cuenta${c.vencida>0?` (tenés ${fmtMoney(c.vencida)} vencido)`:""}. ¿Cómo lo coordinamos?`);
+      return `<div class="cli-row">
+        <div>
+          <div class="nm">${esc(c.nombre||"—")}</div>
+          <div class="meta">#${esc(c.codigo||"")}${c.localidad?" · "+esc(c.localidad):""}${c.direccion?" · "+esc(c.direccion):""}</div>
+        </div>
+        <div class="mto"><div class="et">Saldo</div><div class="nu">${fmtMoney(c.saldo)}</div></div>
+        <div class="mto"><div class="et">Vencido</div><div class="nu ${c.vencida>0?"rojo":""}">${c.vencida>0?fmtMoney(c.vencida):"—"}</div></div>
+        <div>${tel?`<a class="wa" href="https://wa.me/${tel.length<=10?"549"+tel:tel}?text=${msg}" target="_blank" rel="noopener">💬 WhatsApp</a>`:""}</div>
+      </div>`;
+    }).join("");
+    document.getElementById("dNota").textContent =
+      `Mostrando ${lista.length} de ${CLIENTES.length} clientes. Los saldos salen del sistema de la empresa; si cobraste hoy, puede tardar en actualizarse.`;
+  }
+  window.pintarDeuda = pintarDeuda;
+  const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
   async function cargar(){
     try{
       const r = await fetch("/.netlify/functions/comprobantes-vendedor", { headers:{ Authorization:"Bearer "+token } });
@@ -197,6 +308,7 @@
       document.getElementById("av").textContent = initials(n);
     }catch(e){}
     cargar();
+    cargarDeuda();
   })();
 </script>
 <script src="assets/hub-nav.js?v=3"></script>
