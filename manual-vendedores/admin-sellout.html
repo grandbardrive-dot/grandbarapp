@@ -108,7 +108,10 @@
       const bot=Number(r[18])||0,monto=Number(r[19])||0,cajas=Number(r[20])||0;
       P.bot+=bot;P.cajas+=cajas;P.monto+=monto;P.cli.add(clean(r[11]));
       const add=(m,k)=>{k=clean(k)||'(s/d)';(m[k]=m[k]||{bot:0,monto:0}).bot+=bot;m[k].monto+=monto;};
-      add(P.canal,r[12]);add(P.familia,r[15]);add(P.articulo,r[14]);add(P.vendedor,r[13]);add(P.provincia,r[17]);add(P.cliente,r[11]);
+      add(P.canal,r[12]);add(P.familia,r[15]);add(P.articulo,r[14]);add(P.vendedor,r[13]);add(P.provincia,r[17]);
+      // Cliente: además guardamos su tipo de cliente (canal) para poder filtrar.
+      const kc=clean(r[11])||'(s/cliente)'; const C=P.cliente[kc]||(P.cliente[kc]={bot:0,monto:0,tipos:{}});
+      C.bot+=bot; C.monto+=monto; const tp=clean(r[12])||'(s/canal)'; C.tipos[tp]=(C.tipos[tp]||0)+bot;
       periods[per]=P;
     }
     const stock=[];
@@ -117,7 +120,8 @@
     const top=(m,n)=>Object.entries(m).map(([k,v])=>({n:k,bot:Math.round(v.bot),monto:Math.round(v.monto)})).sort((a,b)=>b.bot-a.bot).slice(0,n||99999);
     const periodos=Object.entries(periods).map(([per,P])=>({periodo:per,data:{
       label:P.label, totales:{botellas:Math.round(P.bot),cajas:Math.round(P.cajas),monto:Math.round(P.monto),clientes:P.cli.size,articulos:Object.keys(P.articulo).length},
-      canal:top(P.canal),familia:top(P.familia),articulo:top(P.articulo,30),vendedor:top(P.vendedor),provincia:top(P.provincia),clientes:top(P.cliente)
+      canal:top(P.canal),familia:top(P.familia),articulo:top(P.articulo,30),vendedor:top(P.vendedor),provincia:top(P.provincia),
+      clientes:Object.entries(P.cliente).map(([k,v])=>({n:k,bot:Math.round(v.bot),monto:Math.round(v.monto),tipo:(Object.entries(v.tipos).sort((a,b)=>b[1]-a[1])[0]||['(s/canal)'])[0]})).sort((a,b)=>b.bot-a.bot)
     }})).sort((a,b)=>a.periodo.localeCompare(b.periodo));
     return {periodos, stock};
   }

@@ -89,7 +89,7 @@ function barras(arr,unidad){
 function pintar(){
   const k=$('msel').value, d=PERIODOS[k]; if(!d) return;
   const t=d.totales||{};
-  _clientes=(d.clientes||[]).slice();
+  _clientes=(d.clientes||[]).slice(); _tipoCli='__all';
   $('cont').innerHTML=`
     <div class="kpis">
       <div class="kpi"><div class="l">Botellas</div><div class="v">${nf(t.botellas)}</div></div>
@@ -106,13 +106,25 @@ function pintar(){
       <div class="card"><h3>Por vendedor</h3>${barras((d.vendedor||[]).slice(0,10))}</div>
     </div>
     <h2>Clientes que compraron (${nf((d.clientes||[]).length)})</h2>
+    <div class="filtros" id="cliFil"></div>
     <input class="search" id="q" placeholder="Buscar cliente…" oninput="tablaClientes()">
-    <div class="scroll"><table><thead><tr><th>Cliente</th><th class="num">Botellas</th><th class="num">Monto</th></tr></thead><tbody id="tbCli"></tbody></table></div>
+    <div class="scroll"><table><thead><tr><th>Cliente</th><th>Tipo</th><th class="num">Botellas</th><th class="num">Monto</th></tr></thead><tbody id="tbCli"></tbody></table></div>
     ${STOCK.length?`<h2>Stock actual</h2><div class="filtros" id="stockFil"></div><div id="stockBox"></div>`:''}
   `;
-  tablaClientes();
+  renderCliFil(); tablaClientes();
   renderStockUI();
 }
+
+// Filtro de clientes por tipo de cliente (canal)
+let _tipoCli='__all';
+function renderCliFil(){
+  const fil=$('cliFil'); if(!fil) return;
+  const tipos=[...new Set(_clientes.map(c=>c.tipo).filter(Boolean))].sort();
+  const btns=[['__all','Todos'],...tipos.map(t=>[t,t])];
+  fil.innerHTML=btns.map(([k,l])=>`<button class="fbtn ${_tipoCli===k?'on':''}" data-k="${esc(k)}" onclick="setTipoCli(this.dataset.k)">${esc(l)}</button>`).join('');
+}
+function setTipoCli(k){ _tipoCli=k; renderCliFil(); tablaClientes(); }
+window.setTipoCli=setTipoCli;
 
 // Stock con filtro Depo Mza / Depo San Luis / Consolidado (idea de Fer).
 let _stockFil=0, _stockBtns=[];
@@ -144,8 +156,10 @@ window.setStockFil=setStockFil;
 
 function tablaClientes(){
   const q=($('q')?$('q').value:'').toLowerCase().trim();
-  const arr=q?_clientes.filter(c=>c.n.toLowerCase().includes(q)):_clientes;
-  $('tbCli').innerHTML=arr.slice(0,400).map(c=>`<tr><td>${esc(c.n)}</td><td class="num">${nf(c.bot)}</td><td class="num">$ ${nf(c.monto)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--muted)">Sin resultados.</td></tr>';
+  let arr=_clientes;
+  if(_tipoCli!=='__all') arr=arr.filter(c=>c.tipo===_tipoCli);
+  if(q) arr=arr.filter(c=>c.n.toLowerCase().includes(q));
+  $('tbCli').innerHTML=arr.slice(0,500).map(c=>`<tr><td>${esc(c.n)}</td><td><span class="tag">${esc(c.tipo||'—')}</span></td><td class="num">${nf(c.bot)}</td><td class="num">$ ${nf(c.monto)}</td></tr>`).join('')||'<tr><td colspan="4" style="color:var(--muted)">Sin resultados.</td></tr>';
 }
 window.pintar=pintar; window.tablaClientes=tablaClientes;
 </script>
