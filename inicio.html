@@ -220,11 +220,7 @@
         <div class="card">
           <div class="card-h"><span class="t">📅 Tu agenda de hoy</span><a class="lnk" href="agenda-eficiente.html">Ver agenda completa ›</a></div>
           <div class="ag" id="agendaHoy">
-            <div class="ag-row first"><div class="time">09:00</div><div class="dot"></div><div><div class="nm">3er Tiempo</div><div class="meta">Colon 1951 · Guaymallén</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
-            <div class="ag-row"><div class="time">11:00</div><div class="dot"></div><div><div class="nm">A tu Salud Minimarket</div><div class="meta">Bandera de los Andes 4315 · Guaymallén</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
-            <div class="ag-row"><div class="time">13:30</div><div class="dot"></div><div><div class="nm">Aldeni Vinoteca</div><div class="meta">Tomas Godoy Cruz 4100 · Guaymallén</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
-            <div class="ag-row"><div class="time">15:30</div><div class="dot"></div><div><div class="nm">Autoservicio Mitre</div><div class="meta">Mitre 2587 · Ciudad</div></div><span class="chip ok">Confirmada</span><span class="chev">›</span></div>
-            <div class="ag-row"><div class="time">17:00</div><div class="dot"></div><div><div class="nm">Reportar visita</div><div class="meta">Cargar evidencia y completar tarea</div></div><span class="chip pend">Pendiente</span><span class="chev">›</span></div>
+            <div class="ag-vacia" style="color:var(--muted);font-size:13.5px;padding:6px 2px">Cargando tu agenda…</div>
           </div>
           <a class="cta-ruta" href="planificador-ia.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-d)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg><div><div class="t">Iniciar ruta con IA</div><div class="s">Optimizar mi recorrido de hoy</div></div><span class="go">›</span></a>
         </div>
@@ -238,10 +234,9 @@
           </div>
           <div class="rs-row">
             <div><div class="rs-lbl">Ventas acumuladas</div><div class="rs-big" id="rsVentas">—</div><div class="rs-lbl" id="rsVentasSub" style="color:var(--muted)">Cargando…</div></div>
-            <svg class="spark" viewBox="0 0 90 36"><polyline points="0,28 15,24 30,26 45,18 60,20 75,10 90,6" fill="none" stroke="var(--gold)" stroke-width="2"/></svg>
           </div>
           <div class="rs-row">
-            <div><div class="rs-lbl">Nuevos clientes</div><div class="rs-big">3</div><div class="rs-lbl">esta semana</div></div>
+            <div><div class="rs-lbl">Nuevos clientes</div><div class="rs-big" id="rsNuevos">—</div><div class="rs-lbl" id="rsNuevosSub">esta semana</div></div>
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cfc6b5" stroke-width="1.6"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
           </div>
           <a class="lnk" href="reporte-semanal.html" style="margin-top:12px;display:inline-flex">Ver reporte completo ›</a>
@@ -275,12 +270,12 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-h"><span class="t">Tu rendimiento mensual</span><a class="lnk" href="#">Ver más</a></div>
+          <div class="card-h"><span class="t">Tu mes</span><a class="lnk" href="reporte-semanal.html">Ver más</a></div>
           <div class="perf">
-            <div><div class="p-lbl">Visitas</div><div class="p-val">68</div><div class="p-obj">Objetivo: 100</div><div class="bar"><span style="width:68%"></span></div></div>
-            <div><div class="p-lbl">Ventas</div><div class="p-val">$ 8,45M</div><div class="p-obj">Objetivo: $12M</div><div class="bar"><span style="width:70%"></span></div></div>
-            <div><div class="p-lbl">Nuevos clientes</div><div class="p-val">7</div><div class="p-obj">Objetivo: 15</div><div class="bar"><span style="width:47%"></span></div></div>
-            <div style="text-align:center"><div class="p-lbl">Indicador general</div><div class="donut" style="background:conic-gradient(var(--green) 72%, #ece4d6 0);margin:6px auto"><div class="inner" style="font-size:14px">72%</div></div><div class="p-obj" style="color:var(--green)">Buen progreso</div></div>
+            <div><div class="p-lbl">Visitas</div><div class="p-val" id="pfVisitas">—</div><div class="p-obj" id="pfVisitasSub">Cargando…</div></div>
+            <div><div class="p-lbl">Ventas</div><div class="p-val" id="pfVentas">—</div><div class="p-obj" id="pfVentasSub">Cargando…</div></div>
+            <div><div class="p-lbl">Clientes con compra</div><div class="p-val" id="pfCcc">—</div><div class="p-obj" id="pfCccSub">Cargando…</div></div>
+            <div style="text-align:center"><div class="p-lbl">Cobertura</div><div class="donut" id="pfDonut" style="background:conic-gradient(#ece4d6 0 100%);margin:6px auto"><div class="inner" id="pfCob" style="font-size:14px">—</div></div><div class="p-obj" id="pfCobSub">de tu cartera</div></div>
           </div>
         </div>
       </div>
@@ -311,10 +306,7 @@
   const firstName = n => (n||"").trim().split(/\s+/)[0] || "";
   const initials = n => (n||"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "V";
 
-  // Ventas reales desde el Google Sheet publicado (se actualiza a diario).
-  const VENTAS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ4uT-97Qq1m5Tr-RZR6TVtHaFFjChInCu42dwEiTla9rnb8h6qvyFkQlK-zcWsbKdesszy4KrncWBG/pub?output=csv";
-  function parseCSVLine(line){ const o=[]; let c="", q=false; for(const ch of line){ if(ch==='"') q=!q; else if(ch===',' && !q){ o.push(c); c=""; } else c+=ch; } o.push(c); return o; }
-  function parseMonto(s){ const n=parseFloat(String(s).replace(/[^\d,]/g,"").replace(",",".")); return isNaN(n)?null:n; }
+
   // Si no se puede saber la venta del vendedor, se dice; no se deja un monto de ejemplo.
   function sinVentas(motivo){
     const sv=document.getElementById("stVentas"), ss=document.getElementById("stVentasSub");
@@ -345,6 +337,58 @@
         sinVentas(ok ? "Tu código ("+cod+") no figura en la planilla" : "No se pudo leer la planilla de ventas");
       }
     }catch(e){ sinVentas("No se pudo leer la planilla"); }
+  }
+
+  // ── Tu mes ──────────────────────────────────────────────────────────────────
+  // Todo sale de datos reales: las visitas del mes son las que el vendedor guardó
+  // en el manual; las ventas y los clientes con compra, de la planilla de ventas.
+  // No hay objetivos por vendedor cargados en ningún lado, así que no se muestran.
+  async function cargarRendimiento(man, vendId, codigoVendedor, clientesActivos){
+    const $ = id => document.getElementById(id);
+    const mes = new Date().toLocaleDateString("es-AR", { month:"long" });
+    const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+
+    if(man && vendId){
+      try{
+        const { count } = await man.from("visitas").select("id", { count:"exact", head:true })
+          .eq("vendedor_id", vendId).gte("fecha", inicioMes);
+        $("pfVisitas").textContent = (count==null ? "—" : count);
+        $("pfVisitasSub").textContent = count==null ? "sin datos" : ("guardadas en " + mes);
+      }catch(e){ $("pfVisitasSub").textContent = "no se pudo leer"; }
+      // Nuevos clientes = altas en su cartera de los últimos 7 días (las trae la
+      // sincronización con CUBO, que corre cada hora).
+      try{
+        const semana = new Date(Date.now() - 7*24*3600*1000).toISOString();
+        const { count } = await man.from("clientes").select("id", { count:"exact", head:true })
+          .eq("vendedor_id", vendId).gte("created_at", semana);
+        if($("rsNuevos")){
+          $("rsNuevos").textContent = (count==null ? "—" : count);
+          $("rsNuevosSub").textContent = count ? "esta semana" : "ninguno esta semana";
+        }
+      }catch(e){ if($("rsNuevosSub")) $("rsNuevosSub").textContent = "sin datos"; }
+    } else { $("pfVisitasSub").textContent = "sin código de vendedor"; }
+
+    const cod = parseInt(codigoVendedor, 10);
+    if(isNaN(cod)){ $("pfVentasSub").textContent = "sin código"; $("pfCccSub").textContent = "sin código"; return; }
+    try{
+      const [total, clientes] = await Promise.all([ GBVentas.totalDe(cod), GBVentas.clientesDe(cod) ]);
+      if(total != null){
+        $("pfVentas").textContent = "$ " + Math.round(total).toLocaleString("es-AR");
+        $("pfVentasSub").textContent = "facturado en " + mes;
+      } else { $("pfVentasSub").textContent = "no figurás en la planilla"; }
+
+      const conCompra = clientes.filter(c => c.monto > 0).length;
+      $("pfCcc").textContent = conCompra || "—";
+      $("pfCccSub").textContent = conCompra ? ("compraron en " + mes) : "sin compras en la planilla";
+
+      // Cobertura = de la cartera activa, cuántos compraron este mes.
+      if(conCompra && clientesActivos){
+        const pct = Math.min(100, Math.round(conCompra * 100 / clientesActivos));
+        $("pfCob").textContent = pct + "%";
+        $("pfDonut").style.background = "conic-gradient(var(--green) " + pct + "%, #ece4d6 0)";
+        $("pfCobSub").textContent = conCompra + " de " + clientesActivos + " clientes";
+      } else { $("pfCobSub").textContent = "sin datos de cartera"; }
+    }catch(e){ $("pfVentasSub").textContent = "no se pudo leer la planilla"; $("pfCccSub").textContent = ""; }
   }
 
   let hub;
@@ -674,6 +718,7 @@
       if(perfil && perfil.codigo_vendedor){
         const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
         const { data: vend } = await man.from("vendedores").select("id, nombre").eq("codigo", perfil.codigo_vendedor).maybeSingle();
+        let activosCartera = null;
         if(vend){
           if(vend.nombre) nombre = vend.nombre;
           // Clientes asignados = cartera del Manual ACTIVA. Un cliente está activo si
@@ -687,8 +732,12 @@
             const activos = cliRows.filter(c=>{ const k=norm(c.codigo_cliente); return (k in estMap) ? estMap[k] : (c.activo!==false); }).length;
             document.getElementById("stClientes").textContent = activos;
             document.getElementById("stClientesSub").textContent = "Activos " + activos;
+            activosCartera = activos;
           }
         }
+        cargarRendimiento(man, vend && vend.id, perfil.codigo_vendedor, activosCartera);
+      } else {
+        cargarRendimiento(null, null, null, null);
       }
       if(perfil && perfil.codigo_vendedor) cargarVentas(perfil.codigo_vendedor);
       cargarAgendaEficiente(session.access_token); // plan del vendedor (Agenda Eficiente): manda
