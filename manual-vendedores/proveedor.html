@@ -15,9 +15,10 @@
   .top .out{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cdd9e0;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer}
   .wrap{max-width:820px;margin:0 auto;padding:18px 14px 70px}
   /* Imagen del portal: ocupa todo el ancho, de borde a borde, en PC y en celular.
-     La sube Luciana desde Propuestas de proveedores; si no hay ninguna, no se ve nada. */
+     La sube Luciana desde Propuestas de proveedores; si no hay ninguna, no se ve nada.
+     Se muestra ENTERA (sin recortar), así que la proporción la decide la imagen. */
   .banner{width:100%;background:var(--navy);line-height:0}
-  .banner img{display:block;width:100%;height:auto;max-height:46vh;object-fit:cover}
+  .banner img{display:block;width:100%;height:auto}
   .hero{margin-bottom:6px}
   .hero h1{font-size:22px;margin:0 0 3px;font-weight:800}
   .hero p{margin:0;color:var(--muted);font-size:14px}
