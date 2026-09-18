@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2230">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<title>GrandBar — Mi sellout</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;--gold:#c0912f;--gold-d:#a97c22;--gold-s:#f7efdc;--green:#2f8f6e;--navy:#0d2230;--blue:#3f6f9c;--font:'Inter',system-ui,sans-serif}
+  *{box-sizing:border-box}body{margin:0;font-family:var(--font);background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .top{background:var(--navy);color:#fff;padding:13px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+  .top a.back{color:#cdd9e0;text-decoration:none;font-size:22px;line-height:1}.top h1{font-size:16px;margin:0;font-weight:800}.top .sub{font-size:11px;color:#8fa3ad}
+  .top .msel{margin-left:auto}
+  .msel select{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px}
+  .msel select option{color:#000}
+  .wrap{max-width:860px;margin:0 auto;padding:18px 14px 70px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:8px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
+  .kpi .l{font-size:12px;color:var(--muted)}.kpi .v{font-size:24px;font-weight:800;margin-top:3px}.kpi .u{font-size:12px;color:var(--muted);font-weight:600}
+  h2{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:26px 0 12px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:680px){.grid2{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .card h3{margin:0 0 12px;font-size:14px;font-weight:800}
+  .bar{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:9px}
+  .bar .nm{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar .val{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .bar .track{grid-column:1/-1;height:7px;background:var(--line2);border-radius:20px;overflow:hidden}
+  .bar .track span{display:block;height:100%;background:var(--gold);border-radius:20px}
+  .search{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;font-size:13.5px;margin-bottom:10px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line2)}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--gold-s);color:var(--gold-d)}
+  .scroll{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:12px}
+  .empty{text-align:center;color:var(--muted);font-size:14px;padding:50px 16px;background:var(--card);border:1px dashed var(--line);border-radius:14px}
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="back" href="proveedor.html">‹</a>
+    <div><h1>Mi sellout</h1><div class="sub" id="emp">—</div></div>
+    <div class="msel" id="mselWrap" style="display:none"><select id="msel" onchange="pintar()"></select></div>
+  </div>
+  <div class="wrap"><div id="cont"><div class="empty">Cargando…</div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="_config.js"></script>
+<script>
+const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nf=n=>Math.round(Number(n)||0).toLocaleString('es-AR');
+let hub, PROV=null, PERIODOS={}, STOCK=[], _clientes=[];
+
+(async()=>{
+  hub=supabase.createClient(HUB.url,HUB.key);
+  const {data:{session}}=await hub.auth.getSession();
+  if(!session){ location.replace('../index.html'); return; }
+  const {data:perfil}=await hub.from('usuarios').select('nombre,rol,empresa').eq('id',session.user.id).maybeSingle();
+  if(!perfil || perfil.rol!=='proveedor'){ location.replace('../index.html'); return; }
+  PROV={empresa:perfil.empresa||perfil.nombre};
+  $('emp').textContent=PROV.empresa+' · sellout mensual';
+  try{
+    const {data}=await sb.from('sellout_reportes').select('periodo,data').eq('proveedor',PROV.empresa);
+    (data||[]).forEach(r=>{ if(r.periodo==='stock') STOCK=(r.data&&r.data.stock)||[]; else PERIODOS[r.periodo]=r.data; });
+    const keys=Object.keys(PERIODOS).sort();
+    if(!keys.length){ $('cont').innerHTML='<div class="empty">📊 Todavía no hay reportes cargados para '+esc(PROV.empresa)+'.<br>En cuanto GrandBar suba tu sellout del mes, lo vas a ver acá.</div>'; return; }
+    $('mselWrap').style.display='';
+    $('msel').innerHTML=keys.map(k=>`<option value="${k}">${esc(PERIODOS[k].label||k)}</option>`).reverse().join('');
+    $('msel').value=keys[keys.length-1];
+    pintar();
+  }catch(e){ $('cont').innerHTML='<div class="empty">No se pudo cargar el sellout.</div>'; }
+})();
+
+function barras(arr,unidad){
+  if(!arr||!arr.length) return '<div style="color:var(--muted);font-size:13px">Sin datos.</div>';
+  const max=Math.max(...arr.map(x=>x.bot))||1;
+  return arr.map(x=>`<div class="bar"><div class="nm">${esc(x.n)}</div><div class="val">${nf(x.bot)}</div><div class="track"><span style="width:${Math.max(3,Math.round(x.bot/max*100))}%"></span></div></div>`).join('');
+}
+
+function pintar(){
+  const k=$('msel').value, d=PERIODOS[k]; if(!d) return;
+  const t=d.totales||{};
+  _clientes=(d.clientes||[]).slice();
+  $('cont').innerHTML=`
+    <div class="kpis">
+      <div class="kpi"><div class="l">Botellas</div><div class="v">${nf(t.botellas)}</div></div>
+      <div class="kpi"><div class="l">Cajas</div><div class="v">${nf(t.cajas)}</div></div>
+      <div class="kpi"><div class="l">Monto</div><div class="v">$ ${nf(t.monto)}</div></div>
+      <div class="kpi"><div class="l">Clientes que compraron</div><div class="v">${nf(t.clientes)}</div><div class="u">${nf(t.articulos)} artículos</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Por canal</h3>${barras(d.canal)}</div>
+      <div class="card"><h3>Por familia</h3>${barras((d.familia||[]).slice(0,8))}</div>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="card"><h3>Top artículos</h3>${barras((d.articulo||[]).slice(0,10))}</div>
+      <div class="card"><h3>Por vendedor</h3>${barras((d.vendedor||[]).slice(0,10))}</div>
+    </div>
+    <h2>Clientes que compraron (${nf((d.clientes||[]).length)})</h2>
+    <input class="search" id="q" placeholder="Buscar cliente…" oninput="tablaClientes()">
+    <div class="scroll"><table><thead><tr><th>Cliente</th><th class="num">Botellas</th><th class="num">Monto</th></tr></thead><tbody id="tbCli"></tbody></table></div>
+    ${STOCK.length?`<h2>Stock actual</h2><div class="scroll"><table><thead><tr><th>Artículo</th><th>Línea</th><th class="num">Botellas</th></tr></thead><tbody>${
+      STOCK.filter(s=>s.codigo).map(s=>`<tr><td>${esc(s.articulo)}</td><td>${esc(s.linea)}</td><td class="num">${s.botellas==null?'—':nf(s.botellas)}</td></tr>`).join('')
+    }</tbody></table></div>`:''}
+  `;
+  tablaClientes();
+}
+
+function tablaClientes(){
+  const q=($('q')?$('q').value:'').toLowerCase().trim();
+  const arr=q?_clientes.filter(c=>c.n.toLowerCase().includes(q)):_clientes;
+  $('tbCli').innerHTML=arr.slice(0,400).map(c=>`<tr><td>${esc(c.n)}</td><td class="num">${nf(c.bot)}</td><td class="num">$ ${nf(c.monto)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--muted)">Sin resultados.</td></tr>';
+}
+window.pintar=pintar; window.tablaClientes=tablaClientes;
+</script>
+</body>
+</html>

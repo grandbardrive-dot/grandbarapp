@@ -148,6 +148,8 @@
       ico:'<path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2zM20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z" stroke-linejoin="round"/>' },
     { key:'resultados', href:'admin-resultados.html', label:'Resultados', sub:'Desempeño de campañas',
       ico:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" stroke-linecap="round"/>' },
+    { key:'sellout',   href:'admin-sellout.html', label:'Sellout', sub:'Subir reporte de proveedor',
+      ico:'<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 13l3-3 3 3 4-5" stroke-linecap="round" stroke-linejoin="round"/>' },
     { key:'reporte11t', href:'admin-11t.html', label:'Plan 11T', sub:'Peñaflor · por canal y línea',
       ico:'<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 14l3-3 2 2 4-5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="8" r="1.6" fill="currentColor" stroke="none"/>' },
   ];

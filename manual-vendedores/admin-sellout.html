@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<meta name="theme-color" content="#0d2230">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Sellout (subir reporte)</title>
+<style>
+  :root{--navy:#1F447F;--navy-d:#16305a;--navy-dd:#0f2340;--gold:#CBB86A;--gold-d:#B08D2E;--bg:#F4F1EA;--surface:#FFFFFF;--surface2:#FBF9F5;--ink:#1F1B16;--ink2:#5f574c;--ink3:#9a9187;--line:rgba(31,68,127,.10);--line-2:rgba(31,68,127,.16);--green:#2D6A4F;--green-bg:#E7F1EC;--red:#C0392B;--shadow:0 1px 2px rgba(31,68,127,.05),0 14px 34px rgba(31,68,127,.08)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  @media (max-width:820px){ .layout{grid-template-columns:1fr} .sidebar{display:none} }
+  .sidebar{background:linear-gradient(185deg,var(--navy),var(--navy-d) 62%,var(--navy-dd));color:#fff;display:flex;flex-direction:column;padding:0 0 18px;position:sticky;top:0;height:100vh}
+  .sb-logo{padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px}
+  .sb-logo img{height:38px;object-fit:contain}
+  .sb-collapse{background:rgba(255,255,255,.08);border:none;color:#fff;width:30px;height:30px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
+  .sb-collapse svg{width:16px;height:16px}
+  .sb-nav{display:flex;flex-direction:column;gap:3px;padding:16px 12px}
+  .sb-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:rgba(255,255,255,.72);cursor:pointer;background:none;border:none;font-family:inherit;text-align:left;width:100%}
+  .sb-item:hover{background:rgba(255,255,255,.07);color:#fff}.sb-item.active{background:rgba(255,255,255,.12);color:#fff}
+  .sb-item.active .sb-ico{color:var(--gold)}.sb-item.active .sb-txt-main{font-weight:700}
+  .sb-ico{width:20px;height:20px;flex:none;color:rgba(255,255,255,.6)}
+  .sb-txt-main{font-size:14px;line-height:1.15}.sb-txt-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:1px}
+  .sb-spacer{flex:1}
+  .topbar{background:var(--navy);border-bottom:3px solid var(--gold);height:70px;display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 26px}
+  .tb-ava{width:38px;height:38px;border-radius:50%;background:var(--gold);color:var(--navy-d);display:grid;place-items:center;font-weight:800;font-size:16px}
+  .content{padding:26px 30px 60px;max-width:820px}
+  .page-title{font-size:24px;font-weight:800;display:flex;align-items:center;gap:10px}
+  .page-sub{font-size:14px;color:var(--ink2);margin-top:5px;max-width:72ch}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow);margin-top:20px}
+  label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin:0 0 6px}
+  input,select{width:100%;border:1.5px solid var(--line-2);border-radius:10px;padding:11px 13px;font:inherit;font-size:14.5px;background:#fff;outline:none}
+  input:focus,select:focus{border-color:var(--navy)}
+  .drop{border:2px dashed var(--line-2);border-radius:14px;padding:26px;text-align:center;color:var(--ink3);margin-top:16px;cursor:pointer}
+  .drop.on{border-color:var(--navy);background:var(--surface2)}
+  .btn{border:0;border-radius:11px;background:var(--navy);color:#fff;font:inherit;font-weight:800;font-size:15px;padding:13px 22px;cursor:pointer;margin-top:18px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .prev{margin-top:18px;font-size:13.5px;color:var(--ink2)}
+  .prev b{color:var(--ink)}
+  .kpi-row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+  .kpi{background:var(--surface2);border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px}
+  .kpi .v{font-size:19px;font-weight:800}
+  .msg{margin-top:14px;font-size:13.5px;font-weight:600;padding:11px 14px;border-radius:10px}
+  .msg.ok{background:var(--green-bg);color:var(--green)}.msg.err{background:#FBEAE7;color:var(--red)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <button class="sb-collapse" onclick="location.href='admin-comercial.html'" title="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar">
+    </div>
+    <nav class="sb-nav"></nav>
+  </aside>
+  <div>
+    <header class="topbar"><div class="tb-ava">G</div></header>
+    <main class="content">
+      <div class="page-title"><span>📈</span> Sellout de proveedores</div>
+      <div class="page-sub">Subí el Excel de sellout de un proveedor (el que arma Seba). Se procesa acá y el proveedor lo ve en su panel, en <b>Mis reportes</b>. Reemplaza lo anterior de ese proveedor.</div>
+
+      <div class="card">
+        <label for="prov">Proveedor</label>
+        <input id="prov" list="provs" placeholder="Ej: Chandon" autocomplete="off">
+        <datalist id="provs"></datalist>
+        <div class="drop" id="drop" onclick="document.getElementById('file').click()">
+          📄 Tocá acá o arrastrá el archivo <b>.xlsx</b> del sellout
+          <input type="file" id="file" accept=".xlsx" style="display:none">
+        </div>
+        <div class="prev" id="prev"></div>
+        <button class="btn" id="save" disabled onclick="guardar()">Guardar en el panel del proveedor</button>
+        <div id="msg"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_config.js"></script>
+<script>
+  sessionStorage.setItem('admin_auth','1'); sessionStorage.setItem('admin_perfil','comercial');
+  const $=id=>document.getElementById(id);
+  let PARSED=null;
+
+  // Lista de proveedores para el datalist (empresas)
+  (async()=>{
+    try{ const {data}=await sb.from('proveedores_carga').select('empresa').eq('activo',true);
+      $('provs').innerHTML=[...new Set((data||[]).map(p=>p.empresa))].map(e=>`<option value="${e}">`).join(''); }catch(e){}
+  })();
+
+  const clean=s=>String(s==null?'':s).replace(/\s+/g,' ').trim();
+  const mesNum=s=>{const m=clean(s).match(/^(\d{1,2})/);return m?+m[1]:0;};
+  const mesNom=s=>clean(s).replace(/^\d+\s*-\s*/,'');
+
+  function parseSellout(wb){
+    const ws=wb.Sheets['Source']||wb.Sheets[wb.SheetNames[0]];
+    const A=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+    // Encabezados en fila 6 (idx5); Ventas cols 9..20, Stock cols 0..5. Datos desde idx6.
+    const periods={};
+    for(let i=6;i<A.length;i++){ const r=A[i]||[]; if(r[9]==null||r[14]==null) continue;
+      const anio=clean(r[9]); const mn=mesNum(r[10]); if(!mn||!anio) continue;
+      const per=anio+'-'+String(mn).padStart(2,'0');
+      const P=periods[per]||(periods[per]={label:mesNom(r[10])+' '+anio,canal:{},familia:{},articulo:{},vendedor:{},provincia:{},cliente:{},bot:0,cajas:0,monto:0,cli:new Set()});
+      const bot=Number(r[18])||0,monto=Number(r[19])||0,cajas=Number(r[20])||0;
+      P.bot+=bot;P.cajas+=cajas;P.monto+=monto;P.cli.add(clean(r[11]));
+      const add=(m,k)=>{k=clean(k)||'(s/d)';(m[k]=m[k]||{bot:0,monto:0}).bot+=bot;m[k].monto+=monto;};
+      add(P.canal,r[12]);add(P.familia,r[15]);add(P.articulo,r[14]);add(P.vendedor,r[13]);add(P.provincia,r[17]);add(P.cliente,r[11]);
+      periods[per]=P;
+    }
+    const stock=[];
+    for(let i=6;i<A.length;i++){ const r=A[i]||[]; if(r[1]==null) continue; const b=Number(r[5]);
+      stock.push({ubicacion:clean(r[0]),codigo:clean(r[1]),articulo:clean(r[2]),linea:clean(r[3]),bodega:clean(r[4]),botellas:isNaN(b)?null:b}); }
+    const top=(m,n)=>Object.entries(m).map(([k,v])=>({n:k,bot:Math.round(v.bot),monto:Math.round(v.monto)})).sort((a,b)=>b.bot-a.bot).slice(0,n||99999);
+    const periodos=Object.entries(periods).map(([per,P])=>({periodo:per,data:{
+      label:P.label, totales:{botellas:Math.round(P.bot),cajas:Math.round(P.cajas),monto:Math.round(P.monto),clientes:P.cli.size,articulos:Object.keys(P.articulo).length},
+      canal:top(P.canal),familia:top(P.familia),articulo:top(P.articulo,30),vendedor:top(P.vendedor),provincia:top(P.provincia),clientes:top(P.cliente)
+    }})).sort((a,b)=>a.periodo.localeCompare(b.periodo));
+    return {periodos, stock};
+  }
+
+  const drop=$('drop');
+  ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('on');}));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('on');}));
+  drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) leer(f); });
+  $('file').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) leer(f); });
+
+  function leer(file){
+    $('msg').innerHTML=''; $('prev').innerHTML='⏳ Leyendo…'; $('save').disabled=true;
+    const rd=new FileReader();
+    rd.onload=e=>{
+      try{
+        const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+        PARSED=parseSellout(wb);
+        if(!PARSED.periodos.length){ $('prev').innerHTML='<span style="color:#C0392B">No encontré datos de ventas en la hoja Source. ¿Es el Excel correcto?</span>'; return; }
+        const ult=PARSED.periodos[PARSED.periodos.length-1];
+        const t=ult.data.totales;
+        $('prev').innerHTML=`<b>${PARSED.periodos.length} meses</b> (${PARSED.periodos[0].periodo} → ${ult.periodo}) · ${PARSED.stock.length} filas de stock.
+          <div class="kpi-row">
+            <div class="kpi">Último mes: <b>${ult.data.label}</b></div>
+            <div class="kpi">Botellas<div class="v">${t.botellas.toLocaleString('es-AR')}</div></div>
+            <div class="kpi">Monto<div class="v">$ ${t.monto.toLocaleString('es-AR')}</div></div>
+            <div class="kpi">Clientes<div class="v">${t.clientes}</div></div>
+          </div>`;
+        $('save').disabled=false;
+      }catch(err){ $('prev').innerHTML='<span style="color:#C0392B">Error al leer: '+err.message+'</span>'; }
+    };
+    rd.readAsArrayBuffer(file);
+  }
+
+  async function guardar(){
+    const prov=$('prov').value.trim();
+    if(!prov){ $('msg').innerHTML='<div class="msg err">Poné el nombre del proveedor.</div>'; return; }
+    if(!PARSED){ return; }
+    $('save').disabled=true; $('msg').innerHTML='<div class="msg">Guardando…</div>';
+    try{
+      await sb.from('sellout_reportes').delete().eq('proveedor',prov);
+      const filas=PARSED.periodos.map(p=>({proveedor:prov,periodo:p.periodo,data:p.data}));
+      filas.push({proveedor:prov,periodo:'stock',data:{stock:PARSED.stock, updated: Date.now()}});
+      for(let i=0;i<filas.length;i+=50){
+        const { error }=await sb.from('sellout_reportes').insert(filas.slice(i,i+50));
+        if(error) throw error;
+      }
+      $('msg').innerHTML=`<div class="msg ok">✅ Guardado. ${prov} ya ve su sellout en el panel (Mis reportes).</div>`;
+    }catch(e){ $('msg').innerHTML='<div class="msg err">No se pudo guardar: '+(e.message||e)+'</div>'; }
+    finally{ $('save').disabled=false; }
+  }
+  window.guardar=guardar;
+</script>
+<script src="_admin-sidebar.js"></script>
+</body>
+</html>
