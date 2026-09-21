@@ -54,6 +54,8 @@
   <div class="wrap">
     <div class="hero"><h1 id="hola">Hola 👋</h1><p>Proponé acciones al manual y seguí el estado de tus propuestas.</p></div>
 
+    <div class="promo-banner" id="promoBanner" hidden></div>
+
     <h2>Oportunidades</h2>
     <div id="alertas"><div class="empty">Buscando oportunidades…</div></div>
 
@@ -159,5 +161,6 @@ async function cargarPropuestas(){
   }catch(e){ $('props').innerHTML='<div class="empty">No se pudieron cargar tus propuestas.</div>'; }
 }
 </script>
+<script src="/assets/minuta-fab.js?v=1"></script>
 </body>
 </html>
