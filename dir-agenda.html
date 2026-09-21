@@ -60,7 +60,7 @@
 
     <div class="grid-a">
       <div class="card">
-        <div class="c-h"><div class="t">Mi agenda · Reuniones con supervisores</div><span class="lnk" id="btnReunion3" style="cursor:pointer">+ Programar reunión</span></div>
+        <div class="c-h"><div class="t">Mi agenda</div><span class="lnk" id="btnReunion3" style="cursor:pointer">+ Agendar</span></div>
         <div class="agcal-head"><button class="agnav" id="agPrev">‹</button><span class="agmes" id="agMes">—</span><button class="agnav" id="agNext">›</button></div>
         <div class="agcal" id="miAgendaCal"></div>
         <div id="miAgendaDia" style="margin-top:14px"></div>
@@ -81,28 +81,7 @@
     <div class="foot">Panel de Dirección · GrandBar Distribuciones</div>
   </div></div>
 </div>
-<div id="rov" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:50;align-items:center;justify-content:center;padding:16px">
-  <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:90vh;overflow:auto;padding:20px">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><b id="rTitulo" style="font-size:16px;flex:1">Programar reunión</b><button id="rX" style="background:none;border:0;font-size:20px;cursor:pointer;color:#6d7d85">×</button></div>
-    <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:8px 0 4px">Con quién</label>
-    <input id="rUser" list="rUserLista" autocomplete="off" placeholder="Escribí un nombre o elegí de la lista (vacío = solo para mí)" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit">
-    <datalist id="rUserLista"></datalist>
-    <div id="rUserHint" style="font-size:11.5px;color:#6d7d85;margin-top:5px;min-height:15px"></div>
-    <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Título</label>
-    <input id="rTit" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit" placeholder="Ej: Revisión de objetivos del mes" maxlength="120">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-      <div><label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Fecha</label><input id="rFecha" type="date" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:9px;font:inherit"></div>
-      <div><label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Hora</label><input id="rHora" type="time" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:9px;font:inherit"></div>
-      <div><label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Tipo</label><select id="rTipo" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:9px;font:inherit"><option value="reunion">Reunión</option><option value="llamada">Llamada</option><option value="visita">Visita</option><option value="capacitacion">Capacitación</option></select></div>
-    </div>
-    <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Lugar (opcional)</label>
-    <input id="rLugar" style="width:100%;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit" placeholder="Oficina Central / Videollamada…">
-    <label style="display:block;font-size:12px;font-weight:700;color:#6d7d85;margin:10px 0 4px">Detalle (opcional)</label>
-    <textarea id="rDet" style="width:100%;min-height:70px;border:1px solid #e7ded0;border-radius:10px;padding:10px;font:inherit"></textarea>
-    <button class="acc" id="rGuardar" style="background:var(--gold);color:#241a06;border:0;border-radius:11px;padding:12px;font:inherit;font-weight:800;width:100%;margin-top:14px;cursor:pointer">Programar y avisar al usuario</button>
-    <div id="rMsg" style="font-size:12.5px;font-weight:700;margin-top:8px;min-height:16px"></div>
-  </div>
-</div>
+<!-- Agendar / editar: ventana compartida con todas las agendas (assets/reunion-form.js) -->
 
 <!-- Modal MINUTA (Dirección) -->
 <div id="dmov" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:55;align-items:center;justify-content:center;padding:16px">
@@ -150,25 +129,19 @@
   const $=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const estBadge={programada:['tag tr','Programada'],confirmada:['tag ok','Confirmada'],realizada:['tag ok','Realizada'],cancelada:['tag','Cancelada'],rechazada:['tag alto','No asiste']};
-  let LISTA_REU=[], _minReu=null, calRef=new Date(), selDia=null, _minTranscript='', EDIT_ID=null, VER_HECHOS=false;
+  let LISTA_REU=[], _minReu=null, calRef=new Date(), selDia=null, _minTranscript='', VER_HECHOS=false;
   const post=(body)=>fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify(body)}).then(async r=>{ const d=await r.json().catch(()=>({})); if(!r.ok||d.error) throw new Error(d.error||'No se pudo guardar'); return d; });
-  // Con quién: un usuario del Portal (le llega el aviso) o un nombre libre en un evento personal
-  const conQuien=x=>x.personal?('🙋 Personal'+(x.con_quien?' · con '+esc(x.con_quien):'')):'👤 '+esc(x.destinatario||'—');
-  let USUARIOS=[], MI_ID=null;
-  const etiquetaUsuario=u=>(u.nombre||u.email)+(u.canal?' ('+u.canal+')':'');
+  // Con quién. Desde el 21/09/2026 cualquiera del Portal puede agendar con Dirección,
+  // así que acá también llegan invitaciones de otros (organizador=false).
+  const ICO_P={confirmada:'✅',rechazada:'⚠️',realizada:'✔',cancelada:'✖'};
+  const conQuien=x=>{
+    if(x.personal) return '🙋 Personal'+(x.con_quien?' · con '+esc(x.con_quien):'');
+    if(!x.organizador) return '📩 Te invitó '+esc(x.organizador_nombre||'—')+((x.con||[]).length>1?' · con '+esc(x.con.filter(n=>n!==x.organizador_nombre).join(', ')):'');
+    return '👥 '+(x.participantes||[]).map(p=>(ICO_P[p.estado]||'⏳')+' '+esc(p.nombre)).join(' · ')+(x.con_quien?' · '+esc(x.con_quien):'');
+  };
+  const estadoMio=x=>x.organizador?x.estado:(x.mi_estado||x.estado);
+  let MI_ID=null;
   const normNom=s=>String(s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-  // Si lo escrito coincide con un usuario de la lista, es ese usuario; si no, es un nombre libre.
-  function usuarioEscrito(){
-    const t=normNom($('rUser').value);
-    if(!t) return null;
-    return USUARIOS.find(u=>normNom(etiquetaUsuario(u))===t || normNom(u.nombre)===t || normNom(u.email)===t) || null;
-  }
-  function pintarHintUsuario(){
-    const v=$('rUser').value.trim(), u=usuarioEscrito();
-    $('rUserHint').textContent = !v ? '🙋 Evento personal, no se le avisa a nadie.'
-      : u ? '👤 Usuario del Portal: le llega el aviso y lo ve en su agenda.'
-      : '🙋 Evento personal con "'+v+'" (no está en el Portal, no se avisa a nadie).';
-  }
   const _bs='font:inherit;font-weight:700;font-size:11.5px;cursor:pointer;border-radius:8px;padding:6px 11px';
   function minBtns(id, tieneMin){
     if(!tieneMin) return '<button data-min="'+id+'" style="background:#eef3f7;color:#2c5a80;border:1px solid #cfe0ec;'+_bs+'">📝 Hacer minuta</button>';
@@ -208,24 +181,39 @@
     let html=`<div style="font-weight:800;font-size:12.5px;color:#a97c22;text-transform:capitalize;margin-bottom:8px">${fl}</div>`;
     if(!rows.length){ html+='<div style="color:#6d7d85;font-size:12.5px;padding:6px 0">No hay reuniones este día.</div>'; box.innerHTML=html; return; }
     const btn='background:none;border:1px solid #e7ded0;color:#6d7d85;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer';
-    html+=rows.map(x=>{const b=estBadge[x.estado]||estBadge.programada; const cancel=x.estado==='cancelada';
+    const btnOk='background:#e7f3ee;border:1px solid #bfe0d2;color:#256f54;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer';
+    const btnNo='background:none;border:1px solid #e7cfc6;color:#c0603e;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer';
+    html+=rows.map(x=>{const est=estadoMio(x); const b=estBadge[est]||estBadge.programada; const cancel=est==='cancelada';
       const tieneMin=x.minuta&&((x.minuta.temas&&x.minuta.temas.length)||(x.minuta.pendientes&&x.minuta.pendientes.length)||x.minuta.notas);
-      return `<div style="display:flex;gap:11px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-left:4px solid ${cancel?'#c9c2b6':(x.personal?'#2f8f6e':'#6b5bd0')};border-radius:11px;margin-bottom:8px;${cancel?'opacity:.6':''}">
+      // Lo que organizó Dirección se edita y cancela acá; si lo invitaron, contesta si va.
+      let acciones;
+      if(x.organizador) acciones = cancel
+        ? `<button data-borrar="${x.id}" style="${btn}">🗑 Borrar</button>`
+        : `${minBtns(x.id,tieneMin)}
+           <button data-edit="${x.id}" style="${btn}">✏️ Editar</button>
+           <button data-cancel="${x.id}" style="${btnNo}">Cancelar</button>`;
+      else if(x.estado==='cancelada') acciones='';
+      else acciones = (est==='programada'
+          ? `<button data-resp="${x.id}" data-est="confirmada" style="${btnOk}">✅ Confirmar</button><button data-resp="${x.id}" data-est="rechazada" style="${btnNo}">No puedo</button>`
+          : est==='confirmada' ? `<button data-resp="${x.id}" data-est="rechazada" style="${btnNo}">Al final no puedo</button>`
+          : est==='rechazada' ? `<button data-resp="${x.id}" data-est="confirmada" style="${btnOk}">Confirmar igual</button>` : '')
+        + minBtns(x.id,tieneMin);
+      const rech=(x.participantes||[]).filter(p=>p.estado==='rechazada'&&p.respuesta);
+      return `<div style="display:flex;gap:11px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-left:4px solid ${cancel?'#c9c2b6':(x.personal?'#2f8f6e':(x.organizador?'#6b5bd0':'#c9a13b'))};border-radius:11px;margin-bottom:8px;${cancel?'opacity:.6':''}">
         <div style="min-width:44px;text-align:center"><div style="font-weight:800;font-size:13px">${x.hora?esc(x.hora.slice(0,5)):'—'}</div></div>
         <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px;${cancel?'text-decoration:line-through':''}">${esc(x.titulo)}</div>
           <div style="font-size:11.5px;color:#6d7d85">${conQuien(x)}${x.lugar?' · '+esc(x.lugar):''}</div>
-          ${(x.estado==='rechazada'&&x.respuesta)?'<div style="font-size:11px;color:#c0603e;font-weight:600">No asiste: '+esc(x.respuesta)+'</div>':''}
+          ${x.organizador&&rech.length?rech.map(p=>'<div style="font-size:11px;color:#c0603e;font-weight:600">'+esc(p.nombre)+' no asiste: '+esc(p.respuesta)+'</div>').join(''):''}
           ${x.detalle?'<div style="font-size:11.5px;color:#4a5a62;margin-top:3px">'+esc(x.detalle)+'</div>':''}
-          <div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">
-            ${cancel
-              ? `<button data-borrar="${x.id}" style="${btn}">🗑 Borrar</button>`
-              : `${minBtns(x.id,tieneMin)}
-                 <button data-edit="${x.id}" style="${btn}">✏️ Editar</button>
-                 <button data-cancel="${x.id}" style="background:none;border:1px solid #e7cfc6;color:#c0603e;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">Cancelar</button>`}
-          </div></div>
+          <div style="margin-top:8px;display:flex;gap:7px;flex-wrap:wrap">${acciones}</div></div>
         <span class="${b[0]}">${b[1]}</span></div>`;
     }).join('');
     box.innerHTML=html;
+    box.querySelectorAll('[data-resp]').forEach(b=>b.onclick=async()=>{
+      const est=b.dataset.est; let motivo;
+      if(est==='rechazada'){ motivo=prompt('¿Por qué no podés? (le llega a quien la organizó)'); if(motivo==null) return; if(!motivo.trim()){ alert('Poné el motivo.'); return; } }
+      try{ await post({accion:'estado',id:b.dataset.resp,estado:est,motivo}); }catch(e){ alert(e.message); }
+      cargarLista(); });
     box.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=async()=>{
       const x=_findReu(b.dataset.cancel); if(!x) return;
       if(!confirm('¿Cancelar "'+x.titulo+'"?'+(x.personal?'':'\n\nA '+(x.destinatario||'la persona')+' le llega el aviso.'))) return;
@@ -237,34 +225,10 @@
     wireMinBtns(box);
   }
 
-  function abrir(){
-    EDIT_ID=null;
-    $('rTitulo').textContent='Programar reunión'; $('rGuardar').textContent='Programar y avisar';
-    $('rUser').value=''; pintarHintUsuario(); $('rTit').value=''; $('rHora').value=''; $('rTipo').value='reunion'; $('rLugar').value=''; $('rDet').value='';
-    $('rFecha').value=selDia||isoOf(new Date());
-    $('rov').style.display='flex'; $('rMsg').textContent='';
-  }
-  function abrirEditar(id){
-    const x=_findReu(id); if(!x) return;
-    EDIT_ID=x.id;
-    $('rTitulo').textContent='Editar reunión'; $('rGuardar').textContent='Guardar cambios';
-    if(x.personal) $('rUser').value = x.con_quien || '';
-    else { const u=USUARIOS.find(u=>String(u.id)===String(x.usuario_id)); $('rUser').value = u ? etiquetaUsuario(u) : (x.destinatario||''); }
-    pintarHintUsuario();
-    $('rTit').value=x.titulo||''; $('rFecha').value=x.fecha||''; $('rHora').value=x.hora?String(x.hora).slice(0,5):'';
-    $('rTipo').value=x.tipo||'reunion'; $('rLugar').value=x.lugar||''; $('rDet').value=x.detalle||'';
-    $('rov').style.display='flex'; $('rMsg').textContent='';
-  }
-  function cerrar(){ $('rov').style.display='none'; }
-
-  async function cargarUsuarios(){
-    try{
-      const r=await fetch(FN+'?usuarios=1',{headers:{Authorization:'Bearer '+TOKEN}});
-      const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
-      USUARIOS=(d.usuarios||[]).filter(u=>String(u.id)!==String(MI_ID));
-      $('rUserLista').innerHTML=USUARIOS.map(u=>`<option value="${esc(etiquetaUsuario(u))}"></option>`).join('');
-    }catch(e){ $('rUserHint').textContent='No se pudo cargar la lista de usuarios: '+e.message; }
-  }
+  // Agendar y editar usan la ventana compartida (varios invitados, persona libre…)
+  function trasGuardar(b){ selDia=b.fecha; const [Y,M]=selDia.split('-').map(Number); calRef=new Date(Y,M-1,1); cargarLista(); }
+  function abrir(){ GBReunion.abrir({ token:TOKEN, miId:MI_ID, fecha:selDia||isoOf(new Date()), onGuardado:trasGuardar }); }
+  function abrirEditar(id){ const x=_findReu(id); if(x) GBReunion.abrir({ token:TOKEN, miId:MI_ID, evento:x, onGuardado:trasGuardar }); }
 
   async function cargarLista(){
     try{
@@ -304,7 +268,7 @@
         <div style="font-size:12.5px;font-weight:600;${p.hecho?'text-decoration:line-through;color:#8a959b':''}">${esc(p.texto)}</div>
         <div style="font-size:10.5px;color:#6d7d85">${conQuien(p.reu)} · ${esc(p.reu.titulo)} · ${f}</div>
       </div>
-      ${(conRecordar && !p.hecho && !p.reu.personal)?`<button data-precordar="${esc(p.reu.id)}" data-ptxt="${esc(p.texto)}" title="Mandarle un aviso" style="background:#fff8e6;border:1px solid #efdca8;color:#8a6414;border-radius:8px;padding:5px 9px;font:inherit;font-weight:700;font-size:11px;cursor:pointer;flex:none">🔔 Recordar</button>`:''}
+      ${(conRecordar && !p.hecho && !p.reu.personal && p.reu.organizador)?`<button data-precordar="${esc(p.reu.id)}" data-ptxt="${esc(p.texto)}" title="Mandarle un aviso" style="background:#fff8e6;border:1px solid #efdca8;color:#8a6414;border-radius:8px;padding:5px 9px;font:inherit;font-weight:700;font-size:11px;cursor:pointer;flex:none">🔔 Recordar</button>`:''}
     </div>`;
   }
   function wirePend(cont){
@@ -337,8 +301,9 @@
   // Al hacer la minuta: los pendientes que siguen abiertos de reuniones anteriores con esa persona
   function renderPrevPend(x){
     const box=$('dmPrevPend'); if(!box) return;
-    // Misma persona: el mismo usuario, o en eventos personales el mismo nombre escrito
-    const misma=r=> x.personal ? (r.personal && normNom(r.con_quien)===normNom(x.con_quien)) : String(r.usuario_id)===String(x.usuario_id);
+    // Misma gente: en eventos personales el mismo nombre escrito; si no, que compartan
+    // al menos una persona (las reuniones ahora pueden tener varios invitados).
+    const misma=r=> x.personal ? (r.personal && normNom(r.con_quien)===normNom(x.con_quien)) : (!r.personal && (r.con||[]).some(n=>(x.con||[]).includes(n)));
     const prev=pendientesDe(r=>String(r.id)!==String(x.id) && misma(r) && String(r.fecha)<=String(x.fecha)).filter(p=>!p.hecho);
     if(!prev.length){ box.innerHTML=''; return; }
     box.innerHTML=`<div style="background:#fffaf0;border:1px solid #f0e2bf;border-radius:11px;padding:10px 12px;margin-bottom:13px">
@@ -387,41 +352,19 @@
 
   window.minAdd=minAdd; window.cerrarMin=cerrarMin; window.guardarMinuta=guardarMinuta; window.abrirMinuta=abrirMinuta; window.verMin=verMin; window.verRes=verRes;
 
-  $('rGuardar').onclick=async()=>{
-    const uElegido=usuarioEscrito();
-    const usuario_id= uElegido ? uElegido.id : '__yo__';
-    const con_quien = uElegido ? null : ($('rUser').value.trim() || null);
-    const titulo=$('rTit').value.trim();
-    if(!titulo){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent='Poné un título.'; return; }
-    if(!$('rFecha').value){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent='Elegí la fecha.'; return; }
-    $('rGuardar').disabled=true; $('rMsg').style.color='#6d7d85'; $('rMsg').textContent= EDIT_ID ? 'Guardando…' : 'Programando…';
-    try{
-      const body={accion:EDIT_ID?'editar':'crear',id:EDIT_ID||undefined,usuario_id,con_quien,titulo,tipo:$('rTipo').value,fecha:$('rFecha').value,hora:$('rHora').value||null,lugar:$('rLugar').value.trim(),detalle:$('rDet').value.trim()};
-      await post(body);
-      const personal = usuario_id==='__yo__';
-      $('rMsg').style.color='#256f54';
-      $('rMsg').textContent = EDIT_ID ? '✓ Cambios guardados.'+(personal?'':' Si cambió el día, la hora o la persona, le llega el aviso.')
-                                      : (personal ? '✓ Anotado en tu agenda.' : '✓ Programada. Le aparece en su agenda.');
-      selDia=$('rFecha').value; const [Y,M]=selDia.split('-').map(Number); calRef=new Date(Y,M-1,1);
-      EDIT_ID=null; cargarLista(); setTimeout(cerrar,900);
-    }catch(e){ $('rMsg').style.color='#c0603e'; $('rMsg').textContent=e.message; }
-    finally{ $('rGuardar').disabled=false; }
-  };
-
-  $('btnReunion').onclick=abrir; var b2=$('btnReunion2'); if(b2) b2.onclick=abrir; var b3=$('btnReunion3'); if(b3) b3.onclick=abrir;
+  var b1=$('btnReunion'); if(b1) b1.onclick=abrir; var b2=$('btnReunion2'); if(b2) b2.onclick=abrir; var b3=$('btnReunion3'); if(b3) b3.onclick=abrir;
   $('agPrev').onclick=()=>{ calRef=new Date(calRef.getFullYear(),calRef.getMonth()-1,1); renderCalendario(); };
   $('agNext').onclick=()=>{ calRef=new Date(calRef.getFullYear(),calRef.getMonth()+1,1); renderCalendario(); };
-  $('rX').onclick=cerrar; $('rov').addEventListener('click',e=>{if(e.target.id==='rov')cerrar();});
 
   (async()=>{
     const hub=supabase.createClient(HUB.url,HUB.key);
     const {data:{session}}=await hub.auth.getSession();
     if(!session) return; TOKEN=session.access_token; MI_ID=session.user && session.user.id;
-    $('rUser').addEventListener('input', pintarHintUsuario);
-    cargarUsuarios(); cargarLista();
+    cargarLista();
   })();
 })();
 </script>
+<script src="assets/reunion-form.js?v=1"></script>
 <script src="assets/minuta-ia.js?v=1"></script>
 <script src="assets/minuta-ver.js?v=1"></script>
 <script src="assets/user-menu.js?v=1"></script>

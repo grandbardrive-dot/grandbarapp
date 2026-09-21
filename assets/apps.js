@@ -22,6 +22,7 @@
      cliente        → clientes externos
    =========================================================== */
 const AREAS = {
+  agenda:         "Tu agenda",
   copiloto:       "Copiloto IA",
   ventas:         "Ventas",
   marketing:      "Marketing",
@@ -33,6 +34,20 @@ const AREAS = {
 };
 
 const APPS = [
+  // =================== TU AGENDA ===================
+  // La agenda personal de cada uno (reuniones con otras personas del Portal).
+  // Vendedores y Dirección tienen la suya en su propio menú; mi-agenda.html los manda ahí.
+  {
+    id: "mi-agenda",
+    name: "Mi agenda",
+    desc: "Tus eventos y reuniones. Lo que agendás con alguien del Portal le aparece en su agenda y le llega el aviso.",
+    icon: "📅",
+    area: "agenda",
+    roles: ["admin", "administracion", "tesoreria", "compras", "diseno", "desarrollo", "marketing", "deposito", "mayorista", "reportes"],
+    status: "live",
+    url: "mi-agenda.html",
+  },
+
   // =================== DISEÑO Y DESARROLLO ===================
   // Un solo panel, el mismo para los dos: urlByRole manda a cada uno al suyo.
   // Reemplaza al panel de Marketing, que se unificó acá.

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2238">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>GrandBar — Mi agenda</title>
+<link rel="stylesheet" href="assets/panel-admin.css">
+<link rel="stylesheet" href="assets/cobranzas.css">
+<style>
+  /* Mi agenda: la agenda personal de todos los paneles que no son de ventas ni de
+     Dirección (esos tienen la suya: agenda.html y dir-agenda.html). */
+  .ma-sec{font-size:16px;margin:28px 0 10px;color:var(--navy)}
+  .ma-ev{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:14px;padding:14px 16px;margin-top:10px}
+  .ma-ev.est-confirmada,.ma-ev.est-realizada{border-left-color:var(--green)}
+  .ma-ev.est-cancelada,.ma-ev.est-rechazada{border-left-color:#c9ced2;opacity:.75}
+  .ma-ev.est-cancelada .ma-tit{text-decoration:line-through}
+  .ma-top{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+  .ma-cuando{font-weight:800;color:var(--navy);font-size:13px;min-width:88px}
+  .ma-cuando small{display:block;font-weight:600;color:var(--muted);font-size:11.5px}
+  .ma-cuerpo{flex:1;min-width:200px}
+  .ma-tit{font-weight:800;font-size:15px}
+  .ma-meta{color:var(--muted);font-size:12.5px;margin-top:3px;line-height:1.45}
+  .ma-det{font-size:13px;margin-top:7px;white-space:pre-wrap;line-height:1.45}
+  .ma-gente{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .ma-p{font-size:12px;font-weight:600;border-radius:20px;padding:4px 10px;background:rgba(13,34,56,.06);color:var(--navy)}
+  .ma-p.confirmada,.ma-p.realizada{background:var(--green-soft);color:var(--green)}
+  .ma-p.rechazada{background:var(--red-soft);color:var(--red)}
+  .ma-p.cancelada{background:var(--line-2);color:var(--muted);text-decoration:line-through}
+  .ma-chip{font-size:10.5px;font-weight:800;border-radius:6px;padding:3px 9px;letter-spacing:.03em;text-transform:uppercase;background:rgba(13,34,56,.07);color:var(--navy);white-space:nowrap}
+  .ma-chip.confirmada,.ma-chip.realizada{background:var(--green-soft);color:var(--green)}
+  .ma-chip.rechazada,.ma-chip.cancelada{background:var(--red-soft);color:var(--red)}
+  .ma-invit{background:#fbf7ee;border:1.5px solid var(--gold);border-radius:16px;padding:6px 16px 14px;margin-top:20px}
+  .ma-invit h2{font-size:15px;margin:12px 0 0;color:var(--navy)}
+  .ma-min{background:var(--line-2);border-radius:10px;padding:10px 12px;margin-top:9px;font-size:13px;line-height:1.5}
+  .ma-min b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:6px}
+  .ma-min ul{margin:3px 0 0;padding-left:18px}
+  .eq-celda.sel{box-shadow:inset 0 0 0 2px var(--gold)}
+  .eq-cal{grid-template-columns:repeat(7,minmax(0,1fr))}
+  .eq-ev{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @media (max-width:700px){ .eq-celda{min-height:64px;padding:5px} .eq-ev{font-size:0;padding:0;height:6px;border-left-width:0;border-radius:3px;background:var(--c,#c9a13b)} .eq-cab{padding:8px 2px;text-align:center;font-size:10px} .ma-cuerpo{min-width:0;flex-basis:100%} .ma-cuando{min-width:0} .eq-mas{font-size:10px} }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<b>Bar</b></div>
+    <div class="sb-sub">Distribuciones</div>
+    <div class="sb-rol">Mi agenda</div>
+    <div class="sb-sub" id="ma-quien" style="color:#dfe7ec;font-size:13px;letter-spacing:0;text-transform:none;padding-top:2px"></div>
+    <nav class="sb-nav">
+      <a class="sb-item on" href="mi-agenda.html"><span class="i">📅</span> Mi agenda</a>
+      <a class="sb-item" id="ma-equipo" href="agenda-equipo.html" style="display:none"><span class="i">🗓️</span> Agenda del equipo</a>
+    </nav>
+    <div class="sb-spacer"></div>
+    <a class="sb-item" id="ma-volver" href="hub.html"><span class="i">←</span> Volver a mi panel</a>
+    <div class="sb-pie">Lo que agendás con alguien del Portal le aparece en su agenda y le llega el aviso.</div>
+  </aside>
+
+  <main class="main">
+    <div class="head">
+      <div><h1>Mi agenda</h1><div class="head-sub">Tus eventos y las reuniones con otras personas del Portal. Solo vos ves tu agenda: a los demás les aparece únicamente lo que agendás con ellos.</div></div>
+      <button class="cb-b ok" id="ma-nuevo" style="margin-top:6px">＋ Agendar</button>
+    </div>
+    <div id="ma-invit"></div>
+    <div class="cb-paginado" style="margin-top:22px">
+      <button class="cb-b" id="ma-ant" aria-label="Mes anterior">‹</button>
+      <b id="ma-mes" style="font-size:14px;min-width:170px;text-align:center;text-transform:capitalize">—</b>
+      <button class="cb-b" id="ma-sig" aria-label="Mes siguiente">›</button>
+      <button class="cb-b" id="ma-hoy">Hoy</button>
+    </div>
+    <div id="ma-cal" style="margin-top:12px"><div class="pv-vacio">Cargando…</div></div>
+    <h2 class="ma-sec" id="ma-dia-tit"></h2>
+    <div id="ma-dia"></div>
+    <h2 class="ma-sec">Lo que viene</h2>
+    <div id="ma-prox"><div class="pv-vacio">Cargando…</div></div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/reunion-form.js?v=1"></script>
+<script>
+  const DIR = ['direccion', 'admin', 'duenio'];
+  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const ICO = { reunion:'🤝', llamada:'📞', visita:'📍', capacitacion:'🎓' };
+  const EST = { programada:'Agendada', confirmada:'Confirmada', realizada:'Hecha', cancelada:'Cancelada', rechazada:'No pueden' };
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const $ = id => document.getElementById(id);
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const deISO = s => { const [y,m,d] = String(s).split('-').map(Number); return new Date(y, m-1, d); };
+  const largo = s => { const t = deISO(s).toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' }); return t.charAt(0).toUpperCase() + t.slice(1); };
+  const hoyISO = () => iso(new Date());
+
+  let TOKEN = null, MI_ID = null, EVENTOS = [], MES = null, DIA = hoyISO();
+
+  async function cargar() {
+    try {
+      const r = await fetch('/.netlify/functions/reuniones', { headers: { Authorization: 'Bearer ' + TOKEN } });
+      const j = await r.json();
+      if (!r.ok || j.error) throw new Error(j.error || ('Error ' + r.status));
+      EVENTOS = j.reuniones || [];
+      pintar();
+    } catch (e) {
+      $('ma-cal').innerHTML = '<div class="pv-vacio">No pude traer tu agenda: ' + esc(e.message) + '</div>';
+      $('ma-prox').innerHTML = '';
+    }
+  }
+
+  // Estado de un invitado, en palabras
+  function estadoPersona(p) {
+    return p.estado === 'confirmada' ? '✅ ' + p.nombre
+         : p.estado === 'rechazada' ? '⚠️ ' + p.nombre + ' no puede' + (p.respuesta ? ' (' + p.respuesta + ')' : '')
+         : p.estado === 'realizada' ? '✔ ' + p.nombre
+         : p.estado === 'cancelada' ? p.nombre
+         : '⏳ ' + p.nombre;
+  }
+
+  function tarjeta(e, conFecha) {
+    const hora = e.hora ? String(e.hora).slice(0,5) + ' hs' : 'Sin hora';
+    const quien = e.personal
+      ? (e.con_quien ? 'Personal · con ' + esc(e.con_quien) : 'Personal')
+      : e.organizador
+        ? 'Organizás vos' + (e.con_quien ? ' · también ' + esc(e.con_quien) : '')
+        : 'Te invitó ' + esc(e.organizador_nombre) + (e.con.length > 1 ? ' · con ' + esc(e.con.filter(n => n !== e.organizador_nombre).join(', ')) : '');
+    const estado = e.organizador ? e.estado : (e.mi_estado || e.estado);
+    const chip = !e.organizador && estado === 'rechazada' ? 'Dijiste que no' : (EST[estado] || estado);
+    let acciones = '';
+    if (e.organizador) {
+      if (estado === 'cancelada') acciones = `<button class="cb-b danger" onclick="borrar('${e.id}')">🗑 Borrar</button>`;
+      else {
+        acciones = `<button class="cb-b" onclick="editar('${e.id}')">✏️ Editar</button>`;
+        if (e.personal && estado !== 'realizada') acciones += `<button class="cb-b ok" onclick="estado('${e.id}','realizada')">✔ Marcar hecha</button>`;
+        acciones += `<button class="cb-b danger" onclick="cancelar('${e.id}')">Cancelar</button>`;
+      }
+    } else if (estado === 'programada') {
+      acciones = `<button class="cb-b ok" onclick="responder('${e.id}','confirmada')">✅ Confirmar</button><button class="cb-b danger" onclick="responder('${e.id}','rechazada')">No puedo</button>`;
+    } else if (estado === 'confirmada') {
+      acciones = `<button class="cb-b danger" onclick="responder('${e.id}','rechazada')">Al final no puedo</button>`;
+    } else if (estado === 'rechazada') {
+      acciones = `<button class="cb-b ok" onclick="responder('${e.id}','confirmada')">Confirmar igual</button>`;
+    }
+    const m = e.minuta;
+    const minuta = m && ((m.temas||[]).length || (m.pendientes||[]).length || m.notas)
+      ? `<details class="ma-min"><summary style="cursor:pointer;font-weight:700">📝 Minuta${m.autor ? ' de ' + esc(m.autor) : ''}</summary>
+          ${(m.temas||[]).length ? '<b>Temas</b><ul>' + m.temas.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' : ''}
+          ${(m.pendientes||[]).length ? '<b>Pendientes</b><ul>' + m.pendientes.map(t => '<li>' + ((m.pend_estado||{})[t] ? '✅ ' : '') + esc(t) + '</li>').join('') + '</ul>' : ''}
+          ${m.notas ? '<b>Notas</b><div style="white-space:pre-wrap">' + esc(m.notas) + '</div>' : ''}
+        </details>` : '';
+    return `<div class="ma-ev est-${esc(estado)}">
+      <div class="ma-top">
+        <div class="ma-cuando">${esc(hora)}${conFecha ? '<small>' + esc(largo(e.fecha)) + '</small>' : ''}</div>
+        <div class="ma-cuerpo">
+          <div class="ma-tit">${ICO[e.tipo] || '📌'} ${esc(e.titulo)}</div>
+          <div class="ma-meta">${quien}${e.lugar ? ' · 📍 ' + esc(e.lugar) : ''}</div>
+          ${e.detalle ? '<div class="ma-det">' + esc(e.detalle) + '</div>' : ''}
+          ${e.organizador && !e.personal ? '<div class="ma-gente">' + e.participantes.map(p => '<span class="ma-p ' + esc(p.estado) + '">' + esc(estadoPersona(p)) + '</span>').join('') + '</div>' : ''}
+          ${e.respuesta && !e.organizador && estado === 'rechazada' ? '<div class="ma-meta">Tu motivo: ' + esc(e.respuesta) + '</div>' : ''}
+          ${minuta}
+        </div>
+        <span class="ma-chip ${esc(estado)}">${esc(chip)}</span>
+      </div>
+      ${acciones ? '<div class="pd-acts">' + acciones + '</div>' : ''}
+    </div>`;
+  }
+
+  function pintar() {
+    const hoy = hoyISO();
+    // Invitaciones sin responder
+    const pend = EVENTOS.filter(e => !e.organizador && e.mi_estado === 'programada' && e.fecha >= hoy);
+    $('ma-invit').innerHTML = pend.length
+      ? `<div class="ma-invit"><h2>📩 Te invitaron (${pend.length}) — contestá si vas</h2>${pend.map(e => tarjeta(e, true)).join('')}</div>` : '';
+
+    // Calendario del mes
+    const ini = deISO(MES);
+    const finMes = new Date(ini.getFullYear(), ini.getMonth() + 1, 0);
+    $('ma-mes').textContent = MESES[ini.getMonth()] + ' ' + ini.getFullYear();
+    const porDia = {};
+    EVENTOS.forEach(e => { (porDia[e.fecha] = porDia[e.fecha] || []).push(e); });
+    const primer = ini.getDay() === 0 ? 7 : ini.getDay();
+    const celdas = [];
+    for (let i = 1; i < primer; i++) celdas.push(null);
+    for (let d = 1; d <= finMes.getDate(); d++) celdas.push(iso(new Date(ini.getFullYear(), ini.getMonth(), d)));
+    while (celdas.length % 7) celdas.push(null);
+    const color = e => { const s = e.organizador ? e.estado : (e.mi_estado || e.estado); return s === 'confirmada' || s === 'realizada' ? '#2f6f5e' : s === 'cancelada' || s === 'rechazada' ? '#c9ced2' : '#c9a13b'; };
+    $('ma-cal').innerHTML = `<div class="eq-cal">
+      ${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => `<div class="eq-cab">${d}</div>`).join('')}
+      ${celdas.map(f => {
+        if (!f) return '<div class="eq-celda vacia"></div>';
+        const del = porDia[f] || [];
+        return `<div class="eq-celda ${f === hoy ? 'hoy' : ''} ${f === DIA ? 'sel' : ''}" onclick="elegirDia('${f}')">
+          <span class="eq-num">${deISO(f).getDate()}</span>
+          ${del.slice(0, 3).map(e => `<div class="eq-ev" style="border-left-color:${color(e)};--c:${color(e)}" title="${esc(e.titulo)}">${ICO[e.tipo] || '📌'} ${e.hora ? esc(String(e.hora).slice(0,5)) + ' ' : ''}${esc(e.titulo)}</div>`).join('')}
+          ${del.length > 3 ? `<div class="eq-mas">+${del.length - 3} más</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+
+    // El día elegido
+    const delDia = porDia[DIA] || [];
+    $('ma-dia-tit').textContent = (DIA === hoy ? 'Hoy · ' : '') + largo(DIA);
+    $('ma-dia').innerHTML = delDia.length ? delDia.map(e => tarjeta(e, false)).join('')
+      : `<div class="pv-vacio" style="padding:22px">Nada agendado para este día. <button class="cb-b ok" style="margin-left:8px" onclick="nuevo('${DIA}')">＋ Agendar</button></div>`;
+
+    // Lo que viene (sin lo cancelado)
+    const prox = EVENTOS.filter(e => e.fecha > DIA && e.fecha >= hoy && (e.organizador ? e.estado : e.mi_estado) !== 'cancelada').slice(0, 15);
+    $('ma-prox').innerHTML = prox.length ? prox.map(e => tarjeta(e, true)).join('') : '<div class="pv-vacio" style="padding:22px">No tenés nada agendado más adelante.</div>';
+  }
+
+  function elegirDia(f) { DIA = f; pintar(); document.getElementById('ma-dia-tit').scrollIntoView({ behavior:'smooth', block:'start' }); }
+  function mover(n) { const d = deISO(MES); MES = iso(new Date(d.getFullYear(), d.getMonth() + n, 1)); pintar(); }
+  const buscar = id => EVENTOS.find(e => String(e.id) === String(id));
+
+  function nuevo(fecha) { GBReunion.abrir({ token: TOKEN, miId: MI_ID, fecha: fecha || DIA, onGuardado: b => { DIA = b.fecha; MES = b.fecha.slice(0, 8) + '01'; cargar(); } }); }
+  function editar(id) { const e = buscar(id); if (e) GBReunion.abrir({ token: TOKEN, miId: MI_ID, evento: e, onGuardado: b => { DIA = b.fecha; MES = b.fecha.slice(0, 8) + '01'; cargar(); } }); }
+  async function accion(body, ok) {
+    try { await GBReunion.api(TOKEN, body); await cargar(); if (ok) ok(); }
+    catch (e) { alert(e.message); }
+  }
+  function responder(id, est) {
+    if (est === 'rechazada') {
+      const motivo = prompt('¿Por qué no podés? (le llega a quien organizó)');
+      if (motivo == null) return;
+      if (!motivo.trim()) { alert('Poné el motivo, así quien organizó sabe qué pasó.'); return; }
+      return accion({ accion: 'estado', id, estado: est, motivo: motivo.trim() });
+    }
+    accion({ accion: 'estado', id, estado: est });
+  }
+  function estado(id, est) { accion({ accion: 'estado', id, estado: est }); }
+  function cancelar(id) {
+    const e = buscar(id); if (!e) return;
+    if (!confirm('¿Cancelar “' + e.titulo + '”?' + (e.personal ? '' : '\nA los invitados les llega el aviso.'))) return;
+    accion({ accion: 'estado', id, estado: 'cancelada' });
+  }
+  function borrar(id) {
+    const e = buscar(id); if (!e) return;
+    if (!confirm('¿Borrar “' + e.titulo + '” de la agenda? No se puede deshacer.')) return;
+    accion({ accion: 'borrar', id });
+  }
+
+  (async function () {
+    const s = await GBAuth.requireAuth();
+    if (!s) return;
+    const rol = String(s.role || '').toLowerCase();
+    // Vendedores/supervisores y Dirección tienen su propia agenda (con clientes y minutas).
+    if (rol === 'ventas') { location.replace('agenda.html'); return; }
+    if (DIR.includes(rol)) { location.replace('dir-agenda.html'); return; }
+    if (rol === 'proveedor') { location.replace('manual-vendedores/proveedor.html'); return; }
+
+    const volver = { compras:'manual-vendedores/admin-comercial.html', diseno:'panel-diseno.html', marketing:'panel-diseno.html', desarrollo:'panel-desarrollo.html' }[rol] || 'hub.html';
+    $('ma-volver').href = volver;
+    if (['administracion', 'tesoreria'].includes(rol)) $('ma-equipo').style.display = '';
+    $('ma-quien').textContent = s.nombre || '';
+    const { data: { session } } = await GBAuth.client.auth.getSession();
+    TOKEN = session && session.access_token; MI_ID = session && session.user && session.user.id;
+    MES = hoyISO().slice(0, 8) + '01';
+    $('ma-nuevo').onclick = () => nuevo();
+    $('ma-ant').onclick = () => mover(-1);
+    $('ma-sig').onclick = () => mover(1);
+    $('ma-hoy').onclick = () => { DIA = hoyISO(); MES = DIA.slice(0, 8) + '01'; pintar(); };
+    await cargar();
+  })();
+</script>
+</body>
+</html>

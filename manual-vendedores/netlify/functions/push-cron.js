@@ -23,7 +23,11 @@ exports.handler = async (event) => {
     const hoy = todayLocal.toISOString().slice(0, 10);
     const finVentana = new Date(todayLocal.getTime() + 2 * 86400000).toISOString().slice(0, 10);
 
-    const reus = await (await sb('reuniones?estado=in.(programada,confirmada)&fecha=gte.' + hoy + '&fecha=lte.' + finVentana + '&select=id,usuario_id,creado_por,titulo,fecha,hora,lugar,aviso_dia_at,aviso_hora_at&limit=1000')).json();
+    // `grupo` junta las filas de una misma reunión con varios invitados (21/09/2026).
+    // Si la columna todavía no existe, se lee sin ella para no dejar a nadie sin aviso.
+    const filtro = 'reuniones?estado=in.(programada,confirmada)&fecha=gte.' + hoy + '&fecha=lte.' + finVentana + '&limit=1000&select=id,usuario_id,creado_por,titulo,fecha,hora,lugar,aviso_dia_at,aviso_hora_at';
+    let reus = await (await sb(filtro + ',grupo')).json();
+    if (!Array.isArray(reus)) reus = await (await sb(filtro)).json();
     if (!Array.isArray(reus)) return json(502, { error: 'No pude leer reuniones' });
 
     const subsCache = {};
@@ -45,6 +49,20 @@ exports.handler = async (event) => {
       return ok;
     }
 
+    // Al que organiza una reunión con varios invitados le llega UN aviso, no uno por
+    // invitado: se mira si otra fila de la misma reunión ya lo disparó.
+    const orgAvisado = new Set();
+    function avisarOrganizador(r, campo) {
+      if (!r.creado_por || String(r.creado_por) === String(r.usuario_id)) return false;
+      const clave = (r.grupo || r.id) + campo;
+      if (orgAvisado.has(clave)) return false;
+      if (r.grupo && reus.some(x => x.grupo === r.grupo && x.id !== r.id && x[campo])) return false;
+      orgAvisado.add(clave);
+      return true;
+    }
+    // Un solo link: mi-agenda.html manda a cada uno a la agenda de su panel.
+    const URL_AGENDA = '/mi-agenda.html';
+
     let avisosDia = 0, avisosHora = 0;
     for (const r of reus) {
       const [Y, M, D] = String(r.fecha).split('-').map(Number);
@@ -56,12 +74,10 @@ exports.handler = async (event) => {
       // Una HORA antes (solo si tiene hora)
       if (conHora && !r.aviso_hora_at && diffMin >= 0 && diffMin <= 70) {
         const body = r.titulo + ' · ' + pad(h) + ':' + pad(mi) + ' hs' + (r.lugar ? ' · ' + r.lugar : '');
-        // Un evento personal (creado por Dirección para sí) abre la agenda de Dirección
-        const urlAgenda = (r.creado_por && String(r.creado_por) === String(r.usuario_id)) ? '/dir-agenda.html' : '/agenda.html';
-        await enviar(r.usuario_id, { title: '⏰ Reunión en 1 hora', body, url: urlAgenda, tag: 'reu-h-' + r.id });
-        // También a quien la programó (Dirección), si es otra persona
-        if (r.creado_por && String(r.creado_por) !== String(r.usuario_id))
-          await enviar(r.creado_por, { title: '⏰ Reunión en 1 hora', body, url: '/dir-agenda.html', tag: 'reu-h-dir-' + r.id });
+        await enviar(r.usuario_id, { title: '⏰ Reunión en 1 hora', body, url: URL_AGENDA, tag: 'reu-h-' + r.id });
+        // También a quien la organizó, si es otra persona (una sola vez por reunión)
+        if (avisarOrganizador(r, 'aviso_hora_at'))
+          await enviar(r.creado_por, { title: '⏰ Reunión en 1 hora', body, url: URL_AGENDA, tag: 'reu-h-org-' + (r.grupo || r.id) });
         await sb('reuniones?id=eq.' + encodeURIComponent(r.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ aviso_hora_at: new Date().toISOString() }) });
         avisosHora++;
       }
@@ -69,9 +85,9 @@ exports.handler = async (event) => {
       // Un DÍA antes (~24 h)
       if (!r.aviso_dia_at && diffMin >= 1380 && diffMin <= 1500) {
         const cuando = pad(D) + '/' + pad(M) + (conHora ? ' ' + pad(h) + ':' + pad(mi) + ' hs' : '');
-        await enviar(r.usuario_id, { title: '📅 Mañana tenés una reunión', body: r.titulo + ' · ' + cuando + (r.lugar ? ' · ' + r.lugar : ''), url: (r.creado_por && String(r.creado_por) === String(r.usuario_id)) ? '/dir-agenda.html' : '/agenda.html', tag: 'reu-d-' + r.id });
-        if (r.creado_por && String(r.creado_por) !== String(r.usuario_id))
-          await enviar(r.creado_por, { title: '📅 Mañana tenés una reunión', body: r.titulo + ' · ' + cuando + (r.lugar ? ' · ' + r.lugar : ''), url: '/dir-agenda.html', tag: 'reu-d-dir-' + r.id });
+        await enviar(r.usuario_id, { title: '📅 Mañana tenés una reunión', body: r.titulo + ' · ' + cuando + (r.lugar ? ' · ' + r.lugar : ''), url: URL_AGENDA, tag: 'reu-d-' + r.id });
+        if (avisarOrganizador(r, 'aviso_dia_at'))
+          await enviar(r.creado_por, { title: '📅 Mañana tenés una reunión', body: r.titulo + ' · ' + cuando + (r.lugar ? ' · ' + r.lugar : ''), url: URL_AGENDA, tag: 'reu-d-org-' + (r.grupo || r.id) });
         await sb('reuniones?id=eq.' + encodeURIComponent(r.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ aviso_dia_at: new Date().toISOString() }) });
         avisosDia++;
       }

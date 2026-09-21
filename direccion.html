@@ -346,7 +346,7 @@
       const box = document.getElementById('agHoy');
       if(r.ok && box){
         const d = await r.json();
-        const hoy = new Date().toISOString().slice(0,10);
+        const hoy = new Date().toLocaleDateString('en-CA'); // fecha local (con toISOString, después de las 21 ya era mañana)
         const rows = (d.reuniones||[]).filter(x=>x.fecha===hoy && x.estado!=='cancelada').sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
         if(!rows.length){ box.innerHTML='<div class="ag-row" style="color:var(--muted)"><span>No tenés reuniones agendadas para hoy.</span></div>'; }
         else box.innerHTML = rows.map(x=>`<div class="ag-row"><span class="h">${x.hora?esc(x.hora.slice(0,5)):'--:--'}</span><span class="dot"></span><div><div class="nm">${esc(x.titulo)} · ${esc(x.destinatario||'')}</div><div class="pl">${esc(x.lugar||x.tipo||'')}${x.estado==='confirmada'?' · ✓ confirmada':x.estado==='rechazada'?' · no asiste':''}</div></div></div>`).join('');

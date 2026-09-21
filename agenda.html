@@ -161,7 +161,10 @@
           <h1><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg> <span id="titulo">Agenda</span></h1>
           <p id="sub">Tus visitas y compromisos del día.</p>
         </div>
-        <button class="btn-new" id="btnNew"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Nuevo</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-new" id="btnReu" title="Reunión o evento con otras personas del Portal (les llega el aviso)" style="background:#fff;color:var(--navy);border:1.5px solid var(--line)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 11h6M19 8v6"/></svg> Reunión</button>
+          <button class="btn-new" id="btnNew"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Nuevo</button>
+        </div>
       </div>
 
       <div id="pushBanner" style="display:none;align-items:center;gap:12px;background:var(--purple-soft);border:1px solid #d4cdf0;border-radius:13px;padding:12px 15px;margin-bottom:14px">
@@ -286,7 +289,7 @@
     document.getElementById('weeklbl').textContent = `${weekStart.getDate()} ${MESES[weekStart.getMonth()]} – ${end.getDate()} ${MESES[end.getMonth()]}`;
     const hoyIso = iso(new Date()), selIso = iso(selDate);
     const cnt = {}; COMP.forEach(c=>{ cnt[c.fecha]=(cnt[c.fecha]||0)+1; });
-    REUN.forEach(r=>{ if(r.estado!=='cancelada'&&r.estado!=='rechazada') cnt[r.fecha]=(cnt[r.fecha]||0)+1; });
+    REUN.forEach(r=>{ const e=estadoReu(r); if(e!=='cancelada'&&e!=='rechazada') cnt[r.fecha]=(cnt[r.fecha]||0)+1; });
     MISUP.forEach(m=>{ cnt[m.fecha]=(cnt[m.fecha]||0)+1; });
     let html='';
     for(let i=0;i<7;i++){
@@ -302,7 +305,7 @@
     const selIso = iso(selDate);
     document.getElementById('daytitle').textContent = `${DIAS[selDate.getDay()]} ${selDate.getDate()} de ${['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][selDate.getMonth()]}`;
     const list = COMP.filter(c=>c.fecha===selIso).sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
-    const reunDia = REUN.filter(r=>r.fecha===selIso && r.estado!=='cancelada').sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
+    const reunDia = REUN.filter(r=>r.fecha===selIso && estadoReu(r)!=='cancelada').sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
     const cont=document.getElementById('clist');
     const misupDia = MISUP.filter(m=>m.fecha===selIso).sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
     if(!list.length && !reunDia.length && !misupDia.length){ cont.innerHTML=`<div class="empty">No hay nada agendado para este día.${PUEDE_EDITAR?'<br>Tocá <b>+ Nuevo</b> para agregar.':''}</div>`; return; }
@@ -415,6 +418,7 @@
   document.getElementById('next').onclick=()=>{ selDate.setDate(selDate.getDate()+7); renderWeek(); renderDay(); };
   document.getElementById('hoy').onclick=()=>{ selDate=new Date(); renderWeek(); renderDay(); };
   document.getElementById('btnNew').onclick=abrirNuevo;
+  document.getElementById('btnReu').onclick=()=>nuevaReu();
   // Red de seguridad: si la carga de compromisos no llegó a correr, igual abrimos el
   // formulario cuando se entra con ?nuevo=1 desde la ficha del cliente.
   setTimeout(abrirDesdeURL, 1500);
@@ -441,14 +445,37 @@
     if(PERFIL && PERFIL.es_supervisor) cargarMiAgendaSup();
   })();
 
+  // Reuniones: las que me invitaron y las que organicé yo (desde el 21/09/2026 cualquiera
+  // del Portal puede agendar con cualquiera). Para las mías cuenta el estado de la
+  // reunión; para las que me invitaron, lo que contesté yo.
+  function estadoReu(x){ return x.organizador ? x.estado : (x.mi_estado || x.estado); }
+  const primerN = n => (n && !/@/.test(n)) ? String(n).trim().split(/\s+/)[0] : 'Alguien';
+  const ICO_P = { confirmada:'✅', rechazada:'⚠️', realizada:'✔', cancelada:'✖' };
+  function conQuienReu(x){
+    if(x.personal) return x.con_quien ? 'con '+esc(x.con_quien) : 'Personal';
+    if(!x.organizador) return 'te invitó '+esc(primerN(x.organizador_nombre))+((x.con||[]).length>1?' · con '+esc(x.con.filter(n=>n!==x.organizador_nombre).join(', ')):'');
+    return (x.participantes||[]).map(p=>(ICO_P[p.estado]||'⏳')+' '+esc(p.nombre)).join(' · ');
+  }
+  function accionesReu(x, chico){
+    const est=estadoReu(x), s=chico?'padding:7px 12px;font-size:11.5px':'padding:7px 13px;font-size:12.5px';
+    const bOk='background:#2f8f6e;color:#fff;border:0;border-radius:8px;'+s+';font:inherit;font-weight:700;cursor:pointer';
+    const bNo='background:#fff;color:#c0603e;border:1px solid #e7cfc6;border-radius:8px;'+s+';font:inherit;font-weight:700;cursor:pointer';
+    const bGr='background:#fff;color:var(--muted);border:1px solid var(--line);border-radius:8px;'+s+';font:inherit;font-weight:700;cursor:pointer';
+    const tieneMin=x.minuta&&((x.minuta.temas&&x.minuta.temas.length)||(x.minuta.pendientes&&x.minuta.pendientes.length)||x.minuta.notas);
+    if(x.organizador) return `<button onclick="editarReu('${x.id}')" style="${bGr}">✏️ Editar</button><button onclick="cancelarReu('${x.id}')" style="${bNo}">Cancelar</button>`+minBtns(x.id, tieneMin);
+    if(est==='programada') return `<button onclick="confirmarReu('${x.id}')" style="${bOk}">${chico?'Confirmar':'Confirmar asistencia'}</button><button onclick="rechazarReu('${x.id}')" style="${bNo}">${chico?'No puedo':'No puedo asistir'}</button>`;
+    if(est==='rechazada') return `<button onclick="confirmarReu('${x.id}')" style="${bGr}">Confirmar igual</button>`;
+    return minBtns(x.id, tieneMin);
+  }
+
   async function cargarReunionesDir(){
     try{
-      const hoy=new Date().toISOString().slice(0,10);
+      const hoy=new Date().toLocaleDateString('en-CA');   // fecha local
       const r=await fetch('/.netlify/functions/reuniones?desde='+hoy,{headers:{Authorization:'Bearer '+TOKEN}});
       if(!r.ok) return; const d=await r.json();
       REUN=(d.reuniones||[]);
       const box=document.getElementById('dirReuniones');
-      const up=REUN.filter(x=>x.fecha>=hoy && x.estado!=='cancelada' && x.estado!=='rechazada')
+      const up=REUN.filter(x=>x.fecha>=hoy && estadoReu(x)!=='cancelada' && estadoReu(x)!=='rechazada')
         .sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))||String(a.hora||'99').localeCompare(String(b.hora||'99')));
       if(box){
         if(!up.length){ box.style.display='none'; box.innerHTML=''; }
@@ -458,18 +485,12 @@
             +'<div style="font-weight:800;font-size:14px;margin-bottom:8px">📌 Mis reuniones</div>'
             +up.slice(0,10).map(x=>{
               const f=new Date(x.fecha+'T00:00').toLocaleDateString('es-AR',{weekday:'short',day:'2-digit',month:'2-digit'});
-              const quienN=(x.creado_por_nombre && !/@/.test(x.creado_por_nombre))?esc(String(x.creado_por_nombre).split(/\s+/)[0]):'Dirección';
-              const tieneMin=x.minuta&&((x.minuta.temas&&x.minuta.temas.length)||(x.minuta.pendientes&&x.minuta.pendientes.length)||x.minuta.notas);
-              const badge = x.estado==='confirmada'||x.estado==='realizada' ? '<span style="color:#2f8f6e;font-weight:800;font-size:11px;margin-left:6px">✓ Confirmada</span>' : '';
-              const acc = x.estado==='programada'
-                ? '<button onclick="confirmarReu(\''+x.id+'\')" style="background:var(--green);color:#fff;border:0;border-radius:8px;padding:7px 12px;font:inherit;font-weight:800;font-size:11.5px;cursor:pointer">Confirmar</button>'
-                  +'<button onclick="rechazarReu(\''+x.id+'\')" style="background:#fff;color:#c0603e;border:1px solid #e7cfc6;border-radius:8px;padding:7px 12px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer">No puedo</button>'
-                : minBtns(x.id, tieneMin);
+              const est=estadoReu(x);
+              const badge = est==='confirmada'||est==='realizada' ? '<span style="color:#2f8f6e;font-weight:800;font-size:11px;margin-left:6px">✓ Confirmada</span>' : '';
               return '<div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line-2)">'
                 +'<div style="text-align:center;min-width:54px"><div style="font-weight:800;font-size:12px">'+f+'</div><div style="font-size:10px;color:var(--muted)">'+(x.hora?esc(x.hora.slice(0,5))+' hs':'')+'</div></div>'
-                +'<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:13px">'+esc(x.titulo)+badge+'</div><div style="font-size:11px;color:var(--muted)">con '+quienN+(x.lugar?' · '+esc(x.lugar):'')+(x.detalle?' · '+esc(x.detalle):'')+'</div>'
-                +(x.estado==='rechazada'&&x.respuesta?'<div style="font-size:11px;color:#c0603e;font-weight:600">No asistís: '+esc(x.respuesta)+'</div>':'')+'</div>'
-                +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+acc+'</div>'
+                +'<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:13px">'+esc(x.titulo)+badge+'</div><div style="font-size:11px;color:var(--muted)">'+conQuienReu(x)+(x.lugar?' · '+esc(x.lugar):'')+(x.detalle?' · '+esc(x.detalle):'')+'</div></div>'
+                +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+accionesReu(x,true)+'</div>'
                 +'</div>';
             }).join('')+'</div>';
         }
@@ -629,31 +650,37 @@
 
   function reunItemHTML(x){
     const hora = x.hora ? String(x.hora).slice(0,5) : 'Sin hora';
-    const quienN = (x.creado_por_nombre && !/@/.test(x.creado_por_nombre)) ? esc(String(x.creado_por_nombre).split(/\s+/)[0]) : 'Dirección';
-    const badge = (x.estado==='confirmada'||x.estado==='realizada') ? '<span style="color:#2f8f6e;font-weight:800;font-size:11.5px;margin-left:auto">✓ Confirmada</span>'
-      : x.estado==='rechazada' ? '<span style="color:#c0603e;font-weight:800;font-size:11.5px;margin-left:auto">No asistís</span>' : '';
-    const acc = x.estado==='programada'
-      ? `<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-           <button onclick="confirmarReu('${x.id}')" style="background:#2f8f6e;color:#fff;border:0;border-radius:8px;padding:7px 13px;font:inherit;font-weight:700;font-size:12.5px;cursor:pointer">Confirmar asistencia</button>
-           <button onclick="rechazarReu('${x.id}')" style="background:#fff;color:#c0603e;border:1px solid #e7cfc6;border-radius:8px;padding:7px 13px;font:inherit;font-weight:700;font-size:12.5px;cursor:pointer">No puedo asistir</button>
-         </div>` : '';
-    const motivo = (x.estado==='rechazada' && x.respuesta) ? `<div class="cobj" style="color:#c0603e">No asistís — ${esc(x.respuesta)}</div>` : '';
-    const tieneMin = x.minuta && ((x.minuta.temas&&x.minuta.temas.length) || (x.minuta.pendientes&&x.minuta.pendientes.length) || x.minuta.notas);
-    const minBtn = (x.estado!=='rechazada' && x.estado!=='cancelada')
-      ? `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${minBtns(x.id, tieneMin)}</div>` : '';
+    const est = estadoReu(x);
+    const etiqueta = x.personal ? '📌 Personal' : x.organizador ? '👥 Organizás vos' : '📌 Reunión · ' + esc(primerN(x.organizador_nombre));
+    const badge = (est==='confirmada'||est==='realizada') ? '<span style="color:#2f8f6e;font-weight:800;font-size:11.5px;margin-left:auto">✓ Confirmada</span>'
+      : est==='rechazada' ? '<span style="color:#c0603e;font-weight:800;font-size:11.5px;margin-left:auto">'+(x.organizador?'Nadie puede':'No asistís')+'</span>' : '';
+    const motivo = (!x.organizador && est==='rechazada' && x.respuesta) ? `<div class="cobj" style="color:#c0603e">No asistís — ${esc(x.respuesta)}</div>` : '';
+    const noVan = x.organizador ? (x.participantes||[]).filter(p=>p.estado==='rechazada'&&p.respuesta).map(p=>`<div class="cobj" style="color:#c0603e">${esc(p.nombre)} no puede — ${esc(p.respuesta)}</div>`).join('') : '';
+    const acc = est==='cancelada' ? '' : `<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${accionesReu(x,false)}</div>`;
     return `<div class="citem" style="border-left:4px solid #c0912f;background:#fbf7ee">
       <div class="ccheck" style="visibility:hidden"></div>
       <div class="cbody">
-        <div class="ctop"><span class="chora">${hora}</span><span class="ctipo" style="background:#f0e6c9;color:#8a6d15">📌 Reunión · ${quienN}</span>${badge}</div>
+        <div class="ctop"><span class="chora">${hora}</span><span class="ctipo" style="background:#f0e6c9;color:#8a6d15">${etiqueta}</span>${badge}</div>
         <div class="cname">${esc(x.titulo)}</div>
+        ${x.personal ? '' : `<div class="cobj">${conQuienReu(x)}</div>`}
         ${(x.lugar||x.detalle)?`<div class="cobj">${[x.lugar,x.detalle].filter(Boolean).map(esc).join(' · ')}</div>`:''}
-        ${motivo}${acc}${minBtn}
+        ${motivo}${noVan}${acc}
       </div></div>`;
+  }
+
+  // Agendar / editar / cancelar lo que organizo yo (ventana compartida: assets/reunion-form.js)
+  function trasGuardarReu(b){ if(b && b.fecha){ const [Y,M,D]=b.fecha.split('-').map(Number); selDate=new Date(Y,M-1,D); } cargarReunionesDir(); }
+  function nuevaReu(){ GBReunion.abrir({ token:TOKEN, fecha:iso(selDate), onGuardado:trasGuardarReu }); }
+  function editarReu(id){ const x=(REUN||[]).find(r=>String(r.id)===String(id)); if(x) GBReunion.abrir({ token:TOKEN, evento:x, onGuardado:trasGuardarReu }); }
+  async function cancelarReu(id){
+    const x=(REUN||[]).find(r=>String(r.id)===String(id)); if(!x) return;
+    if(!confirm('¿Cancelar “'+x.titulo+'”?'+(x.personal?'':'\nA los invitados les llega el aviso.'))) return;
+    await reuEstado(id,'cancelada');
   }
 
   async function confirmarReu(id){ await reuEstado(id,'confirmada'); }
   async function rechazarReu(id){
-    const motivo = prompt('¿Por qué no podés asistir? (se le avisa a Dirección)');
+    const motivo = prompt('¿Por qué no podés asistir? (le llega a quien la organizó)');
     if(motivo===null) return;
     if(!motivo.trim()){ toast('Poné un motivo',true); return; }
     await reuEstado(id,'rechazada',motivo.trim());
@@ -663,7 +690,7 @@
       const body={accion:'estado',id,estado}; if(motivo!==undefined) body.motivo=motivo;
       const r=await fetch('/.netlify/functions/reuniones',{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify(body)});
       const d=await r.json(); if(!r.ok){ toast(d.error||'Error',true); return; }
-      toast(estado==='confirmada'?'Reunión confirmada ✅':'Aviso enviado a Dirección');
+      toast(estado==='confirmada'?'Reunión confirmada ✅':estado==='cancelada'?'Reunión cancelada':'Aviso enviado');
       await cargarReunionesDir();
     }catch(e){ toast('Error de conexión',true); }
   }
@@ -696,6 +723,7 @@
 <script src="assets/notif.js?v=2"></script>
 <script src="assets/hub-nav.js?v=3"></script>
 <script src="assets/user-menu.js?v=1"></script>
+<script src="assets/reunion-form.js?v=1"></script>
 <script src="assets/minuta-ia.js?v=1"></script>
 <script src="assets/minuta-ver.js?v=1"></script>
 <script src="assets/mobile-nav.js?v=1"></script>
