@@ -45,43 +45,36 @@
     .head h1{font-size:24px;margin:0 0 4px;font-weight:800;display:flex;align-items:center;gap:10px}
     .head p{margin:0 0 4px;color:var(--muted);font-size:14px}
 
-    /* ── Torneo Doña Paula (se mudó del inicio del manual a esta pestaña, 22/09/2026) ── */
+    /* ── Torneo Doña Paula: puntos oficiales del archivo de Administración (22/09/2026) ── */
     .tp-hero{background:linear-gradient(135deg,#1f3f6e,#0d2238);color:#fff;border-radius:18px;padding:20px 22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:18px 0 16px}
     .tp-hero .ic{font-size:40px}
     .tp-hero .tt{font-size:20px;font-weight:800}
     .tp-hero .fx{font-size:13px;color:#b9c9d6;margin-top:3px}
-    .tp-hero .sp{flex:1}
-    .tp-pill{background:rgba(255,255,255,.12);border-radius:20px;padding:7px 13px;font-size:12.5px;font-weight:700;white-space:nowrap}
-    .tp-pill.fin{background:#fbeae7;color:#b03a2e}
-    .tp-reg{background:var(--gold);color:#241a06;border:0;border-radius:11px;padding:11px 16px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap}
     .tp-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
     .tp-tabs button{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 15px;font:inherit;font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer}
     .tp-tabs button.on{background:var(--navy);border-color:var(--navy);color:#fff}
-    .tp-kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+    .tp-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
     .tp-kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 17px}
-    .tp-kpi .v{font-size:30px;font-weight:800;color:var(--navy)}
+    .tp-kpi .v{font-size:30px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
     .tp-kpi .l{font-size:12.5px;color:var(--muted);margin-top:2px}
     .tp-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 17px;margin-bottom:14px}
     .tp-card h3{margin:0 0 10px;font-size:14px}
     .tp-cat{display:grid;grid-template-columns:130px 1fr 70px;gap:10px;align-items:center;padding:6px 0;font-size:13.5px}
     .tp-bar{height:8px;background:var(--line-2);border-radius:5px;overflow:hidden}
     .tp-bar i{display:block;height:100%;background:var(--gold);border-radius:5px}
-    .tp-cat .p{text-align:right;font-weight:700}
-    .tp-act{display:flex;gap:11px;align-items:center;padding:10px 0;border-top:1px solid var(--line-2)}
-    .tp-act:first-of-type{border-top:0}
-    .tp-act img{width:42px;height:42px;border-radius:9px;object-fit:cover;cursor:pointer;flex:none}
-    .tp-act .n{font-weight:700;font-size:13.5px}
-    .tp-act .m{font-size:12px;color:var(--muted)}
-    .tp-act .pt{margin-left:auto;font-weight:800;color:var(--green);white-space:nowrap}
-    .tp-rank{display:grid;grid-template-columns:40px 1fr 80px 70px;gap:8px;align-items:center;padding:10px 4px;border-top:1px solid var(--line-2);font-size:13.5px}
+    .tp-cat .p,.tp-con .p{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+    .tp-grupo{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 4px}
+    .tp-con{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line-2);font-size:13.5px}
+    .tp-con.cero{color:var(--muted)}
+    .tp-scroll{overflow-x:auto}
+    .tp-rank{display:grid;grid-template-columns:36px minmax(140px,1fr) 78px 78px 88px 70px;gap:8px;align-items:center;padding:10px 4px;border-top:1px solid var(--line-2);font-size:13.5px;min-width:520px}
     .tp-rank.cab{border-top:0;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800}
     .tp-rank.yo{background:var(--gold-soft);border-radius:9px}
-    .tp-rank .r{text-align:right;font-weight:700}
+    .tp-rank .r{text-align:right;font-variant-numeric:tabular-nums}
+    .tp-rank .t{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
     .tp-vacio{text-align:center;color:var(--muted);padding:26px 10px;font-size:14px}
-    #tp-foto{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:9000;padding:20px}
-    #tp-foto.on{display:flex}
-    #tp-foto img{max-width:100%;max-height:90vh;border-radius:12px}
-    @media(max-width:820px){ .sidebar{display:none} .content{padding:16px} .tp-cat{grid-template-columns:110px 1fr 60px} .tp-rank{grid-template-columns:34px 1fr 64px 56px} }
+    .tp-nota{font-size:12px;color:var(--muted);margin-top:4px}
+    @media(max-width:820px){ .sidebar{display:none} .content{padding:16px} .tp-kpis{gap:8px} .tp-kpi{padding:12px} .tp-kpi .v{font-size:22px} .tp-kpi .l{font-size:11.5px} .tp-cat{grid-template-columns:110px 1fr 60px} }
   </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
@@ -98,118 +91,110 @@
     <div class="content">
       <div class="head">
         <h1>🏆 Torneo Doña Paula</h1>
-        <p>Tus puntos, lo que registraste y cómo vas en el ranking.</p>
+        <p>Tus puntos y el ranking de cada sucursal.</p>
       </div>
 
       <div class="tp-hero">
         <span class="ic">🍇</span>
-        <div><div class="tt">Torneo Doña Paula</div><div class="fx" id="tp-fechas">—</div></div>
-        <span class="sp"></span>
-        <span class="tp-pill" id="tp-dias">—</span>
-        <button class="tp-reg" id="tp-registrar" hidden>⚡ Registrar actividad</button>
+        <div><div class="tt">Torneo Doña Paula</div><div class="fx">Puntos oficiales: los carga Administración y se actualizan cuando cambia su planilla.</div></div>
       </div>
 
       <div class="tp-tabs">
-        <button class="on" data-tab="progreso">Mi progreso</button>
-        <button data-tab="on">🍷 Mendoza ON</button>
-        <button data-tab="off">🛒 Mendoza OFF</button>
-        <button data-tab="sl">🏔 San Luis</button>
+        <button class="on" data-tab="yo">Mi puntaje</button>
+        <button data-tab="Mendoza">🍇 Mendoza</button>
+        <button data-tab="San Luis">🏔 San Luis</button>
       </div>
       <div id="tp-cont"><div class="tp-vacio">Cargando…</div></div>
     </div>
   </div>
 </div>
-<div id="tp-foto" onclick="this.classList.remove('on')"><img alt="Foto de la actividad"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="manual-vendedores/_config.js"></script>
 <script src="manual-vendedores/_sucursales.js"></script>
-<script src="manual-vendedores/_torneo.js"></script>
 <script>
-  // Los datos son los mismos que veía el vendedor en el manual (torneo_registros,
-  // base del manual). Al vendedor se lo reconoce por su código de vendedor del Hub.
+  // Los puntos salen del CSV que carga Administración en Drive (función torneo-puntos).
+  // A cada nombre del archivo se le busca su código de vendedor para saber la sucursal.
   const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const $ = id => document.getElementById(id);
   const escH = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const initials = n => (n||"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "V";
-  let VEND = null, TAB = 'progreso', _todos = null;
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  const fmt = n => Math.round(n).toLocaleString('es-AR');
+  const CATS = ['Acciones', 'Volumen', 'Activaciones'];
+  const ICO = { Acciones:'🎯', Volumen:'📦', Activaciones:'⚡' };
+  let VEND = null, GENTE = [];
 
-  function aviso(txt){ $('tp-cont').innerHTML = `<div class="tp-card"><div class="tp-vacio">${txt}</div></div>`; }
+  // "Angela Laurito" (archivo) = "Ángeles Laurito" (sistema): mismo apellido y el
+  // nombre empieza igual. Primero se busca el nombre exacto.
+  function codigoDe(nombre, vendedores) {
+    const n = norm(nombre);
+    const exacto = vendedores.find(v => norm(v.nombre) === n);
+    if (exacto) return exacto;
+    const [pn, ...resto] = n.split(' '); const ap = resto.join(' ');
+    return vendedores.find(v => { const [vn, ...vr] = norm(v.nombre).split(' '); return vr.join(' ') === ap && vn.slice(0, 4) === pn.slice(0, 4); }) || null;
+  }
 
-  async function progreso(){
-    const mes = getMesActual();
-    const { data, error } = await sb.from('torneo_registros')
-      .select('id, tipo, puntos, mes, detalle, foto_url, clientes(id, nombre, tipo)')
-      .eq('torneo_id', TORNEO_ID).eq('vendedor_id', VEND.id)
-      .order('created_at', { ascending:false });
-    if (error) return aviso('No se pudieron cargar tus puntos: ' + escH(error.message));
-    const regs = data || [];
-    const suma = arr => arr.reduce((s, r) => s + (Number(r.puntos) || 0), 0);
-    const mesPts = suma(regs.filter(r => r.mes === mes)), total = suma(regs);
-    const cats = [['📦 Volumen','volumen'],['🎯 Cobertura','cobertura'],['⚡ Activaciones','activacion']].map(([n,t]) => [n, suma(regs.filter(r => r.tipo === t))]);
-    const max = Math.max(1, ...cats.map(c => c[1]));
+  function armar(filas, vendedores) {
+    const por = {};
+    filas.forEach(f => {
+      const k = norm(f.vendedor);
+      const p = por[k] = por[k] || { nombre: f.vendedor, total: 0, cats: {}, conceptos: [] };
+      p.total += f.puntos;
+      p.cats[f.categoria] = (p.cats[f.categoria] || 0) + f.puntos;
+      p.conceptos.push(f);
+    });
+    return Object.values(por).map(p => {
+      const v = codigoDe(p.nombre, vendedores);
+      return { ...p, nombre: v ? v.nombre : p.nombre, codigo: v ? v.codigo : null, sucursal: getSucursal(v ? v.codigo : null) };
+    });
+  }
+
+  function aviso(txt) { $('tp-cont').innerHTML = `<div class="tp-card"><div class="tp-vacio">${txt}</div></div>`; }
+
+  function miPuntaje() {
+    const yo = GENTE.find(p => VEND && p.codigo === VEND.codigo);
+    if (!yo) return aviso('Todavía no tenés puntos cargados en el torneo.');
+    const suc = GENTE.filter(p => p.sucursal === yo.sucursal).sort((a, b) => b.total - a.total);
+    const pos = suc.findIndex(p => p === yo) + 1;
+    const max = Math.max(1, ...CATS.map(c => yo.cats[c] || 0));
+    const otras = Object.keys(yo.cats).filter(c => !CATS.includes(c));
     $('tp-cont').innerHTML = `
       <div class="tp-kpis">
-        <div class="tp-kpi"><div class="v">${mesPts}</div><div class="l">puntos en ${escH(nombreMes(mes).toLowerCase())}</div></div>
-        <div class="tp-kpi"><div class="v">${total}</div><div class="l">puntos totales del torneo</div></div>
+        <div class="tp-kpi"><div class="v">${fmt(yo.total)}</div><div class="l">puntos totales</div></div>
+        <div class="tp-kpi"><div class="v">${pos}°</div><div class="l">en ${escH(yo.sucursal)} (de ${suc.length})</div></div>
+        <div class="tp-kpi"><div class="v">${pos > 1 ? fmt(suc[pos - 2].total - yo.total) : '—'}</div><div class="l">${pos > 1 ? 'puntos para pasar al ' + (pos - 1) + '°' : 'vas primero 🏆'}</div></div>
       </div>
-      <div class="tp-card"><h3>Desglose por categoría</h3>
-        ${cats.map(([n,p]) => `<div class="tp-cat"><span>${n}</span><div class="tp-bar"><i style="width:${Math.round(p/max*100)}%"></i></div><span class="p">${escH(fmtPts(p))}</span></div>`).join('')}
+      <div class="tp-card"><h3>Por categoría</h3>
+        ${CATS.concat(otras).map(c => `<div class="tp-cat"><span>${ICO[c] || '•'} ${escH(c)}</span><div class="tp-bar"><i style="width:${Math.round((yo.cats[c] || 0) / max * 100)}%"></i></div><span class="p">${fmt(yo.cats[c] || 0)}</span></div>`).join('')}
       </div>
-      <div class="tp-card"><h3>Últimas actividades</h3>
-        ${regs.length ? regs.slice(0, 15).map(r => `
-          <div class="tp-act">
-            ${r.foto_url ? `<img src="${escH(r.foto_url)}" alt="" data-foto="${escH(r.foto_url)}">` : ''}
-            <div style="min-width:0"><div class="n">${escH(labelRegistro(r))}</div><div class="m">${escH(r.clientes?.nombre || '')} · ${escH(nombreMes(r.mes))}</div></div>
-            <span class="pt">+${escH(fmtPts(r.puntos))}</span>
-          </div>`).join('')
-        : '<div class="tp-vacio">Todavía no registraste actividades.</div>'}
+      <div class="tp-card"><h3>Detalle</h3>
+        ${CATS.concat(otras).filter(c => yo.conceptos.some(x => x.categoria === c)).map(c => `
+          <div class="tp-grupo">${ICO[c] || '•'} ${escH(c)}</div>
+          ${yo.conceptos.filter(x => x.categoria === c).sort((a, b) => b.puntos - a.puntos)
+            .map(x => `<div class="tp-con ${x.puntos ? '' : 'cero'}"><span>${escH(x.concepto)}</span><span class="p">${fmt(x.puntos)}</span></div>`).join('')}`).join('')}
       </div>`;
-    $('tp-cont').querySelectorAll('[data-foto]').forEach(i => i.onclick = () => { $('tp-foto').querySelector('img').src = i.dataset.foto; $('tp-foto').classList.add('on'); });
   }
 
-  async function todos(){
-    if (_todos) return _todos;
-    const { data } = await sb.from('torneo_registros')
-      .select('vendedor_id, puntos, mes, clientes(tipo), vendedores(id, nombre, codigo)')
-      .eq('torneo_id', TORNEO_ID);
-    return (_todos = data || []);
-  }
-  async function ranking(filtro, titulo){
-    const mes = getMesActual(), mapa = {};
-    (await todos()).forEach(r => {
-      if (!filtro(r)) return;
-      const m = mapa[r.vendedor_id] = mapa[r.vendedor_id] || { v: r.vendedores, mes: 0, total: 0 };
-      m.total += Number(r.puntos) || 0; if (r.mes === mes) m.mes += Number(r.puntos) || 0;
-    });
-    const filas = Object.values(mapa).sort((a, b) => b.total - a.total);
+  function ranking(sucursal) {
+    const filas = GENTE.filter(p => p.sucursal === sucursal).sort((a, b) => b.total - a.total);
+    if (!filas.length) return aviso('Todavía no hay puntos cargados para ' + escH(sucursal) + '.');
     const med = ['🥇','🥈','🥉'];
-    $('tp-cont').innerHTML = `<div class="tp-card"><h3>${escH(titulo)}</h3>
-      ${filas.length ? `<div class="tp-rank cab"><span>#</span><span>Vendedor</span><span class="r">${escH(nombreMes(mes))}</span><span class="r">Total</span></div>` +
-        filas.map((f, i) => { const yo = f.v && f.v.id === VEND.id;
-          return `<div class="tp-rank${yo ? ' yo' : ''}"><span>${i < 3 ? med[i] : i + 1}</span><span>${escH(f.v?.nombre || '—')}${yo ? ' <b style="color:var(--gold-d)">· vos</b>' : ''}</span><span class="r">${f.mes}</span><span class="r">${f.total}</span></div>`; }).join('')
-        : '<div class="tp-vacio">Sin registros todavía.</div>'}</div>`;
+    $('tp-cont').innerHTML = `<div class="tp-card"><h3>Ranking ${escH(sucursal)}</h3><div class="tp-scroll">
+      <div class="tp-rank cab"><span>#</span><span>Vendedor</span><span class="r">Acciones</span><span class="r">Volumen</span><span class="r">Activaciones</span><span class="r">Total</span></div>
+      ${filas.map((p, i) => { const yo = VEND && p.codigo === VEND.codigo;
+        return `<div class="tp-rank${yo ? ' yo' : ''}"><span>${i < 3 ? med[i] : i + 1}</span><span>${escH(p.nombre)}${yo ? ' <b style="color:var(--gold-d)">· vos</b>' : ''}</span>
+          <span class="r">${fmt(p.cats.Acciones || 0)}</span><span class="r">${fmt(p.cats.Volumen || 0)}</span><span class="r">${fmt(p.cats.Activaciones || 0)}</span><span class="t">${fmt(p.total)}</span></div>`; }).join('')}
+    </div></div>`;
   }
 
-  function mostrar(tab){
-    TAB = tab;
+  function mostrar(tab) {
     document.querySelectorAll('.tp-tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-    $('tp-cont').innerHTML = '<div class="tp-vacio">Cargando…</div>';
-    if (tab === 'progreso') return progreso();
-    if (tab === 'on')  return ranking(r => getSucursal(r.vendedores?.codigo) === 'Mendoza' && getLiga(r.clientes?.tipo) === 'ON', 'Mendoza — Liga ON (bares, restaurantes, hoteles, discos)');
-    if (tab === 'off') return ranking(r => getSucursal(r.vendedores?.codigo) === 'Mendoza' && getLiga(r.clientes?.tipo) === 'OFF', 'Mendoza — Liga OFF (vinotecas y autoservicios)');
-    if (tab === 'sl')  return ranking(r => getSucursal(r.vendedores?.codigo) === 'San Luis', 'San Luis');
+    if (tab === 'yo') miPuntaje(); else ranking(tab);
   }
 
   (async function init(){
-    const inicio = new Date(2026, TORNEO_MES_INICIO - 1, 1);
-    const f = d => d.toLocaleDateString('es-AR', { day:'numeric', month:'long', year:'numeric' });
-    $('tp-fechas').textContent = 'Del ' + f(inicio) + ' al ' + f(TORNEO_FIN);
-    const dias = diasRestantes();
-    $('tp-dias').textContent = dias > 0 ? '⏱ Faltan ' + dias + ' días' : 'Terminado';
-    if (dias <= 0) $('tp-dias').classList.add('fin');
-
     const hub = supabase.createClient(HUB.url, HUB.key);
     const { data:{ session } } = await hub.auth.getSession();
     if (!session) { location.href = 'index.html'; return; }
@@ -217,18 +202,20 @@
     const nombre = (perfil && perfil.nombre) || session.user.email;
     $('uName').textContent = nombre; $('av').textContent = initials(nombre);
     const cod = perfil && String(perfil.codigo_vendedor || '').trim().toUpperCase();
-    if (!cod) return aviso('Tu usuario todavía no tiene código de vendedor cargado, así que no puedo mostrar tus puntos. Avisale a Desarrollo.');
-    const { data: vend } = await sb.from('vendedores').select('*').eq('codigo', cod).maybeSingle();
-    if (!vend) return aviso('No encontré tu ficha de vendedor en el manual (código ' + escH(cod) + ').');
-    VEND = vend;
-    // El registro de actividades es la pantalla del manual: se le deja la sesión
-    // armada (igual que al entrar al manual desde el Hub) y vuelve acá al terminar.
-    sessionStorage.setItem('vendedor', JSON.stringify(vend));
-    const reg = $('tp-registrar');
-    reg.hidden = false;
-    reg.onclick = () => { location.href = 'manual-vendedores/torneo-registro.html'; };
-    document.querySelectorAll('.tp-tabs button').forEach(b => b.onclick = () => mostrar(b.dataset.tab));
-    mostrar('progreso');
+    try {
+      const [r, rv] = await Promise.all([
+        fetch('/.netlify/functions/torneo-puntos').then(x => x.json()),
+        sb.from('vendedores').select('codigo, nombre'),
+      ]);
+      if (r.error) return aviso('No se pudieron leer los puntos del torneo: ' + escH(r.error));
+      const vendedores = rv.data || [];
+      VEND = cod ? (vendedores.find(v => String(v.codigo).toUpperCase() === cod) || { codigo: cod, nombre }) : null;
+      GENTE = armar(r.filas || [], vendedores);
+      if (!GENTE.length) return aviso('Todavía no hay puntos cargados en el torneo.');
+      document.querySelectorAll('.tp-tabs button').forEach(b => b.onclick = () => mostrar(b.dataset.tab));
+      // Sin código de vendedor (p. ej. alguien de Dirección mirando) arranca en el ranking.
+      mostrar(VEND ? 'yo' : 'Mendoza');
+    } catch (e) { aviso('No se pudieron leer los puntos del torneo.'); }
   })();
 </script>
 <script src="assets/hub-nav.js?v=3"></script>
