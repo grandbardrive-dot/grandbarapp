@@ -21,3 +21,10 @@
 # Ver manual-vendedores/netlify/functions/sync-clientes-cron.js
 [functions."sync-clientes-cron"]
   schedule = "0 * * * *"
+
+# Master de artículos (stock real) del ERP → productos_grandbar, para que el
+# SCANNER DE CARTA cruce contra lo que de verdad tenemos y esté al día. 1×/día
+# (09:00 UTC ≈ 06:00 ART). Dispara la background sync-productos-background.
+# Ver manual-vendedores/netlify/functions/sync-productos-cron.js
+[functions."sync-productos-cron"]
+  schedule = "0 9 * * *"
