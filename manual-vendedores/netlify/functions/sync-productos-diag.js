@@ -29,16 +29,16 @@ exports.handler = async () => {
     const { urlCuenta, cuenta, token } = await login();
     if (!token) return { statusCode: 502, headers, body: JSON.stringify({ error: 'sin token', urlCuenta }) };
     const r = await aikon(urlCuenta + '/IS3/DtTabla', { cuenta, token, tabla: 'ARTICULOS' }, 25000);
-    const lista = Array.isArray(r) ? r
-      : (r.lista || r.tabla || r.Tabla || r.datos || r.Datos || r.registros || r.Registros || r.retorno || r.data || []);
-    const arr = Array.isArray(lista) ? lista : [];
-    const out = {
-      filas: arr.length,
-      columnas: arr[0] ? Object.keys(arr[0]) : [],
-      muestra: arr[0] || null,
-      claves_top: arr.length ? undefined : Object.keys(r || {}),
+
+    // Describe cualquier valor sin volcar todo: tipo, tamaño y una pista.
+    const describe = (v, depth = 0) => {
+      if (v == null) return { tipo: 'null' };
+      if (Array.isArray(v)) return { tipo: 'array', largo: v.length, primero: v[0] && depth < 2 ? describe(v[0], depth + 1) : (v[0] ? Object.keys(v[0]) : null) };
+      if (typeof v === 'object') { const k = Object.keys(v); return { tipo: 'object', claves: k, hijos: depth < 2 ? Object.fromEntries(k.slice(0, 12).map(x => [x, describe(v[x], depth + 1)])) : undefined }; }
+      if (typeof v === 'string') return { tipo: 'string', largo: v.length, preview: v.slice(0, 200) };
+      return { tipo: typeof v, valor: v };
     };
-    return { statusCode: 200, headers, body: JSON.stringify(out, null, 2) };
+    return { statusCode: 200, headers, body: JSON.stringify({ forma: describe(r) }, null, 2) };
   } catch (e) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: (e && e.message) || String(e) }) };
   }
