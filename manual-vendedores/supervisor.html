@@ -669,9 +669,9 @@ function _parseSheet5T(text) {
 
 async function _getSheet5T() {
   if (_sheet5TSupCache !== null) return _sheet5TSupCache;
-  const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRki8X-1_-X8TCp3hHWWiFuLDFXAsh58vyMAiRhaoShCg1my2PPCGRdv-pT0TFtjFsI98viBKDC4hxo/pub?output=csv';
+  const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQqUyLV4D_AsvxDat8KRQ270n7FYsgUlWSlH-HQ1F3zLwCYuOx6vXYS9CUY3tIyGw/pub?output=csv';
   try {
-    const r = await fetch(`${SHEET_BASE}&gid=0`);
+    const r = await fetch(SHEET_BASE);
     _sheet5TSupCache = r.ok ? _parseSheet5T(await r.text()) : new Map();
   } catch { _sheet5TSupCache = new Map(); }
   return _sheet5TSupCache;

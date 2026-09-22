@@ -3318,7 +3318,7 @@ body { background:transparent !important; }
   }
 
   // ── Plan Campari 5T ──────────────────────────────────────────────────────────
-  const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRki8X-1_-X8TCp3hHWWiFuLDFXAsh58vyMAiRhaoShCg1my2PPCGRdv-pT0TFtjFsI98viBKDC4hxo/pub?output=csv';
+  const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQqUyLV4D_AsvxDat8KRQ270n7FYsgUlWSlH-HQ1F3zLwCYuOx6vXYS9CUY3tIyGw/pub?output=csv';
 
   // Nueva estructura: 1 sola hoja, columnas = marcas, filas = clientes por nombre
   const MARCAS_5T = [
@@ -3387,7 +3387,7 @@ body { background:transparent !important; }
   async function fetchSheet5T() {
     if (_sheet5TCache !== null) return _sheet5TCache;
     try {
-      const r = await fetch(`${SHEET_BASE}&gid=0`);
+      const r = await fetch(SHEET_BASE);
       if (!r.ok) { _sheet5TCache = false; return false; }
       _sheet5TCache = await r.text();
       return _sheet5TCache;
