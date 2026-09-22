@@ -259,10 +259,18 @@
   .oferta-foto-wrap { position: relative; width: 100%; aspect-ratio: 1; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface2); display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
   .oferta-foto-wrap img { width: 100%; height: 100%; object-fit: cover; }
   .oferta-foto-fallback { font-size: 34px; }
-  .oferta-badge { position: absolute; top: 6px; right: 6px; min-width: 40px; height: 40px; border-radius: 50%; background: rgba(40,40,44,.92); color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; text-align: center; padding: 3px; line-height: 1.05; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .oferta-badge { position: absolute; top: 6px; right: 6px; min-width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(145deg,#E4B84C,#C8912E); color: #2a2113; font-size: 15px; font-weight: 900; letter-spacing: -.02em; display: flex; align-items: center; justify-content: center; text-align: center; padding: 4px; line-height: 1; box-shadow: 0 3px 10px rgba(0,0,0,.35), 0 0 0 3px rgba(255,255,255,.85); text-shadow: 0 1px 0 rgba(255,255,255,.35); z-index: 2; }
   .oferta-nombre { font-size: 12.5px; font-weight: 700; color: var(--text); line-height: 1.25; margin-bottom: 4px; }
   .oferta-precio { font-size: 10.5px; color: var(--text3); line-height: 1.3; margin-top: auto; }
   .oferta-precio b { display: block; font-size: 15px; color: var(--azul); font-family: 'DM Mono',monospace; margin-top: 1px; }
+  .oferta-precios { margin-top: auto; display: flex; flex-direction: column; gap: 3px; }
+  .op-row { font-size: 10px; color: var(--text3); line-height: 1.15; display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+  .op-row .op-val { font-family: 'DM Mono',monospace; font-weight: 700; white-space: nowrap; }
+  .op-accionado { font-size: 10.5px; color: var(--text2); }
+  .op-accionado .op-val { font-size: 15px; color: var(--azul); }
+  .op-regular .op-val { color: var(--text3); text-decoration: line-through; text-decoration-thickness: 1px; font-weight: 500; }
+  .op-sugerido { color: #2f7d4f; }
+  .op-sugerido .op-val { color: #2f7d4f; }
   .oferta-add { position: absolute; bottom: 10px; right: 10px; width: 30px; height: 30px; border-radius: 9px; border: none; background: var(--green); color: #fff; font-size: 19px; font-weight: 700; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(45,106,79,.35); -webkit-tap-highlight-color: transparent; transition: transform .1s; }
   .oferta-add:active { transform: scale(.9); }
   .oferta-add.added { background: #1B4332; }
@@ -5593,6 +5601,7 @@ body { background:transparent !important; }
           // Muchas acciones no tienen precio: lo define la mecánica. No se inventa.
           precio_accionado: a.precio_accionado || 0,
           precio_regular: a.precio_regular || 0,
+          sugerido_venta: a.sugerido_venta || 0,
           foto_url: a.imagen_url || '',
           orden: a.orden || 0,
           secciones: Array.isArray(a.secciones) ? a.secciones : [],
@@ -6517,7 +6526,17 @@ body { background:transparent !important; }
           <div class="oferta-nombre">${esc(o.producto)}</div>
           ${o.descripcion_larga ? `<div class="oferta-desc" onclick="this.classList.toggle('expanded')" title="Tocar para ver más">${esc(o.descripcion_larga)}</div>` : ''}
           ${o.material_foto_url ? `<button class="oferta-material" data-url="${esc(o.material_foto_url)}" data-titulo="${esc(o.producto)} — material" data-ctx="${esc(o.producto)}" onclick="abrirPlacaDesde(this)">🖼️ Ver material</button>` : ''}
-          ${Number(o.precio_accionado) > 0 ? `<div class="oferta-precio">Precio final accionado<b>${fmtPesos(o.precio_accionado)}</b></div>` : ''}
+          ${(() => {
+            const acc = Number(o.precio_accionado) || 0;
+            const reg = Number(o.precio_regular) || 0;
+            const sug = Number(o.sugerido_venta) || 0;
+            const esOff = (typeof _canalCatalogo === 'function') && _canalCatalogo() === 'off';
+            const rows = [];
+            if (acc > 0) rows.push(`<div class="op-row op-accionado"><span>Precio final accionado</span><span class="op-val">${fmtPesos(acc)}</span></div>`);
+            if (reg > 0 && reg !== acc) rows.push(`<div class="op-row op-regular"><span>Precio regular</span><span class="op-val">${fmtPesos(reg)}</span></div>`);
+            if (esOff && sug > 0) rows.push(`<div class="op-row op-sugerido"><span>Sugerido al público</span><span class="op-val">${fmtPesos(sug)}</span></div>`);
+            return rows.length ? `<div class="oferta-precios">${rows.join('')}</div>` : '';
+          })()}
           <div class="oferta-qty">
             <div class="oferta-qty-units">
               <button type="button" class="oferta-qty-u ${uSel!=='botellas'?'on':''}" data-u="cajas" onclick="ofertaSetU(this)">Cajas</button>
