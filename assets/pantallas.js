@@ -129,7 +129,6 @@ const PANTALLAS = [
     items: [
       { n:'Panel de Josefina',  r:'panel-diseno.html',                         nota:'Panel de Diseño y Desarrollo (el de Josefina).' },
       { n:'Panel de Nahuel',    r:'panel-desarrollo.html',                     nota:'El mismo panel, con su nombre.' },
-      { n:'Tareas de la auditoría', r:'auditoria-tareas.html',                  nota:'Lo que quedó por arreglar de los manuales, repartido entre Josefina, Nahuel, Luciana y Dirección.' },
       { n:'Clientes desde CUBO', r:'sync-clientes.html',                        nota:'Trae de CUBO los clientes nuevos y corrige nombre, rubro y vendedor. Con simulacro.' },
       { n:'Hub',                r:'hub.html',                                  nota:'La pantalla de herramientas según el rol.' },
       { n:'Ingreso',            r:'index.html',                                nota:'Login del Hub.' },
