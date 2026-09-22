@@ -32,8 +32,19 @@
     if (bot) { var b = [items[0], items[1], items[3], items[6]]; /* Equipo, Tareas, Leads, Agendas */ bot.innerHTML = b.map(function (it) { return '<a href="' + it.href + '" class="' + (it.href === page ? "active" : "") + '">' + svg(it.icon) + it.short + "</a>"; }).join(""); }
   }
 
-  // 1) Si ya sabemos (cacheado) que es supervisor → dibujar YA, sin esperar red.
-  try { if (localStorage.getItem("gb_es_sup") === "1") render(); } catch (e) {}
+  // De quién es la sesión guardada. El cache queda atado a esa persona: si en
+  // otra pestaña se entra con otra cuenta, el menú de supervisor no se le queda
+  // pegado al que venga después.
+  function uidGuardado() {
+    try {
+      var v = JSON.parse(localStorage.getItem("sb-xqhyemccbwmzxqzkrtwa-auth-token") || "null");
+      var s = v && (v.currentSession || v);
+      return (s && s.user && s.user.id) || "";
+    } catch (e) { return ""; }
+  }
+
+  // 1) Si ya sabemos (cacheado, y de esta misma cuenta) que es supervisor → dibujar YA.
+  try { var _u = uidGuardado(); if (_u && localStorage.getItem("gb_es_sup") === _u) render(); } catch (e) {}
 
   // 2) Confirmar contra la sesión y actualizar el cache.
   (async function () {
@@ -43,7 +54,7 @@
       var s = (await c.auth.getSession()).data.session; if (!s) return;
       var u = (await c.from("usuarios").select("es_supervisor").eq("id", s.user.id).maybeSingle()).data;
       var sup = !!(u && u.es_supervisor);
-      try { localStorage.setItem("gb_es_sup", sup ? "1" : "0"); } catch (e) {}
+      try { localStorage.setItem("gb_es_sup", sup ? s.user.id : "no"); } catch (e) {}
       if (sup) render();
       else { try { document.documentElement.classList.remove("gb-sup"); } catch (e) {} reveal(); }
     } catch (e) { reveal(); }
