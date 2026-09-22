@@ -960,6 +960,7 @@
   }
   .carta-prod-resumen b { color:var(--dorado); }
   .carta-prod-resumen .gb   { color:#7ddfa0; font-weight:700; }
+  .carta-prod-resumen .posible { color:#e8c479; font-weight:700; }
   .carta-prod-resumen .comp { color:#f0a3a3; font-weight:700; }
 
   .carta-prod-row {
@@ -981,8 +982,12 @@
     -webkit-tap-highlight-color:transparent;
   }
   .carta-badge.gb   { background:rgba(125,223,160,.18); color:#7ddfa0; border:1px solid rgba(125,223,160,.5); }
+  .carta-badge.posible { background:rgba(232,196,121,.16); color:#e8c479; border:1px solid rgba(232,196,121,.5); }
   .carta-badge.comp { background:rgba(240,120,120,.16); color:#f0a3a3; border:1px solid rgba(240,120,120,.5); }
   .carta-prod-cat { font-size:10px; color:var(--dorado); text-transform:uppercase; letter-spacing:.05em; flex-shrink:0; }
+  .carta-prod-stock { font-size:10px; font-weight:700; border-radius:6px; padding:2px 7px; flex-shrink:0; letter-spacing:.02em; }
+  .carta-prod-stock.ok  { background:rgba(45,106,79,.28); color:#8fe0b4; }
+  .carta-prod-stock.sin { background:rgba(192,57,43,.25); color:#f0a89e; }
   .carta-prod-del {
     background:rgba(255,255,255,.1); border:none; color:#fff; width:28px; height:28px;
     border-radius:6px; font-size:14px; cursor:pointer; flex-shrink:0;
@@ -2244,13 +2249,22 @@ body { background:transparent !important; }
   // ── Motor de cruce contra el catálogo GrandBar (productos_grandbar) ──────────
   let _catalogoGB = null;     // índice cacheado: { entries, exact, inv }
 
-  // Normaliza igual que descripcion_normalizada del catálogo
+  // Normaliza igual que descripcion_normalizada del catálogo.
+  // Además limpia abreviaturas del ERP (c/gas, s/g, pet, etc.) y sinónimos, para
+  // que "Agua con gas" de la carta cruce con "Bonaqua c/gas x500ml" del sistema.
   function normalizarNombre(desc) {
     let s = String(desc || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    // unidades y tamaños
     s = s.replace(/\bx?\s*\d+([.,]\d+)?\s*(ml|cc|cl|lts?|lt|l|litros?|grs?|gr|g|kg|mg)\b/g, ' ');
     s = s.replace(/\bx\s*\d+\b/g, ' ');
     s = s.replace(/[×*]/g, ' ');
-    return s.replace(/\s+/g, ' ').trim();
+    // abreviaturas del ERP → palabra completa (para que coincida con la carta)
+    s = s.replace(/\bc\s*\/\s*gas\b/g, ' con gas ').replace(/\bc\/g\b/g, ' con gas ');
+    s = s.replace(/\bs\s*\/\s*gas\b/g, ' sin gas ').replace(/\bs\/g\b/g, ' sin gas ');
+    s = s.replace(/\bs\s*\/\s*a(lcohol)?\b/g, ' sin alcohol ');
+    // ruido de envase/formato que no distingue la marca
+    s = s.replace(/\b(pet|lata|latas|bot|botella|botellas|vidrio|retornable|desc|descartable|pack|blister|caja|cajon|unid|unidad|unidades|u|und)\b/g, ' ');
+    return s.replace(/[\/]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
   const _STOPWORDS = new Set([
@@ -2266,6 +2280,11 @@ body { background:transparent !important; }
     });
     return set;
   }
+  // Merchandising/promo del ERP (bolso, gorra, copón…): sí lo tenemos en stock,
+  // pero NO es la bebida de la carta. No debe ganarle el match a la botella real.
+  const _MERCH_RE = /\b(bolso|gorra|remera|remeras|buzo|campera|llavero|lapicera|cartel|afiche|poster|exhibidor|hielera|conservadora|destapador|sacacorcho|delantal|vaso|vasos|copon|copa|copas|mochila|riñonera|rinonera|piluso|sombrero|gorro|pin|sticker|stickers|banner|pechera|pizarra|display|regaleria)\b/;
+  function _esMerch(norm) { return _MERCH_RE.test(norm || ''); }
+
   function trigramas(norm) {
     const t = ' ' + String(norm || '').replace(/\s+/g, ' ').trim() + ' ';
     const set = new Set();
@@ -2288,7 +2307,7 @@ body { background:transparent !important; }
     while (true) {
       const { data, error } = await sb
         .from('productos_grandbar')
-        .select('codigo, descripcion, descripcion_normalizada')
+        .select('codigo, descripcion, descripcion_normalizada, stock')
         .range(from, from + pageSize - 1);
       if (error) throw error;
       if (!data || data.length === 0) break;
@@ -2297,8 +2316,11 @@ body { background:transparent !important; }
       from += pageSize;
     }
     const entries = todas.map(r => {
-      const norm = r.descripcion_normalizada || normalizarNombre(r.descripcion);
-      return { codigo: r.codigo, descripcion: r.descripcion, norm,
+      // Renormalizamos siempre con la función nueva (la columna guardada usa la
+      // vieja y no limpia abreviaturas); así carta y catálogo hablan el mismo idioma.
+      const norm = normalizarNombre(r.descripcion || r.descripcion_normalizada || '');
+      return { codigo: r.codigo, descripcion: r.descripcion, stock: r.stock,
+               norm, merch: _esMerch(norm),
                tokens: tokensSignificativos(norm), trig: trigramas(norm) };
     });
     const exact = new Map();   // norm -> entry
@@ -2311,12 +2333,19 @@ body { background:transparent !important; }
     return _catalogoGB;
   }
 
-  // Devuelve { entry, score } del mejor match, o null si no hay
+  // Devuelve { entry, score, tier } del mejor match, o null si no hay.
+  // tier: 'alto' = casi seguro que lo tenemos · 'medio' = probable, que lo revise.
+  // Clave: contención BIDIRECCIONAL. El ERP suele tener el nombre corto
+  // ("Beefeater") y la carta el largo ("Gin Beefeater London Dry 750"): pedir que
+  // el 70% de las palabras de la carta estén en el catálogo daba falso negativo.
+  // Ahora alcanza con que uno de los dos nombres esté "contenido" en el otro.
   function matchearProducto(nombre) {
     if (!_catalogoGB) return null;
     const qNorm = normalizarNombre(nombre);
     if (!qNorm) return null;
-    if (_catalogoGB.exact.has(qNorm)) return { entry: _catalogoGB.exact.get(qNorm), score: 1 };
+    if (_catalogoGB.exact.has(qNorm)) {
+      return { entry: _catalogoGB.exact.get(qNorm), score: 1, tier: 'alto' };
+    }
 
     const qTokens = tokensSignificativos(qNorm);
     if (qTokens.size === 0) return null;
@@ -2329,15 +2358,32 @@ body { background:transparent !important; }
     let best = null;
     cand.forEach(i => {
       const e = _catalogoGB.entries[i];
+      if (!e.tokens.size) return;
       let inter = 0; qTokens.forEach(t => { if (e.tokens.has(t)) inter++; });
-      const overlap = inter / qTokens.size;            // fracción de palabras de la carta presentes
-      const dice = diceCoef(qTrig, e.trig);
-      let ok;
-      if (qTokens.size === 1) ok = (overlap === 1 && dice >= 0.4);
-      else                    ok = (overlap >= 0.7) || (inter >= 2 && dice >= 0.45);
-      if (!ok) return;
-      const score = overlap * 0.7 + dice * 0.3;
-      if (!best || score > best.score) best = { entry: e, score };
+      if (inter === 0) return;
+      const contQ = inter / qTokens.size;   // ¿cuánto de la carta está en el catálogo?
+      const contE = inter / e.tokens.size;  // ¿cuánto del catálogo está en la carta?
+      const cont  = Math.max(contQ, contE); // contención bidireccional
+      const dice  = diceCoef(qTrig, e.trig);
+      let score = cont * 0.6 + dice * 0.4;
+
+      let tier = null;
+      if (qTokens.size === 1) {
+        // Marca de una sola palabra: exigimos que esté completa y buen parecido.
+        if (contQ === 1 && dice >= 0.45) tier = 'alto';
+        else if (contQ === 1 && dice >= 0.3) tier = 'medio';
+      } else {
+        // Multi-palabra: un nombre contenido en el otro = match fuerte.
+        if (cont >= 0.9 && inter >= 2) tier = 'alto';
+        else if (cont >= 0.9 && dice >= 0.35) tier = 'alto';        // corto contenido (Beefeater)
+        else if (inter >= 2 && cont >= 0.6) tier = 'medio';
+        else if (inter >= 2 && dice >= 0.4) tier = 'medio';
+      }
+      if (!tier) return;
+      // El merchandising sí lo tenemos, pero no es la bebida: lo bajamos a 'medio'
+      // (para revisar) y le restamos puntaje para que gane la botella real si existe.
+      if (e.merch) { tier = 'medio'; score -= 0.35; }
+      if (!best || score > best.score) best = { entry: e, score, tier };
     });
     return best;
   }
@@ -2347,10 +2393,17 @@ body { background:transparent !important; }
   async function clasificarProductos() {
     await cargarCatalogoGB();
     _cartaProductos.forEach(p => {
-      if (p.es_grandbar === true || p.es_grandbar === false) return; // ya clasificado
+      // Respeta lo que el vendedor ya corrigió a mano.
+      if (p.corregido_manual === true) return;
+      if (p.es_grandbar === true || p.es_grandbar === false) {
+        // Ya clasificado en una versión anterior: reclasificamos igual para
+        // aprovechar el motor nuevo, salvo que haya sido corregido a mano (arriba).
+      }
       const m = matchearProducto(p.nombre);
-      p.es_grandbar = !!m;
+      p.es_grandbar = !!m;                        // lo tenemos (alto o medio)
+      p.es_posible  = !!(m && m.tier === 'medio'); // dudoso: que lo revise el vendedor
       p.producto_catalogo_matcheado = m ? m.entry.descripcion : null;
+      p.stock_catalogo = m && Number.isFinite(m.entry.stock) ? m.entry.stock : null;
       if (p.corregido_manual === undefined) p.corregido_manual = false;
     });
   }
@@ -2367,8 +2420,9 @@ body { background:transparent !important; }
     const p = _cartaProductos[i];
     if (!p) return;
     p.es_grandbar = !p.es_grandbar;
+    p.es_posible = false;           // decisión manual: ya no es dudoso
     p.corregido_manual = true;
-    if (!p.es_grandbar) p.producto_catalogo_matcheado = null;
+    if (!p.es_grandbar) { p.producto_catalogo_matcheado = null; p.stock_catalogo = null; }
     renderProductos();
   }
 
@@ -2490,11 +2544,14 @@ body { background:transparent !important; }
 
     // Mini-resumen GrandBar vs competencia
     const total = _cartaProductos.length;
-    const gb    = _cartaProductos.filter(p => p.es_grandbar).length;
-    const comp  = total - gb;
+    const gb    = _cartaProductos.filter(p => p.es_grandbar && !p.es_posible).length;
+    const pos   = _cartaProductos.filter(p => p.es_grandbar && p.es_posible).length;
+    const comp  = total - gb - pos;
     if (total) {
       resumen.style.display = 'block';
-      resumen.innerHTML = `<b>${total}</b> en ${esCatalogo()?'el catálogo':'carta'} · <span class="gb">${gb} de GrandBar</span> · <span class="comp">${comp} de competencia</span>`;
+      resumen.innerHTML = `<b>${total}</b> en ${esCatalogo()?'el catálogo':'carta'} · <span class="gb">${gb} de GrandBar</span>`
+        + (pos ? ` · <span class="posible">${pos} a revisar</span>` : '')
+        + ` · <span class="comp">${comp} de competencia</span>`;
     } else {
       resumen.style.display = 'none';
     }
@@ -2508,11 +2565,13 @@ body { background:transparent !important; }
         <input class="carta-prod-input" value="${esc(p.nombre || '')}"
           oninput="editarProductoNombre(${i}, this.value)" placeholder="Nombre del producto">
         <div class="carta-prod-bottom">
-          <button class="carta-badge ${p.es_grandbar ? 'gb' : 'comp'}" onclick="toggleGrandBar(${i})"
+          <button class="carta-badge ${p.es_grandbar ? (p.es_posible ? 'posible' : 'gb') : 'comp'}" onclick="toggleGrandBar(${i})"
             title="Tocá para cambiar la clasificación">
-            ${p.es_grandbar ? '✓ GrandBar' : '✕ Competencia'}
+            ${p.es_grandbar ? (p.es_posible ? '≈ Revisá' : '✓ GrandBar') : '✕ Competencia'}
           </button>
           ${p.categoria ? `<span class="carta-prod-cat">${esc(p.categoria)}</span>` : ''}
+          ${(p.es_grandbar && Number.isFinite(p.stock_catalogo))
+            ? `<span class="carta-prod-stock ${p.stock_catalogo > 0 ? 'ok' : 'sin'}">${p.stock_catalogo > 0 ? 'stock ' + p.stock_catalogo : 'sin stock'}</span>` : ''}
           <span class="carta-prod-spacer"></span>
           <button class="carta-prod-del" onclick="borrarProducto(${i})" title="Borrar">✕</button>
         </div>
