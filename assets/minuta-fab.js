@@ -1,8 +1,14 @@
-// GrandBar Hub · Botón flotante "Minuta IA" para TODOS los paneles.
+// GrandBar Hub · Botón flotante "Minuta IA".
 // Graba/sube el audio de una reunión → IA arma temas/pendientes/notas →
 // se guarda como "minuta suelta" a nombre del usuario logueado.
 // Solo aparece si hay sesión del Hub (la transcripción IA la necesita).
+//
+// Desde el 22/09/2026 aparece SOLO en las agendas (pedido del dueño): el archivo
+// se sigue cargando en muchas pantallas, pero afuera de estas no hace nada.
 (function () {
+  var AGENDAS = ['agenda', 'dir-agenda', 'mi-agenda', 'agenda-equipo'];
+  var pagina = (location.pathname.split('/').pop() || '').toLowerCase().replace(/\.html$/, '');
+  if (AGENDAS.indexOf(pagina) < 0) return;
   if (window.__minutaFab) return; window.__minutaFab = true;
   var HUB = { url: 'https://xqhyemccbwmzxqzkrtwa.supabase.co', key: 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
   var MAN = { url: 'https://fzaxwuuodseyyinveknn.supabase.co', key: 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk' };
