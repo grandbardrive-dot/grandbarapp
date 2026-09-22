@@ -58,6 +58,16 @@ create policy "equipo manual escribe tareas" on public.auditoria_tareas
   using ( public.es_equipo_manual() ) with check ( public.es_equipo_manual() );
 
 
+-- ── Que se vea al instante en la pantalla del otro ──────────
+-- Sin esto igual funciona: la pantalla se actualiza al volver a la pestaña
+-- y sola cada 45 segundos.
+do $$
+begin
+  alter publication supabase_realtime add table public.auditoria_tareas;
+exception when duplicate_object then null;
+end $$;
+
+
 -- ── Comprobar ───────────────────────────────────────────────
 -- Recién creada está vacía: se llena sola a medida que marcan tareas.
 select count(*) as tareas_con_estado from public.auditoria_tareas;

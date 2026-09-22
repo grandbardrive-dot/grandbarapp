@@ -13,92 +13,106 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GrandBar Hub — Tareas de la auditoría</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <!-- Lo que quedó por arreglar de la auditoría de los 14 manuales (22/09/2026).
-       Los arreglos de código ya se hicieron ese mismo día; acá queda el trabajo
-       de panel, el contenido y las decisiones. La LISTA vive en este archivo
-       (se cambia con un deploy); en la base (auditoria_tareas, proyecto del
-       Portal) se guarda solo el estado: responsable, hecho, quién y cuándo. -->
+  <!-- Lo que quedó por arreglar de la auditoría de los 14 manuales (22/09/2026),
+       repartido entre Josefina y Nahuel. Está en los dos paneles (son el mismo:
+       assets/panel-admin.js) y lo que uno marca lo ve el otro al instante.
+       La LISTA vive en este archivo (se cambia con un deploy); en la base
+       (auditoria_tareas, proyecto del Portal) se guarda solo el estado. -->
   <style>
     :root{
-      --navy:#0d2230; --navy-2:#123043; --cream:#f6f1e8; --card:#ffffff;
-      --ink:#1b2a32; --muted:#6d7d85; --line:#e7ded0; --line-2:#ece4d6;
-      --green:#2f6f5e; --green-d:#245647; --green-soft:#e8f1ea;
-      --gold:#c0912f; --gold-d:#a97c22; --gold-soft:#f7efdc;
-      --danger:#c0603e; --danger-soft:#f9e9e3;
+      --cream:#f6f1e8; --card:#ffffff; --ink:#1b2a32; --muted:#6d7d85;
+      --line:#e7ded0; --line-2:#ece4d6; --navy:#0d2230; --navy-2:#123043;
+      --green:#2f6f5e; --green-d:#245647; --green-soft:#e8f1ea; --green-line:#cfe2d6;
+      --gold:#c0912f; --gold-d:#a97c22; --gold-soft:#f7efdc; --gold-line:#ecdcb4;
+      --rojo:#c0603e; --rojo-soft:#f9e9e3; --rojo-ink:#9c3f21;
       --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
     }
     *{box-sizing:border-box} html,body{margin:0}
-    body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+    body{font-family:var(--font);background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:15px}
     a{color:inherit;text-decoration:none}
-    .top{background:var(--navy);color:#dfe7ec;padding:14px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+    .top{background:var(--navy);color:#dfe7ec;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
     .top .logo{font-family:Georgia,serif;font-weight:800;font-size:19px}
     .top .logo b{color:var(--gold)}
-    .top a.volver{margin-left:auto;font-size:13px;color:#c4d2d9;border:1px solid #2a4557;border-radius:9px;padding:7px 12px}
+    .top .cual{font-size:13px;color:#9db0ba}
+    .top .tot{margin-left:auto;font-size:13px;color:#9db0ba;font-variant-numeric:tabular-nums}
+    .top a.volver{font-size:13px;color:#c4d2d9;border:1px solid #2a4557;border-radius:9px;padding:7px 12px}
     .top a.volver:hover{background:var(--navy-2);color:#fff}
-    .wrap{padding:22px 22px 80px;max-width:1120px;margin:0 auto}
-    h1{font-size:25px;margin:0 0 4px;font-weight:800}
-    .sub{margin:0 0 18px;color:var(--muted);font-size:14px;max-width:70ch}
+    .wrap{max-width:1080px;margin:0 auto;padding:24px 20px 80px}
+    h1{font-size:25px;font-weight:800;margin:0 0 5px}
+    .sub{margin:0 0 18px;color:var(--muted);font-size:14px;max-width:72ch;line-height:1.55}
 
-    .gente{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}
+    .gente{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:18px}
     .p{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
-    .p .n{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px}
-    .p .n .dot{width:9px;height:9px;border-radius:50%;background:var(--gold)}
-    .p .c{font-size:12px;color:var(--muted);margin:3px 0 9px}
-    .bar{height:7px;border-radius:99px;background:var(--line-2);overflow:hidden}
-    .bar i{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .25s}
+    .p .n{font-weight:700;font-size:15px}
+    .p .c{font-size:12.5px;color:var(--muted);margin:3px 0 10px}
+    .bar{height:8px;border-radius:99px;background:var(--line-2);overflow:hidden}
+    .bar i{display:block;height:100%;width:0;background:var(--green);border-radius:99px;transition:width .25s}
 
-    .filtros{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:14px}
-    .filtros .sep{width:1px;height:22px;background:var(--line);margin:0 4px}
-    .chip{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:7px 13px;font:inherit;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
-    .chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
-    .chip:focus-visible,.tk input:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--gold-d);outline-offset:2px}
+    .filtros{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:14px;position:sticky;top:0;z-index:3;background:var(--cream);padding-block:10px;border-bottom:1px solid var(--line)}
+    .sep{width:1px;height:22px;background:var(--line);margin:0 3px}
+    button.chip,.acc{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:20px;padding:7px 13px;cursor:pointer}
+    button.chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+    button.chip:hover,.acc:hover{border-color:var(--gold)}
+    .acc{border-radius:9px}
+    #q{font:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:9px;padding:7px 11px;background:var(--card);color:var(--ink);flex:1;min-width:0;max-width:250px}
+    :focus-visible{outline:2px solid var(--gold-d);outline-offset:2px}
 
-    .grupo{margin:22px 0 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-    .grupo h2{font-size:17px;margin:0;font-weight:800}
-    .grupo .q{font-size:12.5px;color:var(--muted)}
+    .persona{margin:24px 0 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:2px solid var(--navy);padding-bottom:7px}
+    .persona h2{margin:0;font-size:19px;font-weight:800}
+    .persona .q{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+    .rubro{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-d);margin:18px 0 8px}
 
-    .tk{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 15px;margin-bottom:9px;display:grid;grid-template-columns:auto 1fr;gap:4px 13px;align-items:start}
-    .tk.ok{background:var(--green-soft);border-color:#cfe2d6}
+    .tk{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 15px;margin-bottom:9px;display:grid;grid-template-columns:auto 1fr;gap:5px 13px;align-items:start}
+    .tk.ok{background:var(--green-soft);border-color:var(--green-line)}
     .tk input[type=checkbox]{width:21px;height:21px;margin:2px 0 0;accent-color:var(--green);cursor:pointer;grid-row:1 / span 4}
     .tk .t{font-weight:700;font-size:14.5px;line-height:1.35}
-    .tk.ok .t{text-decoration:line-through;text-decoration-color:#8fae9d}
-    .tk .d{font-size:13.5px;color:#3d4f59;line-height:1.5}
-    .tk .chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:3px}
-    .tag{font-size:11.5px;font-weight:600;border-radius:6px;padding:3px 8px;background:var(--line-2);color:#55636b;white-space:nowrap}
-    .tag.alta{background:var(--danger-soft);color:#9c3f21}
+    .tk.ok .t{text-decoration:line-through;text-decoration-color:var(--green)}
+    .tk .d{font-size:13.5px;line-height:1.5;opacity:.85}
+    .chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:2px}
+    .tag{font-size:11.5px;font-weight:600;border-radius:6px;padding:3px 8px;background:var(--line-2);color:var(--muted);white-space:nowrap}
+    .tag.alta{background:var(--rojo-soft);color:var(--rojo-ink)}
     .tag.media{background:var(--gold-soft);color:var(--gold-d)}
-    .tag.baja{background:#e9edf0;color:#55636b}
-    .tk select{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--line);border-radius:7px;padding:4px 7px;background:#fff;color:var(--ink);cursor:pointer}
-    .tk .nota{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:#fff;color:var(--ink);width:100%;max-width:520px;margin-top:6px}
-    .tk .quien{font-size:12px;color:var(--green-d);font-weight:600}
+    .tag.hecha{background:var(--green-soft);color:var(--green-d);border:1px solid var(--green-line)}
+    .pasar{font:inherit;font-size:11.5px;font-weight:600;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer}
+    .pasar:hover{border-color:var(--gold);color:var(--gold-d);border-style:solid}
+    .nota{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--cream);color:var(--ink);width:100%;max-width:560px;margin-top:4px}
 
-    .aviso{background:var(--gold-soft);border:1px solid #ecdcb4;border-radius:12px;padding:14px 16px;font-size:13.5px;line-height:1.55;margin-bottom:18px}
-    .aviso b{font-weight:700}
-    .vacio{background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:24px;text-align:center;color:var(--muted);font-size:14px}
-    .cargando{color:var(--muted);font-size:14px;padding:20px 0}
-    @media (max-width:600px){
-      .wrap{padding:18px 16px 70px}
-      .tk{grid-template-columns:auto 1fr;padding:12px}
-      .top a.volver{margin-left:0}
-    }
+    .aviso{background:var(--gold-soft);border:1px solid var(--gold-line);border-radius:12px;padding:14px 16px;font-size:13.5px;line-height:1.55;margin-bottom:16px}
+    .vacio{background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:26px;text-align:center;color:var(--muted)}
+    .pie{margin-top:30px;border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:13px;line-height:1.6}
+    @media (max-width:620px){ .wrap{padding:18px 16px 70px} .top .tot{margin-left:0} }
   </style>
 </head>
 <body>
 
 <div class="top">
   <div class="logo">Grand<b>Bar</b></div>
-  <div style="font-size:13px;color:#9db0ba">Tareas de la auditoría</div>
+  <div class="cual">Tareas de la auditoría</div>
+  <div class="tot" id="tot"></div>
   <a class="volver" id="volver" href="hub.html">← Volver</a>
 </div>
 
 <div class="wrap">
-  <h1>Lo que quedó por arreglar de los manuales</h1>
-  <p class="sub">Auditoría del 22/09/2026 sobre los 14 manuales. Los arreglos de código ya se publicaron ese día; acá queda el trabajo de panel, el contenido y las decisiones. Cualquiera de nosotros puede cambiar a quién le toca y marcarla cuando está lista.</p>
+  <h1>Lo que queda por arreglar de los manuales</h1>
+  <p class="sub">Auditoría del 22/09/2026 sobre los 14 manuales. Los arreglos de código ya se publicaron ese día; quedaron estas 63 tareas, repartidas entre los dos. Lo que uno marca lo ve el otro al instante. El número de hallazgo es el del informe, por si hace falta ver la evidencia.</p>
 
   <div class="aviso" id="aviso" hidden></div>
   <div class="gente" id="gente"></div>
-  <div class="filtros" id="filtros"></div>
-  <div id="lista"><div class="cargando">Cargando tareas…</div></div>
+
+  <div class="filtros">
+    <button class="chip" data-f="persona" data-k="todos">Todas</button>
+    <button class="chip" data-f="persona" data-k="josefina">Josefina</button>
+    <button class="chip" data-f="persona" data-k="nahuel">Nahuel</button>
+    <span class="sep"></span>
+    <button class="chip" data-f="estado" data-k="pendientes">Pendientes</button>
+    <button class="chip" data-f="estado" data-k="hechas">Hechas</button>
+    <button class="chip" data-f="estado" data-k="todas">Todas</button>
+    <span class="sep"></span>
+    <input id="q" type="search" placeholder="Buscar: Peñaflor, vacía, tildes…" aria-label="Buscar en las tareas">
+  </div>
+
+  <div id="lista"><div class="vacio">Cargando…</div></div>
+  <div class="pie" id="pie"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -106,329 +120,201 @@
 <script>
 const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
 
-// Las personas entre las que se reparte el trabajo.
 const GENTE = [
   { k:'josefina', n:'Josefina', q:'Panel del manual: secciones, herramientas y textos' },
-  { k:'nahuel',   n:'Nahuel',   q:'Código y base de datos' },
-  { k:'luciana',  n:'Luciana',  q:'Catálogo, planes y campañas' },
-  { k:'fernando', n:'Fernando', q:'Decisiones: qué se carga y qué se apaga' },
+  { k:'nahuel',   n:'Nahuel',   q:'Decisiones, catálogo y planes, código y base' },
 ];
+const PRIO = { alta:'Urgente', media:'Importante', baja:'Cuando se pueda' };
+const ORDEN = { alta:0, media:1, baja:2 };
+const RUBROS = ['Bares','Hoteles','Restaurantes','Discos','Autoservicios','Vinotecas y tiendas','Eventos',
+                'Decisiones','Catálogo y planes','Contenido que hay que pedir','Código y base'];
 
-// La lista de tareas. Sale de los 101 hallazgos confirmados: los que se
-// arreglaron por código el 22/09 ya no están. h = número de hallazgo en el
-// informe, para poder volver al detalle.
+// Las 63 tareas que quedaron de los 101 hallazgos (las de código ya están hechas).
+// r = de quién es · p = prioridad · h = nº de hallazgo del informe.
 const TAREAS = [
-  // ── Bares ────────────────────────────────────────────────
-  { id:'bar-1', m:'Bares', p:'media', r:'josefina', h:'2, 3',
-    t:'Las tres Acciones de Incorporación de bares están vacías',
-    d:'VINOS y SPIRITS: elegir la herramienta (w:propuestas_vino y w:propuestas_spirit) para que lleguen las 22 propuestas de vino que hoy solo ven restaurantes. FRÍOS: cargarle tareas o apagarla. En Mendoza y en San Luis.' },
-  { id:'bar-2', m:'Bares', p:'media', r:'josefina', h:'4',
-    t:'VINOS > Espumantes + Aperol no tiene nada',
-    d:'Subsección activa en las dos zonas sin tareas, sin herramienta y sin contenido: cargarle algo o apagarla.' },
-  { id:'bar-3', m:'Bares', p:'media', r:'fernando', h:'5, 90',
-    t:'Decidir si el Mix Ideal va en bares',
-    d:'El único mix cargado no lo ve nadie: en Mendoza la subsección está apagada y en San Luis el mix apunta a la de Mendoza. Si va: reactivar la de Mendoza y sumar la de San Luis al mix. Si no va: apagar también la de San Luis.' },
-  { id:'bar-4', m:'Bares', p:'baja', r:'josefina', h:'13',
-    t:'“Capacitaciones” tiene tareas de beneficios partner',
-    d:'3 de sus 4 tareas hablan de beneficios de bodegas y marcas partner. Renombrarla (“Beneficios y capacitaciones”) o separar las tareas.' },
-  { id:'bar-5', m:'Bares', p:'baja', r:'josefina', h:'14',
-    t:'Tildes y el “sí” de FRÍOS',
-    d:'“INTRODUCCION & PREPARACIÓN” va sin tilde. La intro de FRÍOS arranca con “Esta categoría sí tiene una dinámica distinta…”, respondiendo a algo que el vendedor nunca leyó.' },
+  {id:'bar1', r:'josefina', m:'Bares', p:'media', h:'2, 3', t:'Las 3 Acciones de Incorporación están vacías', d:'VINOS y SPIRITS: elegir la herramienta w:propuestas_vino y w:propuestas_spirit, así llegan las 22 propuestas de vino que hoy solo ven restaurantes. FRÍOS: cargarle tareas o apagarla. Mendoza y San Luis.'},
+  {id:'bar2', r:'josefina', m:'Bares', p:'media', h:'4', t:'VINOS > Espumantes + Aperol no tiene nada', d:'Subsección activa en las dos zonas sin tareas, sin herramienta y sin contenido: cargarle algo o apagarla.'},
+  {id:'bar3', r:'josefina', m:'Bares', p:'baja', h:'13', t:'“Capacitaciones” tiene tareas de beneficios partner', d:'3 de sus 4 tareas hablan de beneficios de bodegas y marcas partner. Renombrarla (“Beneficios y capacitaciones”) o separar las tareas.'},
+  {id:'bar4', r:'josefina', m:'Bares', p:'baja', h:'14', t:'Tildes y el “sí” de FRÍOS', d:'“INTRODUCCION & PREPARACIÓN” va sin tilde. La intro de FRÍOS arranca con “Esta categoría sí tiene una dinámica distinta…”, respondiendo a algo que el vendedor nunca leyó.'},
 
-  // ── Hoteles ──────────────────────────────────────────────
-  { id:'hot-1', m:'Hoteles', p:'media', r:'josefina', h:'15',
-    t:'Ocho subsecciones de hoteles se abren vacías',
-    d:'Botella de bienvenida, Coctel de bienvenida, Pre-cena y Post-cena, Incorporaciones de SPIRITS, Acuerdos especiales, Partners, y en San Luis también VINOS > Incorporaciones. Cargarles tareas o herramienta, o apagar las que todavía no se usan.' },
-  { id:'hot-2', m:'Hoteles', p:'media', r:'josefina', h:'20',
-    t:'Las incorporaciones de hotel no muestran las propuestas',
-    d:'Elegirles w:propuestas_vino y w:propuestas_spirit en el panel (Secciones → Herramienta), en las dos zonas, y sumar la sección de San Luis a los planes.' },
-  { id:'hot-3', m:'Hoteles', p:'media', r:'josefina', h:'23',
-    t:'“Partners con bodegas” no tiene herramienta',
-    d:'Asignarle vt_partners. El código ya deja que cada rubro vea lo suyo, así que un beneficio cargado para hoteles ahora sí llegaría.' },
-  { id:'hot-4', m:'Hoteles', p:'baja', r:'luciana', h:'21',
-    t:'La campaña ABSOLUT cae en FRIGOBAR y no en SPIRITS',
-    d:'Está cargada en la sección “acciones_de_rotacion”, que en hoteles es la del frigobar. Reasignarla a la de SPIRITS.' },
+  {id:'hot1', r:'josefina', m:'Hoteles', p:'media', h:'15', t:'Ocho subsecciones se abren vacías', d:'Botella de bienvenida, Coctel de bienvenida, Pre-cena y Post-cena, Incorporaciones de SPIRITS, Acuerdos especiales, Partners, y en San Luis también VINOS > Incorporaciones.'},
+  {id:'hot2', r:'josefina', m:'Hoteles', p:'media', h:'20', t:'Las incorporaciones no muestran las propuestas', d:'Elegirles w:propuestas_vino y w:propuestas_spirit en las dos zonas, y sumar la sección de San Luis a los planes.'},
+  {id:'hot3', r:'josefina', m:'Hoteles', p:'media', h:'23', t:'“Partners con bodegas” no tiene herramienta', d:'Asignarle vt_partners. El código ya deja que cada rubro vea lo suyo, así que un beneficio cargado para hoteles ahora sí llegaría.'},
 
-  // ── Restaurantes ─────────────────────────────────────────
-  { id:'res-1', m:'Restaurantes', p:'media', r:'josefina', h:'24, 95',
-    t:'Cinco subsecciones de restaurantes quedan vacías',
-    d:'Mendoza: Acciones de Incorporación de spirits y Aperitivos en Carta (con todas las tareas desactivadas) y CAFÉ > Acciones. San Luis: Próximos Lanzamientos y “SOBRE LA MESA > Spirits”. Reactivar tareas, cargar contenido o apagarlas.' },
-  { id:'res-2', m:'Restaurantes', p:'baja', r:'fernando', h:'27',
-    t:'Mendoza y San Luis no son iguales y no se sabe cuál vale',
-    d:'En Mendoza hay tareas desactivadas que en San Luis están activas, Planes Campari está al revés y CAFÉ > Acciones también. Definir cuál versión es la buena para emparejar las dos zonas.' },
-  { id:'res-3', m:'Restaurantes', p:'baja', r:'josefina', h:'29, 100',
-    t:'Errores de tipeo que ve el vendedor',
-    d:'“VINO POR POCA RUCA MALEN” (dice POCA por COPA), “Nuestas Bodegas”, “clietnes”, “huesped”, “Historial ultima visita”, SEGAFREDDO vs SEGAFREDO, “LOS CAROS PRIVATE”, “Estuche Seria A”.' },
+  {id:'res1', r:'josefina', m:'Restaurantes', p:'media', h:'24, 95', t:'Cinco subsecciones quedan vacías', d:'Mendoza: Acciones de Incorporación de spirits y Aperitivos en Carta (con las tareas desactivadas) y CAFÉ > Acciones. San Luis: Próximos Lanzamientos y SOBRE LA MESA > Spirits.'},
+  {id:'res2', r:'josefina', m:'Restaurantes', p:'baja', h:'29, 100', t:'Errores de tipeo que ve el vendedor', d:'“VINO POR POCA RUCA MALEN” (POCA por COPA), “Nuestas Bodegas”, “clietnes”, “huesped”, “Historial ultima visita”, SEGAFREDDO vs SEGAFREDO, “LOS CAROS PRIVATE”, “Estuche Seria A”.'},
 
-  // ── Discos ───────────────────────────────────────────────
-  { id:'dis-1', m:'Discos', p:'media', r:'josefina', h:'33',
-    t:'SPIRITS > Acciones de Incorporación vacía',
-    d:'No tiene tareas y no hay propuestas de spirits cargadas. Cargar contenido o apagar la subsección.' },
-  { id:'dis-2', m:'Discos', p:'media', r:'luciana', h:'34',
-    t:'No hay ningún evento pre armado cargado',
-    d:'Es la sección central del recorrido de discos. El vendedor ve “Todavía no hay eventos cargados” y aun así tiene dos tareas para tildar que no puede cumplir.' },
-  { id:'dis-3', m:'Discos', p:'media', r:'luciana', h:'35',
-    t:'Los planes de Peñaflor solo llegan a Mendoza',
-    d:'“11T BARES - DISCOS” e “INNOVACIONES PEÑAFLOR ON” no se ven en San Luis, aunque los planes no tienen zona marcada. Si valen, sumarles la sección de San Luis.' },
-  { id:'dis-4', m:'Discos', p:'baja', r:'nahuel', h:'36',
-    t:'Peñaflor aparece dos veces en la misma subsección',
-    d:'Una vez como tarjeta de plan y otra como lista de propuestas. En restaurantes se evitó a propósito; en discos no.' },
-  { id:'dis-5', m:'Discos', p:'media', r:'luciana', h:'39',
-    t:'El calendario de discos está vacío',
-    d:'No hay ninguna fecha especial activa (la última es el Día del Amigo, 20/07, inactiva). Faltan primavera, Halloween y fin de año.' },
-  { id:'dis-6', m:'Discos', p:'media', r:'luciana', h:'40',
-    t:'Vino por copa, aperitivos y materiales sin nada cargado',
-    d:'Las tres herramientas funcionan, pero no tienen contenido para discos.' },
-  { id:'dis-7', m:'Discos', p:'baja', r:'josefina', h:'42, 44',
-    t:'Textos de bar en el manual de discos',
-    d:'“Revisá la propuesta de vinos del bar…”, “Presencia de marca dentro del bar”, la tilde de INTRODUCCIÓN, y la madre ACTIVACIONES & FECHAS sin subtítulo.' },
-  { id:'dis-8', m:'Discos', p:'baja', r:'nahuel', h:'41',
-    t:'La herramienta dc_activacion nunca se usa',
-    d:'El mapeo queda tapado por otro y el bloque “Activación pedida” de la minuta nunca se llena. Sacarlo o decidir cuál herramienta va.' },
+  {id:'dis1', r:'josefina', m:'Discos', p:'media', h:'33', t:'SPIRITS > Acciones de Incorporación vacía', d:'No tiene tareas y no hay propuestas de spirits cargadas: cargar contenido o apagar la subsección.'},
+  {id:'dis2', r:'josefina', m:'Discos', p:'baja', h:'42, 44', t:'Textos de bar en el manual de discos', d:'“Revisá la propuesta de vinos del bar…”, “Presencia de marca dentro del bar”, la tilde de INTRODUCCIÓN, y la madre ACTIVACIONES & FECHAS sin subtítulo.'},
 
-  // ── Autoservicios ────────────────────────────────────────
-  { id:'aut-1', m:'Autoservicios', p:'media', r:'josefina', h:'47',
-    t:'Lista Amarilla y Buscador de Precios están vacíos',
-    d:'El curso les enseña a usarlos y en la visita no hay nada: ni tareas, ni herramienta, ni aviso. Cargar los productos foco con precios o apagarlos mientras tanto.' },
-  { id:'aut-2', m:'Autoservicios', p:'media', r:'josefina', h:'48',
-    t:'COMBOS PREVIA vacía (Campari, Pernod y Diageo)',
-    d:'La madre y sus tres subsecciones no tienen tareas ni herramienta ni combos. Cargar combos reales o apagar la sección.' },
-  { id:'aut-3', m:'Autoservicios', p:'media', r:'josefina', h:'49',
-    t:'Cinco subsecciones más sin nada',
-    d:'Incorporación de Spirits, Plan de Punteras (spirits y el de vinos de San Luis), Incorporación de RTD (Mendoza) y Materiales “de mochila”.' },
-  { id:'aut-4', m:'Autoservicios', p:'media', r:'josefina', h:'51',
-    t:'San Luis: Beneficios Exclusivos sin herramienta',
-    d:'Asignarle vt_partners para que muestre beneficios y no solo tres tareas para tildar. (El cierre ya quedó arreglado por código.)' },
-  { id:'aut-5', m:'Autoservicios', p:'media', r:'fernando', h:'52',
-    t:'San Luis tiene un recorrido mucho más corto que Mendoza',
-    d:'Le falta INTRODUCCIÓN & PREPARACIÓN (y con ella el resumen de la visita anterior), la sección RTD y FRÍOS entera, la vidriera y el catálogo de materiales. Confirmar si es a propósito o se copia lo de Mendoza.' },
-  { id:'aut-6', m:'Autoservicios', p:'baja', r:'josefina', h:'53',
-    t:'Mendoza: el catálogo de materiales sale dos veces',
-    d:'Aparece en FECHAS ESPECIALES > Activaciones con Materiales y en MATERIALES > Catálogo. Dejarlo en una sola.' },
-  { id:'aut-7', m:'Autoservicios', p:'baja', r:'josefina', h:'54',
-    t:'Mendoza: la madre FECHAS tiene calendario que no se dibuja',
-    d:'Quitarle el especial a la madre (el calendario ya sale en la subsección) y limpiar las dos madres inactivas viejas que ocupan los órdenes 4 y 5.' },
-  { id:'aut-8', m:'Autoservicios', p:'baja', r:'josefina', h:'55',
-    t:'La tarea “Revisé heladera” trae marcas fijas',
-    d:'Dice “Aperol Spritz, Campari Spritz, Gin Tonic RTD, Cervezas, Energizantes”. Dejar un detalle genérico.' },
-  { id:'aut-9', m:'Autoservicios', p:'baja', r:'josefina', h:'56',
-    t:'San Luis: la sección se llama CARTELERIA',
-    d:'Sin tilde y sin descripción, aunque sus tareas hablan de vidriera. En Mendoza es “VIDRIERAS y CARTELERÍA”.' },
+  {id:'aut1', r:'josefina', m:'Autoservicios', p:'media', h:'47', t:'Lista Amarilla y Buscador de Precios vacíos', d:'El curso les enseña a usarlos y en la visita no hay ni tareas ni herramienta ni aviso. Cargar los productos foco con precios o apagarlos mientras tanto.'},
+  {id:'aut2', r:'josefina', m:'Autoservicios', p:'media', h:'48', t:'COMBOS PREVIA vacía', d:'La madre y sus tres subsecciones (Campari, Pernod, Diageo) no tienen tareas ni herramienta ni combos.'},
+  {id:'aut3', r:'josefina', m:'Autoservicios', p:'media', h:'49', t:'Cinco subsecciones más sin nada', d:'Incorporación de Spirits, Plan de Punteras (spirits y el de vinos de San Luis), Incorporación de RTD (Mendoza) y Materiales “de mochila”.'},
+  {id:'aut4', r:'josefina', m:'Autoservicios', p:'media', h:'51', t:'San Luis: Beneficios Exclusivos sin herramienta', d:'Asignarle vt_partners para que muestre beneficios y no solo tres tareas para tildar. El cierre ya quedó arreglado por código.'},
+  {id:'aut5', r:'josefina', m:'Autoservicios', p:'baja', h:'53', t:'Mendoza: el catálogo POP sale dos veces', d:'Aparece en FECHAS ESPECIALES > Activaciones con Materiales y en MATERIALES > Catálogo. Dejarlo en una sola.'},
+  {id:'aut6', r:'josefina', m:'Autoservicios', p:'baja', h:'54', t:'Mendoza: la madre FECHAS tiene un calendario que no se dibuja', d:'Quitarle el especial a la madre (el calendario ya sale en la subsección) y limpiar las dos madres inactivas viejas que ocupan los órdenes 4 y 5.'},
+  {id:'aut7', r:'josefina', m:'Autoservicios', p:'baja', h:'55', t:'La tarea “Revisé heladera” trae marcas fijas', d:'Dice “Aperol Spritz, Campari Spritz, Gin Tonic RTD, Cervezas, Energizantes”. Dejar un detalle genérico.'},
+  {id:'aut8', r:'josefina', m:'Autoservicios', p:'baja', h:'56', t:'San Luis: la sección se llama CARTELERIA', d:'Sin tilde y sin descripción, aunque sus tareas hablan de vidriera. En Mendoza es “VIDRIERAS y CARTELERÍA”.'},
 
-  // ── Vinotecas y tiendas ──────────────────────────────────
-  { id:'vin-1', m:'Vinotecas y tiendas', p:'media', r:'josefina', h:'60',
-    t:'SPIRITS > Incorporación tiene las tareas de la heladera',
-    d:'Se lee “Revisé heladera”, “Detecté espacios” y “Presenté acciones”, copiadas de otra sección. Reescribirlas.' },
-  { id:'vin-2', m:'Vinotecas y tiendas', p:'media', r:'josefina', h:'63',
-    t:'COMBOS PREVIA vacía en los dos manuales',
-    d:'Tres subsecciones sin tareas, sin herramienta y sin contenido. Cargar combos o apagar la sección.' },
-  { id:'vin-3', m:'Vinotecas y tiendas', p:'media', r:'josefina', h:'64',
-    t:'Materiales “de mochila” y RTD > Incorporación vacías',
-    d:'Se abren en blanco en la vinoteca y en la tienda.' },
-  { id:'vin-4', m:'Vinotecas y tiendas', p:'media', r:'luciana', h:'65, 92',
-    t:'La tienda de bebidas casi no recibe planes',
-    d:'Plan de Degustaciones queda vacío y Acciones de Volumen solo tiene un exhibidor que termina el 30/09. En vinoteca las mismas secciones tienen Sampling Doña Paula, Open Bottle Peñaflor y tres planes de Campari: definir cuáles valen también para tiendas.' },
-  { id:'vin-5', m:'Vinotecas y tiendas', p:'media', r:'fernando', h:'67',
-    t:'La vinoteca y la tienda ya no son iguales',
-    d:'La tienda tiene las herramientas nuevas de fechas y la vinoteca las viejas, con el catálogo de materiales repetido. Elegir un solo modelo para los dos.' },
-  { id:'vin-6', m:'Vinotecas y tiendas', p:'baja', r:'josefina', h:'71',
-    t:'Faltan tildes en las intros',
-    d:'“líneas”, “autorización”, “acciones de incorporación” en las secciones de incorporación.' },
+  {id:'vin1', r:'josefina', m:'Vinotecas y tiendas', p:'media', h:'60', t:'SPIRITS > Incorporación tiene las tareas de la heladera', d:'Se lee “Revisé heladera”, “Detecté espacios” y “Presenté acciones”, copiadas de otra sección. Reescribirlas.'},
+  {id:'vin2', r:'josefina', m:'Vinotecas y tiendas', p:'media', h:'63', t:'COMBOS PREVIA vacía en los dos manuales', d:'Tres subsecciones sin tareas, sin herramienta y sin contenido.'},
+  {id:'vin3', r:'josefina', m:'Vinotecas y tiendas', p:'media', h:'64', t:'Materiales “de mochila” y RTD > Incorporación vacías', d:'Se abren en blanco en la vinoteca y en la tienda.'},
+  {id:'vin4', r:'josefina', m:'Vinotecas y tiendas', p:'baja', h:'71', t:'Faltan tildes en las intros', d:'“líneas”, “autorización”, “acciones de incorporación” en las secciones de incorporación.'},
 
-  // ── Eventos y mayorista ──────────────────────────────────
-  { id:'evt-1', m:'Eventos y mayorista', p:'alta', r:'fernando', h:'72',
-    t:'¿El hielo, el bartender y la barra montada son servicios reales?',
-    d:'La sección Paquetes los ofrecía como fijos. La estimación de botellas y litros con proporciones inventadas ya se sacó; falta decidir si esos tres servicios se ofrecen de verdad y con qué condiciones.' },
-  { id:'evt-2', m:'Eventos y mayorista', p:'media', r:'josefina', h:'74',
-    t:'Las intros de Eventos le hablan a un mayorista',
-    d:'Los clientes son salones y fincas, pero los textos de Paquetes, Combos y Materiales hablan de “mayorista” y “mostrador”. Reescribir las tres.' },
-  { id:'evt-3', m:'Eventos y mayorista', p:'media', r:'josefina', h:'75',
-    t:'Entretenimiento y Precio por cantidad están vacías',
-    d:'Prometen barra de tragos, degustaciones y escalas de precio, y solo tienen un párrafo. Cargarles algo o apagarlas.' },
-  { id:'evt-4', m:'Eventos y mayorista', p:'media', r:'fernando', h:'77',
-    t:'Eventos no recibe campañas, ofertas ni fechas',
-    d:'No tiene ninguna sección de Acciones Mensuales. Decidir si se le agrega (con la herramienta de ofertas y el calendario) o si Eventos no trabaja con campañas.' },
-  { id:'evt-5', m:'Eventos y mayorista', p:'baja', r:'josefina', h:'81',
-    t:'El subtítulo de Paquetes promete otra cosa',
-    d:'Dice “Propuestas armadas por tipo de evento” y la herramienta calcula por cantidad de invitados.' },
-  { id:'evt-6', m:'Eventos y mayorista', p:'baja', r:'luciana', h:'79',
-    t:'El único combo de eventos está inactivo',
-    d:'Se llama “Combo fernet buhero” y su contenido dice “1 gin + 6 tónicas”. Cargar combos reales o dejar la sección apagada.' },
-  { id:'evt-7', m:'Eventos y mayorista', p:'baja', r:'nahuel', h:'78',
-    t:'El panel de Combos dice que se ven en el mayorista',
-    d:'La ayuda le dice a Luciana que salen en el manual del mayorista, en EVENTOS → Combos, pero esa sección está apagada: hoy salen en el manual de Eventos.' },
-  { id:'evt-8', m:'Eventos y mayorista', p:'media', r:'fernando', h:'76',
-    t:'Definir el recorrido del mayorista',
-    d:'Quedó en Introducción (solo texto), Acciones Mensuales y Cierre. Desde que se apagó EVENTOS no tiene ninguna herramienta de venta. (Las ofertas del catálogo ya se ven, eso se arregló por código.)' },
-  { id:'evt-9', m:'Eventos y mayorista', p:'baja', r:'nahuel', h:'80',
-    t:'Mayorista Mendoza y San Luis no se separan',
-    d:'Una campaña marcada solo para Mendoza también la ve un vendedor de San Luis.' },
+  {id:'evt1', r:'josefina', m:'Eventos', p:'media', h:'74', t:'Las tres intros le hablan a un mayorista', d:'Los clientes son salones y fincas, pero los textos de Paquetes, Combos y Materiales hablan de “mayorista” y “mostrador”.'},
+  {id:'evt2', r:'josefina', m:'Eventos', p:'media', h:'75', t:'Entretenimiento y Precio por cantidad están vacías', d:'Prometen barra de tragos, degustaciones y escalas de precio, y solo tienen un párrafo.'},
+  {id:'evt3', r:'josefina', m:'Eventos', p:'baja', h:'81', t:'El subtítulo de Paquetes promete otra cosa', d:'Dice “Propuestas armadas por tipo de evento” y la herramienta calcula por cantidad de invitados.'},
 
-  // ── Catálogo y planes ────────────────────────────────────
-  { id:'cat-1', m:'Catálogo y planes', p:'alta', r:'luciana', h:'61, 85',
-    t:'El plan “11T TDB” se ve en vinotecas y no en tiendas',
-    d:'Por el nombre y las líneas es el de Tiendas de Bebidas. Cambiarle la sección a la de tienda y sacarlo de la vinoteca, que ya tiene el suyo (11T VTK).' },
-  { id:'cat-2', m:'Catálogo y planes', p:'alta', r:'luciana', h:'86, 50',
-    t:'Dos planes de Campari que dicen “solo San Luis” se ven en Mendoza',
-    d:'REVESTIMIENTO PUNTERAS CAMPEROL y EXHIBIDORES CAMPEROL no tienen zona marcada: la condición está solo en el texto. Marcarles zona San Luis.' },
-  { id:'cat-3', m:'Catálogo y planes', p:'media', r:'luciana', h:'45, 62, 91',
-    t:'Dos “ACCION DE VOLUMEN DOÑA PAULA” a la vez',
-    d:'Una dice 12+3 (01/08 al 30/09) y la otra 16+4 (01/09 al 31/10). Todo septiembre salen juntas y el vendedor no sabe cuál ofrecer. Si la de 16+4 reemplaza a la otra, cortarle la fecha o desactivarla.' },
-  { id:'cat-4', m:'Catálogo y planes', p:'media', r:'luciana', h:'1, 93',
-    t:'Jack Daniel’s aparece en VINOS en San Luis',
-    d:'La promo del whiskey está segmentada a “VINOS & ESPUMANTES > Acciones de Rotación” de bares San Luis. En Mendoza está bien, en SPIRITS.' },
-  { id:'cat-5', m:'Catálogo y planes', p:'media', r:'luciana', h:'7',
-    t:'Sigue viva la “Temporada de Invierno”',
-    d:'Ya es primavera y el botón sigue en SPIRITS, con productos sin mecánica (Blenders Pride, Tía María, Cusenier) y ofertas repetidas con otra condición: Havana figura 5+1 y 3+1, Ramazzotti 5+1 y 1+1.' },
-  { id:'cat-6', m:'Catálogo y planes', p:'media', r:'luciana', h:'18, 89',
-    t:'Killka, Callia y Salentein no se ven en ningún lado',
-    d:'Están segmentadas a Vino por Copa y a “SOBRE LA MESA > Vinos”, que no muestran ofertas. Pasarlas a VINOS > Acciones de Rotación.' },
-  { id:'cat-7', m:'Catálogo y planes', p:'media', r:'luciana', h:'66, 88',
-    t:'Las cuatro acciones de Emilia de primavera no se ven',
-    d:'Están segmentadas a “Fechas Especiales”, que muestra el calendario y no las ofertas. Es la promo de esta época.' },
-  { id:'cat-8', m:'Catálogo y planes', p:'media', r:'luciana', h:'50',
-    t:'Punteras Doña Paula no llega a San Luis',
-    d:'Se ve en autoservicios de Mendoza y no en los de San Luis, sin que el plan diga que es de una sola zona.' },
-  { id:'cat-9', m:'Catálogo y planes', p:'baja', r:'luciana', h:'30, 96',
-    t:'En “Innovaciones” de vinos aparecen cervezas y un gin',
-    d:'Antares XPA Lata, Antares Lager y Gordons Tropical Fruits están cargados con categoría vino, así que salen en el recuadro de incorporación de vinos.' },
-  { id:'cat-10', m:'Catálogo y planes', p:'baja', r:'luciana', h:'57, 100',
-    t:'Los planes usan el campo de líneas para poner reglas',
-    d:'Se muestran como si fueran líneas de producto: “ENVIAR EVIDENCIA SI O SI”, “TOPE 4 CAJAS POR LINEA”, “COORDINAR CON 72 HORAS”, “SIN COMPRA ULTIMOS 6 MESES”. Van en descripción o condición.' },
-  { id:'cat-11', m:'Catálogo y planes', p:'baja', r:'luciana', h:'69',
-    t:'Los dos planes 11T no tienen descripción ni vigencia',
-    d:'Tienen el mismo texto genérico y ninguna fecha, así que el vendedor no sabe hasta cuándo valen.' },
-  { id:'cat-12', m:'Catálogo y planes', p:'baja', r:'luciana', h:'32, 68, 101',
-    t:'Tres planes apuntan a secciones que ya no existen',
-    d:'Restos de secciones borradas en Visitas a Bodega Doña Paula y Open Bottle. No se ve roto, pero ensucia la segmentación.' },
-  { id:'cat-13', m:'Catálogo y planes', p:'baja', r:'luciana', h:'101',
-    t:'Zuelo y Rutini Colección',
-    d:'El aceite Zuelo (categoría “aceites”) no encaja en ninguna sección y nunca se ve. Rutini Colección se muestra sin mecánica, sin precio y sin info.' },
-  { id:'cat-14', m:'Catálogo y planes', p:'baja', r:'nahuel', h:'98, 99',
-    t:'Limpiar las filas de prueba de la base',
-    d:'Acciones con placas falsas de placehold.co (“2x1 en Aperol”, “Combo Gin del Amigo”), seeds duplicados del 19/06 y la marca “__probe__”. Casi todo inactivo: el riesgo es que alguien lo reactive.' },
+  {id:'dec1', r:'nahuel', m:'Decisiones', p:'alta', h:'varios', t:'Qué secciones vacías se cargan y cuáles se apagan', d:'Es la decisión de fondo detrás de casi toda la lista de Josefina: hoy hay subsecciones activas que el vendedor abre y encuentra en blanco.'},
+  {id:'dec2', r:'nahuel', m:'Decisiones', p:'alta', h:'72', t:'Eventos: ¿el hielo, el bartender y la barra montada son reales?', d:'La estimación de botellas y litros con proporciones inventadas ya se sacó. Falta definir si esos tres servicios se ofrecen de verdad y con qué condiciones.'},
+  {id:'dec3', r:'nahuel', m:'Decisiones', p:'media', h:'76', t:'Mayorista: definir el recorrido', d:'Quedó en Introducción (solo texto), Acciones Mensuales y Cierre. Desde que se apagó EVENTOS no tiene ninguna herramienta de venta. Las ofertas del catálogo ya se ven, eso se arregló por código.'},
+  {id:'dec4', r:'nahuel', m:'Decisiones', p:'media', h:'77', t:'Eventos: ¿lleva sección de Acciones Mensuales?', d:'Hoy no recibe campañas, ni ofertas del catálogo, ni fechas especiales, porque no tiene ninguna sección general.'},
+  {id:'dec5', r:'nahuel', m:'Decisiones', p:'media', h:'52', t:'Autoservicio San Luis: ¿va igual que Mendoza?', d:'Le falta INTRODUCCIÓN & PREPARACIÓN (y con ella el resumen de la visita anterior), la sección RTD y FRÍOS entera, la vidriera y el catálogo de materiales.'},
+  {id:'dec6', r:'nahuel', m:'Decisiones', p:'baja', h:'27', t:'Restaurantes: ¿cuál zona vale?', d:'En Mendoza hay tareas desactivadas que en San Luis están activas, Planes Campari está al revés y CAFÉ > Acciones también.'},
+  {id:'dec7', r:'nahuel', m:'Decisiones', p:'media', h:'67', t:'Vinoteca y tienda: un solo modelo', d:'La tienda tiene las herramientas nuevas de fechas y la vinoteca las viejas, con el catálogo de materiales repetido.'},
+  {id:'dec8', r:'nahuel', m:'Decisiones', p:'media', h:'5, 90', t:'Bares: ¿va el Mix Ideal?', d:'El único mix cargado no lo ve nadie: en Mendoza la subsección está apagada y en San Luis el mix apunta a la de Mendoza.'},
 
-  // ── Código ───────────────────────────────────────────────
-  { id:'cod-1', m:'Código', p:'media', r:'nahuel', h:'18, 89, 66, 88',
-    t:'Que una oferta segmentada se vea igual donde la pusieron',
-    d:'Hoy, si Luciana manda una oferta del catálogo a una sección que no muestra ofertas (Vino por Copa, Fechas Especiales, SOBRE LA MESA), no la ve nadie y tampoco aparece en su sección normal. O la visita las muestra igual, o el panel no deja elegir esas secciones.' },
-  { id:'cod-2', m:'Código', p:'baja', r:'nahuel', h:'9',
-    t:'Las campañas se ubican por código de sección',
-    d:'El mismo código significa cosas distintas según el rubro: “acciones_mensuales” es SPIRITS en bares y GÓNDOLA DE VINOS en autoservicios. Guardar la ubicación por uuid, como las demás herramientas.' },
-  { id:'cod-3', m:'Código', p:'baja', r:'nahuel', h:'21',
-    t:'FRIGOBAR no se reconoce como categoría',
-    d:'Por eso esa sección de hoteles no muestra ninguna oferta del catálogo.' },
-  { id:'cod-4', m:'Código', p:'baja', r:'nahuel', h:'58',
-    t:'Queda un checklist viejo de autoservicio en el código',
-    d:'Con condiciones inventadas (“RTD Gordon’s con condición 1+1”, “gondolero 6 botellas”). Hoy no se ve porque el manual sale de la base, pero conviene borrarlo.' },
+  {id:'cat1', r:'nahuel', m:'Catálogo y planes', p:'alta', h:'61, 85', t:'El plan “11T TDB” se ve en vinotecas y no en tiendas', d:'Por el nombre y las líneas es el de Tiendas de Bebidas. La vinoteca ya tiene el suyo (11T VTK) y se ven los dos juntos.'},
+  {id:'cat2', r:'nahuel', m:'Catálogo y planes', p:'alta', h:'86, 50', t:'Dos planes Campari que dicen “solo San Luis” se ven en Mendoza', d:'REVESTIMIENTO PUNTERAS CAMPEROL y EXHIBIDORES CAMPEROL no tienen zona marcada: la condición está solo en el texto.'},
+  {id:'cat3', r:'nahuel', m:'Catálogo y planes', p:'media', h:'45, 62, 91', t:'Dos “ACCION DE VOLUMEN DOÑA PAULA” a la vez', d:'Una dice 12+3 (01/08 al 30/09) y la otra 16+4 (01/09 al 31/10). Todo septiembre salen juntas y el vendedor no sabe cuál ofrecer.'},
+  {id:'cat4', r:'nahuel', m:'Catálogo y planes', p:'media', h:'1, 93', t:'Jack Daniel’s aparece en VINOS en San Luis', d:'La promo del whiskey está segmentada a “VINOS & ESPUMANTES > Acciones de Rotación” de bares San Luis. En Mendoza está bien, en SPIRITS.'},
+  {id:'cat5', r:'nahuel', m:'Catálogo y planes', p:'media', h:'7', t:'Sigue viva la “Temporada de Invierno”', d:'Ya es primavera y el botón sigue en SPIRITS, con productos sin mecánica (Blenders Pride, Tía María, Cusenier) y ofertas repetidas con otra condición: Havana figura 5+1 y 3+1, Ramazzotti 5+1 y 1+1.'},
+  {id:'cat6', r:'nahuel', m:'Catálogo y planes', p:'media', h:'18, 89', t:'Killka, Callia y Salentein no se ven en ningún lado', d:'Están segmentadas a Vino por Copa y a “SOBRE LA MESA > Vinos”, que no muestran ofertas.'},
+  {id:'cat7', r:'nahuel', m:'Catálogo y planes', p:'media', h:'66, 88', t:'Las cuatro acciones de Emilia de primavera no se ven', d:'Segmentadas a “Fechas Especiales”, que muestra el calendario y no las ofertas. Es la promo de esta época.'},
+  {id:'cat8', r:'nahuel', m:'Catálogo y planes', p:'media', h:'50', t:'Punteras Doña Paula no llega a San Luis', d:'Se ve en autoservicios de Mendoza y no en los de San Luis, sin que el plan diga que es de una sola zona.'},
+  {id:'cat9', r:'nahuel', m:'Catálogo y planes', p:'media', h:'35', t:'Discos: los planes de Peñaflor solo llegan a Mendoza', d:'“11T BARES - DISCOS” e “INNOVACIONES PEÑAFLOR ON” no se ven en San Luis, aunque los planes no tienen zona marcada.'},
+  {id:'cat10', r:'nahuel', m:'Catálogo y planes', p:'baja', h:'21', t:'Hoteles: la campaña ABSOLUT cae en FRIGOBAR', d:'Está cargada en la sección “acciones_de_rotacion”, que en hoteles es la del frigobar, no la de SPIRITS.'},
+  {id:'cat11', r:'nahuel', m:'Catálogo y planes', p:'baja', h:'30, 96', t:'En “Innovaciones” de vinos aparecen cervezas y un gin', d:'Antares XPA Lata, Antares Lager y Gordons Tropical Fruits están cargados con categoría vino.'},
+  {id:'cat12', r:'nahuel', m:'Catálogo y planes', p:'baja', h:'57, 100', t:'Los planes usan el campo de líneas para poner reglas', d:'Se muestran como si fueran líneas de producto: “ENVIAR EVIDENCIA SI O SI”, “TOPE 4 CAJAS POR LINEA”, “COORDINAR CON 72 HORAS”, “SIN COMPRA ULTIMOS 6 MESES”.'},
+  {id:'cat13', r:'nahuel', m:'Catálogo y planes', p:'baja', h:'69', t:'Los dos planes 11T no tienen descripción ni vigencia', d:'Tienen el mismo texto genérico y ninguna fecha, así que el vendedor no sabe hasta cuándo valen.'},
+  {id:'cat14', r:'nahuel', m:'Catálogo y planes', p:'baja', h:'32, 68, 101', t:'Tres planes apuntan a secciones que ya no existen', d:'Restos de secciones borradas en Visitas a Bodega Doña Paula y Open Bottle. No se ve roto, pero ensucia la segmentación.'},
+  {id:'cat15', r:'nahuel', m:'Catálogo y planes', p:'baja', h:'101', t:'Zuelo y Rutini Colección', d:'El aceite Zuelo (categoría “aceites”) no encaja en ninguna sección y nunca se ve. Rutini Colección se muestra sin mecánica, sin precio y sin info.'},
+
+  {id:'con1', r:'nahuel', m:'Contenido que hay que pedir', p:'media', h:'34', t:'Discos: no hay ningún evento pre armado', d:'Es la sección central del recorrido. El vendedor ve “Todavía no hay eventos cargados” y aun así tiene dos tareas para tildar que no puede cumplir.'},
+  {id:'con2', r:'nahuel', m:'Contenido que hay que pedir', p:'media', h:'39', t:'Discos: el calendario está vacío', d:'No hay ninguna fecha especial activa: la última es el Día del Amigo (20/07) y está inactiva. Faltan primavera, Halloween y fin de año.'},
+  {id:'con3', r:'nahuel', m:'Contenido que hay que pedir', p:'media', h:'40', t:'Discos: vino por copa, aperitivos y materiales sin nada', d:'Las tres herramientas funcionan, pero no hay contenido cargado para discos.'},
+  {id:'con4', r:'nahuel', m:'Contenido que hay que pedir', p:'media', h:'65, 92', t:'Tienda de bebidas: qué planes de vinoteca valen', d:'Plan de Degustaciones queda vacío y Acciones de Volumen solo tiene un exhibidor que vence el 30/09. En vinoteca hay Sampling Doña Paula, Open Bottle Peñaflor y tres planes de Campari.'},
+  {id:'con5', r:'nahuel', m:'Contenido que hay que pedir', p:'baja', h:'79', t:'Eventos: el único combo está inactivo', d:'Se llama “Combo fernet buhero” y su contenido dice “1 gin + 6 tónicas”.'},
+
+  {id:'cod1', r:'nahuel', m:'Código y base', p:'media', h:'18, 89, 66, 88', t:'Que una oferta segmentada se vea donde la pusieron', d:'Hoy, si una oferta del catálogo va a una sección que no muestra ofertas (Vino por Copa, Fechas Especiales, SOBRE LA MESA), no la ve nadie y tampoco aparece en su sección normal.'},
+  {id:'cod2', r:'nahuel', m:'Código y base', p:'baja', h:'9', t:'Las campañas se ubican por código de sección', d:'El mismo código significa cosas distintas según el rubro: “acciones_mensuales” es SPIRITS en bares y GÓNDOLA DE VINOS en autoservicios.'},
+  {id:'cod3', r:'nahuel', m:'Código y base', p:'baja', h:'21', t:'FRIGOBAR no se reconoce como categoría', d:'Por eso esa sección de hoteles no muestra ninguna oferta del catálogo.'},
+  {id:'cod4', r:'nahuel', m:'Código y base', p:'baja', h:'36', t:'Discos: Peñaflor aparece dos veces en la misma subsección', d:'Una vez como tarjeta de plan y otra como lista de propuestas. En restaurantes se evitó a propósito; en discos no.'},
+  {id:'cod5', r:'nahuel', m:'Código y base', p:'baja', h:'41', t:'Discos: la herramienta dc_activacion nunca se usa', d:'El mapeo queda tapado por otro y el bloque “Activación pedida” de la minuta nunca se llena.'},
+  {id:'cod6', r:'nahuel', m:'Código y base', p:'baja', h:'80', t:'Mayorista Mendoza y San Luis no se separan', d:'Una campaña marcada solo para Mendoza también la ve un vendedor de San Luis.'},
+  {id:'cod7', r:'nahuel', m:'Código y base', p:'baja', h:'58', t:'Queda un checklist viejo de autoservicio en el código', d:'Con condiciones inventadas (“RTD Gordon’s con condición 1+1”, “gondolero 6 botellas”). Hoy no se ve porque el manual sale de la base.'},
+  {id:'cod8', r:'nahuel', m:'Código y base', p:'baja', h:'78', t:'El panel de Combos dice que se ven en el mayorista', d:'La ayuda le dice a Luciana que salen en EVENTOS del manual del mayorista, y esa sección está apagada: hoy salen en el manual de Eventos.'},
+  {id:'cod9', r:'nahuel', m:'Código y base', p:'baja', h:'98, 99', t:'Limpiar las filas de prueba de la base', d:'Acciones con placas falsas de placehold.co (“2x1 en Aperol”, “Combo Gin del Amigo”), seeds duplicados del 19/06 y la marca “__probe__”.'},
 ];
 
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fecha = f => { try{ return new Date(f).toLocaleDateString('es-AR',{day:'numeric',month:'short'}); }catch(e){ return ''; } };
+const dia = f => { try{ return new Date(f).toLocaleDateString('es-AR',{day:'numeric',month:'short'}); }catch(e){ return ''; } };
 
-let hub, YO = 'Alguien', ESTADO = {}, F_PERSONA = 'todos', F_ESTADO = 'pendientes', PUEDE = true;
+let hub, YO = 'Alguien', ESTADO = {}, PUEDE = true;
+let F = { persona:'todos', estado:'pendientes', q:'' };
 
-function estadoDe(id){ return ESTADO[id] || {}; }
-function respDe(t){ const e = estadoDe(t.id); return e.responsable || t.r; }
-function hechaDe(t){ return !!estadoDe(t.id).hecho; }
+const est   = id => ESTADO[id] || {};
+const resp  = t  => est(t.id).responsable || t.r;
+const hecha = t  => !!est(t.id).hecho;
+const nom   = k  => (GENTE.find(g=>g.k===k)||{}).n || k;
 
-function render(){
-  // Cabecera: cómo viene cada uno.
+function pintar(){
+  document.getElementById('tot').textContent = TAREAS.filter(hecha).length + ' de ' + TAREAS.length + ' listas';
+
   document.getElementById('gente').innerHTML = GENTE.map(g => {
-    const mias = TAREAS.filter(t => respDe(t) === g.k);
-    const ok = mias.filter(hechaDe).length;
-    const pc = mias.length ? Math.round(ok * 100 / mias.length) : 0;
-    return `<div class="p">
-      <div class="n"><span class="dot"></span>${esc(g.n)}</div>
+    const mias = TAREAS.filter(t => resp(t) === g.k), ok = mias.filter(hecha).length;
+    const pc = mias.length ? Math.round(ok*100/mias.length) : 0;
+    return `<div class="p"><div class="n">${esc(g.n)}</div>
       <div class="c">${ok} de ${mias.length} · ${esc(g.q)}</div>
-      <div class="bar"><i style="width:${pc}%"></i></div>
-    </div>`;
+      <div class="bar"><i style="width:${pc}%"></i></div></div>`;
   }).join('');
 
-  // Filtros.
-  const cuenta = k => TAREAS.filter(t => (k==='todos' || respDe(t)===k) && (F_ESTADO==='todas' || (F_ESTADO==='hechas') === hechaDe(t))).length;
-  const chip = (k,l,activo,fn) => `<button class="chip ${activo?'on':''}" data-fn="${fn}" data-k="${esc(k)}">${esc(l)}</button>`;
-  document.getElementById('filtros').innerHTML =
-    chip('todos','Todas · '+cuenta('todos'), F_PERSONA==='todos','p') +
-    GENTE.map(g => chip(g.k, g.n+' · '+cuenta(g.k), F_PERSONA===g.k, 'p')).join('') +
-    '<span class="sep"></span>' +
-    chip('pendientes','Pendientes', F_ESTADO==='pendientes','e') +
-    chip('hechas','Hechas', F_ESTADO==='hechas','e') +
-    chip('todas','Todas', F_ESTADO==='todas','e');
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', F[c.dataset.f] === c.dataset.k));
 
-  // Lista, agrupada por persona.
-  const orden = { alta:0, media:1, baja:2 };
-  const grupos = GENTE.filter(g => F_PERSONA==='todos' || F_PERSONA===g.k).map(g => {
-    const mias = TAREAS.filter(t => respDe(t) === g.k)
-      .filter(t => F_ESTADO==='todas' || (F_ESTADO==='hechas') === hechaDe(t))
-      .sort((a,b) => (orden[a.p]-orden[b.p]) || a.m.localeCompare(b.m));
-    if (!mias.length) return '';
-    const total = TAREAS.filter(t => respDe(t)===g.k).length;
-    const ok = TAREAS.filter(t => respDe(t)===g.k && hechaDe(t)).length;
-    return `<div class="grupo"><h2>${esc(g.n)}</h2><span class="q">${mias.length} en esta lista · ${ok} de ${total} hechas</span></div>`
-      + mias.map(fila).join('');
-  }).join('');
+  const q = F.q.trim().toLowerCase();
+  const pasa = t => (F.persona==='todos' || resp(t)===F.persona)
+    && (F.estado==='todas' || (F.estado==='hechas') === hecha(t))
+    && (!q || (t.t+' '+t.d+' '+t.m).toLowerCase().includes(q));
 
-  document.getElementById('lista').innerHTML = grupos || `<div class="vacio">${F_ESTADO==='hechas'?'Todavía no hay tareas marcadas como hechas.':'No queda ninguna tarea pendiente acá. 🎉'}</div>`;
+  let html = '';
+  GENTE.forEach(g => {
+    const mias = TAREAS.filter(t => resp(t)===g.k && pasa(t))
+      .sort((a,b) => (RUBROS.indexOf(a.m)-RUBROS.indexOf(b.m)) || (ORDEN[a.p]-ORDEN[b.p]));
+    if (!mias.length) return;
+    const todas = TAREAS.filter(t => resp(t)===g.k);
+    html += `<div class="persona"><h2>${esc(g.n)}</h2>
+      <span class="q">${mias.length} acá · ${todas.filter(hecha).length} de ${todas.length} hechas</span></div>`;
+    let rubro = '';
+    mias.forEach(t => {
+      if (t.m !== rubro){ rubro = t.m; html += `<div class="rubro">${esc(rubro)}</div>`; }
+      html += fila(t, g.k);
+    });
+  });
+  document.getElementById('lista').innerHTML = html || `<div class="vacio">${
+    F.estado==='hechas' ? 'Todavía no hay nada marcado como hecho.'
+    : (q ? 'Ninguna tarea dice eso.' : 'No queda nada pendiente acá. 🎉')}</div>`;
 }
 
-function fila(t){
-  const e = estadoDe(t.id), hecha = !!e.hecho, r = respDe(t);
-  const quien = hecha && (e.hecho_por || e.hecho_en)
-    ? `<div class="quien">✓ ${esc(e.hecho_por||'Hecha')}${e.hecho_en?' · '+fecha(e.hecho_en):''}</div>` : '';
-  return `<div class="tk ${hecha?'ok':''}">
-    <input type="checkbox" id="c-${esc(t.id)}" data-id="${esc(t.id)}" ${hecha?'checked':''} ${PUEDE?'':'disabled'} aria-label="Marcar como hecha">
+function fila(t, k){
+  const e = est(t.id), otro = GENTE.find(g => g.k !== k);
+  return `<div class="tk ${e.hecho?'ok':''}">
+    <input type="checkbox" data-ok="${esc(t.id)}" ${e.hecho?'checked':''} ${PUEDE?'':'disabled'} aria-label="Marcar como hecha">
     <div class="t">${esc(t.t)}</div>
     <div class="d">${esc(t.d)}</div>
     <div class="chips">
       <span class="tag">${esc(t.m)}</span>
-      <span class="tag ${esc(t.p)}">${t.p==='alta'?'Urgente':(t.p==='media'?'Importante':'Cuando se pueda')}</span>
+      <span class="tag ${esc(t.p)}">${PRIO[t.p]}</span>
       <span class="tag">Hallazgo ${esc(t.h)}</span>
-      <select data-resp="${esc(t.id)}" ${PUEDE?'':'disabled'} title="A quién le toca">
-        ${GENTE.map(g=>`<option value="${g.k}" ${g.k===r?'selected':''}>${esc(g.n)}</option>`).join('')}
-      </select>
-      ${quien}
+      ${e.hecho ? `<span class="tag hecha">✓ ${esc(e.hecho_por||'Hecha')}${e.hecho_en?' · '+dia(e.hecho_en):''}</span>` : ''}
+      ${PUEDE ? `<button class="pasar" data-pasar="${esc(t.id)}" data-a="${otro.k}">↔ Pasar a ${esc(otro.n)}</button>` : ''}
     </div>
-    <input class="nota" id="n-${esc(t.id)}" data-nota="${esc(t.id)}" value="${esc(e.nota||'')}" placeholder="Nota (opcional): dónde quedó, qué falta…" ${PUEDE?'':'disabled'}>
+    <input class="nota" data-nota="${esc(t.id)}" value="${esc(e.nota||'')}" placeholder="Nota: dónde quedó, qué falta, con quién hablar…" ${PUEDE?'':'disabled'}>
   </div>`;
 }
 
 // Guardar: una fila por tarea, se crea sola la primera vez que se toca.
 async function guardar(id, cambios){
-  const previo = ESTADO[id] || {};
+  const previo = ESTADO[id];
   ESTADO[id] = Object.assign({}, previo, cambios);
-  render();
-  const registro = Object.assign({ responsable:respDe(TAREAS.find(t=>t.id===id)) }, ESTADO[id], { tarea_id:id, actualizado:new Date().toISOString() });
+  pintar();
+  const t = TAREAS.find(x => x.id === id);
+  const registro = Object.assign({ responsable: t.r }, ESTADO[id], { tarea_id:id, actualizado:new Date().toISOString() });
   const { error } = await hub.from('auditoria_tareas').upsert(registro, { onConflict:'tarea_id' });
   if (error){
-    ESTADO[id] = previo; render();
-    avisar('No se pudo guardar: ' + error.message);
+    if (previo) ESTADO[id] = previo; else delete ESTADO[id];
+    pintar(); avisar('No se pudo guardar: ' + esc(error.message));
   }
 }
 
-function avisar(txt){
-  const a = document.getElementById('aviso');
-  a.hidden = false; a.innerHTML = txt;
+function avisar(txt){ const a = document.getElementById('aviso'); a.hidden = false; a.innerHTML = txt; }
+
+async function traer(){
+  const { data, error } = await hub.from('auditoria_tareas').select('*');
+  if (error){
+    PUEDE = false;
+    avisar(/auditoria_tareas/.test(error.message||'')
+      ? '<b>Falta crear la tabla.</b> Corré <b>auditoria-tareas.sql</b> en el proyecto del Portal (SQL Editor). Hasta entonces la lista se ve, pero no se puede marcar nada.'
+      : 'No se pudo leer el estado: ' + esc(error.message) + '. La lista se ve igual, pero no se puede marcar nada.');
+  } else {
+    ESTADO = {}; (data||[]).forEach(f => { ESTADO[f.tarea_id] = f; });
+  }
+  pintar();
 }
 
 document.addEventListener('click', ev => {
-  const c = ev.target.closest('.chip'); if (!c) return;
-  if (c.dataset.fn === 'p') F_PERSONA = c.dataset.k; else F_ESTADO = c.dataset.k;
-  render();
+  const chip = ev.target.closest('.chip');
+  if (chip){ F[chip.dataset.f] = chip.dataset.k; pintar(); return; }
+  const pasar = ev.target.closest('.pasar');
+  if (pasar) guardar(pasar.dataset.pasar, { responsable: pasar.dataset.a });
 });
 document.addEventListener('change', ev => {
   const el = ev.target;
-  if (el.matches('input[type=checkbox][data-id]')){
-    const hecho = el.checked;
-    guardar(el.dataset.id, hecho
-      ? { hecho:true,  hecho_por:YO, hecho_en:new Date().toISOString() }
-      : { hecho:false, hecho_por:null, hecho_en:null });
-  } else if (el.matches('select[data-resp]')){
-    guardar(el.dataset.resp, { responsable: el.value });
-  } else if (el.matches('input[data-nota]')){
-    guardar(el.dataset.nota, { nota: el.value.trim() || null });
-  }
+  if (el.matches('input[data-ok]')) guardar(el.dataset.ok, el.checked
+    ? { hecho:true,  hecho_por:YO, hecho_en:new Date().toISOString() }
+    : { hecho:false, hecho_por:null, hecho_en:null });
+  else if (el.matches('input[data-nota]')) guardar(el.dataset.nota, { nota: el.value.trim() || null });
 });
+document.getElementById('q').addEventListener('input', ev => { F.q = ev.target.value; pintar(); });
 
 (async () => {
   hub = supabase.createClient(HUB.url, HUB.key);
@@ -438,19 +324,22 @@ document.addEventListener('change', ev => {
   const { data:u } = await hub.from('usuarios').select('nombre, rol').eq('id', session.user.id).maybeSingle();
   YO = (u && u.nombre) || session.user.email || 'Alguien';
   const rol = String((u && u.rol) || '').toLowerCase();
-  const volver = { diseno:'panel-diseno.html', desarrollo:'panel-desarrollo.html', compras:'compras.html', direccion:'direccion.html', admin:'direccion.html' }[rol];
+  const volver = { diseno:'panel-diseno.html', desarrollo:'panel-desarrollo.html', admin:'direccion.html', direccion:'direccion.html' }[rol];
   if (volver) document.getElementById('volver').href = volver;
 
-  const { data, error } = await hub.from('auditoria_tareas').select('*');
-  if (error){
-    PUEDE = false;
-    avisar(/auditoria_tareas/.test(error.message||'')
-      ? '<b>Falta crear la tabla.</b> Corré <b>auditoria-tareas.sql</b> en el proyecto del Portal (SQL Editor). Hasta entonces la lista se ve, pero no se puede marcar nada.'
-      : 'No se pudo leer el estado de las tareas: ' + esc(error.message) + '. La lista se ve igual, pero no se puede marcar nada.');
-  } else {
-    (data||[]).forEach(f => { ESTADO[f.tarea_id] = f; });
-  }
-  render();
+  await traer();
+
+  // Que se refleje: lo que marca uno le llega al otro sin recargar. Si el
+  // realtime no está habilitado, igual se actualiza al volver a la pestaña.
+  try{
+    hub.channel('auditoria-tareas')
+       .on('postgres_changes', { event:'*', schema:'public', table:'auditoria_tareas' }, traer)
+       .subscribe();
+  }catch(e){}
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) traer(); });
+  setInterval(() => { if (!document.hidden) traer(); }, 45000);
+
+  document.getElementById('pie').innerHTML = 'Lo que marca uno lo ve el otro al instante. Las tareas se pueden pasar de una lista a la otra con el botón ↔. Los arreglos de código de la auditoría ya se publicaron el 22/09; el informe completo tiene el detalle de cada hallazgo.';
 })();
 </script>
 <script src="assets/notif.js?v=2"></script>
