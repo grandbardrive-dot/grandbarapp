@@ -2291,6 +2291,10 @@ body { background:transparent !important; }
     s = s.replace(/\bx?\s*\d+([.,]\d+)?\s*(ml|cc|cl|lts?|lt|l|litros?|grs?|gr|g|kg|mg)\b/g, ' ');
     s = s.replace(/\bx\s*\d+\b/g, ' ');
     s = s.replace(/[×*]/g, ' ');
+    // tamaños de botella/lata sueltos, sin unidad (ej: "…London Dry 750"): sacarlos
+    // para que no cuenten como si fueran parte de la marca. No toca marcas-número
+    // como 1882 o 43 (no están en la lista de tamaños).
+    s = s.replace(/\b(187|200|250|275|330|350|355|375|437|440|470|473|500|591|750|990|1000|1125|1500|2000|2250|3000)\b/g, ' ');
     // abreviaturas del ERP → palabra completa (para que coincida con la carta)
     s = s.replace(/\bc\s*\/\s*gas\b/g, ' con gas ').replace(/\bc\/g\b/g, ' con gas ');
     s = s.replace(/\bs\s*\/\s*gas\b/g, ' sin gas ').replace(/\bs\/g\b/g, ' sin gas ');
@@ -2306,12 +2310,43 @@ body { background:transparent !important; }
     'vino','copa','copas','botella','trago','tragos','lata','vaso','vasos',
     'cerveza','gaseosa','agua','jugo','soda','bebida','bebidas','set','pack'
   ]);
+  // Palabras de CEPA / ESTILO / CATEGORÍA / COLOR: describen el producto pero NO
+  // son la marca. "Malbec" o "Sauvignon Blanc" solos no alcanzan para decir que es
+  // el nuestro (si no, "Vino por Copa Malbec" matchea cualquier Malbec del catálogo).
+  // Un match válido tiene que compartir al menos una palabra distintiva (marca).
+  const _GENERICOS = new Set([
+    // cepas / varietales
+    'malbec','cabernet','sauvignon','blanc','chardonnay','merlot','syrah','shiraz',
+    'bonarda','tempranillo','pinot','noir','grigio','gris','torrontes','semillon',
+    'tannat','gewurztraminer','viognier','criolla','cereza','malvasia','moscato',
+    'moscatel','sangiovese','barbera','petit','verdot','franc','carmenere','blend',
+    'corte','varietal','varietales',
+    // estilos / crianza
+    'extra','brut','nature','dulce','demi','sec','seco','reserva','reserve','gran',
+    'clasico','clasica','roble','joven','cosecha','tardia','dosage','cero','premium',
+    'organico','organica','natural','añejo','anejo','blanco','tinto','tinta','tintas',
+    'rosado','rose','rosa','espumante','espumantes','spumante','champagne','champana',
+    // categorías / colores de bebida
+    'gin','whisky','whiskey','vodka','ron','rum','tequila','aperitivo','aperitif',
+    'licor','fernet','aperol','vermouth','vermut','tonica','tonic','energizante',
+    'rubia','roja','negra','red','black','blue','label','ipa','lager','stout','porter',
+    'sidra','espirituosa',
+    // calificadores de estilo (gin/whisky/tequila/ron) que no son marca
+    'london','dry','old','tom','blended','single','malt','reposado','silver','gold',
+    'dorado','plata','especial','doble','triple'
+  ]);
   function tokensSignificativos(norm) {
     const set = new Set();
     (norm || '').split(/\s+/).forEach(t => {
       if (t.length >= 3 && !_STOPWORDS.has(t)) set.add(t);
     });
     return set;
+  }
+  // Tokens "de marca": los significativos que además NO son genéricos (cepa/estilo).
+  function tokensDistintivos(tokenSet) {
+    const d = new Set();
+    tokenSet.forEach(t => { if (!_GENERICOS.has(t)) d.add(t); });
+    return d;
   }
   // Merchandising/promo del ERP (bolso, gorra, copón…): sí lo tenemos en stock,
   // pero NO es la bebida de la carta. No debe ganarle el match a la botella real.
@@ -2352,9 +2387,10 @@ body { background:transparent !important; }
       // Renormalizamos siempre con la función nueva (la columna guardada usa la
       // vieja y no limpia abreviaturas); así carta y catálogo hablan el mismo idioma.
       const norm = normalizarNombre(r.descripcion || r.descripcion_normalizada || '');
+      const tokens = tokensSignificativos(norm);
       return { codigo: r.codigo, descripcion: r.descripcion, stock: r.stock,
                norm, merch: _esMerch(norm),
-               tokens: tokensSignificativos(norm), trig: trigramas(norm) };
+               tokens, dist: tokensDistintivos(tokens), trig: trigramas(norm) };
     });
     const exact = new Map();   // norm -> entry
     const inv   = new Map();   // token -> [idx]
@@ -2382,35 +2418,44 @@ body { background:transparent !important; }
 
     const qTokens = tokensSignificativos(qNorm);
     if (qTokens.size === 0) return null;
+    const qDist = tokensDistintivos(qTokens);   // palabras de marca de la carta
+    // Sin ninguna palabra distintiva (ej: "Vino por Copa Malbec" = solo cepa),
+    // no se puede identificar la marca → no arriesgamos un match.
+    if (qDist.size === 0) return null;
     const qTrig = trigramas(qNorm);
 
-    // Candidatos: solo los que comparten alguna palabra (índice invertido)
+    // Candidatos: solo los que comparten alguna palabra DISTINTIVA (por marca),
+    // no por varietal/estilo genérico.
     const cand = new Set();
-    qTokens.forEach(t => (_catalogoGB.inv.get(t) || []).forEach(i => cand.add(i)));
+    qDist.forEach(t => (_catalogoGB.inv.get(t) || []).forEach(i => cand.add(i)));
 
     let best = null;
     cand.forEach(i => {
       const e = _catalogoGB.entries[i];
       if (!e.tokens.size) return;
+      // Debe compartir al menos una palabra de MARCA; si solo comparten cepa/estilo,
+      // no es el mismo producto (ej: "…Malbec" vs "Viñalba Malbec").
+      let interDist = 0; qDist.forEach(t => { if (e.dist.has(t)) interDist++; });
+      if (interDist === 0) return;
       let inter = 0; qTokens.forEach(t => { if (e.tokens.has(t)) inter++; });
       if (inter === 0) return;
       const contQ = inter / qTokens.size;   // ¿cuánto de la carta está en el catálogo?
       const contE = inter / e.tokens.size;  // ¿cuánto del catálogo está en la carta?
       const cont  = Math.max(contQ, contE); // contención bidireccional
       const dice  = diceCoef(qTrig, e.trig);
-      let score = cont * 0.6 + dice * 0.4;
+      const contDist = interDist / qDist.size;   // fracción de marcas de la carta cubiertas
+      let score = cont * 0.5 + dice * 0.3 + contDist * 0.2;
 
       let tier = null;
-      if (qTokens.size === 1) {
-        // Marca de una sola palabra: exigimos que esté completa y buen parecido.
-        if (contQ === 1 && dice >= 0.45) tier = 'alto';
-        else if (contQ === 1 && dice >= 0.3) tier = 'medio';
+      if (qDist.size === 1) {
+        // Una sola palabra de marca: tiene que estar completa + buen parecido.
+        if (interDist === 1 && cont >= 0.6 && dice >= 0.4) tier = 'alto';
+        else if (interDist === 1 && (cont >= 0.5 || dice >= 0.3)) tier = 'medio';
       } else {
-        // Multi-palabra: un nombre contenido en el otro = match fuerte.
-        if (cont >= 0.9 && inter >= 2) tier = 'alto';
-        else if (cont >= 0.9 && dice >= 0.35) tier = 'alto';        // corto contenido (Beefeater)
-        else if (inter >= 2 && cont >= 0.6) tier = 'medio';
-        else if (inter >= 2 && dice >= 0.4) tier = 'medio';
+        // Varias marcas: cuántas coinciden manda.
+        if (contDist >= 0.8 && cont >= 0.6) tier = 'alto';
+        else if (contDist >= 0.5 && (cont >= 0.6 || dice >= 0.4)) tier = 'medio';
+        else if (interDist >= 1) tier = 'medio';
       }
       if (!tier) return;
       // El merchandising sí lo tenemos, pero no es la bebida: lo bajamos a 'medio'
