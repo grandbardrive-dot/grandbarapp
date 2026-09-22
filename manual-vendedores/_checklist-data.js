@@ -682,7 +682,10 @@ async function getChecklistDynamic(tipo, zonaPedida) {
       icono:      sec.icono       || '📋',
       iconoBg:    sec.icono_bg    || '#EAF2FB',
       iconoColor: sec.icono_color || '#1A5C9A',
-      especial:   sec.especial    || undefined,
+      // Una sección madre "Cierre de visita" sin herramienta elegida usa el cierre con
+      // resumen, PDF, envío y próxima acción (en hoteles y autoservicios de San Luis
+      // quedaba vacía: auditoría 22/09/2026).
+      especial:   sec.especial || (!sec.parent_id && /^\s*cierre\b/i.test(sec.nombre || '') ? 'cierre_resumen' : undefined),
       intro:      sec.intro       || '',
       pdf_url:    sec.pdf_url      || null,   // PDF por sección (ej: propuestas de vidriera)
       soloFormato: sec.solo_formato || null,  // discos: 'con_previa' | 'sin_previa' | null = siempre
@@ -695,6 +698,7 @@ async function getChecklistDynamic(tipo, zonaPedida) {
         pill:      p.condicion || 'Plan',
         pillColor: 'green',
         titulo:    p.nombre,
+        proveedor: p.proveedor || '',
         // Proveedor y hasta cuándo vale (antes el mes iba escrito en la condición)
         subtitulo: [p.proveedor, p.fecha_fin ? 'hasta el ' + new Date(String(p.fecha_fin).slice(0, 10) + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : '']
           .filter(Boolean).join(' · '),

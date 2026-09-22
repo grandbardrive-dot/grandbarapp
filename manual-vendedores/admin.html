@@ -2062,7 +2062,7 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
         nombre,
         descripcion: document.getElementById('np-desc').value.trim() || null,
         imagen_url, pdf_url,
-        canal: canalSel === 'todos' ? ['vinoteca','restaurante','autoservicio'] : [canalSel],
+        canal: canalSel === 'todos' ? [] : [canalSel],   // vacío = todos los rubros (la visita lo toma así)
         activo: true,
       });
       if (error) throw error;
@@ -2094,7 +2094,7 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
         bodega, tipo: document.getElementById('pb-tipo').value, nombre,
         descripcion: document.getElementById('pb-desc').value.trim() || null,
         imagen_url, pdf_url,
-        canal: canalSel === 'todos' ? ['vinoteca','restaurante','autoservicio'] : [canalSel],
+        canal: canalSel === 'todos' ? [] : [canalSel],   // vacío = todos los rubros (la visita lo toma así)
         activo: true,
       });
       if (error) throw error;

@@ -2840,8 +2840,10 @@ body { background:transparent !important; }
 
   // Contenido interno de una sección hoja (planes + ítems + widgets + obs)
   function seccionContenido(sec) {
-    // Incorporaciones (s1) no muestra tarjetas de planes: usa el widget de proveedores
-    const planesHtml = (sec.planes && sec.planes.length && sec.id !== 's1' && sec.id !== 'dc_eventos_mes') ? `<div class="plans-zone">
+    // Los planes se muestran también en Incorporaciones (s1), arriba del widget de
+    // propuestas: antes se ocultaban y el vendedor no veía las condiciones vigentes
+    // (Nieto, Etchart, Doña Paula, Peñaflor 11T…). Auditoría 22/09/2026.
+    const planesHtml = (sec.planes && sec.planes.length && sec.id !== 'dc_eventos_mes') ? `<div class="plans-zone">
       <div class="plans-zone-label">Planes activos</div>
       ${sec.planes.map(p=>`<div class="plan-card">
         <div class="plan-header" onclick="togglePlan('${sec.id}__${p.id}')">
@@ -3621,22 +3623,16 @@ body { background:transparent !important; }
   // ══════════════════════════════════════════════════════════════════════════
   //  EVENTOS · Paquetes
   //  El vendedor elige el tamaño del evento (50/100/150/200), cuántos son menores
-  //  y cómo viene el clima, y la pantalla estima bebida e hielo. Los servicios que
-  //  se contratan afuera (barra, hielo, bartender) van SIN precio: se marcan como
-  //  "a cotizar" y quedan en la propuesta. El diseño se pide a Marketing.
+  //  y cómo viene el clima. Los servicios que se contratan afuera (barra, hielo,
+  //  bartender) van SIN precio: se marcan como "a cotizar" y quedan en la propuesta.
+  //  El diseño se pide a Marketing.
   //
-  //  OJO: las cantidades de abajo son provisorias, para poder trabajar desde el
-  //  primer día. Cuando definan los números reales se cambian SOLO acá.
+  //  Hasta el 22/09/2026 la pantalla estimaba botellas, litros y kg de hielo con
+  //  proporciones provisorias que nadie había definido, y eso llegaba al PDF del
+  //  cliente. Se sacó ("si no es real no lo pongas"): cuando haya reglas reales de
+  //  cantidades, se vuelve a mostrar la estimación.
   // ══════════════════════════════════════════════════════════════════════════
   const EV_REGLAS = {
-    // por adulto, salvo aclaración
-    espumanteCada: 4,      // 1 botella cada N adultos
-    cervezaLitros: 1,      // litros por adulto
-    aperitivoCada: 12,     // 1 botella cada N adultos
-    sinAlcoholAdulto: 0.5, // litros por adulto
-    sinAlcoholMenor: 1.5,  // litros por menor
-    hieloKg: 1,            // kg por persona
-    // multiplicadores según dónde y cómo se hace el evento
     clima: {
       calor:   { label:'Al aire libre / calor', bebida:1.3, hielo:1.6 },
       templado:{ label:'Templado',              bebida:1,   hielo:1   },
@@ -3654,15 +3650,6 @@ body { background:transparent !important; }
   function evPaquetesHTML(secId) {
     const e = evEstado;
     const adultos = Math.max(0, e.total - e.menores);
-    const c = EV_REGLAS.clima[e.clima] || EV_REGLAS.clima.templado;
-    const n = x => Math.max(0, Math.round(x));
-    const calc = {
-      espumante: n(adultos / EV_REGLAS.espumanteCada * c.bebida),
-      cerveza:   n(adultos * EV_REGLAS.cervezaLitros * c.bebida),
-      aperitivo: n(adultos / EV_REGLAS.aperitivoCada * c.bebida),
-      sinAlcohol:n((adultos * EV_REGLAS.sinAlcoholAdulto + e.menores * EV_REGLAS.sinAlcoholMenor) * c.bebida),
-      hielo:     n(e.total * EV_REGLAS.hieloKg * c.hielo),
-    };
     const chip = (activo, txt, onclick) =>
       `<button type="button" class="ev-chip ${activo?'on':''}" onclick="${onclick}">${txt}</button>`;
 
@@ -3684,15 +3671,7 @@ body { background:transparent !important; }
         ${Object.keys(EV_REGLAS.clima).map(k=>chip(e.clima===k, EV_REGLAS.clima[k].label, `evSet('clima','${k}','${secId}')`)).join('')}
       </div>
 
-      <div class="ev-calc">
-        <div class="ev-calc-t">Estimación para ${e.total} personas</div>
-        <div class="ev-linea"><span>🍾 Espumantes / vinos</span><b>${calc.espumante} botellas</b></div>
-        <div class="ev-linea"><span>🍺 Cerveza</span><b>${calc.cerveza} litros</b></div>
-        <div class="ev-linea"><span>🥃 Aperitivos</span><b>${calc.aperitivo} botellas</b></div>
-        <div class="ev-linea"><span>🥤 Sin alcohol</span><b>${calc.sinAlcohol} litros</b></div>
-        <div class="ev-linea destacada"><span>🧊 Hielo</span><b>${calc.hielo} kg</b></div>
-        <div class="ev-nota">Cantidades de referencia para que el cliente arranque la cotización. Ajustalas con él.</div>
-      </div>
+      <div class="ev-nota">Todavía no hay reglas de cantidades cargadas (botellas, litros, hielo por persona): definilas con el cliente según su evento.</div>
 
       <div class="ev-paso">4 · Servicios que le sumamos al cliente (los cotiza la empresa)</div>
       <label class="ev-check ${e.barra?'on':''}"><input type="checkbox" ${e.barra?'checked':''} onchange="evSet('barra',this.checked,'${secId}')"> 🍸 Barra montada <small>Se contrata con un tercero</small></label>
@@ -3736,14 +3715,8 @@ body { background:transparent !important; }
     const e = evEstado;
     const adultos = Math.max(0, e.total - e.menores);
     const c = EV_REGLAS.clima[e.clima] || EV_REGLAS.clima.templado;
-    const n = x => Math.max(0, Math.round(x));
     const extras = [e.barra && 'barra montada', e.hielo && 'servicio de hielo', e.bartender && 'bartender'].filter(Boolean);
     return `PAQUETE PARA ${e.total} PERSONAS (${adultos} adultos, ${e.menores} menores) · ${c.label}\n`
-      + `• Espumantes/vinos: ${n(adultos / EV_REGLAS.espumanteCada * c.bebida)} botellas\n`
-      + `• Cerveza: ${n(adultos * EV_REGLAS.cervezaLitros * c.bebida)} litros\n`
-      + `• Aperitivos: ${n(adultos / EV_REGLAS.aperitivoCada * c.bebida)} botellas\n`
-      + `• Sin alcohol: ${n((adultos * EV_REGLAS.sinAlcoholAdulto + e.menores * EV_REGLAS.sinAlcoholMenor) * c.bebida)} litros\n`
-      + `• Hielo: ${n(e.total * EV_REGLAS.hieloKg * c.hielo)} kg\n`
       + (extras.length ? `A cotizar: ${extras.join(', ')}\n` : '');
   }
 
@@ -4596,7 +4569,10 @@ body { background:transparent !important; }
       mayorista:    ['mayorista','mayoristas','mayorista_mendoza','mayorista_sanluis'],
     };
     const canalBase = TIPO_CANAL[cliente.tipo] || cliente.tipo || '';
-    return CANAL_ALIAS[cliente.tipo] || [canalBase, cliente.tipo];
+    // Un tipo sin alias (p. ej. 'otros', que usa el manual de Restaurantes) recibe las
+    // campañas del rubro del manual que está viendo (auditoría 22/09/2026).
+    const rubroManual = ({ tienda_bebidas: 'tienda de bebidas' })[checklist.id] || checklist.id;
+    return CANAL_ALIAS[cliente.tipo] || CANAL_ALIAS[rubroManual] || [canalBase, cliente.tipo];
   }
 
   // Sección "mensual" canónica de cada CATEGORÍA de producto. Una campaña de esa
@@ -4642,8 +4618,39 @@ body { background:transparent !important; }
   // salía dos veces; y en restaurantes la de spirits salía también en la sección general.
   function _seccionCanonica(cat) {
     if (!cat) return null;
-    const h = seccionesHoja(checklist).find(s => SECCION_CATEGORIA[s.id] === cat);
+    const hojas = seccionesHoja(checklist);
+    // Campaña general sin categoría: en los manuales sin sección general va a la
+    // primera sección de ofertas del recorrido; en los demás la toma la sección general.
+    if (cat === 'general') {
+      if (!_sinSeccionGeneral()) return null;
+      const h0 = hojas.find(s => _catDeSeccionCamp(s.id));
+      return h0 ? h0.id : null;
+    }
+    const h = hojas.find(s => _catDeSeccionCamp(s.id) === cat);
     return h ? h.id : null;
+  }
+  // Bares, hoteles, discos y eventos no tienen sección general ("Acciones Mensuales")
+  // ni secciones de categoría fijas: una campaña cargada sin elegir sección no se veía
+  // en ningún lado (auditoría 22/09/2026). En esos manuales, las secciones de ofertas
+  // ("Acciones de Rotación / Mensuales") hacen de sección de su categoría (la de su madre).
+  function _sinSeccionGeneral() {
+    return !seccionesHoja(checklist).some(s => SECCION_CATEGORIA[s.id] || s.especial === 'acciones_mensuales');
+  }
+  // Categoría de una campaña con el mismo vocabulario que las secciones.
+  function _catCampania(a) {
+    const c = String(a.categoria || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (!c) return '';
+    if (/vino|espumant/.test(c)) return 'vinos';
+    if (/spirit|aperitiv|destilad/.test(c)) return 'spirits';
+    if (/cervez|rtd|frio/.test(c)) return 'cervezas';
+    return c;
+  }
+  function _catDeSeccionCamp(secId) {
+    if (SECCION_CATEGORIA[secId]) return SECCION_CATEGORIA[secId];
+    if (!_sinSeccionGeneral()) return null;
+    const w = widgetDe(buscarSec(secId));
+    if (!w || w.tipo !== 'ofertas') return null;
+    return _categoriaDeSeccion(secId) || 'general';
   }
   async function _campaniasSeccion(secId) {
     const todasZona = (await _getAccionesMensuales()).filter(a => segVa(a, null));   // zona del vendedor
@@ -4665,11 +4672,16 @@ body { background:transparent !important; }
     // 1) Sección de categoría (ej. Spirits → Mensuales): las asignadas acá + las del bucket
     //    general cuya categoría coincida. Esto hace que "cargar una acción de spirits" la
     //    muestre en Spirits aunque no se haya elegido la sección exacta.
-    const catDeSeccion = SECCION_CATEGORIA[secId];
+    const catDeSeccion = _catDeSeccionCamp(secId);
     if (catDeSeccion) {
+      // En los manuales sin sección general, también las "huérfanas" (asignadas a una
+      // sección que este manual no tiene) se ubican por su categoría.
+      const sinGeneral = _sinSeccionGeneral();
+      const idsHoja = new Set(seccionesHoja(checklist).map(s => s.id));
+      const huerfana = a => { const p = partes(a); return p.length > 0 && !p.some(c => idsHoja.has(c)); };
       return _expConSeg(segmentadas, porCanal.filter(a =>
-        asignadaAqui(a) || (enBucketGeneral(a) && String(a.categoria || '').toLowerCase() === catDeSeccion
-                            && _seccionCanonica(catDeSeccion) === secId)
+        asignadaAqui(a) || ((enBucketGeneral(a) || (sinGeneral && huerfana(a)))
+                            && _seccionCanonica(_catCampania(a) || 'general') === secId)
       ));
     }
 
@@ -4683,7 +4695,7 @@ body { background:transparent !important; }
       const idsHoja = new Set(seccionesHoja(checklist).map(s => s.id));
       const huerfana = a => { const p = partes(a); return p.length > 0 && !p.some(c => idsHoja.has(c)); };
       // Las generales cuya categoría ya tiene su sección en este manual se ven allá, no acá.
-      const vaASuCategoria = a => !!_seccionCanonica(String(a.categoria || '').toLowerCase());
+      const vaASuCategoria = a => !!_seccionCanonica(_catCampania(a));
       return _expConSeg(segmentadas, porCanal.filter(a => asignadaAqui(a) || (enBucketGeneral(a) && !vaASuCategoria(a)) || huerfana(a)));
     }
 
@@ -4716,7 +4728,7 @@ body { background:transparent !important; }
     if (!filtradas.length) {
       // La sección general avisa que no hay; las secciones específicas quedan vacías (sin ruido).
       el.innerHTML = esSeccionGeneral
-        ? `<div style="font-size:11px;color:var(--text3);font-style:italic;padding:2px 0 8px">Sin acciones activas para este canal este mes.</div>`
+        ? `<div style="font-size:11px;color:var(--text3);font-style:italic;padding:2px 0 8px">Todavía no hay campañas cargadas para este canal.</div>`
         : '';
       return;
     }
@@ -5184,7 +5196,12 @@ body { background:transparent !important; }
     const aMano = widgetElegido(sec);
     if (aMano) return aMano;
     const explicito = WIDGET_SUBSEC[sec.id];
-    if (explicito) return explicito;
+    if (explicito) {
+      // Una madre que ya tiene una subsección con ofertas (RTD y FRIOS > Acciones de
+      // Rotación) no repite la misma grilla: se veía dos veces seguidas.
+      if (explicito.tipo === 'ofertas' && (sec.subsecciones || []).some(ss => { const w = widgetDe(ss); return w && w.tipo === 'ofertas'; })) return null;
+      return explicito;
+    }
     // Herramientas del manual de discos (formato, acuerdos por marca, sunset…): _disco-tools.js
     if (typeof dcWidgetDe === 'function') { const dw = dcWidgetDe(sec); if (dw) return dw; }
     const nombre = String(sec.titulo || sec.nombre || '');
@@ -5195,9 +5212,13 @@ body { background:transparent !important; }
     // "Vino por Copa": vinos que carga Luci + calculadora de costo por copa.
     if (/vino\s+por\s+copa/i.test(nombre) || /copa\s+de\s+bienvenida/i.test(nombre)) return { tipo: 'vino_copa' };
     // "Aperitivos de bienvenida o pre cena": los que carga Luciana (admin-aperitivos.html).
-    if (/aperitivos?\s+de\s+bienvenida|pre\s*cena/i.test(nombre)) return { tipo: 'aperitivos' };
+    // Acepta también "Pre-cena y Post-cena" (hoteles), que con guion no se reconocía.
+    if (/aperitivos?\s+de\s+bienvenida|pre[\s-]*cena/i.test(nombre)) return { tipo: 'aperitivos' };
     if (!_ES_SLOT_OFERTAS.test(nombre)) return null;
     const cat = _categoriaDeSeccion(sec.id);
+    // El mayorista tiene una sola sección de acciones, sin rubro: ahí van todas las
+    // ofertas del catálogo para mayoristas (antes no aparecía ninguna, auditoría 22/09/2026).
+    if (!cat && checklist.id === 'mayorista') return { tipo: 'ofertas', dataKey: sec.id };
     // Sin rubro reconocible (o café, que el catálogo no tiene) no se pone nada:
     // mejor vacío que mostrarle todo mezclado.
     if (!cat || cat === 'cafe') return null;
@@ -5405,7 +5426,12 @@ body { background:transparent !important; }
     props = filtrarPropuestasPorCliente(props, cliente.id);
     const textosProv = await _getPropTextos();
     props.forEach(p => marcarOfrecido(p.nombre, sec));   // Mejora 3: registrar lo ofrecido
-    if (!props.length) { el.innerHTML = ''; return; }
+    if (!props.length) { el.innerHTML = `<div class="prop-loading">Todavía no hay propuestas de incorporación cargadas para esta sección.</div>`; return; }
+    // Si la sección ya muestra un plan de ese proveedor (con su condición real), no se
+    // muestra el texto general del proveedor: en vinotecas el de Peñaflor decía "1+2"
+    // al lado de planes 1+1 (auditoría 22/09/2026).
+    const _normP = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    const provConPlan = new Set(((buscarSec(secId) || {}).planes || []).map(pl => _normP(pl.proveedor)).filter(Boolean));
 
     // Agrupar por proveedor
     const porProv = {};
@@ -5422,7 +5448,7 @@ body { background:transparent !important; }
 
       let inner = '';
       const textoProv = (prov in textosProv) ? textosProv[prov] : PROP_PROVEEDOR_TEXTO[prov];
-      if (textoProv) inner += `<div class="prop-prov-texto">${esc(textoProv)}</div>`;
+      if (textoProv && !provConPlan.has(_normP(prov))) inner += `<div class="prop-prov-texto">${esc(textoProv)}</div>`;
 
       // Proveedor CON grupos → sub-desplegables por grupo
       if (conGrupo.length) {
@@ -5492,6 +5518,15 @@ body { background:transparent !important; }
     sp_rotacion: 'Rotación Spirits', sp_mensuales: 'Mensuales Spirits', sp_aperitivos: 'Aperitivos',
     cafe_acciones: 'Café', vt_heladera: 'Heladera',
   };
+  // Si la subsección no tiene etiqueta fija, se usa su nombre ("SPIRITS · Acciones de Rotación")
+  // y no el código interno, que antes aparecía en el carrito y en el resumen.
+  function _labelOfertas(subKey) {
+    if (OFERTAS_SUB_LABEL[subKey]) return OFERTAS_SUB_LABEL[subKey];
+    const s = buscarSec(subKey);
+    if (!s) return subKey;
+    const m = madreDe(subKey);
+    return m ? m.titulo + ' · ' + s.titulo : s.titulo;
+  }
 
 
   // Cache de ofertas ya cargadas, por subsección
@@ -5626,20 +5661,24 @@ body { background:transparent !important; }
     // Antes, si había una campaña, la grilla se vaciaba. Ahora no: son cosas
     // distintas y el vendedor tiene que poder mostrar las dos.
     const reales = (await _campaniasSeccion(secId)).map(_campaniaAOferta);
-    reales.forEach(o => marcarOfrecido(o.producto, OFERTAS_SUB_LABEL[subKey] || subKey));
+    reales.forEach(o => marcarOfrecido(o.producto, _labelOfertas(subKey)));
 
     const ofertas = await cargarOfertas(subKey, secId);
     _ofertasData[subKey] = ofertas;
-    ofertas.forEach(o => marcarOfrecido(o.producto, OFERTAS_SUB_LABEL[subKey] || subKey)); // Mejora 3
-    if (!ofertas.length) { el.innerHTML = ''; return; }
+    ofertas.forEach(o => marcarOfrecido(o.producto, _labelOfertas(subKey))); // Mejora 3
+    // Sin ofertas se avisa, en vez de dejar la subsección en blanco (auditoría 22/09/2026).
+    if (!ofertas.length) { el.innerHTML = `<div class="prop-loading">Todavía no hay ofertas del catálogo cargadas para esta sección.</div>`; return; }
 
     // Agrupar por bodega preservando el orden de aparición
     const bodegas = [];
     const conteo = {};
     ofertas.forEach(o => { if (!(o.bodega in conteo)) { bodegas.push(o.bodega); conteo[o.bodega] = 0; } conteo[o.bodega]++; });
+    // En VINOS los botones son bodegas; en spirits, cervezas y RTD son marcas.
+    const catSec = _categoriaDeSeccion(secId);
+    const quien = catSec === 'vinos' ? 'una bodega' : catSec ? 'una marca' : 'un proveedor';
 
     el.innerHTML = `
-      <div class="ofertas-head">🏷️ Ofertas vigentes — tocá una bodega:</div>
+      <div class="ofertas-head">🏷️ Ofertas vigentes — tocá ${quien}:</div>
       <div class="bodega-grid">
         ${bodegas.map(b => `
           <button class="bodega-btn" onclick="abrirModalBodega('${subKey}','${esc(b).replace(/'/g,"\\'")}')">
@@ -5758,7 +5797,9 @@ body { background:transparent !important; }
         ${v.descripcion ? `<div class="vc-desc">${esc(v.descripcion)}</div>` : ''}
         ${v.precio_botella ? `<button class="vc-usar" onclick="vcUsar(${Number(v.precio_botella)})">Botella $${Number(v.precio_botella).toLocaleString('es-AR')} · usar en la calculadora ↓</button>` : ''}
       </div>`).join('') + `</div>`
-      : `<div class="vc-empty">Todavía no hay vinos por copa cargados. Las condiciones las carga administración.</div>`;
+      : (((buscarSec(secId) || {}).planes || []).length
+        ? `<div class="vc-empty">No hay vinos sueltos cargados para copa: las condiciones vigentes son las de los planes de arriba.</div>`
+        : `<div class="vc-empty">Todavía no hay vinos por copa cargados. Las condiciones las carga administración.</div>`);
 
     const calc = `
       <div class="calc-copa">
@@ -6459,7 +6500,7 @@ body { background:transparent !important; }
     const ofertas = (_ofertasData[subKey] || []).filter(o => o.bodega === bodega);
     if (!ofertas.length) return;
     _ofertaSubActual = subKey;
-    const label = OFERTAS_SUB_LABEL[subKey] || subKey;
+    const label = _labelOfertas(subKey);
     document.getElementById('ofertas-modal-title').textContent = bodega;
     document.getElementById('ofertas-modal-body').innerHTML = ofertas.map(o => {
       const it0 = cartFind(label, o.producto);
@@ -7164,9 +7205,9 @@ body { background:transparent !important; }
     let items = [];
     try {
       const { data } = await sb.from('nuevos_productos').select('*').eq('activo', true);
-      items = (data || []).filter(p => !p.canal || !p.canal.length || p.canal.includes('vinoteca') || (checklist.id === 'tienda_bebidas' && p.canal.includes('tienda_bebidas')));
+      items = (data || []).filter(p => !p.canal || !p.canal.length || p.canal.includes(checklist.id) || (checklist.id === 'tienda_bebidas' && p.canal.includes('vinoteca')));   // cada rubro, lo suyo (vacío = todos)
     } catch {}
-    if (!items.length) { el.innerHTML = `<div class="esp-loading">Sin novedades cargadas por administración.</div>`; return; }
+    if (!items.length) { el.innerHTML = `<div class="esp-loading">Todavía no hay novedades cargadas.</div>`; return; }
     el.innerHTML = items.map(p => {
       const fichaPdf = p.pdf_url || p.ficha_url;
       return espAccionCard('Nuevos Productos', {
@@ -7208,25 +7249,36 @@ body { background:transparent !important; }
   async function cargarMaterialesPOP(secId) {
     const el = document.getElementById(`vt-matpop-${secId}`);
     if (!el) return;
-    let items = [];
+    // Los materiales son los que carga Marketing en su panel (tabla materials), los
+    // mismos que ya usa Eventos. Antes se leía la tabla vieja materiales_pop, toda
+    // apagada, y decía "Sin catálogo cargado" (auditoría 22/09/2026).
+    let items = [], provs = {}, marcas = {};
     try {
-      const { data } = await sb.from('materiales_pop').select('*').eq('activo', true).order('categoria');
-      items = data || [];
+      const [rm, rp, rb] = await Promise.all([
+        sb.from('materials_with_stock')
+          .select('id,name,description,stock_actual,supplier_id,brand_id,processed_image_url,original_image_url')
+          .eq('is_active', true).eq('visible_to_sellers', true).order('name'),
+        sb.from('proveedores').select('id,nombre'),
+        sb.from('brands').select('id,name'),
+      ]);
+      items = rm.data || [];
+      (rp.data || []).forEach(p => provs[p.id] = p.nombre);
+      (rb.data || []).forEach(b => marcas[b.id] = b.name);
     } catch {}
-    if (!items.length) { el.innerHTML = `<div class="esp-loading">Sin catálogo cargado. Podés solicitar materiales libremente abajo.</div>`; return; }
+    if (!items.length) { el.innerHTML = `<div class="esp-loading">Todavía no hay materiales cargados para vendedores. Podés solicitar materiales libremente abajo.</div>`; return; }
     el.innerHTML = items.map(m => `
       <div class="esp-acciones-card">
         <div class="esp-ac-top">
-          ${m.foto_url ? `<img class="esp-ac-img" src="${esc(m.foto_url)}" alt="">` : ''}
+          ${(m.processed_image_url || m.original_image_url) ? `<img class="esp-ac-img" src="${esc(m.processed_image_url || m.original_image_url)}" alt="">` : ''}
           <div class="esp-ac-info">
-            <div class="esp-ac-marca">${esc(m.categoria)}</div>
-            <div class="esp-ac-nombre">${esc(m.nombre)}</div>
-            ${m.descripcion ? `<div class="esp-ac-desc">${esc(m.descripcion)}</div>` : ''}
-            <div class="esp-ac-cond">${m.stock_disponible ? '🟢 Stock disponible' : '🔴 Sin stock'}</div>
+            <div class="esp-ac-marca">${esc([marcas[m.brand_id], provs[m.supplier_id]].filter(Boolean).join(' · '))}</div>
+            <div class="esp-ac-nombre">${esc(m.name)}</div>
+            ${m.description ? `<div class="esp-ac-desc">${esc(m.description)}</div>` : ''}
+            <div class="esp-ac-cond">${Number(m.stock_actual || 0) > 0 ? '🟢 ' + Number(m.stock_actual) + ' disponibles' : '🔴 Sin stock'}</div>
           </div>
         </div>
         <div class="esp-ac-btns">
-          <button class="esp-ac-btn primary" onclick="addMatItemPrefill('${secId}','${escJs(m.nombre)}')">+ Solicitar</button>
+          <button class="esp-ac-btn primary" onclick="addMatItemPrefill('${secId}','${escJs(m.name)}')">+ Solicitar</button>
         </div>
       </div>`).join('');
   }
@@ -7256,11 +7308,13 @@ body { background:transparent !important; }
     let items = [];
     try {
       const { data } = await sb.from('partners_bodegas').select('*').eq('activo', true);
-      // Los beneficios marcados para vinotecas también valen para tiendas de bebidas
-      const canalesOk = checklist.id === 'tienda_bebidas' ? ['vinoteca', 'tienda_bebidas', 'tienda de bebidas'] : ['vinoteca'];
+      // Cada rubro ve los beneficios marcados para su rubro (antes solo se aceptaban los de
+      // vinoteca, así que uno cargado para hoteles o autoservicios no llegaba nunca). Los de
+      // vinotecas también valen para tiendas de bebidas.
+      const canalesOk = checklist.id === 'tienda_bebidas' ? ['vinoteca', 'tienda_bebidas', 'tienda de bebidas'] : [checklist.id];
       items = (data || []).filter(p => !p.canal || !p.canal.length || p.canal.some(c => canalesOk.includes(c)));
     } catch {}
-    if (!items.length) { el.innerHTML = `<div class="esp-loading">Sin beneficios de bodegas partner cargados.</div>`; return; }
+    if (!items.length) { el.innerHTML = `<div class="esp-loading">Todavía no hay beneficios de bodegas partner cargados.</div>`; return; }
     const TIPO_LABEL = { degustacion:'Degustación', capacitacion:'Capacitación', visita:'Visita a bodega', evento:'Evento' };
     el.innerHTML = items.map(p => espAccionCard(`Partner ${p.bodega}`, {
       marca: p.bodega + ' · ' + (TIPO_LABEL[p.tipo] || p.tipo), nombre: p.nombre, desc: p.descripcion,
