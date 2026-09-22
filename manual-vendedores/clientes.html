@@ -290,15 +290,6 @@ body { background:transparent !important; }
     </div>
   </div>
 
-  <!-- Torneo banner -->
-  <a class="torneo-banner" href="torneo.html">
-    <span class="torneo-banner-icon">🏆</span>
-    <div class="torneo-banner-info">
-      <div class="torneo-banner-title">Torneo Doña Paula</div>
-      <div class="torneo-banner-sub" id="torneo-banner-sub">Cargando puntos…</div>
-    </div>
-    <span class="torneo-banner-pts" id="torneo-banner-pts">–</span>
-  </a>
 
   <div class="view-tabs">
     <button class="view-tab active" id="tab-activos">Clientes <span class="cnt" id="cnt-activos"></span></button>
@@ -327,7 +318,6 @@ body { background:transparent !important; }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
 <script src="_avatar.js"></script>
-<script src="_torneo.js"></script>
 <script>
   const vendedor = JSON.parse(sessionStorage.getItem('vendedor') || 'null');
   if (!vendedor) window.location.href = 'index.html';
@@ -554,23 +544,6 @@ body { background:transparent !important; }
     filtrar();
   }
 
-  // ── Torneo banner ─────────────────────────────────────────────────────────────
-  async function cargarTorneoBanner() {
-    const mes = new Date().getMonth() + 1;
-    const { data } = await sb
-      .from('torneo_registros')
-      .select('puntos, mes')
-      .eq('torneo_id', 'dona_paula_2025')
-      .eq('vendedor_id', vendedor.id);
-    if (!data) return;
-    const mesPts   = data.filter(r => r.mes === mes).reduce((s, r) => s + r.puntos, 0);
-    const totalPts = data.reduce((s, r) => s + r.puntos, 0);
-    const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    document.getElementById('torneo-banner-pts').textContent = `${mesPts} pts`;
-    document.getElementById('torneo-banner-sub').textContent =
-      `${meses[mes]} · ${totalPts} pts acumulados`;
-  }
-
   // Al salir se marca que salió a propósito: si no, la pantalla de ingreso lo volvería
   // a entrar solo con la sesión del Hub.
   function logout() { sessionStorage.clear(); sessionStorage.setItem('manual_salio', '1'); window.location.href = 'index.html'; }
@@ -585,7 +558,6 @@ body { background:transparent !important; }
   function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   init();
-  cargarTorneoBanner();
 </script>
 <script src="/assets/minuta-fab.js?v=2"></script>
 </body>

@@ -36,7 +36,7 @@ const PANTALLAS = [
       { n:'Mis reportes',           r:'mis-reportes.html',                  nota:'Su desempeño.' },
       { n:'Reporte semanal',        r:'reporte-semanal.html',               nota:'Resumen completo de la semana.' },
       { n:'Ventas',                 r:'ventas.html',                        nota:'Ventas del mes por vendedor.' },
-      { n:'Torneo Doña Paula',      r:'manual-vendedores/torneo.html',      nota:'Ranking del torneo.' },
+      { n:'Torneo Doña Paula',      r:'torneo-vendedor.html',                nota:'Puntos y ranking del torneo (pestaña del panel del vendedor).' },
       { n:'Registrar actividad',    r:'manual-vendedores/torneo-registro.html', nota:'Carga de actividad del torneo.' },
       { n:'Mi avatar',              r:'manual-vendedores/vestidor.html',    nota:'Personalización del avatar.' },
     ],

@@ -14,6 +14,8 @@
     { t:'Agenda Eficiente',       h:'agenda-eficiente.html',                svg:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/><circle cx="18" cy="6" r="3"/>' },
     { t:'Cobranzas',              h:'cobranzas-vendedor.html',              svg:'<path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>' },
     { t:'Tareas',                 h:'tareas.html',                          svg:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/>' },
+    // El torneo estaba en el inicio del manual; desde el 22/09/2026 es una pestaña propia.
+    { t:'Torneo Doña Paula',      h:'torneo-vendedor.html',                 svg:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>' },
     // Pedidos todavía no tiene pantalla: en vez de no hacer nada al tocarlo, avisa.
     { t:'Pedidos',                h:'#', proximamente:true,                 svg:'<path d="M6 2 3 6v14h18V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/>' },
     { t:'Herramientas de venta',  h:'herramientas.html',                    svg:'<path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4"/>' },
