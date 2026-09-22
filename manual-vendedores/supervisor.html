@@ -244,16 +244,12 @@ body { background:transparent !important; }
 <!-- ── Auth overlay ── -->
 <div id="auth-overlay">
   <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar">
+  <!-- Desde el 22/09/2026 este panel ya no tiene contraseñas propias (estaban a la
+       vista): se entra solo con el usuario del Portal. -->
   <div class="auth-card">
     <h2>Panel Supervisor</h2>
-    <p>Ingresá tu código y contraseña.</p>
-    <input class="auth-input" id="sup-codigo" type="text" placeholder="Código (ej: SUP001)"
-           autocomplete="off" autocorrect="off" style="text-transform:uppercase"
-           onkeydown="if(event.key==='Enter')document.getElementById('sup-pass').focus()">
-    <input class="auth-input" id="sup-pass" type="password" placeholder="Contraseña"
-           onkeydown="if(event.key==='Enter')loginSup()">
-    <button class="auth-btn" onclick="loginSup()">Ingresar</button>
-    <div class="auth-error" id="auth-error">Código o contraseña incorrectos.</div>
+    <p id="auth-msg">Verificando tu usuario del Portal…</p>
+    <button class="auth-btn" id="auth-portal" style="display:none" onclick="window.location.href='/index.html'">Entrar con mi usuario del Portal</button>
   </div>
   <button class="auth-back" onclick="window.location.href='index.html'">← Volver al login de vendedores</button>
 </div>
@@ -321,7 +317,10 @@ body { background:transparent !important; }
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 // ── State ───────────────────────────────────────────────────────────────────
-let supervisor = JSON.parse(sessionStorage.getItem('supervisor') || 'null');
+// Quién es el supervisor sale SIEMPRE de la sesión del Portal (bootstrapHub), no de
+// lo que haya quedado guardado en el navegador.
+let supervisor = null;
+try { sessionStorage.removeItem('supervisor'); } catch (e) {}
 let miVendedores  = [];
 let allVisitas    = [];  // visitas del mes
 let allTorneo     = [];  // torneo_registros (solo para las fotos viejas de las visitas)
@@ -343,52 +342,41 @@ const ASIGNACIONES = {
 // ── Auth — arranca desde la sesión del Hub (sin segundo login) ────────────────
 const HUB_SB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
 document.addEventListener('DOMContentLoaded', bootstrapHub);
+// Se entra SOLO con la sesión del Portal. Antes había un segundo ingreso con código y
+// contraseña: las contraseñas se leían desde el navegador (cualquiera podía verlas) y
+// la del dueño estaba escrita acá. Se sacó el 22/09/2026.
+//   · Dirección (rol direccion / admin / duenio) → vista general del dueño.
+//   · Supervisor (es_supervisor) → su panel según su canal y región.
+const ROLES_DUENIO = ['direccion', 'admin', 'duenio'];
 async function bootstrapHub() {
+  const sinAcceso = (txt) => {
+    document.getElementById('auth-msg').textContent = txt;
+    document.getElementById('auth-portal').style.display = '';
+  };
   try {
     const hub = supabase.createClient(HUB_SB.url, HUB_SB.key);
     const { data: { session } } = await hub.auth.getSession();
-    if (session) {
-      const { data: u } = await hub.from('usuarios').select('nombre, canal, region, es_supervisor').eq('id', session.user.id).maybeSingle();
-      if (u && u.es_supervisor) {
-        const reg = String(u.region || '').toLowerCase(), can = String(u.canal || '').toLowerCase();
-        const supCod = reg === 'san_luis' ? 'SUP003' : (can === 'off' ? 'SUP002' : (can === 'on' ? 'SUP001' : null));
-        if (supCod) {
-          const { data: srow } = await sb.from('supervisores').select('*').eq('codigo', supCod).maybeSingle();
-          if (srow) { supervisor = srow; sessionStorage.setItem('supervisor', JSON.stringify(srow)); mostrarApp(); return; }
-        }
-      }
+    if (!session) return sinAcceso('El panel de supervisor se abre con tu usuario del Portal. Entrá al Portal y volvé a abrirlo desde ahí.');
+    const { data: u } = await hub.from('usuarios').select('nombre, canal, region, es_supervisor, rol').eq('id', session.user.id).maybeSingle();
+    const rol = String((u && u.rol) || '').toLowerCase();
+    if (ROLES_DUENIO.includes(rol)) {
+      supervisor = { id: 'owner', nombre: (u && u.nombre) || 'Dirección', codigo: 'OWNER001', liga: 'OWNER' };
+      return mostrarApp();
     }
-  } catch (e) { /* si falla, cae al login del Manual */ }
-  if (supervisor) mostrarApp(); // sesión previa del Manual (uso directo)
-}
-
-async function loginSup() {
-  const codigo = document.getElementById('sup-codigo').value.trim().toUpperCase();
-  const pass   = document.getElementById('sup-pass').value.trim();
-  if (!codigo || !pass) return;
-
-  // Acceso especial del dueño — sin consulta a Supabase
-  if (codigo === 'OWNER001' && pass === 'grandbar2026') {
-    supervisor = { id:'owner', nombre:'Fernando', codigo:'OWNER001', liga:'OWNER' };
-    sessionStorage.setItem('supervisor', JSON.stringify(supervisor));
-    mostrarApp();
-    return;
+    if (u && u.es_supervisor) {
+      const reg = String(u.region || '').toLowerCase(), can = String(u.canal || '').toLowerCase();
+      const supCod = reg === 'san_luis' ? 'SUP003' : (can === 'off' ? 'SUP002' : (can === 'on' ? 'SUP001' : null));
+      if (supCod) {
+        // Solo las columnas que hacen falta (la contraseña ya no se puede leer).
+        const { data: srow } = await sb.from('supervisores').select('id, nombre, codigo, liga').eq('codigo', supCod).maybeSingle();
+        if (srow) { supervisor = srow; return mostrarApp(); }
+      }
+      return sinAcceso('Tu usuario es supervisor, pero no tiene asignado un equipo en este panel. Avisale a Desarrollo.');
+    }
+    return sinAcceso('Este panel es para supervisores y Dirección. Tu usuario del Portal no tiene ese permiso.');
+  } catch (e) {
+    return sinAcceso('No pude verificar tu usuario. Revisá la conexión y volvé a intentar.');
   }
-
-  const { data, error } = await sb
-    .from('supervisores')
-    .select('*')
-    .eq('codigo', codigo)
-    .maybeSingle();
-
-  if (error || !data || data.password !== pass) {
-    document.getElementById('auth-error').style.display = 'block';
-    return;
-  }
-
-  supervisor = data;
-  sessionStorage.setItem('supervisor', JSON.stringify(data));
-  mostrarApp();
 }
 
 function mostrarApp() {
