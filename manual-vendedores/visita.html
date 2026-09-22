@@ -923,7 +923,10 @@
   }
   .carta-section-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dorado); margin-bottom:10px; }
   .carta-galeria { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:18px; }
-  .carta-thumb { width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:var(--radius-sm); border:1px solid rgba(255,255,255,.2); cursor:pointer; background:rgba(255,255,255,.05); }
+  .carta-thumb-wrap { position:relative; }
+  .carta-thumb { width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:var(--radius-sm); border:1px solid rgba(255,255,255,.2); cursor:pointer; background:rgba(255,255,255,.05); display:block; }
+  .carta-thumb-del { position:absolute; top:4px; right:4px; width:26px; height:26px; border-radius:50%; border:none; background:rgba(20,20,24,.72); color:#fff; font-size:13px; font-weight:800; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; box-shadow:0 1px 4px rgba(0,0,0,.4); }
+  .carta-thumb-del:hover, .carta-thumb-del:active { background:#c0392b; }
   .carta-vacio { color:rgba(255,255,255,.55); font-size:13px; font-style:italic; padding:14px 0 18px; text-align:center; }
   .carta-loading { color:rgba(255,255,255,.5); font-size:12px; font-style:italic; padding:10px 0; text-align:center; }
   .carta-btn-agregar {
@@ -2163,6 +2166,7 @@ body { background:transparent !important; }
 
   // ── Cargar cartas guardadas de este cliente ────────────────────────────────
   let _cartaFotoUrls = [];   // URLs de las fotos guardadas para este cliente
+  let _cartasRows = [];      // filas completas (para poder borrar por id)
 
   async function cargarCartasCliente() {
     const wrap = document.getElementById('carta-galeria-wrap');
@@ -2175,7 +2179,8 @@ body { background:transparent !important; }
         .order('creado_en', { ascending: false });
       if (error) throw error;
 
-      _cartaFotoUrls = (data || []).map(c => c.foto_url).filter(Boolean);
+      _cartasRows = data || [];
+      _cartaFotoUrls = _cartasRows.map(c => c.foto_url).filter(Boolean);
       actualizarBotonAnalizar();
 
       if (!data || data.length === 0) {
@@ -2183,12 +2188,40 @@ body { background:transparent !important; }
         return;
       }
       wrap.innerHTML = `<div class="carta-galeria">${
-        data.map(c => `<img class="carta-thumb" src="${esc(c.foto_url)}" alt="${palCartaC()}"
-          onclick="abrirCartaGrande('${escJs(c.foto_url)}')">`).join('')
+        data.map(c => `<div class="carta-thumb-wrap">
+          <img class="carta-thumb" src="${esc(c.foto_url)}" alt="${palCartaC()}"
+            onclick="abrirCartaGrande('${escJs(c.foto_url)}')">
+          <button class="carta-thumb-del" onclick="borrarFotoCarta('${escJs(String(c.id))}', event)"
+            title="Eliminar esta foto" aria-label="Eliminar esta foto">✕</button>
+        </div>`).join('')
       }</div>`;
     } catch (e) {
       console.warn('Cartas cliente load error:', e.message);
       wrap.innerHTML = `<div class="carta-vacio">No se pudieron cargar ${esCatalogo()?'los catálogos':'las cartas'}. Reintentá.</div>`;
+    }
+  }
+
+  // ── Borrar una foto de la carta (saca la fila y el archivo del storage) ──────
+  async function borrarFotoCarta(id, ev) {
+    if (ev) ev.stopPropagation();
+    const row = _cartasRows.find(c => String(c.id) === String(id));
+    if (!confirm(`¿Eliminar esta foto de ${palCarta()}? No se puede deshacer.`)) return;
+    try {
+      const { error: delErr } = await sb.from('cartas_cliente').delete().eq('id', id);
+      if (delErr) throw delErr;
+      // Borrar también el archivo del storage (derivamos el path del public URL).
+      const url = row && row.foto_url;
+      if (url) {
+        const m = String(url).match(/\/Activaciones\/(.+)$/);
+        if (m && m[1]) {
+          try { await sb.storage.from('Activaciones').remove([decodeURIComponent(m[1])]); }
+          catch (e) { console.warn('No se pudo borrar el archivo del storage:', e.message); }
+        }
+      }
+      await cargarCartasCliente();   // refresca galería y el botón "Analizar"
+    } catch (e) {
+      console.warn('Borrar foto carta error:', e.message);
+      alert('No se pudo eliminar la foto. Reintentá.');
     }
   }
 
