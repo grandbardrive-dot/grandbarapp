@@ -2743,7 +2743,9 @@ body { background:transparent !important; }
     updProg();
     cargarHistorial();
     cargarAcuerdosCampari();
-    cargarTorneoFicha();
+    // El Torneo Doña Paula ya no va en la visita: tiene su pestaña en el panel del
+    // vendedor (torneo-vendedor.html, 22/09/2026). Sin esta carga, los acordeones
+    // del torneo y de Programas Satélites quedan ocultos.
     cargarProgresos();
     cargarSeccionesEspeciales();
     if (typeof dcInit === 'function') dcInit();   // manual de discos (_disco-tools.js)
@@ -4182,18 +4184,7 @@ body { background:transparent !important; }
     return `
       <div class="esp-block">
         <div class="esp-block-title">Programas activos</div>
-
-        <!-- Torneo Doña Paula: redirige al acordeón ya cargado en la ficha -->
-        <div class="as-satelite-card" onclick="abrirAcordeonTorneo()" style="cursor:pointer">
-          <span class="as-satelite-icon">🏆</span>
-          <div class="as-satelite-info">
-            <div class="as-satelite-titulo">Torneo Doña Paula</div>
-            <div class="as-satelite-sub" id="as-torneo-pts-label">Ver puntos y acciones →</div>
-          </div>
-          <span style="color:rgba(255,255,255,.4);font-size:14px">›</span>
-        </div>
-
-
+        <div class="as-satelite-sub" style="padding:6px 2px">Todavía no hay programas activos cargados.</div>
       </div>`;
   }
 
