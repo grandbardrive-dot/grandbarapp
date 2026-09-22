@@ -57,6 +57,7 @@ function montarPanel(cfg) {
         ${PANEL_HERRAMIENTAS.map(h => `<a class="sb-item" href="${esc(h.r)}"><span class="i">${h.i}</span> ${esc(h.n)}</a>`).join('')}
       </nav>
       <div class="sb-spacer"></div>
+      <a class="sb-item" href="auditoria-tareas.html"><span class="i">✅</span> Tareas de la auditoría</a>
       <a class="sb-item" href="mi-agenda.html"><span class="i">📅</span> Mi agenda</a>
       <a class="sb-item" href="${otro.r}"><span class="i">${otro.i}</span> ${otro.n}</a>
       <a class="sb-item" href="hub.html"><span class="i">←</span> Volver al Hub</a>
