@@ -77,6 +77,8 @@
     @media(max-width:820px){ .sidebar{display:none} .content{padding:16px} .tp-kpis{gap:8px} .tp-kpi{padding:12px} .tp-kpi .v{font-size:22px} .tp-kpi .l{font-size:11.5px} .tp-cat{grid-template-columns:110px 1fr 60px} }
   </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
+<script>try{if(localStorage.getItem('gb_es_sup')==='1')document.documentElement.classList.add('gb-sup')}catch(e){}</script>
+<style>.gb-sup .sb-nav{visibility:hidden}</style>
 </head>
 <body>
 <div class="app">
@@ -100,7 +102,7 @@
       </div>
 
       <div class="tp-tabs">
-        <button class="on" data-tab="yo">Mi puntaje</button>
+        <button class="on" data-tab="yo" id="tp-tabs-yo">Mi puntaje</button>
         <button data-tab="Mendoza">🍇 Mendoza</button>
         <button data-tab="San Luis">🏔 San Luis</button>
       </div>
@@ -111,6 +113,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supervisor-nav.js"></script>
 <script src="manual-vendedores/_config.js"></script>
 <script src="manual-vendedores/_sucursales.js"></script>
 <script>
@@ -156,15 +159,30 @@
   function miPuntaje() {
     const yo = GENTE.find(p => VEND && p.codigo === VEND.codigo);
     if (!yo) return aviso('Todavía no tenés puntos cargados en el torneo.');
+    detalle(yo, true);
+  }
+
+  // Supervisores y Dirección: tocan un vendedor del ranking y ven su detalle.
+  let PUEDE_VER_TODOS = false;
+  function verVendedor(sucursal, i) {
+    const p = GENTE.filter(x => x.sucursal === sucursal).sort((a, b) => b.total - a.total)[i];
+    if (p) detalle(p, false, sucursal);
+  }
+  window.verVendedor = verVendedor;
+
+  function detalle(yo, esPropio, volverA) {
     const suc = GENTE.filter(p => p.sucursal === yo.sucursal).sort((a, b) => b.total - a.total);
     const pos = suc.findIndex(p => p === yo) + 1;
     const max = Math.max(1, ...CATS.map(c => yo.cats[c] || 0));
     const otras = Object.keys(yo.cats).filter(c => !CATS.includes(c));
     $('tp-cont').innerHTML = `
+      ${esPropio ? '' : `<div class="tp-card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button type="button" class="tp-volver" onclick="mostrar('${escH(volverA || yo.sucursal)}')" style="background:var(--cream);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font:inherit;font-weight:700;cursor:pointer">‹ Ranking</button>
+        <b style="font-size:16px">${escH(yo.nombre)}</b><span style="color:var(--muted);font-size:13px">${escH(yo.sucursal)}</span></div>`}
       <div class="tp-kpis">
         <div class="tp-kpi"><div class="v">${fmt(yo.total)}</div><div class="l">puntos totales</div></div>
         <div class="tp-kpi"><div class="v">${pos}°</div><div class="l">en ${escH(yo.sucursal)} (de ${suc.length})</div></div>
-        <div class="tp-kpi"><div class="v">${pos > 1 ? fmt(suc[pos - 2].total - yo.total) : '—'}</div><div class="l">${pos > 1 ? 'puntos para pasar al ' + (pos - 1) + '°' : 'vas primero 🏆'}</div></div>
+        <div class="tp-kpi"><div class="v">${pos > 1 ? fmt(suc[pos - 2].total - yo.total) : '—'}</div><div class="l">${pos > 1 ? 'puntos para pasar al ' + (pos - 1) + '°' : (esPropio ? 'vas primero 🏆' : 'va primero 🏆')}</div></div>
       </div>
       <div class="tp-card"><h3>Por categoría</h3>
         ${CATS.concat(otras).map(c => `<div class="tp-cat"><span>${ICO[c] || '•'} ${escH(c)}</span><div class="tp-bar"><i style="width:${Math.round((yo.cats[c] || 0) / max * 100)}%"></i></div><span class="p">${fmt(yo.cats[c] || 0)}</span></div>`).join('')}
@@ -181,10 +199,12 @@
     const filas = GENTE.filter(p => p.sucursal === sucursal).sort((a, b) => b.total - a.total);
     if (!filas.length) return aviso('Todavía no hay puntos cargados para ' + escH(sucursal) + '.');
     const med = ['🥇','🥈','🥉'];
-    $('tp-cont').innerHTML = `<div class="tp-card"><h3>Ranking ${escH(sucursal)}</h3><div class="tp-scroll">
+    $('tp-cont').innerHTML = `<div class="tp-card"><h3>Ranking ${escH(sucursal)}</h3>
+      ${PUEDE_VER_TODOS ? '<div class="tp-nota" style="margin:-4px 0 8px">Tocá un vendedor para ver su detalle.</div>' : ''}<div class="tp-scroll">
       <div class="tp-rank cab"><span>#</span><span>Vendedor</span><span class="r">Acciones</span><span class="r">Volumen</span><span class="r">Activaciones</span><span class="r">Total</span></div>
       ${filas.map((p, i) => { const yo = VEND && p.codigo === VEND.codigo;
-        return `<div class="tp-rank${yo ? ' yo' : ''}"><span>${i < 3 ? med[i] : i + 1}</span><span>${escH(p.nombre)}${yo ? ' <b style="color:var(--gold-d)">· vos</b>' : ''}</span>
+        const click = PUEDE_VER_TODOS ? ` role="button" tabindex="0" style="cursor:pointer" onclick="verVendedor('${escH(sucursal)}',${i})" onkeydown="if(event.key==='Enter')verVendedor('${escH(sucursal)}',${i})"` : '';
+        return `<div class="tp-rank${yo ? ' yo' : ''}"${click}><span>${i < 3 ? med[i] : i + 1}</span><span>${escH(p.nombre)}${yo ? ' <b style="color:var(--gold-d)">· vos</b>' : ''}</span>
           <span class="r">${fmt(p.cats.Acciones || 0)}</span><span class="r">${fmt(p.cats.Volumen || 0)}</span><span class="r">${fmt(p.cats.Activaciones || 0)}</span><span class="t">${fmt(p.total)}</span></div>`; }).join('')}
     </div></div>`;
   }
@@ -193,15 +213,18 @@
     document.querySelectorAll('.tp-tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
     if (tab === 'yo') miPuntaje(); else ranking(tab);
   }
+  window.mostrar = mostrar;
 
   (async function init(){
     const hub = supabase.createClient(HUB.url, HUB.key);
     const { data:{ session } } = await hub.auth.getSession();
     if (!session) { location.href = 'index.html'; return; }
-    const { data: perfil } = await hub.from('usuarios').select('nombre, codigo_vendedor').eq('id', session.user.id).maybeSingle();
+    const { data: perfil } = await hub.from('usuarios').select('nombre, codigo_vendedor, es_supervisor, rol').eq('id', session.user.id).maybeSingle();
     const nombre = (perfil && perfil.nombre) || session.user.email;
     $('uName').textContent = nombre; $('av').textContent = initials(nombre);
     const cod = perfil && String(perfil.codigo_vendedor || '').trim().toUpperCase();
+    // Supervisores y Dirección ven el detalle de cada vendedor (22/09/2026).
+    PUEDE_VER_TODOS = !!(perfil && (perfil.es_supervisor || ['direccion', 'admin', 'duenio'].includes(String(perfil.rol || '').toLowerCase())));
     try {
       const [r, rv] = await Promise.all([
         fetch('/.netlify/functions/torneo-puntos').then(x => x.json()),
@@ -213,8 +236,10 @@
       GENTE = armar(r.filas || [], vendedores);
       if (!GENTE.length) return aviso('Todavía no hay puntos cargados en el torneo.');
       document.querySelectorAll('.tp-tabs button').forEach(b => b.onclick = () => mostrar(b.dataset.tab));
-      // Sin código de vendedor (p. ej. alguien de Dirección mirando) arranca en el ranking.
-      mostrar(VEND ? 'yo' : 'Mendoza');
+      // Sin puntos propios (supervisor, Dirección) arranca en el ranking de su sucursal.
+      const propio = VEND && GENTE.find(p => p.codigo === VEND.codigo);
+      if (!propio && PUEDE_VER_TODOS) $('tp-tabs-yo').hidden = true;
+      mostrar(propio ? 'yo' : (VEND && getSucursal(VEND.codigo) === 'San Luis' ? 'San Luis' : 'Mendoza'));
     } catch (e) { aviso('No se pudieron leer los puntos del torneo.'); }
   })();
 </script>
