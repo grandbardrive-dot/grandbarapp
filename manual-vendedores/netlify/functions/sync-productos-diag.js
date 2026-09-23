@@ -23,7 +23,7 @@ async function login() {
   return { urlCuenta, cuenta, token: j2.token && j2.token.Codigo };
 }
 
-exports.handler = async () => {
+exports.handler = async (event) => {
   const headers = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json; charset=utf-8' };
   try {
     const { urlCuenta, cuenta, token } = await login();
