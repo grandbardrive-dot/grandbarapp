@@ -2935,8 +2935,7 @@ body { background:transparent !important; }
           <div class="sec-info"><h3>${esc(sec.titulo)}</h3><p>${esc(sec.subtitulo)}</p></div>
           <div class="sec-right">
             ${catHerr(sec) ? `<button class="sec-herr" onclick="event.stopPropagation();abrirHerramientas('${catHerr(sec)}')" title="Herramientas IA">🛠️ IA</button>` : ''}
-            <span class="badge" id="bc-${sec.id}">0/${total}</span>
-            <span class="badge done" id="bd-${sec.id}">✓ Listo</span>
+            ${total ? `<span class="badge" id="bc-${sec.id}">0/${total}</span><span class="badge done" id="bd-${sec.id}">✓ Listo</span>` : ``}
             <span class="chevron" id="ch-${sec.id}">⌄</span>
           </div>
         </div>
@@ -2954,8 +2953,7 @@ body { background:transparent !important; }
         <div class="sec-icon" style="background:${sec.iconoBg};color:${sec.iconoColor}">${sec.icono}</div>
         <div class="sec-info"><h3>${esc(sec.titulo)}</h3><p>${esc(sec.subtitulo)}</p></div>
         <div class="sec-right">
-          <span class="badge" id="bc-${sec.id}">0/${sec.items.length}</span>
-          <span class="badge done" id="bd-${sec.id}">✓ Listo</span>
+          ${sec.items.length ? `<span class="badge" id="bc-${sec.id}">0/${sec.items.length}</span><span class="badge done" id="bd-${sec.id}">✓ Listo</span>` : ``}
           <span class="chevron" id="ch-${sec.id}">⌄</span>
         </div>
       </div>
@@ -2972,8 +2970,7 @@ body { background:transparent !important; }
         <div class="subsec-icon" style="background:${sub.iconoBg};color:${sub.iconoColor}">${sub.icono}</div>
         <div class="subsec-info"><h4>${esc(sub.titulo)}</h4><p>${esc(sub.subtitulo)}</p></div>
         <div class="sec-right">
-          <span class="badge" id="bc-${sub.id}">0/${sub.items.length}</span>
-          <span class="badge done" id="bd-${sub.id}">✓</span>
+          ${sub.items.length ? `<span class="badge" id="bc-${sub.id}">0/${sub.items.length}</span><span class="badge done" id="bd-${sub.id}">✓</span>` : ``}
           <span class="chevron" id="ch-${sub.id}">⌄</span>
         </div>
       </div>
@@ -3168,12 +3165,10 @@ body { background:transparent !important; }
       tot++; if(document.getElementById(`chk-${sec.id}-${j}`)?.classList.contains('checked')) done++;
     }));
     if (!tot) {
-      // Manual sin ítems: el avance se mide por secciones trabajadas
-      const hojas = seccionesHoja(checklist), hechas = hojas.filter(_hojaTrabajada).length;
-      const p = hojas.length ? Math.round(hechas / hojas.length * 100) : 0;
-      document.getElementById('prog-label').textContent = `${hechas} de ${hojas.length} secciones trabajadas`;
-      document.getElementById('prog-pct').textContent   = `${p}%`;
-      document.getElementById('pbar').style.width       = `${p}%`;
+      // Manual sin tareas para tildar (23/09/2026: se sacaron de todos los
+      // manuales). La visita es un recorrido, sin puntaje: se esconde el avance.
+      document.querySelectorAll(".progress-nums, .pbar-track, .camino-prog-card")
+        .forEach(el => { el.style.display = "none"; });
       return;
     }
     const pct = tot?Math.round(done/tot*100):0;
@@ -3705,8 +3700,10 @@ body { background:transparent !important; }
     document.getElementById('spinner').style.display = 'none';
     document.getElementById('btn-txt').style.display = 'inline';
     document.getElementById('btn-txt').textContent = '✓ Visita guardada';
-    showToast(`✓ Visita guardada — ${porcentaje_total}% completado`,'success');
-    if (porcentaje_total >= 80) celebrarVenta(`Visita a ${cliente.nombre} — ${porcentaje_total}% completado`);
+    // Sin tareas para tildar no hay puntaje que mostrar (23/09/2026).
+    const hayTareas = seccionesHoja(checklist).some(s => s.items && s.items.length);
+    showToast(hayTareas ? `✓ Visita guardada — ${porcentaje_total}% completado` : '✓ Visita guardada','success');
+    if (porcentaje_total >= 80) celebrarVenta(hayTareas ? `Visita a ${cliente.nombre} — ${porcentaje_total}% completado` : `Visita a ${cliente.nombre} completada`);
 
     // Mejora 2: subir el PDF de resumen a la nube y guardar su URL (no bloqueante)
     if (ins?.id && (cartItems.length || proximaAccion || matsSolic.length)) {
