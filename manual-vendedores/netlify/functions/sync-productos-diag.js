@@ -28,17 +28,30 @@ exports.handler = async () => {
   try {
     const { urlCuenta, cuenta, token } = await login();
     if (!token) return { statusCode: 502, headers, body: JSON.stringify({ error: 'sin token', urlCuenta }) };
-    const r = await aikon(urlCuenta + '/IS3/DtTabla', { cuenta, token, tabla: 'ARTICULOS' }, 25000);
 
-    // Describe cualquier valor sin volcar todo: tipo, tamaño y una pista.
-    const describe = (v, depth = 0) => {
-      if (v == null) return { tipo: 'null' };
-      if (Array.isArray(v)) return { tipo: 'array', largo: v.length, primero: v[0] && depth < 2 ? describe(v[0], depth + 1) : (v[0] ? Object.keys(v[0]) : null) };
-      if (typeof v === 'object') { const k = Object.keys(v); return { tipo: 'object', claves: k, hijos: depth < 2 ? Object.fromEntries(k.slice(0, 12).map(x => [x, describe(v[x], depth + 1)])) : undefined }; }
-      if (typeof v === 'string') return { tipo: 'string', largo: v.length, preview: v.slice(0, 200) };
-      return { tipo: typeof v, valor: v };
+    const q = (event && event.queryStringParameters) || {};
+    const listaDe = (r) => Array.isArray(r) ? r
+      : (r && (r.lista || r.tabla || r.Tabla || r.datos || r.Datos || r.registros || r.Registros || r.retorno || r.data)) || null;
+    const probar = async (tabla) => {
+      const r = await aikon(urlCuenta + '/IS3/DtTabla', { cuenta, token, tabla }, 25000);
+      const est = r && r.resultado && r.resultado.estado;
+      const log = r && r.resultado && r.resultado.log;
+      const lista = listaDe(r) || (r && r.resultado && listaDe(r.resultado));
+      const arr = Array.isArray(lista) ? lista : null;
+      return { tabla, estado: est || (arr ? 'OK' : 'sin_lista'), filas: arr ? arr.length : 0,
+               columnas: arr && arr[0] ? Object.keys(arr[0]) : undefined,
+               muestra: arr && arr[0] ? arr[0] : undefined,
+               error: /error|invalida/i.test(String(log || '')) ? String(log).slice(0, 160) : undefined };
     };
-    return { statusCode: 200, headers, body: JSON.stringify({ forma: describe(r) }, null, 2) };
+
+    if (q.tabla) return { statusCode: 200, headers, body: JSON.stringify(await probar(q.tabla), null, 2) };
+
+    const candidatas = ['ARTICULO', 'ART', 'ARTICULOSTOCK', 'ARTSTOCK', 'STOCK', 'STOCKARTICULOS', 'STOCK_ARTICULOS',
+      'EXISTENCIAS', 'EXISTENCIA', 'PRODUCTOS', 'PRODUCTO', 'MERCADERIA', 'MERCADERIAS', 'ITEMS', 'ITEM',
+      'INVENTARIO', 'SALDOSTOCK', 'STKACTUAL', 'CLIENTES'];
+    const out = [];
+    for (const t of candidatas) { try { out.push(await probar(t)); } catch (e) { out.push({ tabla: t, error: String(e.message || e) }); } }
+    return { statusCode: 200, headers, body: JSON.stringify({ pruebas: out }, null, 2) };
   } catch (e) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: (e && e.message) || String(e) }) };
   }
