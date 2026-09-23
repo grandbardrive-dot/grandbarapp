@@ -75,7 +75,7 @@ exports.handler = async (event) => {
     }
 
     // GET → por revisar (procesado) + historial (aceptado/rechazado) + recibos
-    const cp = await cob('comprobantes?tipo=eq.cliente&estado=in.(procesado,aceptado,rechazado)&select=id,cliente_id,concepto,archivo_url,monto,fecha_pago,estado,procesado_por,procesado_at,created_at&order=created_at.desc&limit=300');
+    const cp = await cob('comprobantes?tipo=eq.cliente&estado=in.(procesado,aceptado,rechazado)&select=id,cliente_id,concepto,archivo_url,monto,fecha_pago,estado,procesado_por,procesado_at,created_at,nc_aplicada,nc_creditos,total_facturas&order=created_at.desc&limit=300');
     const comps = (await cp.json()) || [];
     const rc = await cob('comprobantes?tipo=eq.recibo&select=id,cliente_id,factura,archivo_url,fecha_pago,concepto,created_at&order=created_at.desc&limit=150');
     const recs = (await rc.json()) || [];
@@ -99,7 +99,7 @@ exports.handler = async (event) => {
 
     const por_revisar = [], historial = [];
     (Array.isArray(comps) ? comps : []).forEach(c => {
-      const base = { id: c.id, cliente: nombreDe(c.cliente_id), vendedor: vendedorDe(c.cliente_id) || c.procesado_por || null, codigo: (cmap[c.cliente_id] || {}).codigo_cubo || null, concepto: c.concepto, monto: c.monto, fecha_pago: c.fecha_pago, estado: c.estado, comprobante_url: c.archivo_url, procesado_por: c.procesado_por, procesado_at: c.procesado_at, subido: c.created_at };
+      const base = { id: c.id, cliente: nombreDe(c.cliente_id), vendedor: vendedorDe(c.cliente_id) || c.procesado_por || null, codigo: (cmap[c.cliente_id] || {}).codigo_cubo || null, concepto: c.concepto, monto: c.monto, fecha_pago: c.fecha_pago, estado: c.estado, comprobante_url: c.archivo_url, procesado_por: c.procesado_por, procesado_at: c.procesado_at, subido: c.created_at, nc_aplicada: c.nc_aplicada, nc_creditos: c.nc_creditos, total_facturas: c.total_facturas };
       if (c.estado === 'procesado') {
         const monto = c.monto != null ? Math.round(Number(c.monto)) : null;
         base.matches = (monto != null ? (byMonto[monto] || []) : []).slice(0, 3).map(m => ({ id: m.id, nombre: m.nombre, documento: m.documento, credito: m.credito, fecha: m.fecha }));

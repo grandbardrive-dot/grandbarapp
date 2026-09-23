@@ -167,6 +167,7 @@
         </div>
         ${p.comprobante_url?`<a class="btn btn-ghost" href="${p.comprobante_url}" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Ver comprobante</a>`:""}
       </div>
+      ${Number(p.nc_aplicada)>0?`<div class="nc-alert" style="background:#eaf7ef;border:1px solid #bfe3cd;border-radius:10px;padding:9px 12px;margin:6px 0 10px;font-size:13px;color:#1f6b3d">💚 <b>Usó saldo a favor (nota de crédito): ${fmtMoney(p.nc_aplicada)}</b>. Transfirió <b>${fmtMoney(p.monto)}</b>${p.total_facturas?` de <b>${fmtMoney(p.total_facturas)}</b> en facturas`:""} → por eso el monto puede no coincidir con el banco.</div>`:""}
       <div class="match">${matchHtml}</div>
       <div class="ia-box" id="ia-${p.id}"></div>
       <div class="acts">

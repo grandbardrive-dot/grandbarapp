@@ -202,6 +202,7 @@
             ${x.concepto?`<span>${x.concepto}</span>`:""}
             <span>${fmtFecha(x.subido)}</span>
           </div>
+          ${Number(x.nc_aplicada)>0?`<div class="nc-alert" style="background:#eaf7ef;border:1px solid #bfe3cd;border-radius:9px;padding:7px 10px;margin-top:6px;font-size:12.5px;color:#1f6b3d">💚 Usó saldo a favor: <b>${fmtMoney(x.nc_aplicada)}</b>. Transfirió <b>${fmtMoney(x.monto)}</b>${x.total_facturas?` de ${fmtMoney(x.total_facturas)} en facturas`:""} → el monto puede no coincidir.</div>`:""}
         </div>
         <div class="acts">
           <span class="chip-e ${e.cls}">${e.t}</span>
