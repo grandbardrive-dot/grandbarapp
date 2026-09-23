@@ -63,6 +63,9 @@ exports.handler = async (event) => {
         const up = await cob('comprobantes?id=eq.' + encodeURIComponent(body.id) + '&estado=eq.procesado', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
         if (!up.ok) return json(502, { error: 'No pude aceptar: ' + (await up.text()).slice(0, 150) });
         if (body.banco_mov_id) await cob('banco_movimientos?id=eq.' + encodeURIComponent(body.banco_mov_id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ usado_en: body.id }) });
+        // Si el pago usó nota de crédito, marcarla "aplicada" (administración la aplica
+        // en el ERP; el sync la concilia cuando ya no esté en el sistema).
+        try { await cob('nc_usos?comprobante_id=eq.' + encodeURIComponent(body.id) + '&estado=eq.pendiente', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'aplicado', aplicado_at: new Date().toISOString() }) }); } catch (_) {}
         return json(200, { ok: true });
       }
 
