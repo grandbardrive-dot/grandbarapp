@@ -43,8 +43,6 @@
   .sb-me{display:flex;align-items:center;gap:10px;background:var(--navy-2);border-radius:12px;padding:9px 10px}
   .sb-me .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:800;color:var(--navy);flex:none}
   .sb-me .t{font-size:13px;font-weight:700;color:#fff} .sb-me .s{font-size:11px;color:#8fa3ad}
-  .sb-ia{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#1a2f5a,#3a2d6a);border-radius:12px;padding:10px;cursor:pointer}
-  .sb-ia .t{font-size:12.5px;font-weight:700;color:#fff} .sb-ia .s{font-size:10.5px;color:#b9c0e8}
 
   .main{flex:1;min-width:0}
   .wrap{padding:20px 26px 40px;max-width:1440px;margin:0 auto}
@@ -126,6 +124,20 @@
 
   /* Donut */
 
+  .tabla{font-size:12.5px}
+  .tabla .fl{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--line-2)}
+  .tabla .fl:last-child{border-bottom:0}
+  .tabla .fl.hoy{background:var(--gold-soft);border-radius:8px;padding:7px 8px;border-bottom:0;margin:2px -8px}
+  .tabla .fl .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tabla .fl .m{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tabla .fl .m.rojo{color:var(--danger)} .tabla .fl .m.verde{color:var(--green-d)}
+  .tabla .cab{display:flex;gap:9px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding-bottom:4px;border-bottom:1px solid var(--line)}
+  .tabla .cab .n{flex:1}
+  .tabla .vacio{color:var(--muted);padding:10px 0;font-size:13px}
+  .chip-est{font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;white-space:nowrap}
+  .chip-est.ok{background:var(--green-soft);color:var(--green-d)}
+  .chip-est.abierto{background:var(--danger-soft);color:var(--danger)}
+  .chip-est.curso{background:var(--amber-soft);color:var(--amber)}
   .foot{text-align:center;color:var(--muted);font-size:11.5px;margin-top:22px;display:flex;align-items:center;justify-content:center;gap:6px}
 
   @media(max-width:1180px){ .kpis{grid-template-columns:repeat(3,1fr)} .areas{grid-template-columns:repeat(3,1fr)} .row3,.row4{grid-template-columns:1fr} .ia-grid{grid-template-columns:1fr} }
@@ -139,22 +151,12 @@
     <div class="sb-logo">Grand<b>Bar</b><small>Distribuciones</small></div>
     <nav class="sb-nav">
       <a class="on" href="direccion.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg> Inicio</a>
-      <a href="ventas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg> Ventas</a>
-      <a href="compras.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4zM3 6h18"/></svg> Compras</a>
-      <a href="administracion.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg> Administración</a>
-      <a href="marketing.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8-8 18-2-8z"/></svg> Marketing</a>
-      <a href="deposito.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/></svg> Depósito</a>
-      <a href="desarrollo.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg> Desarrollo</a>
+      <a href="panel-cobranzas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg> Cobranzas</a>
       <a href="reportes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg> Reportes</a>
-      <a href="dir-clientes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg> Clientes</a>
-      <a href="dir-vendedores.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg> Vendedores</a>
-      <a href="proveedores.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-9M14 17H5M4 7h.01M4 17h.01"/><circle cx="8" cy="7" r="2"/><circle cx="16" cy="17" r="2"/></svg> Proveedores</a>
       <a href="dir-agenda.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg> Agenda</a>
-      <a href="configuracion.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1l-.4-2.5H10l-.4 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L5.6 11a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6c.1-.3.1-.7.1-1z"/></svg> Configuración</a>
     </nav>
     <div class="sb-foot">
       <div class="sb-me" id="logout" title="Cerrar sesión"><div class="av" id="avSb">F</div><div><div class="t" id="meName">Fernando</div><div class="s">Director</div></div></div>
-      <div class="sb-ia"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9b6ff" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg><div><div class="t">IA Asistente</div><div class="s">Preguntale a la IA</div></div></div>
     </div>
   </aside>
 
@@ -169,7 +171,6 @@
       <label class="selsuc" for="selSuc" style="cursor:pointer"><div class="l">Sucursal</div><div class="v"><select id="selSuc" style="border:0;background:none;font:inherit;font-weight:700;color:inherit;cursor:pointer;outline:none"><option value="">Todas las sucursales</option><option value="mendoza">Mendoza</option><option value="san_luis">San Luis</option></select></div></label>
       <div class="ic-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
       <div class="ic-btn" id="btnNotif" style="position:relative"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot" id="notifDot" style="display:none">0</span></div>
-      <button class="acc"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Acción rápida</button>
     </div>
 
     <div id="pushMount" style="display:none;align-items:center;gap:12px;background:#ece9f8;border:1px solid #d4cdf0;border-radius:13px;padding:12px 15px;margin:0 0 16px"></div>
@@ -180,7 +181,32 @@
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--navy)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><span class="lbl">Visitas del mes</span></div><div class="v" id="kpiVisMes">—</div><div class="sub mut" id="kpiVisHoy">Hoy: —</div></div>
     </div>
 
-    <!-- IA + Agenda + Alertas -->
+
+    <!-- Finanzas (archivos que Administracion actualiza en Drive) -->
+    <div class="c-h" style="margin:4px 2px 10px"><div class="t" style="font-size:16px">Finanzas</div><span class="mut" id="finFecha" style="font-size:12px"></span></div>
+    <div class="kpis" id="finKpis">
+      <div class="kpi"><div class="hd"><span class="lbl">Efectivo en caja</span></div><div class="v" id="finEfectivo">...</div><div class="sub mut" id="finEfectivoSub">Mendoza y San Luis</div></div>
+      <div class="kpi"><div class="hd"><span class="lbl">Cheques en cartera</span></div><div class="v" id="finCheques">...</div><div class="sub mut" id="finChequesSub">Por acreditar</div></div>
+      <div class="kpi"><div class="hd"><span class="lbl">A pagar esta semana</span></div><div class="v" id="finSemana">...</div><div class="sub mut" id="finSemanaSub">Facturas de proveedores</div></div>
+      <div class="kpi"><div class="hd"><span class="lbl">Falta cubrir esta semana</span></div><div class="v" id="finFalta">...</div><div class="sub mut" id="finFaltaSub">Transferencia o efectivo</div></div>
+      <div class="kpi"><div class="hd"><span class="lbl">Mercaderia pedida</span></div><div class="v" id="finOrdenes">...</div><div class="sub mut" id="finOrdenesSub">Comprada y no recibida</div></div>
+    </div>
+
+    <div class="row3">
+      <div class="card">
+        <div class="c-h"><div class="t">Pagos por semana</div></div>
+        <div class="tabla" id="finSemanas"><div class="vacio">Leyendo la planilla...</div></div>
+      </div>
+      <div class="card">
+        <div class="c-h"><div class="t">Cheques</div></div>
+        <div class="tabla" id="finChequesDet"><div class="vacio">Leyendo la planilla...</div></div>
+      </div>
+      <div class="card">
+        <div class="c-h"><div class="t">Consultas por WhatsApp</div><a class="lnk" href="panel-cobranzas.html">Ver cobranzas &rsaquo;</a></div>
+        <div class="tabla" id="waResumen"><div class="vacio">Cargando...</div></div>
+      </div>
+    </div>
+    <!-- Agenda + Alertas -->
     <div class="row3">
       <div class="card">
         <div class="c-h"><div class="t">📅 Agenda de hoy</div><a class="lnk" href="dir-agenda.html">Ver completa ›</a></div>
@@ -191,15 +217,15 @@
 
       <div class="card">
         <div class="c-h"><div class="t">Alertas importantes</div></div>
-        <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3.1a4 4 0 0 1 0 7.8M22 21c0-3.3-2.7-6-6-6M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><div><div class="tt">Clientes con deuda vencida</div><div class="ss" id="alRiesgo">—</div></div><span class="go">›</span></div>
+        <div class="al-row" onclick="location.href='panel-cobranzas.html'"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3.1a4 4 0 0 1 0 7.8M22 21c0-3.3-2.7-6-6-6M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><div><div class="tt">Clientes con deuda vencida</div><div class="ss" id="alRiesgo">—</div></div><span class="go">›</span></div>
       </div>
     </div>
 
     <!-- Áreas de la empresa -->
     <div class="c-h" style="margin:4px 2px 10px"><div class="t" style="font-size:16px">Áreas de la empresa</div></div>
     <div class="areas">
-      <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v" id="vtVend">—</div><div class="l">Vendedores</div></div><div><div class="v" id="vtVisHoy">—</div><div class="l">Visitas hoy</div></div><div><div class="v" id="vtVisMes">—</div><div class="l">Visitas del mes</div></div><div><div class="v" id="vtClientes">—</div><div class="l">Clientes</div></div></div><a class="en" href="dir-vendedores.html">Entrar →</a></div>
-      <div class="area"><div class="ah"><span class="ai">🗂️</span> Administración</div><div class="st"><div><div class="v" id="adCC">—</div><div class="l">Cuenta corriente</div></div><div><div class="v" id="adVenc">—</div><div class="l">Deuda vencida</div></div><div><div class="v" id="adCliVenc">—</div><div class="l">Clientes vencidos</div></div><div><div class="v" id="adClientes">—</div><div class="l">Clientes activos</div></div></div><a class="en" href="administracion.html">Entrar →</a></div>
+      <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v" id="vtVend">—</div><div class="l">Vendedores</div></div><div><div class="v" id="vtVisHoy">—</div><div class="l">Visitas hoy</div></div><div><div class="v" id="vtVisMes">—</div><div class="l">Visitas del mes</div></div><div><div class="v" id="vtClientes">—</div><div class="l">Clientes</div></div></div><a class="en" href="manual-vendedores/supervisor.html">Entrar →</a></div>
+      <div class="area"><div class="ah"><span class="ai">🗂️</span> Administración</div><div class="st"><div><div class="v" id="adCC">—</div><div class="l">Cuenta corriente</div></div><div><div class="v" id="adVenc">—</div><div class="l">Deuda vencida</div></div><div><div class="v" id="adCliVenc">—</div><div class="l">Clientes vencidos</div></div><div><div class="v" id="adClientes">—</div><div class="l">Clientes activos</div></div></div><a class="en" href="panel-cobranzas.html">Entrar →</a></div>
     </div>
 
     <!-- Charts / Rankings -->
@@ -207,7 +233,7 @@
       <div class="card top5">
         <div class="c-h"><div class="t" style="font-size:14px">Top vendedores <span style="font-weight:500;color:var(--muted);font-size:12px">(por cartera)</span></div></div>
         <div id="top5list"><div class="t5"><span class="nm" style="color:var(--muted)">Cargando…</span></div></div>
-        <div style="margin-top:8px"><a class="lnk" href="dir-vendedores.html">Ver ranking completo ›</a></div>
+        <div style="margin-top:8px"><a class="lnk" href="panel-cobranzas.html">Ver cobranzas ›</a></div>
       </div>
       </div>
     </div>
@@ -219,6 +245,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="assets/dir-notif.js"></script>
+<script src="assets/finanzas.js?v=1"></script>
 <script>
   const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const ini = n => (String(n||'F').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('')||'F').toUpperCase();
@@ -286,6 +313,96 @@
     const selSuc=document.getElementById('selSuc');
     if(selSuc) selSuc.onchange=()=>cargarResumen(selSuc.value);
     cargarResumen(selSuc?selSuc.value:'');
+
+    // ---- Finanzas: los archivos que Administracion deja en Drive ----
+    const money = n => (n==null ? null : (Math.abs(n)>=1e6 ? '$'+(n/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M'
+                        : Math.abs(n)>=1e3 ? '$'+Math.round(n/1e3).toLocaleString('es-AR')+'K' : '$'+Math.round(n)));
+    function semanaYaPaso(w){
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const b = String(w.hasta||'').split('/'); if (b.length<2) return false;
+      const d2 = new Date(hoy.getFullYear(), +b[1]-1, +b[0]);
+      return d2 < hoy;
+    }
+    if (window.GBFinanzas) (async () => {
+      let d; try { d = await GBFinanzas.cargar(); } catch(e){ return; }
+      const fechas = [];
+      if (d.efectivo && !d.efectivo.error) {
+        set('finEfectivo', money(d.efectivo.total));
+        set('finEfectivoSub', (d.efectivo.sucursales||[]).map(x=>x.sucursal+' '+money(x.saldo)).join(' · ') || 'Mendoza y San Luis');
+        if (d.efectivo.fecha) fechas.push('efectivo al '+d.efectivo.fecha);
+      } else { set('finEfectivo','—'); set('finEfectivoSub','No se pudo leer la planilla'); }
+
+      const cajaCh = document.getElementById('finChequesDet');
+      if (d.cheques && !d.cheques.error) {
+        set('finCheques', money(d.cheques.total));
+        set('finChequesSub', 'Esta semana se acreditan '+money(d.cheques.semana));
+        cajaCh.innerHTML =
+          '<div class="fl"><span class="n">En cartera</span><span class="m">'+money(d.cheques.total)+'</span></div>'
+        + '<div class="fl"><span class="n">Se acreditan esta semana</span><span class="m verde">'+money(d.cheques.semana)+' · '+d.cheques.cantidadSemana+'</span></div>'
+        + '<div class="fl"><span class="n">Con fecha ya pasada</span><span class="m '+(d.cheques.atrasados?'rojo':'')+'">'+money(d.cheques.atrasados)+' · '+d.cheques.cantidadAtrasados+'</span></div>';
+      } else {
+        set('finCheques','—'); set('finChequesSub','No se pudo leer la planilla');
+        cajaCh.innerHTML = '<div class="vacio">No se pudo leer la planilla de cheques.</div>';
+      }
+
+      const cajaSem = document.getElementById('finSemanas');
+      if (d.pagos && !d.pagos.error) {
+        const w = (d.pagos.semanas||[]).find(x=>x.esEstaSemana);
+        set('finSemana', w ? money(w.facturas) : money(d.pagos.aPagar));
+        set('finSemanaSub', w ? ('Total a pagar '+money(d.pagos.aPagar)) : 'Total a pagar');
+        set('finFalta', w ? money(w.efectivo) : money(d.pagos.transferencia));
+        set('finFaltaSub', w ? ('Cubierto con cheques '+money(w.cheques)) : 'Transferencia o efectivo');
+        if (d.pagos.fecha) fechas.push('pagos al '+d.pagos.fecha);
+        const prox = (d.pagos.semanas||[]).filter(x=>x.esEstaSemana || !semanaYaPaso(x)).slice(0,7);
+        cajaSem.innerHTML = prox.length
+          ? '<div class="cab"><span class="n">Semana</span><span>A pagar</span><span>Falta cubrir</span></div>'
+            + prox.map(x=>'<div class="fl '+(x.esEstaSemana?'hoy':'')+'"><span class="n">'+esc(x.etiqueta)+(x.esEstaSemana?' · esta semana':'')+'</span>'
+              + '<span class="m">'+money(x.facturas)+'</span><span class="m '+(x.efectivo?'rojo':'verde')+'">'+money(x.efectivo)+'</span></div>').join('')
+          : '<div class="vacio">La planilla no tiene semanas por delante.</div>';
+      } else {
+        set('finSemana','—'); set('finFalta','—');
+        cajaSem.innerHTML = '<div class="vacio">No se pudo leer la planilla de pagos.</div>';
+      }
+
+      if (d.ordenes && !d.ordenes.error) {
+        set('finOrdenes', money(d.ordenes.total));
+        const t = (d.ordenes.top||[])[0];
+        set('finOrdenesSub', t ? ('Mayor: '+t.proveedor.replace(/\s*S\.?A\.?.*$/,'')+' '+money(t.saldo)) : 'Comprada y no recibida');
+      } else { set('finOrdenes','—'); set('finOrdenesSub','No se pudo leer la planilla'); }
+
+      const ff = document.getElementById('finFecha');
+      if (ff) ff.textContent = fechas.length ? 'Archivos de Administracion · ' + fechas.join(' · ') : 'Archivos de Administracion';
+    })();
+
+    // ---- Consultas por WhatsApp: si se resolvieron, de quien y cuanto tardaron ----
+    (async () => {
+      const box = document.getElementById('waResumen'); if(!box) return;
+      try{
+        const r = await fetch('/.netlify/functions/cobranzas-panel?que=reclamos',{headers:{Authorization:'Bearer '+TOKEN}});
+        if(!r.ok){ box.innerHTML = '<div class="vacio">No se pudieron leer las consultas.</div>'; return; }
+        const filas = (await r.json()).filas || [];
+        if(!filas.length){ box.innerHTML = '<div class="vacio">Todavia no hay consultas de clientes.</div>'; return; }
+        const horas = f => { const a=new Date(f.created_at||f.fecha||f.updated_at), b=new Date(f.updated_at||f.created_at);
+                             const h=(b-a)/36e5; return isFinite(h)&&h>=0 ? h : null; };
+        const resueltas = filas.filter(f=>f.estado==='resuelto');
+        const abiertas  = filas.filter(f=>f.estado!=='resuelto');
+        const demoras   = resueltas.map(horas).filter(h=>h!=null);
+        const prom = demoras.length ? demoras.reduce((a,b)=>a+b,0)/demoras.length : null;
+        const dice = h => h==null ? '—' : (h < 1 ? Math.round(h*60)+' min' : h < 48 ? String(+h.toFixed(1))+' h' : Math.round(h/24)+' dias');
+        const quien = f => (f.cliente && (f.cliente.comercio || f.cliente.nombre)) || 'Cliente';
+        box.innerHTML =
+            '<div class="fl"><span class="n">Sin resolver</span><span class="m '+(abiertas.length?'rojo':'verde')+'">'+abiertas.length+'</span></div>'
+          + '<div class="fl"><span class="n">Resueltas</span><span class="m verde">'+resueltas.length+'</span></div>'
+          + '<div class="fl"><span class="n">Demora promedio en resolver</span><span class="m">'+dice(prom)+'</span></div>'
+          + '<div class="cab" style="margin-top:8px"><span class="n">Ultimas consultas</span><span>Demora</span></div>'
+          + filas.slice(0,6).map(f=>{
+              const est = f.estado==='resuelto' ? 'ok' : f.estado==='en_curso' ? 'curso' : 'abierto';
+              const lbl = f.estado==='resuelto' ? 'Resuelta' : f.estado==='en_curso' ? 'En curso' : 'Abierta';
+              return '<div class="fl"><span class="n">'+esc(quien(f))+'</span><span class="chip-est '+est+'">'+lbl+'</span>'
+                   + '<span class="m">'+(f.estado==='resuelto' ? dice(horas(f)) : '—')+'</span></div>';
+            }).join('');
+      }catch(e){ box.innerHTML = '<div class="vacio">No se pudieron leer las consultas.</div>'; }
+    })();
   })();
 </script>
 <script src="assets/push-cliente.js?v=1"></script>
