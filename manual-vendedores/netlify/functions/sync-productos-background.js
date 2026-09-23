@@ -64,13 +64,19 @@ async function login() {
   return { urlCuenta, cuenta, token };
 }
 
-// DtTabla ARTICULOS puede venir con la lista bajo varios nombres de propiedad.
+// En esta cuenta del ERP (109) la tabla se llama ARTICULO (singular) y la lista
+// viene anidada en resultado.retorno. Cols: ar_codigo, ar_descri, st_stock, ma_descri…
+function _listaDe(o) {
+  if (!o) return null;
+  if (Array.isArray(o)) return o;
+  return o.lista || o.tabla || o.Tabla || o.datos || o.Datos || o.registros || o.Registros || o.retorno || o.data || null;
+}
 async function traerArticulos(urlCuenta, cuenta, token) {
-  const r = await aikon(urlCuenta + '/IS3/DtTabla', { cuenta, token, tabla: 'ARTICULOS' }, 90000);
-  const lista = Array.isArray(r) ? r
-    : (r.lista || r.tabla || r.Tabla || r.datos || r.Datos || r.registros || r.Registros || r.retorno || r.data || []);
+  const r = await aikon(urlCuenta + '/IS3/DtTabla', { cuenta, token, tabla: 'ARTICULO' }, 90000);
+  const lista = _listaDe(r) || _listaDe(r && r.resultado);
   const arr = Array.isArray(lista) ? lista : [];
-  if (arr[0]) console.log('ARTICULOS cols:', JSON.stringify(Object.keys(arr[0])));
+  if (!arr.length && r && r.resultado && r.resultado.log) console.log('ARTICULO log:', String(r.resultado.log).slice(0, 160));
+  if (arr[0]) console.log('ARTICULO cols:', JSON.stringify(Object.keys(arr[0])));
   return arr;
 }
 
@@ -90,9 +96,9 @@ function extraer(item) {
     return null;
   };
   const codigoRaw = val('ar_codigo', 'Codigo', 'codigo', 'ArticuloCodigo', 'CODIGO', 'CodArt', 'cod_articulo');
-  const descRaw = val('ar_descripcion', 'ar_descrip', 'ar_nombre', 'ar_detalle', 'ar_desc',
+  const descRaw = val('ar_descri', 'ar_descripcion', 'ar_descrip', 'ar_nombre', 'ar_detalle', 'ar_desc',
                       'Descripcion', 'descripcion', 'Detalle', 'Nombre', 'nombre', 'ArticuloDescripcion');
-  const stockRaw = val('ar_stockact', 'ar_stock', 'StockActual', 'stock_actual', 'Stock', 'stock',
+  const stockRaw = val('st_stock', 'ar_stockact', 'ar_stock', 'StockActual', 'stock_actual', 'Stock', 'stock',
                        'Unidades', 'unidades', 'ar_saldo', 'Saldo');
   if (codigoRaw == null) return null;
   const digits = String(codigoRaw).trim().replace(/\D/g, '');
