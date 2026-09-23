@@ -16,21 +16,12 @@ const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 
+const { traerTodo } = require('./_paginar.js');
+
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const qvals = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
 const num = v => { const n = Number(v); return isNaN(n) ? 0 : n; };
 const normCod = x => (String(x == null ? '' : x).trim().replace(/^0+/, '') || '0');
-
-// Códigos de clientes "quitados de la cartera" (clientes_estado.activo=false en el Manual).
-async function codigosInactivos() {
-  const set = new Set();
-  try {
-    const r = await fetch(MAN_URL + '/rest/v1/clientes_estado?activo=eq.false&select=codigo', { headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON } });
-    const arr = await r.json().catch(() => []);
-    if (Array.isArray(arr)) arr.forEach(x => set.add(normCod(x.codigo)));
-  } catch (e) {}
-  return set;
-}
 
 // Cartera REAL de cada vendedor = clientes del Manual que están activos (misma
 // definición que ve el vendedor: manda clientes_estado por código; si no figura,
@@ -39,16 +30,17 @@ async function codigosInactivos() {
 //   vendorsWithManual→ Set de códigos de vendedor que tienen clientes en el Manual
 //   countByVendor    → { codigoVendedor: cantidad de clientes activos }
 async function carteraManual(codigos) {
-  const man = (p) => fetch(MAN_URL + '/rest/v1/' + p, { headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON } });
+  const man = (p, o) => fetch(MAN_URL + '/rest/v1/' + p, { headers: Object.assign({ apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON }, (o && o.headers) || {}) });
   const out = { allowed: new Set(), vendorsWithManual: new Set(), countByVendor: {} };
   try {
     const vends = await (await man('vendedores?codigo=in.(' + qvals(codigos) + ')&select=id,codigo')).json();
     if (!Array.isArray(vends) || !vends.length) return out;
     const codOf = {}; vends.forEach(v => { codOf[v.id] = String(v.codigo); });
     const ids = vends.map(v => '"' + v.id + '"').join(',');
+    // Las dos pasan las mil filas: van paginadas sí o sí (un "limit" alto no sirve).
     const [cli, est] = await Promise.all([
-      man('clientes?vendedor_id=in.(' + ids + ')&select=codigo_cliente,vendedor_id,activo&limit=20000').then(r => r.json()).catch(() => []),
-      man('clientes_estado?select=codigo,activo').then(r => r.json()).catch(() => []),
+      traerTodo(man, 'clientes?vendedor_id=in.(' + ids + ')&select=codigo_cliente,vendedor_id,activo&order=codigo_cliente.asc'),
+      traerTodo(man, 'clientes_estado?select=codigo,activo&order=codigo.asc'),
     ]);
     const estMap = {}; (Array.isArray(est) ? est : []).forEach(r => { estMap[normCod(r.codigo)] = r.activo; });
     (Array.isArray(cli) ? cli : []).forEach(c => {
@@ -78,8 +70,9 @@ exports.handler = async (event) => {
     const perfil = (await pRes.json())[0] || {};
     if (!perfil.es_supervisor) return json(403, { error: 'Solo para supervisores.' });
 
-    const hub = (path) => fetch(HUB_URL + '/rest/v1/' + path, { headers: { apikey: hubService || HUB_ANON, Authorization: 'Bearer ' + (hubService || token) } });
-    const cob = (path) => fetch(COB_URL + '/rest/v1/' + path, { headers: { apikey: cobService, Authorization: 'Bearer ' + cobService } });
+    // Aceptan opciones (las usa traerTodo para pedir de a mil filas).
+    const hub = (path, o) => fetch(HUB_URL + '/rest/v1/' + path, { headers: Object.assign({ apikey: hubService || HUB_ANON, Authorization: 'Bearer ' + (hubService || token) }, (o && o.headers) || {}) });
+    const cob = (path, o) => fetch(COB_URL + '/rest/v1/' + path, { headers: Object.assign({ apikey: cobService, Authorization: 'Bearer ' + cobService }, (o && o.headers) || {}) });
 
     // Equipo: vendedores de la misma región + canal (o 'ambos')
     const eqRes = await hub('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region');
@@ -94,9 +87,11 @@ exports.handler = async (event) => {
 
     if (!codigos.length) return json(200, { nombre: perfil.nombre, canal: perfil.canal, region: perfil.region, equipo: [], totales: { vendedores: 0, clientes: 0, saldo: 0, vencida: 0 }, clientes: [] });
 
-    // Clientes de todo el equipo desde cuentas_cubo
-    const cRes = await cob('cuentas_cubo?vendedor=in.(' + qvals(codigos) + ')&select=codigo,nombre,saldo,vencida,telefono,vendedor,actualizado&order=nombre.asc');
-    let clientes = await cRes.json();
+    // Clientes de todo el equipo desde cuentas_cubo.
+    // PAGINADO: un equipo pasa las mil filas fácil y la base corta ahí sin avisar.
+    // Cuando se cortaba, la deuda del supervisor daba menos que la del vendedor
+    // (Exequiel: 29 mil acá contra 34 mil en su panel).
+    let clientes = await traerTodo(cob, 'cuentas_cubo?vendedor=in.(' + qvals(codigos) + ')&select=codigo,nombre,saldo,vencida,telefono,vendedor,actualizado&order=codigo.asc');
     if (!Array.isArray(clientes)) clientes = [];
     // Fecha real del último sync con el ERP (Aikon) — la más reciente del cubo.
     let actualizado = null;
@@ -105,16 +100,12 @@ exports.handler = async (event) => {
     // baja la deuda aunque el cubo viejo la dejara inflada. (Corrige la vista al toque.)
     clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, Math.min(num(c.vencida), num(c.saldo))) }));
 
-    // La cartera real es la del Manual (activa). Para cada vendedor que tiene
-    // clientes en el Manual, dejamos SOLO esos (así el número coincide con lo que
-    // ve el vendedor: 116, no 121). Para un vendedor sin datos en el Manual,
-    // usamos Cobranzas tal cual pero sacando los que estén quitados.
-    const [cartera, inactivos] = await Promise.all([carteraManual(codigos), codigosInactivos()]);
-    clientes = clientes.filter(c => {
-      const v = String(c.vendedor), k = normCod(c.codigo);
-      if (cartera.vendorsWithManual.has(v)) return cartera.allowed.has(k);
-      return !inactivos.has(k);
-    });
+    // La PLATA sale de todo lo que el ERP tiene a nombre del vendedor, igual que
+    // en su pantalla de deuda: si acá se filtrara por la cartera del Manual, un
+    // cliente que debe y quedó fuera de la cartera desaparecía y los dos paneles
+    // mostraban números distintos. La cartera se usa solo para CONTAR clientes
+    // (ese número sí es el del Manual, el que ve el vendedor en "Mi cartera").
+    const cartera = await carteraManual(codigos);
 
     // ¿drill-in de un vendedor puntual?
     const qp = event.queryStringParameters || {};

@@ -17,6 +17,8 @@ const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 
+const { traerTodo } = require('./_paginar.js');
+
 function json(statusCode, body) {
   return {
     statusCode,
@@ -49,12 +51,12 @@ exports.handler = async (event) => {
     const codigo = perfil.codigo_vendedor;
     if (!codigo) return json(200, { codigo: null, nombre: perfil.nombre || null, clientes: [] });
 
-    // 3) Sus clientes desde cuentas_cubo (service_role bypassa RLS)
-    const q = COB_URL + '/rest/v1/cuentas_cubo?vendedor=eq.' + encodeURIComponent(codigo) +
-      '&select=codigo,nombre,saldo,vencida,telefono&order=nombre.asc';
-    const cRes = await fetch(q, { headers: { apikey: service, Authorization: 'Bearer ' + service } });
-    if (!cRes.ok) return json(502, { error: 'Error leyendo cuentas_cubo: ' + (await cRes.text()).slice(0, 200) });
-    let clientes = await cRes.json();
+    // 3) Sus clientes desde cuentas_cubo (service_role bypassa RLS).
+    //    Paginado: si un vendedor pasara las mil cuentas, la base corta ahí sin
+    //    avisar y la deuda daría de menos. Es la misma consulta que usa el panel
+    //    del supervisor, para que los dos muestren lo mismo.
+    const cob = (p, o) => fetch(COB_URL + '/rest/v1/' + p, { headers: Object.assign({ apikey: service, Authorization: 'Bearer ' + service }, (o && o.headers) || {}) });
+    let clientes = await traerTodo(cob, 'cuentas_cubo?vendedor=eq.' + encodeURIComponent(codigo) + '&select=codigo,nombre,saldo,vencida,telefono&order=codigo.asc');
     if (!Array.isArray(clientes)) clientes = [];
     // La deuda vencida no puede superar el saldo neto (una nota de crédito la cancela).
     clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, Math.min(Number(c.vencida) || 0, Number(c.saldo) || 0)) }));
