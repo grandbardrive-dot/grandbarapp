@@ -130,26 +130,6 @@
   .sub-desc{font-size:11.5px;color:var(--ink3);margin-top:2px}
   .sin-subs{font-size:12.5px;color:var(--ink3);padding:10px 0 4px;font-style:italic}
 
-  /* Ítems del checklist (lo que el vendedor tilda en la visita) */
-  .items-wrap{display:none;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0 4px}
-  .items-wrap.open{display:block}
-  .items-t{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);margin-bottom:9px;display:flex;align-items:center;gap:7px}
-  .it{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px dashed var(--line)}
-  .it:last-of-type{border-bottom:0}
-  .it.off{opacity:.5}
-  .it-check{width:17px;height:17px;border:2px solid var(--line-2);border-radius:5px;flex:none;margin-top:8px}
-  .it-campos{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
-  .it-tx,.it-de{width:100%;border:1.5px solid var(--line-2);border-radius:9px;padding:8px 11px;font-family:inherit;background:var(--surface);color:var(--ink)}
-  .it-tx{font-size:13.5px;font-weight:600}
-  .it-de{font-size:12px;color:var(--ink2)}
-  .it-tx:focus,.it-de:focus{outline:none;border-color:var(--navy)}
-  .it-acts{display:flex;gap:5px;flex:none;align-items:center;padding-top:4px}
-  .it-acts .ab{padding:6px 9px;font-size:12px}
-  .items-add{margin-top:10px;display:inline-flex;align-items:center;gap:7px;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:9px 15px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
-  .items-vacio{font-size:12.5px;color:var(--ink3);font-style:italic;padding:4px 0 2px}
-  .items-nota{font-size:11.5px;color:var(--ink3);margin-top:9px;line-height:1.45}
-  @media (max-width:640px){ .it{flex-wrap:wrap} .it-acts{width:100%;justify-content:flex-end;padding-top:0} }
-  .empty{padding:40px 18px;text-align:center;color:var(--ink3);font-size:13.5px;background:var(--surface);border:1px dashed var(--line-2);border-radius:16px;margin-top:18px}
 
   /* Modal */
   .ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9998;align-items:flex-start;justify-content:center;padding:36px 16px;overflow-y:auto}
@@ -1109,67 +1089,6 @@
   }
 
 
-  // ── Ítems del checklist ──────────────────────────────────────────────────────
-  // Se guardan campo por campo al salir del input, sin modal: son textos cortos y
-  // Luciana suele corregir varios seguidos.
-  async function guardarItem(id, campo, valor){
-    const it = Object.values(ITEMS).flat().find(x=>x.id===id);
-    const limpio = (valor||'').trim();
-    if(it && (it[campo]||'') === limpio) return;
-    const { error } = await sb.from('checklist_items').update({ [campo]: limpio }).eq('id', id);
-    if(error){ alert('No pude guardar el cambio: '+error.message); return; }
-    if(it) it[campo] = limpio;
-    const fila = document.getElementById('it-'+id);
-    if(fila){ fila.style.transition='background .2s'; fila.style.background='#E7F1EC'; setTimeout(()=>fila.style.background='',600); }
-  }
-
-  async function agregarItem(seccionId){
-    const its = itemsDe(seccionId);
-    const orden = its.length ? Math.max(...its.map(i=>i.orden||0)) + 1 : 0;
-    const { data, error } = await sb.from('checklist_items')
-      .insert({ seccion_id: seccionId, texto: '', descripcion: '', orden, activo: true }).select().single();
-    if(error){ alert('No pude crear el ítem: '+error.message); return; }
-    (ITEMS[seccionId] = ITEMS[seccionId] || []).push(data);
-    renderLista();
-    const w = document.getElementById('items-'+seccionId); if(w) w.classList.add('open');
-    const inp = document.querySelector('#it-'+data.id+' .it-tx'); if(inp) inp.focus();
-  }
-
-  async function toggleItem(id){
-    const it = Object.values(ITEMS).flat().find(x=>x.id===id);
-    if(!it) return;
-    const nuevo = it.activo===false;
-    const { error } = await sb.from('checklist_items').update({ activo: nuevo }).eq('id', id);
-    if(error){ alert('No pude cambiar el ítem: '+error.message); return; }
-    it.activo = nuevo;
-    const abierta = new Set([...document.querySelectorAll('.items-wrap.open')].map(w=>w.id));
-    renderLista(); abierta.forEach(x=>{ const w=document.getElementById(x); if(w) w.classList.add('open'); });
-  }
-
-  async function borrarItem(id){
-    const it = Object.values(ITEMS).flat().find(x=>x.id===id);
-    const txt = (it && it.texto) ? `"${it.texto}"` : 'este ítem';
-    if(!confirm(`¿Eliminar ${txt}?\n\nSe borra para siempre. Si solo no lo querés usar por ahora, mejor ocultalo.`)) return;
-    const { error } = await sb.from('checklist_items').delete().eq('id', id);
-    if(error){ alert('No pude eliminar el ítem: '+error.message); return; }
-    Object.keys(ITEMS).forEach(k=>{ ITEMS[k] = ITEMS[k].filter(x=>x.id!==id); });
-    const abierta = new Set([...document.querySelectorAll('.items-wrap.open')].map(w=>w.id));
-    renderLista(); abierta.forEach(x=>{ const w=document.getElementById(x); if(w) w.classList.add('open'); });
-  }
-
-  // Renumera 0..n para que no queden órdenes empatados (si no, el intercambio no se ve).
-  async function moverItem(seccionId, id, dir){
-    const its = itemsDe(seccionId);
-    const i = its.findIndex(x=>x.id===id);
-    const j = i + dir;
-    if(i<0 || j<0 || j>=its.length) return;
-    [its[i], its[j]] = [its[j], its[i]];
-    await Promise.all(its.map((x,k)=> x.orden===k ? null : sb.from('checklist_items').update({ orden:k }).eq('id', x.id)));
-    its.forEach((x,k)=>{ x.orden = k; });
-    ITEMS[seccionId] = its;
-    const abierta = new Set([...document.querySelectorAll('.items-wrap.open')].map(w=>w.id));
-    renderLista(); abierta.forEach(x=>{ const w=document.getElementById(x); if(w) w.classList.add('open'); });
-  }
   async function toggleActiva(id){
     const s=SECS.find(x=>x.id===id); if(!s) return;
     const ocultar = s.activa!==false;
