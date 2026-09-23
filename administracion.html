@@ -58,6 +58,11 @@
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--gold)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></span><span class="lbl">Endeudamiento</span></div><div class="v">18,7%</div><div class="sub up">Nivel saludable</div></div>
     </div>
 
+    <!-- KPIs reales de la atención por WhatsApp (bandeja de Cobranzas de Brenda) -->
+    <div class="c-h" style="margin-top:28px"><div class="t">Atención por WhatsApp — Cobranzas <small>En vivo desde la bandeja</small></div></div>
+    <div class="kpis" id="wa-kpis"><div class="kpi"><div class="hd"><span class="lbl">Cargando…</span></div><div class="v">·</div></div></div>
+    <div class="card" id="wa-riesgo" style="margin-top:14px;display:none"></div>
+
     <div class="g-3">
       <div class="card">
         <div class="c-h"><div class="t">Evolución de cashflow <small>Últimos 30 días</small></div><div style="display:flex;gap:12px;font-size:11px;color:var(--muted)"><span>🟢 Ingresos</span><span>🔴 Egresos</span><span>🔵 Saldo</span></div></div>
@@ -162,5 +167,80 @@
 <script src="assets/mobile-nav.js?v=1"></script>
 <script src="/assets/minuta-fab.js?v=2"></script>
 <script src="/assets/cuenta-activa.js?v=1"></script>
+<script>
+// ── KPIs reales de la atención por WhatsApp (lee la misma bandeja de Brenda) ──
+(function () {
+  var box = document.getElementById('wa-kpis'); if (!box || !window.supabase) return;
+  var HUB = { url: 'https://xqhyemccbwmzxqzkrtwa.supabase.co', key: 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]); }); };
+  var minTxt = function (m) { if (m == null) return '—'; m = Math.round(m); if (m < 60) return m + ' min'; var h = Math.floor(m / 60), mm = m % 60; return mm ? h + ' h ' + mm + ' min' : h + ' h'; };
+  function kpi(color, lbl, val, sub, subCls) {
+    return '<div class="kpi"><div class="hd"><span class="ic" style="background:var(' + color + ')">' +
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.5 7.5L3 21l2-5.5A8.5 8.5 0 1 1 21 11.5z"/></svg></span>' +
+      '<span class="lbl">' + lbl + '</span></div><div class="v">' + val + '</div>' +
+      (sub ? '<div class="sub ' + (subCls || '') + '">' + sub + '</div>' : '') + '</div>';
+  }
+  // Ventana de 24h desde el último mensaje entrante.
+  function ventana(c) {
+    var ins = (c.mensajes || []).filter(function (m) { return m.dir === 'in' && m.fecha; });
+    if (!ins.length) return { sin: true };
+    var ult = ins.reduce(function (a, b) { return a.fecha > b.fecha ? a : b; }).fecha;
+    var mins = 24 * 60 - (Date.now() - new Date(ult).getTime()) / 60000;
+    return { mins: mins, abierta: mins > 0, cerrada: mins <= 0, porCerrar: mins > 0 && mins <= 180 };
+  }
+  function pendiente(c) { var m = c.mensajes || []; return m.length && m[m.length - 1].dir === 'in'; }
+  function primeraRespMin(c) {
+    var m = c.mensajes || [];
+    for (var i = 0; i < m.length; i++) if (m[i].dir === 'in') {
+      for (var j = i + 1; j < m.length; j++) if (m[j].dir === 'out') return (new Date(m[j].fecha) - new Date(m[i].fecha)) / 60000;
+      return null;
+    }
+    return null;
+  }
+  var c = supabase.createClient(HUB.url, HUB.key);
+  c.auth.getSession().then(function (r) {
+    var s = r.data.session; if (!s) return;
+    fetch('/.netlify/functions/cobranzas-panel?que=whatsapp', { headers: { Authorization: 'Bearer ' + s.access_token } })
+      .then(function (res) { return res.json().then(function (j) { return { ok: res.ok, j: j }; }); })
+      .then(function (o) {
+        if (!o.ok) { box.innerHTML = '<div class="kpi"><div class="hd"><span class="lbl">WhatsApp</span></div><div class="v" style="font-size:14px">' + esc(o.j.error || 'No disponible') + '</div></div>'; return; }
+        var convs = o.j.conversaciones || [];
+        var consultas = convs.reduce(function (a, c) { return a + (c.entrantes || 0); }, 0);
+        var escribieron = convs.filter(function (c) { return c.entrantes > 0; }).length;
+        var sinResp = convs.filter(pendiente).length;
+        var perdidas = convs.filter(function (c) { return pendiente(c) && ventana(c).cerrada; }).length;
+        var porCerrar = convs.filter(function (c) { return pendiente(c) && ventana(c).porCerrar; }).length;
+        var tiempos = convs.map(primeraRespMin).filter(function (v) { return v != null; });
+        var tprom = tiempos.length ? tiempos.reduce(function (a, b) { return a + b; }, 0) / tiempos.length : null;
+        var enHora = tiempos.length ? Math.round(100 * tiempos.filter(function (v) { return v <= 60; }).length / tiempos.length) : null;
+        box.innerHTML =
+          kpi('--blue', 'Consultas recibidas', consultas, escribieron + ' clientes escribieron', '') +
+          kpi('--green', 'Conversaciones activas', convs.length, '', '') +
+          kpi(sinResp ? '--orange' : '--green', 'Sin responder ahora', sinResp, porCerrar ? porCerrar + ' con ventana por cerrar' : 'al día', sinResp ? '' : 'up') +
+          kpi('--teal', 'Tiempo prom. 1ª respuesta', minTxt(tprom), tiempos.length + ' respondidas', '') +
+          kpi('--purple', 'Respondidas en < 1 h', enHora == null ? '—' : enHora + '%', 'de las contestadas', enHora != null && enHora >= 70 ? 'up' : '') +
+          kpi('--gold', 'Ventanas perdidas', perdidas, perdidas ? 'no se pudo responder (>24 h)' : 'ninguna', perdidas ? '' : 'up');
+        // Lista de riesgo: pendientes ordenadas por ventana (lo que está por cerrar primero)
+        var riesgo = convs.filter(function (c) { var v = ventana(c); return pendiente(c) && !v.sin && (v.porCerrar || v.cerrada); })
+          .sort(function (a, b) { return ventana(a).mins - ventana(b).mins; }).slice(0, 8);
+        var cont = document.getElementById('wa-riesgo');
+        if (riesgo.length && cont) {
+          cont.style.display = 'block';
+          cont.innerHTML = '<div class="c-h"><div class="t">En riesgo de perder la ventana <small>' + riesgo.length + ' conversaciones</small></div></div>' +
+            '<div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">' +
+            riesgo.map(function (c) {
+              var v = ventana(c); var cerr = v.cerrada;
+              return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line-2)">' +
+                '<div style="min-width:0"><div style="font-weight:700;font-size:13px">' + esc(c.cliente || c.telefono) + '</div>' +
+                '<div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px">' + esc(c.ultimoTexto || '') + '</div></div>' +
+                '<span style="flex-shrink:0;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;background:' + (cerr ? 'var(--red-soft,#fbeae7);color:var(--red,#c0392b)' : 'var(--gold-soft,#f7efda);color:var(--gold-d,#a9852a)') + '">' +
+                (cerr ? '🔒 cerrada' : '⏳ ' + minTxt(v.mins)) + '</span></div>';
+            }).join('') + '</div>';
+        }
+      })
+      .catch(function () { box.innerHTML = '<div class="kpi"><div class="hd"><span class="lbl">WhatsApp</span></div><div class="v" style="font-size:14px">Sin conexión</div></div>'; });
+  });
+})();
+</script>
 </body>
 </html>

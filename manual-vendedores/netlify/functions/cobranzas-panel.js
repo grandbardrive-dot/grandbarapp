@@ -35,7 +35,7 @@ const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 // El manual: de acá salen los NOMBRES de los vendedores (comprobantes guarda el código).
 const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
-const ROLES_OK = ['tesoreria', 'administracion', 'admin', 'desarrollo', 'diseno'];
+const ROLES_OK = ['tesoreria', 'administracion', 'admin', 'desarrollo', 'diseno', 'direccion'];
 const POR_PAGINA = 50;
 
 const json = (s, b) => ({
