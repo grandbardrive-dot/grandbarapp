@@ -64,7 +64,7 @@
   .acc{background:var(--gold);color:#241a06;border:0;border-radius:11px;padding:10px 15px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
 
   /* KPI row */
-  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:13px;margin-bottom:18px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px;margin-bottom:18px}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px}
   .kpi .hd{display:flex;align-items:center;gap:10px;margin-bottom:9px}
   .kpi .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none;color:#fff}
@@ -76,7 +76,7 @@
   .bar-prog{height:6px;background:#eee7d8;border-radius:4px;overflow:hidden;margin-top:8px}.bar-prog>i{display:block;height:100%;background:var(--purple)}
 
   /* Grid layouts */
-  .row3{display:grid;grid-template-columns:1.55fr 1fr .92fr;gap:16px;margin-bottom:16px}
+  .row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
   .c-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
   .c-h .t{font-weight:800;font-size:15px;display:flex;align-items:center;gap:8px}
@@ -84,18 +84,6 @@
   .badge-n{background:var(--danger);color:#fff;font-size:11px;font-weight:800;border-radius:20px;padding:1px 8px}
 
   /* IA recomienda */
-  .ia-sub{color:var(--muted);font-size:12.5px;margin:-6px 0 12px}
-  .ia-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}
-  .ia-item{display:flex;align-items:center;gap:12px;border-radius:12px;padding:12px 13px;margin-bottom:10px}
-  .ia-item.red{background:var(--danger-soft)} .ia-item.yel{background:var(--amber-soft)} .ia-item.grn{background:var(--green-soft)}
-  .ia-ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none;color:#fff}
-  .ia-item.red .ia-ic{background:var(--danger)} .ia-item.yel .ia-ic{background:var(--amber)} .ia-item.grn .ia-ic{background:var(--green)}
-  .ia-item .tt{font-weight:700;font-size:13.5px} .ia-item .ss{font-size:12px;color:var(--muted)}
-  .ia-item .sp{flex:1}
-  .ia-btn{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
-  .ia-mini{border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:12px}
-  .ia-mini .k{font-size:12px;color:var(--muted)} .ia-mini .big{font-size:24px;font-weight:800;margin:2px 0}
-  .ia-mini .d{font-size:11.5px;color:var(--muted)}
 
   /* Agenda */
   .ag{display:flex;flex-direction:column}
@@ -113,7 +101,7 @@
   .al-row .go{margin-left:auto;color:var(--muted)}
 
   /* Áreas */
-  .areas{display:grid;grid-template-columns:repeat(6,1fr);gap:13px;margin-bottom:16px}
+  .areas{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:13px;margin-bottom:16px}
   .area{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column}
   .area .ah{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;margin-bottom:11px}
   .area .ah .ai{color:var(--gold-d)}
@@ -123,11 +111,7 @@
   .area .en:hover{border-color:var(--gold);color:var(--gold-d)}
 
   /* Bottom row */
-  .row4{display:grid;grid-template-columns:1.15fr 1.1fr 1.2fr 1fr;gap:16px}
-  .bars{display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:8px}
-  .bars .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
-  .bars .bar{width:100%;background:linear-gradient(180deg,#6ea3c8,#3f6f9c);border-radius:6px 6px 0 0;min-height:4px}
-  .bars .bl{font-size:10.5px;color:var(--muted)}
+  .row4{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
   .top5 .t5{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-2)}
   .top5 .t5:last-child{border-bottom:0}
   .t5 .rk{width:22px;height:22px;border-radius:50%;background:var(--gold-soft);color:var(--gold-d);font-weight:800;font-size:12px;display:grid;place-items:center;flex:none}
@@ -139,17 +123,8 @@
   .risk .rn{font-weight:700;font-size:13px} .risk .rs{font-size:11.5px;color:var(--muted)}
   .chip{margin-left:auto;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px}
   .chip.alto{background:var(--danger-soft);color:var(--danger)} .chip.medio{background:var(--amber-soft);color:var(--gold-d)}
-  .actv .a{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line-2)}
-  .actv .a:last-child{border-bottom:0}
-  .actv .av{width:30px;height:30px;border-radius:50%;background:var(--gold-soft);color:var(--gold-d);font-weight:800;font-size:11px;display:grid;place-items:center;flex:none}
-  .actv .an{font-weight:700;font-size:12.5px} .actv .as{font-size:11.5px;color:var(--muted)} .actv .at{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap}
 
   /* Donut */
-  .donut-wrap{display:flex;align-items:center;gap:16px}
-  .cat-leg{display:flex;flex-direction:column;gap:7px;flex:1}
-  .cat-leg .cl{display:flex;align-items:center;gap:8px;font-size:12px}
-  .cat-leg .sw{width:10px;height:10px;border-radius:3px;flex:none}
-  .cat-leg .cn{flex:1} .cat-leg .cp{color:var(--muted);font-weight:600} .cat-leg .cm{font-weight:800;font-variant-numeric:tabular-nums}
 
   .foot{text-align:center;color:var(--muted);font-size:11.5px;margin-top:22px;display:flex;align-items:center;justify-content:center;gap:6px}
 
@@ -201,32 +176,12 @@
 
     <!-- KPIs -->
     <div class="kpis">
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></span><span class="lbl">Ventas del día</span></div><div class="v">$8.450.000</div><div class="sub up">▲ +14% vs ayer</div></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--purple)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><span class="lbl">Cobranzas del día</span></div><div class="v" id="kpiCobHoy">—</div><div class="sub mut" id="kpiCobSub">Pagos aceptados hoy</div></div>
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--orange)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 12 3 4 7l8 4 8-4zM4 7v10l8 4 8-4V7"/></svg></span><span class="lbl">Pedidos pendientes</span></div><div class="v">37</div><div class="sub down">12 urgentes</div></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--navy)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><span class="lbl">Visitas del mes</span></div><div class="v" id="kpiVisMes">—</div><div class="sub mut" id="kpiVisHoy">Hoy: —</div></div>
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--teal)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg></span><span class="lbl">Mercadería comprometida</span></div><div class="v">$18.400.000</div><div class="sub mut">En pedidos confirmados</div></div>
-      <div class="kpi"><div class="hd"><span class="ic" style="background:var(--gold)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19 19 5M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM20 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg></span><span class="lbl">Margen promedio</span></div><div class="v">28,4%</div><div class="sub up">▲ +2,7% vs mes anterior</div></div>
     </div>
 
     <!-- IA + Agenda + Alertas -->
     <div class="row3">
-      <div class="card">
-        <div class="c-h"><div class="t"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-d)" stroke-width="2"><path d="M12 3l2 5 5 .5-4 3.5 1 5-4-2.5L8 17l1-5-4-3.5 5-.5z"/></svg> Señales para tu decisión</div></div>
-        <div class="ia-sub">Lectura ejecutiva de la empresa — para que decidas, no para que lo hagas vos</div>
-        <div class="ia-grid">
-          <div>
-            <div class="ia-item red"><span class="ia-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></span><div><div class="tt">Cobranza vencida en zona de atención</div><div class="ss">El 12% de la cuenta corriente está vencido (+60 días). Conviene definir política con Administración.</div></div><span class="sp"></span><button class="ia-btn" onclick="location.href='administracion.html'">Ver Administración</button></div>
-            <div class="ia-item yel"><span class="ia-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span><div><div class="tt">Margen por debajo del plan en OFF</div><div class="ss">El canal OFF Mendoza cerró 2,3 pts abajo del objetivo del mes.</div></div><span class="sp"></span><button class="ia-btn" onclick="location.href='reportes.html'">Ver Reportes</button></div>
-            <div class="ia-item grn"><span class="ia-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></span><div><div class="tt">Oportunidad estratégica: categoría Gin</div><div class="ss">Gin creciendo +24,8% interanual. Decisión: reforzar portfolio y compra.</div></div><span class="sp"></span><button class="ia-btn" onclick="location.href='desarrollo.html'">Ver Desarrollo</button></div>
-          </div>
-          <div>
-            <div class="ia-mini"><div class="k">🟢 Oportunidad detectada</div><div class="big up">+12%</div><div class="d">en ventas de vinos premium<br>vs semana anterior</div></div>
-            <div class="ia-mini"><div class="k">🔴 Riesgo detectado</div><div class="big down">−35%</div><div class="d">en actividad de 2 vendedores<br>vs semana pasada</div></div>
-          </div>
-        </div>
-      </div>
-
       <div class="card">
         <div class="c-h"><div class="t">📅 Agenda de hoy</div><a class="lnk" href="dir-agenda.html">Ver completa ›</a></div>
         <div class="ag" id="agHoy">
@@ -235,12 +190,8 @@
       </div>
 
       <div class="card">
-        <div class="c-h"><div class="t">Alertas importantes</div><span class="badge-n">7</span></div>
-        <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span><div><div class="tt">Stock crítico</div><div class="ss">5 productos</div></div><span class="go">›</span></div>
-        <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><div class="tt">Vencimientos próximos</div><div class="ss">7 productos</div></div><span class="go">›</span></div>
+        <div class="c-h"><div class="t">Alertas importantes</div></div>
         <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3.1a4 4 0 0 1 0 7.8M22 21c0-3.3-2.7-6-6-6M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></span><div><div class="tt">Clientes con deuda vencida</div><div class="ss" id="alRiesgo">—</div></div><span class="go">›</span></div>
-        <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4z"/></svg></span><div><div class="tt">Mercadería lenta</div><div class="ss">18 productos</div></div><span class="go">›</span></div>
-        <div class="al-row"><span class="al-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><div><div class="tt">Acciones por vencer</div><div class="ss">9 acciones</div></div><span class="go">›</span></div>
       </div>
     </div>
 
@@ -248,66 +199,16 @@
     <div class="c-h" style="margin:4px 2px 10px"><div class="t" style="font-size:16px">Áreas de la empresa</div></div>
     <div class="areas">
       <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v" id="vtVend">—</div><div class="l">Vendedores</div></div><div><div class="v" id="vtVisHoy">—</div><div class="l">Visitas hoy</div></div><div><div class="v" id="vtVisMes">—</div><div class="l">Visitas del mes</div></div><div><div class="v" id="vtClientes">—</div><div class="l">Clientes</div></div></div><a class="en" href="dir-vendedores.html">Entrar →</a></div>
-      <div class="area"><div class="ah"><span class="ai">📦</span> Compras</div><div class="st"><div><div class="v">15</div><div class="l">Propuestas nuevas</div></div><div><div class="v">4</div><div class="l">Proveedores esperado</div></div><div><div class="v">8</div><div class="l">Acciones por aprobar</div></div></div><a class="en" href="#">Entrar →</a></div>
       <div class="area"><div class="ah"><span class="ai">🗂️</span> Administración</div><div class="st"><div><div class="v" id="adCC">—</div><div class="l">Cuenta corriente</div></div><div><div class="v" id="adVenc">—</div><div class="l">Deuda vencida</div></div><div><div class="v" id="adCliVenc">—</div><div class="l">Clientes vencidos</div></div><div><div class="v" id="adClientes">—</div><div class="l">Clientes activos</div></div></div><a class="en" href="administracion.html">Entrar →</a></div>
-      <div class="area"><div class="ah"><span class="ai">🎯</span> Marketing</div><div class="st"><div><div class="v">12</div><div class="l">Placas pendientes</div></div><div><div class="v">5</div><div class="l">Campañas activas</div></div><div><div class="v">8</div><div class="l">Reels por aprobar</div></div><div><div class="v">2</div><div class="l">Diseños en curso</div></div></div><a class="en" href="#">Entrar →</a></div>
-      <div class="area"><div class="ah"><span class="ai">🏭</span> Depósito</div><div class="st"><div><div class="v">7</div><div class="l">Vencimientos</div></div><div><div class="v">2</div><div class="l">Diferencias</div></div><div><div class="v">98%</div><div class="l">Inventario correcto</div></div><div><div class="v">3</div><div class="l">Recepciones hoy</div></div></div><a class="en" href="#">Entrar →</a></div>
-      <div class="area"><div class="ah"><span class="ai">💻</span> Desarrollo</div><div class="st"><div><div class="v">14</div><div class="l">Tareas activas</div></div><div><div class="v">3</div><div class="l">Bugs</div></div><div><div class="v">6</div><div class="l">Mejoras IA</div></div><div><div class="v">1</div><div class="l">Actualización</div></div></div><a class="en" href="#">Entrar →</a></div>
     </div>
 
     <!-- Charts / Rankings -->
     <div class="row4">
-      <div class="card">
-        <div class="c-h"><div class="t" style="font-size:14px">Ventas por día <span style="font-weight:500;color:var(--muted);font-size:12px">(últimos 7 días)</span></div></div>
-        <div class="bars">
-          <div class="b"><div class="bar" style="height:58%"></div><div class="bl">14</div></div>
-          <div class="b"><div class="bar" style="height:70%"></div><div class="bl">15</div></div>
-          <div class="b"><div class="bar" style="height:66%"></div><div class="bl">16</div></div>
-          <div class="b"><div class="bar" style="height:78%"></div><div class="bl">17</div></div>
-          <div class="b"><div class="bar" style="height:55%"></div><div class="bl">18</div></div>
-          <div class="b"><div class="bar" style="height:83%"></div><div class="bl">19</div></div>
-          <div class="b"><div class="bar" style="height:100%;background:linear-gradient(180deg,#2f8f6e,#256f54)"></div><div class="bl" style="font-weight:800;color:var(--green-d)">20</div></div>
-        </div>
-        <div style="text-align:right;font-size:12px;color:var(--muted);margin-top:4px">20 May · <b style="color:var(--ink)">$8.450.000</b></div>
-      </div>
-
-      <div class="card">
-        <div class="c-h"><div class="t" style="font-size:14px">Ventas por categoría <span style="font-weight:500;color:var(--muted);font-size:12px">(mes)</span></div></div>
-        <div class="donut-wrap">
-          <svg width="112" height="112" viewBox="0 0 42 42" style="flex:none">
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#eee7d8" stroke-width="7"></circle>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#3f6f9c" stroke-width="7" stroke-dasharray="42 58" stroke-dashoffset="25"></circle>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#6b5bd0" stroke-width="7" stroke-dasharray="28 72" stroke-dashoffset="-17"></circle>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#d98a3a" stroke-width="7" stroke-dasharray="15 85" stroke-dashoffset="-45"></circle>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#2f8f6e" stroke-width="7" stroke-dasharray="10 90" stroke-dashoffset="-60"></circle>
-            <circle cx="21" cy="21" r="15.9" fill="none" stroke="#c0912f" stroke-width="7" stroke-dasharray="5 95" stroke-dashoffset="-70"></circle>
-            <text x="21" y="20" text-anchor="middle" font-size="6" font-weight="800" fill="var(--ink)">$30M</text>
-            <text x="21" y="26" text-anchor="middle" font-size="3.2" fill="var(--muted)">Total</text>
-          </svg>
-          <div class="cat-leg">
-            <div class="cl"><span class="sw" style="background:#3f6f9c"></span><span class="cn">Vinos</span><span class="cp">42%</span><span class="cm">$12.6M</span></div>
-            <div class="cl"><span class="sw" style="background:#6b5bd0"></span><span class="cn">Espirituosas</span><span class="cp">28%</span><span class="cm">$8.4M</span></div>
-            <div class="cl"><span class="sw" style="background:#d98a3a"></span><span class="cn">Aperitivos</span><span class="cp">15%</span><span class="cm">$4.5M</span></div>
-            <div class="cl"><span class="sw" style="background:#2f8f6e"></span><span class="cn">Cervezas</span><span class="cp">10%</span><span class="cm">$3.0M</span></div>
-            <div class="cl"><span class="sw" style="background:#c0912f"></span><span class="cn">Otros</span><span class="cp">5%</span><span class="cm">$1.5M</span></div>
-          </div>
-        </div>
-      </div>
-
       <div class="card top5">
         <div class="c-h"><div class="t" style="font-size:14px">Top vendedores <span style="font-weight:500;color:var(--muted);font-size:12px">(por cartera)</span></div></div>
         <div id="top5list"><div class="t5"><span class="nm" style="color:var(--muted)">Cargando…</span></div></div>
         <div style="margin-top:8px"><a class="lnk" href="dir-vendedores.html">Ver ranking completo ›</a></div>
       </div>
-
-      <div class="card">
-        <div class="c-h"><div class="t" style="font-size:14px">Actividad reciente</div><span class="lnk">Ver toda ›</span></div>
-        <div class="actv">
-          <div class="a"><span class="av">CH</span><div><div class="an">Carolina Heluani</div><div class="as">Cerró un pedido por $950.000</div></div><span class="at">20 min</span></div>
-          <div class="a"><span class="av">NG</span><div><div class="an">Nicolás García</div><div class="as">Cobranza por $420.000</div></div><span class="at">45 min</span></div>
-          <div class="a"><span class="av">📄</span><div><div class="an">Nueva propuesta</div><div class="as">Campari Group</div></div><span class="at">1 h</span></div>
-          <div class="a"><span class="av">⏳</span><div><div class="an">Vencimiento próximo</div><div class="as">Aperol × 750ml (12 u.)</div></div><span class="at">2 h</span></div>
-        </div>
       </div>
     </div>
 
