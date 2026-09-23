@@ -444,7 +444,6 @@ body { background:transparent !important; }
     <button class="admin-tab"        id="atab-acciones"     onclick="showAdminTab('acciones')">Acciones Mensuales</button>
     <button class="admin-tab"        id="atab-fechas"       onclick="showAdminTab('fechas')">Fechas especiales</button>
     <button class="admin-tab"        id="atab-vtadmin"      onclick="showAdminTab('vtadmin')">🍷 Vinotecas</button>
-    <button class="admin-tab"        id="atab-checklists"   onclick="showAdminTab('checklists')">📋 Checklists</button>
     <button class="admin-tab"        id="atab-reset"        onclick="showAdminTab('reset')" style="color:#f87171">⚠️ Reseteo</button>
   </div>
 
@@ -1444,7 +1443,7 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
   // ── Admin tabs ─────────────────────────────────────────────────────────────────
   let adminTabsLoaded = {};
   function showAdminTab(tab) {
-    ['visitas','compromisos','acciones','fechas','vtadmin','checklists','reset'].forEach(t => {
+    ['visitas','compromisos','acciones','fechas','vtadmin','reset'].forEach(t => {
       const el = document.getElementById(`tab-${t}`);
       if (el) el.style.display = t === tab ? 'block' : 'none';
       const btn = document.getElementById(`atab-${t}`);
@@ -1460,7 +1459,6 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
     if (tab === 'fechas')      cargarAccionesFechas();
     if (tab === 'vtadmin')     initVtAdmin();
     if (tab === 'reset')       cargarVendedoresReset();
-    if (tab === 'checklists')  initChecklistAdmin();
   }
 
   // ── Compromisos admin ─────────────────────────────────────────────────────────

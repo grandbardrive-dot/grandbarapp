@@ -274,7 +274,7 @@
       <div class="fld">
         <label>Herramienta</label>
         <select id="f-herr" onchange="avisarHerr()"></select>
-        <div class="hint">Lo que el vendedor puede usar en esta sección, además de las tareas para tildar.</div>
+        <div class="hint">Lo que el vendedor puede usar en esta sección.</div>
         <div class="hint" id="f-herr-aviso" style="display:none;color:var(--amber);font-weight:700"></div>
       </div>
       <div class="row2">
@@ -305,38 +305,6 @@
     <div class="modal-foot">
       <button class="mb" onclick="cerrarModal()">Cancelar</button>
       <button class="mb primary" id="m-save" onclick="guardar()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: traer las tareas (ítems) de otra sección a esta -->
-<div class="ov" id="ov-tareas" onclick="if(event.target===this)cerrarTareas()">
-  <div class="modal" style="max-width:520px">
-    <div class="modal-head">
-      <h3>Traer tareas de otra sección</h3>
-      <div class="sub" id="tr-destino">—</div>
-      <button class="modal-x" onclick="cerrarTareas()">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="fld">
-        <label>Manual</label>
-        <select id="tr-canal" onchange="cargarSeccionesTareas()"></select>
-      </div>
-      <div class="fld">
-        <label>Zona</label>
-        <select id="tr-zona" onchange="cargarSeccionesTareas()"></select>
-      </div>
-      <div class="fld">
-        <label>Sección de la que copiar</label>
-        <select id="tr-sec" onchange="tareasInfo()"></select>
-        <div class="hint" id="tr-info">Elegí de dónde traer las tareas.</div>
-      </div>
-      <div class="hint" style="font-size:12.5px;color:var(--ink2);line-height:1.5">Las tareas se agregan al final de las que ya tiene esta sección. No se borra nada.</div>
-      <div class="msg" id="tr-msg" style="margin-top:10px"></div>
-    </div>
-    <div class="modal-foot">
-      <button class="mb" onclick="cerrarTareas()">Cancelar</button>
-      <button class="mb primary" id="tr-save" onclick="traerTareas()">Traer tareas</button>
     </div>
   </div>
 </div>
@@ -375,7 +343,6 @@
         <div id="cp-info">Contando…</div>
       </div>
       <div class="fld" style="margin-top:15px">
-        <label class="sw"><input type="checkbox" id="cp-items" checked> Copiar también las tareas para tildar</label>
         <div class="hint">Son los ítems del checklist de cada sección.</div>
       </div>
       <div class="hint" id="cp-destino" style="font-size:12.5px;color:var(--ink2);line-height:1.5"></div>
@@ -419,7 +386,7 @@
   // ítems para tildar. Se guarda en la columna 'especial'. Los valores que arrancan con
   // "w:" los resuelve visita.html por nombre; los otros son los códigos de siempre.
   const HERRAMIENTAS=[
-    { v:'',                     t:'Ninguna (solo tareas y observaciones)' },
+    { v:'',                     t:'Ninguna (solo el texto y las observaciones)' },
     { v:'w:propuestas_vino',    t:'Propuestas de incorporación · Vinos' },
     { v:'w:propuestas_spirit',  t:'Propuestas de incorporación · Spirits' },
     { v:'w:propuestas_futuras', t:'Propuestas · Futuras incorporaciones' },
@@ -682,68 +649,6 @@
   // ── Traer las TAREAS de otra sección (de este manual o de otro) ──────────────
   // Sirve cuando una sección ya existe y solo faltan sus ítems: se agregan al final,
   // sin tocar los que ya tiene.
-  let _trDestino = null, _trSecs = [], _trItems = {};
-  function abrirTareas(secId){
-    _trDestino = SECS.find(s=>s.id===secId); if(!_trDestino) return;
-    document.getElementById('tr-destino').textContent = 'Se agregan a "' + _trDestino.nombre + '"';
-    document.getElementById('tr-canal').innerHTML = CANALES.map(c=>`<option value="${c.id}"${c.id===canal?' selected':''}>${c.ico} ${esc(c.label)}</option>`).join('');
-    document.getElementById('tr-zona').innerHTML  = ZONAS.map(z=>`<option value="${z.id}"${z.id===zona?' selected':''}>${z.ico} ${esc(z.label)}</option>`).join('');
-    document.getElementById('tr-msg').textContent = '';
-    document.getElementById('ov-tareas').classList.add('open');
-    cargarSeccionesTareas();
-  }
-  function cerrarTareas(){ document.getElementById('ov-tareas').classList.remove('open'); }
-
-  // Lista las secciones del manual elegido que TIENEN tareas, con su madre adelante.
-  async function cargarSeccionesTareas(){
-    const sel = document.getElementById('tr-sec'), info = document.getElementById('tr-info'), btn = document.getElementById('tr-save');
-    const c = document.getElementById('tr-canal').value, z = document.getElementById('tr-zona').value;
-    sel.innerHTML = '<option value="">Cargando…</option>'; btn.disabled = true; info.textContent = '';
-    const { data:secs, error } = await sb.from('checklist_secciones').select('id,nombre,parent_id,orden,activa')
-      .eq('canal', c).eq('zona', z).order('orden');
-    if(error){ sel.innerHTML = '<option value="">—</option>'; info.textContent = 'No pude leer ese manual: '+error.message; return; }
-    // Tampoco se ofrecen las secciones ocultas
-    const visiblesTr = (secs || []).filter(s => s.activa !== false);
-    const madresTr = new Set(visiblesTr.filter(s => !s.parent_id).map(s => s.id));
-    _trSecs = visiblesTr.filter(s => !s.parent_id || madresTr.has(s.parent_id));
-    if(!_trSecs.length){ sel.innerHTML = '<option value="">—</option>'; info.textContent = 'Ese manual todavía no tiene secciones.'; return; }
-    const { data:its } = await sb.from('checklist_items').select('id,seccion_id,texto,descripcion,orden,activo')
-      .in('seccion_id', _trSecs.map(s=>s.id)).order('orden');
-    _trItems = {}; (its||[]).forEach(i => (_trItems[i.seccion_id] = _trItems[i.seccion_id] || []).push(i));
-    const conTareas = _trSecs.filter(s => (_trItems[s.id]||[]).length && s.id !== (_trDestino||{}).id);
-    if(!conTareas.length){ sel.innerHTML = '<option value="">—</option>'; info.textContent = 'Ninguna sección de ese manual tiene tareas cargadas.'; return; }
-    const nombreDe = s => { const m = s.parent_id ? _trSecs.find(x=>x.id===s.parent_id) : null; return (m ? m.nombre + ' › ' : '') + s.nombre; };
-    sel.innerHTML = conTareas.map(s=>`<option value="${s.id}">${esc(nombreDe(s))} (${(_trItems[s.id]||[]).length})</option>`).join('');
-    btn.disabled = false; tareasInfo();
-  }
-  function tareasInfo(){
-    const id = document.getElementById('tr-sec').value;
-    const its = _trItems[id] || [];
-    document.getElementById('tr-info').textContent = its.length
-      ? 'Se van a copiar ' + its.length + (its.length>1?' tareas: ':' tarea: ') + its.slice(0,3).map(i=>i.texto||'(sin texto)').join(' · ') + (its.length>3?'…':'')
-      : 'Elegí de dónde traer las tareas.';
-  }
-  async function traerTareas(){
-    const id = document.getElementById('tr-sec').value;
-    const its = _trItems[id] || [];
-    const msg = document.getElementById('tr-msg'), btn = document.getElementById('tr-save');
-    if(!_trDestino || !its.length) return;
-    msg.style.color='var(--ink2)'; msg.textContent='Copiando…'; btn.disabled=true;
-    try{
-      const yaHay = itemsDe(_trDestino.id);
-      let orden = yaHay.length ? Math.max(...yaHay.map(i=>i.orden||0)) + 1 : 0;
-      const nuevos = its.map(i => ({ seccion_id: _trDestino.id, texto: i.texto || '', descripcion: i.descripcion || '', orden: orden++, activo: i.activo !== false }));
-      const { error } = await sb.from('checklist_items').insert(nuevos);
-      if(error) throw error;
-      cerrarTareas();
-      alert('Listo: se trajeron ' + nuevos.length + (nuevos.length>1?' tareas a "':' tarea a "') + _trDestino.nombre + '".');
-      await cargar();
-      const w = document.getElementById('items-'+_trDestino.id); if(w) w.classList.add('open');
-    }catch(e){
-      msg.style.color='#c0392b'; msg.textContent='No se pudo copiar: '+(e.message||e);
-    }finally{ btn.disabled=false; }
-  }
-
   // ── Copiar la estructura de OTRO RUBRO al manual que estoy editando ──────────
   // Distinto de copiarDeMendoza: ahí se copia el mismo rubro entre zonas y solo con la
   // zona vacía. Acá se trae el armado de otro rubro (ej: Vinotecas → Tienda de Bebidas)
@@ -758,7 +663,6 @@
     const otraZona = (ZONAS.find(z=>z.id!==zona)||ZONAS[0]).id;
     document.getElementById('cp-zona').innerHTML = ZONAS
       .map(z=>`<option value="${z.id}"${z.id===otraZona?' selected':''}>${z.ico} ${esc(z.label)}</option>`).join('');
-    document.getElementById('cp-items').checked = true;
     document.getElementById('cp-msg').textContent = '';
     document.getElementById('cp-destino').innerHTML =
       `Las secciones se agregan al manual de <b>${esc(canalActual().label)}</b> de <b>${esc(zonaActual().label)}</b>, después de las que ya tenés. No se borra ni se pisa nada.`;
@@ -868,7 +772,7 @@
     modo = modo === 'reemplazar' ? 'reemplazar' : 'agregar';
     const cOrig = document.getElementById('cp-canal').value;
     const zOrig = document.getElementById('cp-zona').value;
-    const conItems = document.getElementById('cp-items').checked;
+    const conItems = false;   // los manuales ya no llevan tareas para tildar (23/09/2026)
     const msg = document.getElementById('cp-msg'), btn = document.getElementById('cp-save');
     const btnR = document.getElementById('cp-reemplazar');
     if(!cOrig) return;
@@ -886,7 +790,7 @@
         const m = SECS.find(x=>x.nombre===n && !x.parent_id);
         const h = m ? hijas(m).length : 0;
         const t = m ? [m, ...hijas(m)].reduce((a,s)=>a+itemsDe(s.id).length, 0) : 0;
-        return `• ${n}: ${h} ${h===1?'subsección':'subsecciones'} y ${t} ${t===1?'tarea':'tareas'}`;
+        return `• ${n}: ${h} ${h===1?'subsección':'subsecciones'}${t ? ` y ${t} ${t===1?'tarea':'tareas'}` : ''}`;
       }).join('\n');
       if(!confirm(`Se va a BORRAR el contenido de:\n\n${detalle}\n\ny queda lo que copiés del otro manual.\n\nNo se puede deshacer. ¿Seguir?`)) return;
     }
@@ -1025,39 +929,11 @@
     return `<span class="tag uso" title="Marcados en esta sección: ${esc(det)}">${rs.length} cargado${rs.length>1?'s':''} acá</span>`;
   }
   const itemsDe = id => (ITEMS[id]||[]).slice().sort((a,b)=>(a.orden||0)-(b.orden||0));
-  function tagItems(s){ const n=itemsDe(s.id).filter(i=>i.activo!==false).length; return n? `<span class="tag">${n} ítem${n>1?'s':''}</span>`:''; }
-
-  // Panel de ítems: lo que el vendedor tilda dentro de esa sección durante la visita.
-  function itemsHTML(sec){
-    const its = itemsDe(sec.id);
-    return `<div class="items-wrap" id="items-${sec.id}">
-      <div class="items-t">☑️ Ítems del checklist — ${esc(sec.nombre)}</div>
-      ${its.length ? its.map((it,k)=>`
-        <div class="it ${it.activo===false?'off':''}" id="it-${it.id}">
-          <div class="it-check"></div>
-          <div class="it-campos">
-            <input class="it-tx" value="${esc(it.texto||'')}" placeholder="Qué tiene que hacer o preguntar el vendedor"
-                   onchange="guardarItem('${it.id}','texto',this.value)">
-            <input class="it-de" value="${esc(it.descripcion||'')}" placeholder="Detalle o ayuda (opcional)"
-                   onchange="guardarItem('${it.id}','descripcion',this.value)">
-          </div>
-          <div class="it-acts">
-            <button class="ab icon" title="Subir" onclick="moverItem('${sec.id}','${it.id}',-1)" ${k===0?'disabled style="opacity:.35"':''}>↑</button>
-            <button class="ab icon" title="Bajar" onclick="moverItem('${sec.id}','${it.id}',1)" ${k===its.length-1?'disabled style="opacity:.35"':''}>↓</button>
-            <button class="ab" onclick="toggleItem('${it.id}')">${it.activo===false?'Mostrar':'Ocultar'}</button>
-            <button class="ab danger" title="Eliminar" onclick="borrarItem('${it.id}')">✕</button>
-          </div>
-        </div>`).join('')
-        : '<div class="items-vacio">Esta sección todavía no tiene ítems. Agregá el primero abajo.</div>'}
-      <button class="items-add" onclick="agregarItem('${sec.id}')">+ Agregar ítem</button>
-      <button class="items-add" style="margin-left:8px" onclick="abrirTareas('${sec.id}')">📋 Traer tareas de otra sección</button>
-      <div class="items-nota">El texto se guarda solo al salir del campo. Los ítems ocultos no le aparecen al vendedor, pero no se pierden.</div>
-    </div>`;
-  }
-  function verItems(id){
-    const w = document.getElementById('items-'+id);
-    if(w) w.classList.toggle('open');
-  }
+  // Los manuales ya no llevan tareas para tildar (23/09/2026): se sacaron de la
+  // visita y de este panel. Quedan las secciones, sus textos y su herramienta.
+  function tagItems(){ return ''; }
+  function itemsHTML(){ return ''; }
+  function verItems(){}
 
   function renderLista(){
     const ms=madres();
@@ -1083,7 +959,6 @@
                 ${h.descripcion?`<div class="sub-desc">${esc(h.descripcion)}</div>`:''}
               </div>
               <div class="acts">
-                <button class="ab" onclick="verItems('${h.id}')">☑️ Ítems (${itemsDe(h.id).length})</button>
                 <button class="ab" onclick="abrirEdicion('${h.id}')">Editar</button>
                 <button class="ab" onclick="toggleActiva('${h.id}')">${h.activa===false?'Mostrar':'Ocultar'}</button>
                 <button class="ab danger" onclick="borrar('${h.id}')">Eliminar</button>
@@ -1099,7 +974,6 @@
             ${m.descripcion?`<div class="sec-desc">${esc(m.descripcion)}</div>`:''}
           </div>
           <div class="acts">
-            <button class="ab" onclick="verItems('${m.id}')">☑️ Ítems (${itemsDe(m.id).length})</button>
             <button class="ab" onclick="abrirNueva('${m.id}')">+ Subsección</button>
             <button class="ab" onclick="abrirEdicion('${m.id}')">Editar</button>
             <button class="ab" onclick="toggleActiva('${m.id}')">${m.activa===false?'Mostrar':'Ocultar'}</button>

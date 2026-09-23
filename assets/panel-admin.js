@@ -18,7 +18,6 @@ const PANEL_HERRAMIENTAS = [
   { i:'🍾', n:'Catálogo',          r:'manual-vendedores/admin-catalogo.html' },
   { i:'📣', n:'Campañas y planes', r:'manual-vendedores/admin-campanias.html' },
   { i:'🧱', n:'Secciones del manual', r:'manual-vendedores/admin-secciones.html' },
-  { i:'📋', n:'Checklists',        r:'manual-vendedores/admin.html?tab=checklists' },
   { i:'🤝', n:'Compromisos',       r:'manual-vendedores/admin.html?tab=compromisos' },
   { i:'📍', n:'Visitas',           r:'manual-vendedores/admin.html?tab=visitas' },
   { i:'⬆️', n:'Importar clientes', r:'manual-vendedores/admin-importar.html' },

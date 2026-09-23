@@ -1,6 +1,6 @@
 // ── Sidebar compartido del panel de Marketing ──────────────────────────────
 // Uso: <div id="sidebar"></div> + renderSidebar('materiales')
-// Un solo lugar para el menú: Inicio, Campañas, Materiales, Checklists,
+// Un solo lugar para el menú: Inicio, Campañas, Materiales,
 // Compromisos, Proveedores, Usuarios, Configuración.
 (function () {
   const ICONS = {
@@ -24,7 +24,7 @@
     { key:'material',    label:'Nuevo material',  sub:'Alta con foto',           href:'admin-material-nuevo.html' },
     { key:'proveedores', label:'Catálogo',        sub:'Proveedores y productos', href:'admin-catalogo.html' },
     { key:'campanias',   label:'Campañas',        sub:'Acciones comerciales',    href:'admin-campanias.html' },
-    { key:'checklists',  label:'Panel clásico',   sub:'Visitas y compromisos',   href:'admin.html?tab=checklists' },
+    { key:'checklists',  label:'Panel clásico',   sub:'Visitas y compromisos',   href:'admin.html?tab=visitas' },
     { key:'desarrollo',  label:'Panel de Desarrollo', sub:'Sistema y usuarios',  href:'/panel-desarrollo.html' },
   ];
 
