@@ -45,9 +45,11 @@
       <button class="acc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Acción rápida</button>
     </div>
 
-    <div class="tabs">
-      <a class="on" href="#">Resumen</a><a href="#">Cashflow</a><a href="#">Cuenta corriente</a><a href="#">Pagos</a><a href="#">Presupuesto</a><a href="#">Impuestos</a><a href="#">Contabilidad</a><a href="#">Activos</a>
+    <div class="tabs" id="adm-tabs">
+      <a class="on" href="#" onclick="admTab('resumen',this);return false">Resumen</a><a href="#">Cashflow</a><a href="#">Cuenta corriente</a><a href="#">Pagos</a><a href="#">Presupuesto</a><a href="#">Impuestos</a><a href="#">Contabilidad</a><a href="#">Activos</a><a href="#" onclick="admTab('wa',this);return false">WhatsApp cobranzas</a>
     </div>
+
+    <div id="panel-resumen">
 
     <div class="kpis">
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--green)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.4-1.1 1.8-2.5 2.5s-2.5 1.1-2.5 2.5a2.5 2.5 0 0 0 5 0"/></svg></span><span class="lbl">Disponibilidad de caja</span></div><div class="v">$24.560.000</div><div class="sub up">▲ 12,4% vs ayer</div></div>
@@ -57,11 +59,6 @@
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--teal)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14h18V6l-3-4z"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span><span class="lbl">Resultado del mes</span></div><div class="v">$15.840.000</div><div class="sub">Margen 28,4%</div></div>
       <div class="kpi"><div class="hd"><span class="ic" style="background:var(--gold)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></span><span class="lbl">Endeudamiento</span></div><div class="v">18,7%</div><div class="sub up">Nivel saludable</div></div>
     </div>
-
-    <!-- KPIs reales de la atención por WhatsApp (bandeja de Cobranzas de Brenda) -->
-    <div class="c-h" style="margin-top:28px"><div class="t">Atención por WhatsApp — Cobranzas <small>En vivo desde la bandeja</small></div></div>
-    <div class="kpis" id="wa-kpis"><div class="kpi"><div class="hd"><span class="lbl">Cargando…</span></div><div class="v">·</div></div></div>
-    <div class="card" id="wa-riesgo" style="margin-top:14px;display:none"></div>
 
     <div class="g-3">
       <div class="card">
@@ -155,6 +152,15 @@
       <span class="ia-chip">🤝 Consolidar pagos con Campari y Diageo →</span>
       <span class="ia-chip">⚡ Acelerar la cobranza de 12 clientes →</span>
     </div>
+    </div><!-- /panel-resumen -->
+
+    <!-- Pestaña WhatsApp cobranzas: KPIs reales de la bandeja de Brenda -->
+    <div id="panel-wa" style="display:none">
+      <div class="c-h" style="margin-top:6px"><div class="t">Atención por WhatsApp — Cobranzas <small>En vivo desde la bandeja de Brenda</small></div><a href="panel-cobranzas.html" style="font-size:12px;color:var(--gold-d);text-decoration:none;font-weight:700">Abrir la bandeja →</a></div>
+      <div class="kpis" id="wa-kpis"><div class="kpi"><div class="hd"><span class="lbl">Cargando…</span></div><div class="v">·</div></div></div>
+      <div class="card" id="wa-riesgo" style="margin-top:16px;display:none"></div>
+      <div class="foot" style="margin-top:10px">La ventana de 24 h es una regla de WhatsApp (Meta): pasado ese plazo desde el último mensaje del cliente, solo se puede responder con una plantilla aprobada.</div>
+    </div>
 
     <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
   </div></div>
@@ -168,6 +174,13 @@
 <script src="/assets/minuta-fab.js?v=2"></script>
 <script src="/assets/cuenta-activa.js?v=1"></script>
 <script>
+// Cambio entre la pestaña Resumen y la pestaña WhatsApp cobranzas.
+window.admTab = function (which, el) {
+  var r = document.getElementById('panel-resumen'), w = document.getElementById('panel-wa');
+  if (r) r.style.display = (which === 'wa') ? 'none' : '';
+  if (w) w.style.display = (which === 'wa') ? '' : 'none';
+  if (el && el.parentNode) { var as = el.parentNode.querySelectorAll('a'); for (var i = 0; i < as.length; i++) as[i].classList.remove('on'); el.classList.add('on'); }
+};
 // ── KPIs reales de la atención por WhatsApp (lee la misma bandeja de Brenda) ──
 (function () {
   var box = document.getElementById('wa-kpis'); if (!box || !window.supabase) return;
