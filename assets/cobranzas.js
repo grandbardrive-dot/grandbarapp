@@ -331,9 +331,13 @@ async function cobComprobantes(dias) {
   } catch (e) { cq('sup-cont').innerHTML = cerror(e.message); }
 }
 
-// ── 3 · WhatsApp ───────────────────────────────────────────
-// Bandeja: respuestas de los clientes + estado de los envíos (lee wa_eventos).
-let _waConvs = [];
+// ── 3 · WhatsApp — bandeja estilo WhatsApp Web ──────────────
+// Respuestas de los clientes + estado de envíos (lee wa_eventos vía cobranzas-panel).
+// Regla de Meta: solo se puede responder con TEXTO libre dentro de las 24 hs del
+// último mensaje del cliente; pasado ese plazo, solo con plantilla aprobada.
+let _waConvs = [], _waSel = -1, _waFiltro = 'todas', _waBusca = '';
+const WA_24H = 24 * 60; // minutos
+
 function waFecha(v) {
   if (!v) return ''; const d = new Date(v); if (isNaN(d)) return '';
   return d.toDateString() === new Date().toDateString()
@@ -341,41 +345,149 @@ function waFecha(v) {
     : d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 function waEstado(e) { return ({ sent: 'Enviado', delivered: 'Entregado', read: 'Leído', failed: 'Falló' }[e] || e || ''); }
+
+// Ventana de 24 hs desde el último mensaje ENTRANTE del cliente.
+function waVentana(c) {
+  const ins = (c.mensajes || []).filter(m => m.dir === 'in' && m.fecha);
+  if (!ins.length) return { sinEntrantes: true, abierta: false, cerrada: false, porCerrar: false, mins: 0 };
+  const ult = ins.reduce((a, b) => (a.fecha > b.fecha ? a : b)).fecha;
+  const mins = Math.floor(WA_24H - (Date.now() - new Date(ult).getTime()) / 60000);
+  return { ultimoIn: ult, mins, abierta: mins > 0, porCerrar: mins > 0 && mins <= 180, cerrada: mins <= 0, sinEntrantes: false };
+}
+function waRestTxt(m) { if (m <= 0) return 'cerrada'; const h = Math.floor(m / 60), mm = m % 60; return h ? `${h} h ${mm} min` : `${mm} min`; }
+// La última de la conversación la escribió el cliente → falta responder.
+function waSinResponder(c) { const m = c.mensajes || []; return !!(m.length && m[m.length - 1].dir === 'in'); }
+function waIniciales(s) { const t = String(s || '').trim(); if (!t) return '#'; const p = t.split(/\s+/); return ((p[0][0] || '') + (p[1] ? p[1][0] : '')).toUpperCase(); }
+function waBuscaOk(c) { if (!_waBusca) return true; const q = _waBusca.toLowerCase(); return (String(c.cliente || '') + ' ' + String(c.telefono || '') + ' ' + String(c.codigo || '')).toLowerCase().includes(q); }
+function waPasaFiltro(c) {
+  const v = waVentana(c), sr = waSinResponder(c);
+  if (_waFiltro === 'sin') return sr;
+  if (_waFiltro === 'pcerr') return sr && v.porCerrar;
+  if (_waFiltro === 'cerr') return sr && v.cerrada;
+  return true;
+}
+
 async function cobWhatsapp() {
-  cq('cob').innerHTML = cobCabecera('WhatsApp', 'Respuestas de los clientes y estado de los mensajes enviados.') +
-    `<div id="wa-lista"><div class="pv-vacio">Cargando…</div></div>`;
+  cq('cob').innerHTML = cobCabecera('WhatsApp', 'Bandeja de cobranzas — respuestas de los clientes y estado de los envíos.')
+    + `<div id="wa-root"><div class="pv-vacio">Cargando…</div></div>`;
   try {
     const d = await cobApi('?que=whatsapp');
     _waConvs = d.conversaciones || [];
-    if (!_waConvs.length) { cq('wa-lista').innerHTML = `<div class="pv-vacio">Todavía no hay mensajes de WhatsApp.</div>`; return; }
-    cq('wa-lista').innerHTML = `<table class="cb-tabla"><thead><tr><th>Cliente</th><th>Último mensaje</th><th>Cuándo</th><th>Envío</th></tr></thead><tbody>` +
-      _waConvs.map((c, i) => `<tr style="cursor:pointer" onclick="cobWaChat(${i})">
-        <td><b>${cesc(c.cliente || c.telefono)}</b>${c.codigo ? `<div style="font-size:11px;color:var(--muted)">Cód. ${cesc(c.codigo)}</div>` : ''}</td>
-        <td>${c.entrantes ? '💬 ' + cesc(c.ultimoTexto || '') : '<span style="color:var(--muted)">— sin respuesta —</span>'}</td>
-        <td style="white-space:nowrap">${waFecha(c.ultimaFecha)}</td>
-        <td>${c.error ? '<span class="rojo">⚠️ Falló</span>' : cesc(waEstado(c.ultimoEstado))}</td>
-      </tr>`).join('') + `</tbody></table>`;
-  } catch (e) { cq('wa-lista').innerHTML = cerror(e.message); }
+    _waSel = -1;
+    waRender();
+  } catch (e) { const r = cq('wa-root'); if (r) r.innerHTML = cerror(e.message); }
 }
-function cobWaChat(i) {
-  const c = _waConvs[i]; if (!c) return;
-  const burbujas = (c.mensajes || []).map(m => `<div style="max-width:75%;padding:8px 11px;border-radius:12px;font-size:13.5px;line-height:1.4;white-space:pre-wrap;word-break:break-word;${m.dir === 'in' ? 'background:#fff;align-self:flex-start;border:1px solid var(--line)' : 'background:#d9fdd3;align-self:flex-end'}">${cesc(m.texto)}<div style="font-size:10.5px;color:var(--muted);text-align:right;margin-top:3px">${waFecha(m.fecha)}</div></div>`).join('')
-    || `<div class="pv-vacio">Este cliente todavía no respondió. Acá vas a ver sus respuestas.</div>`;
-  cq('cob').innerHTML = `<button class="cb-volver" onclick="cobWhatsapp()">‹ Volver a WhatsApp</button>` +
-    cobCabecera(c.cliente || c.telefono, cesc(c.telefono) + (c.codigo ? ' · Cód. ' + cesc(c.codigo) : '')) +
-    `<div style="display:flex;flex-direction:column;gap:5px;padding:16px;background:#efe7d8;border-radius:14px;max-height:52vh;overflow:auto">${burbujas}</div>
-     <div style="display:flex;gap:8px;margin-top:10px">
-       <textarea id="wa-resp" rows="2" placeholder="Escribí tu respuesta…" style="flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13.5px;resize:vertical"></textarea>
-       <button class="cb-b on" style="padding:0 18px" onclick="cobWaResponder(${i})">Enviar</button>
-     </div>
-     <div id="wa-resp-msg" class="pv-vacio" style="text-align:left;margin-top:6px;font-size:12.5px">${c.error ? '⚠️ Último envío: ' + cesc(c.error) + '. ' : ''}Se puede responder por texto solo dentro de las 24 hs del último mensaje del cliente.</div>`;
+
+function waRender() {
+  const root = cq('wa-root'); if (!root) return;
+  const total = _waConvs.length;
+  const sin = _waConvs.filter(waSinResponder).length;
+  const pcerr = _waConvs.filter(c => waSinResponder(c) && waVentana(c).porCerrar).length;
+  const cerr = _waConvs.filter(c => waSinResponder(c) && waVentana(c).cerrada).length;
+  root.innerHTML = `
+    <div class="wa-nota">📋 <b>Cómo funciona:</b> WhatsApp (Meta) solo te deja responder con <b>texto libre dentro de las 24 hs</b> del último mensaje del cliente. Pasado ese plazo la ventana se <b>cierra</b> y solo se puede escribir con una <b>plantilla aprobada</b>. Atendé primero lo marcado en <b style="color:var(--gold-d)">ámbar</b> (por cerrar) para que no pase a <b style="color:var(--red)">rojo</b>.</div>
+    <div class="wa-stats">
+      <div class="wa-stat"><div class="n">${total}</div><div class="l">Conversaciones</div></div>
+      <div class="wa-stat verde"><div class="n">${sin}</div><div class="l">Sin responder</div></div>
+      <div class="wa-stat ambar"><div class="n">${pcerr}</div><div class="l">Ventana por cerrar</div></div>
+      <div class="wa-stat rojo"><div class="n">${cerr}</div><div class="l">Ya no podés responder</div></div>
+    </div>
+    <div class="wa-app" id="wa-app">
+      <div class="wa-side">
+        <div class="wa-side-top">
+          <input class="wa-search" id="wa-q" placeholder="Buscar cliente, teléfono o código…" value="${cesc(_waBusca)}" oninput="waBuscar(this.value)">
+          <div class="wa-filtros">
+            <button class="wa-chip ${_waFiltro === 'todas' ? 'on' : ''}" onclick="waSetFiltro('todas')">Todas <b>${total}</b></button>
+            <button class="wa-chip ${_waFiltro === 'sin' ? 'on' : ''}" onclick="waSetFiltro('sin')">Sin responder <b>${sin}</b></button>
+            <button class="wa-chip ${_waFiltro === 'pcerr' ? 'on' : ''}" onclick="waSetFiltro('pcerr')">Por cerrar <b>${pcerr}</b></button>
+            <button class="wa-chip ${_waFiltro === 'cerr' ? 'on' : ''}" onclick="waSetFiltro('cerr')">Cerradas <b>${cerr}</b></button>
+          </div>
+        </div>
+        <div class="wa-list" id="wa-list"></div>
+      </div>
+      <div class="wa-chat" id="wa-chat"></div>
+    </div>`;
+  waLista(); waChatPane();
+  if (_waSel >= 0) { const app = document.getElementById('wa-app'); if (app) app.classList.add('abierto'); }
 }
+
+function waLista() {
+  const box = document.getElementById('wa-list'); if (!box) return;
+  const items = _waConvs.map((c, i) => ({ c, i })).filter(o => waBuscaOk(o.c) && waPasaFiltro(o.c));
+  if (!items.length) { box.innerHTML = `<div class="pv-vacio" style="padding:26px 14px">No hay conversaciones${(_waFiltro !== 'todas' || _waBusca) ? ' con ese filtro' : ''}.</div>`; return; }
+  box.innerHTML = items.map(({ c, i }) => {
+    const v = waVentana(c), sr = waSinResponder(c), nom = c.cliente || c.telefono;
+    const prev = c.entrantes ? (c.ultimoTexto || '') : '— sin respuesta —';
+    const m = c.mensajes || []; const preIco = (m.length && m[m.length - 1].dir === 'out') ? '✓ ' : '';
+    let pill = '';
+    if (sr && v.cerrada) pill = `<span class="wa-pill cerr">🔒 cerrada</span>`;
+    else if (sr && v.porCerrar) pill = `<span class="wa-pill pcerr">⏳ ${waRestTxt(v.mins)}</span>`;
+    else if (sr) pill = `<span class="wa-pill nuevo">responder</span>`;
+    return `<div class="wa-conv ${i === _waSel ? 'sel' : ''}" onclick="waAbrir(${i})">
+      <div class="wa-av">${cesc(waIniciales(nom))}</div>
+      <div class="wa-cm">
+        <div class="wa-cm-top"><span class="wa-cm-nom">${cesc(nom)}</span><span class="wa-cm-hora">${waFecha(c.ultimaFecha)}</span></div>
+        <div class="wa-cm-bot"><span class="wa-cm-prev">${cesc(preIco + prev)}</span>${pill}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function waBurbujas(msgs) {
+  if (!msgs.length) return `<div class="wa-empty"><div>Este cliente todavía no respondió. Acá van a aparecer sus mensajes.</div></div>`;
+  let out = '', dia = '';
+  for (const m of msgs) {
+    const d = m.fecha ? new Date(m.fecha) : null;
+    const diaTxt = d && !isNaN(d) ? d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
+    if (diaTxt && diaTxt !== dia) { dia = diaTxt; out += `<div class="wa-day">${diaTxt}</div>`; }
+    const hora = d && !isNaN(d) ? d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '';
+    out += `<div class="wa-msg ${m.dir === 'in' ? 'in' : 'out'}">${cesc(m.texto || '')}<div class="h">${hora}</div></div>`;
+  }
+  return out;
+}
+
+function waChatPane() {
+  const pane = document.getElementById('wa-chat'); if (!pane) return;
+  if (_waSel < 0 || !_waConvs[_waSel]) {
+    pane.innerHTML = `<div class="wa-empty"><div class="ico">💬</div><div>Elegí una conversación de la izquierda para ver el chat y responder.</div></div>`;
+    return;
+  }
+  const c = _waConvs[_waSel], v = waVentana(c);
+  let vent;
+  if (v.sinEntrantes) vent = `<div class="wa-vent pcerr">Este cliente todavía no te escribió. Solo podés iniciarle la conversación con una plantilla aprobada.</div>`;
+  else if (v.cerrada) vent = `<div class="wa-vent cerr">🔒 Ventana cerrada — pasaron más de 24 hs desde el último mensaje del cliente. Meta no permite responder por texto; solo con una plantilla aprobada.</div>`;
+  else if (v.porCerrar) vent = `<div class="wa-vent pcerr">⏳ La ventana cierra en ${waRestTxt(v.mins)}. Respondé ahora lo que tengas pendiente.</div>`;
+  else vent = `<div class="wa-vent abi">✓ Ventana abierta — podés responder libremente por ${waRestTxt(v.mins)} más.</div>`;
+  const puede = v.abierta;
+  pane.innerHTML = `
+    <div class="wa-chat-head">
+      <button class="wa-back" onclick="waCerrar()">‹</button>
+      <div class="wa-av">${cesc(waIniciales(c.cliente || c.telefono))}</div>
+      <div style="min-width:0"><div class="nom">${cesc(c.cliente || c.telefono)}</div>
+        <div class="sub">${cesc(c.telefono || '')}${c.codigo ? ' · Cód. ' + cesc(c.codigo) : ''} · Último envío: ${c.error ? '<span style="color:var(--red)">falló</span>' : (cesc(waEstado(c.ultimoEstado)) || '—')}</div></div>
+    </div>
+    ${vent}
+    <div class="wa-body" id="wa-body">${waBurbujas(c.mensajes || [])}</div>
+    <div id="wa-err" class="wa-vent cerr" style="display:none"></div>
+    <div class="wa-compose">
+      <textarea class="wa-ta" id="wa-resp" rows="1" placeholder="${puede ? 'Escribí tu respuesta…' : 'Ventana cerrada — solo con plantilla aprobada'}" ${puede ? '' : 'disabled'} oninput="waAutoGrow(this)"></textarea>
+      <button class="wa-send" id="wa-send" ${puede ? '' : 'disabled'} title="Enviar" onclick="cobWaResponder(${_waSel})">➤</button>
+    </div>`;
+  const body = document.getElementById('wa-body'); if (body) body.scrollTop = body.scrollHeight;
+}
+
+function waAbrir(i) { _waSel = i; const app = document.getElementById('wa-app'); if (app) app.classList.add('abierto'); waLista(); waChatPane(); }
+function waCerrar() { _waSel = -1; const app = document.getElementById('wa-app'); if (app) app.classList.remove('abierto'); waLista(); waChatPane(); }
+function waSetFiltro(f) { _waFiltro = f; waRender(); }
+function waBuscar(v) { _waBusca = v; waLista(); }
+function waAutoGrow(t) { t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 120) + 'px'; }
+
 async function cobWaResponder(i) {
   const c = _waConvs[i]; if (!c) return;
-  const ta = document.getElementById('wa-resp'), msg = document.getElementById('wa-resp-msg');
+  const ta = document.getElementById('wa-resp'), err = document.getElementById('wa-err'), send = document.getElementById('wa-send');
   const texto = (ta && ta.value || '').trim(); if (!texto) { if (ta) ta.focus(); return; }
-  const aviso = (t, err) => { if (msg) { msg.textContent = t; msg.style.color = err ? '#c0392b' : ''; } };
-  aviso('Enviando…');
+  const aviso = (t) => { if (err) { err.textContent = t; err.style.display = t ? 'block' : 'none'; } };
+  aviso(''); if (send) send.disabled = true;
   try {
     const r = await fetch('https://grandbar-gestioncuenta.netlify.app/.netlify/functions/wa-responder', {
       method: 'POST', headers: { Authorization: 'Bearer ' + COB_TOKEN, 'Content-Type': 'application/json' },
@@ -384,12 +496,14 @@ async function cobWaResponder(i) {
     const j = await r.json();
     if (!j.ok) {
       const fuera = /24|reengag|window|outside/i.test(j.error || '');
-      aviso('No se pudo enviar: ' + (j.error || 'error') + (fuera ? ' — pasaron más de 24 hs desde el último mensaje del cliente; ahí solo se puede con una plantilla.' : ''), true);
+      aviso('No se pudo enviar: ' + (j.error || 'error') + (fuera ? ' — pasaron más de 24 hs; ahí solo se puede con una plantilla aprobada.' : ''));
+      if (send) send.disabled = false;
       return;
     }
     c.mensajes.push({ dir: 'out', texto, fecha: new Date().toISOString() });
-    ta.value = ''; cobWaChat(i);
-  } catch (e) { aviso('Error de conexión: ' + (e.message || e), true); }
+    c.ultimaFecha = new Date().toISOString(); c.ultimoEstado = 'sent';
+    waChatPane(); waLista();
+  } catch (e) { aviso('Error de conexión: ' + (e.message || e)); if (send) send.disabled = false; }
 }
 
 // ── 4 · Estadísticas ───────────────────────────────────────
