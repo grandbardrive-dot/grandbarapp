@@ -54,6 +54,16 @@
     // Marca para hub-nav.js: si el menú es de supervisor, el de vendedor no lo pisa.
     window.__gbSupNav = true;
     try { document.documentElement.classList.add("gb-sup"); } catch (e) {}
+    // Con 20 opciones el menú es más alto que la pantalla: el fondo azul llegaba
+    // hasta la mitad y el resto quedaba sobre el fondo claro. La barra ahora se
+    // desplaza por dentro y las opciones van un poco más juntas (25/09/2026).
+    if (!document.getElementById("gb-sup-estilo")) {
+      var st = document.createElement("style"); st.id = "gb-sup-estilo";
+      st.textContent = ".gb-sup .sidebar{overflow-y:auto;overscroll-behavior:contain}"
+        + ".gb-sup .sb-nav a{padding-top:8px!important;padding-bottom:8px!important}"
+        + ".gb-sup .sidebar .sb-foot{position:static}";
+      document.head.appendChild(st);
+    }
     document.querySelectorAll(".sb-user .s").forEach(function (el) { if (/^\s*Vendedor\s*$/.test(el.textContent)) el.textContent = "Supervisor"; });
     // Netlify sirve las páginas sin ".html": se compara sin la extensión. Y
     // "Clientes del equipo" y "Mis clientes" son la misma pantalla con distinta
