@@ -414,10 +414,14 @@ exports.handler = async (event) => {
           c.entrantes++;
           if (!c.ultimaFecha || fecha > c.ultimaFecha) { c.ultimaFecha = fecha; c.ultimoTexto = textoDe(e.crudo); }
         } else if (e.tipo === 'saliente') {
-          // Respuesta que mandamos nosotros desde la bandeja.
+          // Respuesta que mandamos nosotros desde la bandeja (o plantilla registrada).
           const fecha = e.created_at;
           c.mensajes.push({ dir: 'out', texto: textoDe(e.crudo), fecha });
           if (!c.ultimaFecha || fecha > c.ultimaFecha) { c.ultimaFecha = fecha; }
+          // Nombre/código de respaldo: si el teléfono no está vinculado en la base,
+          // usamos el que guardó el envío de la plantilla.
+          if (e.crudo && e.crudo.nombre && !c.nombreFallback) c.nombreFallback = e.crudo.nombre;
+          if (e.crudo && e.crudo.codigo && !c.codigoFallback) c.codigoFallback = e.crudo.codigo;
         } else if (e.tipo === 'status') {
           if (!c.ultimoEstado) c.ultimoEstado = e.estado;
           if (e.estado === 'failed' && !c.error) c.error = e.error_titulo || e.error_detalle || 'Falló el envío';
@@ -427,7 +431,7 @@ exports.handler = async (event) => {
       const conversaciones = [...conv.values()].map(c => {
         const info = dir[c.key] || {};
         c.mensajes.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
-        return { telefono: c.telefono, cliente: info.nombre || null, codigo: info.codigo || null, entrantes: c.entrantes, ultimoTexto: c.ultimoTexto, ultimaFecha: c.ultimaFecha, ultimoEstado: c.ultimoEstado, error: c.error, mensajes: c.mensajes };
+        return { telefono: c.telefono, cliente: info.nombre || c.nombreFallback || null, codigo: info.codigo || c.codigoFallback || null, entrantes: c.entrantes, ultimoTexto: c.ultimoTexto, ultimaFecha: c.ultimaFecha, ultimoEstado: c.ultimoEstado, error: c.error, mensajes: c.mensajes };
       }).sort((a, b) => String(b.ultimaFecha || '').localeCompare(String(a.ultimaFecha || '')));
       return json(200, { conversaciones });
     }
