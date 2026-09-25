@@ -368,6 +368,7 @@ function waPasaFiltro(c) {
 }
 
 async function cobWhatsapp() {
+  cobEscucharCambios(); _cobUltimo = Date.now();
   cq('cob').innerHTML = cobCabecera('WhatsApp', 'Bandeja de cobranzas — respuestas de los clientes y estado de los envíos.')
     + `<div id="wa-root"><div class="pv-vacio">Cargando…</div></div>`;
   try {
@@ -401,7 +402,7 @@ function waRender() {
   const root = cq('wa-root'); if (!root) return;
   const k = waContadores();
   root.innerHTML = `
-    <div class="wa-nota">📋 <b>Cómo funciona:</b> WhatsApp (Meta) solo te deja responder con <b>texto libre dentro de las 24 hs</b> del último mensaje del cliente. Pasado ese plazo la ventana se <b>cierra</b> y solo se puede escribir con una <b>plantilla aprobada</b>. Atendé primero lo marcado en <b style="color:var(--gold-d)">ámbar</b> (por cerrar) para que no pase a <b style="color:var(--red)">rojo</b>. La bandeja se actualiza sola cada ${COB_REFRESCO / 1000} segundos.</div>
+    <div class="wa-nota">📋 <b>Cómo funciona:</b> WhatsApp (Meta) solo te deja responder con <b>texto libre dentro de las 24 hs</b> del último mensaje del cliente. Pasado ese plazo la ventana se <b>cierra</b> y solo se puede escribir con una <b>plantilla aprobada</b>. Atendé primero lo marcado en <b style="color:var(--gold-d)">ámbar</b> (por cerrar) para que no pase a <b style="color:var(--red)">rojo</b>. Los mensajes nuevos aparecen solos, sin recargar la página.</div>
     <div class="wa-stats" id="wa-stats">${k.stats}</div>
     <div class="wa-app" id="wa-app">
       <div class="wa-side">
@@ -418,12 +419,36 @@ function waRender() {
 }
 
 // ── Actualización automática ────────────────────────────────
-// Los datos vienen de una function del servidor (no hay tiempo real desde el
-// navegador), así que se vuelven a pedir cada COB_REFRESCO ms mientras la
-// pestaña está a la vista. Solo se repinta lo que cambió y sin tocar lo que
-// Brenda está escribiendo (buscador, respuesta a medio escribir).
-const COB_REFRESCO = 20000;
-let _cobRefrescando = false;
+// Los datos vienen de una function del servidor (el navegador no puede leer
+// esas tablas). Para que un mensaje aparezca apenas llega:
+//  · La base de Cobranzas manda un aviso sin datos ("hubo un cambio") por un
+//    canal de Realtime cada vez que entra un WhatsApp o un mensaje de reclamo
+//    (triggers de db/avisos-realtime.sql). Al recibirlo se vuelven a pedir los
+//    datos a la function, con el mismo control de usuario y rol de siempre.
+//  · Respaldo: si el canal no está conectado, se consulta cada COB_REFRESCO ms;
+//    con el canal conectado, cada COB_REFRESCO_RT ms por las dudas.
+// Solo se repinta lo que cambió y sin tocar lo que Brenda está escribiendo
+// (buscador, respuesta a medio escribir). Con la pestaña oculta no se consulta.
+const COB_REFRESCO = 10000, COB_REFRESCO_RT = 60000;
+const COB_RT_URL = 'https://qpaoyfubyaloyhepatlm.supabase.co';
+const COB_RT_KEY = 'sb_publishable_FDuwwvOjBCAGOi1IoUHRKQ_UAD6IQaM'; // clave pública del proyecto de Cobranzas
+let _cobRefrescando = false, _cobPendiente = false, _cobUltimo = 0, _cobRT = false, _cobCanal = null, _cobAvisoT = null;
+
+function cobEscucharCambios() {
+  if (_cobCanal || !window.supabase || !window.supabase.createClient) return;
+  try {
+    const sb = window.supabase.createClient(COB_RT_URL, COB_RT_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'gb-cobranzas-avisos' },
+    });
+    _cobCanal = sb.channel('cobranzas-avisos')
+      .on('broadcast', { event: 'cambio' }, () => {
+        // Varios avisos seguidos (ej. mensaje + su registro) → un solo pedido.
+        clearTimeout(_cobAvisoT);
+        _cobAvisoT = setTimeout(() => cobRefrescar(true), 400);
+      })
+      .subscribe(estado => { _cobRT = estado === 'SUBSCRIBED'; });
+  } catch (e) { _cobCanal = null; }
+}
 const waFirma = c => [c.telefono, (c.mensajes || []).length, c.ultimaFecha, c.ultimoEstado, c.error].join('|');
 
 async function waRefrescar() {
@@ -444,16 +469,25 @@ async function waRefrescar() {
   if (cambio && ahoraSel !== antesSel) waChatPane();
 }
 
-async function cobRefrescar() {
-  if (document.hidden || _cobRefrescando || !COB_TOKEN) return;
-  _cobRefrescando = true;
+async function cobRefrescar(porAviso) {
+  if (document.hidden || !COB_TOKEN) return;
+  if (COB_VISTA !== 'whatsapp' && COB_VISTA !== 'reclamos') return;
+  // Si ya hay un pedido en curso y llega un aviso, se repite al terminar
+  // (así no se pierde un mensaje que entró mientras se cargaba).
+  if (_cobRefrescando) { if (porAviso) _cobPendiente = true; return; }
+  _cobRefrescando = true; _cobUltimo = Date.now();
   try {
     if (COB_VISTA === 'whatsapp') await waRefrescar();
-    else if (COB_VISTA === 'reclamos') await recRefrescar();
+    else await recRefrescar();
   } catch (e) { /* si falla un refresco, se reintenta en el próximo */ }
-  finally { _cobRefrescando = false; }
+  finally {
+    _cobRefrescando = false;
+    if (_cobPendiente) { _cobPendiente = false; cobRefrescar(true); }
+  }
 }
-setInterval(cobRefrescar, COB_REFRESCO);
+setInterval(() => {
+  if (Date.now() - _cobUltimo >= (_cobRT ? COB_REFRESCO_RT : COB_REFRESCO)) cobRefrescar();
+}, 2000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) cobRefrescar(); });
 
 function waLista() {
@@ -647,6 +681,7 @@ async function cobBloquear() {
 // ── 6 · Reclamos ───────────────────────────────────────────
 
 async function cobReclamos() {
+  cobEscucharCambios(); _cobUltimo = Date.now();
   cq('cob').innerHTML = cobCabecera('Reclamos', 'Reclamos de clientes, con su historial.') +
     `<div id="r-lista"><div class="pv-vacio">Cargando…</div></div>`;
   try { recPintarLista(await cobApi('?que=reclamos')); }
@@ -673,6 +708,7 @@ function recPintarLista(d) {
 }
 
 async function cobReclamo(id) {
+  cobEscucharCambios(); _cobUltimo = Date.now();
   cq('cob').innerHTML = `<button class="cb-volver" onclick="cobReclamos()">‹ Volver a reclamos</button>
     <div id="r-det" data-id="${cesc(id)}"><div class="pv-vacio">Cargando…</div></div>`;
   try { recPintarDetalle(await cobApi('?que=reclamos&id=' + encodeURIComponent(id))); }
