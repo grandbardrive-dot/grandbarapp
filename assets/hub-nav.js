@@ -64,7 +64,11 @@
     avisar(a.getAttribute('data-proximamente') + ': todavía no está disponible.');
   });
 
-  function pintar() {
+  // Si la pantalla es de un supervisor (supervisor-nav.js ya dibujó o el <head> lo marcó),
+  // no se pinta el menú de vendedor: antes lo pisaba según cuál cargara último y el
+  // menú "saltaba" de uno a otro (25/09/2026).
+  function pintar(forzar) {
+    if (!forzar && (window.__gbSupNav || document.documentElement.classList.contains('gb-sup'))) return;
     document.querySelectorAll('nav.sb-nav').forEach(nav => {
       nav.innerHTML = ITEMS.map(it => link(it, false)).join('\n');
     });
@@ -113,6 +117,7 @@
     document.querySelectorAll('.sb-user .s').forEach(el => { if (/^\s*Vendedor\s*$/.test(el.textContent)) el.textContent = etiqueta; });
   }
 
+  window.GBHubNav = { pintar: pintar };
   function iniciar() { pintar(); revisarRol(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
   else iniciar();

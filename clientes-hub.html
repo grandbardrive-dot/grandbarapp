@@ -173,7 +173,7 @@
     }
   </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
-<script>try{if(localStorage.getItem('gb_es_sup')==='1')document.documentElement.classList.add('gb-sup')}catch(e){}</script>
+<script>try{var v=localStorage.getItem('gb_es_sup'),t=JSON.parse(localStorage.getItem('sb-xqhyemccbwmzxqzkrtwa-auth-token')||'null'),u=t&&(t.user||(t.currentSession||{}).user);if(v&&u&&v===u.id)document.documentElement.classList.add('gb-sup')}catch(e){}</script>
 <style>.gb-sup .sb-nav{visibility:hidden}</style>
 </head>
 <body>
@@ -234,14 +234,6 @@
 <script>
   const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const MANUAL = { url:"https://fzaxwuuodseyyinveknn.supabase.co", key:"sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk" };
-
-  const DEMO = [
-    {nombre:"1130 drinks", tipo:"vinoteca", direccion:"Avellaneda 1130 - Guaymallén", codigo_cliente:"V-01130"},
-    {nombre:"3er Tiempo", tipo:"vinoteca", direccion:"Colon 1951 - Guaymallén", codigo_cliente:"V-00231"},
-    {nombre:"A tu Salud Minimarket", tipo:"autoservicio", direccion:"Bandera de los Andes 4315 - Guaymallén", codigo_cliente:"A-00045"},
-    {nombre:"Aldeni Vinoteca", tipo:"vinoteca", direccion:"Tomas Godoy Cruz 4100 - Guaymallén", codigo_cliente:"V-00512"},
-    {nombre:"Atahualpa", tipo:"vinoteca", direccion:"Manuel Molina 276 - Guaymallén", codigo_cliente:"V-00688"},
-  ];
 
   let CLIENTES = [], vendedorNombre = "Vendedor", ultimaVisita = {}, saldoMap = {}, sel = -1;
   const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : "";
@@ -335,6 +327,11 @@
       if (orden==='visita'){ return String(ultimaVisita[b.id]||"").localeCompare(String(ultimaVisita[a.id]||"")); }
       return (a.nombre||"").localeCompare(b.nombre||"");
     });
+    if (!rows.length) {
+      document.getElementById("list").innerHTML = '<div style="padding:22px;text-align:center;color:var(--muted)">' +
+        (CLIENTES.length ? 'Ningún cliente con ese filtro.' : 'Todavía no hay clientes para mostrar.') + '</div>';
+      return;
+    }
     document.getElementById("list").innerHTML = rows.map(({c,i},pos)=>{
       const lv = ultimaVisita[c.id] ? `Última visita<br>${fmtFecha(ultimaVisita[c.id])}` : "";
       const act = esActivo(c);
@@ -596,10 +593,9 @@
   }
 
   async function load(){
-    // Demo por defecto
-    CLIENTES = DEMO;
-    document.getElementById("stCount").textContent = CLIENTES.length;
-    renderList("");
+    // Arranca vacío: nunca se muestran clientes de ejemplo (si falla, se dice por qué).
+    CLIENTES = [];
+    document.getElementById("list").innerHTML = '<div style="padding:22px;text-align:center;color:var(--muted)">Cargando tus clientes…</div>';
     let reason = "";
     try{
       if(!window.supabase){ reason="no cargó la librería de Supabase"; return; }
@@ -669,7 +665,7 @@
     }catch(e){ reason = "error inesperado ("+(e.message||e)+")"; }
     finally{
       const note = document.getElementById("modo");
-      if(reason){ note.style.display="block"; note.textContent = "⚠️ Mostrando datos de ejemplo — "+reason+"."; }
+      if(reason){ note.style.display="block"; CLIENTES = []; renderList(""); note.textContent = "⚠️ No se pudieron cargar los clientes: "+reason+"."; }
       else { note.style.display="none"; }
     }
   }
