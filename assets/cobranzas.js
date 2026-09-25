@@ -378,30 +378,36 @@ async function cobWhatsapp() {
   } catch (e) { const r = cq('wa-root'); if (r) r.innerHTML = cerror(e.message); }
 }
 
-function waRender() {
-  const root = cq('wa-root'); if (!root) return;
+function waContadores() {
   const total = _waConvs.length;
   const sin = _waConvs.filter(waSinResponder).length;
   const pcerr = _waConvs.filter(c => waSinResponder(c) && waVentana(c).porCerrar).length;
   const cerr = _waConvs.filter(c => waSinResponder(c) && waVentana(c).cerrada).length;
-  root.innerHTML = `
-    <div class="wa-nota">📋 <b>Cómo funciona:</b> WhatsApp (Meta) solo te deja responder con <b>texto libre dentro de las 24 hs</b> del último mensaje del cliente. Pasado ese plazo la ventana se <b>cierra</b> y solo se puede escribir con una <b>plantilla aprobada</b>. Atendé primero lo marcado en <b style="color:var(--gold-d)">ámbar</b> (por cerrar) para que no pase a <b style="color:var(--red)">rojo</b>.</div>
-    <div class="wa-stats">
+  return {
+    stats: `
       <div class="wa-stat"><div class="n">${total}</div><div class="l">Conversaciones</div></div>
       <div class="wa-stat verde"><div class="n">${sin}</div><div class="l">Sin responder</div></div>
       <div class="wa-stat ambar"><div class="n">${pcerr}</div><div class="l">Ventana por cerrar</div></div>
-      <div class="wa-stat rojo"><div class="n">${cerr}</div><div class="l">Ya no podés responder</div></div>
-    </div>
+      <div class="wa-stat rojo"><div class="n">${cerr}</div><div class="l">Ya no podés responder</div></div>`,
+    filtros: `
+      <button class="wa-chip ${_waFiltro === 'todas' ? 'on' : ''}" onclick="waSetFiltro('todas')">Todas <b>${total}</b></button>
+      <button class="wa-chip ${_waFiltro === 'sin' ? 'on' : ''}" onclick="waSetFiltro('sin')">Sin responder <b>${sin}</b></button>
+      <button class="wa-chip ${_waFiltro === 'pcerr' ? 'on' : ''}" onclick="waSetFiltro('pcerr')">Por cerrar <b>${pcerr}</b></button>
+      <button class="wa-chip ${_waFiltro === 'cerr' ? 'on' : ''}" onclick="waSetFiltro('cerr')">Cerradas <b>${cerr}</b></button>`,
+  };
+}
+
+function waRender() {
+  const root = cq('wa-root'); if (!root) return;
+  const k = waContadores();
+  root.innerHTML = `
+    <div class="wa-nota">📋 <b>Cómo funciona:</b> WhatsApp (Meta) solo te deja responder con <b>texto libre dentro de las 24 hs</b> del último mensaje del cliente. Pasado ese plazo la ventana se <b>cierra</b> y solo se puede escribir con una <b>plantilla aprobada</b>. Atendé primero lo marcado en <b style="color:var(--gold-d)">ámbar</b> (por cerrar) para que no pase a <b style="color:var(--red)">rojo</b>. La bandeja se actualiza sola cada ${COB_REFRESCO / 1000} segundos.</div>
+    <div class="wa-stats" id="wa-stats">${k.stats}</div>
     <div class="wa-app" id="wa-app">
       <div class="wa-side">
         <div class="wa-side-top">
           <input class="wa-search" id="wa-q" placeholder="Buscar cliente, teléfono o código…" value="${cesc(_waBusca)}" oninput="waBuscar(this.value)">
-          <div class="wa-filtros">
-            <button class="wa-chip ${_waFiltro === 'todas' ? 'on' : ''}" onclick="waSetFiltro('todas')">Todas <b>${total}</b></button>
-            <button class="wa-chip ${_waFiltro === 'sin' ? 'on' : ''}" onclick="waSetFiltro('sin')">Sin responder <b>${sin}</b></button>
-            <button class="wa-chip ${_waFiltro === 'pcerr' ? 'on' : ''}" onclick="waSetFiltro('pcerr')">Por cerrar <b>${pcerr}</b></button>
-            <button class="wa-chip ${_waFiltro === 'cerr' ? 'on' : ''}" onclick="waSetFiltro('cerr')">Cerradas <b>${cerr}</b></button>
-          </div>
+          <div class="wa-filtros" id="wa-filtros">${k.filtros}</div>
         </div>
         <div class="wa-list" id="wa-list"></div>
       </div>
@@ -410,6 +416,45 @@ function waRender() {
   waLista(); waChatPane();
   if (_waSel >= 0) { const app = document.getElementById('wa-app'); if (app) app.classList.add('abierto'); }
 }
+
+// ── Actualización automática ────────────────────────────────
+// Los datos vienen de una function del servidor (no hay tiempo real desde el
+// navegador), así que se vuelven a pedir cada COB_REFRESCO ms mientras la
+// pestaña está a la vista. Solo se repinta lo que cambió y sin tocar lo que
+// Brenda está escribiendo (buscador, respuesta a medio escribir).
+const COB_REFRESCO = 20000;
+let _cobRefrescando = false;
+const waFirma = c => [c.telefono, (c.mensajes || []).length, c.ultimaFecha, c.ultimoEstado, c.error].join('|');
+
+async function waRefrescar() {
+  if (!cq('wa-root') || !cq('wa-list')) return;
+  const d = await cobApi('?que=whatsapp');
+  const nuevas = d.conversaciones || [];
+  const selTel = _waSel >= 0 && _waConvs[_waSel] ? _waConvs[_waSel].telefono : null;
+  const antesSel = selTel ? waFirma(_waConvs[_waSel]) : null;
+  const cambio = nuevas.length !== _waConvs.length || nuevas.some((c, i) => !_waConvs[i] || waFirma(c) !== waFirma(_waConvs[i]));
+  _waConvs = nuevas;
+  _waSel = selTel ? _waConvs.findIndex(c => c.telefono === selTel) : -1;
+  // Los contadores de la ventana de 24 hs cambian con el tiempo aunque no lleguen mensajes.
+  const k = waContadores();
+  if (cq('wa-stats')) cq('wa-stats').innerHTML = k.stats;
+  if (cq('wa-filtros')) cq('wa-filtros').innerHTML = k.filtros;
+  waLista();
+  const ahoraSel = _waSel >= 0 ? waFirma(_waConvs[_waSel]) : null;
+  if (cambio && ahoraSel !== antesSel) waChatPane();
+}
+
+async function cobRefrescar() {
+  if (document.hidden || _cobRefrescando || !COB_TOKEN) return;
+  _cobRefrescando = true;
+  try {
+    if (COB_VISTA === 'whatsapp') await waRefrescar();
+    else if (COB_VISTA === 'reclamos') await recRefrescar();
+  } catch (e) { /* si falla un refresco, se reintenta en el próximo */ }
+  finally { _cobRefrescando = false; }
+}
+setInterval(cobRefrescar, COB_REFRESCO);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) cobRefrescar(); });
 
 function waLista() {
   const box = document.getElementById('wa-list'); if (!box) return;
@@ -450,6 +495,7 @@ function waBurbujas(msgs) {
 function waChatPane() {
   const pane = document.getElementById('wa-chat'); if (!pane) return;
   if (_waSel < 0 || !_waConvs[_waSel]) {
+    pane.dataset.tel = '';
     pane.innerHTML = `<div class="wa-empty"><div class="ico">💬</div><div>Elegí una conversación de la izquierda para ver el chat y responder.</div></div>`;
     return;
   }
@@ -460,6 +506,11 @@ function waChatPane() {
   else if (v.porCerrar) vent = `<div class="wa-vent pcerr">⏳ La ventana cierra en ${waRestTxt(v.mins)}. Respondé ahora lo que tengas pendiente.</div>`;
   else vent = `<div class="wa-vent abi">✓ Ventana abierta — podés responder libremente por ${waRestTxt(v.mins)} más.</div>`;
   const puede = v.abierta;
+  // Si se repinta la misma conversación (por el refresco automático), conservar
+  // la respuesta que se estaba escribiendo y el foco.
+  const taPrevio = document.getElementById('wa-resp');
+  const borrador = taPrevio && pane.dataset.tel === String(c.telefono) ? { v: taPrevio.value, foco: document.activeElement === taPrevio, a: taPrevio.selectionStart, b: taPrevio.selectionEnd } : null;
+  pane.dataset.tel = String(c.telefono);
   pane.innerHTML = `
     <div class="wa-chat-head">
       <button class="wa-back" onclick="waCerrar()">‹</button>
@@ -475,6 +526,11 @@ function waChatPane() {
       <button class="wa-send" id="wa-send" ${puede ? '' : 'disabled'} title="Enviar" onclick="cobWaResponder(${_waSel})">➤</button>
     </div>`;
   const body = document.getElementById('wa-body'); if (body) body.scrollTop = body.scrollHeight;
+  const ta = document.getElementById('wa-resp');
+  if (borrador && ta && !ta.disabled) {
+    ta.value = borrador.v; waAutoGrow(ta);
+    if (borrador.foco) { ta.focus(); try { ta.setSelectionRange(borrador.a, borrador.b); } catch (_) {} }
+  }
 }
 
 function waAbrir(i) { _waSel = i; const app = document.getElementById('wa-app'); if (app) app.classList.add('abierto'); waLista(); waChatPane(); }
@@ -503,6 +559,7 @@ async function cobWaResponder(i) {
     }
     c.mensajes.push({ dir: 'out', texto, fecha: new Date().toISOString() });
     c.ultimaFecha = new Date().toISOString(); c.ultimoEstado = 'sent';
+    if (ta) ta.value = ''; // ya se mandó: que el repintado no lo recupere como borrador
     waChatPane(); waLista();
   } catch (e) { aviso('Error de conexión: ' + (e.message || e)); if (send) send.disabled = false; }
 }
@@ -592,10 +649,17 @@ async function cobBloquear() {
 async function cobReclamos() {
   cq('cob').innerHTML = cobCabecera('Reclamos', 'Reclamos de clientes, con su historial.') +
     `<div id="r-lista"><div class="pv-vacio">Cargando…</div></div>`;
-  try {
-    const d = await cobApi('?que=reclamos');
-    if (!d.filas.length) { cq('r-lista').innerHTML = `<div class="pv-vacio">No hay reclamos.</div>`; return; }
-    cq('r-lista').innerHTML = d.filas.map(r => `<article class="hh">
+  try { recPintarLista(await cobApi('?que=reclamos')); }
+  catch (e) { cq('r-lista').innerHTML = cerror(e.message); }
+}
+
+function recPintarLista(d) {
+  const box = cq('r-lista'); if (!box) return;
+  const firma = JSON.stringify(d.filas.map(r => [r.id, r.estado, r.updated_at]));
+  if (box.dataset.firma === firma) return; // nada nuevo: no repintar
+  box.dataset.firma = firma;
+  if (!d.filas.length) { box.innerHTML = `<div class="pv-vacio">No hay reclamos.</div>`; return; }
+  box.innerHTML = d.filas.map(r => `<article class="hh">
       <div class="hh-top"><span class="hh-ico">💬</span>
         <div class="hh-nom">${cesc(r.asunto || 'Sin asunto')}</div>
         <span class="cb-chip ${r.estado === 'resuelto' ? 'ok' : 'alerta'}">${cesc(COB_REC_LBL[r.estado] || r.estado || 'abierto')}</span></div>
@@ -606,17 +670,31 @@ async function cobReclamos() {
         ${r.estado === 'abierto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','en_curso',this)">▶️ En curso</button>` : ''}
         ${r.estado === 'resuelto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','abierto',this)">↩️ Reabrir</button>` : ''}
       </div></article>`).join('');
-  } catch (e) { cq('r-lista').innerHTML = cerror(e.message); }
 }
 
 async function cobReclamo(id) {
   cq('cob').innerHTML = `<button class="cb-volver" onclick="cobReclamos()">‹ Volver a reclamos</button>
-    <div id="r-det"><div class="pv-vacio">Cargando…</div></div>`;
-  try {
-    const d = await cobApi('?que=reclamos&id=' + encodeURIComponent(id));
-    const r = d.reclamo;
-    if (!r) { cq('r-det').innerHTML = cerror('No encontré ese reclamo.'); return; }
-    cq('r-det').innerHTML = `
+    <div id="r-det" data-id="${cesc(id)}"><div class="pv-vacio">Cargando…</div></div>`;
+  try { recPintarDetalle(await cobApi('?que=reclamos&id=' + encodeURIComponent(id))); }
+  catch (e) { cq('r-det').innerHTML = cerror(e.message); }
+}
+
+// Refresco automático de Reclamos: la lista o la conversación abierta.
+async function recRefrescar() {
+  const det = cq('r-det');
+  if (det && det.dataset.id) return recPintarDetalle(await cobApi('?que=reclamos&id=' + encodeURIComponent(det.dataset.id)));
+  if (cq('r-lista')) return recPintarLista(await cobApi('?que=reclamos'));
+}
+
+function recPintarDetalle(d) {
+  const box = cq('r-det'); if (!box) return;
+  const r = d.reclamo;
+  if (!r) { box.innerHTML = cerror('No encontré ese reclamo.'); return; }
+  const firma = JSON.stringify([r.estado, r.updated_at, (d.mensajes || []).map(m => m.id || m.created_at)]);
+  if (box.dataset.firma === firma) return; // nada nuevo: no repintar
+  const primera = !box.dataset.firma;
+  box.dataset.firma = firma;
+  box.innerHTML = `
       <div class="head"><div><h1>${cesc(r.asunto || 'Reclamo')}</h1>
         <div class="head-sub">${cesc((r.cliente && (r.cliente.comercio || r.cliente.nombre)) || '')}${r.factura ? ' · factura ' + cesc(r.factura) : ''}</div></div></div>
       ${(d.mensajes || []).length ? d.mensajes.map(m => `
@@ -629,7 +707,8 @@ async function cobReclamo(id) {
         </article>`).join('') : `<div class="pv-vacio">Sin mensajes.</div>`}
       <div class="aviso"><span>✍️</span><div>Para <b>responderle al cliente</b> hay que entrar al sistema de cobranzas: la respuesta le
         dispara un aviso por WhatsApp, y esa parte todavía no está en el Portal.</div></div>`;
-  } catch (e) { cq('r-det').innerHTML = cerror(e.message); }
+  // Si llegó un mensaje nuevo mientras se leía, bajar hasta el final para verlo.
+  if (!primera) box.lastElementChild && box.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
 function cobEstadoReclamo(id, estado, btn) {
