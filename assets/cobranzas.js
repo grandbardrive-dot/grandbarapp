@@ -417,8 +417,9 @@ function waLista() {
   if (!items.length) { box.innerHTML = `<div class="pv-vacio" style="padding:26px 14px">No hay conversaciones${(_waFiltro !== 'todas' || _waBusca) ? ' con ese filtro' : ''}.</div>`; return; }
   box.innerHTML = items.map(({ c, i }) => {
     const v = waVentana(c), sr = waSinResponder(c), nom = c.cliente || c.telefono;
-    const prev = c.entrantes ? (c.ultimoTexto || '') : '— sin respuesta —';
-    const m = c.mensajes || []; const preIco = (m.length && m[m.length - 1].dir === 'out') ? '✓ ' : '';
+    const m = c.mensajes || []; const ultimo = m.length ? m[m.length - 1] : null;
+    const preIco = ultimo && ultimo.dir === 'out' ? '✓ ' : '';
+    const prev = ultimo ? (ultimo.texto || '') : (c.entrantes ? (c.ultimoTexto || '') : '— sin respuesta —');
     let pill = '';
     if (sr && v.cerrada) pill = `<span class="wa-pill cerr">🔒 cerrada</span>`;
     else if (sr && v.porCerrar) pill = `<span class="wa-pill pcerr">⏳ ${waRestTxt(v.mins)}</span>`;
