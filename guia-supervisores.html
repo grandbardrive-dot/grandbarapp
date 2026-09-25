@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0d2230" />
+<title>Guía del Panel de Supervisor · GrandBar</title>
+<meta name="description" content="Cómo usar el panel de supervisor del Portal GrandBar: resumen del equipo, visitas, agendas, tareas, clientes, pedidos de acción, leads, curso, torneo y tu propia cartera." />
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d2230; --navy-2: #123043; --gold: #c0912f; --gold-d: #a97c22; --gold-soft: #f7efdc;
+    --cream: #f6f1e8; --blanco: #ffffff; --tinta: #1b2a32; --gris: #5f6f77; --linea: #e7ded0;
+    --verde: #2f6f5e; --verde-bg: #e8f1ea; --rojo: #c0603e; --rojo-bg: #fbe9e4; --amber: #93600f; --amber-bg: #fdf3e1;
+    --azul: #2c5d8f; --celeste-bg: #eaf1f7; --sombra: 0 1px 2px rgba(13,34,48,.05), 0 8px 22px rgba(13,34,48,.07);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--cream); color: var(--tinta); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  a { color: var(--azul); }
+  b, strong { font-weight: 700; }
+
+  /* ---------- barra superior ---------- */
+  .top { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,.96); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--linea); }
+  .top-in { max-width: 760px; margin: 0 auto; padding: 9px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .logo { font-family: Georgia, 'Times New Roman', serif; font-weight: 800; font-size: 22px; color: var(--navy); text-decoration: none; line-height: 1; white-space: nowrap; }
+  .logo b { color: var(--gold); }
+  .logo small { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; color: var(--gold-d); letter-spacing: .08em; margin-left: 6px; }
+  .top-acc { display: flex; gap: 8px; align-items: center; }
+  .btn-indice { background: #efeae0; color: var(--navy); font-weight: 700; font-size: .85rem; padding: 9px 12px; border-radius: 10px; text-decoration: none; }
+  .btn-portal { background: var(--navy); color: #fff; text-decoration: none; font-weight: 700; font-size: .85rem; padding: 9px 12px; border-radius: 10px; white-space: nowrap; }
+
+  /* ---------- portada ---------- */
+  .hero { background: radial-gradient(700px 300px at 90% -10%, rgba(192,145,47,.22), transparent 60%), linear-gradient(165deg, #081823 0%, #0d2230 55%, #143246 100%); color: #fff; }
+  .hero-in { max-width: 760px; margin: 0 auto; padding: 34px 20px 56px; }
+  .eyebrow { color: var(--gold); font-weight: 800; letter-spacing: .18em; font-size: .72rem; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content: ''; width: 22px; height: 2px; background: var(--gold); }
+  .hero h1 { font-size: clamp(1.9rem, 8.5vw, 2.8rem); line-height: 1.08; margin: 12px 0 14px; font-weight: 800; }
+  .hero h1 .gold { color: var(--gold); }
+  .hero p { color: #cfdae1; font-size: 1.02rem; margin: 0 0 22px; }
+  .btn-gold { display: flex; justify-content: center; align-items: center; gap: 8px; background: var(--gold); color: #241a06; font-weight: 800; text-decoration: none; padding: 15px 18px; border-radius: 14px; font-size: 1.02rem; }
+  .btn-ghost { display: flex; justify-content: center; margin-top: 10px; border: 1.5px solid rgba(255,255,255,.3); color: #fff; font-weight: 700; text-decoration: none; padding: 13px 18px; border-radius: 14px; }
+  .hero-facts { display: grid; gap: 10px; margin-top: 26px; }
+  .fact { display: flex; gap: 12px; align-items: center; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 12px 14px; }
+  .fact .fi { font-size: 1.35rem; }
+  .fact b { display: block; color: #fff; font-size: .98rem; line-height: 1.3; }
+  .fact span { color: #b6c6cf; font-size: .88rem; line-height: 1.35; display: block; }
+
+  /* ---------- índice ---------- */
+  main { max-width: 760px; margin: 0 auto; padding: 0 14px 50px; }
+  .indice { margin-top: -26px; background: var(--blanco); border-radius: 18px; box-shadow: var(--sombra); padding: 18px 14px; position: relative; scroll-margin-top: 70px; }
+  .indice h2 { margin: 0 4px 6px; font-size: 1.05rem; }
+  .indice-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .indice .grupo { grid-column: 1 / -1; margin: 10px 4px 0; font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-d); }
+  .indice a { display: flex; align-items: center; gap: 9px; text-decoration: none; color: var(--tinta); background: #faf7f1; border: 1px solid var(--linea); border-radius: 12px; padding: 11px 10px; font-weight: 650; font-size: .88rem; line-height: 1.25; min-height: 54px; }
+  .indice a:active { background: #fff7e3; border-color: var(--gold); }
+  .indice .n { flex: none; width: 26px; height: 26px; border-radius: 8px; background: var(--navy); color: var(--gold); display: grid; place-items: center; font-weight: 800; font-size: .8rem; }
+
+  /* ---------- partes ---------- */
+  .parte { margin-top: 48px; background: var(--navy); color: #fff; border-radius: 18px; padding: 18px 20px; scroll-margin-top: 64px; }
+  .parte span { display: block; color: var(--gold); font-weight: 800; letter-spacing: .16em; font-size: .7rem; text-transform: uppercase; }
+  .parte b { display: block; font-size: 1.45rem; line-height: 1.2; margin-top: 4px; }
+  .parte p { margin: 6px 0 0; color: #c3d1d8; font-size: .95rem; line-height: 1.45; }
+
+  /* ---------- secciones ---------- */
+  section.paso { margin-top: 40px; scroll-margin-top: 64px; }
+  .sec-head { display: flex; align-items: flex-start; gap: 12px; margin: 0 4px 14px; }
+  .sec-num { flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--navy); color: var(--gold); display: grid; place-items: center; font-weight: 800; font-size: 1.05rem; }
+  .sec-head h2 { margin: 0; font-size: 1.4rem; line-height: 1.2; }
+  .sec-head p { margin: 4px 0 0; color: var(--gris); font-size: .95rem; line-height: 1.45; }
+  .card { background: var(--blanco); border-radius: 18px; box-shadow: var(--sombra); padding: 20px 18px; }
+  .card + .card { margin-top: 14px; }
+  .card h3 { margin: 0 0 10px; font-size: 1.1rem; }
+  .card > p:first-child { margin-top: 0; }
+  .card p { margin: 0 0 12px; }
+  .card p:last-child { margin-bottom: 0; }
+
+  ol.pasos { list-style: none; counter-reset: p; margin: 0; padding: 0; }
+  ol.pasos > li { counter-increment: p; position: relative; padding: 0 0 18px 44px; }
+  ol.pasos > li:last-child { padding-bottom: 0; }
+  ol.pasos > li::before { content: counter(p); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--gold); color: #241a06; font-weight: 800; display: grid; place-items: center; font-size: .9rem; }
+  ol.pasos > li::after { content: ''; position: absolute; left: 14px; top: 34px; bottom: 4px; width: 2px; background: #eee3c8; }
+  ol.pasos > li:last-child::after { display: none; }
+  ul.lista { margin: 0; padding-left: 20px; }
+  ul.lista li { margin-bottom: 8px; }
+  ul.lista li:last-child { margin-bottom: 0; }
+
+  .btn-ui { display: inline-block; background: var(--navy); color: #fff; font-weight: 700; font-size: .85em; padding: 1px 9px; border-radius: 7px; line-height: 1.6; white-space: nowrap; }
+  .btn-ui.gold { background: var(--gold); color: #241a06; }
+  .btn-ui.green { background: var(--verde); }
+  .btn-ui.amber { background: #e9a23b; color: #3b2604; }
+  .btn-ui.red { background: var(--rojo); }
+  .btn-ui.line { background: #fff; color: var(--navy); box-shadow: inset 0 0 0 1.5px var(--linea); }
+  .btn-ui.wa { background: #1f9d55; }
+  .menu-ui { display: inline-block; background: #efeae0; color: var(--navy); font-weight: 700; font-size: .88em; padding: 1px 8px; border-radius: 7px; }
+
+  .nota { display: flex; gap: 11px; border-radius: 14px; padding: 13px 14px; margin-top: 14px; font-size: .95rem; line-height: 1.5; }
+  .nota .ico { flex: none; font-size: 1.15rem; line-height: 1.35; }
+  .nota.tip { background: var(--celeste-bg); }
+  .nota.ojo { background: var(--amber-bg); }
+  .nota.ok { background: var(--verde-bg); }
+  .nota p { margin: 0; }
+
+  .ref { margin: 0; padding: 0; list-style: none; }
+  .ref li { padding: 11px 0; border-bottom: 1px solid var(--linea); }
+  .ref li:last-child { border-bottom: 0; padding-bottom: 0; }
+  .ref li:first-child { padding-top: 0; }
+  .ref .k { display: block; font-weight: 800; margin-bottom: 2px; }
+  .ref .v { display: block; color: #33434b; font-size: .95rem; line-height: 1.45; }
+
+  .badge { display: inline-block; font-size: .72rem; font-weight: 800; letter-spacing: .03em; padding: 3px 9px; border-radius: 999px; white-space: nowrap; vertical-align: middle; }
+  .b-rojo { background: var(--rojo-bg); color: var(--rojo); }
+  .b-verde { background: var(--verde-bg); color: var(--verde); }
+  .b-amber { background: var(--amber-bg); color: var(--amber); }
+  .b-azul { background: var(--celeste-bg); color: var(--azul); }
+  .b-gris { background: #eef0f1; color: #4d5b64; }
+
+  .mini-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-top: 14px; }
+  .mini-paso { background: #faf7f1; border: 1px solid var(--linea); border-radius: 14px; padding: 12px; font-size: .9rem; line-height: 1.4; }
+  .mini-paso .mp-t { display: block; font-weight: 800; margin-bottom: 3px; }
+
+  /* ---------- teléfono (maquetas, sin datos reales) ---------- */
+  figure { margin: 20px 0 0; }
+  figcaption { color: var(--gris); font-size: .85rem; margin-top: 10px; text-align: center; line-height: 1.4; }
+  .phone { width: 100%; max-width: 290px; margin: 0 auto; background: #0a1620; border-radius: 34px; padding: 10px; box-shadow: 0 2px 6px rgba(13,34,48,.1), 0 20px 44px rgba(13,34,48,.22); }
+  .phone-scr { border-radius: 26px; overflow: hidden; background: var(--cream); position: relative; font-size: .74rem; line-height: 1.35; color: var(--tinta); }
+  .phone-scr::before { content: ''; position: absolute; top: 7px; left: 50%; transform: translateX(-50%); width: 70px; height: 18px; background: #0a1620; border-radius: 10px; z-index: 3; }
+  .m-top { background: var(--navy); color: #fff; display: flex; align-items: center; gap: 8px; padding: 32px 10px 9px; font-weight: 700; font-size: .8rem; }
+  .m-burger { width: 26px; height: 26px; border-radius: 7px; background: rgba(255,255,255,.12); display: grid; place-items: center; font-size: .85rem; flex: none; }
+  .m-top .sp { flex: 1; }
+  .m-back { font-size: 1.15rem; width: 18px; line-height: 1; }
+  .m-body { padding: 9px; display: flex; flex-direction: column; gap: 7px; }
+  .m-h1 { font-weight: 800; font-size: .95rem; line-height: 1.2; }
+  .m-sub { color: var(--gris); font-size: .64rem; line-height: 1.35; }
+  .m-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .m-kpis.t3 { grid-template-columns: 1fr 1fr 1fr; }
+  .m-kpi { background: #fff; border: 1px solid var(--linea); border-radius: 9px; padding: 6px 7px; display: flex; gap: 6px; align-items: center; }
+  .m-kpi > i { width: 18px; height: 18px; border-radius: 5px; background: var(--navy); flex: none; }
+  .m-kpi.gold > i { background: var(--gold); } .m-kpi.red > i { background: var(--rojo); } .m-kpi.green > i { background: var(--verde); }
+  .m-kpi small { display: block; color: var(--gris); font-size: .56rem; line-height: 1.2; margin-bottom: 2px; }
+  .m-kpi.solo { display: block; }
+  .m-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .m-tab { background: #fff; border: 1px solid var(--linea); border-radius: 7px; padding: 3px 7px; font-size: .6rem; font-weight: 600; color: var(--gris); white-space: nowrap; }
+  .m-tab.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .m-card { background: #fff; border: 1px solid var(--linea); border-radius: 10px; padding: 8px; }
+  .m-tit { font-weight: 800; font-size: .7rem; margin-bottom: 5px; }
+  .m-vtop { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+  .m-vtop .fx { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .m-av { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--gold-d)); flex: none; }
+  .m-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .m-stats.c4 { grid-template-columns: 1fr 1fr; }
+  .m-st { background: var(--cream); border-radius: 7px; padding: 4px 6px; }
+  .m-st small { display: block; color: var(--gris); font-size: .54rem; margin-bottom: 2px; }
+  .m-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: .6rem; gap: 6px; }
+  .m-tag { background: var(--verde-bg); color: var(--verde); font-weight: 700; border-radius: 5px; padding: 1px 5px; font-size: .56rem; }
+  .m-link { color: var(--gold-d); font-weight: 700; font-size: .6rem; white-space: nowrap; }
+  .bar { display: inline-block; height: 7px; border-radius: 4px; background: #ddd5c7; vertical-align: middle; }
+  .bar.d { background: #aeb9bf; }
+  .w1 { width: 22px; } .w2 { width: 40px; } .w3 { width: 62px; } .w4 { width: 86px; } .w5 { width: 116px; }
+  .m-row { display: flex; align-items: center; gap: 7px; background: #fff; border: 1px solid var(--linea); border-radius: 8px; padding: 6px 7px; }
+  .m-row .fx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .m-row.sel { border-color: var(--gold); background: #fffcf3; }
+  .m-btn { display: inline-block; border-radius: 7px; padding: 3px 8px; font-size: .6rem; font-weight: 700; background: var(--navy); color: #fff; white-space: nowrap; text-align: center; }
+  .m-btn.gold { background: var(--gold); color: #241a06; } .m-btn.green { background: var(--verde); } .m-btn.amber { background: #e9a23b; color: #3b2604; }
+  .m-btn.ghost { background: #fff; color: var(--navy); box-shadow: inset 0 0 0 1px var(--linea); } .m-btn.red { background: var(--rojo); } .m-btn.wa { background: #1f9d55; }
+  .m-btn.full { display: block; padding: 7px; }
+  .m-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+  .m-badge { font-size: .52rem; font-weight: 800; border-radius: 999px; padding: 1px 6px; white-space: nowrap; }
+  .m-badge.amber { background: var(--amber-bg); color: var(--amber); } .m-badge.green { background: var(--verde-bg); color: var(--verde); }
+  .m-badge.red { background: var(--rojo-bg); color: var(--rojo); } .m-badge.blue { background: var(--celeste-bg); color: var(--azul); } .m-badge.gray { background: #eef0f1; color: #4d5b64; }
+  .m-prog { height: 5px; border-radius: 4px; background: #eee7d8; overflow: hidden; }
+  .m-prog i { display: block; height: 100%; background: var(--verde); }
+  .m-in { background: #fff; border: 1px solid var(--linea); border-radius: 7px; padding: 5px 7px; color: #9aa6ac; font-size: .62rem; }
+  .m-lbl { font-weight: 700; font-size: .62rem; margin-bottom: 3px; }
+  .m-opt2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .m-opt { border: 1.5px solid var(--linea); border-radius: 8px; padding: 5px 4px; font-size: .58rem; font-weight: 700; text-align: center; background: #fff; color: var(--gris); }
+  .m-opt.on { border-color: var(--gold); background: var(--gold-soft); color: var(--gold-d); }
+  .m-bot { display: flex; justify-content: space-around; background: var(--navy); padding: 6px 2px 9px; color: #9db0ba; font-size: .52rem; font-weight: 600; }
+  .m-bot span { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .m-bot svg { width: 14px; height: 14px; }
+  .m-bot .on { color: var(--gold); }
+  .m-drawer { display: flex; min-height: 470px; }
+  .m-drawer nav { width: 76%; background: var(--navy); color: #c4d2d9; padding: 30px 7px 10px; font-size: .64rem; }
+  .m-drawer .logo-t { font-family: Georgia, serif; font-weight: 800; color: #fff; font-size: .9rem; padding: 0 6px 6px; }
+  .m-drawer .logo-t b { color: var(--gold); }
+  .m-drawer .gt { font-size: .48rem; letter-spacing: .12em; color: #8fa3ad; font-weight: 700; padding: 7px 6px 2px; text-transform: uppercase; }
+  .m-drawer .it { padding: 3px 6px; border-radius: 6px; }
+  .m-drawer .it.on { background: var(--gold); color: #241a06; font-weight: 700; }
+  .m-drawer .sombra { flex: 1; background: rgba(6,16,24,.45); }
+  .m-sheet-bg { background: rgba(13,34,48,.45); padding: 48px 8px 12px; }
+  .m-sheet { background: #fff; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 7px; }
+  .m-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; font-size: .54rem; }
+  .m-cal .h { color: var(--gris); font-weight: 700; }
+  .m-cal .d { background: #fff; border: 1px solid var(--linea); border-radius: 5px; padding: 2px 0; min-height: 21px; }
+  .m-cal .d.t { background: var(--verde-bg); border-color: #bfdccd; }
+  .m-cal .d.sel { outline: 2px solid var(--gold); }
+  .m-cal .d.v { background: transparent; border-color: transparent; }
+  .m-cal .d i { display: block; width: 8px; height: 4px; border-radius: 2px; background: var(--verde); margin: 2px auto 0; }
+  .m-ck { width: 13px; height: 13px; border-radius: 4px; border: 2px solid #b7c0c6; flex: none; position: relative; }
+  .m-ck.on { background: var(--verde); border-color: var(--verde); }
+  .m-ck.on::after { content: '✓'; color: #fff; font-size: 9px; position: absolute; left: 1px; top: -4px; }
+  .m-fab { position: absolute; right: 10px; bottom: 12px; width: 34px; height: 34px; border-radius: 50%; background: var(--navy); color: #fff; display: grid; place-items: center; font-size: .9rem; box-shadow: 0 6px 16px -6px rgba(0,0,0,.6); }
+  .m-login { background: radial-gradient(260px 200px at 85% 5%, rgba(79,127,224,.25), transparent 70%), linear-gradient(170deg, #0b1a2c, #0d2230 60%, #081521); color: #fff; padding: 44px 16px 22px; text-align: center; }
+  .m-login .wm { font-weight: 900; font-size: 1.75rem; color: #5a88e6; letter-spacing: .01em; line-height: 1; }
+  .m-login .sm { color: var(--gold); font-weight: 700; letter-spacing: .42em; font-size: .5rem; margin-top: 5px; }
+  .m-login .hi { font-weight: 800; font-size: 1.15rem; margin-top: 16px; }
+  .m-login .hs { color: #b9c6cf; font-size: .64rem; margin-bottom: 12px; }
+  .m-login .box { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 12px 10px; text-align: left; }
+  .m-login .fl { font-size: .5rem; letter-spacing: .12em; font-weight: 700; color: #b9c6cf; margin: 2px 0 4px; }
+  .m-login .fi { border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.04); border-radius: 8px; padding: 7px 8px; color: #7f8e99; font-size: .62rem; margin-bottom: 8px; }
+  .m-login .go { background: linear-gradient(180deg, #3a6fe0, #2a55c2); color: #fff; font-weight: 800; border-radius: 9px; text-align: center; padding: 8px; margin-top: 4px; }
+  .m-login .fg { text-align: right; color: #7ea6f2; font-size: .56rem; font-weight: 600; margin: -2px 0 6px; }
+  .m-login .ai { margin-top: 10px; border: 1px solid rgba(255,255,255,.1); border-radius: 9px; padding: 6px 8px; font-size: .56rem; color: #b9c6cf; }
+  .m-map { height: 104px; border-radius: 9px; background: #e7ecdf; position: relative; overflow: hidden; }
+  .m-map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .contactos { display: grid; gap: 10px; margin-top: 14px; }
+  .contacto { display: flex; gap: 12px; align-items: flex-start; background: #fff; border-radius: 16px; padding: 15px; box-shadow: var(--sombra); text-decoration: none; color: inherit; }
+  .contacto .ico { font-size: 1.4rem; line-height: 1.2; }
+  .contacto b { display: block; }
+  .contacto span { color: var(--gris); font-size: .93rem; line-height: 1.45; display: block; }
+
+  details.faq { background: #fff; border-radius: 14px; box-shadow: var(--sombra); padding: 0 16px; }
+  details.faq + details.faq { margin-top: 8px; }
+  details.faq summary { cursor: pointer; font-weight: 700; padding: 15px 0; list-style: none; display: flex; justify-content: space-between; gap: 12px; line-height: 1.35; }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::after { content: '+'; color: var(--gold-d); font-size: 1.35rem; line-height: 1; }
+  details.faq[open] summary::after { content: '–'; }
+  details.faq p { margin: 0 0 16px; color: #2d3b43; font-size: .96rem; }
+
+  .volver { display: inline-block; margin: 12px 4px 0; font-size: .9rem; color: var(--gris); text-decoration: none; padding: 6px 0; }
+
+  footer { background: var(--navy); color: #b6c6cf; text-align: center; padding: 26px 18px calc(26px + env(safe-area-inset-bottom)); font-size: .86rem; line-height: 1.7; }
+  footer a { color: var(--gold); }
+
+  /* ---------- pantallas más grandes ---------- */
+  @media (min-width: 760px) {
+    .hero-in { padding: 50px 20px 66px; }
+    .hero-facts { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .fact { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .indice-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .con-tel { display: grid; grid-template-columns: minmax(0,1fr) 290px; gap: 26px; align-items: start; }
+    .con-tel figure { margin-top: 0; }
+    .card { padding: 24px; }
+  }
+  @media (max-width: 360px) {
+    body { font-size: 16px; }
+    .indice-grid { grid-template-columns: minmax(0,1fr); }
+    .mini-2 { grid-template-columns: minmax(0,1fr); }
+    .btn-indice { display: none; }
+  }
+  @media print {
+    .top, .btn-gold, .btn-ghost, .volver { display: none !important; }
+    body { background: #fff; }
+    .hero, .parte, .phone, .m-top, .m-bot, .m-drawer nav, .m-login { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .card, details.faq, .contacto { box-shadow: none; border: 1px solid var(--linea); }
+    section.paso { break-inside: avoid-page; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <a class="logo" href="#indice">Grand<b>Bar</b><small>HUB</small></a>
+    <div class="top-acc">
+      <a class="btn-indice" href="#indice">Índice</a>
+      <a class="btn-portal" href="https://portalgrandbar.com" target="_blank" rel="noopener">Ir al portal</a>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-in">
+    <div class="eyebrow">Guía para supervisores</div>
+    <h1>Tu panel de supervisor,<br><span class="gold">paso a paso.</span></h1>
+    <p>Cómo seguir a tu equipo desde el Portal GrandBar (visitas, agendas, tareas, clientes, pedidos de acción y leads) y, como también vendés, cómo trabajar tu propia cartera.</p>
+    <a class="btn-gold" href="https://portalgrandbar.com" target="_blank" rel="noopener">Abrir portalgrandbar.com</a>
+    <a class="btn-ghost" href="#ingresar">Empezar la guía ↓</a>
+    <div class="hero-facts">
+      <div class="fact"><span class="fi">👥</span><div><b>Supervisás y vendés</b><span>El menú junta lo de tu equipo y lo de tu cartera.</span></div></div>
+      <div class="fact"><span class="fi">📱</span><div><b>Celular o compu</b><span>No hay que instalar nada. En el celular, el menú se abre con ☰.</span></div></div>
+      <div class="fact"><span class="fi">🔄</span><div><b>Datos reales</b><span>Saldos del sistema de la empresa, visitas del manual y puntos oficiales del torneo.</span></div></div>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <nav class="indice" id="indice" aria-label="Contenido">
+    <h2>¿Qué querés hacer?</h2>
+    <div class="indice-grid">
+      <div class="grupo">Empezar</div>
+      <a href="#ingresar"><span class="n">1</span>Entrar al portal</a>
+      <a href="#menu"><span class="n">2</span>Usar el menú y los avisos</a>
+      <div class="grupo">Mi equipo</div>
+      <a href="#resumen"><span class="n">3</span>Ver el resumen del equipo</a>
+      <a href="#visitas"><span class="n">4</span>Revisar las visitas</a>
+      <a href="#agendas"><span class="n">5</span>Validar las agendas del mes</a>
+      <a href="#tareas-equipo"><span class="n">6</span>Mandar tareas al equipo</a>
+      <a href="#clientes-equipo"><span class="n">7</span>Ver los clientes del equipo</a>
+      <a href="#pedidos"><span class="n">8</span>Aprobar pedidos de acción</a>
+      <a href="#leads"><span class="n">9</span>Repartir leads</a>
+      <a href="#curso"><span class="n">10</span>Seguir el curso</a>
+      <a href="#torneo"><span class="n">11</span>Ver el torneo</a>
+      <div class="grupo">Mis ventas</div>
+      <a href="#inicio"><span class="n">12</span>Mi inicio</a>
+      <a href="#mis-clientes"><span class="n">13</span>Mis clientes y visitas</a>
+      <a href="#mis-leads"><span class="n">14</span>Mis leads</a>
+      <a href="#ruta"><span class="n">15</span>Armar la ruta del día</a>
+      <a href="#agenda-eficiente"><span class="n">16</span>Mi agenda del mes</a>
+      <a href="#cobranzas"><span class="n">17</span>Cobranzas</a>
+      <a href="#herramientas"><span class="n">18</span>Herramientas de venta</a>
+      <div class="grupo">Lo mío</div>
+      <a href="#mi-agenda"><span class="n">19</span>Mi agenda y reuniones</a>
+      <a href="#mis-tareas"><span class="n">20</span>Mis tareas</a>
+      <a href="#reportes"><span class="n">21</span>Mandar reportes</a>
+      <div class="grupo">Ayuda</div>
+      <a href="#ayuda"><span class="n">22</span>Ayuda y contacto</a>
+      <a href="#faq"><span class="n">?</span>Preguntas frecuentes</a>
+    </div>
+  </nav>
+
+  <!-- ============ PARTE 1 · EMPEZAR ============ -->
+  <div class="parte"><span>Parte 1</span><b>Empezar</b><p>Cómo entrar y moverte por el panel.</p></div>
+
+  <!-- 1 · ENTRAR -->
+  <section class="paso" id="ingresar">
+    <div class="sec-head">
+      <span class="sec-num">1</span>
+      <div><h2>Cómo entrar al portal</h2><p>Con tu email y tu contraseña de GrandBar.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <ol class="pasos">
+          <li>Abrí <a href="https://portalgrandbar.com" target="_blank" rel="noopener"><b>portalgrandbar.com</b></a> en el navegador del celular o de la compu.</li>
+          <li>En <b>Email</b>, escribí tu email de GrandBar.</li>
+          <li>Escribí tu <b>contraseña</b>. El ojito 👁 la muestra para que veas si está bien escrita.</li>
+          <li>Tocá <span class="btn-ui">Ingresar →</span>. Entrás directo a <span class="menu-ui">Resumen del equipo</span>.</li>
+        </ol>
+        <div class="nota ojo"><span class="ico">🔑</span><p><b>¿Te olvidaste la contraseña?</b> Escribí tu email y tocá <b>“¿Olvidaste tu contraseña?”</b>. Se abre WhatsApp con soporte (+54 9 261 245-2651) con el pedido ya escrito, y te la restablecen.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr"><div class="m-login">
+          <div class="wm">GRANDBAR</div>
+          <div class="sm">DISTRIBUCIONES</div>
+          <div class="hi">Bienvenido</div>
+          <div class="hs">Ingresá con tu cuenta de GrandBar.</div>
+          <div class="box">
+            <div class="fl">EMAIL</div>
+            <div class="fi">👤 ej. nombre@grandbar.com.ar</div>
+            <div class="fl">CONTRASEÑA</div>
+            <div class="fi">🔒 Ingresá tu contraseña</div>
+            <div class="fg">¿Olvidaste tu contraseña?</div>
+            <div class="go">Ingresar →</div>
+            <div class="ai">🛡 <b style="color:#fff">Aplicación interna de GrandBar.</b> Uso exclusivo para personal autorizado.</div>
+          </div>
+        </div></div></div>
+        <figcaption>La pantalla de ingreso de portalgrandbar.com.</figcaption>
+      </figure>
+    </div>
+    <div class="card">
+      <h3>👆 Entrar con la huella o con Face ID</h3>
+      <p>La primera vez que entrás desde un celular, el portal pregunta <b>“¿Activar el ingreso con huella para la próxima vez?”</b> (en iPhone dice Face ID). Si aceptás, las próximas veces aparece el botón de la huella debajo de <b>“o continuá con”</b>: lo tocás y entrás sin escribir la contraseña.</p>
+    </div>
+    <div class="card">
+      <h3>📲 Tenelo a mano como si fuera una app</h3>
+      <p>Así lo abrís con un solo toque desde la pantalla del celular:</p>
+      <div class="mini-2">
+        <div class="mini-paso"><span class="mp-t">Android (Chrome)</span>Con el portal abierto, tocá <b>⋮</b> arriba a la derecha → <b>Agregar a la pantalla principal</b>.</div>
+        <div class="mini-paso"><span class="mp-t">iPhone (Safari)</span>Con el portal abierto, tocá <b>Compartir</b> (el cuadrado con la flecha) → <b>Agregar a inicio</b>.</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Una cuenta por navegador</h3>
+      <p>El navegador guarda <b>una sola sesión</b> del portal. Si en otra pestaña alguien entra con otra cuenta, todas las pestañas pasan a esa cuenta y arriba aparece un cartel para actualizar la pantalla.</p>
+      <div class="nota tip"><span class="ico">💡</span><p>Si necesitás tener dos cuentas abiertas a la vez, usá otro perfil de Chrome o una <b>ventana de incógnito</b>.</p></div>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 2 · MENÚ -->
+  <section class="paso" id="menu">
+    <div class="sec-head">
+      <span class="sec-num">2</span>
+      <div><h2>El menú y los avisos</h2><p>Todo el panel está en el menú, en tres bloques.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <ol class="pasos">
+          <li>En el celular, tocá <b>☰</b> arriba a la izquierda. En la compu el menú está siempre a la izquierda.</li>
+          <li>Tocá la sección que necesites. El menú es el mismo en todas las pantallas del panel.</li>
+        </ol>
+        <ul class="ref" style="margin-top:18px">
+          <li><span class="k">👥 Mi equipo</span><span class="v">Resumen del equipo, Visitas, Agendas, Tareas, Clientes del equipo, Pedidos de acción, Leads, Curso y Torneo Doña Paula.</span></li>
+          <li><span class="k">💼 Mis ventas</span><span class="v">Tu trabajo como vendedor: Mi inicio, Mis clientes, Mis leads, Planificador de ruta IA, Agenda eficiente, Cobranzas y Herramientas de venta.</span></li>
+          <li><span class="k">🙋 Lo mío</span><span class="v">Mi agenda, Mis tareas y Mis reportes.</span></li>
+          <li><span class="k">❓ Ayuda</span><span class="v"><b>Guía del panel</b>: abre esta guía en otra pestaña.</span></li>
+        </ul>
+        <div class="nota tip"><span class="ico">📱</span><p>En el celular, en las pantallas de Mi equipo hay además una barra abajo con los cuatro accesos más usados: <b>Equipo</b>, <b>Visitas</b>, <b>Mis clientes</b> y <b>Agenda</b>.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr"><div class="m-drawer">
+          <nav>
+            <div class="logo-t">Grand<b>Bar</b></div>
+            <div class="gt">Mi equipo</div>
+            <div class="it on">Resumen del equipo</div>
+            <div class="it">Visitas</div>
+            <div class="it">Agendas</div>
+            <div class="it">Tareas</div>
+            <div class="it">Clientes del equipo</div>
+            <div class="it">Pedidos de acción</div>
+            <div class="it">Leads</div>
+            <div class="it">Curso</div>
+            <div class="it">Torneo Doña Paula</div>
+            <div class="gt">Mis ventas</div>
+            <div class="it">Mi inicio</div>
+            <div class="it">Mis clientes</div>
+            <div class="it">Mis leads</div>
+            <div class="it">Planificador de ruta IA</div>
+            <div class="it">Agenda eficiente</div>
+            <div class="it">Cobranzas</div>
+            <div class="it">Herramientas de venta</div>
+            <div class="gt">Lo mío</div>
+            <div class="it">Mi agenda</div>
+            <div class="it">Mis tareas</div>
+            <div class="it">Mis reportes</div>
+            <div class="gt">Ayuda</div>
+            <div class="it">Guía del panel</div>
+          </nav>
+          <div class="sombra"></div>
+        </div></div></div>
+        <figcaption>El menú abierto después de tocar ☰.</figcaption>
+      </figure>
+    </div>
+    <div class="card">
+      <h3>🔔 La campanita</h3>
+      <p>Arriba a la derecha. El número rojo cuenta los avisos nuevos y se actualiza sola cada minuto. Tocá un aviso para ir directo a la pantalla que corresponde. Por ejemplo, te avisa cuando:</p>
+      <ul class="lista">
+        <li>un vendedor te manda su <b>agenda del mes</b> para aprobar 🗓️;</li>
+        <li>te <b>asignan un lead</b> 🎯;</li>
+        <li>te invitan a una <b>reunión</b>.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🚪 Cerrar sesión</h3>
+      <p>Tocá tu nombre, abajo del menú, y después <b>Cerrar sesión</b>. Hacelo siempre que uses un celular o una compu que no sea tuya.</p>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- ============ PARTE 2 · MI EQUIPO ============ -->
+  <div class="parte" id="parte-equipo"><span>Parte 2</span><b>Mi equipo</b><p>Lo que ves y manejás de tus vendedores. El equipo se arma solo, por la zona y el canal de cada vendedor.</p></div>
+
+  <!-- 3 · RESUMEN -->
+  <section class="paso" id="resumen">
+    <div class="sec-head">
+      <span class="sec-num">3</span>
+      <div><h2>Resumen del equipo</h2><p>Tu pantalla de inicio como supervisor.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <p>Arriba dice tu canal y tu zona (por ejemplo, <b>OFF Trade · Mendoza</b>) y hace cuánto se actualizaron los saldos del sistema.</p>
+        <ul class="ref">
+          <li><span class="k">Vendedores</span><span class="v">Cuántos vendedores tiene tu equipo.</span></li>
+          <li><span class="k">Clientes del equipo</span><span class="v">La suma de las carteras de todos.</span></li>
+          <li><span class="k">Deuda vencida total</span><span class="v">Lo vencido de todos los clientes del equipo.</span></li>
+          <li><span class="k">Tareas hechas hoy</span><span class="v">Cuántas tareas tildaron hoy tus vendedores.</span></li>
+        </ul>
+        <h3 style="margin-top:18px">Las pestañas</h3>
+        <ul class="lista">
+          <li><span class="menu-ui">Por vendedor</span>: una tarjeta por vendedor con sus clientes, su deuda vencida y las tareas que hizo hoy. Tocala y se abre al costado <b>la lista de sus clientes</b> con la deuda vencida de cada uno.</li>
+          <li><span class="menu-ui">Todos los clientes</span>: los clientes del equipo con saldo, vencido y teléfono. Buscá por nombre, código, vendedor o dirección.</li>
+          <li><span class="menu-ui">Agenda del equipo</span>: por vendedor, cuántos compromisos tiene hoy, próximos y pendientes.</li>
+          <li><span class="menu-ui">📚 Curso del equipo</span>: te lleva al avance del curso (sección 10).</li>
+        </ul>
+        <div class="nota tip"><span class="ico">🙋</span><p>Vos también aparecés en la lista del equipo, porque también vendés.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Mi equipo<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div><div class="m-h1">Mi equipo 👥</div><div class="m-sub">Resumen de todo tu equipo · 💲 saldos del ERP actualizados hace <span class="bar w1"></span></div></div>
+            <div class="m-kpis">
+              <div class="m-kpi"><i></i><div><small>Vendedores</small><span class="bar d w1"></span></div></div>
+              <div class="m-kpi gold"><i></i><div><small>Clientes del equipo</small><span class="bar d w2"></span></div></div>
+              <div class="m-kpi red"><i></i><div><small>Deuda vencida total</small><span class="bar d w2"></span></div></div>
+              <div class="m-kpi green"><i></i><div><small>Tareas hechas hoy</small><span class="bar d w1"></span></div></div>
+            </div>
+            <div class="m-tabs"><span class="m-tab on">Por vendedor</span><span class="m-tab">Todos los clientes</span><span class="m-tab">Agenda del equipo</span></div>
+            <div class="m-card">
+              <div class="m-vtop"><span class="m-av"></span><div class="fx"><span class="bar d w4"></span><span class="bar w2"></span></div></div>
+              <div class="m-stats"><div class="m-st"><small>Clientes</small><span class="bar d w1"></span></div><div class="m-st"><small>Deuda vencida</small><span class="bar d w2"></span></div></div>
+              <div class="m-foot"><span class="m-tag">✅ <span class="bar w1" style="height:5px"></span> tareas hoy</span><span class="m-link">Ver clientes ›</span></div>
+            </div>
+            <div class="m-card">
+              <div class="m-vtop"><span class="m-av"></span><div class="fx"><span class="bar d w3"></span><span class="bar w2"></span></div></div>
+              <div class="m-stats"><div class="m-st"><small>Clientes</small><span class="bar d w1"></span></div><div class="m-st"><small>Deuda vencida</small><span class="bar d w2"></span></div></div>
+            </div>
+          </div>
+          <div class="m-bot">
+            <span class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Equipo</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>Visitas</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>Mis clientes</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Agenda</span>
+          </div>
+        </div></div>
+        <figcaption>Resumen del equipo. Los datos reales aparecen donde están las barras grises.</figcaption>
+      </figure>
+    </div>
+    <div class="card">
+      <h3>🗓️ Armar la agenda de un vendedor</h3>
+      <ol class="pasos">
+        <li>Tocá la tarjeta del vendedor y después <span class="btn-ui gold">Armar su agenda</span>. También está en la pestaña <span class="menu-ui">Agenda del equipo</span> → <b>Armar agenda ›</b>.</li>
+        <li>Se abre la agenda con el cartel <b>“Le estás armando la agenda a …”</b>.</li>
+        <li>Tocá <span class="btn-ui">+ Nuevo</span>. Elegí el tipo (<b>Visita</b>, <b>Reunión</b>, <b>Llamada</b> o <b>Tarea</b>), el cliente o lugar y la fecha. La hora y el objetivo son opcionales.</li>
+        <li>Tocá <span class="btn-ui green">Guardar</span>. El vendedor lo ve en su agenda del celular.</li>
+      </ol>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 4 · VISITAS -->
+  <section class="paso" id="visitas">
+    <div class="sec-head">
+      <span class="sec-num">4</span>
+      <div><h2>Visitas del equipo</h2><p>Qué visitas hizo cada vendedor en el manual.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <ol class="pasos">
+          <li>Arriba elegí el período: <b>Este mes</b>, <b>Mes pasado</b>, <b>Últimos 3 meses</b> o <b>Todo el historial</b>.</li>
+          <li>Mirá los totales del equipo: visitas, clientes visitados, el <b>avance promedio</b> y cuántos vendedores son.</li>
+          <li>Cada vendedor tiene su tarjeta, de más a menos visitas. Tocá <b>Ver detalle ›</b> para ver sus visitas con la fecha y el avance de cada una.</li>
+          <li>Tocá una visita para abrirla: está el <b>PDF de la visita</b> (si el vendedor lo guardó), sus <b>observaciones</b> y las <b>secciones del manual que trabajó</b>, con lo que anotó en cada una.</li>
+        </ol>
+        <div class="nota tip"><span class="ico">📊</span><p><b>El avance</b> es qué parte de las secciones del manual trabajó el vendedor en esa visita.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Visitas<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div style="display:flex;justify-content:space-between;align-items:center"><div class="m-h1">Visitas del equipo 📊</div><span class="m-tab">Este mes ▾</span></div>
+            <div class="m-kpis">
+              <div class="m-kpi gold"><i></i><div><small>Visitas del mes</small><span class="bar d w1"></span></div></div>
+              <div class="m-kpi"><i></i><div><small>Clientes visitados</small><span class="bar d w1"></span></div></div>
+              <div class="m-kpi green"><i></i><div><small>Avance promedio</small><span class="bar d w1"></span></div></div>
+              <div class="m-kpi"><i></i><div><small>Vendedores</small><span class="bar d w1"></span></div></div>
+            </div>
+            <div class="m-card">
+              <div class="m-vtop"><span class="m-av"></span><div class="fx"><span class="bar d w4"></span><span class="bar w2"></span></div></div>
+              <div class="m-stats"><div class="m-st"><small>Visitas del mes</small><span class="bar d w1"></span></div><div class="m-st"><small>Clientes visitados</small><span class="bar d w1"></span></div></div>
+              <div class="m-prog" style="margin-top:6px"><i style="width:64%"></i></div>
+              <div class="m-foot"><span class="m-tag">Avance prom. <span class="bar w1" style="height:5px"></span></span><span class="m-link">Ver detalle ›</span></div>
+            </div>
+            <div class="m-card">
+              <div class="m-vtop"><span class="m-av"></span><div class="fx"><span class="bar d w3"></span><span class="bar w2"></span></div></div>
+              <div class="m-prog"><i style="width:40%"></i></div>
+            </div>
+          </div>
+          <div class="m-bot">
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Equipo</span>
+            <span class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>Visitas</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>Mis clientes</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Agenda</span>
+          </div>
+        </div></div>
+        <figcaption>Visitas del equipo, con el período arriba a la derecha.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 5 · AGENDAS -->
+  <section class="paso" id="agendas">
+    <div class="sec-head">
+      <span class="sec-num">5</span>
+      <div><h2>Agendas del equipo</h2><p>Validá la agenda del mes que arma cada vendedor.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <p>Cada vendedor arma su agenda del mes en <b>Agenda eficiente</b> y te la manda. Cuando llega, te avisa la campanita 🗓️.</p>
+        <ol class="pasos">
+          <li>Elegí el mes con las flechas <b>‹ ›</b>.</li>
+          <li>Cada tarjeta muestra las visitas planificadas, el estado y el avance: cuántas visitas ya hizo y cuántas <span style="color:var(--rojo);font-weight:700">no se realizaron</span>.</li>
+          <li>Tocá <span class="btn-ui line">Ver agenda</span>: se abre el calendario del mes. Tocá un día para ver a quién visita: ✓ hecha (con los minutos que duró) o ✕ no realizada (con el motivo).</li>
+          <li>Si está bien, tocá <span class="btn-ui green">✓ Aprobar</span>. Si hay que corregir, tocá <span class="btn-ui amber">Pedir cambios</span> y escribí qué necesita: al vendedor le llega el aviso con tu nota.</li>
+        </ol>
+        <ul class="ref" style="margin-top:18px">
+          <li><span class="k"><span class="badge b-gris">Borrador</span></span><span class="v">El vendedor la está armando y todavía no te la mandó.</span></li>
+          <li><span class="k"><span class="badge b-amber">Para revisar</span></span><span class="v">Te la mandó y espera tu validación.</span></li>
+          <li><span class="k"><span class="badge b-verde">Aprobada</span></span><span class="v">Ya la validaste.</span></li>
+          <li><span class="k"><span class="badge b-rojo">Cambios pedidos</span></span><span class="v">Le pediste cambios. Debajo ves la nota que le dejaste.</span></li>
+        </ul>
+        <div class="nota tip"><span class="ico">➕</span><p>En el calendario, <span class="btn-ui line">+ Mi agenda</span> suma esa visita a tu agenda (solo la ves vos). Sirve, por ejemplo, para acompañar al vendedor ese día.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Agendas<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div><div class="m-h1">Agendas del equipo 🗓️</div><div class="m-sub">Validá y hacé seguimiento de la Agenda Eficiente de cada vendedor.</div></div>
+            <div style="display:flex;justify-content:center;align-items:center;gap:10px"><span class="m-tab">‹</span><span class="bar d w3"></span><span class="m-tab">›</span></div>
+            <div class="m-card">
+              <div class="m-vtop"><span class="m-av"></span><div class="fx"><span class="bar d w4"></span><span class="bar w3"></span></div><span class="m-badge amber">Para revisar</span></div>
+              <div class="m-prog"><i style="width:55%"></i></div>
+              <div class="m-sub" style="margin:4px 0 6px"><span class="bar w4" style="height:5px"></span></div>
+              <div class="m-btns"><span class="m-btn ghost">Ver agenda</span><span class="m-btn green">✓ Aprobar</span><span class="m-btn amber">Pedir cambios</span></div>
+            </div>
+            <div class="m-card">
+              <div class="m-vtop"><span class="m-av"></span><div class="fx"><span class="bar d w3"></span><span class="bar w3"></span></div><span class="m-badge green">Aprobada</span></div>
+              <div class="m-prog"><i style="width:80%"></i></div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>Una agenda para revisar y otra ya aprobada.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 6 · TAREAS DEL EQUIPO -->
+  <section class="paso" id="tareas-equipo">
+    <div class="sec-head">
+      <span class="sec-num">6</span>
+      <div><h2>Tareas del equipo</h2><p>Mandale tareas a tu equipo y mirá quién las hizo.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <h3>Cargar una tarea nueva</h3>
+        <ol class="pasos">
+          <li><b>¿Qué tiene que hacer?</b> Una frase corta. Por ejemplo: “Sacar foto de la exhibición de vinos”.</li>
+          <li><b>Explicá bien cómo</b> (opcional, pero recomendado): el paso a paso, así el vendedor no tiene dudas.</li>
+          <li><b>¿A quién se la mando?</b> <span class="menu-ui">👥 A todo mi equipo</span> o <span class="menu-ui">🎯 A vendedores puntuales</span> (tildás a quién).</li>
+          <li><b>¿Cuándo?</b> <span class="menu-ui">🔁 Todos los días</span> (se repite cada día hábil) o <span class="menu-ui">📌 Un día puntual</span> (elegís la fecha). Tocá <span class="btn-ui green">Guardar tarea</span>.</li>
+        </ol>
+        <h3 style="margin-top:18px">Seguimiento</h3>
+        <p>Abajo, en <b>Tus tareas activas · seguimiento de hoy</b>, cada tarea dice cuántos la hicieron hoy (por ejemplo, 3/8). <span class="btn-ui line">Quitar tarea</span> la saca y deja de aparecerles a los vendedores.</p>
+        <div class="nota tip"><span class="ico">✅</span><p>Los vendedores ven la tarea en su pantalla <b>Tareas</b> y la tildan cuando la hacen.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Tareas<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div class="m-h1">Tareas del equipo</div>
+            <div class="m-card" style="display:flex;flex-direction:column;gap:7px">
+              <div class="m-tit">Cargar una tarea nueva</div>
+              <div><div class="m-lbl">1 · ¿Qué tiene que hacer?</div><div class="m-in">Escribí la tarea…</div></div>
+              <div><div class="m-lbl">2 · Explicá bien cómo</div><div class="m-in" style="height:30px">Ej: 1) Entrá al bar. 2) Sacá foto…</div></div>
+              <div><div class="m-lbl">3 · ¿A quién se la mando?</div><div class="m-opt2"><span class="m-opt on">👥 A todo mi equipo</span><span class="m-opt">🎯 Puntuales</span></div></div>
+              <div><div class="m-lbl">4 · ¿Cuándo?</div><div class="m-opt2"><span class="m-opt on">🔁 Todos los días</span><span class="m-opt">📌 Un día puntual</span></div></div>
+              <span class="m-btn green full">Guardar tarea</span>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>El formulario de cuatro pasos.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 7 · CLIENTES DEL EQUIPO -->
+  <section class="paso" id="clientes-equipo">
+    <div class="sec-head">
+      <span class="sec-num">7</span>
+      <div><h2>Clientes del equipo</h2><p>Todos los clientes de tus vendedores, con su deuda.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <p>Arriba: cuántos <b>clientes</b> tiene el equipo, las <b>visitas de esta semana</b> (desde el lunes) y las <b>ventas del mes</b> del equipo, de la planilla de Avance Ventas.</p>
+        <ul class="lista">
+          <li><b>Buscar cliente…</b>: por nombre, arriba.</li>
+          <li><span class="menu-ui">Todos los clientes ▾</span>: filtrá por <b>Con deuda vencida</b>, <b>Con saldo pendiente</b> o <b>Al día</b>.</li>
+          <li><span class="menu-ui">Filtros</span>: mostrá solo los de un vendedor.</li>
+          <li><span class="menu-ui">Ordenar</span>: por nombre (A-Z o Z-A), por <b>Más deuda vencida</b> o por <b>Última visita</b>.</li>
+        </ul>
+        <p style="margin-top:14px">Tocá un cliente para abrir su <b>ficha</b>: tipo, teléfono, código, vendedor, dirección, saldo actual, deuda vencida, lo vendido acumulado y la última visita. En la ficha también están el <b>Historial</b> de visitas y las <b>Notas</b>, y los botones <b>Llamar</b> y <b>Cómo llegar</b> (abre Google Maps).</p>
+        <div class="nota ojo"><span class="ico">↺</span><p><span class="btn-ui line">✕ Quitar</span> saca al cliente de la cartera y deja de aparecer en la lista. Usalo solo si el cliente ya no se atiende. Si te equivocás, andá a la pestaña <span class="menu-ui">Quitados</span> y tocá <span class="btn-ui green">↺ Volver a la cartera</span>.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Clientes del equipo<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div class="m-in">🔍 Buscar cliente…</div>
+            <div class="m-kpis t3">
+              <div class="m-kpi solo"><small>Clientes del equipo</small><span class="bar d w1"></span></div>
+              <div class="m-kpi solo"><small>Visitas esta semana</small><span class="bar d w1"></span></div>
+              <div class="m-kpi solo"><small>Ventas del mes</small><span class="bar d w2"></span></div>
+            </div>
+            <div class="m-tabs"><span class="m-tab on">Clientes</span><span class="m-tab">Quitados</span><span class="m-tab">Todos los clientes ▾</span><span class="m-tab">Filtros</span><span class="m-tab">Ordenar ▾</span></div>
+            <div class="m-row"><span class="fx"><span class="bar d w4"></span><span class="bar w5" style="height:5px"></span></span><span class="m-btn ghost">✕ Quitar</span></div>
+            <div class="m-row sel"><span class="fx"><span class="bar d w3"></span><span class="bar w4" style="height:5px"></span></span><span class="m-btn ghost">✕ Quitar</span></div>
+            <div class="m-row"><span class="fx"><span class="bar d w4"></span><span class="bar w5" style="height:5px"></span></span><span class="m-btn ghost">✕ Quitar</span></div>
+            <div class="m-row"><span class="fx"><span class="bar d w3"></span><span class="bar w4" style="height:5px"></span></span><span class="m-btn ghost">✕ Quitar</span></div>
+          </div>
+          <div class="m-bot">
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Equipo</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>Visitas</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>Mis clientes</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Agenda</span>
+          </div>
+        </div></div>
+        <figcaption>La lista con el buscador y los filtros.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 8 · PEDIDOS DE ACCIÓN -->
+  <section class="paso" id="pedidos">
+    <div class="sec-head">
+      <span class="sec-num">8</span>
+      <div><h2>Pedidos de acción</h2><p>Los pedidos a partners que cargan tus vendedores esperan tu validación.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <p>Los vendedores los cargan desde el manual de discos, cuando un cliente necesita una acción de una marca.</p>
+        <ol class="pasos">
+          <li>Arriba ves cuántos hay <b>Pendientes</b>, <b>Aprobados</b> y <b>Rechazados</b>. Las pestañas filtran por estado; <b>Todos</b> los muestra juntos.</li>
+          <li>Leé el pedido: la marca, el cliente y el vendedor; <b>qué necesita el cliente</b>; el volumen, qué prefiere, el <b>fee que pide</b> y la <b>plata que solicita</b>.</li>
+          <li>Tocá <span class="btn-ui green">✓ Aprobar</span> (te pide confirmar) o <span class="btn-ui red">✗ Rechazar</span> y escribí el motivo: el vendedor lo ve en la ficha del cliente.</li>
+          <li>Queda registrado quién lo resolvió y cuándo.</li>
+        </ol>
+        <div class="nota tip"><span class="ico">👥</span><p>Si otra persona ya lo había resuelto, la pantalla te avisa y actualiza la lista.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Pedidos de acción<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div class="m-kpis t3">
+              <div class="m-kpi solo"><small>Pendientes</small><span class="bar d w1"></span></div>
+              <div class="m-kpi solo"><small>Aprobados</small><span class="bar d w1"></span></div>
+              <div class="m-kpi solo"><small>Rechazados</small><span class="bar d w1"></span></div>
+            </div>
+            <div class="m-tabs"><span class="m-tab on">Pendientes</span><span class="m-tab">Aprobados</span><span class="m-tab">Rechazados</span><span class="m-tab">Todos</span></div>
+            <div class="m-card" style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;flex-direction:column;gap:3px"><span class="bar d w3"></span><span class="bar w4" style="height:5px"></span></div><span class="m-badge amber">Pendiente</span></div>
+              <div class="m-st"><small>Qué necesita el cliente</small><span class="bar w5" style="height:5px"></span></div>
+              <div class="m-stats">
+                <div class="m-st"><small>Volumen</small><span class="bar d w2"></span></div>
+                <div class="m-st"><small>Prefiere</small><span class="bar d w2"></span></div>
+                <div class="m-st"><small>Fee que pide</small><span class="bar d w2"></span></div>
+                <div class="m-st"><small>Plata que solicita</small><span class="bar d w2"></span></div>
+              </div>
+              <div class="m-opt2"><span class="m-btn green full">✓ Aprobar</span><span class="m-btn red full">✗ Rechazar</span></div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>Un pedido pendiente.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 9 · LEADS -->
+  <section class="paso" id="leads">
+    <div class="sec-head">
+      <span class="sec-num">9</span>
+      <div><h2>Leads</h2><p>Repartí los contactos nuevos entre tus vendedores.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <p>Un lead es un posible cliente que se contactó con GrandBar. Cada uno muestra su nombre, su estado, el teléfono, la zona, el canal, de dónde llegó, la fecha y el mensaje que dejó.</p>
+        <ol class="pasos">
+          <li>Entrá a la pestaña <span class="menu-ui">Sin asignar</span> (al lado dice cuántos hay).</li>
+          <li>En cada lead, elegí el vendedor en la lista <b>— Elegí vendedor —</b>.</li>
+          <li>Tocá <span class="btn-ui green">Asignar</span>. Al vendedor le llega el aviso 🎯 <b>“Te asignaron un lead nuevo”</b>.</li>
+          <li>En <span class="menu-ui">Asignados (equipo)</span> seguís en qué quedó cada uno.</li>
+        </ol>
+        <ul class="ref" style="margin-top:18px">
+          <li><span class="k"><span class="badge b-azul">Nuevo</span> <span class="badge b-amber">Asignado</span></span><span class="v">Todavía nadie lo contactó.</span></li>
+          <li><span class="k"><span class="badge b-gris">Contactado</span></span><span class="v">El vendedor ya habló con la persona.</span></li>
+          <li><span class="k"><span class="badge b-verde">Convertido</span> <span class="badge b-rojo">Descartado</span></span><span class="v">Pasó a ser cliente, o no prosperó.</span></li>
+        </ul>
+        <div class="nota tip"><span class="ico">✍️</span><p><b>Cargar un lead a mano:</b> tocá <span class="btn-ui gold">+ Nuevo lead</span>, completá nombre o teléfono (el resto es opcional: email, zona, canal y la consulta) y tocá <span class="btn-ui green">Crear lead</span>. Queda en <b>Sin asignar</b>.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Leads<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div style="display:flex;justify-content:space-between;align-items:center"><div class="m-h1">Leads 🎯</div><span class="m-btn gold">+ Nuevo lead</span></div>
+            <div class="m-tabs"><span class="m-tab on">Sin asignar (<span class="bar w1" style="width:10px;height:5px;background:#8fa3ad"></span>)</span><span class="m-tab">Asignados (equipo)</span></div>
+            <div class="m-card" style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="bar d w4"></span><span class="m-badge blue">Nuevo</span></div>
+              <span class="bar w5" style="height:5px"></span>
+              <div class="m-st"><span class="bar w5" style="height:5px"></span><br><span class="bar w3" style="height:5px"></span></div>
+              <div style="display:flex;gap:5px"><span class="m-in" style="flex:1">— Elegí vendedor — ▾</span><span class="m-btn green">Asignar</span></div>
+            </div>
+            <div class="m-card" style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="bar d w3"></span><span class="m-badge blue">Nuevo</span></div>
+              <div style="display:flex;gap:5px"><span class="m-in" style="flex:1">— Elegí vendedor — ▾</span><span class="m-btn green">Asignar</span></div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>Leads sin asignar, listos para repartir.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 10 · CURSO -->
+  <section class="paso" id="curso">
+    <div class="sec-head">
+      <span class="sec-num">10</span>
+      <div><h2>Curso del equipo</h2><p>Quién completó el curso obligatorio de vendedores.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <ul class="ref">
+          <li><span class="k">Arriba</span><span class="v">Cuántos vendedores son, cuántos <b>completaron</b> el curso y cuántos están <b>sin empezar</b>. También la nota mínima para aprobar y, si hay, la <b>fecha límite</b>.</span></li>
+          <li><span class="k">Por vendedor</span><span class="v">Los módulos aprobados (por ejemplo, 3/8), la última vez que entró al curso y el estado: <span class="badge b-verde">✓ Completo</span> <span class="badge b-amber">En curso</span> <span class="badge b-rojo">Sin empezar</span>.</span></li>
+        </ul>
+        <div class="nota tip"><span class="ico">📚</span><p>También se abre desde la pestaña <b>📚 Curso del equipo</b> del Resumen del equipo.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Curso<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div><div class="m-h1">📚 Curso del equipo</div><div class="m-sub"><span class="bar w4" style="height:5px"></span></div></div>
+            <div class="m-kpis t3">
+              <div class="m-kpi solo"><small>Vendedores</small><span class="bar d w1"></span></div>
+              <div class="m-kpi solo"><small>Completaron</small><span class="bar d w1"></span></div>
+              <div class="m-kpi solo"><small>Sin empezar</small><span class="bar d w1"></span></div>
+            </div>
+            <div class="m-card" style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:7px"><span class="m-av"></span><span style="flex:1;display:flex;flex-direction:column;gap:3px"><span class="bar d w3"></span><span class="m-prog"><i style="width:100%"></i></span></span><span class="m-badge green">✓ Completo</span></div>
+              <div style="display:flex;align-items:center;gap:7px"><span class="m-av"></span><span style="flex:1;display:flex;flex-direction:column;gap:3px"><span class="bar d w4"></span><span class="m-prog"><i style="width:45%"></i></span></span><span class="m-badge amber">En curso</span></div>
+              <div style="display:flex;align-items:center;gap:7px"><span class="m-av"></span><span style="flex:1;display:flex;flex-direction:column;gap:3px"><span class="bar d w3"></span><span class="m-prog"><i style="width:0"></i></span></span><span class="m-badge red">Sin empezar</span></div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>El avance del curso por vendedor.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 11 · TORNEO -->
+  <section class="paso" id="torneo">
+    <div class="sec-head">
+      <span class="sec-num">11</span>
+      <div><h2>Torneo Doña Paula</h2><p>El ranking oficial de cada sucursal.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <ol class="pasos">
+          <li>Elegí la pestaña <span class="menu-ui">🍇 Mendoza</span> o <span class="menu-ui">🏔 San Luis</span>. Si tenés puntos, también aparece <span class="menu-ui">Mi puntaje</span>.</li>
+          <li>El ranking muestra los puntos de cada vendedor en <b>Acciones</b> 🎯, <b>Volumen</b> 📦 y <b>Activaciones</b> ⚡, y el <b>Total</b>. Los tres primeros llevan 🥇🥈🥉.</li>
+          <li>Tocá un vendedor para ver su detalle: puntos totales, su puesto, cuánto le falta para pasar al de arriba, los puntos por categoría y el detalle por concepto. Con el botón de arriba volvés al ranking.</li>
+        </ol>
+        <div class="nota tip"><span class="ico">🍇</span><p>Los puntos los carga <b>Administración</b>. La pantalla se actualiza cuando cambia su planilla.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Torneo<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div class="m-h1">🏆 Torneo Doña Paula</div>
+            <div class="m-tabs"><span class="m-tab on">🍇 Mendoza</span><span class="m-tab">🏔 San Luis</span></div>
+            <div class="m-card" style="display:flex;flex-direction:column;gap:6px">
+              <div class="m-tit">Ranking Mendoza</div>
+              <div class="m-sub">Tocá un vendedor para ver su detalle.</div>
+              <div class="m-row"><span>🥇</span><span class="fx"><span class="bar d w4"></span></span><b><span class="bar d w2"></span></b></div>
+              <div class="m-row"><span>🥈</span><span class="fx"><span class="bar d w3"></span></span><b><span class="bar d w2"></span></b></div>
+              <div class="m-row"><span>🥉</span><span class="fx"><span class="bar d w4"></span></span><b><span class="bar d w2"></span></b></div>
+              <div class="m-row"><span style="width:14px;text-align:center;font-weight:700">4</span><span class="fx"><span class="bar d w3"></span></span><b><span class="bar d w1"></span></b></div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>El ranking de una sucursal.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- ============ PARTE 3 · MIS VENTAS ============ -->
+  <div class="parte" id="parte-ventas"><span>Parte 3</span><b>Mis ventas</b><p>Tu trabajo como vendedor, con tu propia cartera. Estas pantallas son las mismas que usa tu equipo.</p></div>
+
+  <!-- 12 · MI INICIO -->
+  <section class="paso" id="inicio">
+    <div class="sec-head">
+      <span class="sec-num">12</span>
+      <div><h2>Mi inicio</h2><p>Tu día como vendedor, de un vistazo.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <ul class="ref">
+          <li><span class="k">Los cuatro números</span><span class="v">Clientes asignados, visitas de hoy, tareas pendientes y ventas acumuladas.</span></li>
+          <li><span class="k">📅 Tu agenda de hoy</span><span class="v">Tus visitas del día. <b>Ver agenda completa ›</b> abre Agenda eficiente y <b>Iniciar ruta con IA</b> arma el recorrido (sección 15).</span></li>
+          <li><span class="k">Resumen semanal</span><span class="v">Visitas realizadas de la agenda, ventas acumuladas y clientes nuevos. <b>Ver reporte completo ›</b> abre el reporte semanal: leads sin contactar, clientes que hace rato no visitás y tus clientes que más compran. Se puede imprimir o guardar en PDF.</span></li>
+          <li><span class="k">Avisos importantes</span><span class="v">Compromisos atrasados, visitas pendientes de hoy, tareas sin completar, leads sin contactar y clientes con deuda vencida. Cada aviso te lleva a su pantalla.</span></li>
+          <li><span class="k">Herramientas rápidas</span><span class="v">Catálogo de productos, Materiales de venta (con el stock disponible) y Curso de vendedores.</span></li>
+          <li><span class="k">Acciones y promociones activas</span><span class="v">Las últimas acciones del catálogo para tu canal. <b>Ver todas</b> abre el catálogo.</span></li>
+          <li><span class="k">Tu mes</span><span class="v">Visitas, ventas, clientes con compra y cobertura: qué parte de tu cartera compró este mes.</span></li>
+        </ul>
+        <div class="nota ojo"><span class="ico">📚</span><p>Si todavía no terminaste el curso obligatorio, arriba aparece un cartel que te lleva a completarlo.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Inicio<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div><div class="m-h1">¡Hola, <span class="bar d w2"></span>! 👋</div><div class="m-sub">Tenés un día importante por delante.</div></div>
+            <div class="m-kpis">
+              <div class="m-kpi"><i></i><div><small>Clientes asignados</small><span class="bar d w1"></span></div></div>
+              <div class="m-kpi gold"><i></i><div><small>Visitas de hoy</small><span class="bar d w1"></span></div></div>
+              <div class="m-kpi"><i></i><div><small>Tareas pendientes</small><span class="bar d w1"></span></div></div>
+              <div class="m-kpi gold"><i></i><div><small>Ventas acumuladas</small><span class="bar d w2"></span></div></div>
+            </div>
+            <div class="m-card" style="display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;justify-content:space-between"><span class="m-tit" style="margin:0">📅 Tu agenda de hoy</span><span class="m-link">Ver agenda completa ›</span></div>
+              <div class="m-row"><span class="bar w1"></span><span class="fx"><span class="bar d w4"></span></span></div>
+              <div class="m-row"><span class="bar w1"></span><span class="fx"><span class="bar d w3"></span></span></div>
+              <span class="m-btn full" style="background:var(--verde)">✦ Iniciar ruta con IA ›</span>
+            </div>
+            <div class="m-card"><div class="m-tit">Avisos importantes</div><div class="m-row"><span>⏰</span><span class="fx"><span class="bar d w4"></span></span></div></div>
+          </div>
+        </div></div>
+        <figcaption>Mi inicio.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 13 · MIS CLIENTES -->
+  <section class="paso" id="mis-clientes">
+    <div class="sec-head">
+      <span class="sec-num">13</span>
+      <div><h2>Mis clientes y las visitas</h2><p>Tu cartera, la ficha de cada cliente y cómo registrar una visita.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <p>Es la misma pantalla que <b>Clientes del equipo</b> (sección 7), pero con tu cartera: los recuadros de arriba (clientes asignados, visitas de esta semana y tus ventas del mes), el buscador, los filtros, el orden y la pestaña <b>Quitados</b> funcionan igual.</p>
+        <h3>La ficha del cliente</h3>
+        <ul class="lista">
+          <li><span class="menu-ui">Resumen</span>: tipo, teléfono, código, dirección, saldo actual, deuda vencida, lo vendido acumulado y la última visita.</li>
+          <li><span class="menu-ui">Historial</span>: sus visitas, de la más nueva a la más vieja.</li>
+          <li><span class="menu-ui">Notas</span>: escribí lo que quieras recordar del cliente y tocá <b>Guardar nota</b>.</li>
+          <li><b>Llamar</b> y <b>Cómo llegar</b> (abre Google Maps con la dirección).</li>
+          <li><span class="btn-ui gold">Agregar visita</span>: abre tu agenda con el cliente ya cargado, para agendarla.</li>
+        </ul>
+        <div class="nota tip"><span class="ico">📘</span><p><b>Para hacer la visita:</b> entrá a <b>Herramientas de venta → App de Vendedores</b>. Entrás directo con tu cuenta, elegís el cliente y recorrés el manual. Al cerrarla, queda en el historial del cliente y en <b>Visitas del equipo</b>.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-sheet-bg"><div class="m-sheet">
+            <div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;flex-direction:column;gap:3px"><span class="bar d w4"></span><span class="bar w3" style="height:5px"></span></div><span style="color:var(--gris)">✕</span></div>
+            <div class="m-opt2"><span class="m-btn ghost full">📞 Llamar</span><span class="m-btn ghost full">📍 Cómo llegar</span></div>
+            <div class="m-tabs"><span class="m-tab on">Resumen</span><span class="m-tab">Historial</span><span class="m-tab">Notas</span></div>
+            <div class="m-stats">
+              <div class="m-st"><small>Saldo actual</small><span class="bar d w2"></span></div>
+              <div class="m-st"><small>Deuda vencida</small><span class="bar d w2"></span></div>
+              <div class="m-st"><small>Vendido acumulado</small><span class="bar d w2"></span></div>
+              <div class="m-st"><small>Última visita</small><span class="bar d w2"></span></div>
+            </div>
+            <span class="m-btn gold full">＋ Agregar visita</span>
+          </div></div>
+        </div></div>
+        <figcaption>La ficha de un cliente en el celular.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 14 · MIS LEADS -->
+  <section class="paso" id="mis-leads">
+    <div class="sec-head">
+      <span class="sec-num">14</span>
+      <div><h2>Mis leads</h2><p>Los contactos que te asignaron a vos.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <ol class="pasos">
+          <li>Filtrá con las pestañas: <b>Todos</b>, <b>Nuevos</b>, <b>Contactados</b>, <b>Convertidos</b> o <b>Descartados</b>.</li>
+          <li>Contactá a la persona con <span class="btn-ui wa">💬 WhatsApp</span>, con el botón del teléfono o por email.</li>
+          <li>Actualizá el estado: <span class="btn-ui amber">Marcar contactado</span>, <span class="btn-ui green">✓ Convertido</span> o <span class="btn-ui red">Descartar</span>.</li>
+          <li>Anotá el seguimiento en el campo <b>Nota / seguimiento…</b>: se guarda solo cuando salís del campo.</li>
+        </ol>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Mis leads<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div class="m-h1">🎯 Mis leads</div>
+            <div class="m-tabs"><span class="m-tab on">Todos</span><span class="m-tab">Nuevos</span><span class="m-tab">Contactados</span><span class="m-tab">Convertidos</span></div>
+            <div class="m-card" style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="bar d w4"></span><span class="m-badge blue">Nuevo</span></div>
+              <span class="bar w4" style="height:5px"></span>
+              <div class="m-btns"><span class="m-btn wa">💬 WhatsApp</span><span class="m-btn ghost">📞 <span class="bar w2" style="height:5px"></span></span></div>
+              <div class="m-btns"><span class="m-btn amber">Marcar contactado</span><span class="m-btn green">✓ Convertido</span><span class="m-btn red">Descartar</span></div>
+              <div class="m-in">Nota / seguimiento…</div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>Un lead asignado a vos.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 15 · RUTA IA -->
+  <section class="paso" id="ruta">
+    <div class="sec-head">
+      <span class="sec-num">15</span>
+      <div><h2>Planificador de ruta IA</h2><p>El recorrido del día, ordenado para hacer menos kilómetros.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <p>Toma los clientes de tu cartera que tienen <b>ubicación cargada</b>, elige hasta 12 que estén cerca entre sí y los ordena para recorrer lo menos posible. Se arma sola al entrar.</p>
+        <ul class="ref">
+          <li><span class="k">Arriba</span><span class="v">Cuántas visitas tiene la ruta, los kilómetros y la duración estimada (15 minutos por visita, más el viaje).</span></li>
+          <li><span class="k">Tu recorrido de hoy</span><span class="v">Las paradas en orden, con un horario estimado desde las 8:45, y el mapa con el camino.</span></li>
+          <li><span class="k">Comparación de rutas</span><span class="v">Cuántos kilómetros serían en el orden de tu cartera y cuántos ordenada por cercanía.</span></li>
+          <li><span class="k"><span class="btn-ui green">Iniciar navegación</span></span><span class="v">Abre Google Maps con todas las paradas en ese orden.</span></li>
+        </ul>
+        <div class="nota tip"><span class="ico">🧭</span><p>Abajo de todo, <b>Cómo se arma la ruta</b> explica el cálculo. Solo usa la ubicación: no tiene en cuenta el tránsito ni los horarios de los clientes.</p></div>
+        <div class="nota ojo"><span class="ico">📍</span><p>Si tus clientes no tienen la ubicación cargada, o no se pudieron leer, la pantalla te lo dice y no arma ninguna ruta.</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Planificador de ruta IA ✦</div>
+          <div class="m-body">
+            <div class="m-h1">Tu ruta para hoy</div>
+            <div class="m-kpis t3">
+              <div class="m-kpi solo"><small>Visitas</small><span class="bar d w1"></span></div>
+              <div class="m-kpi solo"><small>Recorrido</small><span class="bar d w1"></span></div>
+              <div class="m-kpi solo"><small>Duración</small><span class="bar d w1"></span></div>
+            </div>
+            <div class="m-map"><svg viewBox="0 0 250 104" preserveAspectRatio="none"><path d="M0 70 Q60 60 110 78 T250 60" stroke="#fff" stroke-width="7" fill="none"/><path d="M40 0 L70 104" stroke="#fff" stroke-width="5"/><polyline points="30,80 70,58 118,66 150,38 196,46 220,22" fill="none" stroke="#2f6f5e" stroke-width="3"/><g fill="#2f6f5e"><circle cx="30" cy="80" r="6"/><circle cx="70" cy="58" r="6"/><circle cx="118" cy="66" r="6"/><circle cx="150" cy="38" r="6"/><circle cx="196" cy="46" r="6"/><circle cx="220" cy="22" r="6"/></g></svg></div>
+            <div class="m-row"><span class="bar w1"></span><span class="m-badge green">1</span><span class="fx"><span class="bar d w4"></span></span></div>
+            <div class="m-row"><span class="bar w1"></span><span class="m-badge green">2</span><span class="fx"><span class="bar d w3"></span></span></div>
+            <span class="m-btn green full">Iniciar navegación</span>
+          </div>
+        </div></div>
+        <figcaption>La ruta del día con el mapa.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 16 · AGENDA EFICIENTE -->
+  <section class="paso" id="agenda-eficiente">
+    <div class="sec-head">
+      <span class="sec-num">16</span>
+      <div><h2>Agenda eficiente: tu agenda del mes</h2><p>La armás una vez y la app reparte las visitas en el mes.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <p>Tiene cuatro pestañas: <span class="menu-ui">📆 Hoy</span> <span class="menu-ui">🏷️ Categorizar</span> <span class="menu-ui">🗓️ Mensual</span> <span class="menu-ui">📤 Envío</span>.</p>
+        <ol class="pasos">
+          <li><b>Categorizar</b> (se hace una sola vez): a cada cliente le ponés su frecuencia de visita: <b>semanal</b>, <b>quincenal</b> o <b>mensual</b>.</li>
+          <li><b>Mensual</b>: ubicás cada cliente una sola vez. Elegís el primer día y se repite solo: los semanales cada 7 días y los quincenales cada 15. La barra <b>Clientes ubicados</b> dice cuánto te falta. Tocá un día del calendario para ver o ajustar sus visitas.</li>
+          <li><b>Envío</b>: cuando esté lista, tocá <span class="btn-ui gold">📤 Enviar agenda al supervisor</span>. Arriba ves el estado. Si ya está aprobada y tenés que cambiarla, el botón pasa a decir <b>Reenviar (hacer cambios)</b>.</li>
+          <li><b>Hoy</b>: tus visitas del día. <span class="btn-ui green">▶ Iniciar visitas (manual)</span> abre el manual, y cada visita que cerrás ahí se tilda sola con su tiempo.</li>
+        </ol>
+        <div class="nota ojo"><span class="ico">🚫</span><p><b>Si no pudiste ir a un cliente</b>, en <b>Hoy</b> tocá <b>No pude visitar</b>: escribí el motivo y, si querés, pasá la visita a otro día. Queda registrado para la supervisión.</p></div>
+        <div class="nota tip"><span class="ico">🙋</span><p>Como también vendés, tu propia agenda del mes aparece en <b>Agendas del equipo</b> (sección 5).</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Agenda Eficiente<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div class="m-h1">🗓️ Agenda Eficiente</div>
+            <div class="m-tabs"><span class="m-tab">📆 Hoy</span><span class="m-tab">🏷️ Categorizar</span><span class="m-tab on">🗓️ Mensual</span><span class="m-tab">📤 Envío</span></div>
+            <div class="m-card">
+              <div style="display:flex;justify-content:space-between;font-weight:800;font-size:.62rem"><span>Clientes ubicados</span><span class="bar d w2"></span></div>
+              <div class="m-prog" style="margin-top:5px"><i style="width:62%"></i></div>
+            </div>
+            <div class="m-card">
+              <div class="m-cal">
+                <span class="h">L</span><span class="h">M</span><span class="h">M</span><span class="h">J</span><span class="h">V</span><span class="h">S</span><span class="h">D</span>
+                <span class="d v"></span><span class="d t"><i></i></span><span class="d t"><i></i></span><span class="d"></span><span class="d t"><i></i></span><span class="d"></span><span class="d"></span>
+                <span class="d t"><i></i></span><span class="d t sel"><i></i></span><span class="d"></span><span class="d t"><i></i></span><span class="d t"><i></i></span><span class="d"></span><span class="d"></span>
+                <span class="d t"><i></i></span><span class="d"></span><span class="d t"><i></i></span><span class="d t"><i></i></span><span class="d"></span><span class="d"></span><span class="d"></span>
+              </div>
+            </div>
+            <div class="m-card">
+              <div class="m-tit">📍 Clientes por ubicar</div>
+              <div class="m-tabs"><span class="m-tab on">Todos</span><span class="m-tab">Semanal</span><span class="m-tab">Quincenal</span><span class="m-tab">Mensual</span></div>
+            </div>
+          </div>
+        </div></div>
+        <figcaption>La pestaña Mensual, con el calendario.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 17 · COBRANZAS -->
+  <section class="paso" id="cobranzas">
+    <div class="sec-head">
+      <span class="sec-num">17</span>
+      <div><h2>Cobranzas</h2><p>La deuda de tus clientes y los comprobantes que suben.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <h3>💲 Deuda de mis clientes</h3>
+        <ul class="lista">
+          <li>Arriba: <b>clientes con deuda</b>, <b>total adeudado</b> y <b>vencido</b>.</li>
+          <li>Buscá por nombre o código. Ordená por <b>más vencidos</b>, <b>más saldo</b> o <b>nombre</b>, y filtrá <b>solo con deuda</b>, <b>solo con vencido</b> o <b>todos</b>.</li>
+          <li>Cada cliente tiene <span class="btn-ui wa">💬 WhatsApp</span> con un mensaje listo: <i>“Hola! Te escribo de GrandBar por el saldo de tu cuenta… ¿Cómo lo coordinamos?”</i>.</li>
+        </ul>
+        <div class="nota tip"><span class="ico">🔄</span><p>Los saldos salen del sistema de la empresa. Si cobraste hoy, puede tardar en actualizarse.</p></div>
+        <h3 style="margin-top:18px">📄 Comprobantes</h3>
+        <ol class="pasos">
+          <li>El cliente sube el comprobante de su pago en el Portal del Cliente.</li>
+          <li>Vos lo cargás en <b>Conquer</b> y tocás <span class="btn-ui green">Marcar procesado</span>. Te pide confirmar y pasa a Tesorería.</li>
+          <li>Tesorería lo revisa y lo acepta.</li>
+        </ol>
+        <ul class="ref" style="margin-top:14px">
+          <li><span class="k"><span class="badge b-amber">A procesar</span></span><span class="v">Te toca cargarlo en Conquer.</span></li>
+          <li><span class="k"><span class="badge b-azul">En tesorería</span></span><span class="v">Ya lo procesaste; lo está revisando Tesorería.</span></li>
+          <li><span class="k"><span class="badge b-verde">Confirmado ✓</span> <span class="badge b-rojo">Rechazado</span></span><span class="v">Tesorería lo aceptó, o no.</span></li>
+        </ul>
+        <p style="margin-top:12px">Con <span class="btn-ui line">Ver</span> abrís el comprobante. Si el cliente usó saldo a favor, aparece el aviso 💚.</p>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Cobranzas<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div class="m-tabs"><span class="m-tab on">💲 Deuda de mis clientes</span><span class="m-tab">📄 Comprobantes</span></div>
+            <div class="m-kpis t3">
+              <div class="m-kpi solo"><small>Clientes con deuda</small><span class="bar d w1"></span></div>
+              <div class="m-kpi solo"><small>Total adeudado</small><span class="bar d w2"></span></div>
+              <div class="m-kpi solo"><small>Vencido</small><span class="bar d w2" style="background:#e3a996"></span></div>
+            </div>
+            <div class="m-in">Buscar cliente por nombre o código…</div>
+            <div class="m-row"><span class="fx"><span class="bar d w4"></span><span class="bar w2" style="height:5px"></span></span><span class="m-btn wa">💬 WhatsApp</span></div>
+            <div class="m-row"><span class="fx"><span class="bar d w3"></span><span class="bar w2" style="height:5px"></span></span><span class="m-btn wa">💬 WhatsApp</span></div>
+            <div class="m-row"><span class="fx"><span class="bar d w4"></span><span class="bar w2" style="height:5px"></span></span><span class="m-btn wa">💬 WhatsApp</span></div>
+          </div>
+        </div></div>
+        <figcaption>La deuda de tu cartera.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 18 · HERRAMIENTAS -->
+  <section class="paso" id="herramientas">
+    <div class="sec-head">
+      <span class="sec-num">18</span>
+      <div><h2>Herramientas de venta</h2><p>Lo que necesitás para tus visitas, en un solo lugar.</p></div>
+    </div>
+    <div class="card">
+      <ul class="ref">
+        <li><span class="k">📘 App de Vendedores</span><span class="v">El manual de vendedores con tu cartera. Entrás directo con tu cuenta del portal y ahí hacés las visitas.</span></li>
+        <li><span class="k">🗺️ Posibles nuevos clientes</span><span class="v">La IA busca en el mapa bares, restaurantes o vinotecas (según tu canal) que todavía no son clientes tuyos.</span></li>
+        <li><span class="k">📦 Catálogo de productos</span><span class="v">Acciones, promos y precios vigentes por marca. Abre catalogoon.com o catalogooff.com según tu canal.</span></li>
+      </ul>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- ============ PARTE 4 · LO MÍO ============ -->
+  <div class="parte" id="parte-mio"><span>Parte 4</span><b>Lo mío</b><p>Tu agenda, tus tareas y tus reportes.</p></div>
+
+  <!-- 19 · MI AGENDA -->
+  <section class="paso" id="mi-agenda">
+    <div class="sec-head">
+      <span class="sec-num">19</span>
+      <div><h2>Mi agenda y reuniones</h2><p>Tus compromisos, las reuniones y sus minutas.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <h3>Tus compromisos</h3>
+        <ol class="pasos">
+          <li>Movete por la semana con <b>‹ Hoy ›</b> y tocá un día para ver sus compromisos.</li>
+          <li>Tocá <span class="btn-ui">+ Nuevo</span> y elegí el tipo: <b>🏪 Visita</b>, <b>👥 Reunión</b>, <b>📞 Llamada</b> o <b>✅ Tarea</b>.</li>
+          <li>Completá el cliente o lugar y la fecha. La hora y el objetivo son opcionales. Tocá <span class="btn-ui green">Guardar</span>.</li>
+          <li>Para cambiar o borrar un compromiso, tocalo.</li>
+        </ol>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr" style="padding-bottom:6px">
+          <div class="m-top"><span class="m-burger">☰</span>Agenda<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div style="display:flex;justify-content:space-between;align-items:center"><div class="m-h1">Agenda</div><div class="m-btns"><span class="m-btn ghost">Reunión</span><span class="m-btn">+ Nuevo</span></div></div>
+            <div style="display:flex;gap:4px;align-items:center"><span class="m-tab">‹</span><span class="m-tab">Hoy</span><span class="m-tab">›</span><span class="bar w3" style="margin-left:4px"></span></div>
+            <div class="m-cal"><span class="d">L</span><span class="d">M</span><span class="d sel" style="background:var(--navy);color:#fff">M</span><span class="d">J</span><span class="d">V</span><span class="d">S</span><span class="d">D</span></div>
+            <div class="m-row"><span>🏪</span><span class="fx"><span class="bar d w4"></span><span class="bar w2" style="height:5px"></span></span></div>
+            <div class="m-row"><span>👥</span><span class="fx"><span class="bar d w3"></span><span class="bar w3" style="height:5px"></span></span><span class="m-badge green">Confirmada</span></div>
+            <div class="m-row"><span>📞</span><span class="fx"><span class="bar d w4"></span></span></div>
+            <div style="height:40px"></div>
+          </div>
+          <span class="m-fab">🎙️</span>
+        </div></div>
+        <figcaption>Tu agenda del día, con el botón 🎙️ de minutas abajo.</figcaption>
+      </figure>
+    </div>
+    <div class="card">
+      <h3>👥 Reuniones con otras personas del portal</h3>
+      <ol class="pasos">
+        <li>Tocá <span class="btn-ui line">Reunión</span>.</li>
+        <li>Escribí qué es, el día y, si querés, la hora, el lugar (oficina, Meet, un cliente) y el detalle (temas, qué llevar, el link de la videollamada).</li>
+        <li>Sumá a los invitados: buscalos por nombre o elegí un área. Si alguien no está en el portal, usá <b>Otra persona (no está en el Portal)</b>.</li>
+        <li>Guardá. A los invitados les llega el aviso y responden <b>Confirmar asistencia</b> o <b>No puedo asistir</b>.</li>
+      </ol>
+      <div class="nota tip"><span class="ico">🙋</span><p>Si no sumás a nadie, es un <b>evento personal</b>: solo lo ves vos.</p></div>
+      <div class="nota ok"><span class="ico">🔔</span><p><b>Avisos en el celular:</b> si arriba aparece <b>“Activá los avisos de reunión en este celular”</b>, tocá <span class="btn-ui" style="background:#6b5bd0">Activar</span>. Te avisa un día antes y una hora antes de cada reunión, aunque tengas la app cerrada.</p></div>
+    </div>
+    <div class="card">
+      <h3>📋 Minutas: lo que se habló en una reunión</h3>
+      <ul class="lista">
+        <li>En cada reunión de tu agenda está el botón <span class="btn-ui line">📝 Hacer minuta</span>. Cargás los <b>temas que se hablaron</b>, los <b>pendientes para la próxima</b> y las <b>notas o acuerdos</b>, y tocás <span class="btn-ui green">✔ Finalizar y guardar</span>.</li>
+        <li><b>🎙️ Minuta con IA:</b> dentro de la minuta, tocá <b>🎙️ Grabar</b> durante la reunión o <b>📎 Subir audio</b> después (hasta 100 MB). La IA transcribe el audio y completa los temas, los pendientes y las notas. Revisalos y guardá.</li>
+        <li>Con la minuta guardada, la reunión muestra <b>📋 Ver minuta</b>, <b>✨ Ver resumen</b> (un resumen hecho con IA) y <b>✏️ Editar</b>. Las minutas de tus reuniones quedan abajo, en <b>📋 Minutas de reuniones</b>.</li>
+        <li>El botón redondo <b>🎙️</b> de abajo a la derecha sirve para hacer la minuta de una reunión que no está en la agenda. Ahí mismo, <b>Mis minutas</b> muestra las que guardaste así.</li>
+      </ul>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 20 · MIS TAREAS -->
+  <section class="paso" id="mis-tareas">
+    <div class="sec-head">
+      <span class="sec-num">20</span>
+      <div><h2>Mis tareas</h2><p>Tus tareas propias del día.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <ol class="pasos">
+          <li>Tocá <span class="btn-ui green">+ Nueva tarea</span>.</li>
+          <li>Escribí qué tenés que hacer y, si querés, el detalle.</li>
+          <li>Elegí cuándo: <b>Todos los días</b> o <b>📌 Un día puntual</b>. Tocá <span class="btn-ui green">Guardar</span>.</li>
+          <li>Tildala cuando la cumplas. Arriba ves cuántas completaste hoy.</li>
+        </ol>
+        <div class="nota tip"><span class="ico">👥</span><p>Acá están solo tus tareas propias. Las que les mandás a tus vendedores se manejan en <b>Tareas</b>, dentro de Mi equipo (sección 6).</p></div>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Mis tareas<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div style="display:flex;justify-content:space-between;align-items:center"><div class="m-h1">Mis tareas ✅</div><span class="m-btn green">+ Nueva tarea</span></div>
+            <div class="m-card" style="display:flex;align-items:center;gap:8px"><b style="font-size:.9rem"><span class="bar d w1"></span></b><span class="m-sub">completadas hoy</span><span class="m-prog" style="flex:1"><i style="width:50%"></i></span></div>
+            <div class="m-row"><span class="m-ck on"></span><span class="fx"><span class="bar d w4"></span></span></div>
+            <div class="m-row"><span class="m-ck"></span><span class="fx"><span class="bar d w3"></span><span class="bar w4" style="height:5px"></span></span></div>
+            <div class="m-row"><span class="m-ck"></span><span class="fx"><span class="bar d w4"></span></span></div>
+          </div>
+        </div></div>
+        <figcaption>Tus tareas, con el avance del día.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 21 · REPORTES -->
+  <section class="paso" id="reportes">
+    <div class="sec-head">
+      <span class="sec-num">21</span>
+      <div><h2>Mis reportes</h2><p>Mandale tus reportes a Dirección para que los revise.</p></div>
+    </div>
+    <div class="card con-tel">
+      <div>
+        <ol class="pasos">
+          <li>En <b>➕ Nuevo reporte</b>, poné un <b>título</b> (por ejemplo, “Ventas del día — Mendoza ON”).</li>
+          <li>Elegí el <b>tipo</b> (Diario, Semanal, Mensual o Puntual) y escribí el <b>período</b>.</li>
+          <li>Escribí el reporte: qué se hizo, números, novedades y pendientes. Si tenés un archivo en Drive, pegá el <b>enlace</b>.</li>
+          <li>Tocá <span class="btn-ui">Enviar a Dirección</span>.</li>
+        </ol>
+        <p style="margin-top:14px">En <b>📋 Enviados</b> ves cada reporte con su estado: <span class="badge b-amber">Pendiente</span> <span class="badge b-verde">Aprobado ✓</span> <span class="badge b-azul">Pide cambios</span> <span class="badge b-rojo">Rechazado</span>. Si Dirección te dejó una devolución, aparece debajo.</p>
+      </div>
+      <figure>
+        <div class="phone"><div class="phone-scr">
+          <div class="m-top"><span class="m-burger">☰</span>Mis reportes<span class="sp"></span>🔔</div>
+          <div class="m-body">
+            <div class="m-h1">📋 Mis reportes</div>
+            <div class="m-card" style="display:flex;flex-direction:column;gap:6px">
+              <div class="m-tit" style="margin:0">➕ Nuevo reporte</div>
+              <div><div class="m-lbl">Título</div><div class="m-in">Ej: Ventas del día — Mendoza ON</div></div>
+              <div class="m-opt2"><div><div class="m-lbl">Tipo</div><div class="m-in">Diario ▾</div></div><div><div class="m-lbl">Período</div><div class="m-in">Ej: 18/08</div></div></div>
+              <div><div class="m-lbl">Reporte</div><div class="m-in" style="height:34px">Escribí acá el reporte…</div></div>
+              <span class="m-btn full">Enviar a Dirección</span>
+            </div>
+            <div class="m-card"><div class="m-tit">📋 Enviados</div><div class="m-row"><span class="fx"><span class="bar d w4"></span></span><span class="m-badge green">Aprobado ✓</span></div></div>
+          </div>
+        </div></div>
+        <figcaption>Un reporte nuevo y los ya enviados.</figcaption>
+      </figure>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- 22 · AYUDA -->
+  <section class="paso" id="ayuda">
+    <div class="sec-head">
+      <span class="sec-num">22</span>
+      <div><h2>Ayuda y contacto</h2><p>Si algo no anda o no encontrás algo.</p></div>
+    </div>
+    <div class="contactos">
+      <a class="contacto" href="https://wa.me/5492612452651" target="_blank" rel="noopener"><span class="ico">📱</span><div><b>WhatsApp de soporte</b><span>+54 9 261 245-2651 · el equipo de sistemas. Tocá para escribir.</span></div></a>
+      <div class="contacto"><span class="ico">🎧</span><div><b>Recuadro “Soporte” del menú</b><span>En Mi inicio, Mis clientes, Planificador de ruta IA y Herramientas de venta, abajo del menú. Abre WhatsApp con un mensaje que ya dice en qué pantalla estás.</span></div></div>
+      <div class="contacto"><span class="ico">📘</span><div><b>Esta guía, siempre a mano</b><span>En el menú del panel, <b>Ayuda → Guía del panel</b> la abre en otra pestaña.</span></div></div>
+      <div class="contacto"><span class="ico">📝</span><div><b>Para que te ayuden más rápido</b><span>Contá en qué pantalla estabas, qué tocaste y qué esperabas que pasara. Si podés, mandá una captura.</span></div></div>
+    </div>
+    <a class="volver" href="#indice">↑ Volver al índice</a>
+  </section>
+
+  <!-- PREGUNTAS FRECUENTES -->
+  <section class="paso" id="faq">
+    <div class="sec-head">
+      <span class="sec-num">?</span>
+      <div><h2>Preguntas frecuentes</h2></div>
+    </div>
+    <details class="faq"><summary>¿Cómo se arma mi equipo?</summary><p>Solo, a partir de la <b>zona</b> y el <b>canal</b> de cada vendedor en el portal. Si falta alguien o aparece alguien que no es de tu equipo, avisá a soporte para que revisen su zona y su canal.</p></details>
+    <details class="faq"><summary>¿Por qué aparezco yo en mi equipo?</summary><p>Porque también vendés: tu cartera, tus visitas y tu agenda cuentan dentro del equipo.</p></details>
+    <details class="faq"><summary>¿Cada cuánto se actualizan los saldos y la deuda?</summary><p>Salen del sistema de la empresa. En <b>Resumen del equipo</b> dice hace cuánto fue la última actualización. Si un cliente pagó hoy, puede tardar en verse.</p></details>
+    <details class="faq"><summary>¿Cómo se entera un vendedor de que le pedí cambios en la agenda?</summary><p>Le llega un aviso a la campanita con tu nota. Cuando la corrige, te la vuelve a mandar.</p></details>
+    <details class="faq"><summary>Quité un cliente de la cartera por error. ¿Se puede volver atrás?</summary><p>Sí. En Clientes, entrá a la pestaña <b>Quitados</b>, buscá el cliente y tocá <b>↺ Volver a la cartera</b>.</p></details>
+    <details class="faq"><summary>¿Puedo tener abierto mi panel y el de otra persona a la vez?</summary><p>En el mismo navegador, no: guarda una sola cuenta. Usá otro perfil de Chrome o una ventana de incógnito para la segunda cuenta.</p></details>
+    <details class="faq"><summary>Me apareció un cartel que dice que cambió la cuenta. ¿Qué pasó?</summary><p>Alguien entró con otra cuenta en otra pestaña del mismo navegador. Actualizá la pantalla, fijate con qué cuenta quedaste y, si no es la tuya, cerrá sesión y volvé a entrar.</p></details>
+    <details class="faq"><summary>Los puntos del torneo no coinciden con lo que esperaba.</summary><p>Los carga Administración en su planilla y la pantalla muestra exactamente eso. Si hay un error, consultalo con Administración.</p></details>
+    <details class="faq"><summary>¿Funciona en la compu?</summary><p>Sí. En la compu el menú queda fijo a la izquierda y las pantallas se ven más anchas.</p></details>
+    <details class="faq"><summary>¿Cómo cierro sesión?</summary><p>Tocá tu nombre, abajo del menú, y después <b>Cerrar sesión</b>.</p></details>
+  </section>
+
+</main>
+
+<footer>
+  <div><b style="color:#fff">GrandBar · Guía del panel de supervisor</b></div>
+  <div><a href="https://portalgrandbar.com" target="_blank" rel="noopener">portalgrandbar.com</a></div>
+  <div>Grandbar S.A. · Cervantes 2511, Godoy Cruz, Mendoza</div>
+</footer>
+
+</body>
+</html>

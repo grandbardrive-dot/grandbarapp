@@ -84,7 +84,7 @@
     <nav class="sb-nav"></nav>
     <div class="sb-foot">
       <div class="sb-support"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7fd8bf" stroke-width="2"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="2" y="14" width="4" height="6" rx="1"/><rect x="18" y="14" width="4" height="6" rx="1"/></svg><div><div class="t">Soporte</div><div class="s">Estamos para ayudarte</div></div></div>
-      <div class="sb-user"><div class="av">V</div><div><div class="t">Vendedor</div><div class="s">Vendedor</div></div></div>
+      <div class="sb-user"><div class="av" id="avSb">V</div><div><div class="t" id="uName">Vendedor</div><div class="s">Vendedor</div></div></div>
     </div>
   </aside>
 
@@ -98,7 +98,7 @@
         <a class="card g" href="manual-vendedores/index.html">
           <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3z"/><path d="M4 4a3 3 0 0 0 3 3h13"/></svg></div>
           <h3>App de Vendedores</h3>
-          <p>Manual, herramientas de venta, checklists y tu cartera de clientes.</p>
+          <p>El manual de vendedores con tu cartera: ahí hacés las visitas.</p>
           <div class="tag"><span>Activo</span></div>
           <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
         </a>
@@ -135,7 +135,12 @@
       const hub = supabase.createClient("https://xqhyemccbwmzxqzkrtwa.supabase.co","sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc");
       const { data:{ session } } = await hub.auth.getSession();
       if(!session) return;
-      const { data:p } = await hub.from("usuarios").select("canal").eq("id", session.user.id).maybeSingle();
+      const { data:p } = await hub.from("usuarios").select("canal,nombre").eq("id", session.user.id).maybeSingle();
+      // El nombre en la barra lateral (antes decía "Vendedor" para todos).
+      if(p && p.nombre){
+        document.getElementById("uName").textContent = p.nombre;
+        document.getElementById("avSb").textContent = p.nombre.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+      }
       const c = String(p&&p.canal||"").toLowerCase();
       const url = c==="off" ? "https://catalogooff.com" : "https://catalogoon.com";
       const card = document.getElementById("cardCatalogo"); if(card) card.href = url;

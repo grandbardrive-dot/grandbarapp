@@ -38,6 +38,10 @@
       { href: "tareas.html",             label: "Mis tareas",         short: "Mis tareas", icon: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/>' },
       { href: "mis-reportes.html",       label: "Mis reportes",       short: "Reportes", icon: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/>' },
     ]},
+    // La guía del panel (25/09/2026) se abre en otra pestaña: así el panel queda abierto.
+    { titulo: "Ayuda", items: [
+      { href: "guia-supervisores.html",  label: "Guía del panel",     short: "Guía",    nueva: true, icon: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.5V14"/><path d="M12 17h.01"/>' },
+    ]},
   ];
   var items = [].concat.apply([], grupos.map(function (g) { return g.items; }));
   // Barra de abajo en el celular: las cuatro que más usa (se eligen por pantalla, no por posición).
@@ -63,7 +67,7 @@
       var q = it.href.split("?")[1] ? "?" + it.href.split("?")[1] : "";
       return exacto ? q === consulta : !q;
     };
-    var link = function (it) { return '<a href="' + it.href + '" class="' + (activo(it) ? "active" : "") + '">' + svg(it.icon) + " " + it.label + "</a>"; };
+    var link = function (it) { return '<a href="' + it.href + '" class="' + (activo(it) ? "active" : "") + '"' + (it.nueva ? ' target="_blank" rel="noopener"' : '') + '>' + svg(it.icon) + " " + it.label + "</a>"; };
     var nav = document.querySelector(".sb-nav");
     if (nav) {
       nav.innerHTML = grupos.map(function (g) { return '<div ' + TIT + '>' + g.titulo + '</div>' + g.items.map(link).join(""); }).join("");

@@ -229,7 +229,7 @@
 
         <!-- Resumen semanal -->
         <div class="card">
-          <div class="card-h"><span class="t">Resumen semanal</span><span class="lnk">Esta semana ▾</span></div>
+          <div class="card-h"><span class="t">Resumen semanal</span><span style="color:var(--muted);font-size:12.5px;font-weight:600">Esta semana</span></div>
           <div class="rs-row">
             <div><div class="rs-lbl">Visitas realizadas</div><div class="rs-big" id="rsVisitas">—</div><div class="rs-lbl" id="rsVisitasSub">de la agenda</div></div>
             <div class="donut" id="rsDonut" style="background:conic-gradient(var(--gold) 0%, #ece4d6 0)"><div class="inner">0%</div></div>
@@ -266,9 +266,7 @@
         <div class="card">
           <div class="card-h"><span class="t">Acciones y promociones activas</span><a class="lnk" id="lnkVerTodas" href="#" target="_blank">Ver todas</a></div>
           <div class="promos" id="promos">
-            <div class="promo"><div class="brand">SALENTEIN</div><div class="deal">6 + 2</div><div class="desc">Comprás 6 y llevás 2 más</div></div>
-            <div class="promo"><div class="brand">PORTILLO</div><div class="deal">3 + 1</div><div class="desc">Comprás 3 y llevás 1 más</div></div>
-            <div class="promo"><div class="brand">APERITIVOS</div><div class="deal">2 + 1</div><div class="desc">En productos seleccionados</div></div>
+            <div style="color:var(--muted);font-size:13.5px;padding:6px 2px">Cargando acciones…</div>
           </div>
         </div>
         <div class="card">
@@ -654,18 +652,25 @@
         .select("nombre_producto,mecanica,placa_url,imagen_url")
         .eq("activo", true).in("canal", canales)
         .order("created_at",{ ascending:false }).limit(3);
-      if(!data || !data.length) return; // sin acciones → queda el ejemplo
       const cont = document.getElementById("promos"); if(!cont) return;
+      // Antes, sin acciones quedaban tres promos de ejemplo (Salentein, Portillo,
+      // Aperitivos) que no existían: ahora se dice que no hay.
+      if(!data || !data.length){ cont.innerHTML = '<div style="color:var(--muted);font-size:13.5px;padding:6px 2px">Todavía no hay acciones cargadas para tu canal.</div>'; return; }
+      // Solo imágenes https y sin comillas: el dato viene de una tabla que se edita desde afuera.
+      const urlSegura = u => /^https:\/\//i.test(u||"") ? String(u).replace(/['"()\\\s]/g, encodeURIComponent) : "";
       cont.innerHTML = data.map(a=>{
-        const img = a.placa_url || a.imagen_url;
+        const img = urlSegura(a.placa_url || a.imagen_url);
         const style = img ? ` style="background-image:linear-gradient(180deg,rgba(20,20,20,.35),rgba(20,20,20,.85)),url('${img}');background-size:cover;background-position:center"` : "";
         return `<div class="promo"${style}>
-          <div class="brand">${(a.nombre_producto||"").toUpperCase()}</div>
-          ${a.mecanica?`<div class="deal">${a.mecanica}</div>`:""}
-          <div class="desc">${descMec(a.mecanica)}</div>
+          <div class="brand">${escTxt((a.nombre_producto||"").toUpperCase())}</div>
+          ${a.mecanica?`<div class="deal">${escTxt(a.mecanica)}</div>`:""}
+          <div class="desc">${escTxt(descMec(a.mecanica))}</div>
         </div>`;
       }).join("");
-    }catch(e){}
+    }catch(e){
+      const cont = document.getElementById("promos");
+      if(cont) cont.innerHTML = '<div style="color:var(--muted);font-size:13.5px;padding:6px 2px">No se pudieron leer las acciones del catálogo.</div>';
+    }
   }
 
   // Mini-catálogo de materiales (los que Marketing marcó visibles para vendedores).
@@ -716,7 +721,7 @@
       // Los supervisores también venden: acá ven su inicio de vendedor, con el menú de
       // supervisor (supervisor-nav.js). Antes se los mandaba siempre a su panel de equipo.
       let nombre = perfil && perfil.nombre ? perfil.nombre : session.user.email;
-      if(perfil && perfil.canal) cargarPromos(perfil.canal);
+      cargarPromos(perfil && perfil.canal);   // sin canal, muestra las de todos los canales
 
       if(perfil && perfil.codigo_vendedor){
         const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });

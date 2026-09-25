@@ -201,15 +201,16 @@
     <div class="content">
       <div class="stats">
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Clientes asignados</div><div class="v" id="stCount">—</div><div class="sub" id="stCountSub">Activos</div></div></div>
-        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas esta semana</div><div class="v">—</div><div class="sub pend">Pendiente de conectar</div></div></div>
-        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas del mes</div><div class="v">—</div><div class="sub pend">Se conecta con Cuenta Corriente</div></div></div>
+        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas esta semana</div><div class="v" id="stVis">—</div><div class="sub pend" id="stVisSub">Cargando…</div></div></div>
+        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas del mes</div><div class="v" id="stVentas">—</div><div class="sub pend" id="stVentasSub">Cargando…</div></div></div>
       </div>
 
       <div id="modo" style="display:none;background:var(--gold-soft);border:1px solid #e5d3a3;border-radius:10px;padding:10px 14px;font-size:13px;color:#7a5a12;margin-bottom:14px"></div>
 
       <div class="toolbar">
         <div class="seg">
-          <button class="seg-b on" id="segAct">Clientes <span id="cntAct"></span></button>
+          <button class="seg-b on" id="segAct" onclick="setVerOcultos(false)">Clientes <span id="cntAct"></span></button>
+          <button class="seg-b" id="segOcu" onclick="setVerOcultos(true)">Quitados <span id="cntOcu"></span></button>
         </div>
         <div class="pill" id="fDeudaBtn" onclick="menuDeuda(event)"><span class="pl">Todos los clientes</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
         <div class="pill" id="fDimBtn" onclick="menuDim(event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg> <span class="pl">Filtros</span></div>
@@ -230,12 +231,15 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="assets/ventas.js?v=3"></script>
+<script src="manual-vendedores/_sucursales.js"></script>
 <script src="assets/supervisor-nav.js"></script>
 <script>
   const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const MANUAL = { url:"https://fzaxwuuodseyyinveknn.supabase.co", key:"sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk" };
 
   let CLIENTES = [], vendedorNombre = "Vendedor", ultimaVisita = {}, saldoMap = {}, sel = -1;
+  // Provincia de la cartera (para la dirección y "Cómo llegar"): sale de la zona del usuario.
+  let PROV = "Mendoza";
   const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : "";
   const initials = n => (n||"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "V";
   const fmtMoney = n => "$ " + Math.round(Number(n)||0).toLocaleString("es-AR");
@@ -281,9 +285,9 @@
   async function toggleActivo(i){
     const c = CLIENTES[i]; if(!c) return;
     const nuevo = !esActivo(c);
-    // Sacar de la cartera es una acción que hace desaparecer al cliente de la
-    // lista (no hay pestaña de ocultos), así que se confirma para no errar.
-    if(!nuevo && !confirm('¿Sacar a "'+(c.nombre||'este cliente')+'" de la cartera?\n\nDeja de aparecer en tu lista de clientes.')) return;
+    // Sacar de la cartera hace desaparecer al cliente de la lista, así que se
+    // confirma. Desde el 25/09/2026 se puede volver atrás en la pestaña Quitados.
+    if(!nuevo && !confirm('¿Sacar a "'+(c.nombre||'este cliente')+'" de la cartera?\n\nDeja de aparecer en tu lista de clientes. Lo podés volver a sumar desde la pestaña Quitados.')) return;
     c.activo = nuevo;
     sel=-1; renderList();
     const revertir = msg => { c.activo = !nuevo; renderList(); avisoFicha(msg||'No se pudo guardar el cambio. Reintentá.'); };
@@ -304,9 +308,10 @@
   function renderList(filter){
     const qEl=document.getElementById("q");
     const q = (filter!=null ? filter : (qEl?qEl.value:"")).toLowerCase().trim();
-    // Solo se muestran los clientes activos; los quitados desaparecen de la cartera.
-    const nAct = CLIENTES.filter(c=>esActivo(c)).length;
+    // La pestaña Clientes muestra la cartera; Quitados, los que se sacaron (para volver a sumarlos).
+    const nAct = CLIENTES.filter(c=>esActivo(c)).length, nOcu = CLIENTES.length - nAct;
     const ca=document.getElementById('cntAct'); if(ca) ca.textContent = '('+nAct+')';
+    const co=document.getElementById('cntOcu'); if(co) co.textContent = '('+nOcu+')';
     const st=document.getElementById('stCount'); if(st) st.textContent = nAct;
     let rows = CLIENTES.map((c,i)=>({c,i}))
       .filter(({c}) => esActivo(c) !== verOcultos)
@@ -329,18 +334,26 @@
     });
     if (!rows.length) {
       document.getElementById("list").innerHTML = '<div style="padding:22px;text-align:center;color:var(--muted)">' +
-        (CLIENTES.length ? 'Ningún cliente con ese filtro.' : 'Todavía no hay clientes para mostrar.') + '</div>';
+        (verOcultos ? (nOcu ? 'Ningún cliente quitado con ese filtro.' : 'No sacaste ningún cliente de la cartera.')
+          : (CLIENTES.length ? 'Ningún cliente con ese filtro.' : 'Todavía no hay clientes para mostrar.')) + '</div>';
       return;
     }
+    const total = verOcultos ? nOcu : nAct, palabra = verOcultos ? ' quitados' : ' clientes';
     document.getElementById("list").innerHTML = rows.map(({c,i},pos)=>{
       const lv = ultimaVisita[c.id] ? `Última visita<br>${fmtFecha(ultimaVisita[c.id])}` : "";
       const act = esActivo(c);
       return `<div class="crow ${i===sel?'sel':''}${act?'':' oculto'}" onclick="selCliente(${i})">
         <div class="n">${pos+1}</div>
-        <div><div class="nm">${c.nombre}</div><div class="meta">${c.vendedor_nombre ? c.vendedor_nombre+(c.direccion?' · '+c.direccion:'') : cap(c.tipo)+(c.direccion? ' · '+c.direccion:'')}</div></div>
-        <div class="right"><div class="lv">${lv}</div><button class="badge tog off" onclick="event.stopPropagation();toggleActivo(${i})" title="Sacar de la cartera">✕ Quitar</button></div>
+        <div><div class="nm">${_e(c.nombre)}</div><div class="meta">${_e(c.vendedor_nombre ? c.vendedor_nombre+(c.direccion?' · '+c.direccion:'') : cap(c.tipo)+(c.direccion? ' · '+c.direccion:''))}</div></div>
+        <div class="right"><div class="lv">${lv}</div>${botonCartera(i, act)}</div>
       </div>`;
-    }).join("") + `<div class="list-foot">${rows.length===nAct ? rows.length+' clientes' : rows.length+' de '+nAct+' clientes'}</div>`;
+    }).join("") + `<div class="list-foot">${rows.length===total ? rows.length+palabra : rows.length+' de '+total+palabra}</div>`;
+  }
+  // En la cartera: "✕ Quitar". En Quitados: "↺ Volver a la cartera".
+  function botonCartera(i, act){
+    return act
+      ? `<button class="badge tog off" onclick="event.stopPropagation();toggleActivo(${i})" title="Sacar de la cartera">✕ Quitar</button>`
+      : `<button class="badge tog" onclick="event.stopPropagation();toggleActivo(${i})" title="Volver a sumarlo a la cartera">↺ Volver a la cartera</button>`;
   }
 
   // ── Menús de la barra (deuda / filtro / orden) ──
@@ -418,8 +431,8 @@
       <div class="d-head">
         <div class="num">${i+1}</div>
         <div>
-          <div class="nm">${c.nombre} <button class="badge tog off" onclick="event.stopPropagation();toggleActivo(${i})" title="Sacar de la cartera">✕ Quitar</button></div>
-          <div class="sub">${cap(c.tipo)} · ${c.direccion||"—"}</div>
+          <div class="nm">${_e(c.nombre)} ${botonCartera(i, esActivo(c))}</div>
+          <div class="sub">${_e([cap(c.tipo), c.direccion].filter(Boolean).join(' · ') || "—")}</div>
         </div>
         <div class="d-actions">
           <div class="d-act" onclick="llamar(${i})"><div class="ci"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8.1 9.5a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2Z"/></svg></div>Llamar</div>
@@ -429,7 +442,6 @@
       <div class="d-tabs">
         <div class="d-tab on" data-tab="resumen" onclick="setFichaTab('resumen')">Resumen</div>
         <div class="d-tab" data-tab="historial" onclick="setFichaTab('historial')">Historial</div>
-        <div class="d-tab" data-tab="documentos" onclick="setFichaTab('documentos')">Documentos</div>
         <div class="d-tab" data-tab="notas" onclick="setFichaTab('notas')">Notas</div>
       </div>
       <div class="d-body" id="d-content"></div>`;
@@ -451,27 +463,29 @@
     if(fichaTab==='resumen'){ cont.innerHTML=resumenHTML(sel); cargarVendido(c); }
     else if(fichaTab==='historial'){ cont.innerHTML='<div class="d-block" id="histBox"><h4>Historial de visitas</h4><div class="v pend">Cargando…</div></div>'; cargarHistorial(c); }
     else if(fichaTab==='notas'){ cont.innerHTML='<div class="d-block" id="notasBox">Cargando…</div>'; cargarNotas(c); }
-    else if(fichaTab==='documentos'){ cont.innerHTML='<div class="d-block"><h4>Documentos</h4><div class="v pend">Próximamente: subí acá archivos del cliente (foto del local, PDFs, comprobantes).</div></div>'; }
   }
 
   function resumenHTML(i){
     const c=CLIENTES[i], lv=ultimaVisita[c.id], sd=lookupSaldo(c);
+    // Email, CUIT y "Condición de venta" salían siempre vacíos o fijos (no hay
+    // de dónde leerlos): se sacaron el 25/09/2026. La provincia sale de la zona
+    // del usuario; antes decía "Mendoza" también para San Luis.
+    const tel = (sd&&sd.telefono)||c.whatsapp||"";
+    const lugar = [c.localidad, PROV, "Argentina"].filter(Boolean).join(", ");
     return `
         <div class="d-block">
           <h4>Información general</h4>
           <div class="kv">
-            <div><div class="k">Tipo de cliente</div><div class="v">${cap(c.tipo)||"—"}</div></div>
-            <div><div class="k">Teléfono</div><div class="v ${c.whatsapp?'':'pend'}">${c.whatsapp||"—"}</div></div>
-            <div><div class="k">Código</div><div class="v">${c.codigo_cliente||"—"}</div></div>
-            <div><div class="k">Email</div><div class="v pend">—</div></div>
-            <div><div class="k">CUIT</div><div class="v pend">—</div></div>
-            <div><div class="k">Vendedor asignado</div><div class="v">${c.vendedor_nombre || vendedorNombre}</div></div>
+            <div><div class="k">Tipo de cliente</div><div class="v ${c.tipo?'':'pend'}">${_e(cap(c.tipo))||"—"}</div></div>
+            <div><div class="k">Teléfono</div><div class="v ${tel?'':'pend'}">${_e(tel)||"—"}</div></div>
+            <div><div class="k">Código</div><div class="v">${_e(c.codigo_cliente)||"—"}</div></div>
+            <div><div class="k">Vendedor asignado</div><div class="v">${_e(c.vendedor_nombre || vendedorNombre)}</div></div>
           </div>
         </div>
         <div class="d-block">
           <h4>Dirección</h4>
           <div class="addr">
-            <div class="t">${c.direccion||"—"}<br><span style="color:var(--muted)">Mendoza, Argentina</span></div>
+            <div class="t">${_e(c.direccion)||"—"}<br><span style="color:var(--muted)">${_e(lugar)}</span></div>
             <div class="mini"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg></div>
           </div>
         </div>
@@ -480,11 +494,9 @@
           <div class="kv">
             <div><div class="k">Saldo actual</div><div class="v ${sd?'':'pend'}" ${sd&&sd.saldo>0?'style="color:var(--gold-d)"':''}>${sd? fmtMoney(sd.saldo) : "—"}</div></div>
             <div><div class="k">Deuda vencida</div><div class="v ${sd?'':'pend'}" ${sd&&sd.vencida>0?'style="color:var(--danger,#c0603e)"':''}>${sd? fmtMoney(sd.vencida) : "—"}</div></div>
-            <div><div class="k">Teléfono</div><div class="v ${sd&&sd.telefono?'':'pend'}">${(sd&&sd.telefono)||c.whatsapp||"—"}</div></div>
-            <div><div class="k">Condición de venta</div><div class="v pend">Cuenta corriente</div></div>
             <div><div class="k">Vendido acumulado</div><div class="v pend" id="dVendido">Cargando…</div></div>
           </div>
-          ${sd ? '' : '<div class="comm-note">Saldo real vía Cuenta Corriente: aparece cuando el vendedor entra con su sesión (Netlify Function conectada).</div>'}
+          ${sd ? '' : '<div class="comm-note">No hay datos de cuenta corriente de este cliente en el sistema de la empresa.</div>'}
         </div>
         <div class="d-block">
           <h4>Última visita</h4>
@@ -572,7 +584,7 @@
   function comoLlegar(i){
     const c=CLIENTES[i];
     if(!c.direccion){ avisoFicha('Este cliente no tiene dirección cargada.'); return; }
-    const q=encodeURIComponent(c.direccion+', Mendoza, Argentina');
+    const q=encodeURIComponent([c.direccion, c.localidad, PROV, 'Argentina'].filter(Boolean).join(', '));
     window.open('https://www.google.com/maps/search/?api=1&query='+q,'_blank','noopener');
   }
   // Abre la Agenda con el compromiso nuevo y el cliente ya escrito.
@@ -592,6 +604,39 @@
     document.getElementById("avTop").textContent = initials(vendedorNombre);
   }
 
+  // Zona del usuario → provincia. Si no tiene la región cargada, se deduce del
+  // código de vendedor con la lista de sucursales (_sucursales.js).
+  function provinciaDe(p){
+    const r = String((p && p.region) || "").toLowerCase().replace(/\s+/g, "_");
+    if(r === "san_luis") return "San Luis";
+    if(r === "mendoza") return "Mendoza";
+    return (typeof getSucursal === "function") ? getSucursal(p && p.codigo_vendedor) : "Mendoza";
+  }
+
+  // Los dos recuadros de arriba. Hasta el 25/09/2026 decían "Pendiente de
+  // conectar": las visitas salen del manual y las ventas, de la planilla de
+  // Avance Ventas (la misma de Mi inicio).
+  async function cargarStats(vendIds, codigos, esEquipo){
+    const $s = id => document.getElementById(id);
+    const lunes = new Date(); lunes.setHours(0,0,0,0); lunes.setDate(lunes.getDate() - ((lunes.getDay()+6)%7));
+    try{
+      if(!vendIds.length) throw new Error("sin vendedores");
+      const { count, error } = await mansb().from("visitas").select("id", { count:"exact", head:true })
+        .in("vendedor_id", vendIds).gte("fecha", lunes.toISOString());
+      if(error) throw error;
+      $s("stVis").textContent = count || 0;
+      $s("stVisSub").textContent = esEquipo ? "del equipo, desde el lunes" : "desde el lunes"; $s("stVisSub").classList.remove("pend");
+    }catch(e){ $s("stVisSub").textContent = "no se pudieron leer"; }
+    const mes = new Date().toLocaleDateString("es-AR", { month:"long" });
+    try{
+      if(!window.GBVentas || !(await GBVentas.seLeyo())) throw new Error("sin planilla");
+      const tot = (await Promise.all(codigos.map(c => GBVentas.totalDe(parseInt(c, 10))))).filter(v => v != null);
+      if(!tot.length){ $s("stVentasSub").textContent = esEquipo ? "el equipo no figura en la planilla" : "no figurás en la planilla"; return; }
+      $s("stVentas").textContent = GBVentas.formato(tot.reduce((a, b) => a + b, 0));
+      $s("stVentasSub").textContent = "facturado en " + mes + (esEquipo ? " por el equipo" : ""); $s("stVentasSub").classList.remove("pend");
+    }catch(e){ $s("stVentasSub").textContent = "no se pudo leer la planilla"; }
+  }
+
   async function load(){
     // Arranca vacío: nunca se muestran clientes de ejemplo (si falla, se dice por qué).
     CLIENTES = [];
@@ -604,9 +649,10 @@
       if(!session){ reason="no hay sesión iniciada en el Hub (entrá desde portalgrandbar.com y abrí Mis Clientes desde el panel)"; return; }
 
       const { data: perfil, error: pe } = await hub.from("usuarios")
-        .select("nombre, codigo_vendedor, es_supervisor").eq("id", session.user.id).maybeSingle();
+        .select("nombre, codigo_vendedor, es_supervisor, region").eq("id", session.user.id).maybeSingle();
       if(pe){ reason="no pude leer tu perfil ("+pe.message+")"; return; }
       if(!perfil){ reason="tu usuario ("+session.user.email+") no tiene fila en la tabla usuarios"; return; }
+      PROV = provinciaDe(perfil);
 
       // Supervisor: con ?vista=equipo ve todos los clientes de su equipo (cuentas_cubo vía
       // Function). Sin eso ve SU cartera, como cualquier vendedor: también vende.
@@ -617,12 +663,19 @@
         const fj = await fr.json();
         if(!fr.ok){ reason="no pude cargar los clientes del equipo ("+(fj.error||fr.status)+")"; return; }
         const team = fj.clientes || [];
-        CLIENTES = team.map(c=>({ id:String(c.codigo), nombre:c.nombre, tipo:"", direccion:c.direccion||c.localidad||"", codigo_cliente:String(c.codigo), whatsapp:c.telefono||"", vendedor_nombre:c.vendedor_nombre||"" }));
+        CLIENTES = team.map(c=>({ id:String(c.codigo), nombre:c.nombre, tipo:"", direccion:c.direccion||c.localidad||"", localidad:(c.direccion&&c.localidad)?c.localidad:"", codigo_cliente:String(c.codigo), whatsapp:c.telefono||"", vendedor_nombre:c.vendedor_nombre||"" }));
         team.forEach(c=>{ const raw=String(c.codigo); const sd={saldo:c.saldo,vencida:c.vencida,telefono:c.telefono}; saldoMap[raw]=sd; saldoMap[raw.replace(/^0+/,"")]=sd; });
         document.getElementById("stCount").textContent = CLIENTES.length;
+        const lblCount=document.querySelector(".stats .stat .l"); if(lblCount) lblCount.textContent="Clientes del equipo";
         const h1=document.querySelector(".htxt h1"); if(h1) h1.textContent="Clientes del equipo";
         const hp=document.querySelector(".htxt p"); if(hp) hp.textContent="Todos los clientes de tus vendedores.";
-        sel=-1; renderList(""); aplicarEstado(); reason=""; return;
+        sel=-1; renderList(""); aplicarEstado(); reason="";
+        // Recuadros de visitas y ventas del equipo (con los mismos códigos de vendedor).
+        const codigos=(fj.equipo||[]).map(v=>String(v.codigo)).filter(Boolean);
+        mansb().from("vendedores").select("id").in("codigo", codigos)
+          .then(({ data })=>cargarStats((data||[]).map(v=>v.id), codigos, true))
+          .catch(()=>cargarStats([], codigos, true));
+        return;
       }
 
       if(!perfil.codigo_vendedor){ reason="tu usuario ("+session.user.email+") no tiene código de vendedor cargado"; return; }
@@ -642,11 +695,13 @@
       CLIENTES = cli;
       document.getElementById("stCount").textContent = cli.filter(c=>c.activo!==false).length;
       aplicarEstado();   // aplica los estados guardados por código (override)
+      cargarStats([vend.id], [perfil.codigo_vendedor], false);
 
-      // Última visita por cliente (si la tabla lo permite)
+      // Última visita por cliente (si la tabla lo permite). De la más nueva a la
+      // más vieja: si hay más de mil visitas, las que quedan afuera son las viejas.
       try{
         const ids = cli.map(c=>c.id);
-        const { data: vis } = await man.from("visitas").select("cliente_id,fecha").in("cliente_id", ids);
+        const { data: vis } = await man.from("visitas").select("cliente_id,fecha").in("cliente_id", ids).order("fecha", { ascending:false });
         (vis||[]).forEach(v=>{ if(!ultimaVisita[v.cliente_id] || v.fecha > ultimaVisita[v.cliente_id]) ultimaVisita[v.cliente_id]=v.fecha; });
       }catch(e){}
 
@@ -667,7 +722,10 @@
     }catch(e){ reason = "error inesperado ("+(e.message||e)+")"; }
     finally{
       const note = document.getElementById("modo");
-      if(reason){ note.style.display="block"; CLIENTES = []; renderList(""); note.textContent = "⚠️ No se pudieron cargar los clientes: "+reason+"."; }
+      if(reason){
+        note.style.display="block"; CLIENTES = []; renderList(""); note.textContent = "⚠️ No se pudieron cargar los clientes: "+reason+".";
+        ["stVisSub","stVentasSub"].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent = ""; });
+      }
       else { note.style.display="none"; }
     }
   }

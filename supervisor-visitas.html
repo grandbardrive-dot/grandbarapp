@@ -92,13 +92,6 @@
     .cl-h{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
     .cl-ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:15px;flex:none;background:var(--cream)}
     .cl-nm{font-weight:700;font-size:14px;flex:1}
-    .cl-cnt{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px}
-    .cl-cnt.full{background:var(--green-soft);color:var(--green-d)}.cl-cnt.part{background:#fdeae2;color:var(--danger)}
-    .cl-b{padding:0 14px 12px;display:none}.cl-b.open{display:block}
-    .cl-it{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
-    .cl-ck{width:19px;height:19px;border-radius:5px;flex:none;display:grid;place-items:center;margin-top:1px;border:2px solid #cbb98f}
-    .cl-ck.on{background:var(--green);border-color:var(--green)}
-    .cl-tx{font-size:13px;line-height:1.4}.cl-tx.on{color:var(--muted)}
     .cl-secobs{font-size:12px;color:var(--muted);margin-top:6px;font-style:italic}
 
     /* Drawer */
@@ -156,7 +149,7 @@
       <div class="kpis">
         <div class="kpi gold"><div class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/></svg></div><div><div class="l" id="kVisLbl">Visitas del mes</div><div class="v" id="kVis">—</div></div></div>
         <div class="kpi teal"><div class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div><div class="l">Clientes visitados</div><div class="v" id="kCli">—</div></div></div>
-        <div class="kpi green"><div class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg></div><div><div class="l">Promedio checklist</div><div class="v" id="kPct">—</div></div></div>
+        <div class="kpi green"><div class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg></div><div><div class="l">Avance promedio</div><div class="v" id="kPct">—</div></div></div>
         <div class="kpi"><div class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Vendedores</div><div class="v" id="kVend">—</div></div></div>
       </div>
 
@@ -194,7 +187,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="assets/supervisor-nav.js"></script>
-<script src="manual-vendedores/_checklist-data.js"></script>
 <script>
   const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const MANUAL = { url:"https://fzaxwuuodseyyinveknn.supabase.co", key:"sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk" };
@@ -222,7 +214,7 @@
         </div>
         <div class="bar"><i style="width:${v.promedio||0}%"></i></div>
         <div class="vc-foot">
-          <span class="vc-tag ${v.visitas>0?'ok':'no'}">${v.visitas>0?('Checklist prom. '+pct(v.promedio)):'Sin visitas'}</span>
+          <span class="vc-tag ${v.visitas>0?'ok':'no'}">${v.visitas>0?('Avance prom. '+pct(v.promedio)):'Sin visitas'}</span>
           <span class="vc-open">Ver detalle ›</span>
         </div>
       </div>`).join('');
@@ -233,7 +225,7 @@
     document.getElementById('overlay').classList.add('open');
     document.getElementById('drawer').classList.add('open');
     document.getElementById('drNombre').textContent = v.nombre||cod;
-    document.getElementById('drSub').textContent = `${v.visitas||0} visitas · ${v.clientes||0} clientes · checklist ${pct(v.promedio)}`;
+    document.getElementById('drSub').textContent = `${v.visitas||0} visitas · ${v.clientes||0} clientes · avance ${pct(v.promedio)}`;
     const vis = (VIS_BY_VEND[cod]||[]).slice().sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
     document.getElementById('drBody').innerHTML = vis.length ? vis.map(x=>{
       const p = x.porcentaje_total; const cls = p>=70?'hi':(p!=null?'lo':'');
@@ -244,38 +236,64 @@
   function cerrar(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('drawer').classList.remove('open'); }
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(document.getElementById('vmOv').classList.contains('open')) cerrarVisita(); else cerrar(); } });
 
-  // Detalle de una visita (checklist completo + observaciones)
+  // Detalle de una visita: avance, PDF, observaciones y las secciones del manual
+  // que se trabajaron. Antes mostraba un checklist escrito en el código
+  // (_checklist-data.js) que no era el del manual, y los checklists se sacaron
+  // el 23/09/2026: desde entonces el porcentaje es qué parte de las secciones
+  // trabajó el vendedor en la visita (progreso._trabajadas).
+  function seccionesTrabajadas(progreso){
+    const p = progreso || {};
+    if(Array.isArray(p._trabajadas)) return p._trabajadas.map(String);
+    // Visitas anteriores: las secciones con algo tildado o anotado.
+    return Object.keys(p).filter(k=>k[0]!=='_' && p[k] && (((p[k].checks||[]).some(Boolean)) || p[k].obs));
+  }
+  // En el progreso cada sección se guarda por su código (o por su id si no tiene).
+  const NOMBRE_SEC = {};
+  async function nombresSecciones(ids){
+    const faltan = ids.filter(id=>!(id in NOMBRE_SEC));
+    if(faltan.length){
+      const man = supabase.createClient(MANUAL.url, MANUAL.key, { auth:{ persistSession:false } });
+      const esUuid = x => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
+      const porId = faltan.filter(esUuid), porCod = faltan.filter(x=>!esUuid(x));
+      const [a,b] = await Promise.all([
+        porCod.length ? man.from('checklist_secciones').select('id,codigo,nombre').in('codigo', porCod) : { data:[] },
+        porId.length ? man.from('checklist_secciones').select('id,codigo,nombre').in('id', porId) : { data:[] },
+      ]);
+      [...((a&&a.data)||[]), ...((b&&b.data)||[])].forEach(s=>{ if(s.codigo) NOMBRE_SEC[s.codigo]=s.nombre; NOMBRE_SEC[s.id]=s.nombre; });
+      faltan.forEach(id=>{ if(!(id in NOMBRE_SEC)) NOMBRE_SEC[id]=null; });
+    }
+    return ids.map(id=>NOMBRE_SEC[id]);
+  }
+  async function pintarSecciones(v, trab){
+    const box = document.getElementById('vmSecs'); if(!box) return;
+    let nombres;
+    try{ nombres = await nombresSecciones(trab); }catch(e){ nombres = trab.map(()=>null); }
+    if(document.getElementById('vmSecs')!==box) return;   // mientras tanto se abrió otra visita
+    const prog = v.progreso||{};
+    box.innerHTML = `<div style="font-weight:800;font-size:14px;margin:4px 0 10px">📘 Secciones trabajadas (${trab.length})</div>` + trab.map((sid,i)=>{
+      const so = prog[sid] && prog[sid].obs;
+      return `<div class="cl-sec"><div class="cl-h" style="cursor:default"><div class="cl-ic">✓</div><div class="cl-nm">${esc(nombres[i]||'Sección sin nombre')}</div></div>${so?`<div class="cl-secobs" style="padding:0 14px 12px">💬 ${esc(so)}</div>`:''}</div>`;
+    }).join('');
+  }
   function verVisita(id){
     const v = VIS_BY_ID[String(id)]; if(!v) return;
     const p = v.porcentaje_total, tipo=(v.clientes&&v.clientes.tipo)||'', dir=(v.clientes&&v.clientes.direccion)||'';
     document.getElementById('vmTit').textContent = (v.clientes&&v.clientes.nombre)||'Visita';
     document.getElementById('vmSub').textContent = `${fdateL(v.fecha)}${tipo?' · '+cap(tipo):''}${dir?' · '+dir:''}`;
     const pcls = p>=70?'hi':(p>=40?'mid':'lo');
-    const hero = `<div class="vm-hero"><div class="vm-pct ${pcls}">${p!=null?Math.round(p)+'%':'—'}</div><div style="flex:1"><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Checklist completado</div><div class="bar"><i style="width:${p||0}%"></i></div></div></div>`;
+    const hero = `<div class="vm-hero"><div class="vm-pct ${pcls}">${p!=null?Math.round(p)+'%':'—'}</div><div style="flex:1"><div style="font-size:12px;color:var(--muted);margin-bottom:6px">Avance de la visita: qué parte de las secciones del manual trabajó</div><div class="bar"><i style="width:${p||0}%"></i></div></div></div>`;
     const pdf = v.resumen_pdf_url
       ? `<a href="${esc(v.resumen_pdf_url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:9px;background:var(--navy);color:#fff;border-radius:11px;padding:13px;font-weight:700;font-size:14px;margin-bottom:14px;text-decoration:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg> Ver PDF de la visita</a>`
       : `<div style="background:#f2eee4;color:var(--muted);border-radius:11px;padding:11px 14px;font-size:12.5px;margin-bottom:14px;text-align:center">Esta visita no tiene PDF guardado.</div>`;
     const obs = v.observaciones ? `<div class="vm-obs">💬 ${esc(v.observaciones)}</div>` : '';
-    const checklist = (typeof getChecklist==='function') ? getChecklist(tipo) : null;
-    const clHtml = renderChecklist(checklist, v.progreso||{});
-    document.getElementById('vmBody').innerHTML = hero + pdf + obs + (clHtml || '<div class="empty">Esta visita no tiene checklist detallado guardado.</div>');
+    const trab = seccionesTrabajadas(v.progreso);
+    const secs = trab.length ? '<div id="vmSecs"><div class="loading" style="padding:16px">Cargando secciones…</div></div>'
+      : '<div class="empty" style="padding:18px">Esta visita no tiene secciones del manual registradas.</div>';
+    document.getElementById('vmBody').innerHTML = hero + pdf + obs + secs;
     document.getElementById('vmOv').classList.add('open');
+    if(trab.length) pintarSecciones(v, trab);
   }
   function cerrarVisita(){ document.getElementById('vmOv').classList.remove('open'); }
-  function renderChecklist(checklist, progreso){
-    if(!checklist || !checklist.secciones || !checklist.secciones.length) return '';
-    let tot=0, done=0;
-    checklist.secciones.forEach(sec=>{ const ch=(progreso[sec.id]&&progreso[sec.id].checks)||[]; sec.items.forEach((_,i)=>{ tot++; if(ch[i]) done++; }); });
-    const secs = checklist.secciones.map(sec=>{
-      const sp = progreso[sec.id]||{}, ch = sp.checks||[];
-      const sd = sec.items.filter((_,i)=>ch[i]===true).length;
-      const full = sd===sec.items.length && sec.items.length>0;
-      const items = sec.items.map((it,i)=>{ const ok=ch[i]===true; return `<div class="cl-it"><div class="cl-ck ${ok?'on':''}">${ok?'<svg width="11" height="9" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}</div><div class="cl-tx ${ok?'on':''}">${esc(it.texto)}</div></div>`; }).join('');
-      const so = sp.obs ? `<div class="cl-secobs">💬 ${esc(sp.obs)}</div>` : '';
-      return `<div class="cl-sec"><div class="cl-h" onclick="this.nextElementSibling.classList.toggle('open')"><div class="cl-ic" style="background:${sec.iconoBg||'var(--cream)'};color:${sec.iconoColor||'inherit'}">${sec.icono||'•'}</div><div class="cl-nm">${esc(sec.titulo)}</div><span class="cl-cnt ${full?'full':'part'}">${sd}/${sec.items.length}</span></div><div class="cl-b ${full?'':'open'}">${items}${so}</div></div>`;
-    }).join('');
-    return `<div style="font-weight:800;font-size:14px;margin:4px 0 10px">✅ Checklist — ${done}/${tot} acciones</div>${secs}`;
-  }
 
   async function cargar(){
     // 1) Equipo del supervisor (del Hub: códigos + nombres consistentes)
