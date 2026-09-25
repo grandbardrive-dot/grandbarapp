@@ -34,6 +34,14 @@ const PANEL_VISTAS = [
 ];
 
 function montarPanel(cfg) {
+  // Solo para quienes mantienen el sistema. El rol 'admin' es el de Fernando
+  // (Dirección): antes podía entrar acá desde el Hub. Hub lo manda a su panel.
+  if (window.GBAuth && GBAuth.getSession) {
+    GBAuth.getSession().then(function (s) {
+      var rol = String((s && s.role) || '').toLowerCase();
+      if (s && !s.demo && ['diseno', 'desarrollo', 'marketing'].indexOf(rol) < 0) location.replace('hub.html');
+    });
+  }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   // Los dos paneles son el mismo: uno es el de Josefina y el otro el de Nahuel.
   const otro = /josefina/i.test(cfg.persona)

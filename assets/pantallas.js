@@ -98,6 +98,7 @@ const PANTALLAS = [
     quien: 'Dirección',
     items: [
       { n:'Dirección',              r:'direccion.html',        nota:'Tablero general.' },
+      { n:'Cobranzas (Dirección)', r:'dir-cobranzas.html', nota:'Cobranzas adentro del panel de Fernando: supervisa, sin los chats ni las tareas del equipo.' },
       { n:'Vendedores (Dirección)', r:'dir-vendedores.html',   nota:'Desempeño por vendedor.' },
       { n:'Clientes (Dirección)',   r:'dir-clientes.html',     nota:'Cartera completa.' },
       { n:'Agenda (Dirección)',     r:'dir-agenda.html',       nota:'Actividad del equipo.' },

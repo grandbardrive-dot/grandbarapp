@@ -39,7 +39,15 @@
 <script src="assets/auth.js"></script>
 <script src="assets/cobranzas.js?v=5"></script>
 <script src="assets/equipo-admin.js?v=2"></script>
-<script>montarCobranzas();</script>
+<script>
+  // Dirección usa su propia vista de Cobranzas (dir-cobranzas.html): supervisa sin
+  // ver las conversaciones de WhatsApp ni de reclamos.
+  (async function () {
+    const s = await GBAuth.getSession();
+    if (s && ["direccion", "admin", "duenio"].includes(String(s.role || "").toLowerCase())) { location.replace("dir-cobranzas.html"); return; }
+    montarCobranzas();
+  })();
+</script>
 <script src="/assets/minuta-fab.js?v=2"></script>
 <script src="/assets/cuenta-activa.js?v=1"></script>
 </body>

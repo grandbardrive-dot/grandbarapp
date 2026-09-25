@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Cobranzas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<!-- Cobranzas vista desde el panel de Dirección (Fernando).
+     Es el mismo módulo que usa Administración (assets/cobranzas.js), pero adentro
+     del panel de Fernando: no cambia la barra ni el menú al entrar.
+     Fernando SUPERVISA: no ve los chats de WhatsApp ni de reclamos (eso lo resume
+     la tarjeta "Consultas por WhatsApp" del inicio) ni las acciones operativas
+     del equipo (bloquear cuentas, retiros de efectivo, tareas).
+     El orden de las hojas importa: panel-admin.css y cobranzas.css traen el
+     estilo del contenido; dir.css va DESPUÉS para que la barra sea la de Dirección. -->
+<link rel="stylesheet" href="assets/panel-admin.css">
+<link rel="stylesheet" href="assets/cobranzas.css">
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  /* panel-admin.css le pone padding y ancho máximo a .main: acá lo maneja .wrap */
+  .main{padding:0;max-width:none}
+  /* Las secciones de cobranzas, como pestañas arriba del contenido */
+  #cob-nav{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 18px;padding:0}
+  #cob-nav .sb-item{display:inline-flex;align-items:center;gap:7px;width:auto;margin:0;
+    border:1px solid var(--line);background:var(--card,#fff);color:var(--ink);border-radius:20px;
+    padding:7px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  #cob-nav .sb-item:hover{border-color:var(--gold)}
+  #cob-nav .sb-item.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  #cob-nav .sb-item .i{font-size:14px}
+</style>
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+    <nav id="cob-nav"></nav>
+    <div id="cob"><div class="pv-vacio">Cargando…</div></div>
+  </div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/dir-nav.js"></script>
+<script src="assets/dir-notif.js"></script>
+<script src="assets/cobranzas.js?v=5"></script>
+<script>
+  // Lo que Dirección no ve adentro de Cobranzas: las conversaciones y las tareas
+  // operativas del equipo. Se sacan de la lista antes de dibujar, así tampoco
+  // aparecen como tarjetas en el tablero.
+  (function () {
+    var OCULTAS = ['whatsapp', 'reclamos', 'bloquear', 'efectivo', 'tareas'];
+    for (var i = COB_SECCIONES.length - 1; i >= 0; i--) {
+      if (OCULTAS.indexOf(COB_SECCIONES[i].id) > -1) COB_SECCIONES.splice(i, 1);
+    }
+    // Si algún botón del tablero apunta a una de esas secciones, vuelve al tablero.
+    var abrir = window.cobAbrir;
+    window.cobAbrir = function (id) { return OCULTAS.indexOf(id) > -1 ? cobTablero() : abrir(id); };
+    // El subtítulo del tablero habla de reclamos y tareas, que acá no están.
+    var tablero = window.cobTablero;
+    window.cobTablero = function () {
+      tablero();
+      var sub = document.querySelector('#cob .head-sub');
+      if (sub) sub.textContent = 'Cuenta corriente de los clientes y cómo viene la cobranza.';
+    };
+    montarCobranzas();
+  })();
+</script>
+<script src="assets/user-menu.js?v=1"></script>
+<script src="assets/mobile-nav.js?v=1"></script>
+<script src="/assets/minuta-fab.js?v=2"></script>
+<script src="/assets/cuenta-activa.js?v=1"></script>
+</body>
+</html>

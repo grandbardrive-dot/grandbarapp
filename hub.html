@@ -207,6 +207,10 @@
     const deLaBase = await traerHerramientas();
     if(deLaBase){ APPS.length = 0; APPS.push(...deLaBase); }
     currentRole = s.role || "compras";
+    // Dirección tiene su propio panel. El rol 'admin' es el de Fernando (el dueño):
+    // en el Hub genérico veía las herramientas de todas las áreas, incluido el panel
+    // de Diseño y Desarrollo. Desde el 25/09/2026 va directo a su inicio.
+    if (["direccion", "admin", "duenio"].includes(String(currentRole).toLowerCase())) { location.replace("direccion.html"); return; }
     currentUser = s.nombre || "Equipo GrandBar";
     document.getElementById("uName").textContent = currentUser;
     document.getElementById("uRole").textContent = ROLE_LABEL[currentRole] || currentRole;
