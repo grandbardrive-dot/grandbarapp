@@ -319,13 +319,6 @@
         <div class="step"><div class="step-n">6</div><div><div class="step-t">Vinculá materiales</div><div class="step-d">Asociá los materiales POP disponibles.</div></div></div>
         <div class="step"><div class="step-n">7</div><div><div class="step-t">Revisá y publicá</div><div class="step-d">Confirmá y publicá tu campaña.</div></div></div>
       </div>
-      <div class="rail-card">
-        <div class="rail-help-h">¿Necesitás ayuda?</div>
-        <div class="rail-help-p">Mirar guías y tutoriales para aprender más.</div>
-        <button class="rail-help-btn" onclick="verGuias()">Ir a guías
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 17L17 7M9 7h8v8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
     </aside>
   </div>
 </div>
@@ -391,7 +384,9 @@
       const [rc, rp, rs] = await Promise.all([
         sb.from('acciones_mensuales').select('*').order('created_at',{ascending:false}),
         sb.from('checklist_planes').select('*').order('created_at',{ascending:false}),
-        sb.from('checklist_secciones').select('id,canal'),
+        // Las secciones de los 14 manuales se acercan a las mil filas: se traen paginadas,
+        // porque pasado ese número la base corta sin avisar y algunos planes quedarían sin canal.
+        traerTodo(() => sb.from('checklist_secciones').select('id,canal').order('id')).then(data => ({ data })),
       ]);
       camp = (rc.data||[]).map(a => ({ ...a, _tipo:'campania' }));
       const canalDeSeccion = {}; (rs.data||[]).forEach(s => canalDeSeccion[s.id] = s.canal);
@@ -535,5 +530,6 @@
 </script>
 
 <script src="/assets/minuta-fab.js?v=2"></script>
+<script src="_comercial-nav.js?v=1"></script>
 </body>
 </html>
