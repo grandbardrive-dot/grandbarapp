@@ -166,6 +166,8 @@
     }
   </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
+<script>try{var v=localStorage.getItem('gb_es_sup'),t=JSON.parse(localStorage.getItem('sb-xqhyemccbwmzxqzkrtwa-auth-token')||'null'),u=t&&(t.user||(t.currentSession||{}).user);if(v&&u&&v===u.id)document.documentElement.classList.add('gb-sup')}catch(e){}</script>
+<style>.gb-sup .sb-nav{visibility:hidden}</style>
 </head>
 <body>
 <div class="app">
@@ -298,6 +300,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supervisor-nav.js"></script>
 <script src="assets/ventas.js?v=3"></script>
 <script src="assets/supabase-config.js"></script>
 <script>
@@ -710,8 +713,8 @@
       const ROL_MIRA = ["admin", "direccion", "duenio", "desarrollo", "diseno"];
       const rol = perfil && perfil.rol ? String(perfil.rol).toLowerCase() : "ventas";
       if(rol !== "ventas" && !ROL_MIRA.includes(rol)){ location.replace("hub.html"); return; }
-      // Los supervisores van a su panel de equipo, no a la pantalla de vendedor.
-      if(perfil && perfil.es_supervisor){ location.replace("supervisor-equipo.html"); return; }
+      // Los supervisores también venden: acá ven su inicio de vendedor, con el menú de
+      // supervisor (supervisor-nav.js). Antes se los mandaba siempre a su panel de equipo.
       let nombre = perfil && perfil.nombre ? perfil.nombre : session.user.email;
       if(perfil && perfil.canal) cargarPromos(perfil.canal);
 

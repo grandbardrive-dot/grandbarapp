@@ -608,8 +608,10 @@
       if(pe){ reason="no pude leer tu perfil ("+pe.message+")"; return; }
       if(!perfil){ reason="tu usuario ("+session.user.email+") no tiene fila en la tabla usuarios"; return; }
 
-      // Supervisor: ve todos los clientes de su equipo (cuentas_cubo vía Function), no una lista personal.
-      if(perfil.es_supervisor){
+      // Supervisor: con ?vista=equipo ve todos los clientes de su equipo (cuentas_cubo vía
+      // Function). Sin eso ve SU cartera, como cualquier vendedor: también vende.
+      const vistaEquipo = new URLSearchParams(location.search).get("vista") === "equipo";
+      if(perfil.es_supervisor && vistaEquipo){
         setUser(perfil.nombre || session.user.email, session.user.email);
         const fr = await fetch("/.netlify/functions/supervisor-equipo?clientes=1", { headers:{ Authorization:"Bearer "+session.access_token } });
         const fj = await fr.json();

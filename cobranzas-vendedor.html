@@ -95,6 +95,8 @@
     @media(max-width:820px){ .kpis{grid-template-columns:1fr} .cli-row{grid-template-columns:1fr 1fr;gap:8px} .cli-row .mto{text-align:left} }
   </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
+<script>try{var v=localStorage.getItem('gb_es_sup'),t=JSON.parse(localStorage.getItem('sb-xqhyemccbwmzxqzkrtwa-auth-token')||'null'),u=t&&(t.user||(t.currentSession||{}).user);if(v&&u&&v===u.id)document.documentElement.classList.add('gb-sup')}catch(e){}</script>
+<style>.gb-sup .sb-nav{visibility:hidden}</style>
 </head>
 <body>
 <div class="app">
@@ -160,6 +162,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supervisor-nav.js"></script>
 <script>
   const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const initials = n => (n||"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase() || "V";
