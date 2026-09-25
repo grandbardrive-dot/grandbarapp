@@ -8,6 +8,7 @@
 //   Env: (ninguna nueva) — usa el token del Hub para identificar al vendedor.
 // ============================================================
 
+const { regionDe } = require('./_equipo.js');
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
@@ -161,7 +162,7 @@ exports.handler = async (event) => {
     const uRes = await fetch(HUB_URL + '/auth/v1/user', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
     if (!uRes.ok) return json(401, { error: 'Sesión inválida' });
     const user = await uRes.json();
-    const perfil = (await (await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=nombre,canal,codigo_vendedor,es_supervisor', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } })).json())[0] || {};
+    const perfil = (await (await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=nombre,canal,codigo_vendedor,es_supervisor,region', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } })).json())[0] || {};
     const vend = String(perfil.codigo_vendedor || '');
     const canal = String(perfil.canal || 'on').toLowerCase();
 
@@ -215,10 +216,10 @@ exports.handler = async (event) => {
       if (!perfil.es_supervisor) return json(403, { error: 'Solo para supervisores.' });
       const hubService = process.env.HUB_SERVICE_ROLE;
       const eqRes = await fetch(HUB_URL + '/rest/v1/usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region', { headers: { apikey: hubService || HUB_ANON, Authorization: 'Bearer ' + (hubService || token) } });
-      const pc = String(perfil.canal || '').toLowerCase(), preg = String(perfil.region || '').toLowerCase();
+      const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
       const team = (await eqRes.json() || []).filter(u => {
         if (!u.codigo_vendedor) return false;
-        if (preg && u.region && String(u.region).toLowerCase() !== preg) return false;
+        if (preg && regionDe(u) !== preg) return false;
         const uc = String(u.canal || '').toLowerCase();
         return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
       });

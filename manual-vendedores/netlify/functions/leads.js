@@ -5,6 +5,7 @@
 //   Tabla `leads` en el Hub. Env: HUB_SERVICE_ROLE
 // ============================================================
 
+const { regionDe } = require('./_equipo.js');
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const DIR_ROLES = ['direccion', 'admin', 'duenio'];
@@ -32,10 +33,10 @@ exports.handler = async (event) => {
 
     async function equipoCodigos() {
       const rows = await (await sb('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region')).json();
-      const pc = String(perfil.canal || '').toLowerCase(), preg = String(perfil.region || '').toLowerCase();
+      const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
       return (rows || []).filter(u => {
         if (!u.codigo_vendedor) return false;
-        if (!isDir) { if (preg && u.region && String(u.region).toLowerCase() !== preg) return false; const uc = String(u.canal || '').toLowerCase(); if (!(!pc || pc === 'ambos' || uc === 'ambos' || pc === uc)) return false; }
+        if (!isDir) { if (preg && regionDe(u) !== preg) return false; const uc = String(u.canal || '').toLowerCase(); if (!(!pc || pc === 'ambos' || uc === 'ambos' || pc === uc)) return false; }
         return true;
       });
     }

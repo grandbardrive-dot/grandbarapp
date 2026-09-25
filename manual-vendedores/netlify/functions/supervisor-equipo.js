@@ -10,6 +10,7 @@
 //   Env: COBRANZAS_SERVICE_ROLE, HUB_SERVICE_ROLE
 // ============================================================
 
+const { regionDe } = require('./_equipo.js');
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
@@ -76,9 +77,9 @@ exports.handler = async (event) => {
 
     // Equipo: vendedores de la misma región + canal (o 'ambos')
     const eqRes = await hub('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region');
-    const pc = String(perfil.canal || '').toLowerCase(), preg = String(perfil.region || '').toLowerCase();
+    const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
     const equipo = (await eqRes.json() || []).filter(u => {
-      if (preg && u.region && String(u.region).toLowerCase() !== preg) return false;
+      if (preg && regionDe(u) !== preg) return false;
       const uc = String(u.canal || '').toLowerCase();
       return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
     }).filter(u => u.codigo_vendedor);

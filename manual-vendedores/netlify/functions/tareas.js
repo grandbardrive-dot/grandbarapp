@@ -7,6 +7,7 @@
 //  Env: HUB_SERVICE_ROLE
 // ============================================================
 
+const { regionDe } = require('./_equipo.js');
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 
@@ -40,7 +41,7 @@ exports.handler = async (event) => {
           fecha: b.frecuencia === 'puntual' ? (b.fecha || null) : null,
           alcance: b.alcance === 'vendedores' ? 'vendedores' : 'canal',
           canal: perfil.canal || null,
-          region: perfil.region || null,
+          region: regionDe(perfil) || null,
           asignados: Array.isArray(b.asignados) ? b.asignados : [],
           creado_por: perfil.nombre || user.email, creado_por_id: user.id,
         };
@@ -117,9 +118,9 @@ exports.handler = async (event) => {
       const out = (Array.isArray(tareas) ? tareas : []).map(t => ({ ...t, completadas_hoy: (compMap[t.id] || []).length }));
       // Equipo del supervisor: vendedores de su misma región + canal (o 'ambos')
       const eq = await sb('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region');
-      const pc = String(perfil.canal || '').toLowerCase(), preg = String(perfil.region || '').toLowerCase();
+      const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
       const equipo = (await eq.json() || []).filter(u => {
-        if (preg && u.region && String(u.region).toLowerCase() !== preg) return false;
+        if (preg && regionDe(u) !== preg) return false;
         const uc = String(u.canal || '').toLowerCase();
         return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
       }).filter(u => u.codigo_vendedor).map(u => ({ codigo: u.codigo_vendedor, nombre: u.nombre }));
@@ -146,7 +147,7 @@ exports.handler = async (event) => {
       if (t.frecuencia === 'puntual' && t.fecha !== hoy) return false;
       if (t.alcance === 'vendedores') return Array.isArray(t.asignados) && t.asignados.map(String).includes(String(cod));
       // alcance canal = equipo del supervisor: misma región + (canal coincide o alguno es 'ambos')
-      if (t.region && perfil.region && String(t.region).toLowerCase() !== String(perfil.region).toLowerCase()) return false;
+      if (t.region && regionDe(perfil) && regionDe({ region: t.region }) !== regionDe(perfil)) return false;
       const tc = String(t.canal || '').toLowerCase(), vc = String(canal || '').toLowerCase();
       return !tc || tc === 'ambos' || vc === 'ambos' || tc === vc;
     });

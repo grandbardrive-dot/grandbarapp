@@ -6,6 +6,7 @@
 //   Tabla `compromisos` en el Hub. Env: HUB_SERVICE_ROLE
 // ============================================================
 
+const { regionDe } = require('./_equipo.js');
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 
@@ -31,10 +32,10 @@ exports.handler = async (event) => {
     // Códigos del equipo del supervisor (región + canal)
     async function equipoCodigos() {
       const eqRes = await sb('usuarios?rol=eq.ventas&select=codigo_vendedor,canal,region');
-      const pc = String(perfil.canal || '').toLowerCase(), preg = String(perfil.region || '').toLowerCase();
+      const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
       return (await eqRes.json() || []).filter(u => {
         if (!u.codigo_vendedor) return false;
-        if (preg && u.region && String(u.region).toLowerCase() !== preg) return false;
+        if (preg && regionDe(u) !== preg) return false;
         const uc = String(u.canal || '').toLowerCase();
         return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
       }).map(u => String(u.codigo_vendedor)).filter(x => x && x !== 'null');
