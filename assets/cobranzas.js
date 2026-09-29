@@ -532,9 +532,12 @@ function waBurbujas(msgs) {
     if (diaTxt && diaTxt !== dia) { dia = diaTxt; out += `<div class="wa-day">${diaTxt}</div>`; }
     const hora = d && !isNaN(d) ? d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '';
     let media = '';
-    if (m.media && m.media.id) {
+    if (m.media && (m.media.id || m.media.url)) {
       const mm = m.media, label = mm.tipo === 'image' ? '🖼️ Ver imagen' : '📄 Ver comprobante';
-      media = `<button type="button" class="wa-media-btn" style="margin-top:7px;display:inline-flex;align-items:center;gap:6px;background:#1f8a4c;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer" onclick="waVerMedia('${mm.id}','${encodeURIComponent(mm.filename || 'comprobante')}',this)">${label}</button>`;
+      const st = 'margin-top:7px;display:inline-flex;align-items:center;gap:6px;background:#1f8a4c;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:none';
+      media = mm.url
+        ? `<a class="wa-media-btn" style="${st}" href="${cesc(mm.url)}" target="_blank" rel="noopener">${label}</a>`
+        : `<button type="button" class="wa-media-btn" style="${st}" onclick="waVerMedia('${mm.id}','${encodeURIComponent(mm.filename || 'comprobante')}',this)">${label}</button>`;
     }
     out += `<div class="wa-msg ${m.dir === 'in' ? 'in' : 'out'}">${cesc(m.texto || '')}${media}<div class="h">${hora}</div></div>`;
   }

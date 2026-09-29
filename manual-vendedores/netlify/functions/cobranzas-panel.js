@@ -412,15 +412,17 @@ exports.handler = async (event) => {
         if (c.text && c.text.body) return c.text.body;
         if (c.button && c.button.text) return c.button.text;
         if (c.interactive) { const i = c.interactive; return (i.button_reply && i.button_reply.title) || (i.list_reply && i.list_reply.title) || '[respuesta]'; }
-        if (c.image) return '📷 Imagen'; if (c.document) return '📎 ' + ((c.document && c.document.filename) || 'Documento'); if (c.audio) return '🎤 Audio';
+        if (c.reaction) return c.reaction.emoji ? ('Reaccionó con ' + c.reaction.emoji) : 'Quitó su reacción';
+        if (c.image) return '📷 Imagen'; if (c.document) return '📎 ' + ((c.document && c.document.filename) || 'Documento'); if (c.audio) return '🎤 Audio'; if (c.video) return '🎬 Video';
         return '[' + (c.type || 'mensaje') + ']';
       };
-      // Archivo (imagen/documento) que mandó el cliente: se baja aparte con wa-media.
+      // Archivo (imagen/documento) que mandó el cliente. Si el webhook ya lo guardó
+      // en el bucket (_media_url), se linkea directo; si no, se baja con wa-media por id.
       const mediaDe = c => {
         if (!c || typeof c !== 'object') return null;
-        if (c.image) return { id: c.image.id, tipo: 'image', mime: c.image.mime_type || 'image/jpeg', filename: null };
-        if (c.document) return { id: c.document.id, tipo: 'document', mime: c.document.mime_type || 'application/octet-stream', filename: c.document.filename || 'comprobante' };
-        return null;
+        const o = c.image ? { tipo: 'image', d: c.image } : c.document ? { tipo: 'document', d: c.document } : c.video ? { tipo: 'video', d: c.video } : null;
+        if (!o) return null;
+        return { id: (o.d && o.d.id) || null, tipo: o.tipo, mime: (o.d && o.d.mime_type) || null, filename: (o.d && o.d.filename) || 'comprobante', url: c._media_url || null };
       };
       const tsDe = (c, f) => { const t = c && c.timestamp ? Number(c.timestamp) * 1000 : null; return t && !isNaN(t) ? new Date(t).toISOString() : f; };
 
