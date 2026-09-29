@@ -412,8 +412,15 @@ exports.handler = async (event) => {
         if (c.text && c.text.body) return c.text.body;
         if (c.button && c.button.text) return c.button.text;
         if (c.interactive) { const i = c.interactive; return (i.button_reply && i.button_reply.title) || (i.list_reply && i.list_reply.title) || '[respuesta]'; }
-        if (c.image) return '📷 Imagen'; if (c.document) return '📎 Documento'; if (c.audio) return '🎤 Audio';
+        if (c.image) return '📷 Imagen'; if (c.document) return '📎 ' + ((c.document && c.document.filename) || 'Documento'); if (c.audio) return '🎤 Audio';
         return '[' + (c.type || 'mensaje') + ']';
+      };
+      // Archivo (imagen/documento) que mandó el cliente: se baja aparte con wa-media.
+      const mediaDe = c => {
+        if (!c || typeof c !== 'object') return null;
+        if (c.image) return { id: c.image.id, tipo: 'image', mime: c.image.mime_type || 'image/jpeg', filename: null };
+        if (c.document) return { id: c.document.id, tipo: 'document', mime: c.document.mime_type || 'application/octet-stream', filename: c.document.filename || 'comprobante' };
+        return null;
       };
       const tsDe = (c, f) => { const t = c && c.timestamp ? Number(c.timestamp) * 1000 : null; return t && !isNaN(t) ? new Date(t).toISOString() : f; };
 
@@ -429,7 +436,7 @@ exports.handler = async (event) => {
         const c = conv.get(k);
         if (e.tipo === 'message') {
           const fecha = tsDe(e.crudo, e.created_at);
-          c.mensajes.push({ dir: 'in', texto: textoDe(e.crudo), fecha });
+          c.mensajes.push({ dir: 'in', texto: textoDe(e.crudo), fecha, media: mediaDe(e.crudo) });
           c.entrantes++;
           if (!c.ultimaFecha || fecha > c.ultimaFecha) { c.ultimaFecha = fecha; c.ultimoTexto = textoDe(e.crudo); }
         } else if (e.tipo === 'saliente') {

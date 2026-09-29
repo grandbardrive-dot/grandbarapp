@@ -531,9 +531,40 @@ function waBurbujas(msgs) {
     const diaTxt = d && !isNaN(d) ? d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
     if (diaTxt && diaTxt !== dia) { dia = diaTxt; out += `<div class="wa-day">${diaTxt}</div>`; }
     const hora = d && !isNaN(d) ? d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '';
-    out += `<div class="wa-msg ${m.dir === 'in' ? 'in' : 'out'}">${cesc(m.texto || '')}<div class="h">${hora}</div></div>`;
+    let media = '';
+    if (m.media && m.media.id) {
+      const mm = m.media, label = mm.tipo === 'image' ? '🖼️ Ver imagen' : '📄 Ver comprobante';
+      media = `<button type="button" class="wa-media-btn" style="margin-top:7px;display:inline-flex;align-items:center;gap:6px;background:#1f8a4c;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer" onclick="waVerMedia('${mm.id}','${encodeURIComponent(mm.filename || 'comprobante')}',this)">${label}</button>`;
+    }
+    out += `<div class="wa-msg ${m.dir === 'in' ? 'in' : 'out'}">${cesc(m.texto || '')}${media}<div class="h">${hora}</div></div>`;
   }
   return out;
+}
+
+// Baja el archivo que mandó el cliente (imagen/comprobante) con la sesión del Hub
+// y lo abre. El binario viaja por wa-media (que lo pide a WhatsApp con el token).
+async function waVerMedia(id, filenameEnc, btn) {
+  const filename = decodeURIComponent(filenameEnc || 'comprobante');
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Bajando…'; }
+  try {
+    const r = await fetch('https://grandbar-gestioncuenta.netlify.app/.netlify/functions/wa-media?id=' + encodeURIComponent(id), { headers: { Authorization: 'Bearer ' + COB_TOKEN } });
+    if (!r.ok) {
+      let msg = 'No se pudo abrir el archivo.';
+      try { const j = await r.json(); if (j && j.error) msg = j.error; } catch (_) {}
+      alert(msg);
+      return;
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, '_blank');
+    if (!w) { const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); }
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    alert('Error al abrir el archivo: ' + (e.message || e));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
 }
 
 function waChatPane() {
