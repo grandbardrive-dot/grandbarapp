@@ -333,6 +333,34 @@
   </div>
 </div>
 
+<!-- Modal: replicar una sección entera en otros manuales -->
+<div class="ov" id="ov-rep" onclick="if(event.target===this)cerrarReplicar()">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-head">
+      <h3 id="rep-titulo">Replicar sección</h3>
+      <div class="sub" id="rep-sub"></div>
+      <button class="modal-x" onclick="cerrarReplicar()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fld">
+        <label>Replicar todo el contenido en</label>
+        <div id="rep-lista" style="border:1px solid var(--line-2);border-radius:11px;background:#fff;padding:8px 10px;max-height:340px;overflow-y:auto;font-size:13.5px">
+          <div style="color:var(--ink3);padding:6px 2px">Cargando…</div>
+        </div>
+      </div>
+      <div class="hint" style="font-size:12.5px;color:var(--ink2);line-height:1.5">
+        Se copia la sección con sus subsecciones, textos y herramienta, y lo que está cargado acá (campañas, planes, vinos por copa, acciones del catálogo…) pasa a verse también allá.
+        Si el otro manual ya tiene una sección con el mismo nombre, no se duplica: se le suman las subsecciones que le falten. No se borra nada.
+      </div>
+      <div class="msg" id="rep-msg" style="margin-top:10px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="mb" onclick="cerrarReplicar()">Cancelar</button>
+      <button class="mb primary" id="rep-ok" onclick="replicar()">Replicar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
 <script>
@@ -898,6 +926,148 @@
   const madres = ()=> SECS.filter(s=>!s.parent_id).sort((a,b)=>(a.orden||0)-(b.orden||0));
   const hijas  = m => SECS.filter(s=>s.parent_id===m.id).sort((a,b)=>(a.orden||0)-(b.orden||0));
 
+  // ── Replicar una sección entera en otros manuales (29/09/2026) ───────────────
+  // Copia la sección, sus subsecciones (textos, ícono, herramienta) y suma los manuales
+  // nuevos a lo que está cargado acá (secciones uuid[] de campañas, planes, etc.), así
+  // se ve también allá. Si el destino ya tiene una sección con el mismo nombre no se
+  // duplica: se le suman las subsecciones que le falten. No borra ni pisa nada.
+  let _repMadre = null, _repTodas = [];
+  const nrm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+  const lblManual = v => { const [c,z] = v.split('|'); const k = CANALES.find(x=>x.id===c)||{label:c}; const zz = ZONAS.find(x=>x.id===z)||{label:z}; return `${k.label} de ${zz.label}`; };
+  async function abrirReplicar(id){
+    _repMadre = SECS.find(s=>s.id===id); if(!_repMadre) return;
+    const hs = hijas(_repMadre), usos = [_repMadre, ...hs].reduce((a,s)=>a+(USOS[s.id]||[]).length, 0);
+    document.getElementById('rep-titulo').textContent = `Replicar «${_repMadre.nombre}»`;
+    document.getElementById('rep-sub').textContent = `${hs.length} ${hs.length===1?'subsección':'subsecciones'}`
+      + (usos ? ` · ${usos} ${usos===1?'cosa cargada':'cosas cargadas'}` : '') + ` · desde ${canalActual().label} de ${zonaActual().label}`;
+    document.getElementById('rep-msg').textContent = '';
+    const lista = document.getElementById('rep-lista'), btn = document.getElementById('rep-ok');
+    lista.innerHTML = '<div style="color:var(--ink3);padding:6px 2px">Revisando los otros manuales…</div>';
+    btn.disabled = true;
+    document.getElementById('ov-rep').classList.add('open');
+    try{
+      _repTodas = await paginar(()=>sb.from('checklist_secciones').select('id,canal,zona,codigo,nombre,parent_id,orden,activa').order('orden'));
+    }catch(e){ lista.innerHTML = `<div style="color:#c0392b;padding:6px 2px">No pude leer los otros manuales: ${esc(e.message||e)}</div>`; return; }
+    const fila = (c, z) => {
+      const v = c.id+'|'+z.id;
+      if(c.id===canal && z.id===zona) return '';
+      const secsD = _repTodas.filter(s=>s.canal===c.id && s.zona===z.id);
+      const activas = secsD.filter(s=>s.activa!==false).length;
+      const igual = secsD.find(s=>!s.parent_id && nrm(s.nombre)===nrm(_repMadre.nombre));
+      let nota, apagado = false;
+      // San Luis sin manual propio usa el de Mendoza: una sola sección lo dejaría sin el resto.
+      if(!activas && z.id!=='mendoza'){ nota = 'usa el manual de Mendoza (no tiene uno propio)'; apagado = true; }
+      else if(igual) nota = `ya tiene «${esc(igual.nombre)}»${igual.activa===false?' (oculta)':''}: se suman las subsecciones que falten`;
+      else if(!activas) nota = 'está vacío: quedaría solo con esta sección';
+      else nota = 'se crea al final';
+      return `<label style="display:flex;align-items:flex-start;gap:8px;padding:5px 0 5px 4px;margin:0;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:400;color:var(--ink);cursor:${apagado?'default':'pointer'};${apagado?'opacity:.5':''}">
+          <input type="checkbox" class="rep-ck" data-zona="${z.id}" value="${v}" ${apagado?'disabled':''} onchange="repContar()" style="width:16px;height:16px;flex:none;margin-top:2px">
+          <span>${c.ico} <b>${esc(c.label)}</b> <span style="color:var(--ink3);font-size:12px">· ${nota}</span></span></label>`;
+    };
+    lista.innerHTML = ZONAS.map(z => `<div style="display:flex;align-items:center;gap:8px;margin:8px 0 2px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2)">
+        ${z.ico} ${esc(z.label)} <button type="button" class="ab" style="margin-left:auto;padding:4px 9px;font-size:11.5px" onclick="repTodos('${z.id}')">Marcar todos</button></div>`
+      + CANALES.map(c => fila(c, z)).join('')).join('');
+    repContar();
+  }
+  function cerrarReplicar(){ document.getElementById('ov-rep').classList.remove('open'); }
+  function repTodos(z){
+    const cks = [...document.querySelectorAll(`.rep-ck[data-zona="${z}"]:not(:disabled)`)];
+    const marcar = cks.some(x=>!x.checked);
+    cks.forEach(x=>x.checked = marcar); repContar();
+  }
+  function repContar(){
+    const n = document.querySelectorAll('.rep-ck:checked').length, btn = document.getElementById('rep-ok');
+    btn.disabled = !n; btn.textContent = n ? `Replicar en ${n} ${n===1?'manual':'manuales'}` : 'Replicar';
+  }
+
+  async function replicar(){
+    const sel = [...document.querySelectorAll('.rep-ck:checked')].map(x=>x.value);
+    const msg = document.getElementById('rep-msg'), btn = document.getElementById('rep-ok');
+    if(!sel.length || !_repMadre){ msg.style.color='#c0392b'; msg.textContent='Marcá al menos un manual.'; return; }
+    const M = _repMadre, HS = hijas(M);
+    if(!confirm(`Se va a replicar «${M.nombre}» (${HS.length} ${HS.length===1?'subsección':'subsecciones'} y lo cargado) en:\n\n• ${sel.map(lblManual).join('\n• ')}\n\nNo se borra nada. ¿Seguir?`)) return;
+    btn.disabled = true; msg.style.color='var(--ink2)'; msg.textContent = 'Replicando…';
+    try{
+      const destinoDe = {};            // id de acá → [{ id allá, zona }]
+      const apuntar = (src, dst, z) => (destinoDe[src] = destinoDe[src] || []).push({ id:dst, zona:z });
+      let nCreadas = 0, nYa = 0;
+      for(const v of sel){
+        const [c, z] = v.split('|');
+        const secsD = _repTodas.filter(s=>s.canal===c && s.zona===z);
+        const usados = new Set(secsD.map(s=>s.codigo).filter(Boolean));
+        const codigoLibre = cod => {
+          const base = String(cod||'seccion');
+          if(!usados.has(base)){ usados.add(base); return base; }
+          let n=2; while(usados.has(base+'_'+n)) n++;
+          usados.add(base+'_'+n); return base+'_'+n;
+        };
+        const armar = (s, parent, orden) => ({
+          canal:c, zona:z, parent_id:parent, orden,
+          codigo:codigoLibre(s.codigo), nombre:s.nombre, descripcion:s.descripcion||null,
+          icono:s.icono||'📋', icono_bg:s.icono_bg||null, icono_color:s.icono_color||null,
+          especial:s.especial||null, intro:s.intro||null, pdf_url:s.pdf_url||null,
+          solo_formato:s.solo_formato||null, activa:s.activa!==false,
+        });
+        const insertar = async fila => {
+          const { data, error } = await sb.from('checklist_secciones').insert(fila).select().single();
+          if(error) throw new Error(lblManual(v)+': '+error.message);
+          _repTodas.push(data); nCreadas++; return data;
+        };
+        let madreD = secsD.find(s=>!s.parent_id && nrm(s.nombre)===nrm(M.nombre));
+        if(madreD) nYa++;
+        else madreD = await insertar(armar(M, null, Math.max(-1, ...secsD.filter(s=>!s.parent_id).map(s=>s.orden||0)) + 1));
+        apuntar(M.id, madreD.id, z);
+        const hijasD = _repTodas.filter(s=>s.parent_id===madreD.id);
+        let ordH = Math.max(-1, ...hijasD.map(s=>s.orden||0)) + 1;
+        for(const h of HS){
+          let hd = hijasD.find(x=>nrm(x.nombre)===nrm(h.nombre));
+          if(hd) nYa++;
+          else hd = await insertar(armar(h, madreD.id, ordH++));
+          apuntar(h.id, hd.id, z);
+        }
+      }
+
+      // Lo cargado acá: se le suman las secciones de allá (y la zona, si estaba limitada).
+      msg.textContent = 'Pasando lo cargado…';
+      const { registros, fallas } = await usosDeSecciones([M, ...HS].map(s=>s.id));
+      const noPude = new Set(fallas);
+      const porTabla = {};
+      registros.filter(r=>!r.vieja).forEach(r => (porTabla[r.tipo.tabla] = porTabla[r.tipo.tabla] || []).push(r));
+      let nCont = 0;
+      for(const rs of Object.values(porTabla)){
+        const t = rs[0].tipo, cli = t.tabla==='catalogo_acciones' ? sbCatalogo() : sb;
+        const { data:filas, error } = await cli.from(t.tabla).select('*').in('id', rs.map(r=>r.id));
+        if(error){ noPude.add(t.varios); continue; }
+        for(const f of filas||[]){
+          const r = rs.find(x=>String(x.id)===String(f.id)); if(!r) continue;
+          const dests = r.marcadas.flatMap(sid => destinoDe[sid] || []);
+          if(!dests.length) continue;
+          const base = (Array.isArray(f.secciones) && f.secciones.length) ? f.secciones : (f.seccion_id ? [f.seccion_id] : []);
+          const secciones = [...new Set([...base, ...dests.map(d=>d.id)])];
+          const cambios = {};
+          if(secciones.length !== base.length || !(Array.isArray(f.secciones) && f.secciones.length)) cambios.secciones = secciones;
+          if(Array.isArray(f.zonas) && f.zonas.length){
+            const zs = [...new Set([...f.zonas, ...dests.map(d=>d.zona)])];
+            if(zs.length !== f.zonas.length) cambios.zonas = zs;
+          }
+          if(!Object.keys(cambios).length) continue;   // ya se veía allá
+          const { data:up, error:eu } = await cli.from(t.tabla).update(cambios).eq('id', f.id).select('id');
+          if(eu || !up || !up.length){ noPude.add(t.varios); continue; }
+          nCont++;
+        }
+      }
+      cerrarReplicar();
+      await cargar();
+      alert(`Listo: «${M.nombre}» quedó replicada en ${sel.length} ${sel.length===1?'manual':'manuales'}.\n\n`
+        + `• ${nCreadas} ${nCreadas===1?'sección nueva':'secciones nuevas'}`
+        + (nYa ? `\n• ${nYa} ya ${nYa===1?'estaba':'estaban'} (no se duplicaron)` : '')
+        + (nCont ? `\n• ${nCont} ${nCont===1?'cosa cargada se ve':'cosas cargadas se ven'} ahora también allá` : '')
+        + (noPude.size ? `\n\nNo pude pasar: ${[...noPude].join(', ')}. Eso hay que ubicarlo a mano desde su herramienta.` : ''));
+    }catch(e){
+      msg.style.color='#c0392b'; msg.textContent = 'No se pudo terminar: '+(e.message||e)+'. Lo que alcanzó a copiarse quedó; revisá ese manual.';
+    }finally{ btn.disabled = false; }
+  }
+
   // Cuántas cosas (campañas, planes, vinos por copa…) están marcadas en esta sección.
   function tagUso(s){
     const rs=USOS[s.id]||[]; if(!rs.length) return '';
@@ -952,6 +1122,7 @@
           </div>
           <div class="acts">
             <button class="ab" onclick="abrirNueva('${m.id}')">+ Subsección</button>
+            <button class="ab" onclick="abrirReplicar('${m.id}')" title="Copia esta sección, sus subsecciones y lo cargado acá en otros manuales">Replicar en…</button>
             <button class="ab" onclick="abrirEdicion('${m.id}')">Editar</button>
             <button class="ab" onclick="toggleActiva('${m.id}')">${m.activa===false?'Mostrar':'Ocultar'}</button>
             <button class="ab danger" onclick="borrar('${m.id}')">Eliminar</button>
