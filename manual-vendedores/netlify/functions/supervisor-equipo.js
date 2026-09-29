@@ -99,7 +99,7 @@ exports.handler = async (event) => {
     for (const c of clientes) { if (c.actualizado && (!actualizado || c.actualizado > actualizado)) actualizado = c.actualizado; }
     // La deuda vencida no puede superar el saldo neto: una nota de crédito / anticipo
     // baja la deuda aunque el cubo viejo la dejara inflada. (Corrige la vista al toque.)
-    clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, Math.min(num(c.vencida), num(c.saldo))) }));
+    clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, num(c.vencida)) })); // vencida = facturas vencidas, sin descontar el saldo a favor (29/09/2026)
 
     // La PLATA sale de todo lo que el ERP tiene a nombre del vendedor, igual que
     // en su pantalla de deuda: si acá se filtrara por la cartera del Manual, un

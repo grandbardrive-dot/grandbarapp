@@ -233,9 +233,9 @@
       const j = await r.json();
       if(j.error){ document.getElementById("dLista").innerHTML = `<div class="empty">No pude cargar la deuda: ${j.error}</div>`; return; }
       if(!j.codigo){ document.getElementById("dLista").innerHTML = `<div class="empty"><div class="big">🔒</div>Tu usuario todavía no tiene código de vendedor cargado, así que no puedo mostrar tus clientes. Avisale a Desarrollo.</div>`; return; }
-      // Misma cuenta que el panel del supervisor, Dirección y tesorería: la vencida
-      // nunca supera el saldo neto (una nota de crédito la baja).
-      CLIENTES = (j.clientes||[]).map(c=>{ const saldo=Number(c.saldo)||0; return { ...c, saldo, vencida:Math.max(0, Math.min(Number(c.vencida)||0, saldo)) }; });
+      // Misma cuenta que el panel del supervisor, Dirección y tesorería: la vencida son
+      // todas las facturas vencidas, sin descontar el saldo a favor (29/09/2026).
+      CLIENTES = (j.clientes||[]).map(c=>({ ...c, saldo:Number(c.saldo)||0, vencida:Math.max(0, Number(c.vencida)||0) }));
       pintarDeuda();
     }catch(e){ document.getElementById("dLista").innerHTML = `<div class="empty">Error de conexión: ${e.message||e}</div>`; }
   }
