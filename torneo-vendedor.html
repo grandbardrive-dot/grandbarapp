@@ -74,6 +74,33 @@
     .tp-rank .t{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
     .tp-vacio{text-align:center;color:var(--muted);padding:26px 10px;font-size:14px}
     .tp-nota{font-size:12px;color:var(--muted);margin-top:4px}
+    /* ── Evidencias (29/09/2026): el vendedor carga línea, acción, cliente, fecha y fotos ── */
+    .ev-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .ev-top p{margin:4px 0 0;font-size:13px;color:var(--muted);max-width:56ch}
+    .ev-btn{background:var(--gold);color:#241a06;border:0;border-radius:11px;padding:11px 16px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap}
+    .ev-it{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line-2)}
+    .ev-it img,.ev-it .sinfoto{width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--line-2);display:block}
+    .ev-it .a{font-weight:700;font-size:14px}
+    .ev-it .m{font-size:12.5px;color:var(--muted);margin-top:2px}
+    .ev-it .mot{font-size:12.5px;color:var(--coral);margin-top:4px}
+    .ev-est{font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap}
+    .ev-pendiente{background:#f8efd6;color:#8a6412} .ev-aceptada{background:var(--green-soft);color:var(--green-d)} .ev-rechazada{background:#f7e1da;color:#b5482d}
+    .ev-borrar{display:block;margin-top:6px;background:none;border:0;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:0}
+    .ev-ov{position:fixed;inset:0;background:rgba(13,34,56,.55);display:none;align-items:flex-end;justify-content:center;z-index:9950}
+    .ev-ov.open{display:flex}
+    .ev-sheet{background:#fff;width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 18px 22px}
+    @media(min-width:640px){ .ev-ov{align-items:center} .ev-sheet{border-radius:18px} }
+    .ev-sheet h3{margin:0 0 4px;font-size:18px} .ev-sheet .s{font-size:13px;color:var(--muted);margin-bottom:12px}
+    .ev-sheet label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:12px 0 5px}
+    .ev-sheet select,.ev-sheet input,.ev-sheet textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:15px;background:#fff;color:var(--ink)}
+    .ev-sheet textarea{min-height:64px;resize:vertical}
+    .ev-prev{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+    .ev-prev img{width:72px;height:72px;object-fit:cover;border-radius:9px}
+    .ev-acts{display:flex;gap:8px;margin-top:16px}
+    .ev-acts button{flex:1;border:0;border-radius:11px;padding:13px;font:inherit;font-weight:800;font-size:14.5px;cursor:pointer}
+    .ev-acts .no{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)} .ev-acts .si{background:var(--green);color:#fff}
+    .ev-acts .si:disabled{opacity:.6}
+    .ev-msg{font-size:13px;color:var(--coral);margin-top:10px;min-height:18px}
     @media(max-width:820px){ .sidebar{display:none} .content{padding:16px} .tp-kpis{gap:8px} .tp-kpi{padding:12px} .tp-kpi .v{font-size:22px} .tp-kpi .l{font-size:11.5px} .tp-cat{grid-template-columns:110px 1fr 60px} }
   </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
@@ -103,6 +130,7 @@
 
       <div class="tp-tabs">
         <button class="on" data-tab="yo" id="tp-tabs-yo">Mi puntaje</button>
+        <button data-tab="evid" id="tp-tabs-evid" hidden>Mis evidencias</button>
         <button data-tab="Mendoza">🍇 Mendoza</button>
         <button data-tab="San Luis">🏔 San Luis</button>
       </div>
@@ -241,6 +269,174 @@
       if (!propio && PUEDE_VER_TODOS) $('tp-tabs-yo').hidden = true;
       mostrar(propio ? 'yo' : (VEND && getSucursal(VEND.codigo) === 'San Luis' ? 'San Luis' : 'Mendoza'));
     } catch (e) { aviso('No se pudieron leer los puntos del torneo.'); }
+  })();
+</script>
+<!-- Cargar una evidencia del torneo -->
+<div class="ev-ov" id="evOv"><div class="ev-sheet">
+  <h3>Cargar evidencia</h3>
+  <div class="s">Hace falta la foto, el cliente y la fecha de activación. La revisa Juan Pablo Sepúlveda.</div>
+  <label for="evLinea">Línea</label>
+  <select id="evLinea"><option value="">Elegí la línea…</option></select>
+  <label for="evAccion">Acción</label>
+  <select id="evAccion"><option value="">Elegí la acción…</option></select>
+  <label for="evCliente">Cliente (punto de venta)</label>
+  <input id="evCliente" list="evClientes" placeholder="Escribí el nombre o el código" autocomplete="off">
+  <datalist id="evClientes"></datalist>
+  <label for="evFecha">Fecha de activación</label>
+  <input id="evFecha" type="date">
+  <label for="evFotos">Fotos (hasta 3)</label>
+  <input id="evFotos" type="file" accept="image/*" multiple>
+  <div class="ev-prev" id="evPrev"></div>
+  <label for="evNota">Nota (opcional)</label>
+  <textarea id="evNota" maxlength="500" placeholder="Algo que ayude a entender la foto"></textarea>
+  <div class="ev-msg" id="evMsg"></div>
+  <div class="ev-acts"><button class="no" id="evCancel" type="button">Cancelar</button><button class="si" id="evEnviar" type="button">Enviar evidencia</button></div>
+</div></div>
+
+<script>
+  // ── Evidencias del Torneo Doña Paula (29/09/2026) ──────────────────────────
+  // Cada vendedor carga línea, acción, cliente, fecha de activación y fotos.
+  // Las revisa Juan Pablo Sepúlveda (torneo-evidencias.html). Los puntos no se
+  // calculan acá: los sigue cargando Administración en su planilla.
+  (function () {
+    const FN = '/.netlify/functions/torneo-evidencias';
+    const $e = id => document.getElementById(id);
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const urlOk = u => typeof u === 'string' && u.indexOf('https://xqhyemccbwmzxqzkrtwa.supabase.co/storage/') === 0 ? u : '';
+    const fFecha = d => { const p = String(d || '').slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : ''; };
+    const hoy = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    let TOKEN = null, MIAS = null, CLIENTES = [], FOTOS = [];
+    const btnTab = $e('tp-tabs-evid');
+    let forzar = location.hash === '#evidencias';
+
+    // La pestaña se suma a las del torneo sin tocar su lógica.
+    const original = window.mostrar;
+    window.mostrar = function (tab) {
+      if (forzar && tab !== 'evid' && !btnTab.hidden) { forzar = false; tab = 'evid'; }
+      if (tab !== 'evid') return original(tab);
+      document.querySelectorAll('.tp-tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === 'evid'));
+      pintar();
+    };
+    btnTab.onclick = () => window.mostrar('evid');
+
+    function pintar() {
+      const cont = $e('tp-cont');
+      const cab = '<div class="tp-card"><div class="ev-top"><div><h3 style="margin:0">Mis evidencias</h3>'
+        + '<p>Cargá cada acción con su foto, el cliente y la fecha. Cuando la revisen te llega el aviso a la campanita.</p></div>'
+        + '<button class="ev-btn" id="evNueva" type="button">+ Cargar evidencia</button></div></div>';
+      let lista;
+      if (MIAS === null) lista = '<div class="tp-card"><div class="tp-vacio">Cargando…</div></div>';
+      else if (!MIAS.length) lista = '<div class="tp-card"><div class="tp-vacio">Todavía no cargaste evidencias.</div></div>';
+      else lista = '<div class="tp-card">' + MIAS.map(e => {
+        const f = (e.fotos_url || []).map(urlOk).filter(Boolean)[0];
+        const est = { pendiente: 'Para revisar', aceptada: 'Aceptada', rechazada: 'Rechazada' }[e.estado] || e.estado;
+        return '<div class="ev-it">' + (f ? '<a href="' + esc(f) + '" target="_blank" rel="noopener"><img src="' + esc(f) + '" alt="" loading="lazy"></a>' : '<span class="sinfoto"></span>')
+          + '<div><div class="a">' + esc(e.accion) + ' · ' + esc(e.linea) + '</div>'
+          + '<div class="m">' + esc(e.cliente_nombre) + ' · activación ' + esc(fFecha(e.fecha_activacion)) + '</div>'
+          + (e.estado === 'rechazada' && e.motivo ? '<div class="mot">Motivo: ' + esc(e.motivo) + '</div>' : '') + '</div>'
+          + '<div style="text-align:right"><span class="ev-est ev-' + esc(e.estado) + '">' + esc(est) + '</span>'
+          + (e.estado === 'pendiente' ? '<button class="ev-borrar" data-borrar="' + esc(e.id) + '" type="button">Borrar</button>' : '') + '</div></div>';
+      }).join('') + '</div>';
+      cont.innerHTML = cab + lista;
+      $e('evNueva').onclick = abrir;
+      cont.querySelectorAll('[data-borrar]').forEach(b => b.onclick = () => borrar(b.dataset.borrar));
+    }
+
+    async function cargarMias() {
+      let ok = false;
+      try {
+        const r = await fetch(FN + '?vista=mias', { headers: { Authorization: 'Bearer ' + TOKEN } });
+        const d = await r.json();
+        ok = r.ok; MIAS = r.ok ? (d.evidencias || []) : [];
+      } catch (e) { MIAS = []; }
+      if (btnTab.classList.contains('on')) pintar();
+      return ok;
+    }
+
+    function abrir() {
+      $e('evMsg').textContent = ''; $e('evCliente').value = ''; $e('evNota').value = ''; $e('evFotos').value = '';
+      $e('evFecha').value = hoy(); $e('evFecha').max = hoy(); FOTOS = []; $e('evPrev').innerHTML = '';
+      $e('evOv').classList.add('open');
+    }
+    $e('evCancel').onclick = () => $e('evOv').classList.remove('open');
+    $e('evOv').onclick = ev => { if (ev.target.id === 'evOv') $e('evOv').classList.remove('open'); };
+
+    // Las fotos se achican en el celular antes de mandarlas (1600 px, JPG).
+    function achicar(file) {
+      return new Promise((ok, ko) => {
+        const url = URL.createObjectURL(file), img = new Image();
+        img.onload = () => {
+          const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+          const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+          ok(c.toDataURL('image/jpeg', 0.82));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); ko(new Error('No se pudo leer una de las fotos.')); };
+        img.src = url;
+      });
+    }
+    $e('evFotos').onchange = async () => {
+      const files = Array.from($e('evFotos').files || []).slice(0, 3);
+      $e('evMsg').textContent = files.length < ($e('evFotos').files || []).length ? 'Se toman las primeras 3 fotos.' : '';
+      try { FOTOS = await Promise.all(files.map(achicar)); }
+      catch (e) { FOTOS = []; $e('evMsg').textContent = e.message; }
+      $e('evPrev').innerHTML = FOTOS.map(u => '<img src="' + u + '" alt="">').join('');
+    };
+
+    $e('evEnviar').onclick = async () => {
+      const linea = $e('evLinea').value, accion = $e('evAccion').value, cli = $e('evCliente').value.trim();
+      const msg = t => { $e('evMsg').textContent = t; };
+      if (!linea) return msg('Elegí la línea.');
+      if (!accion) return msg('Elegí la acción.');
+      if (!cli) return msg('Poné el cliente.');
+      if (!$e('evFecha').value) return msg('Poné la fecha de activación.');
+      if (!FOTOS.length) return msg('Sumá al menos una foto.');
+      const c = CLIENTES.find(x => x.etiqueta === cli || String(x.codigo) === cli);
+      const btn = $e('evEnviar'); btn.disabled = true; btn.textContent = 'Enviando…'; msg('');
+      try {
+        const r = await fetch(FN, { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accion: 'crear', linea, accion_torneo: accion, cliente_codigo: c ? c.codigo : null, cliente_nombre: c ? c.nombre : cli,
+            fecha_activacion: $e('evFecha').value, nota: $e('evNota').value.trim(), fotos: FOTOS }) });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'No se pudo enviar.');
+        $e('evOv').classList.remove('open');
+        MIAS = [d.evidencia].concat(MIAS || []);
+        window.mostrar('evid'); cargarMias();
+      } catch (e) { msg(e.message); }
+      finally { btn.disabled = false; btn.textContent = 'Enviar evidencia'; }
+    };
+
+    async function borrar(id) {
+      if (!confirm('¿Borrar esta evidencia? Todavía no la revisaron.')) return;
+      try {
+        const r = await fetch(FN, { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'borrar', id }) });
+        const d = await r.json(); if (!r.ok) throw new Error(d.error || 'No se pudo borrar.');
+        MIAS = (MIAS || []).filter(e => String(e.id) !== String(id)); pintar();
+      } catch (e) { alert(e.message); }
+    }
+
+    (async () => {
+      try {
+        const hub = supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc');
+        const { data: { session } } = await hub.auth.getSession(); if (!session) return;
+        TOKEN = session.access_token;
+        const { data: p } = await hub.from('usuarios').select('rol').eq('id', session.user.id).maybeSingle();
+        if (!p || String(p.rol || '').toLowerCase() !== 'ventas') return;   // solo participan los vendedores
+        const r = await fetch(FN + '?vista=estructura', { headers: { Authorization: 'Bearer ' + TOKEN } });
+        const est = await r.json(); if (!r.ok) return;
+        $e('evLinea').innerHTML = '<option value="">Elegí la línea…</option>' + est.lineas.map(l => '<option>' + esc(l) + '</option>').join('');
+        $e('evAccion').innerHTML = '<option value="">Elegí la acción…</option>' + est.grupos.map(g => '<optgroup label="' + esc(g.titulo) + '">' + g.acciones.map(a => '<option>' + esc(a) + '</option>').join('') + '</optgroup>').join('');
+        // La pestaña aparece solo si la base ya tiene la tabla de evidencias.
+        if (!(await cargarMias())) return;
+        btnTab.hidden = false;
+        if (forzar) window.mostrar('evid');
+        // Los clientes de la cartera, para elegir el punto de venta.
+        fetch('/.netlify/functions/cuentas-vendedor', { headers: { Authorization: 'Bearer ' + TOKEN } }).then(x => x.ok ? x.json() : {}).then(j => {
+          CLIENTES = (j.clientes || []).map(c => ({ codigo: String(c.codigo), nombre: c.nombre || '', etiqueta: (c.nombre || '') + ' · ' + c.codigo }));
+          $e('evClientes').innerHTML = CLIENTES.map(c => '<option value="' + esc(c.etiqueta) + '"></option>').join('');
+        }).catch(() => {});
+      } catch (e) {}
+    })();
   })();
 </script>
 <script src="assets/hub-nav.js?v=3"></script>

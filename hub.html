@@ -211,6 +211,8 @@
     // en el Hub genérico veía las herramientas de todas las áreas, incluido el panel
     // de Diseño y Desarrollo. Desde el 25/09/2026 va directo a su inicio.
     if (["direccion", "admin", "duenio"].includes(String(currentRole).toLowerCase())) { location.replace("direccion.html"); return; }
+    // Validación del torneo: su única pantalla es la revisión de evidencias (29/09/2026).
+    if (String(currentRole).toLowerCase() === "torneo") { location.replace("torneo-evidencias.html"); return; }
     currentUser = s.nombre || "Equipo GrandBar";
     document.getElementById("uName").textContent = currentUser;
     document.getElementById("uRole").textContent = ROLE_LABEL[currentRole] || currentRole;

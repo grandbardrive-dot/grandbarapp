@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Evidencias del torneo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* Panel de validación del Torneo Doña Paula (29/09/2026): Juan Pablo
+     Sepúlveda revisa las evidencias que cargan los vendedores. Es su única
+     pantalla. Los datos vienen de la función torneo-evidencias. */
+  :root{--navy:#0d2230;--navy-2:#14304c;--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;
+    --gold:#c0912f;--gold-d:#a97c22;--gold-s:#f7efdc;--green:#2f6f5e;--green-d:#245647;--green-s:#e3efe9;--danger:#b5482d;--danger-s:#f7e1da;--amber:#8a6412;--amber-s:#f8efd6;
+    --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+  *{box-sizing:border-box} body{margin:0;font-family:var(--font);background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+  .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+  .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+  .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+  .sb-nav{display:flex;flex-direction:column;gap:3px}
+  .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+  .sb-nav a.active{background:var(--gold);color:#2a2007;font-weight:600}
+  .sb-nav svg{width:19px;height:19px;flex:none}
+  .sb-foot{margin-top:auto;padding-top:16px}
+  .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px;cursor:pointer}
+  .sb-user .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy)}
+  .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+  .main{flex:1;min-width:0}
+  .content{max-width:1180px;margin:0 auto;padding:26px 28px 60px}
+  .head h1{font-size:25px;margin:0 0 4px;font-weight:800}
+  .head p{margin:0 0 18px;color:var(--muted);font-size:14px;max-width:62ch}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .kpi .l{font-size:12.5px;color:var(--muted)} .kpi .v{font-size:26px;font-weight:800;margin-top:2px}
+  .kpi.pend .v{color:var(--amber)} .kpi.ok .v{color:var(--green-d)} .kpi.no .v{color:var(--danger)}
+  .barra{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+  .tabs{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px}
+  .tabs button{border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .tabs button.on{background:var(--navy);color:#fff}
+  .barra input,.barra select{border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:13.5px;background:#fff;color:var(--ink)}
+  .barra input{flex:1;min-width:180px}
+  .btn{border:0;border-radius:10px;padding:9px 14px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .btn.ok{background:var(--green);color:#fff} .btn.no{background:#fff;color:var(--danger);box-shadow:inset 0 0 0 1.5px #e6c3b8}
+  .btn.claro{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+  .btn:disabled{opacity:.55;cursor:default}
+  .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .ev{background:var(--card);border:1px solid var(--line);border-radius:15px;overflow:hidden;display:flex;flex-direction:column}
+  .fotos{display:flex;gap:4px;background:#e9e3d6;padding:4px}
+  .fotos button{flex:1;border:0;padding:0;background:#ddd5c7;cursor:zoom-in;height:190px;border-radius:10px;overflow:hidden}
+  .fotos img{width:100%;height:100%;object-fit:cover;display:block}
+  .ev .cuerpo{padding:13px 15px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .ev .acc{font-weight:800;font-size:15.5px;line-height:1.25}
+  .ev .lin{font-size:13px;color:var(--muted)}
+  .tag{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:#e4ecf6;color:#2b5aa3;margin-left:6px;vertical-align:1px}
+  .dato{display:grid;grid-template-columns:96px 1fr;gap:8px;font-size:13.5px}
+  .dato .k{color:var(--muted)}
+  .nota{background:var(--cream);border-radius:9px;padding:8px 10px;font-size:13px;white-space:pre-wrap}
+  .pie{display:flex;gap:8px;align-items:center;padding:12px 15px;border-top:1px solid var(--line2);flex-wrap:wrap}
+  .estado{font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px}
+  .e-pendiente{background:var(--amber-s);color:var(--amber)} .e-aceptada{background:var(--green-s);color:var(--green-d)} .e-rechazada{background:var(--danger-s);color:var(--danger)}
+  .rev{font-size:12.5px;color:var(--muted);flex:1;min-width:150px}
+  .deshacer{background:none;border:0;color:var(--muted);font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0}
+  .vacio{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:34px 20px;text-align:center;color:var(--muted);font-size:14px}
+  .ov{position:fixed;inset:0;background:rgba(13,34,48,.6);display:none;align-items:center;justify-content:center;z-index:80;padding:16px}
+  .ov.open{display:flex}
+  .modal{background:#fff;border-radius:16px;padding:18px;width:100%;max-width:440px}
+  .modal h3{margin:0 0 6px;font-size:17px} .modal p{margin:0 0 10px;color:var(--muted);font-size:13.5px}
+  .modal textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:14px;resize:vertical}
+  .modal .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+  .foto-grande{max-width:min(92vw,900px);max-height:84vh;border-radius:12px;display:block}
+  .visor{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .visor .ctl{display:flex;gap:8px}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 18px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:90}
+  .toast.show{opacity:1} .toast.err{background:var(--danger)}
+  @media(max-width:900px){ .sidebar{display:none} .content{padding:18px 14px 50px} .lista{grid-template-columns:1fr} .kpi .v{font-size:22px} }
+</style>
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav">
+      <a href="torneo-evidencias.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg> Evidencias del torneo</a>
+    </nav>
+    <div class="sb-foot"><div class="sb-user" id="logout"><div class="av" id="av">V</div><div><div class="t" id="uName">Validación</div><div class="s">Validación del torneo</div></div></div></div>
+  </aside>
+
+  <div class="main"><div class="content">
+    <div class="head">
+      <h1>Evidencias del Torneo Doña Paula</h1>
+      <p>Revisá lo que cargan los vendedores: la foto, el cliente y la fecha de activación. Aceptala o rechazala; al vendedor le llega el aviso. Los puntos se cargan aparte, con la planilla.</p>
+    </div>
+    <div class="kpis">
+      <div class="kpi pend"><div class="l">Para revisar</div><div class="v" id="kPend">—</div></div>
+      <div class="kpi ok"><div class="l">Aceptadas</div><div class="v" id="kOk">—</div></div>
+      <div class="kpi no"><div class="l">Rechazadas</div><div class="v" id="kNo">—</div></div>
+    </div>
+    <div class="barra">
+      <div class="tabs" id="tabs">
+        <button data-e="pendiente" class="on">Para revisar</button>
+        <button data-e="aceptada">Aceptadas</button>
+        <button data-e="rechazada">Rechazadas</button>
+        <button data-e="">Todas</button>
+      </div>
+      <input id="q" type="search" placeholder="Buscar vendedor o cliente…" autocomplete="off">
+      <select id="fLiga"><option value="">Las dos ligas</option><option value="ON">Liga ON</option><option value="OFF">Liga OFF</option></select>
+      <select id="fSuc"><option value="">Las dos sucursales</option><option>Mendoza</option><option>San Luis</option></select>
+      <button class="btn claro" id="btnCsv" title="Baja la lista de esta pestaña para cargar los puntos">Descargar planilla</button>
+    </div>
+    <div id="lista" class="lista"><div class="vacio">Cargando…</div></div>
+  </div></div>
+</div>
+
+<div class="ov" id="ovRech"><div class="modal">
+  <h3>Rechazar la evidencia</h3>
+  <p>Escribí el motivo: se lo avisamos al vendedor para que la vuelva a cargar bien.</p>
+  <textarea id="motivo" maxlength="500" placeholder="Ej: la foto no muestra el producto / no se ve el nombre del cliente"></textarea>
+  <div class="acts"><button class="btn claro" id="rCancel">Cancelar</button><button class="btn no" id="rOk">Rechazar</button></div>
+</div></div>
+<div class="ov" id="ovFoto"><div class="visor">
+  <img class="foto-grande" id="fotoG" alt="Foto de la evidencia">
+  <div class="ctl"><button class="btn claro" id="fPrev">‹ Anterior</button><a class="btn claro" id="fAbrir" target="_blank" rel="noopener">Abrir original</a><button class="btn claro" id="fNext">Siguiente ›</button><button class="btn claro" id="fCerrar">Cerrar</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script>
+  const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+  const FN = '/.netlify/functions/torneo-evidencias';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const urlOk = u => typeof u === 'string' && u.indexOf(HUB.url + '/storage/') === 0 ? u : '';
+  const fFecha = d => { if(!d) return ''; const [y,m,dd] = String(d).slice(0,10).split('-'); return dd + '/' + m + '/' + y; };
+  const fHora = iso => iso ? new Date(iso).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
+  function toast(m, e){ const t = $('toast'); t.textContent = m; t.className = 'toast show' + (e ? ' err' : ''); setTimeout(() => t.className = 'toast', 2600); }
+
+  let TOKEN = null, EST = 'pendiente', EVS = [];
+
+  function pintar(){
+    const q = $('q').value.toLowerCase().trim(), liga = $('fLiga').value, suc = $('fSuc').value;
+    const arr = EVS.filter(e => (!q || ((e.vendedor_nombre||'') + ' ' + (e.vendedor_codigo||'') + ' ' + (e.cliente_nombre||'') + ' ' + (e.cliente_codigo||'')).toLowerCase().includes(q))
+      && (!liga || e.liga === liga || e.liga === 'ON/OFF') && (!suc || e.sucursal === suc));
+    if(!arr.length){
+      $('lista').innerHTML = '<div class="vacio">' + (EVS.length ? 'Ninguna evidencia con ese filtro.' : (EST === 'pendiente' ? 'No hay evidencias para revisar.' : 'Todavía no hay evidencias en esta lista.')) + '</div>';
+      return;
+    }
+    $('lista').innerHTML = arr.map(e => {
+      const fotos = (e.fotos_url || []).map(urlOk).filter(Boolean);
+      const fotosH = fotos.length ? '<div class="fotos">' + fotos.map((u, i) => '<button data-ver="' + esc(e.id) + '" data-i="' + i + '" aria-label="Ver foto ' + (i+1) + '"><img src="' + esc(u) + '" alt="" loading="lazy"></button>').join('') + '</div>' : '';
+      const pie = e.estado === 'pendiente'
+        ? '<button class="btn ok" data-ok="' + esc(e.id) + '">✓ Aceptar</button><button class="btn no" data-no="' + esc(e.id) + '">✗ Rechazar</button>'
+        : '<span class="estado e-' + esc(e.estado) + '">' + (e.estado === 'aceptada' ? 'Aceptada' : 'Rechazada') + '</span>'
+          + '<span class="rev">' + esc(e.revisado_por || '') + (e.revisado_at ? ' · ' + esc(fHora(e.revisado_at)) : '') + (e.motivo ? '<br>Motivo: ' + esc(e.motivo) : '') + '</span>'
+          + '<button class="deshacer" data-pend="' + esc(e.id) + '">Volver a revisar</button>';
+      return '<div class="ev">' + fotosH + '<div class="cuerpo">'
+        + '<div class="acc">' + esc(e.accion) + '<span class="tag">' + esc(e.liga || '') + '</span></div>'
+        + '<div class="lin">Línea ' + esc(e.linea) + '</div>'
+        + '<div class="dato"><span class="k">Cliente</span><span>' + esc(e.cliente_nombre) + (e.cliente_codigo ? ' · ' + esc(e.cliente_codigo) : '') + '</span></div>'
+        + '<div class="dato"><span class="k">Vendedor</span><span>' + esc(e.vendedor_nombre || '—') + (e.vendedor_codigo ? ' · ' + esc(e.vendedor_codigo) : '') + (e.sucursal ? ' · ' + esc(e.sucursal) : '') + '</span></div>'
+        + '<div class="dato"><span class="k">Activación</span><span>' + esc(fFecha(e.fecha_activacion)) + '</span></div>'
+        + '<div class="dato"><span class="k">Cargada</span><span>' + esc(fHora(e.created_at)) + '</span></div>'
+        + (e.nota ? '<div class="nota">' + esc(e.nota) + '</div>' : '')
+        + '</div><div class="pie">' + pie + '</div></div>';
+    }).join('');
+  }
+
+  async function cargar(){
+    $('lista').innerHTML = '<div class="vacio">Cargando…</div>';
+    try{
+      const r = await fetch(FN + '?vista=revisar' + (EST ? '&estado=' + EST : ''), { headers:{ Authorization:'Bearer ' + TOKEN } });
+      const d = await r.json();
+      if(r.status === 403){ $('lista').innerHTML = '<div class="vacio">Esta pantalla es solo para quien valida el torneo.<br><a href="hub.html" style="color:var(--gold-d);font-weight:700">Volver al Hub</a></div>'; return; }
+      if(!r.ok) throw new Error(d.error || 'No se pudo cargar');
+      EVS = d.evidencias || [];
+      $('kPend').textContent = d.totales.pendiente; $('kOk').textContent = d.totales.aceptada; $('kNo').textContent = d.totales.rechazada;
+      pintar();
+    }catch(e){ $('lista').innerHTML = '<div class="vacio">No se pudieron cargar las evidencias: ' + esc(e.message) + '</div>'; }
+  }
+
+  async function revisar(id, estado, motivo){
+    try{
+      const r = await fetch(FN, { method:'POST', headers:{ Authorization:'Bearer ' + TOKEN, 'Content-Type':'application/json' }, body: JSON.stringify({ accion:'revisar', id, estado, motivo }) });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.error || 'No se pudo guardar');
+      toast(estado === 'aceptada' ? 'Evidencia aceptada ✓' : estado === 'rechazada' ? 'Evidencia rechazada' : 'Volvió a Para revisar');
+      cargar();
+    }catch(e){ toast(e.message, true); }
+  }
+
+  // Visor de fotos
+  let VER = { fotos:[], i:0 };
+  function mostrarFoto(){ const u = VER.fotos[VER.i]; $('fotoG').src = u; $('fAbrir').href = u; $('fPrev').disabled = VER.i === 0; $('fNext').disabled = VER.i >= VER.fotos.length - 1; }
+  $('fPrev').onclick = () => { if(VER.i > 0){ VER.i--; mostrarFoto(); } };
+  $('fNext').onclick = () => { if(VER.i < VER.fotos.length - 1){ VER.i++; mostrarFoto(); } };
+  $('fCerrar').onclick = () => $('ovFoto').classList.remove('open');
+  $('ovFoto').onclick = e => { if(e.target.id === 'ovFoto') $('ovFoto').classList.remove('open'); };
+
+  // Rechazo con motivo
+  let RECH = null;
+  $('rCancel').onclick = () => $('ovRech').classList.remove('open');
+  $('rOk').onclick = () => {
+    const m = $('motivo').value.trim();
+    if(!m){ toast('Escribí el motivo', true); return; }
+    $('ovRech').classList.remove('open'); revisar(RECH, 'rechazada', m);
+  };
+
+  $('lista').addEventListener('click', ev => {
+    const b = ev.target.closest('button'); if(!b) return;
+    if(b.dataset.ver){ const e = EVS.find(x => String(x.id) === b.dataset.ver); if(!e) return; VER = { fotos:(e.fotos_url || []).map(urlOk).filter(Boolean), i:Number(b.dataset.i) || 0 }; mostrarFoto(); $('ovFoto').classList.add('open'); }
+    else if(b.dataset.ok){ b.disabled = true; revisar(b.dataset.ok, 'aceptada'); }
+    else if(b.dataset.no){ RECH = b.dataset.no; $('motivo').value = ''; $('ovRech').classList.add('open'); setTimeout(() => $('motivo').focus(), 50); }
+    else if(b.dataset.pend){ revisar(b.dataset.pend, 'pendiente'); }
+  });
+  $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => {
+    $('tabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); EST = b.dataset.e; cargar();
+  });
+  ['q','fLiga','fSuc'].forEach(id => $(id).addEventListener('input', pintar));
+
+  // Planilla: la lista de la pestaña actual (todas las filas, no solo las de pantalla).
+  $('btnCsv').onclick = async () => {
+    try{
+      const r = await fetch(FN + '?vista=csv' + (EST ? '&estado=' + EST : ''), { headers:{ Authorization:'Bearer ' + TOKEN } });
+      if(!r.ok) throw new Error('No se pudo bajar la planilla');
+      const blob = await r.blob(), a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'evidencias-torneo-' + (EST || 'todas') + '-' + new Date().toISOString().slice(0,10) + '.csv';
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }catch(e){ toast(e.message, true); }
+  };
+
+  (async () => {
+    const hub = supabase.createClient(HUB.url, HUB.key);
+    const { data:{ session } } = await hub.auth.getSession();
+    if(!session){ location.href = 'index.html'; return; }
+    TOKEN = session.access_token;
+    const { data:u } = await hub.from('usuarios').select('nombre').eq('id', session.user.id).maybeSingle();
+    if(u && u.nombre){ $('uName').textContent = u.nombre; $('av').textContent = u.nombre.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+    cargar();
+  })();
+</script>
+<script src="assets/user-menu.js?v=1"></script>
+<script src="assets/mobile-nav.js?v=1"></script>
+<script src="/assets/cuenta-activa.js?v=1"></script>
+</body>
+</html>
