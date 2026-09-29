@@ -58,6 +58,7 @@
   .fotos{display:flex;gap:4px;background:#e9e3d6;padding:4px}
   .fotos button{flex:1;border:0;padding:0;background:#ddd5c7;cursor:zoom-in;height:190px;border-radius:10px;overflow:hidden}
   .fotos img{width:100%;height:100%;object-fit:cover;display:block}
+  .ev-video{width:100%;max-height:300px;background:#111;display:block}
   .ev .cuerpo{padding:13px 15px;display:flex;flex-direction:column;gap:6px;flex:1}
   .ev .acc{font-weight:800;font-size:15.5px;line-height:1.25}
   .ev .lin{font-size:13px;color:var(--muted)}
@@ -100,7 +101,7 @@
   <div class="main"><div class="content">
     <div class="head">
       <h1>Evidencias del Torneo Doña Paula</h1>
-      <p>Revisá lo que cargan los vendedores: la foto, el cliente y la fecha de activación. Aceptala o rechazala; al vendedor le llega el aviso. Los puntos se cargan aparte, con la planilla.</p>
+      <p>Revisá lo que cargan los vendedores: las fotos o el video, el cliente y la fecha de activación. Aceptala o rechazala; al vendedor le llega el aviso. Los puntos se cargan aparte, con la planilla.</p>
     </div>
     <div class="kpis">
       <div class="kpi pend"><div class="l">Para revisar</div><div class="v" id="kPend">—</div></div>
@@ -160,12 +161,14 @@
     $('lista').innerHTML = arr.map(e => {
       const fotos = (e.fotos_url || []).map(urlOk).filter(Boolean);
       const fotosH = fotos.length ? '<div class="fotos">' + fotos.map((u, i) => '<button data-ver="' + esc(e.id) + '" data-i="' + i + '" aria-label="Ver foto ' + (i+1) + '"><img src="' + esc(u) + '" alt="" loading="lazy"></button>').join('') + '</div>' : '';
+      const vid = urlOk(e.video_url);
+      const videoH = vid ? '<video class="ev-video" controls playsinline preload="metadata" src="' + esc(vid) + '"></video>' : '';
       const pie = e.estado === 'pendiente'
         ? '<button class="btn ok" data-ok="' + esc(e.id) + '">✓ Aceptar</button><button class="btn no" data-no="' + esc(e.id) + '">✗ Rechazar</button>'
         : '<span class="estado e-' + esc(e.estado) + '">' + (e.estado === 'aceptada' ? 'Aceptada' : 'Rechazada') + '</span>'
           + '<span class="rev">' + esc(e.revisado_por || '') + (e.revisado_at ? ' · ' + esc(fHora(e.revisado_at)) : '') + (e.motivo ? '<br>Motivo: ' + esc(e.motivo) : '') + '</span>'
           + '<button class="deshacer" data-pend="' + esc(e.id) + '">Volver a revisar</button>';
-      return '<div class="ev">' + fotosH + '<div class="cuerpo">'
+      return '<div class="ev">' + fotosH + videoH + '<div class="cuerpo">'
         + '<div class="acc">' + esc(e.accion) + '<span class="tag">' + esc(e.liga || '') + '</span></div>'
         + '<div class="lin">Línea ' + esc(e.linea) + '</div>'
         + '<div class="dato"><span class="k">Cliente</span><span>' + esc(e.cliente_nombre) + (e.cliente_codigo ? ' · ' + esc(e.cliente_codigo) : '') + '</span></div>'

@@ -15,7 +15,11 @@ const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const BUCKET = 'torneo-evidencias';
 const VALIDAN = ['torneo', 'desarrollo', 'diseno'];   // Juan Pablo y quienes mantienen el sistema
 const ESTADOS = ['pendiente', 'aceptada', 'rechazada'];
-const MAX_FOTOS = 3, MAX_BYTES = 3 * 1024 * 1024;
+const MAX_FOTOS = 2, MAX_BYTES = 3 * 1024 * 1024;
+// Un video corto por evidencia (29/09). Es pesado para pasar por la función:
+// el celular lo sube directo a la carpeta con un permiso de un solo uso.
+const MAX_VIDEO = 50 * 1024 * 1024;
+const VIDEO_EXT = { 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'video/3gpp': '3gp' };
 
 const { LINEAS, accionesPara, ligaDe } = require('./_torneo-estructura');
 const { regionDe } = require('./_equipo');
@@ -48,14 +52,14 @@ exports.handler = async (event) => {
 
     // Links temporales (1 hora) para ver las fotos: la carpeta es privada.
     async function conFotos(filas) {
-      const paths = [].concat(...filas.map(f => f.fotos || []));
+      const paths = [].concat(...filas.map(f => (f.fotos || []).concat(f.video ? [f.video] : [])));
       const url = {};
       if (paths.length) {
         const r = await st('object/sign/' + BUCKET, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresIn: 3600, paths }) });
         const lista = r.ok ? await r.json() : [];
         (Array.isArray(lista) ? lista : []).forEach(x => { if (x && x.signedURL) url[x.path] = HUB_URL + '/storage/v1' + x.signedURL; });
       }
-      return filas.map(f => ({ ...f, fotos_url: (f.fotos || []).map(p => url[p]).filter(Boolean) }));
+      return filas.map(f => ({ ...f, fotos_url: (f.fotos || []).map(p => url[p]).filter(Boolean), video_url: f.video ? (url[f.video] || null) : null }));
     }
     async function notificar(destId, n) {
       if (!destId) return;
@@ -91,10 +95,10 @@ exports.handler = async (event) => {
         if (ESTADOS.includes(qp.estado)) q += '&estado=eq.' + qp.estado;
         if (qp.vista === 'csv') {
           const filas = await traerTodo(sb, q);
-          const col = ['Fecha de activación', 'Vendedor', 'Código', 'Sucursal', 'Liga', 'Línea', 'Acción', 'Cliente', 'Código cliente', 'Estado', 'Revisada por', 'Revisada el', 'Motivo', 'Cargada el', 'Nota del vendedor'];
+          const col = ['Fecha de activación', 'Vendedor', 'Código', 'Sucursal', 'Liga', 'Línea', 'Acción', 'Cliente', 'Código cliente', 'Estado', 'Revisada por', 'Revisada el', 'Motivo', 'Cargada el', 'Nota del vendedor', 'Fotos', 'Video'];
           const celda = v => { const s = String(v == null ? '' : v).replace(/\r?\n/g, ' '); return /[";]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
           const fecha = v => v ? new Date(v).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
-          const lineas = filas.map(f => [f.fecha_activacion, f.vendedor_nombre, f.vendedor_codigo, f.sucursal, f.liga, f.linea, f.accion, f.cliente_nombre, f.cliente_codigo, f.estado, f.revisado_por, fecha(f.revisado_at), f.motivo, fecha(f.created_at), f.nota].map(celda).join(';'));
+          const lineas = filas.map(f => [f.fecha_activacion, f.vendedor_nombre, f.vendedor_codigo, f.sucursal, f.liga, f.linea, f.accion, f.cliente_nombre, f.cliente_codigo, f.estado, f.revisado_por, fecha(f.revisado_at), f.motivo, fecha(f.created_at), f.nota, (f.fotos || []).length, f.video ? 'Sí' : 'No'].map(celda).join(';'));
           return { statusCode: 200, headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Cache-Control': 'no-store' }, body: '﻿' + [col.join(';')].concat(lineas).join('\r\n') };
         }
         const rl = await sb(q + '&limit=300');
@@ -110,6 +114,19 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'POST') {
       let b = {}; try { b = JSON.parse(event.body || '{}'); } catch (e) { return json(400, { error: 'Datos inválidos.' }); }
 
+      if (b.accion === 'permiso_video') {
+        // Permiso de un solo uso para subir el video directo a la carpeta privada.
+        if (!vende) return json(403, { error: 'Solo los vendedores cargan evidencias.' });
+        const ext = VIDEO_EXT[String(b.tipo || '').toLowerCase()];
+        if (!ext) return json(400, { error: 'Ese formato de video no se acepta. Grabalo con la cámara del celular.' });
+        if (!(Number(b.tamano) > 0) || Number(b.tamano) > MAX_VIDEO) return json(400, { error: 'El video pesa más de 50 MB. Grabá uno más corto.' });
+        const path = user.id + '/' + Date.now() + '-v.' + ext;
+        const r = await st('object/upload/sign/' + BUCKET + '/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const d = r.ok ? await r.json() : {};
+        if (!d.url) return json(502, { error: 'No se pudo preparar la subida del video.' });
+        return json(200, { path, url: HUB_URL + '/storage/v1' + d.url });
+      }
+
       if (b.accion === 'crear') {
         if (!vende) return json(403, { error: 'Solo los vendedores cargan evidencias.' });
         const linea = texto(b.linea, 60), accion = texto(b.accion_torneo, 80);
@@ -120,7 +137,20 @@ exports.handler = async (event) => {
         const fecha = texto(b.fecha_activacion, 10);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || fecha > hoyAR()) return json(400, { error: 'La fecha de activación no es válida.' });
         const fotos = Array.isArray(b.fotos) ? b.fotos.slice(0, MAX_FOTOS) : [];
-        if (!fotos.length) return json(400, { error: 'Sumá al menos una foto.' });
+        // El video ya está subido: se confirma que sea de este vendedor y que exista.
+        let video = null;
+        if (b.video) {
+          const vp = String(b.video);
+          const pre = user.id + '/';
+          if (vp.indexOf(pre) !== 0 || !/^\d+-v\.(mp4|mov|webm|3gp)$/.test(vp.slice(pre.length))) return json(400, { error: 'El video no es válido.' });
+          const nom = vp.slice(pre.length);
+          const lr = await st('object/list/' + BUCKET, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prefix: user.id, search: nom, limit: 5 }) });
+          const obj = (lr.ok ? await lr.json() : []).find(o => o && o.name === nom);
+          if (!obj) return json(400, { error: 'El video no terminó de subir. Probá de nuevo.' });
+          video = vp;
+        }
+        if (!fotos.length && !video) return json(400, { error: 'Sumá al menos una foto o el video.' });
+        const borrarVideo = () => video ? st('object/' + BUCKET, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: [video] }) }).catch(() => {}) : null;
 
         const subidas = [];
         for (let i = 0; i < fotos.length; i++) {
@@ -132,6 +162,7 @@ exports.handler = async (event) => {
           const up = await st('object/' + BUCKET + '/' + path, { method: 'POST', headers: { 'Content-Type': 'image/' + m[1], 'x-upsert': 'false' }, body: buf });
           if (!up.ok) {
             if (subidas.length) await st('object/' + BUCKET, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: subidas }) }).catch(() => {});
+            await borrarVideo();
             return json(502, { error: 'No se pudo guardar la foto. Probá de nuevo.' });
           }
           subidas.push(path);
@@ -143,9 +174,11 @@ exports.handler = async (event) => {
           linea, accion, cliente_codigo: texto(b.cliente_codigo, 20) || null, cliente_nombre: cliente,
           fecha_activacion: fecha, fotos: subidas, nota: texto(b.nota, 500) || null, estado: 'pendiente',
         };
+        if (video) fila.video = video;
         const r = await sb('torneo_evidencias', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) });
         if (!r.ok) {
-          await st('object/' + BUCKET, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: subidas }) }).catch(() => {});
+          if (subidas.length) await st('object/' + BUCKET, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: subidas }) }).catch(() => {});
+          await borrarVideo();
           return json(502, { error: 'No se pudo guardar la evidencia.' });
         }
         return json(200, { ok: true, evidencia: (await r.json())[0] });
@@ -154,11 +187,12 @@ exports.handler = async (event) => {
       if (b.accion === 'borrar') {
         // El vendedor puede sacar una evidencia suya mientras nadie la revisó.
         if (!vende) return json(403, { error: 'No autorizado.' });
-        const f = (await (await sb('torneo_evidencias?id=eq.' + encodeURIComponent(b.id) + '&usuario_id=eq.' + encodeURIComponent(user.id) + '&select=id,estado,fotos')).json())[0];
+        const f = (await (await sb('torneo_evidencias?id=eq.' + encodeURIComponent(b.id) + '&usuario_id=eq.' + encodeURIComponent(user.id) + '&select=*')).json())[0];
         if (!f) return json(404, { error: 'No encontré la evidencia.' });
         if (f.estado !== 'pendiente') return json(409, { error: 'Ya fue revisada: no se puede borrar.' });
         await sb('torneo_evidencias?id=eq.' + encodeURIComponent(f.id), { method: 'DELETE' });
-        if ((f.fotos || []).length) await st('object/' + BUCKET, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: f.fotos }) }).catch(() => {});
+        const archivos = (f.fotos || []).concat(f.video ? [f.video] : []);
+        if (archivos.length) await st('object/' + BUCKET, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: archivos }) }).catch(() => {});
         return json(200, { ok: true });
       }
 

@@ -96,6 +96,8 @@
     .ev-sheet textarea{min-height:64px;resize:vertical}
     .ev-prev{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
     .ev-prev img{width:72px;height:72px;object-fit:cover;border-radius:9px}
+    .ev-vinfo{font-size:12.5px;color:var(--muted);margin-top:6px}
+    .ev-it .vid{display:flex;align-items:center;justify-content:center;color:var(--navy);font-size:22px;text-decoration:none}
     .ev-acts{display:flex;gap:8px;margin-top:16px}
     .ev-acts button{flex:1;border:0;border-radius:11px;padding:13px;font:inherit;font-weight:800;font-size:14.5px;cursor:pointer}
     .ev-acts .no{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)} .ev-acts .si{background:var(--green);color:#fff}
@@ -274,7 +276,7 @@
 <!-- Cargar una evidencia del torneo -->
 <div class="ev-ov" id="evOv"><div class="ev-sheet">
   <h3>Cargar activación</h3>
-  <div class="s">Hace falta la foto (la evidencia), el cliente y la fecha de activación. La revisa Juan Pablo Sepúlveda, jefe de Trade Marketing.</div>
+  <div class="s">Hace falta la evidencia (hasta 2 fotos y un video corto), el cliente y la fecha de activación. La revisa Juan Pablo Sepúlveda, jefe de Trade Marketing.</div>
   <label for="evLinea">Línea</label>
   <select id="evLinea"><option value="">Elegí la línea…</option></select>
   <label for="evAccion">Acción</label>
@@ -284,9 +286,12 @@
   <datalist id="evClientes"></datalist>
   <label for="evFecha">Fecha de activación</label>
   <input id="evFecha" type="date">
-  <label for="evFotos">Fotos (hasta 3)</label>
+  <label for="evFotos">Fotos (hasta 2)</label>
   <input id="evFotos" type="file" accept="image/*" multiple>
   <div class="ev-prev" id="evPrev"></div>
+  <label for="evVideo">Video corto (opcional, hasta 60 segundos)</label>
+  <input id="evVideo" type="file" accept="video/*">
+  <div class="ev-vinfo" id="evVinfo"></div>
   <label for="evNota">Nota (opcional)</label>
   <textarea id="evNota" maxlength="500" placeholder="Algo que ayude a entender la foto"></textarea>
   <div class="ev-msg" id="evMsg"></div>
@@ -295,7 +300,7 @@
 
 <script>
   // ── Evidencias del Torneo Doña Paula (29/09/2026) ──────────────────────────
-  // Cada vendedor carga línea, acción, cliente, fecha de activación y fotos.
+  // Cada vendedor carga línea, acción, cliente, fecha de activación, hasta 2 fotos y un video corto.
   // Las revisa Juan Pablo Sepúlveda (torneo-evidencias.html). Los puntos no se
   // calculan acá: los sigue cargando Administración en su planilla.
   (function () {
@@ -306,6 +311,7 @@
     const fFecha = d => { const p = String(d || '').slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : ''; };
     const hoy = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
     let TOKEN = null, MIAS = null, CLIENTES = [], FOTOS = [];
+    let VIDEO = null, VIDEO_PATH = null;   // el archivo elegido y dónde quedó subido
     // Si no se puede cargar, la pestaña igual se ve y dice por qué (antes se escondía sin avisar).
     let BLOQUEO = null;
     const btnTab = $e('tp-tabs-evid');
@@ -325,17 +331,19 @@
       const cont = $e('tp-cont');
       if (BLOQUEO) { cont.innerHTML = '<div class="tp-card"><h3>Mis activaciones</h3><div class="tp-vacio">' + esc(BLOQUEO) + '</div></div>'; return; }
       const cab ='<div class="tp-card"><div class="ev-top"><div><h3 style="margin:0">Mis activaciones</h3>'
-        + '<p>Cargá cada activación con su foto, el cliente y la fecha. Cuando la revisen te llega el aviso a la campanita.</p></div>'
+        + '<p>Cargá cada activación con sus fotos o un video corto, el cliente y la fecha. Cuando la revisen te llega el aviso a la campanita.</p></div>'
         + '<button class="ev-btn" id="evNueva" type="button">+ Cargar activación</button></div></div>';
       let lista;
       if (MIAS === null) lista = '<div class="tp-card"><div class="tp-vacio">Cargando…</div></div>';
       else if (!MIAS.length) lista = '<div class="tp-card"><div class="tp-vacio">Todavía no cargaste activaciones.</div></div>';
       else lista = '<div class="tp-card">' + MIAS.map(e => {
-        const f = (e.fotos_url || []).map(urlOk).filter(Boolean)[0];
+        const f = (e.fotos_url || []).map(urlOk).filter(Boolean)[0], v = urlOk(e.video_url);
         const est = { pendiente: 'Para revisar', aceptada: 'Aceptada', rechazada: 'Rechazada' }[e.estado] || e.estado;
-        return '<div class="ev-it">' + (f ? '<a href="' + esc(f) + '" target="_blank" rel="noopener"><img src="' + esc(f) + '" alt="" loading="lazy"></a>' : '<span class="sinfoto"></span>')
+        return '<div class="ev-it">' + (f ? '<a href="' + esc(f) + '" target="_blank" rel="noopener"><img src="' + esc(f) + '" alt="" loading="lazy"></a>'
+            : v ? '<a class="sinfoto vid" href="' + esc(v) + '" target="_blank" rel="noopener" aria-label="Ver video">▶</a>' : '<span class="sinfoto"></span>')
           + '<div><div class="a">' + esc(e.accion) + ' · ' + esc(e.linea) + '</div>'
-          + '<div class="m">' + esc(e.cliente_nombre) + ' · activación ' + esc(fFecha(e.fecha_activacion)) + '</div>'
+          + '<div class="m">' + esc(e.cliente_nombre) + ' · activación ' + esc(fFecha(e.fecha_activacion))
+          + (v ? ' · <a href="' + esc(v) + '" target="_blank" rel="noopener">ver video</a>' : '') + '</div>'
           + (e.estado === 'rechazada' && e.motivo ? '<div class="mot">Motivo: ' + esc(e.motivo) + '</div>' : '') + '</div>'
           + '<div style="text-align:right"><span class="ev-est ev-' + esc(e.estado) + '">' + esc(est) + '</span>'
           + (e.estado === 'pendiente' ? '<button class="ev-borrar" data-borrar="' + esc(e.id) + '" type="button">Borrar</button>' : '') + '</div></div>';
@@ -360,6 +368,7 @@
     function abrir() {
       $e('evMsg').textContent = ''; $e('evCliente').value = ''; $e('evNota').value = ''; $e('evFotos').value = '';
       $e('evFecha').value = hoy(); $e('evFecha').max = hoy(); FOTOS = []; $e('evPrev').innerHTML = '';
+      $e('evVideo').value = ''; $e('evVinfo').textContent = ''; VIDEO = null; VIDEO_PATH = null;
       $e('evOv').classList.add('open');
     }
     $e('evCancel').onclick = () => $e('evOv').classList.remove('open');
@@ -380,12 +389,57 @@
       });
     }
     $e('evFotos').onchange = async () => {
-      const files = Array.from($e('evFotos').files || []).slice(0, 3);
-      $e('evMsg').textContent = files.length < ($e('evFotos').files || []).length ? 'Se toman las primeras 3 fotos.' : '';
+      const files = Array.from($e('evFotos').files || []).slice(0, 2);
+      $e('evMsg').textContent = files.length < ($e('evFotos').files || []).length ? 'Se toman las primeras 2 fotos.' : '';
       try { FOTOS = await Promise.all(files.map(achicar)); }
       catch (e) { FOTOS = []; $e('evMsg').textContent = e.message; }
       $e('evPrev').innerHTML = FOTOS.map(u => '<img src="' + u + '" alt="">').join('');
     };
+
+    // El video no se achica: se controla el largo y el peso antes de subirlo.
+    const MAX_VIDEO = 50 * 1024 * 1024, MAX_SEG = 60;
+    const TIPOS = { mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', '3gp': 'video/3gpp' };
+    const tipoVideo = f => (Object.values(TIPOS).includes(f.type) ? f.type : TIPOS[(f.name.split('.').pop() || '').toLowerCase()]) || '';
+    const duracion = f => new Promise(ok => {
+      const v = document.createElement('video'), url = URL.createObjectURL(f);
+      let listo = false;
+      const fin = d => { if (listo) return; listo = true; URL.revokeObjectURL(url); ok(d); };
+      v.preload = 'metadata'; v.onloadedmetadata = () => fin(v.duration); v.onerror = () => fin(null);
+      setTimeout(() => fin(null), 8000); v.src = url;
+    });
+    $e('evVideo').onchange = async () => {
+      const f = ($e('evVideo').files || [])[0];
+      VIDEO = null; VIDEO_PATH = null; $e('evVinfo').textContent = ''; $e('evMsg').textContent = '';
+      if (!f) return;
+      const mb = n => (n / 1048576).toFixed(1).replace('.', ',') + ' MB';
+      const no = t => { $e('evVideo').value = ''; $e('evVinfo').textContent = ''; $e('evMsg').textContent = t; };
+      if (!tipoVideo(f)) return no('Ese formato de video no se acepta. Grabalo con la cámara del celular.');
+      if (f.size > MAX_VIDEO) return no('El video pesa ' + mb(f.size) + ' y el máximo es 50 MB. Grabá uno más corto.');
+      $e('evVinfo').textContent = 'Revisando el video…';
+      const d = await duracion(f);
+      if (d && isFinite(d) && d > MAX_SEG + 1) return no('El video dura ' + Math.round(d) + ' segundos y el máximo es ' + MAX_SEG + '. Grabá uno más corto.');
+      VIDEO = f;
+      $e('evVinfo').textContent = 'Video listo: ' + (d && isFinite(d) ? Math.round(d) + ' s · ' : '') + mb(f.size);
+    };
+    // Sube el video directo a la carpeta privada con un permiso de un solo uso.
+    async function subirVideo(btn) {
+      if (VIDEO_PATH) return VIDEO_PATH;   // ya subió en un intento anterior
+      const r = await fetch(FN, { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'permiso_video', tipo: tipoVideo(VIDEO), tamano: VIDEO.size }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !urlOk(d.url)) throw new Error(d.error || 'No se pudo preparar la subida del video.');
+      await new Promise((ok, ko) => {
+        const x = new XMLHttpRequest();
+        x.open('PUT', d.url);
+        x.setRequestHeader('Content-Type', tipoVideo(VIDEO));
+        x.setRequestHeader('apikey', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc');
+        x.upload.onprogress = ev => { if (ev.lengthComputable) btn.textContent = 'Subiendo video… ' + Math.round(ev.loaded / ev.total * 100) + '%'; };
+        x.onload = () => x.status >= 200 && x.status < 300 ? ok() : ko(new Error('No se pudo subir el video (' + x.status + '). Probá de nuevo.'));
+        x.onerror = () => ko(new Error('Se cortó la conexión subiendo el video. Probá de nuevo con mejor señal.'));
+        x.send(VIDEO);
+      });
+      return (VIDEO_PATH = d.path);
+    }
 
     $e('evEnviar').onclick = async () => {
       const linea = $e('evLinea').value, accion = $e('evAccion').value, cli = $e('evCliente').value.trim();
@@ -394,13 +448,15 @@
       if (!accion) return msg('Elegí la acción.');
       if (!cli) return msg('Poné el cliente.');
       if (!$e('evFecha').value) return msg('Poné la fecha de activación.');
-      if (!FOTOS.length) return msg('Sumá al menos una foto.');
+      if (!FOTOS.length && !VIDEO) return msg('Sumá al menos una foto o el video.');
       const c = CLIENTES.find(x => x.etiqueta === cli || String(x.codigo) === cli);
       const btn = $e('evEnviar'); btn.disabled = true; btn.textContent = 'Enviando…'; msg('');
       try {
+        const video = VIDEO ? await subirVideo(btn) : null;
+        btn.textContent = 'Enviando…';
         const r = await fetch(FN, { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
           body: JSON.stringify({ accion: 'crear', linea, accion_torneo: accion, cliente_codigo: c ? c.codigo : null, cliente_nombre: c ? c.nombre : cli,
-            fecha_activacion: $e('evFecha').value, nota: $e('evNota').value.trim(), fotos: FOTOS }) });
+            fecha_activacion: $e('evFecha').value, nota: $e('evNota').value.trim(), fotos: FOTOS, video }) });
         const d = await r.json();
         if (!r.ok) throw new Error(d.error || 'No se pudo enviar.');
         $e('evOv').classList.remove('open');

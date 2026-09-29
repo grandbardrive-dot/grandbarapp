@@ -51,3 +51,17 @@ on conflict (id) do update set public = false;
 -- update public.usuarios set rol = 'torneo', nombre = 'Juan Pablo Sepúlveda'
 --  where lower(email) = lower('EMAIL-DE-JUAN-PABLO@grandbar.com.ar');
 -- select id, email, nombre, rol from public.usuarios where rol = 'torneo';
+
+-- ============================================================
+--  Videos (29/09/2026): cada evidencia puede llevar hasta 2 fotos y
+--  1 video corto (hasta 50 MB). Correr una vez.
+-- ============================================================
+alter table public.torneo_evidencias add column if not exists video text;
+
+update storage.buckets
+   set file_size_limit = 52428800,
+       allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp',
+                                  'video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp']
+ where id = 'torneo-evidencias';
+
+select id, file_size_limit, allowed_mime_types from storage.buckets where id = 'torneo-evidencias';
