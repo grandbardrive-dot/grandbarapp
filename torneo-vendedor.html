@@ -130,7 +130,7 @@
 
       <div class="tp-tabs">
         <button class="on" data-tab="yo" id="tp-tabs-yo">Mi puntaje</button>
-        <button data-tab="evid" id="tp-tabs-evid" hidden>Mis evidencias</button>
+        <button data-tab="evid" id="tp-tabs-evid">📸 Mis activaciones</button>
         <button data-tab="Mendoza">🍇 Mendoza</button>
         <button data-tab="San Luis">🏔 San Luis</button>
       </div>
@@ -273,8 +273,8 @@
 </script>
 <!-- Cargar una evidencia del torneo -->
 <div class="ev-ov" id="evOv"><div class="ev-sheet">
-  <h3>Cargar evidencia</h3>
-  <div class="s">Hace falta la foto, el cliente y la fecha de activación. La revisa Juan Pablo Sepúlveda, jefe de Trade Marketing.</div>
+  <h3>Cargar activación</h3>
+  <div class="s">Hace falta la foto (la evidencia), el cliente y la fecha de activación. La revisa Juan Pablo Sepúlveda, jefe de Trade Marketing.</div>
   <label for="evLinea">Línea</label>
   <select id="evLinea"><option value="">Elegí la línea…</option></select>
   <label for="evAccion">Acción</label>
@@ -290,7 +290,7 @@
   <label for="evNota">Nota (opcional)</label>
   <textarea id="evNota" maxlength="500" placeholder="Algo que ayude a entender la foto"></textarea>
   <div class="ev-msg" id="evMsg"></div>
-  <div class="ev-acts"><button class="no" id="evCancel" type="button">Cancelar</button><button class="si" id="evEnviar" type="button">Enviar evidencia</button></div>
+  <div class="ev-acts"><button class="no" id="evCancel" type="button">Cancelar</button><button class="si" id="evEnviar" type="button">Enviar activación</button></div>
 </div></div>
 
 <script>
@@ -306,6 +306,8 @@
     const fFecha = d => { const p = String(d || '').slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : ''; };
     const hoy = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
     let TOKEN = null, MIAS = null, CLIENTES = [], FOTOS = [];
+    // Si no se puede cargar, la pestaña igual se ve y dice por qué (antes se escondía sin avisar).
+    let BLOQUEO = null;
     const btnTab = $e('tp-tabs-evid');
     let forzar = location.hash === '#evidencias';
 
@@ -321,12 +323,13 @@
 
     function pintar() {
       const cont = $e('tp-cont');
-      const cab = '<div class="tp-card"><div class="ev-top"><div><h3 style="margin:0">Mis evidencias</h3>'
-        + '<p>Cargá cada acción con su foto, el cliente y la fecha. Cuando la revisen te llega el aviso a la campanita.</p></div>'
-        + '<button class="ev-btn" id="evNueva" type="button">+ Cargar evidencia</button></div></div>';
+      if (BLOQUEO) { cont.innerHTML = '<div class="tp-card"><h3>Mis activaciones</h3><div class="tp-vacio">' + esc(BLOQUEO) + '</div></div>'; return; }
+      const cab ='<div class="tp-card"><div class="ev-top"><div><h3 style="margin:0">Mis activaciones</h3>'
+        + '<p>Cargá cada activación con su foto, el cliente y la fecha. Cuando la revisen te llega el aviso a la campanita.</p></div>'
+        + '<button class="ev-btn" id="evNueva" type="button">+ Cargar activación</button></div></div>';
       let lista;
       if (MIAS === null) lista = '<div class="tp-card"><div class="tp-vacio">Cargando…</div></div>';
-      else if (!MIAS.length) lista = '<div class="tp-card"><div class="tp-vacio">Todavía no cargaste evidencias.</div></div>';
+      else if (!MIAS.length) lista = '<div class="tp-card"><div class="tp-vacio">Todavía no cargaste activaciones.</div></div>';
       else lista = '<div class="tp-card">' + MIAS.map(e => {
         const f = (e.fotos_url || []).map(urlOk).filter(Boolean)[0];
         const est = { pendiente: 'Para revisar', aceptada: 'Aceptada', rechazada: 'Rechazada' }[e.estado] || e.estado;
@@ -346,9 +349,10 @@
       let ok = false;
       try {
         const r = await fetch(FN + '?vista=mias', { headers: { Authorization: 'Bearer ' + TOKEN } });
-        const d = await r.json();
+        const d = await r.json().catch(() => ({}));
         ok = r.ok; MIAS = r.ok ? (d.evidencias || []) : [];
-      } catch (e) { MIAS = []; }
+        if (!r.ok) BLOQUEO = 'No se pudieron leer tus activaciones: ' + (d.error || 'error ' + r.status) + ' Avisale a Desarrollo.';
+      } catch (e) { MIAS = []; BLOQUEO = 'No hay conexión para leer tus activaciones. Probá de nuevo en un rato.'; }
       if (btnTab.classList.contains('on')) pintar();
       return ok;
     }
@@ -403,11 +407,11 @@
         MIAS = [d.evidencia].concat(MIAS || []);
         window.mostrar('evid'); cargarMias();
       } catch (e) { msg(e.message); }
-      finally { btn.disabled = false; btn.textContent = 'Enviar evidencia'; }
+      finally { btn.disabled = false; btn.textContent = 'Enviar activación'; }
     };
 
     async function borrar(id) {
-      if (!confirm('¿Borrar esta evidencia? Todavía no la revisaron.')) return;
+      if (!confirm('¿Borrar esta activación? Todavía no la revisaron.')) return;
       try {
         const r = await fetch(FN, { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'borrar', id }) });
         const d = await r.json(); if (!r.ok) throw new Error(d.error || 'No se pudo borrar.');
@@ -421,22 +425,25 @@
         const { data: { session } } = await hub.auth.getSession(); if (!session) return;
         TOKEN = session.access_token;
         const { data: p } = await hub.from('usuarios').select('rol').eq('id', session.user.id).maybeSingle();
-        if (!p || String(p.rol || '').toLowerCase() !== 'ventas') return;   // solo participan los vendedores
+        const rol = String((p && p.rol) || '').toLowerCase();
+        if (rol === 'torneo') { btnTab.hidden = true; return; }   // Juan Pablo revisa, no carga
+        // Solo cargan los vendedores (los supervisores también tienen rol ventas).
+        if (rol !== 'ventas') { BLOQUEO = 'La carga de activaciones es para los vendedores. Tu usuario ' + (rol ? 'tiene el rol "' + rol + '".' : 'no tiene rol asignado.'); return fin(); }
         const r = await fetch(FN + '?vista=estructura', { headers: { Authorization: 'Bearer ' + TOKEN } });
-        const est = await r.json(); if (!r.ok) return;
+        const est = await r.json().catch(() => ({}));
+        if (!r.ok) { BLOQUEO = 'No se pudo abrir la carga: ' + (est.error || 'error ' + r.status) + ' Avisale a Desarrollo.'; return fin(); }
         $e('evLinea').innerHTML = '<option value="">Elegí la línea…</option>' + est.lineas.map(l => '<option>' + esc(l) + '</option>').join('');
         $e('evAccion').innerHTML = '<option value="">Elegí la acción…</option>' + est.grupos.map(g => '<optgroup label="' + esc(g.titulo) + '">' + g.acciones.map(a => '<option>' + esc(a) + '</option>').join('') + '</optgroup>').join('');
-        // La pestaña aparece solo si la base ya tiene la tabla de evidencias.
-        if (!(await cargarMias())) return;
-        btnTab.hidden = false;
+        if (!(await cargarMias())) return fin();
         if (forzar) window.mostrar('evid');
         // Los clientes de la cartera, para elegir el punto de venta.
         fetch('/.netlify/functions/cuentas-vendedor', { headers: { Authorization: 'Bearer ' + TOKEN } }).then(x => x.ok ? x.json() : {}).then(j => {
           CLIENTES = (j.clientes || []).map(c => ({ codigo: String(c.codigo), nombre: c.nombre || '', etiqueta: (c.nombre || '') + ' · ' + c.codigo }));
           $e('evClientes').innerHTML = CLIENTES.map(c => '<option value="' + esc(c.etiqueta) + '"></option>').join('');
         }).catch(() => {});
-      } catch (e) {}
+      } catch (e) { BLOQUEO = 'No se pudo abrir la carga de activaciones. Probá de nuevo en un rato.'; fin(); }
     })();
+    function fin() { if (btnTab.classList.contains('on')) pintar(); }
   })();
 </script>
 <script src="assets/hub-nav.js?v=3"></script>
