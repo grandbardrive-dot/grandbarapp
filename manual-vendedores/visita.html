@@ -1570,9 +1570,19 @@ body { background:transparent !important; }
       </div>
     </div>
 
-    <!-- Acuerdos Campari + Plan Campari 5T: se mueven a Spirits > Planes Campari.
-         Fallback: si el checklist NO tiene esa subsección (vinotecas/autoservicios),
-         se inyectan acá desde init(). -->
+    <!-- Torneo Doña Paula: los puntos del vendedor (29/09/2026). Ocupa el lugar
+         del Plan Campari 5T, que ya no va al principio de la visita. -->
+    <div class="ficha-acord" id="tdp-ficha" style="display:none">
+      <button class="ficha-acord-btn" onclick="toggleAcord('tdp-acord','tdp-chev')">
+        <span class="ficha-acord-title">🏆 Torneo Doña Paula</span>
+        <div class="ficha-acord-meta"><span class="torneo-pts-mes" id="tdp-pts"></span></div>
+        <span class="ficha-acord-chev" id="tdp-chev">▼</span>
+      </button>
+      <div class="ficha-acord-body" id="tdp-acord"><div class="torneo-ficha" id="tdp-det"></div></div>
+    </div>
+
+    <!-- Acuerdos Campari + Plan Campari 5T: solo dentro de Spirits > Planes Campari
+         (los manuales que tienen esa subsección). Desde el 29/09 ya no se inyectan acá. -->
     <div id="campari-ficha-slot"></div>
   </div>
 
@@ -1828,6 +1838,7 @@ body { background:transparent !important; }
 <script src="_config.js"></script>
 <script src="_avatar.js"></script>
 <script src="_sucursales.js"></script>
+<script src="_torneo-oficial.js"></script>
 <script src="_checklist-data.js"></script>
 <script src="_torneo.js"></script>
 <script src="_acciones-render.js"></script>
@@ -2875,11 +2886,11 @@ body { background:transparent !important; }
     const slotCarta = document.getElementById('carta-ficha-slot');
     if (slotCarta) slotCarta.innerHTML =
       ((checklist.secciones || []).length && CON_CARTA.includes(checklist.id)) ? renderBloqueCarta() : '';
-    // Campari: si el checklist tiene la subsección sp_campari (restaurante), va ahí;
-    // si no (vinotecas/autoservicios), fallback en la ficha para no perderlo.
+    // Campari: solo dentro de la subsección sp_campari (restaurante). El fallback en la
+    // ficha (vinotecas/autoservicios) se sacó el 29/09/2026: el principio de la visita
+    // muestra ahora los puntos del Torneo Doña Paula.
     const slotCampari = document.getElementById('campari-ficha-slot');
-    const hayCampariSubsec = seccionesHoja(checklist).some(s => s.id === 'sp_campari');
-    if (slotCampari) slotCampari.innerHTML = hayCampariSubsec ? '' : renderEspCampari();
+    if (slotCampari) slotCampari.innerHTML = '';
     document.getElementById('hero-tipo').textContent   = checklist.label;
     document.getElementById('hoy-fecha').textContent   = new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long'});
     document.getElementById('checklist-container').innerHTML = checklist.errorCarga
@@ -2892,6 +2903,7 @@ body { background:transparent !important; }
     // vendedor (torneo-vendedor.html, 22/09/2026). Sin esta carga, los acordeones
     // del torneo y de Programas Satélites quedan ocultos.
     cargarProgresos();
+    cargarTorneoFicha();
     cargarSeccionesEspeciales();
     if (typeof dcInit === 'function') dcInit();   // manual de discos (_disco-tools.js)
     // Habilitar botón Agregar en acciones mensuales
@@ -3310,6 +3322,7 @@ body { background:transparent !important; }
       // Renderizar
       const secEl  = document.getElementById('acuerdos-section');
       const contEl = document.getElementById('acuerdos-container');
+      if (!secEl || !contEl) return;   // este manual no tiene Planes Campari
       secEl.style.display = 'block';
 
       contEl.innerHTML = acuerdos.map(cols => {
@@ -3532,6 +3545,33 @@ body { background:transparent !important; }
       _sheet5TCache = await r.text();
       return _sheet5TCache;
     } catch { _sheet5TCache = false; return false; }
+  }
+
+  // ── Torneo Doña Paula: puntos del vendedor al principio de la visita (29/09/2026) ──
+  // Salen de la planilla oficial que carga Administración (TorneoOficial). Si no se
+  // pueden leer, el bloque no aparece.
+  async function cargarTorneoFicha() {
+    const box = document.getElementById('tdp-ficha');
+    if (!box || typeof TorneoOficial === 'undefined') return;
+    let T;
+    try { T = await TorneoOficial.cargar(); } catch (e) { return; }
+    const cod = String((vendedor && vendedor.codigo) || '').trim().toUpperCase();
+    const yo = cod ? Object.values(T.porCodigo).find(p => String(p.codigo).toUpperCase() === cod) : null;
+    const fmt = n => Math.round(n || 0).toLocaleString('es-AR');
+    document.getElementById('tdp-pts').textContent = fmt(yo ? yo.total : 0) + ' pts';
+    let det;
+    if (!yo) det = '<div class="hist-empty">Todavía no tenés puntos cargados en el torneo.</div>';
+    else {
+      const suc = T.ranking(yo.sucursal), pos = T.puesto(yo);
+      const falta = pos > 1 ? suc[pos - 2].total - yo.total : 0;
+      const cats = TorneoOficial.CATS.concat(Object.keys(yo.cats).filter(c => !TorneoOficial.CATS.includes(c)));
+      det = `<div style="font-size:13px;color:var(--text2);margin-bottom:10px"><b style="color:var(--azul)">${pos}° en ${esc(yo.sucursal)}</b> de ${suc.length}`
+        + (pos > 1 ? ` · te faltan ${fmt(falta)} pts para el ${pos - 1}°` : ' · vas primero') + `</div>`
+        + `<div class="torneo-reg-list">` + cats.map(c => `<div class="torneo-reg-item"><span class="torneo-reg-label">${TorneoOficial.ICO[c] || '•'} ${esc(c)}</span><span class="torneo-reg-pts">${fmt(yo.cats[c])}</span></div>`).join('') + `</div>`
+        + `<div style="font-size:11.5px;color:var(--text3)">Los puntos los carga Administración. El detalle está en la pestaña Torneo Doña Paula del panel.</div>`;
+    }
+    document.getElementById('tdp-det').innerHTML = det;
+    box.style.display = 'block';
   }
 
   async function cargarProgresos() {
@@ -5477,7 +5517,7 @@ body { background:transparent !important; }
 
   // Bloques Campari (Acuerdos + Plan 5T) — mismos ids que tenían en la ficha,
   // para que cargarAcuerdosCampari()/cargarProgresos() funcionen sin cambios.
-  // Se usa dentro de Spirits > Planes Campari, o como fallback en la ficha (otros canales).
+  // Se usa dentro de Spirits > Planes Campari (el fallback en la ficha se sacó el 29/09/2026).
   function renderEspCampari(sec) {
     return `
       <div class="ficha-acord" id="acuerdos-section" style="display:none">
@@ -6764,17 +6804,7 @@ body { background:transparent !important; }
       }
     } catch {}
 
-    // 2) Le faltan X de las 5T de Campari este mes
-    try {
-      const text = await fetchSheet5T();
-      if (text) {
-        const datos = parse5TCSV(text);
-        if (datos && typeof MARCAS_5T !== 'undefined') {
-          const faltan = MARCAS_5T.filter(m => (m.colName in datos) && datos[m.colName] !== true).length;
-          if (faltan > 0) alertas.push({ tipo:'amarillo', ico:'🔴', titulo:`Le faltan ${faltan} de las 5T de Campari`, sub:'Completá el plan este mes', target:'vt_gondola_spirits' });
-        }
-      }
-    } catch {}
+    // 2) (29/09/2026) Se sacó el aviso "Le faltan X de las 5T de Campari".
 
     // 3) Acuerdo de vidriera vencido o próximo a vencer (≤7 días)
     try {
@@ -6843,15 +6873,7 @@ body { background:transparent !important; }
       ops.push({ id:'op_incorp', txt:'Presentar nuevas etiquetas — no se trabajaron incorporaciones recientemente', target:'vt_incorporaciones' });
 
 
-    // 3) Si le faltan 5T → completar plan Campari
-    try {
-      const text = await fetchSheet5T();
-      const datos = text ? parse5TCSV(text) : null;
-      if (datos && typeof MARCAS_5T !== 'undefined') {
-        const faltan = MARCAS_5T.filter(m => (m.colName in datos) && datos[m.colName] !== true);
-        if (faltan.length) ops.push({ id:'op_5t', txt:`Completar plan Campari — faltan: ${faltan.map(m=>m.nombre).join(', ')}`, target:'vt_gondola_spirits' });
-      }
-    } catch {}
+    // 3) (29/09/2026) Se sacó "Completar plan Campari" (5T).
 
     // 4) Si tiene compromiso pendiente → ejecutar acuerdo programado
     try {
