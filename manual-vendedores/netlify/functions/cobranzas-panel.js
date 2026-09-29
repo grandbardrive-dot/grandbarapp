@@ -127,17 +127,35 @@ exports.handler = async (event) => {
     const p = event.queryStringParameters || {};
     const que = p.que || 'resumen';
 
+    // Deuda de cada cliente del portal para decidir bloqueos. Sale de cuentas_cubo,
+    // que la sincronización actualiza cada hora con la misma regla que ve el cliente
+    // (el saldo a favor se descuenta primero de lo vencido). Antes se usaban
+    // clientes.deuda_vencida/saldo_cc, que se calculaban con otra regla (sin restar el
+    // saldo a favor) y por eso no coincidían con lo que ve el cliente ni con Clientes.
+    const clientesConDeuda = async (campos) => {
+      const [fichas, cuentas] = await Promise.all([
+        leerTodo('clientes?select=' + campos + '&codigo_cubo=not.is.null&order=id'),
+        leerTodo('cuentas_cubo?select=codigo,saldo,vencida&or=(vencida.gt.0,saldo.gt.0)&order=codigo'),
+      ]);
+      const porCodigo = {};
+      cuentas.forEach(c => { porCodigo[c.codigo] = c; });
+      return fichas.map(f => {
+        const cc = porCodigo[f.codigo_cubo] || {};
+        return { ...f, deuda_vencida: Math.max(0, Number(cc.vencida || 0)), saldo_cc: Math.max(0, Number(cc.saldo || 0)) };
+      });
+    };
+    const pasadoDeTope = c => Number(c.deuda_vencida || 0) > Number(c.tope_deuda_vencida || 0);
+
     if (que === 'resumen') {
       const [cuentas, compPend, reclAbiertos, cobrosPend, clientes] = await Promise.all([
         contar('cuentas_cubo', '', 'codigo'),
-        contar('comprobantes', 'estado=eq.pendiente'),
+        contar('comprobantes', 'estado=eq.pendiente&tipo=eq.cliente'),
         contar('reclamos', 'estado=eq.abierto'),
         contar('cobros_efectivo', 'estado=eq.pendiente'),
-        leerTodo('clientes?select=estado,deuda_vencida,tope_deuda_vencida&deuda_vencida=gt.0&order=deuda_vencida.desc'),
+        clientesConDeuda('id,estado,tope_deuda_vencida,codigo_cubo'),
       ]);
       // Pasados de tope: hay que comparar dos columnas entre sí, así que se cuenta acá.
-      const aBloquear = clientes.filter(c =>
-        Number(c.deuda_vencida || 0) > Number(c.tope_deuda_vencida || 0) && c.estado !== 'bloqueado').length;
+      const aBloquear = clientes.filter(c => pasadoDeTope(c) && c.estado !== 'bloqueado').length;
       return json(200, { rol, nombre: perfil.nombre, cuentas, compPend, reclAbiertos, cobrosPend, aBloquear });
     }
 
@@ -181,9 +199,10 @@ exports.handler = async (event) => {
     }
 
     if (que === 'bloquear') {
-      const todos = await leerTodo('clientes?select=*&deuda_vencida=gt.0&order=deuda_vencida.desc', 3000);
+      const todos = (await clientesConDeuda('id,estado,tope_deuda_vencida,codigo_cubo,comercio,nombre,cuit'))
+        .sort((a, b) => b.deuda_vencida - a.deuda_vencida);
       return json(200, {
-        filas: todos.filter(c => Number(c.deuda_vencida || 0) > Number(c.tope_deuda_vencida || 0) && c.estado !== 'bloqueado'),
+        filas: todos.filter(c => pasadoDeTope(c) && c.estado !== 'bloqueado'),
         bloqueados: todos.filter(c => c.estado === 'bloqueado'),
       });
     }

@@ -123,7 +123,7 @@
       <div id="vista-deuda">
         <div class="kpis">
           <div class="kpi"><div class="k">Clientes con deuda</div><div class="v" id="kCli">—</div></div>
-          <div class="kpi"><div class="k">Total adeudado</div><div class="v" id="kSaldo">—</div></div>
+          <div class="kpi"><div class="k">Saldo de tu cartera</div><div class="v" id="kSaldo">—</div></div>
           <div class="kpi"><div class="k">Vencido</div><div class="v rojo" id="kVenc">—</div></div>
         </div>
         <div class="filtros">
@@ -197,20 +197,20 @@
       const mes = mesLabel(x.subido);
       if(mes!==curMes){ curMes=mes; html += `<div class="mes">${mes}</div>`; }
       const e = ESTADO[x.estado] || { t:x.estado||"—", cls:"e-proc" };
-      html += `<div class="comp" data-id="${x.id}">
+      html += `<div class="comp" data-id="${esc(x.id)}">
         <div>
-          <div class="cli">${x.cliente}</div>
+          <div class="cli">${esc(x.cliente)}</div>
           <div class="meta">
             <span>Monto: <b>${fmtMoney(x.monto)}</b></span>
-            ${x.concepto?`<span>${x.concepto}</span>`:""}
+            ${x.concepto?`<span>${esc(x.concepto)}</span>`:""}
             <span>${fmtFecha(x.subido)}</span>
           </div>
           ${Number(x.nc_aplicada)>0?`<div class="nc-alert" style="background:#eaf7ef;border:1px solid #bfe3cd;border-radius:9px;padding:7px 10px;margin-top:6px;font-size:12.5px;color:#1f6b3d">💚 Usó saldo a favor: <b>${fmtMoney(x.nc_aplicada)}</b>. Transfirió <b>${fmtMoney(x.monto)}</b>${x.total_facturas?` de ${fmtMoney(x.total_facturas)} en facturas`:""} → el monto puede no coincidir.</div>`:""}
         </div>
         <div class="acts">
-          <span class="chip-e ${e.cls}">${e.t}</span>
-          ${x.comprobante_url?`<a class="btn btn-ghost" href="${x.comprobante_url}" target="_blank" rel="noopener">Ver</a>`:""}
-          ${x.estado==="pendiente"?`<button class="btn btn-ok" onclick="procesar('${x.id}', this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>Marcar procesado</button>`:""}
+          <span class="chip-e ${e.cls}">${esc(e.t)}</span>
+          ${x.comprobante_url?`<a class="btn btn-ghost" href="${esc(x.comprobante_url)}" target="_blank" rel="noopener">Ver</a>`:""}
+          ${x.estado==="pendiente"?`<button class="btn btn-ok" onclick="procesar('${encodeURIComponent(String(x.id)).replace(/'/g,"%27")}', this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>Marcar procesado</button>`:""}
         </div>
       </div>`;
     });
@@ -233,7 +233,9 @@
       const j = await r.json();
       if(j.error){ document.getElementById("dLista").innerHTML = `<div class="empty">No pude cargar la deuda: ${j.error}</div>`; return; }
       if(!j.codigo){ document.getElementById("dLista").innerHTML = `<div class="empty"><div class="big">🔒</div>Tu usuario todavía no tiene código de vendedor cargado, así que no puedo mostrar tus clientes. Avisale a Desarrollo.</div>`; return; }
-      CLIENTES = (j.clientes||[]).map(c=>({ ...c, saldo:Number(c.saldo)||0, vencida:Number(c.vencida)||0 }));
+      // Misma cuenta que el panel del supervisor, Dirección y tesorería: la vencida
+      // nunca supera el saldo neto (una nota de crédito la baja).
+      CLIENTES = (j.clientes||[]).map(c=>{ const saldo=Number(c.saldo)||0; return { ...c, saldo, vencida:Math.max(0, Math.min(Number(c.vencida)||0, saldo)) }; });
       pintarDeuda();
     }catch(e){ document.getElementById("dLista").innerHTML = `<div class="empty">Error de conexión: ${e.message||e}</div>`; }
   }
@@ -245,7 +247,9 @@
     const conDeuda = CLIENTES.filter(c=>c.saldo>0);
     // Los totales miran SIEMPRE toda la cartera, no lo que se esté filtrando
     document.getElementById("kCli").textContent   = conDeuda.length + " de " + CLIENTES.length;
-    document.getElementById("kSaldo").textContent = fmtMoney(CLIENTES.reduce((a,c)=>a+Math.max(0,c.saldo),0));
+    // Saldo neto de la cartera: los clientes con saldo a favor restan, igual que en el
+    // supervisor, Dirección y las Estadísticas de tesorería (antes solo sumaba los que deben).
+    document.getElementById("kSaldo").textContent = fmtMoney(CLIENTES.reduce((a,c)=>a+c.saldo,0));
     document.getElementById("kVenc").textContent  = fmtMoney(CLIENTES.reduce((a,c)=>a+c.vencida,0));
 
     let lista = filtro==="todos" ? CLIENTES.slice() : filtro==="vencida" ? CLIENTES.filter(c=>c.vencida>0) : conDeuda;
@@ -285,6 +289,7 @@
   }
 
   async function procesar(id, btn){
+    id = decodeURIComponent(id);
     if(!confirm("¿Confirmás que ya lo cargaste en Conquer? Pasa a tesorería para su revisión.")) return;
     btn.disabled = true; btn.textContent = "Procesando…";
     try{

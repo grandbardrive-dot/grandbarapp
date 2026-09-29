@@ -72,6 +72,10 @@ function cobTablero() {
       <div class="head-sub">Cuenta corriente, comprobantes y reclamos, más las tareas del equipo.</div>
     </div></div>
     <div class="cb-cards">
+      ${cobEsTesoreria() ? `<a class="cb-card" style="border-top-color:#1f447f;text-decoration:none;color:inherit" href="cobranzas-tesoreria.html">
+          <div class="ico" style="background:#1f447f1a">💳</div>
+          <h3>Revisión de cobranzas</h3><p>Pagos que ya pasó el vendedor: cruzarlos con el banco y aceptarlos o rechazarlos.</p>
+          <span class="cb-chip">Abrir</span></a>` : ''}
       ${COB_SECCIONES.map(s => {
         const chip = cobChip(s.id);
         return `<button class="cb-card" style="border-top-color:${s.color}" onclick="cobAbrir('${s.id}')">
@@ -83,9 +87,15 @@ function cobTablero() {
     </div>`;
 }
 
+// Tesorería trabaja en otra pantalla (Revisión de cobranzas: aceptar o rechazar
+// pagos contra el banco). Se la ofrece desde acá para que no tenga que volver al Hub.
+// Solo a tesorería: Dirección usa este mismo archivo dentro de su marco y no sale de él.
+const cobEsTesoreria = () => String((COB_RESUMEN && COB_RESUMEN.rol) || '').toLowerCase() === 'tesoreria';
+
 function cobNav() {
   const nav = cq('cob-nav'); if (!nav) return;
   nav.innerHTML = `<button class="sb-item ${COB_VISTA==='tablero'?'on':''}" onclick="cobTablero()"><span class="i">🏠</span> Tablero</button>` +
+    (cobEsTesoreria() ? `<a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">💳</span> Revisión de cobranzas</a>` : '') +
     COB_SECCIONES.map(s => `<button class="sb-item ${COB_VISTA===s.id?'on':''}" onclick="cobAbrir('${s.id}')"><span class="i">${s.ico}</span> ${cesc(s.n)}</button>`).join('');
 }
 
@@ -788,7 +798,7 @@ async function cobEfectivo() {
 // ── Acciones (todas pasan por acá) ─────────────────────────
 async function cobAccion(accion, id, btn, volver, extra) {
   const textos = {
-    bloquear: '¿Bloquear esta cuenta?\n\nNo va a poder comprar hasta que la des de alta.',
+    bloquear: '¿Bloquear esta cuenta?\n\nNo va a poder hacer pedidos desde el portal hasta que la des de alta. Puede seguir entrando para ver su cuenta y pagar. En Conquer no cambia nada.',
     desbloquear: '¿Dar de alta esta cuenta?',
     'cobro-cancelado': '¿Cancelar este cobro?',
   };

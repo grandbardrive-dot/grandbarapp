@@ -72,14 +72,24 @@ exports.handler = async (event) => {
       if (body.accion === 'rechazar' && body.id) {
         const up = await cob('comprobantes?id=eq.' + encodeURIComponent(body.id) + '&estado=eq.procesado', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'rechazado', revisado_por: quienRevisa, revisado_at: new Date().toISOString() }) });
         if (!up.ok) return json(502, { error: 'No pude rechazar' });
+        // Si ese pago usaba saldo a favor, se libera: el pago no va, así que el cliente
+        // tiene que poder volver a usarlo. Si no, quedaba "en uso" para siempre.
+        try { await cob('nc_usos?comprobante_id=eq.' + encodeURIComponent(body.id) + '&estado=in.(pendiente,aplicado)', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'anulado', nota: 'Pago rechazado por tesorería (' + quienRevisa + ').' }) }); } catch (_) {}
         return json(200, { ok: true });
       }
       return json(400, { error: 'Acción inválida' });
     }
 
-    // GET → por revisar (procesado) + historial (aceptado/rechazado) + recibos
-    const cp = await cob('comprobantes?tipo=eq.cliente&estado=in.(procesado,aceptado,rechazado)&select=id,cliente_id,concepto,archivo_url,monto,fecha_pago,estado,procesado_por,procesado_at,created_at,nc_aplicada,nc_creditos,total_facturas&order=created_at.desc&limit=300');
-    const comps = (await cp.json()) || [];
+    // GET → por revisar (procesado) + historial (aceptado/rechazado/revisado) + recibos
+    // Los que esperan a tesorería se traen TODOS (paginado): antes salían de los
+    // últimos 300 mezclados con los cerrados, y cuando el historial pasara de 300
+    // los pendientes más viejos iban a desaparecer de la lista sin aviso.
+    // "revisado" es el estado del circuito anterior: el cliente lo ve como aceptado.
+    const campos = 'id,cliente_id,concepto,archivo_url,monto,fecha_pago,estado,procesado_por,procesado_at,revisado_por,created_at,nc_aplicada,nc_creditos,total_facturas';
+    const pendientes = await traerTodo(cob, 'comprobantes?tipo=eq.cliente&estado=eq.procesado&select=' + campos + '&order=created_at.asc', 5000);
+    const cerr = await cob('comprobantes?tipo=eq.cliente&estado=in.(aceptado,rechazado,revisado)&select=' + campos + '&order=created_at.desc&limit=300');
+    const cerrados = cerr.ok ? ((await cerr.json()) || []) : [];
+    const comps = [...(Array.isArray(pendientes) ? pendientes : []), ...(Array.isArray(cerrados) ? cerrados : [])];
     const rc = await cob('comprobantes?tipo=eq.recibo&select=id,cliente_id,factura,archivo_url,fecha_pago,concepto,created_at&order=created_at.desc&limit=150');
     const recs = (await rc.json()) || [];
 
@@ -102,7 +112,7 @@ exports.handler = async (event) => {
 
     const por_revisar = [], historial = [];
     (Array.isArray(comps) ? comps : []).forEach(c => {
-      const base = { id: c.id, cliente: nombreDe(c.cliente_id), vendedor: vendedorDe(c.cliente_id) || c.procesado_por || null, codigo: (cmap[c.cliente_id] || {}).codigo_cubo || null, concepto: c.concepto, monto: c.monto, fecha_pago: c.fecha_pago, estado: c.estado, comprobante_url: c.archivo_url, procesado_por: c.procesado_por, procesado_at: c.procesado_at, subido: c.created_at, nc_aplicada: c.nc_aplicada, nc_creditos: c.nc_creditos, total_facturas: c.total_facturas };
+      const base = { id: c.id, cliente: nombreDe(c.cliente_id), vendedor: vendedorDe(c.cliente_id) || c.procesado_por || null, codigo: (cmap[c.cliente_id] || {}).codigo_cubo || null, concepto: c.concepto, monto: c.monto, fecha_pago: c.fecha_pago, estado: c.estado, comprobante_url: c.archivo_url, procesado_por: c.procesado_por, procesado_at: c.procesado_at, revisado_por: c.revisado_por, subido: c.created_at, nc_aplicada: c.nc_aplicada, nc_creditos: c.nc_creditos, total_facturas: c.total_facturas };
       if (c.estado === 'procesado') {
         const monto = c.monto != null ? Math.round(Number(c.monto)) : null;
         base.matches = (monto != null ? (byMonto[monto] || []) : []).slice(0, 3).map(m => ({ id: m.id, nombre: m.nombre, documento: m.documento, credito: m.credito, fecha: m.fecha }));
