@@ -163,16 +163,54 @@
   // Campanita de avisos del Portal (reportes devueltos, reuniones…) en la barra de
   // arriba: desde el 30/09/2026 Luciana entra directo a este panel y no pasa por el Hub,
   // que era donde la veía. notif.js usa la .tb-bell de la barra si existe.
+  // Inicio tenía su propia campanita que abría un cartel del navegador ("¿Ir a
+  // revisarlas?"): ahora es la misma en todas las pantallas y lo pendiente del panel
+  // aparece dentro de la lista de notificaciones.
   function campanita() {
     var bar = document.querySelector('.topbar');
-    if (!bar || bar.querySelector('.tb-bell') || document.querySelector('script[src*="notif.js"]')) return;
-    var b = document.createElement('button');
-    b.type = 'button'; b.className = 'tb-bell'; b.setAttribute('aria-label', 'Notificaciones');
-    b.style.cssText = 'width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;flex:none';
-    b.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>';
-    var user = bar.querySelector('.tb-user');
-    if (user) bar.insertBefore(b, user); else bar.appendChild(b);
-    var sc = document.createElement('script'); sc.src = '/assets/notif.js?v=2'; document.body.appendChild(sc);
+    if (!bar || document.querySelector('script[src*="notif.js"]')) return;
+    if (!bar.querySelector('.tb-bell')) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'tb-bell'; b.setAttribute('aria-label', 'Notificaciones');
+      b.style.cssText = 'width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;flex:none';
+      b.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>';
+      var user = bar.querySelector('.tb-user');
+      if (user) bar.insertBefore(b, user); else bar.appendChild(b);
+    }
+    var sc = document.createElement('script'); sc.src = '/assets/notif.js?v=3'; document.body.appendChild(sc);
+    pendientes();
+  }
+
+  // Lo pendiente del panel, con las mismas reglas que Inicio: propuestas de
+  // proveedores sin revisar y campañas o planes publicados que vencen en 7 días.
+  var MAN = { url: 'https://fzaxwuuodseyyinveknn.supabase.co', key: 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk' };
+  function pendientes() {
+    try {
+      var m = window.supabase.createClient(MAN.url, MAN.key, { auth: { persistSession: false } });
+      var d0 = new Date(); d0.setHours(0, 0, 0, 0);
+      var d7 = new Date(d0); d7.setDate(d7.getDate() + 7);
+      var iso = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+      var fecha = function (s) { var x = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return x ? new Date(+x[1], +x[2] - 1, +x[3]) : null; };
+      var vigente = function (a) { var fi = fecha(a.fecha_inicio); return !fi || fi <= d0; };
+      Promise.all([
+        m.from('propuestas_acciones').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente'),
+        m.from('acciones_mensuales').select('*').eq('activa', true).gte('fecha_fin', iso(d0)).lte('fecha_fin', iso(d7) + 'T23:59:59'),
+        m.from('checklist_planes').select('*').gte('fecha_fin', iso(d0)).lte('fecha_fin', iso(d7) + 'T23:59:59'),
+      ]).then(function (r) {
+        var lista = [];
+        var prop = (r[0] && r[0].count) || 0;
+        if (prop) lista.push({ icon: '📥', titulo: 'Tenés ' + prop + ' propuesta' + (prop > 1 ? 's' : '') + ' de proveedores para revisar', detalle: 'Propuestas de proveedores', link: 'admin-propuestas-proveedores.html' });
+        var camps = ((r[1] && r[1].data) || []).filter(vigente)
+          .concat(((r[2] && r[2].data) || []).filter(function (p) { return p.activo !== false && vigente(p); }));
+        if (camps.length) {
+          var nombres = camps.map(function (a) { return a.producto || a.nombre || ''; }).filter(Boolean);
+          lista.push({ icon: '⏳', titulo: camps.length + (camps.length > 1 ? ' campañas vencen' : ' campaña vence') + ' en los próximos 7 días',
+            detalle: nombres.slice(0, 3).join(' · ') + (nombres.length > 3 ? ' y ' + (nombres.length - 3) + ' más' : ''), link: 'admin-comercial.html' });
+        }
+        window.GBNotifExtra = lista;
+        (function avisar(n) { if (window.GBNotifActualizar) window.GBNotifActualizar(); else if (n < 40) setTimeout(function () { avisar(n + 1); }, 250); })(0);
+      }).catch(function () {});
+    } catch (e) {}
   }
 
   revisarAcceso();

@@ -241,9 +241,8 @@
   <!-- ===== Columna principal (topbar + content + rail) ===== -->
   <div class="main-col">
     <header class="topbar">
-      <button class="tb-bell" onclick="verNotificaciones()" title="Notificaciones">
+      <button class="tb-bell" type="button" title="Notificaciones">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 20a2 2 0 0 0 4 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="badge num" id="bell-badge" style="display:none">0</span>
       </button>
       <div class="tb-user" onclick="toggleMenu(event)">
         <div class="tb-ava">L</div>
@@ -420,9 +419,6 @@
         <div class="stat-link" onclick="location.href='admin-campanias.html?estado=${c.key}'">${c.link}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>`).join('');
-    const badge = document.getElementById('bell-badge');
-    const total = contarPorVencer() + PROP_PEND;
-    if(total>0){ badge.style.display='flex'; badge.textContent = total; } else { badge.style.display='none'; }
   }
 
   function contarPorVencer(){
@@ -493,15 +489,8 @@
   }
   function verGuias(){ alert('Guías y tutoriales — próximamente.'); }
   function soporte(){ abrirSoporte(); }
-  function verNotificaciones(){
-    const v=contarPorVencer();
-    if(PROP_PEND){
-      const extra = v?`\nAdemás, ${v} campaña(s) vencen en los próximos 7 días.`:'';
-      if(confirm(`📥 Tenés ${PROP_PEND} propuesta(s) de proveedores para revisar.${extra}\n\n¿Ir a revisarlas?`)) location.href='admin-propuestas-proveedores.html';
-      return;
-    }
-    alert(v?`Tenés ${v} campaña(s) que vencen en los próximos 7 días.`:'No hay novedades por ahora.');
-  }
+  // Las notificaciones (y lo pendiente del panel) las muestra la campanita común
+  // (_comercial-nav.js + /assets/notif.js), igual en todas las pantallas (30/09/2026).
 
   cargar();
 </script>
@@ -530,6 +519,6 @@
 </script>
 
 <script src="/assets/minuta-fab.js?v=2"></script>
-<script src="_comercial-nav.js?v=4"></script>
+<script src="_comercial-nav.js?v=5"></script>
 </body>
 </html>

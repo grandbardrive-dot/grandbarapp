@@ -62,10 +62,22 @@
     document.addEventListener('click', function (e) { if (panel.style.display === 'block' && !panel.contains(e.target) && !bell.contains(e.target)) panel.style.display = 'none'; });
   }
 
+  // Avisos del panel que no son notificaciones guardadas sino cosas pendientes
+  // (panel comercial: propuestas para revisar, campañas por vencer). La página los
+  // deja en window.GBNotifExtra y llama a GBNotifActualizar() (30/09/2026).
+  function extras() { return Array.isArray(window.GBNotifExtra) ? window.GBNotifExtra : []; }
+  window.GBNotifActualizar = function () { if (panel) { render(); badge(); } };
+  function extraHTML(x) {
+    return '<a href="' + esc(x.link || '#') + '" style="display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid #eee7d8;align-items:flex-start;color:#1b2a32;text-decoration:none;background:#fbf7ee">'
+      + '<span style="font-size:16px;flex:none">' + esc(x.icon || '•') + '</span><div><div style="font-weight:700;font-size:12.8px">' + esc(x.titulo || '') + '</div>'
+      + (x.detalle ? '<div style="font-size:11.5px;color:#6d7d85;margin-top:2px">' + esc(x.detalle) + '</div>' : '') + '</div></a>';
+  }
+
   function render() {
     var seen = localStorage.getItem('gb_notif_seen') || '';
     var body = panel.querySelector('#gbNbody');
-    body.innerHTML = items.length ? items.map(function (x) {
+    var ex = extras();
+    body.innerHTML = (ex.length || items.length) ? ex.map(extraHTML).join('') + items.map(function (x) {
       var nueva = String(x.ts || '') > seen;
       var f = x.ts ? new Date(x.ts).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
       return '<a href="' + esc(x.link || '#') + '" style="display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid #eee7d8;align-items:flex-start;color:#1b2a32;text-decoration:none;' + (nueva ? 'background:#fbf7ee' : '') + '">'
@@ -74,7 +86,8 @@
   }
   function badge() {
     var seen = localStorage.getItem('gb_notif_seen') || '';
-    var n = items.filter(function (x) { return String(x.ts || '') > seen; }).length;
+    // Los pendientes del panel cuentan mientras sigan pendientes.
+    var n = items.filter(function (x) { return String(x.ts || '') > seen; }).length + extras().length;
     if (n > 0) { dot.textContent = n > 9 ? '9+' : n; dot.style.display = 'grid'; } else { dot.style.display = 'none'; }
   }
   function load() {
