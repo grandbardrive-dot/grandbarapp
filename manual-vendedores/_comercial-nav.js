@@ -35,19 +35,39 @@
     soporte:    '<path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-1v-6h3M4 13v4a2 2 0 0 0 2 2h1v-6H4" stroke-linecap="round" stroke-linejoin="round"/>',
   };
 
-  // El orden sigue el trabajo de Luciana: campañas, el manual, el catálogo y
-  // lo que mandan los proveedores.
+  // TODAS las pantallas del panel, en un solo menú que no cambia de una a otra.
+  // Hasta el 30/09/2026 las herramientas (Vino por copa, Aperitivos, Mix Ideal,
+  // Propuestas, Frigobar, Sellout, Plan 11T) usaban otro menú (_admin-sidebar.js)
+  // y la barra cambiaba al entrar. El orden sigue el trabajo de Luciana.
+  I.planes = '<path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5" stroke-linecap="round"/>';
+  I.incorp = '<path d="M12 5v14M5 12h14" stroke-linecap="round"/><rect x="3" y="3" width="18" height="18" rx="4"/>';
+  I.copa = '<path d="M8 3h8l-1 6a3 3 0 0 1-6 0zM12 15v5M9 21h6" stroke-linejoin="round" stroke-linecap="round"/>';
+  I.aperitivo = '<path d="M6 4h12l-6 8zM12 12v7M8 20h8" stroke-linejoin="round" stroke-linecap="round"/>';
+  I.mix = '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>';
+  I.frigobar = '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M6 10h12M9 6v2M9 13v3" stroke-linecap="round"/>';
+  I.materiales = '<path d="M20 7L12 3 4 7v10l8 4 8-4z" stroke-linejoin="round"/><path d="M4 7l8 4 8-4M12 11v10" stroke-linecap="round" stroke-linejoin="round"/>';
+  I.sellout = '<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 13l3-3 3 3 4-5" stroke-linecap="round" stroke-linejoin="round"/>';
+  I.plan11t = '<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 14l3-3 2 2 4-5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="8" r="1.6" fill="currentColor" stroke="none"/>';
   var GRUPOS = [
     { items: [ { h: 'admin-comercial.html', t: 'Inicio', i: 'inicio' } ] },
     { titulo: 'Campañas', items: [
       { h: 'admin-campanias.html', t: 'Campañas y planes', s: 'Lo que ven los vendedores', i: 'campanias' },
       { h: 'admin-campanias.html?estado=borrador', t: 'Borradores', s: 'En edición', i: 'borrador' },
+      { h: 'admin-planes.html', t: 'Planes', s: 'Planes de proveedores', i: 'planes' },
       { h: 'admin-resultados.html', t: 'Resultados', s: 'Desempeño de campañas', i: 'resultados' },
     ]},
     { titulo: 'Manual de vendedores', items: [
       { h: 'admin-secciones.html', t: 'Secciones', s: 'Estructura del manual', i: 'secciones' },
       { h: 'admin-fechas.html', t: 'Fechas especiales', s: 'Calendario del manual', i: 'fechas' },
       { h: 'admin-combos.html', t: 'Combos de eventos', s: 'Para el manual de Eventos', i: 'combos' },
+    ]},
+    { titulo: 'Herramientas del manual', items: [
+      { h: 'admin-propuestas.html', t: 'Propuestas de incorporación', s: 'Vinos y spirits para sumar', i: 'incorp' },
+      { h: 'admin-vino-copa.html', t: 'Vino por copa', s: 'Vinos y condiciones', i: 'copa' },
+      { h: 'admin-aperitivos.html', t: 'Aperitivos', s: 'De bienvenida o pre cena', i: 'aperitivo' },
+      { h: 'admin-mixes.html', t: 'Mix Ideal', s: 'Combos de productos', i: 'mix' },
+      { h: 'admin-frigobar.html', t: 'Frigobar', s: 'Packs para hoteles', i: 'frigobar' },
+      { h: 'admin-materiales.html', t: 'Materiales POP', s: 'Biblioteca de materiales', i: 'materiales' },
     ]},
     { titulo: 'Catálogo', items: [
       { h: 'admin-catalogo.html', t: 'Catálogo', s: 'Proveedores y productos', i: 'catalogo' },
@@ -56,6 +76,8 @@
     ]},
     { titulo: 'Proveedores', items: [
       { h: 'admin-propuestas-proveedores.html', t: 'Propuestas de proveedores', s: 'Para revisar y aprobar', i: 'propuestas' },
+      { h: 'admin-sellout.html', t: 'Sellout', s: 'Subir reporte de proveedor', i: 'sellout' },
+      { h: 'admin-11t.html', t: 'Plan 11T', s: 'Peñaflor · por canal y línea', i: 'plan11t' },
     ]},
     { titulo: 'Lo mío', items: [
       { h: 'admin-agenda.html', t: 'Mi agenda', i: 'agenda' },
@@ -63,8 +85,12 @@
     ]},
   ];
 
-  // Las subpantallas (nueva campaña, planes) marcan a su pantalla madre.
-  var MADRE = { 'admin-nueva-campania': 'admin-campanias', 'admin-planes': 'admin-campanias', 'admin-nuevo-plan': 'admin-campanias' };
+  // Las subpantallas marcan a su pantalla madre.
+  var MADRE = { 'admin-nueva-campania': 'admin-campanias', 'admin-nuevo-plan': 'admin-planes', 'admin-material-nuevo': 'admin-materiales' };
+
+  // data-solo="compras" en el <script>: la pantalla es de otra área (Materiales es de
+  // Diseño) y el menú del panel comercial se pinta solo si entra ese rol.
+  var SOLO = (document.currentScript && document.currentScript.getAttribute('data-solo')) || '';
 
   var sinExt = function (h) { return String(h || '').split('?')[0].split('/').pop().replace(/\.html$/, '').toLowerCase(); };
   var pagina = sinExt(location.pathname) || 'admin-comercial';
@@ -102,6 +128,8 @@
     // que solo decía "próximamente", y el recuadro de ayuda de abajo.
     for (var k = 1; k < navs.length; k++) navs[k].remove();
     aside.querySelectorAll('.sb-label, .sb-help').forEach(function (el) { el.remove(); });
+    // Con todas las herramientas el menú es largo: la barra se desplaza sola.
+    aside.style.overflowY = 'auto';
     var sop = nav.querySelector('[data-soporte]');
     if (sop) sop.addEventListener('click', function () {
       if (window.abrirSoporteWA) window.abrirSoporteWA();
@@ -120,6 +148,7 @@
         if (!s) { location.replace('/index.html'); return; }
         return c.from('usuarios').select('rol').eq('id', s.user.id).maybeSingle().then(function (q) {
           var rol = String((q && q.data && q.data.rol) || '').toLowerCase();
+          if (SOLO) { if (rol === SOLO) { pintar(); campanita(); } return; }
           if (ROLES.indexOf(rol) < 0) location.replace('/hub.html');
         });
       }).catch(function () {});
@@ -147,6 +176,7 @@
   }
 
   revisarAcceso();
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { pintar(); campanita(); });
+  if (SOLO) { /* se pinta cuando se sabe el rol (revisarAcceso) */ }
+  else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { pintar(); campanita(); });
   else { pintar(); campanita(); }
 })();
