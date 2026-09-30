@@ -158,7 +158,9 @@ $('enviar').onclick=async()=>{
   const {data:{session}}=await hub.auth.getSession();
   if(!session){ location.href='index.html'; return; }
   TOKEN=session.access_token;
-  const {data:u}=await hub.from('usuarios').select('nombre').eq('id',session.user.id).maybeSingle();
+  const {data:u}=await hub.from('usuarios').select('nombre,rol').eq('id',session.user.id).maybeSingle();
+  // Luciana manda sus reportes desde su panel comercial, sin cambiar de pantalla (30/09/2026).
+  if(u&&String(u.rol||'').toLowerCase()==='compras'){ location.replace('manual-vendedores/admin-reportes.html'); return; }
   if(u&&u.nombre) $('sub').textContent=u.nombre+' · reportes para Dirección';
   if(u&&u.nombre){ $('uName').textContent=u.nombre; $('av').textContent=u.nombre.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
   cargar();

@@ -58,8 +58,8 @@
       { h: 'admin-propuestas-proveedores.html', t: 'Propuestas de proveedores', s: 'Para revisar y aprobar', i: 'propuestas' },
     ]},
     { titulo: 'Lo mío', items: [
-      { h: '/mi-agenda.html', t: 'Mi agenda', i: 'agenda' },
-      { h: '/mis-reportes.html', t: 'Mis reportes', s: 'Para Dirección', i: 'resultados' },
+      { h: 'admin-agenda.html', t: 'Mi agenda', i: 'agenda' },
+      { h: 'admin-reportes.html', t: 'Mis reportes', s: 'Para Dirección', i: 'resultados' },
     ]},
   ];
 
@@ -131,7 +131,22 @@
     var sc = document.createElement('script'); sc.src = '/assets/soporte.js'; document.head.appendChild(sc);
   }
 
+  // Campanita de avisos del Portal (reportes devueltos, reuniones…) en la barra de
+  // arriba: desde el 30/09/2026 Luciana entra directo a este panel y no pasa por el Hub,
+  // que era donde la veía. notif.js usa la .tb-bell de la barra si existe.
+  function campanita() {
+    var bar = document.querySelector('.topbar');
+    if (!bar || bar.querySelector('.tb-bell') || document.querySelector('script[src*="notif.js"]')) return;
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'tb-bell'; b.setAttribute('aria-label', 'Notificaciones');
+    b.style.cssText = 'width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:#fff;display:grid;place-items:center;cursor:pointer;flex:none';
+    b.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>';
+    var user = bar.querySelector('.tb-user');
+    if (user) bar.insertBefore(b, user); else bar.appendChild(b);
+    var sc = document.createElement('script'); sc.src = '/assets/notif.js?v=2'; document.body.appendChild(sc);
+  }
+
   revisarAcceso();
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', pintar);
-  else pintar();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { pintar(); campanita(); });
+  else { pintar(); campanita(); }
 })();

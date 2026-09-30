@@ -2,6 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<!-- ?embed=1: se muestra dentro del marco de otro panel (el comercial de Luciana,
+     manual-vendedores/admin-agenda.html): sin barra lateral ni botón de minuta propios. -->
+<script>if(/[?&]embed=1\b/.test(location.search))document.documentElement.classList.add('gb-embed')</script>
+<style>.gb-embed .sidebar,.gb-embed #mfab-btn{display:none!important}.gb-embed .main{max-width:none}</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -256,6 +260,8 @@
     if (rol === 'ventas') { location.replace('agenda.html'); return; }
     if (DIR.includes(rol)) { location.replace('dir-agenda.html'); return; }
     if (rol === 'proveedor') { location.replace('manual-vendedores/proveedor.html'); return; }
+    // Luciana ve su agenda dentro de su panel comercial, sin cambiar de pantalla (30/09/2026).
+    if (rol === 'compras' && !document.documentElement.classList.contains('gb-embed')) { location.replace('manual-vendedores/admin-agenda.html'); return; }
 
     const volver = { compras:'manual-vendedores/admin-comercial.html', diseno:'panel-diseno.html', marketing:'panel-diseno.html', desarrollo:'panel-desarrollo.html' }[rol] || 'hub.html';
     $('ma-volver').href = volver;

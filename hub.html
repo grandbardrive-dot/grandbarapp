@@ -213,6 +213,9 @@
     if (["direccion", "admin", "duenio"].includes(String(currentRole).toLowerCase())) { location.replace("direccion.html"); return; }
     // Validación del torneo: su única pantalla es la revisión de evidencias (29/09/2026).
     if (String(currentRole).toLowerCase() === "torneo") { location.replace("torneo-evidencias.html"); return; }
+    // Luciana (compras) trabaja todo en su panel comercial: campañas, manual, catálogo,
+    // reportes y agenda. Antes caía acá y cada tarjeta la llevaba a otra pantalla (30/09/2026).
+    if (String(currentRole).toLowerCase() === "compras") { location.replace("manual-vendedores/admin-comercial.html"); return; }
     currentUser = s.nombre || "Equipo GrandBar";
     document.getElementById("uName").textContent = currentUser;
     document.getElementById("uRole").textContent = ROLE_LABEL[currentRole] || currentRole;
