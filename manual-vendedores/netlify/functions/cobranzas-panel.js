@@ -420,7 +420,7 @@ exports.handler = async (event) => {
       // en el bucket (_media_url), se linkea directo; si no, se baja con wa-media por id.
       const mediaDe = c => {
         if (!c || typeof c !== 'object') return null;
-        const o = c.image ? { tipo: 'image', d: c.image } : c.document ? { tipo: 'document', d: c.document } : c.video ? { tipo: 'video', d: c.video } : null;
+        const o = c.image ? { tipo: 'image', d: c.image } : c.document ? { tipo: 'document', d: c.document } : c.audio ? { tipo: 'audio', d: c.audio } : c.video ? { tipo: 'video', d: c.video } : null;
         if (!o) return null;
         return { id: (o.d && o.d.id) || null, tipo: o.tipo, mime: (o.d && o.d.mime_type) || null, filename: (o.d && o.d.filename) || 'comprobante', url: c._media_url || null };
       };

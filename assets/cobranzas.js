@@ -533,15 +533,37 @@ function waBurbujas(msgs) {
     const hora = d && !isNaN(d) ? d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '';
     let media = '';
     if (m.media && (m.media.id || m.media.url)) {
-      const mm = m.media, label = mm.tipo === 'image' ? '🖼️ Ver imagen' : '📄 Ver comprobante';
+      const mm = m.media;
       const st = 'margin-top:7px;display:inline-flex;align-items:center;gap:6px;background:#1f8a4c;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:none';
-      media = mm.url
-        ? `<a class="wa-media-btn" style="${st}" href="${cesc(mm.url)}" target="_blank" rel="noopener">${label}</a>`
-        : `<button type="button" class="wa-media-btn" style="${st}" onclick="waVerMedia('${mm.id}','${encodeURIComponent(mm.filename || 'comprobante')}',this)">${label}</button>`;
+      if (mm.tipo === 'audio') {
+        media = mm.url
+          ? `<audio controls preload="none" style="margin-top:7px;max-width:250px;display:block" src="${cesc(mm.url)}"></audio>`
+          : `<button type="button" class="wa-media-btn" style="${st}" onclick="waVerAudio('${mm.id}',this)">🎤 Escuchar audio</button>`;
+      } else {
+        const label = mm.tipo === 'image' ? '🖼️ Ver imagen' : '📄 Ver comprobante';
+        media = mm.url
+          ? `<a class="wa-media-btn" style="${st}" href="${cesc(mm.url)}" target="_blank" rel="noopener">${label}</a>`
+          : `<button type="button" class="wa-media-btn" style="${st}" onclick="waVerMedia('${mm.id}','${encodeURIComponent(mm.filename || 'comprobante')}',this)">${label}</button>`;
+      }
     }
     out += `<div class="wa-msg ${m.dir === 'in' ? 'in' : 'out'}">${cesc(m.texto || '')}${media}<div class="h">${hora}</div></div>`;
   }
   return out;
+}
+
+// Audio viejo (sin URL guardada): lo baja con wa-media y lo reproduce ahí mismo.
+async function waVerAudio(id, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Cargando…'; }
+  try {
+    const r = await fetch('https://grandbar-gestioncuenta.netlify.app/.netlify/functions/wa-media?id=' + encodeURIComponent(id), { headers: { Authorization: 'Bearer ' + COB_TOKEN } });
+    if (!r.ok) { let m = 'No se pudo cargar el audio.'; try { const j = await r.json(); if (j && j.error) m = j.error; } catch (_) {} alert(m); if (btn) { btn.disabled = false; btn.textContent = '🎤 Escuchar audio'; } return; }
+    const blob = await r.blob();
+    const audio = document.createElement('audio');
+    audio.controls = true; audio.src = URL.createObjectURL(blob);
+    audio.style.cssText = 'margin-top:7px;max-width:250px;display:block';
+    if (btn) btn.replaceWith(audio);
+    audio.play().catch(() => {});
+  } catch (e) { alert('Error al cargar el audio: ' + (e.message || e)); if (btn) { btn.disabled = false; btn.textContent = '🎤 Escuchar audio'; } }
 }
 
 // Baja el archivo que mandó el cliente (imagen/comprobante) con la sesión del Hub
