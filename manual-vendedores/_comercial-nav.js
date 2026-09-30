@@ -59,6 +59,7 @@
     ]},
     { titulo: 'Lo mío', items: [
       { h: '/mi-agenda.html', t: 'Mi agenda', i: 'agenda' },
+      { h: '/mis-reportes.html', t: 'Mis reportes', s: 'Para Dirección', i: 'resultados' },
     ]},
   ];
 

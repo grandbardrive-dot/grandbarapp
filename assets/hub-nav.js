@@ -67,14 +67,35 @@
   // Si la pantalla es de un supervisor (supervisor-nav.js ya dibujó o el <head> lo marcó),
   // no se pinta el menú de vendedor: antes lo pisaba según cuál cargara último y el
   // menú "saltaba" de uno a otro (25/09/2026).
-  function pintar(forzar) {
+  function pintar(forzar, rol) {
     if (!forzar && (window.__gbSupNav || document.documentElement.classList.contains('gb-sup'))) return;
+    if (rol === undefined) { const s = sesionGuardada(); rol = s ? rolGuardado(s.user.id) : null; }
+    const noVende = rol && rol !== 'ventas';
+    const lista = noVende ? itemsNoVende(rol) : ITEMS;
     document.querySelectorAll('nav.sb-nav').forEach(nav => {
-      nav.innerHTML = ITEMS.map(it => link(it, false)).join('\n');
+      nav.innerHTML = lista.map(it => link(it, false)).join('\n');
     });
     document.querySelectorAll('nav.bottomnav').forEach(nav => {
-      nav.innerHTML = ITEMS.filter(it => it.m).map(it => link(it, true)).join('\n') + link(MAS, true);
+      nav.innerHTML = noVende ? lista.map(it => link(it, true)).join('\n')
+        : ITEMS.filter(it => it.m).map(it => link(it, true)).join('\n') + link(MAS, true);
     });
+  }
+
+  // ── Quien no vende (Luciana, Depósito, Administración…) ────────────────────
+  // Llegan a pantallas compartidas como Reportes desde su Hub. Antes veían el menú
+  // del vendedor (Clientes, Leads, Ruta IA…) y quedaban en un panel ajeno (30/09/2026).
+  // Ahora ven solo lo suyo y la vuelta a su panel, como en mi-agenda.html.
+  function itemsNoVende(rol) {
+    const panel = { compras:'manual-vendedores/admin-comercial.html', diseno:'panel-diseno.html', marketing:'panel-diseno.html', desarrollo:'panel-desarrollo.html' }[rol] || 'hub.html';
+    return [
+      { t:'Volver a mi panel', h:panel,               m:'Mi panel', svg:'<path d="M15 6l-6 6 6 6"/>' },
+      { t:'Mis reportes',      h:'mis-reportes.html', m:'Reportes', svg:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>' },
+      { t:'Mi agenda',         h:'mi-agenda.html',    m:'Agenda',   svg:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>' },
+    ];
+  }
+  // El rol se recuerda por usuario para no mostrar un instante el menú equivocado.
+  function rolGuardado(uid) {
+    try { const v = JSON.parse(localStorage.getItem('gb_nav_rol') || 'null'); return v && v.uid === uid ? v.rol : null; } catch (e) { return null; }
   }
 
   // ── Quién es: Dirección no usa las pantallas de vendedor ─────────────────
@@ -112,6 +133,8 @@
       location.replace(EQUIVALENTE_DIR[actual] || 'direccion.html');
       return;
     }
+    try { localStorage.setItem('gb_nav_rol', JSON.stringify({ uid: s.user.id, rol })); } catch (e) {}
+    if (!perfil.es_supervisor) pintar(false, rol);
     // El rol que se ve abajo del nombre (antes decía "Vendedor" para todos)
     const etiqueta = perfil.es_supervisor ? 'Supervisor' : (ETIQUETA_ROL[rol] || 'Vendedor');
     document.querySelectorAll('.sb-user .s').forEach(el => { if (/^\s*Vendedor\s*$/.test(el.textContent)) el.textContent = etiqueta; });
