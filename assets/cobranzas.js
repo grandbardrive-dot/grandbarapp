@@ -371,7 +371,7 @@ function waIniciales(s) { const t = String(s || '').trim(); if (!t) return '#'; 
 function waBuscaOk(c) { if (!_waBusca) return true; const q = _waBusca.toLowerCase(); return (String(c.cliente || '') + ' ' + String(c.telefono || '') + ' ' + String(c.codigo || '')).toLowerCase().includes(q); }
 function waPasaFiltro(c) {
   const v = waVentana(c), sr = waSinResponder(c);
-  if (_waFiltro === 'sin') return sr;
+  if (_waFiltro === 'sin') return sr && !v.cerrada;
   if (_waFiltro === 'pcerr') return sr && v.porCerrar;
   if (_waFiltro === 'cerr') return sr && v.cerrada;
   return true;
@@ -391,7 +391,7 @@ async function cobWhatsapp() {
 
 function waContadores() {
   const total = _waConvs.length;
-  const sin = _waConvs.filter(waSinResponder).length;
+  const sin = _waConvs.filter(c => waSinResponder(c) && !waVentana(c).cerrada).length;
   const pcerr = _waConvs.filter(c => waSinResponder(c) && waVentana(c).porCerrar).length;
   const cerr = _waConvs.filter(c => waSinResponder(c) && waVentana(c).cerrada).length;
   return {
