@@ -172,6 +172,25 @@
   .est{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
   .est.green{color:var(--green);background:var(--green-bg)} .est.amber{color:var(--amber);background:var(--amber-bg)} .est.red{color:var(--red);background:var(--red-bg)}
   .hide{display:none}
+  /* Movimientos (historial completo) */
+  .mv-fecha{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--ink2)}
+  .mv-fecha input{padding:9px 10px;border:1px solid var(--line-2);border-radius:11px;font:inherit;font-size:13px;background:var(--surface);color:var(--ink)}
+  .mv-tot{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .mv-tot div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:12.5px;color:var(--ink2)}
+  .mv-tot b{display:block;font-size:20px;color:var(--ink);font-weight:800}
+  .mv-wrap{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow-x:auto}
+  .mv-tabla{width:100%;border-collapse:collapse;font-size:13px;min-width:820px}
+  .mv-tabla th{text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);padding:11px 12px;border-bottom:1px solid var(--line);background:var(--surface2,#FBF9F5);white-space:nowrap}
+  .mv-tabla td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .mv-tabla tr:last-child td{border-bottom:0}
+  .mv-tabla .r{text-align:right;white-space:nowrap}
+  .mv-mat{display:flex;align-items:center;gap:9px;min-width:180px}
+  .mv-mat .im{width:38px;height:38px;flex:none;border-radius:8px;background:var(--surface2,#FBF9F5);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:18px}
+  .mv-mat .im img{max-width:100%;max-height:100%;object-fit:contain}
+  .mv-tipo{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .mv-in{background:#E7F1EC;color:#2D6A4F} .mv-out{background:#FBEAE7;color:#C0392B} .mv-aj{background:#FaF0DA;color:#9A6B0E} .mv-ent{background:rgba(31,68,127,.09);color:var(--navy)}
+  .mv-nota{font-size:12px;color:var(--ink3);margin-top:2px;max-width:280px}
+  .mv-vacio{padding:26px;text-align:center;color:var(--ink3)}
 </style>
 </head>
 <body>
@@ -207,7 +226,7 @@
               <div id="donut-cat"></div>
             </div>
             <div class="panel">
-              <div class="panel-h"><div class="panel-t">Movimientos del mes</div></div>
+              <div class="panel-h"><div class="panel-t">Movimientos del mes</div><div class="panel-link" onclick="verMovimientos()">Ver historial →</div></div>
               <div id="mov-chart"></div>
             </div>
             <div class="panel">
@@ -234,7 +253,7 @@
           </div>
 
           <div class="panel">
-            <div class="panel-h"><div class="panel-t">Actividad reciente</div></div>
+            <div class="panel-h"><div class="panel-t">Actividad reciente</div><div class="panel-link" onclick="verMovimientos()">Ver todo →</div></div>
             <div id="actividad"></div>
           </div>
         </aside>
@@ -257,13 +276,43 @@
         <div id="cat-body"></div>
       </div>
 
+      <!-- ══ MOVIMIENTOS: historial completo (02/10/2026) ══ -->
+      <div id="view-mov" class="hide">
+        <div class="cat-head">
+          <button class="back-btn" onclick="verDash()" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <div><div class="head-h" style="font-size:22px">Movimientos</div><div class="head-sub" id="mv-count">Cargando…</div></div>
+          <button class="btn" style="margin-left:auto;background:var(--surface);border:1px solid var(--line-2);color:var(--navy)" onclick="mvExcel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" stroke-linecap="round" stroke-linejoin="round"/></svg>Bajar Excel</button>
+        </div>
+        <div class="toolbar">
+          <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg>
+            <input id="mv-q" type="text" placeholder="Material, cliente, vendedor o nota…" oninput="mvRender()"></div>
+          <select class="filt" id="mv-tipo" onchange="mvRender()">
+            <option value="">Todos los tipos</option>
+            <option value="ingreso">Ingresos</option>
+            <option value="salida">Salidas del panel</option>
+            <option value="entrega">Entregas de vendedores</option>
+            <option value="ajuste">Ajustes de stock</option>
+            <option value="otros">Otros (devoluciones, bajas…)</option>
+          </select>
+          <select class="filt" id="mv-vend" onchange="mvRender()"><option value="">Todos los vendedores</option></select>
+          <label class="mv-fecha">Desde <input type="date" id="mv-desde" onchange="mvRender()"></label>
+          <label class="mv-fecha">Hasta <input type="date" id="mv-hasta" onchange="mvRender()"></label>
+        </div>
+        <div class="mv-tot" id="mv-tot"></div>
+        <div class="mv-wrap"><table class="mv-tabla">
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Material</th><th class="r">Cantidad</th><th class="r">Stock</th><th>Quién</th><th>Cliente / detalle</th></tr></thead>
+          <tbody id="mv-body"><tr><td colspan="7" class="mv-vacio">Cargando…</td></tr></tbody>
+        </table></div>
+        <div style="text-align:center;margin-top:12px"><button class="btn" id="mv-mas" style="display:none;margin:0 auto;background:var(--surface);border:1px solid var(--line-2);color:var(--navy)" onclick="mvMostrar+=200;mvRender()">Ver más</button></div>
+      </div>
+
     </main>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
-<script src="_admin-sidebar.js"></script>
+<script src="_admin-sidebar.js?v=2"></script>
 <script>
   sessionStorage.setItem('admin_auth','1');
   if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','marketing');
@@ -450,8 +499,8 @@
   }
 
   // ── navegación vistas ──
-  function verCatalogo(estado){ document.getElementById('view-dash').classList.add('hide'); document.getElementById('view-cat').classList.remove('hide'); if(estado){document.getElementById('f-estado').value=estado;} renderCat(); window.scrollTo({top:0}); }
-  function verDash(){ document.getElementById('view-cat').classList.add('hide'); document.getElementById('view-dash').classList.remove('hide'); window.scrollTo({top:0}); }
+  function verCatalogo(estado){ document.getElementById('view-dash').classList.add('hide'); document.getElementById('view-mov').classList.add('hide'); document.getElementById('view-cat').classList.remove('hide'); if(estado){document.getElementById('f-estado').value=estado;} renderCat(); window.scrollTo({top:0}); }
+  function verDash(){ document.getElementById('view-cat').classList.add('hide'); document.getElementById('view-mov').classList.add('hide'); document.getElementById('view-dash').classList.remove('hide'); if(location.hash==='#movimientos'){ history.replaceState(null,'',location.pathname+location.search); window.dispatchEvent(new HashChangeEvent('hashchange')); } window.scrollTo({top:0}); }
   function proximamente(x){ alert(x+' — llega en la Fase 3 (movimientos y solicitudes).'); }
 
   // ── Registrar ingreso / salida ──────────────────────────────────────────────
@@ -547,7 +596,7 @@
       let evidence=null;
       if(foto){ msg.textContent='Subiendo foto…'; evidence=await subirFotoMov(foto); }
       const row={ material_id:matId, movement_type:_movTipo, quantity:cant, previous_stock:prev, resulting_stock:resulting,
-        notes:nota||null, evidence_image_url:evidence, created_by:(sessionStorage.getItem('admin_perfil')||'marketing') };
+        notes:nota||null, evidence_image_url:evidence, created_by:(QUIEN||sessionStorage.getItem('admin_perfil')||'marketing') };
       const { error }=await sb.from('material_stock_movements').insert(row);
       if(error) throw error;
       msg.style.color='var(--green)'; msg.textContent = _movTipo==='ingreso' ? '✓ Ingreso registrado.' : '✓ Salida registrada.';
@@ -557,6 +606,7 @@
         sb.from('material_stock_movements').select('*').order('created_at',{ascending:false}).limit(400),
       ]);
       MATS=mR.data||MATS; MOVS=mvR.data||MOVS;
+      MV_ALL=null;   // el historial se vuelve a leer la próxima vez que se abre
       renderDash();
       if(typeof renderCat==='function') renderCat();   // refrescar también la lista de materiales (stock por ficha)
       setTimeout(cerrarMov, 900);
@@ -596,7 +646,157 @@
     }).join('');
   }
 
+  // ── Quién registra: el nombre de la persona del Portal (antes quedaba "marketing"
+  //    para todos y no se sabía quién había movido el stock). ──
+  let QUIEN = '';
+  (async () => {
+    try{
+      const hub = supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc');
+      const { data:{ session } } = await hub.auth.getSession(); if(!session) return;
+      const { data:u } = await hub.from('usuarios').select('nombre').eq('id', session.user.id).maybeSingle();
+      QUIEN = (u && u.nombre) || session.user.email || '';
+    }catch(e){}
+  })();
+
+  // ── Movimientos: historial completo (02/10/2026) ──────────────────────────────
+  // Todo lo que movió el stock: ingresos y salidas del panel, entregas que registran
+  // los vendedores en la visita, ajustes y el resto. Se trae paginado (la base corta
+  // en 1000 filas sin avisar) y se filtra en pantalla.
+  let MV_ALL = null, mvMostrar = 200, MV_MAT = {}, MV_VEND = {}, MV_CLI = {}, MV_CAMP = {};
+  const MV_TIPOS = {
+    ingreso:['Ingreso','mv-in',1], devolucion:['Devolución','mv-in',1], ajuste_positivo:['Ajuste (+)','mv-aj',1],
+    salida:['Salida','mv-out',-1], entrega:['Entrega','mv-ent',-1], ajuste_negativo:['Ajuste (−)','mv-aj',-1],
+    rotura:['Rotura','mv-out',-1], perdida:['Pérdida','mv-out',-1], baja:['Baja','mv-out',-1],
+  };
+  const mvTipo = t => MV_TIPOS[t] || [t, 'mv-aj', 0];
+  const mvGrupo = t => t==='ingreso' ? 'ingreso' : t==='salida' ? 'salida' : t==='entrega' ? 'entrega' : /^ajuste_/.test(t) ? 'ajuste' : 'otros';
+  const QUIEN_ROL = { marketing:'Panel de materiales', comercial:'Panel comercial', vendedor:'Vendedor' };
+
+  async function mvPaginar(armar){
+    const filas = [];
+    for(let desde=0; desde<50000; desde+=1000){
+      const { data, error } = await armar().range(desde, desde+999);
+      if(error) throw error;
+      filas.push(...(data||[]));
+      if(!data || data.length<1000) break;
+    }
+    return filas;
+  }
+  async function mvEnTrozos(tabla, cols, ids){
+    const out = [];
+    for(let i=0; i<ids.length; i+=150){
+      const { data } = await sb.from(tabla).select(cols).in('id', ids.slice(i, i+150));
+      out.push(...(data||[]));
+    }
+    return out;
+  }
+
+  async function verMovimientos(){
+    document.getElementById('view-dash').classList.add('hide');
+    document.getElementById('view-cat').classList.add('hide');
+    document.getElementById('view-mov').classList.remove('hide');
+    if(location.hash!=='#movimientos'){ history.replaceState(null,'','#movimientos'); window.dispatchEvent(new HashChangeEvent('hashchange')); }
+    window.scrollTo({top:0});
+    if(MV_ALL) return mvRender();
+    try{
+      const [movs, mats, vends] = await Promise.all([
+        mvPaginar(()=>sb.from('material_stock_movements').select('*').order('created_at',{ascending:false})),
+        mvPaginar(()=>sb.from('materials_with_stock').select('id,name,processed_image_url,original_image_url,brand_id,supplier_id').order('id')),
+        sb.from('vendedores').select('id,nombre,codigo'),
+      ]);
+      mats.forEach(m => MV_MAT[m.id] = m);
+      ((vends && vends.data) || []).forEach(v => MV_VEND[v.id] = v);
+      const cliIds = [...new Set(movs.map(m=>m.customer_id).filter(Boolean))];
+      const campIds = [...new Set(movs.map(m=>m.campaign_id).filter(Boolean))];
+      const [clis, camps] = await Promise.all([
+        cliIds.length ? mvEnTrozos('clientes', 'id,nombre,codigo_cliente', cliIds) : [],
+        campIds.length ? mvEnTrozos('acciones_mensuales', 'id,producto,accion', campIds) : [],
+      ]);
+      clis.forEach(c => MV_CLI[c.id] = c);
+      camps.forEach(c => MV_CAMP[c.id] = c);
+      MV_ALL = movs;
+      const sel = document.getElementById('mv-vend');
+      [...new Set(movs.map(m=>m.seller_id).filter(Boolean))]
+        .map(id => ({ id, n: (MV_VEND[id] && MV_VEND[id].nombre) || 'Vendedor sin nombre' }))
+        .sort((a,b)=>a.n.localeCompare(b.n))
+        .forEach(v => { const o=document.createElement('option'); o.value=v.id; o.textContent=v.n; sel.appendChild(o); });
+    }catch(e){
+      document.getElementById('mv-count').textContent = 'No se pudo leer el historial';
+      document.getElementById('mv-body').innerHTML = `<tr><td colspan="7" class="mv-vacio">No se pudo leer el historial: ${esc(e.message||e)}</td></tr>`;
+      return;
+    }
+    mvRender();
+  }
+
+  function mvFila(mv){
+    const m = MV_MAT[mv.material_id] || {}, t = mvTipo(mv.movement_type);
+    const v = mv.seller_id && MV_VEND[mv.seller_id], c = mv.customer_id && MV_CLI[mv.customer_id], k = mv.campaign_id && MV_CAMP[mv.campaign_id];
+    const quien = v ? v.nombre : (QUIEN_ROL[mv.created_by] || mv.created_by || '—');
+    return { mv, m, t, quien,
+      cliente: c ? (c.nombre + (c.codigo_cliente ? ' · ' + c.codigo_cliente : '')) : '',
+      campania: k ? (k.producto || k.accion || '') : '',
+      texto: [m.name, quien, c && c.nombre, c && c.codigo_cliente, k && k.producto, mv.notes].join(' ').toLowerCase() };
+  }
+  function mvFiltradas(){
+    if(!MV_ALL) return [];
+    const q = document.getElementById('mv-q').value.toLowerCase().trim();
+    const tipo = document.getElementById('mv-tipo').value, vend = document.getElementById('mv-vend').value;
+    const desde = document.getElementById('mv-desde').value, hasta = document.getElementById('mv-hasta').value;
+    const dia = d => { const x = new Date(d); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); };
+    return MV_ALL.map(mvFila).filter(f =>
+      (!tipo || mvGrupo(f.mv.movement_type) === tipo) && (!vend || f.mv.seller_id === vend) &&
+      (!desde || dia(f.mv.created_at) >= desde) && (!hasta || dia(f.mv.created_at) <= hasta) &&
+      (!q || f.texto.includes(q)));
+  }
+  function mvRender(){
+    if(!MV_ALL) return;
+    const filas = mvFiltradas();
+    let entra = 0, sale = 0;
+    filas.forEach(f => { const q = Number(f.mv.quantity||0); if(f.t[2] > 0) entra += q; else if(f.t[2] < 0) sale += q; });
+    document.getElementById('mv-count').textContent = `${fmt(filas.length)} movimiento${filas.length===1?'':'s'}` + (filas.length !== MV_ALL.length ? ` de ${fmt(MV_ALL.length)}` : '');
+    document.getElementById('mv-tot').innerHTML = `<div><b>${fmt(filas.length)}</b>movimientos</div><div><b style="color:#2D6A4F">+${fmt(entra)}</b>unidades que entraron</div><div><b style="color:#C0392B">−${fmt(sale)}</b>unidades que salieron</div>`;
+    const body = document.getElementById('mv-body');
+    if(!filas.length){
+      body.innerHTML = `<tr><td colspan="7" class="mv-vacio">${MV_ALL.length ? 'No hay movimientos con esos filtros.' : 'Todavía no hay movimientos.'}</td></tr>`;
+      document.getElementById('mv-mas').style.display = 'none'; return;
+    }
+    body.innerHTML = filas.slice(0, mvMostrar).map(f => {
+      const mv = f.mv, img = f.m.processed_image_url || f.m.original_image_url;
+      const fecha = new Date(mv.created_at).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const signo = f.t[2] > 0 ? '+' : f.t[2] < 0 ? '−' : '';
+      const stock = (mv.previous_stock!=null && mv.resulting_stock!=null) ? `${fmt(mv.previous_stock)} → <b>${fmt(mv.resulting_stock)}</b>` : '—';
+      const det = [f.cliente, f.campania ? 'Campaña: ' + f.campania : ''].filter(Boolean).map(esc).join('<br>');
+      const foto = mv.evidence_image_url && /^https?:\/\//.test(mv.evidence_image_url) ? `<a href="${esc(mv.evidence_image_url)}" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700">ver foto</a>` : '';
+      return `<tr>
+        <td style="white-space:nowrap">${fecha}</td>
+        <td><span class="mv-tipo ${f.t[1]}">${esc(f.t[0])}</span></td>
+        <td><div class="mv-mat"><span class="im">${img?`<img src="${esc(img)}" alt="" loading="lazy">`:'📦'}</span><span>${esc(f.m.name || 'Material borrado')}</span></div></td>
+        <td class="r" style="font-weight:800;color:${f.t[2]>0?'#2D6A4F':f.t[2]<0?'#C0392B':'inherit'}">${signo}${fmt(mv.quantity)}</td>
+        <td class="r">${stock}</td>
+        <td>${esc(f.quien)}</td>
+        <td>${det || '<span style="color:var(--ink3)">—</span>'}${mv.notes ? `<div class="mv-nota">${esc(mv.notes)}</div>` : ''}${foto ? `<div class="mv-nota">${foto}</div>` : ''}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('mv-mas').style.display = filas.length > mvMostrar ? 'inline-flex' : 'none';
+  }
+  // Excel: CSV separado por ";" con BOM (lo abre bien el Excel en castellano).
+  function mvExcel(){
+    const filas = mvFiltradas();
+    if(!filas.length){ alert('No hay movimientos para bajar con esos filtros.'); return; }
+    const celda = v => { const s = String(v==null?'':v).replace(/\r?\n/g,' '); return /[";]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
+    const cab = ['Fecha','Tipo','Material','Cantidad','Stock anterior','Stock después','Quién','Cliente','Campaña','Nota','Foto'];
+    const lineas = filas.map(f => [new Date(f.mv.created_at).toLocaleString('es-AR'), f.t[0], f.m.name||'', (f.t[2]<0?-1:1)*Number(f.mv.quantity||0),
+      f.mv.previous_stock, f.mv.resulting_stock, f.quien, f.cliente, f.campania, f.mv.notes||'', f.mv.evidence_image_url||''].map(celda).join(';'));
+    const blob = new Blob(['﻿' + [cab.join(';')].concat(lineas).join('\r\n')], { type:'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'movimientos-materiales-' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+
   cargar();
+  if(location.hash === '#movimientos') verMovimientos();
+  // El menú del panel abre esta vista cambiando solo el #: se escucha el cambio.
+  window.addEventListener('hashchange', () => { if(location.hash === '#movimientos'){ if(document.getElementById('view-mov').classList.contains('hide')) verMovimientos(); } else if(!document.getElementById('view-mov').classList.contains('hide')) verDash(); });
 </script>
 <style>
   .mov-back{position:fixed;inset:0;background:rgba(15,35,64,.5);z-index:900;display:none;align-items:center;justify-content:center;padding:18px}
@@ -731,7 +931,7 @@
       const row = { material_id:_ajMat.id, movement_type: dif>0 ? 'ajuste_positivo' : 'ajuste_negativo', quantity: Math.abs(dif),
         previous_stock: prev, resulting_stock: nuevo,
         notes: ('Stock corregido de ' + prev + ' a ' + nuevo) + (nota ? ' · ' + nota : ''),
-        created_by: (sessionStorage.getItem('admin_perfil')||'marketing') };
+        created_by: (QUIEN||sessionStorage.getItem('admin_perfil')||'marketing') };
       const { error } = await sb.from('material_stock_movements').insert(row);
       if(error) throw error;
       const [mR,mvR]=await Promise.all([
@@ -739,6 +939,7 @@
         sb.from('material_stock_movements').select('*').order('created_at',{ascending:false}).limit(400),
       ]);
       MATS=mR.data||MATS; MOVS=mvR.data||MOVS;
+      MV_ALL=null;   // el historial se vuelve a leer la próxima vez que se abre
       renderDash(); renderCat();
       msg.style.color='var(--green)'; msg.textContent='✓ Stock actualizado: '+fmt(nuevo)+'.';
       setTimeout(cerrarAjuste, 900);
@@ -746,6 +947,6 @@
   }
 </script>
 <script src="/assets/minuta-fab.js?v=2"></script>
-<script src="_comercial-nav.js?v=5" data-solo="compras"></script>
+<script src="_comercial-nav.js?v=6" data-solo="compras"></script>
 </body>
 </html>

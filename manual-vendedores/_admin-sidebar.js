@@ -13,6 +13,7 @@
     usuarios:    '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0" stroke-linecap="round"/>',
     config:      '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2.3-1.3l-.3-2.5h-4l-.3 2.5a7 7 0 0 0-2.3 1.3l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.3l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2.3 1.3l.3 2.5h4l.3-2.5a7 7 0 0 0 2.3-1.3l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z" stroke-linejoin="round"/>',
     material:    '<path d="M12 5v14M5 12h14" stroke-linecap="round"/>',
+    movimientos: '<path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3" stroke-linecap="round" stroke-linejoin="round"/>',
     desarrollo:  '<path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 6l-2 12" stroke-linecap="round" stroke-linejoin="round"/>',
   };
   // El panel de Marketing se unificó: sus herramientas viven ahora en los paneles de
@@ -21,6 +22,7 @@
   const ITEMS = [
     { key:'inicio',      label:'Panel de Diseño', sub:'Volver',                  href:'/panel-diseno.html' },
     { key:'materiales',  label:'Materiales',      sub:'Biblioteca e inventario', href:'admin-materiales.html' },
+    { key:'movimientos', label:'Movimientos',     sub:'Historial de stock',      href:'admin-materiales.html#movimientos' },
     { key:'material',    label:'Nuevo material',  sub:'Alta con foto',           href:'admin-material-nuevo.html' },
     { key:'proveedores', label:'Catálogo',        sub:'Proveedores y productos', href:'admin-catalogo.html' },
     { key:'campanias',   label:'Campañas',        sub:'Acciones comerciales',    href:'admin-campanias.html' },

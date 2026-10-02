@@ -46,6 +46,7 @@
   I.mix = '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>';
   I.frigobar = '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M6 10h12M9 6v2M9 13v3" stroke-linecap="round"/>';
   I.materiales = '<path d="M20 7L12 3 4 7v10l8 4 8-4z" stroke-linejoin="round"/><path d="M4 7l8 4 8-4M12 11v10" stroke-linecap="round" stroke-linejoin="round"/>';
+  I.movimientos = '<path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3" stroke-linecap="round" stroke-linejoin="round"/>';
   I.sellout = '<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 13l3-3 3 3 4-5" stroke-linecap="round" stroke-linejoin="round"/>';
   I.plan11t = '<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 14l3-3 2 2 4-5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="8" r="1.6" fill="currentColor" stroke="none"/>';
   var GRUPOS = [
@@ -68,6 +69,7 @@
       { h: 'admin-mixes.html', t: 'Mix Ideal', s: 'Combos de productos', i: 'mix' },
       { h: 'admin-frigobar.html', t: 'Frigobar', s: 'Packs para hoteles', i: 'frigobar' },
       { h: 'admin-materiales.html', t: 'Materiales POP', s: 'Biblioteca de materiales', i: 'materiales' },
+      { h: 'admin-materiales.html#movimientos', t: 'Movimientos de materiales', s: 'Ingresos, salidas y entregas', i: 'movimientos' },
     ]},
     { titulo: 'Catálogo', items: [
       { h: 'admin-catalogo.html', t: 'Catálogo', s: 'Proveedores y productos', i: 'catalogo' },
@@ -92,16 +94,21 @@
   // Diseño) y el menú del panel comercial se pinta solo si entra ese rol.
   var SOLO = (document.currentScript && document.currentScript.getAttribute('data-solo')) || '';
 
-  var sinExt = function (h) { return String(h || '').split('?')[0].split('/').pop().replace(/\.html$/, '').toLowerCase(); };
+  var sinExt = function (h) { return String(h || '').split(/[?#]/)[0].split('/').pop().replace(/\.html$/, '').toLowerCase(); };
   var pagina = sinExt(location.pathname) || 'admin-comercial';
   pagina = MADRE[pagina] || pagina;
   var borrador = /[?&]estado=borrador\b/.test(location.search);
 
+  // Una pantalla con vistas (#movimientos en Materiales) marca la opción de esa vista.
   function activo(it) {
     if (sinExt(it.h) !== pagina) return false;
+    var hashIt = (String(it.h).split('#')[1] || '');
+    if (hashIt !== (location.hash || '').replace('#', '')) return false;
     var esBorr = /estado=borrador/.test(it.h);
     return pagina === 'admin-campanias' ? esBorr === borrador : true;
   }
+  var yaPinte = false;
+  window.addEventListener('hashchange', function () { if (yaPinte) pintar(); });
 
   var ico = function (k) { return '<svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">' + (I[k] || '') + '</svg>'; };
   var TIT = 'style="padding:14px 13px 4px;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45)"';
@@ -112,6 +119,7 @@
   }
 
   function pintar() {
+    yaPinte = true;
     var aside = document.querySelector('aside.sidebar');
     if (!aside) return;
     var navs = aside.querySelectorAll('.sb-nav');
