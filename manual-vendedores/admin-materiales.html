@@ -472,10 +472,44 @@
     document.getElementById('mov-foto').value=''; document.getElementById('mov-foto-n').textContent='Sin foto';
     document.getElementById('mov-msg').textContent='';
     document.getElementById('mov-save').disabled=false;
-    movStockHint();
+    document.getElementById('mov-buscar').value='';
+    movElegir('');
     document.getElementById('mov-modal').classList.add('open');
   }
   function cerrarMov(){ document.getElementById('mov-modal').classList.remove('open'); }
+
+  // Elegir el material por la foto: grilla con foto, nombre, línea y stock, con buscador.
+  const movImg = m => m.processed_image_url || m.original_image_url || '';
+  function movPicker(){
+    const q = (document.getElementById('mov-buscar').value||'').toLowerCase().trim();
+    const lista = MATS.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''))
+      .filter(m => !q || [m.name, PROV[m.supplier_id], BRANDS[m.brand_id]].join(' ').toLowerCase().includes(q));
+    document.getElementById('mov-pick').innerHTML = lista.length ? lista.map(m => {
+      const img = movImg(m);
+      return `<button type="button" class="mov-op" onclick="movElegir('${m.id}')">
+        <span class="im">${img?`<img src="${esc(img)}" alt="" loading="lazy">`:'📦'}</span>
+        <span class="n">${esc(m.name||'(sin nombre)')}</span>
+        <span class="s">${esc(BRANDS[m.brand_id]||PROV[m.supplier_id]||'')} · stock ${fmt(Number(m.stock_actual||0))}</span></button>`;
+    }).join('') : '<div style="grid-column:1/-1;padding:14px;text-align:center;color:var(--ink3);font-size:13px">No hay materiales con ese nombre.</div>';
+  }
+  function movElegir(id){
+    const m = MATS.find(x => String(x.id) === String(id));
+    document.getElementById('mov-mat').value = m ? m.id : '';
+    const box = document.getElementById('mov-elegido');
+    if(m){
+      const img = movImg(m);
+      box.innerHTML = `<div class="mov-sel"><span class="im">${img?`<img src="${esc(img)}" alt="">`:'📦'}</span>
+        <div><div class="n">${esc(m.name||'(sin nombre)')}</div><div class="s">${esc(PROV[m.supplier_id]||'Sin proveedor')}${BRANDS[m.brand_id]?' · '+esc(BRANDS[m.brand_id]):''}</div></div>
+        <button type="button" class="cambiar" onclick="movElegir('')">Cambiar</button></div>`;
+      document.getElementById('mov-elegir').style.display = 'none';
+      setTimeout(()=>document.getElementById('mov-cant').focus(), 30);
+    } else {
+      box.innerHTML = '';
+      document.getElementById('mov-elegir').style.display = '';
+      movPicker();
+    }
+    movStockHint();
+  }
   function movStockHint(){
     const m = MATS.find(x=>x.id===document.getElementById('mov-mat').value);
     const box = document.getElementById('mov-stock');
@@ -590,13 +624,35 @@
   .mov-btn.pri-in{background:var(--green);color:#fff}
   .mov-btn.pri-out{background:var(--navy);color:#fff}
   .mov-btn:disabled{opacity:.6;cursor:default}
+  .mov-card{max-width:520px}
+  .mov-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;max-height:300px;overflow-y:auto;padding:2px}
+  @media (max-width:420px){ .mov-pick{grid-template-columns:repeat(2,1fr)} }
+  .mov-op{border:1.5px solid var(--line-2);border-radius:11px;background:#fff;padding:6px;cursor:pointer;text-align:left;font:inherit;display:flex;flex-direction:column;gap:4px}
+  .mov-op:hover{border-color:var(--navy)}
+  .mov-op .im{height:78px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:26px}
+  .mov-op .im img{max-width:100%;max-height:100%;object-fit:contain}
+  .mov-op .n{font-size:12px;font-weight:700;color:var(--ink);line-height:1.2}
+  .mov-op .s{font-size:11px;color:var(--ink3)}
+  .mov-sel{display:flex;gap:12px;align-items:center;border:1.5px solid var(--gold);border-radius:12px;padding:8px;background:#fff}
+  .mov-sel .im{width:76px;height:76px;flex:none;border-radius:9px;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:28px}
+  .mov-sel .im img{max-width:100%;max-height:100%;object-fit:contain}
+  .mov-sel .n{font-size:14.5px;font-weight:800;color:var(--ink)}
+  .mov-sel .s{font-size:12px;color:var(--ink3);margin-top:2px}
+  .mov-sel .cambiar{margin-left:auto;align-self:center;background:var(--surface2);border:1px solid var(--line-2);color:var(--navy);border-radius:9px;padding:7px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
 </style>
 <div id="mov-modal" class="mov-back" onclick="if(event.target===this)cerrarMov()">
   <div class="mov-card">
     <div class="mov-head"><span id="mov-title">Registrar ingreso</span><button class="mov-x" onclick="cerrarMov()">✕</button></div>
     <div class="mov-body">
       <label class="mov-lbl">Material</label>
-      <select id="mov-mat" class="mov-in" onchange="movStockHint()"></select>
+      <!-- Se elige por la foto (02/10/2026): con solo el nombre no se distinguían.
+           El <select> queda oculto y guarda el elegido para el resto de la lógica. -->
+      <select id="mov-mat" class="mov-in" onchange="movStockHint()" style="display:none"></select>
+      <div id="mov-elegido"></div>
+      <div id="mov-elegir">
+        <input id="mov-buscar" class="mov-in" placeholder="Buscar por nombre, proveedor o línea…" oninput="movPicker()" autocomplete="off">
+        <div class="mov-pick" id="mov-pick"></div>
+      </div>
       <div class="mov-stock" id="mov-stock"></div>
       <label class="mov-lbl">Cantidad</label>
       <input id="mov-cant" class="mov-in" type="number" min="1" step="1" inputmode="numeric" placeholder="0" oninput="movStockHint()">
