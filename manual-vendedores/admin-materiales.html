@@ -107,6 +107,9 @@
   .rec-vis{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;color:var(--navy,#0d2238);margin-top:9px;padding-top:9px;border-top:1px solid var(--line);cursor:pointer;user-select:none}
   .rec-vis input{width:16px;height:16px;accent-color:var(--gold-d);cursor:pointer;flex:none}
   .rec-dep svg{width:13px;height:13px;flex:none}
+  /* Editar stock desde la tarjeta (02/10/2026): se pone el número real y queda un ajuste. */
+  .rec-edit{display:block;width:100%;margin-top:9px;background:var(--surface2,#FBF9F5);border:1px solid var(--line-2,rgba(31,68,127,.16));color:var(--navy);border-radius:9px;padding:7px 10px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .rec-edit:hover{border-color:var(--navy)}
 
   /* Charts */
   .charts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px}
@@ -335,6 +338,7 @@
           <div class="rec-prov">${esc(PROV[m.supplier_id]||'Sin proveedor')}</div>
           <div class="rec-linea">${esc(BRANDS[m.brand_id]||'—')}</div>
           <div class="rec-dep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(WH[m.warehouse_id]||'—')}</div>
+          <button class="rec-edit" type="button" onclick="abrirAjuste('${m.id}')">✎ Editar stock</button>
           <label class="rec-vis" title="Si está prendido, los vendedores lo ven en su app"><input type="checkbox" ${m.visible_to_sellers?'checked':''} onchange="toggleVisible('${m.id}',this.checked)"><span>Visible para vendedores</span></label>
         </div></div>`;
     }).join('');
@@ -405,7 +409,7 @@
     el.innerHTML=ultimos.map(mv=>{
       const ic=ICON[mv.movement_type]||ICON.ingreso;
       const cuando=fechaRel(mv.created_at);
-      const tipo={ingreso:'Ingreso',entrega:'Entrega',salida:'Salida',devolucion:'Devolución',baja:'Baja'}[mv.movement_type]||mv.movement_type;
+      const tipo={ingreso:'Ingreso',entrega:'Entrega',salida:'Salida',devolucion:'Devolución',baja:'Baja',ajuste_positivo:'Ajuste (+)',ajuste_negativo:'Ajuste (−)'}[mv.movement_type]||mv.movement_type;
       return `<div class="act"><div class="act-ico ${ic.c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ic.s}</svg></div><div><div class="act-t">${tipo} de ${fmt(mv.quantity)} · ${esc(nombreMat[mv.material_id]||'material')}</div><div class="act-d">${cuando}${mv.created_by?' · '+esc(mv.created_by):''}</div></div></div>`;
     }).join('');
   }
@@ -553,6 +557,7 @@
           <div class="rec-prov">${esc(PROV[m.supplier_id]||'Sin proveedor')}</div>
           <div class="rec-linea">${esc(BRANDS[m.brand_id]||'—')}</div>
           <div class="rec-dep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(WH[m.warehouse_id]||'—')} <span class="est ${e.cls}" style="margin-left:auto">${e.txt}</span></div>
+          <button class="rec-edit" type="button" onclick="abrirAjuste('${m.id}')">✎ Editar stock</button>
         </div></div>`;
     }).join('');
   }
@@ -611,6 +616,79 @@
     </div>
   </div>
 </div>
+
+<!-- Editar stock (02/10/2026): se pone la cantidad real y se registra la diferencia
+     como ajuste (ajuste_positivo / ajuste_negativo), así queda en el historial. -->
+<div id="aj-modal" class="mov-back" onclick="if(event.target===this)cerrarAjuste()">
+  <div class="mov-card">
+    <div class="mov-head"><span>Editar stock</span><button class="mov-x" onclick="cerrarAjuste()">✕</button></div>
+    <div class="mov-body">
+      <div style="font-size:15px;font-weight:800;color:var(--ink)" id="aj-nombre"></div>
+      <div class="mov-stock" id="aj-actual"></div>
+      <label class="mov-lbl" for="aj-cant">Stock real (lo que hay hoy)</label>
+      <input id="aj-cant" class="mov-in" type="number" min="0" step="1" inputmode="numeric" oninput="ajusteHint()">
+      <div class="mov-stock" id="aj-hint"></div>
+      <label class="mov-lbl" for="aj-nota">Motivo (opcional)</label>
+      <textarea id="aj-nota" class="mov-in" placeholder="Ej: conteo del depósito / se rompieron 2"></textarea>
+      <div class="mov-msg" id="aj-msg"></div>
+      <div class="mov-acts">
+        <button class="mov-btn sec" onclick="cerrarAjuste()">Cancelar</button>
+        <button class="mov-btn pri-in" id="aj-save" onclick="guardarAjuste()">✓ Guardar stock</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  let _ajMat = null;
+  function abrirAjuste(id){
+    _ajMat = MATS.find(m=>String(m.id)===String(id)); if(!_ajMat) return;
+    document.getElementById('aj-nombre').textContent = _ajMat.name || '(sin nombre)';
+    document.getElementById('aj-actual').innerHTML = `Stock actual: <b>${fmt(Number(_ajMat.stock_actual||0))}</b>`;
+    document.getElementById('aj-cant').value = Number(_ajMat.stock_actual||0);
+    document.getElementById('aj-nota').value = '';
+    document.getElementById('aj-msg').textContent = '';
+    document.getElementById('aj-save').disabled = false;
+    ajusteHint();
+    document.getElementById('aj-modal').classList.add('open');
+    setTimeout(()=>{ const i=document.getElementById('aj-cant'); i.focus(); i.select(); }, 50);
+  }
+  function cerrarAjuste(){ document.getElementById('aj-modal').classList.remove('open'); }
+  function ajusteHint(){
+    const box = document.getElementById('aj-hint'); if(!_ajMat){ box.innerHTML=''; return; }
+    const v = document.getElementById('aj-cant').value;
+    if(v===''){ box.innerHTML=''; return; }
+    const d = Math.floor(Number(v)) - Number(_ajMat.stock_actual||0);
+    box.innerHTML = d===0 ? 'Sin cambios.' : (d>0 ? `Se suman <b>${fmt(d)}</b>.` : `Se restan <b>${fmt(-d)}</b>.`);
+  }
+  async function guardarAjuste(){
+    const msg=document.getElementById('aj-msg'), save=document.getElementById('aj-save');
+    const v = document.getElementById('aj-cant').value, nota = document.getElementById('aj-nota').value.trim();
+    const nuevo = Math.floor(Number(v));
+    if(v==='' || !(nuevo>=0)){ msg.style.color='var(--red)'; msg.textContent='Poné la cantidad real (0 o más).'; return; }
+    save.disabled=true; msg.style.color='var(--ink2)'; msg.textContent='Guardando…';
+    try{
+      // Stock fresco justo antes de guardar: si alguien movió algo mientras tanto, la diferencia se calcula bien.
+      const { data:mAct, error:e1 } = await sb.from('materials_with_stock').select('stock_actual').eq('id',_ajMat.id).single();
+      if(e1) throw e1;
+      const prev = Number(mAct?.stock_actual||0), dif = nuevo - prev;
+      if(dif===0){ msg.style.color='var(--green)'; msg.textContent='El stock ya era ese: no hubo cambios.'; setTimeout(cerrarAjuste, 900); return; }
+      const row = { material_id:_ajMat.id, movement_type: dif>0 ? 'ajuste_positivo' : 'ajuste_negativo', quantity: Math.abs(dif),
+        previous_stock: prev, resulting_stock: nuevo,
+        notes: ('Stock corregido de ' + prev + ' a ' + nuevo) + (nota ? ' · ' + nota : ''),
+        created_by: (sessionStorage.getItem('admin_perfil')||'marketing') };
+      const { error } = await sb.from('material_stock_movements').insert(row);
+      if(error) throw error;
+      const [mR,mvR]=await Promise.all([
+        sb.from('materials_with_stock').select('*').eq('is_active',true).order('created_at',{ascending:false}),
+        sb.from('material_stock_movements').select('*').order('created_at',{ascending:false}).limit(400),
+      ]);
+      MATS=mR.data||MATS; MOVS=mvR.data||MOVS;
+      renderDash(); renderCat();
+      msg.style.color='var(--green)'; msg.textContent='✓ Stock actualizado: '+fmt(nuevo)+'.';
+      setTimeout(cerrarAjuste, 900);
+    }catch(e){ save.disabled=false; msg.style.color='var(--red)'; msg.textContent='No se pudo guardar: '+(e.message||e); }
+  }
+</script>
 <script src="/assets/minuta-fab.js?v=2"></script>
 <script src="_comercial-nav.js?v=5" data-solo="compras"></script>
 </body>
