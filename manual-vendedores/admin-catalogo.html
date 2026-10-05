@@ -434,6 +434,12 @@
       let imgUrl=null;
       if(fileSel) imgUrl=await subirImagen(tipo);
       if(tipo==='prov'){
+        // Nada de proveedores repetidos (05/10/2026): había dos "Pernod Ricard", uno con los
+        // materiales y otro con los productos, y en las listas aparecían los dos.
+        const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+        const { data:ya } = await sb.from('proveedores').select('id,nombre');
+        const igual = (ya||[]).find(p => norm(p.nombre) === norm(nombre) && String(p.id) !== String(editId||''));
+        if(igual){ btn.disabled=false; mostrarMsg(`Ya existe el proveedor "${igual.nombre}". Usá ese en lugar de crear otro.`,'err'); return; }
         const row={ nombre };
         if(imgUrl) row.logo_url=imgUrl;
         const r = editId
