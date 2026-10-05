@@ -466,7 +466,7 @@ function filaAccion(a) {
 
   // proveedor dropdown
   const selProv = el('select', { class: 'cell-in' });
-  state.proveedores.forEach((p) =>
+  provAlfabetico().forEach((p) =>
     selProv.appendChild(el('option', { value: p.id, ...(p.id === a.proveedor_id ? { selected: '' } : {}) },
       `${p.nombre} (${p.categoria})`)));
   selProv.addEventListener('change', async () => {
@@ -617,9 +617,15 @@ async function eliminarAccion(a) {
   refreshAcciones();
 }
 
+// Los desplegables de proveedor van en orden alfabético (05/10/2026). La lista de la
+// pestaña Proveedores sigue con su propio orden (categoría y orden manual).
+function provAlfabetico() {
+  return [...state.proveedores].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
+}
+
 function abrirNuevaAccion() {
   const selProv = el('select', {});
-  state.proveedores.forEach((p) =>
+  provAlfabetico().forEach((p) =>
     selProv.appendChild(el('option', { value: p.id }, `${p.nombre} (${p.categoria})`)));
   const nombre = el('input', { type: 'text', placeholder: 'Ej: FERNET BUHERO NEGRO' });
   const sku = el('input', { type: 'text', placeholder: 'SKU promo (opcional)' });
