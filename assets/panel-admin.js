@@ -411,7 +411,7 @@ const US_ROLES = [
   { k:'marketing',      n:'Marketing',       d:'Materiales y catálogo de acciones.' },
   { k:'administracion', n:'Administración',  d:'Cobranzas y cuenta corriente.' },
   { k:'tesoreria',      n:'Tesorería',       d:'Revisión de cobranzas.' },
-  { k:'equipo_admin',   n:'Equipo de administración', d:'Sebastián, Andrea, Laura y Khaty: sus tareas (las asigna Brenda), la agenda del equipo y la propia.' },
+  { k:'equipo_admin',   n:'Equipo de administración', d:'Sebastián, Andrea, Laura y Kathy: sus tareas (las asigna Brenda), la agenda del equipo y la propia.' },
   { k:'deposito',       n:'Depósito',        d:'Stock, vencimientos, materiales.' },
   { k:'mayorista',      n:'Mayorista',       d:'Puntos de venta al público.' },
   { k:'reportes',       n:'Reportes',        d:'Solo dashboards.' },

@@ -3,7 +3,7 @@
 --  Correr en el proyecto del PORTAL (xqhyemccbwmzxqzkrtwa) → SQL Editor.
 --
 --  Sebastián (analista de datos), Andrea (facturación), Laura (pagos y
---  proveedores) y Khaty (contadora) tienen su panel: equipo-panel.html.
+--  proveedores) y Kathy (contadora) tienen su panel: equipo-panel.html.
 --  Rol nuevo: equipo_admin. Ven sus tareas (las asigna Brenda), la agenda del
 --  equipo (compartida con Brenda y Mónica) y su agenda personal.
 -- ============================================================
@@ -18,11 +18,11 @@ $$;
 revoke all on function public.es_area_admin() from public;
 grant execute on function public.es_area_admin() to authenticated;
 
--- 2) Nombres y puestos del equipo (Seba → Sebastián, Katy → Khaty).
+-- 2) Nombres y puestos del equipo (Seba → Sebastián, Katy → Kathy).
 update public.admin_equipo set nombre = 'Sebastián', puesto = 'Analista de datos'   where nombre in ('Seba', 'Sebastián', 'Sebastian');
 update public.admin_equipo set puesto = 'Facturación'                               where nombre = 'Andrea';
 update public.admin_equipo set puesto = 'Pagos y proveedores'                       where nombre = 'Laura';
-update public.admin_equipo set nombre = 'Khaty', puesto = 'Contadora'               where nombre in ('Katy', 'Khaty');
+update public.admin_equipo set nombre = 'Kathy', puesto = 'Contadora'               where nombre in ('Katy', 'Khaty', 'Kathy');
 
 -- 3) Las cuentas: primero se crean en Authentication → Users (una por persona).
 --    Después, el rol se elige en el panel de Usuarios de Desarrollo/Diseño
