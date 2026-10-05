@@ -46,6 +46,10 @@
   (async function () {
     const s = await GBAuth.requireAuth();
     if (!s) return;
+    // Cada panel abre la agenda del equipo adentro, con su propio menú (06/10/2026).
+    const rol = String(s.role || '').toLowerCase();
+    if (rol === 'administracion') { location.replace('panel-cobranzas.html#agenda-equipo'); return; }
+    if (rol === 'equipo_admin')   { location.replace('equipo-panel.html#agenda'); return; }
     const quien = document.getElementById('eq-quien');
     if (quien) quien.textContent = s.nombre || '';
     eqAgenda();

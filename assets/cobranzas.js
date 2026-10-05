@@ -66,6 +66,7 @@ function cobChip(id) {
 
 function cobTablero() {
   COB_VISTA = 'tablero'; cobNav();
+  if (window.COB_HASH && location.hash) history.replaceState(null, '', location.pathname);
   cq('cob').innerHTML = `
     <div class="head"><div>
       <h1>Cobranzas</h1>
@@ -92,15 +93,27 @@ function cobTablero() {
 // Solo a tesorería: Dirección usa este mismo archivo dentro de su marco y no sale de él.
 const cobEsTesoreria = () => String((COB_RESUMEN && COB_RESUMEN.rol) || '').toLowerCase() === 'tesoreria';
 
+// Herramientas que la página suma al menú, además de las de cobranzas (06/10/2026):
+// en panel-cobranzas.html, Agenda del equipo, Mi agenda y Mis reportes, que se abren
+// adentro del panel. window.COB_EXTRA = [{ id, ico, n, abrir() }]. Dirección no las usa.
+const cobExtra = () => Array.isArray(window.COB_EXTRA) ? window.COB_EXTRA : [];
+
 function cobNav() {
   const nav = cq('cob-nav'); if (!nav) return;
+  const extra = cobExtra();
   nav.innerHTML = `<button class="sb-item ${COB_VISTA==='tablero'?'on':''}" onclick="cobTablero()"><span class="i">🏠</span> Tablero</button>` +
     (cobEsTesoreria() ? `<a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">💳</span> Revisión de cobranzas</a>` : '') +
-    COB_SECCIONES.map(s => `<button class="sb-item ${COB_VISTA===s.id?'on':''}" onclick="cobAbrir('${s.id}')"><span class="i">${s.ico}</span> ${cesc(s.n)}</button>`).join('');
+    COB_SECCIONES.map(s => `<button class="sb-item ${COB_VISTA===s.id?'on':''}" onclick="cobAbrir('${s.id}')"><span class="i">${s.ico}</span> ${cesc(s.n)}</button>`).join('') +
+    (extra.length ? `<div class="sb-grupo">Equipo y lo mío</div>` +
+      extra.map(s => `<button class="sb-item ${COB_VISTA===s.id?'on':''}" onclick="cobAbrir('${s.id}')"><span class="i">${s.ico}</span> ${cesc(s.n)}</button>`).join('') : '');
 }
 
 function cobAbrir(id) {
   COB_VISTA = id; cobNav();
+  // Que la dirección diga en qué sección está (así un aviso o un enlace puede abrirla).
+  if (window.COB_HASH) history.replaceState(null, '', id === 'tablero' ? location.pathname : '#' + id);
+  const ex = cobExtra().find(s => s.id === id);
+  if (ex) return ex.abrir();
   ({ clientes: cobClientes, bloquear: cobBloquear, efectivo: cobEfectivo,
      comprobantes: cobComprobantes, reclamos: cobReclamos,
      estadisticas: cobEstadisticas, whatsapp: cobWhatsapp,
@@ -889,5 +902,8 @@ async function montarCobranzas() {
     cq('cob').innerHTML = `<div class="head"><div><h1>Cobranzas</h1></div></div>` + cerror(COB_RESUMEN._error);
     return;
   }
-  cobTablero();
+  // Si se llegó con #seccion (desde un aviso o un enlace), se abre esa sección.
+  const pedida = (location.hash || '').slice(1);
+  if (pedida && (COB_SECCIONES.some(s => s.id === pedida) || cobExtra().some(s => s.id === pedida))) cobAbrir(pedida);
+  else cobTablero();
 }

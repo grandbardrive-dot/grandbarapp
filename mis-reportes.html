@@ -11,6 +11,10 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- ?embed=1: se muestra dentro del marco de otro panel (Cobranzas de Brenda, 06/10/2026):
+     sin barra lateral, sin menú del celular y sin botones flotantes propios. -->
+<script>if(/[?&]embed=1\b/.test(location.search))document.documentElement.classList.add('gb-embed')</script>
+<style>.gb-embed .sidebar,.gb-embed nav.bottomnav,.gb-embed #gb-mtop,.gb-embed #gb-mobile-overlay,.gb-embed #mfab-btn,.gb-embed button[aria-label="Notificaciones"]{display:none!important}</style>
 <title>GrandBar Hub — Mis reportes</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <style>
@@ -161,12 +165,14 @@ $('enviar').onclick=async()=>{
   const {data:u}=await hub.from('usuarios').select('nombre,rol').eq('id',session.user.id).maybeSingle();
   // Luciana manda sus reportes desde su panel comercial, sin cambiar de pantalla (30/09/2026).
   if(u&&String(u.rol||'').toLowerCase()==='compras'){ location.replace('manual-vendedores/admin-reportes.html'); return; }
+  // Brenda (administración) los manda desde su panel de Cobranzas (06/10/2026).
+  if(u&&String(u.rol||'').toLowerCase()==='administracion'&&!document.documentElement.classList.contains('gb-embed')){ location.replace('panel-cobranzas.html#reportes'); return; }
   if(u&&u.nombre) $('sub').textContent=u.nombre+' · reportes para Dirección';
   if(u&&u.nombre){ $('uName').textContent=u.nombre; $('av').textContent=u.nombre.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
   cargar();
 })();
 </script>
-<script src="assets/hub-nav.js?v=5"></script>
+<script src="assets/hub-nav.js?v=6"></script>
 <script src="assets/notif.js?v=2"></script>
 <script src="assets/user-menu.js?v=1"></script>
 <script src="assets/mobile-nav.js?v=1"></script>
