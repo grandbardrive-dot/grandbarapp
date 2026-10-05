@@ -93,6 +93,33 @@
     </div>
   </div>
 
+<style>
+  .prop-edit{margin-top:9px;display:inline-flex;align-items:center;gap:6px;background:var(--gold-s);border:1.5px solid #ecdcb2;color:#8a6a1e;border-radius:9px;padding:7px 13px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
+  .prop-edit:hover{border-color:var(--gold);color:var(--gold-d)}
+  .ep-field{display:block;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 6px}
+  .ep-in{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px}
+  .ep-in:focus{outline:none;border-color:var(--gold)}
+</style>
+<!-- Modal: editar propuesta con cambios y reenviar -->
+<div id="epModal" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:100;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)cerrarEdit()">
+  <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;padding:22px;max-height:92vh;overflow:auto">
+    <input type="hidden" id="epId">
+    <h3 style="margin:0 0 3px;font-size:18px;color:var(--navy)">Editar y reenviar</h3>
+    <div id="epCtx" style="font-size:12.5px;color:var(--muted);margin-bottom:10px"></div>
+    <div id="epNota" style="font-size:12.5px;color:#8a6a1e;background:var(--amber-s);border:1px solid #ecdcb2;border-radius:8px;padding:9px 11px;margin-bottom:6px"></div>
+    <label class="ep-field">Título</label>
+    <input id="epTitulo" class="ep-in" type="text" placeholder="Título de la acción">
+    <label class="ep-field">Condición (opcional)</label>
+    <input id="epCond" class="ep-in" type="text" placeholder="Ej: tope 1 combo por PDV">
+    <label class="ep-field">Descripción / detalle</label>
+    <textarea id="epDesc" class="ep-in" rows="5" placeholder="Detalle de la acción, con los cambios que te pidió Luci…" style="resize:vertical"></textarea>
+    <div id="epMsg" style="font-size:13px;margin:12px 0 8px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button type="button" onclick="cerrarEdit()" style="background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;color:var(--ink);cursor:pointer">Cancelar</button>
+      <button type="button" id="epSend" onclick="guardarEditProp()" style="background:var(--gold);border:none;border-radius:10px;padding:10px 18px;font:inherit;font-weight:800;color:#fff;cursor:pointer">Reenviar a Luci</button>
+    </div>
+  </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
 <script>
@@ -208,24 +235,62 @@ async function cargarAlertas(){
   }catch(e){ $('alertas').innerHTML='<div class="empty">No se pudieron cargar las oportunidades.</div>'; }
 }
 
+let _props=[];
 async function cargarPropuestas(){
   try{
     const { data } = await sb.from('propuestas_acciones')
       .select('*').eq('autor_empresa',PROV.empresa).order('created_at',{ascending:false}).limit(60);
-    const rows=data||[];
+    _props=data||[];
     const cont=$('props');
-    if(!rows.length){ cont.innerHTML='<div class="empty">Todavía no cargaste ninguna propuesta.<br>Entrá a <b>Manual de vendedores</b> y proponé tu primera acción.</div>'; return; }
-    cont.innerHTML=rows.map(p=>{
+    if(!_props.length){ cont.innerHTML='<div class="empty">Todavía no cargaste ninguna propuesta.<br>Entrá a <b>Manual de vendedores</b> y proponé tu primera acción.</div>'; return; }
+    cont.innerHTML=_props.map(p=>{
       const [cls,txt]=ESTADO[p.estado]||ESTADO.pendiente;
       const nota=(p.estado==='cambios'||p.estado==='descartada')&&p.nota_revision?`<div class="pnota">📝 ${esc(p.nota_revision)}</div>`:'';
+      const btn=p.estado==='cambios'?`<button type="button" class="prop-edit" onclick="editarProp('${p.id}')">✎ Editar y reenviar</button>`:'';
       return `<div class="prop"><div class="pi">
         <div class="pt">${esc(p.titulo)}${p.condicion?' · '+esc(p.condicion):''}</div>
         <div class="pm">${esc(rLbl(p.rubro))} › ${esc(p.seccion)}${p.subseccion?' › '+esc(p.subseccion):''}</div>
-        ${nota}
+        ${nota}${btn}
       </div><span class="chip ${cls}">${txt}</span></div>`;
     }).join('');
   }catch(e){ $('props').innerHTML='<div class="empty">No se pudieron cargar tus propuestas.</div>'; }
 }
+
+// ── Editar una propuesta que Luci devolvió con cambios y reenviarla ──────────
+function editarProp(id){
+  const p=_props.find(x=>String(x.id)===String(id)); if(!p) return;
+  $('epId').value=p.id;
+  $('epCtx').innerHTML=`<b>${esc(rLbl(p.rubro))} › ${esc(p.seccion)}${p.subseccion?' › '+esc(p.subseccion):''}</b>`;
+  $('epNota').textContent=p.nota_revision?('📝 Luci te pidió: '+p.nota_revision):'Hacé los cambios y reenviá tu propuesta.';
+  $('epTitulo').value=p.titulo||'';
+  $('epCond').value=p.condicion||'';
+  $('epDesc').value=p.descripcion||'';
+  $('epMsg').textContent='';
+  $('epSend').disabled=false;
+  $('epModal').style.display='flex';
+}
+function cerrarEdit(){ $('epModal').style.display='none'; }
+window.editarProp=editarProp; window.cerrarEdit=cerrarEdit;
+async function guardarEditProp(){
+  const id=$('epId').value;
+  const msg=(t,c)=>{ $('epMsg').textContent=t; $('epMsg').style.color=c||'var(--muted)'; };
+  const titulo=($('epTitulo').value||'').trim();
+  if(!titulo){ msg('El título no puede quedar vacío.','var(--danger)'); return; }
+  $('epSend').disabled=true; msg('Reenviando…');
+  try{
+    const { error }=await sb.from('propuestas_acciones').update({
+      titulo,
+      condicion:($('epCond').value||'').trim()||null,
+      descripcion:($('epDesc').value||'').trim()||null,
+      estado:'pendiente',
+      nota_revision:null
+    }).eq('id',id);
+    if(error) throw error;
+    msg('✅ Reenviada. Luci la va a revisar de nuevo.','var(--green-d)');
+    setTimeout(()=>{ cerrarEdit(); cargarPropuestas(); },1100);
+  }catch(e){ msg('No se pudo reenviar: '+(e.message||e),'var(--danger)'); $('epSend').disabled=false; }
+}
+window.guardarEditProp=guardarEditProp;
 </script>
 <script src="/assets/minuta-fab.js?v=2"></script>
 </body>
