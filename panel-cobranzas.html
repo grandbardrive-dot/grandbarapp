@@ -44,17 +44,21 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/supabase-config.js"></script>
 <script src="assets/auth.js"></script>
-<script src="assets/cobranzas.js?v=12"></script>
+<script src="assets/cobranzas.js?v=13"></script>
 <script src="assets/equipo-admin.js?v=3"></script>
 <script>
   // Lo que se suma al menú de Cobranzas: se abre adentro del panel, sin cambiar de pantalla.
+  // Brenda (administración) y Mónica (tesorería) trabajan todo desde acá (06/10/2026).
   const cobMarco = (src, titulo) => { cq('cob').innerHTML = `<iframe class="cob-marco" src="${src}" title="${titulo}"></iframe>`; };
   window.COB_HASH = true;
   window.COB_EXTRA = [
+    { id:'revision',      ico:'💳', n:'Revisión de cobranzas', roles:['tesoreria'], arriba:true, abrir: () => cobMarco('/cobranzas-tesoreria.html?embed=1', 'Revisión de cobranzas') },
     { id:'agenda-equipo', ico:'📅', n:'Agenda del equipo', abrir: () => eqAgenda() },
     { id:'mi-agenda',     ico:'🗓️', n:'Mi agenda',         abrir: () => cobMarco('/mi-agenda.html?embed=1', 'Mi agenda') },
-    { id:'reportes',      ico:'📊', n:'Mis reportes',      abrir: () => cobMarco('/mis-reportes.html?embed=1', 'Mis reportes') },
+    { id:'reportes',      ico:'📊', n:'Mis reportes', roles:['administracion'], abrir: () => cobMarco('/mis-reportes.html?embed=1', 'Mis reportes') },
   ];
+  // Mónica arranca en la Revisión de cobranzas, que es su trabajo de todos los días.
+  window.COB_INICIO = { tesoreria: 'revision' };
   document.getElementById('cob-salir').addEventListener('click', async ev => {
     ev.currentTarget.disabled = true;
     try { localStorage.removeItem('gb_nav_rol'); localStorage.removeItem('gb_es_sup'); } catch (e) {}

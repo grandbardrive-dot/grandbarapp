@@ -86,7 +86,7 @@
   // del vendedor (Clientes, Leads, Ruta IA…) y quedaban en un panel ajeno (30/09/2026).
   // Ahora ven solo lo suyo y la vuelta a su panel, como en mi-agenda.html.
   function itemsNoVende(rol) {
-    const panel = { compras:'manual-vendedores/admin-comercial.html', diseno:'panel-diseno.html', marketing:'panel-diseno.html', desarrollo:'panel-desarrollo.html', equipo_admin:'equipo-panel.html', administracion:'panel-cobranzas.html' }[rol] || 'hub.html';
+    const panel = { compras:'manual-vendedores/admin-comercial.html', diseno:'panel-diseno.html', marketing:'panel-diseno.html', desarrollo:'panel-desarrollo.html', equipo_admin:'equipo-panel.html', administracion:'panel-cobranzas.html', tesoreria:'panel-cobranzas.html' }[rol] || 'hub.html';
     return [
       { t:'Volver a mi panel', h:panel,               m:'Mi panel', svg:'<path d="M15 6l-6 6 6 6"/>' },
       { t:'Mis reportes',      h:'mis-reportes.html', m:'Reportes', svg:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>' },

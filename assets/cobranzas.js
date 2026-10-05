@@ -73,10 +73,12 @@ function cobTablero() {
       <div class="head-sub">Cuenta corriente, comprobantes y reclamos, más las tareas del equipo.</div>
     </div></div>
     <div class="cb-cards">
-      ${cobEsTesoreria() ? `<a class="cb-card" style="border-top-color:#1f447f;text-decoration:none;color:inherit" href="cobranzas-tesoreria.html">
+      ${cobEsTesoreria() ? (cobRevisionAdentro()
+        ? `<button class="cb-card" style="border-top-color:#1f447f" onclick="cobAbrir('revision')">`
+        : `<a class="cb-card" style="border-top-color:#1f447f;text-decoration:none;color:inherit" href="cobranzas-tesoreria.html">`) + `
           <div class="ico" style="background:#1f447f1a">💳</div>
           <h3>Revisión de cobranzas</h3><p>Pagos que ya pasó el vendedor: cruzarlos con el banco y aceptarlos o rechazarlos.</p>
-          <span class="cb-chip">Abrir</span></a>` : ''}
+          <span class="cb-chip">Abrir</span>${cobRevisionAdentro() ? '</button>' : '</a>'}` : ''}
       ${COB_SECCIONES.map(s => {
         const chip = cobChip(s.id);
         return `<button class="cb-card" style="border-top-color:${s.color}" onclick="cobAbrir('${s.id}')">
@@ -95,17 +97,23 @@ const cobEsTesoreria = () => String((COB_RESUMEN && COB_RESUMEN.rol) || '').toLo
 
 // Herramientas que la página suma al menú, además de las de cobranzas (06/10/2026):
 // en panel-cobranzas.html, Agenda del equipo, Mi agenda y Mis reportes, que se abren
-// adentro del panel. window.COB_EXTRA = [{ id, ico, n, abrir() }]. Dirección no las usa.
-const cobExtra = () => Array.isArray(window.COB_EXTRA) ? window.COB_EXTRA : [];
+// adentro del panel. window.COB_EXTRA = [{ id, ico, n, abrir(), roles?, arriba? }]:
+// `roles` = solo para esos roles; `arriba` = va pegada al Tablero (la Revisión de
+// cobranzas de Mónica) y no en "Equipo y lo mío". Dirección no las usa.
+const cobRol = () => String((COB_RESUMEN && COB_RESUMEN.rol) || '').toLowerCase();
+const cobExtra = () => (Array.isArray(window.COB_EXTRA) ? window.COB_EXTRA : [])
+  .filter(s => !s.roles || s.roles.includes(cobRol()));
+const cobRevisionAdentro = () => cobExtra().some(s => s.id === 'revision');
 
 function cobNav() {
   const nav = cq('cob-nav'); if (!nav) return;
-  const extra = cobExtra();
+  const extra = cobExtra(), boton = s => `<button class="sb-item ${COB_VISTA===s.id?'on':''}" onclick="cobAbrir('${s.id}')"><span class="i">${s.ico}</span> ${cesc(s.n)}</button>`;
+  const abajo = extra.filter(s => !s.arriba);
   nav.innerHTML = `<button class="sb-item ${COB_VISTA==='tablero'?'on':''}" onclick="cobTablero()"><span class="i">🏠</span> Tablero</button>` +
-    (cobEsTesoreria() ? `<a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">💳</span> Revisión de cobranzas</a>` : '') +
-    COB_SECCIONES.map(s => `<button class="sb-item ${COB_VISTA===s.id?'on':''}" onclick="cobAbrir('${s.id}')"><span class="i">${s.ico}</span> ${cesc(s.n)}</button>`).join('') +
-    (extra.length ? `<div class="sb-grupo">Equipo y lo mío</div>` +
-      extra.map(s => `<button class="sb-item ${COB_VISTA===s.id?'on':''}" onclick="cobAbrir('${s.id}')"><span class="i">${s.ico}</span> ${cesc(s.n)}</button>`).join('') : '');
+    (cobEsTesoreria() && !cobRevisionAdentro() ? `<a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">💳</span> Revisión de cobranzas</a>` : '') +
+    extra.filter(s => s.arriba).map(boton).join('') +
+    COB_SECCIONES.map(boton).join('') +
+    (abajo.length ? `<div class="sb-grupo">Equipo y lo mío</div>` + abajo.map(boton).join('') : '');
 }
 
 function cobAbrir(id) {
@@ -903,7 +911,8 @@ async function montarCobranzas() {
     return;
   }
   // Si se llegó con #seccion (desde un aviso o un enlace), se abre esa sección.
-  const pedida = (location.hash || '').slice(1);
+  // Si no, la sección con la que arranca cada rol (window.COB_INICIO, ej. tesorería → revisión).
+  const pedida = (location.hash || '').slice(1) || ((window.COB_INICIO || {})[cobRol()] || '');
   if (pedida && (COB_SECCIONES.some(s => s.id === pedida) || cobExtra().some(s => s.id === pedida))) cobAbrir(pedida);
   else cobTablero();
 }

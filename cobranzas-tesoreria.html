@@ -11,6 +11,10 @@
 <link rel="manifest" href="/manifest.webmanifest">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- ?embed=1: se muestra dentro del panel de Cobranzas de Mónica (06/10/2026), sin su
+       propia barra ni el menú del celular. -->
+  <script>if(/[?&]embed=1\b/.test(location.search))document.documentElement.classList.add('gb-embed')</script>
+  <style>.gb-embed .sidebar,.gb-embed nav.bottomnav,.gb-embed #gb-mtop,.gb-embed #gb-mobile-overlay,.gb-embed #mfab-btn{display:none!important}</style>
   <title>GrandBar Hub — Revisión de Cobranzas</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
@@ -327,6 +331,8 @@
     token = session.access_token;
     try{
       const { data:p } = await hub.from("usuarios").select("nombre,rol").eq("id", session.user.id).maybeSingle();
+      // Mónica trabaja todo desde su panel de Cobranzas: esta pantalla se abre adentro (06/10/2026).
+      if(p && String(p.rol||"").toLowerCase()==="tesoreria" && !document.documentElement.classList.contains("gb-embed")){ location.replace("panel-cobranzas.html#revision"); return; }
       const n=(p&&p.nombre)||session.user.email;
       document.getElementById("uName").textContent=n;
       document.getElementById("av").textContent=initials(n);
