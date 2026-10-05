@@ -76,7 +76,7 @@
 <body>
 <header class="topbar">
   <button class="back" onclick="location.href='admin-materiales.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-  <div class="top-t">Nuevo material</div>
+  <div class="top-t" id="top-t">Nuevo material</div>
 </header>
 
 <div class="wrap">
@@ -102,7 +102,7 @@
       <input id="i-name" placeholder="Ej: Exhibidor de mostrador" oninput="st.name=this.value">
     </div>
     <div class="row2">
-      <div class="fld"><label>Cantidad *</label><input id="i-cant" type="number" min="0" inputmode="numeric" placeholder="0" oninput="st.cantidad=this.value"></div>
+      <div class="fld" id="fld-cant"><label>Cantidad *</label><input id="i-cant" type="number" min="0" inputmode="numeric" placeholder="0" oninput="st.cantidad=this.value"></div>
       <div class="fld"><label>Unidad</label><select id="i-unit" onchange="st.unit_type=this.value"></select></div>
     </div>
     <div class="fld">
@@ -142,6 +142,11 @@
     name:'', cantidad:'', unit_type:'unidad', warehouse_id:'', supplier_id:'', linea:'',
   };
   let PROV=[], WH=[], BRANDS=[];
+  // ?id=… → editar un material que ya existe (05/10/2026). El stock no se toca acá:
+  // se cambia con "± Stock" en el catálogo, que deja el movimiento en el historial.
+  const EDIT_ID = new URLSearchParams(location.search).get('id');
+  let ORIG = null;   // el material como estaba, para no pisar la foto si no se cambia
+  let QUIEN = '';
 
   async function cargar(){
     const [p,w] = await Promise.all([
@@ -161,6 +166,37 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.5"/></svg>
         ${esc(w.name)}
       </button>`).join('');
+    if(EDIT_ID) await cargarParaEditar();
+  }
+
+  async function cargarParaEditar(){
+    document.getElementById('top-t').textContent = 'Editar material';
+    document.title = 'GrandBar — Editar material';
+    document.getElementById('btn-crear').textContent = '✓ Guardar cambios';
+    const el = document.getElementById('msg');
+    const { data:m, error } = await sb.from('materials_with_stock').select('*').eq('id', EDIT_ID).maybeSingle();
+    if(error || !m){ el.style.color='var(--red)'; el.textContent = 'No encontré ese material.'; document.getElementById('btn-crear').disabled = true; return; }
+    ORIG = m;
+    st.name = m.name || ''; document.getElementById('i-name').value = st.name;
+    // La cantidad no se edita acá: se muestra el stock y se cambia con "± Stock".
+    document.getElementById('fld-cant').innerHTML = `<label>Stock</label><div style="padding:12px 0;font-size:15px"><b>${Number(m.stock_actual||0).toLocaleString('es-AR')}</b> <span style="color:var(--ink3);font-size:12.5px">· se cambia con "± Stock" en el catálogo</span></div>`;
+    if(m.unit_type){
+      const su = document.getElementById('i-unit');
+      if(![...su.options].some(o => o.value === m.unit_type)) su.insertAdjacentHTML('beforeend', `<option>${esc(m.unit_type)}</option>`);
+      su.value = m.unit_type; st.unit_type = m.unit_type;
+    }
+    if(m.warehouse_id && WH.some(w => w.id === m.warehouse_id)) elegirDep(m.warehouse_id);
+    if(m.supplier_id){
+      document.getElementById('i-prov').value = m.supplier_id;
+      await onProv(m.supplier_id);
+      const b = m.brand_id ? (BRANDS.find(x => x.id === m.brand_id) || (await sb.from('brands').select('id,name').eq('id', m.brand_id).maybeSingle()).data) : null;
+      if(b){ st.linea = b.name; document.getElementById('i-linea').value = b.name; }
+    }
+    const img = m.processed_image_url || m.original_image_url;
+    if(img){
+      document.getElementById('photo-prev').innerHTML = `<img src="${esc(img)}" alt="">`;
+      document.getElementById('photo-ia').innerHTML = '<div class="ai-note">Esta es la foto actual. Si querés cambiarla, sacá o subí otra.</div>';
+    }
   }
   function elegirDep(id){
     st.warehouse_id=id;
@@ -243,6 +279,7 @@
   async function guardar(){
     if(guardando) return;
     if(!st.name.trim()) return toast('Poné un nombre al material.');
+    if(EDIT_ID) return guardarEdicion();
     if(st.cantidad===''||Number(st.cantidad)<0) return toast('Ingresá la cantidad.');
     if(!st.warehouse_id) return toast('Elegí el depósito (San Luis o Mendoza).');
     if(!st.supplier_id) return toast('Elegí el proveedor.');
@@ -284,6 +321,46 @@
       el.style.color='var(--red)'; el.textContent='No se pudo guardar: '+(e.message||e);
     }
   }
+
+  async function guardarEdicion(){
+    if(!ORIG) return;
+    if(!st.warehouse_id) return toast('Elegí el depósito (San Luis o Mendoza).');
+    if(!st.supplier_id) return toast('Elegí el proveedor.');
+    guardando=true;
+    const btn=document.getElementById('btn-crear'); btn.disabled=true; btn.textContent='Guardando…';
+    const el=document.getElementById('msg'); el.style.color='var(--ink2)'; el.textContent='Guardando cambios…';
+    try{
+      const cambios = { name:st.name.trim(), supplier_id:st.supplier_id||null, brand_id: await idLinea(),
+        unit_type:st.unit_type, warehouse_id:st.warehouse_id||null, updated_by:(QUIEN||'marketing') };
+      // Foto: solo si eligieron una nueva; si no, queda la que estaba.
+      if(st.fotoFile){
+        const original = st.original_image_url || await subirOriginal();
+        if(original){
+          cambios.original_image_url = original;
+          cambios.processed_image_url = (st.usarProcesada && st.processed_image_url) ? st.processed_image_url : null;
+          cambios.ai_processing_status = st.processed_image_url ? (st.usarProcesada ? 'completed' : 'usa_original') : 'failed';
+        }
+      }
+      const { data, error } = await sb.from('materials').update(cambios).eq('id', EDIT_ID).select('id');
+      if(error) throw error;
+      if(!data || !data.length) throw new Error('la base no aceptó el cambio (permisos).');
+      el.style.color='var(--green)'; el.textContent='✓ Cambios guardados. Volviendo…';
+      setTimeout(()=>location.href='admin-materiales.html',900);
+    }catch(e){
+      guardando=false; btn.disabled=false; btn.textContent='✓ Guardar cambios';
+      el.style.color='var(--red)'; el.textContent='No se pudo guardar: '+(e.message||e);
+    }
+  }
+
+  // Quién edita (nombre de la persona del Portal), para el "updated_by".
+  (async () => {
+    try{
+      const hub = supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc');
+      const { data:{ session } } = await hub.auth.getSession(); if(!session) return;
+      const { data:u } = await hub.from('usuarios').select('nombre').eq('id', session.user.id).maybeSingle();
+      QUIEN = (u && u.nombre) || '';
+    }catch(e){}
+  })();
 
   cargar();
 </script>

@@ -110,6 +110,8 @@
   /* Editar stock desde la tarjeta (02/10/2026): se pone el número real y queda un ajuste. */
   .rec-edit{display:block;width:100%;margin-top:9px;background:var(--surface2,#FBF9F5);border:1px solid var(--line-2,rgba(31,68,127,.16));color:var(--navy);border-radius:9px;padding:7px 10px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
   .rec-edit:hover{border-color:var(--navy)}
+  .rec-acts{display:flex;gap:6px;margin-top:9px}
+  .rec-acts .rec-edit{margin-top:0;flex:1}
 
   /* Charts */
   .charts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px}
@@ -387,7 +389,7 @@
           <div class="rec-prov">${esc(PROV[m.supplier_id]||'Sin proveedor')}</div>
           <div class="rec-linea">${esc(BRANDS[m.brand_id]||'—')}</div>
           <div class="rec-dep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(WH[m.warehouse_id]||'—')}</div>
-          <button class="rec-edit" type="button" onclick="abrirAjuste('${m.id}')">✎ Editar stock</button>
+          <div class="rec-acts"><button class="rec-edit" type="button" onclick="location.href='admin-material-nuevo.html?id=${m.id}'">✎ Editar</button><button class="rec-edit" type="button" onclick="abrirAjuste('${m.id}')">± Stock</button></div>
           <label class="rec-vis" title="Si está prendido, los vendedores lo ven en su app"><input type="checkbox" ${m.visible_to_sellers?'checked':''} onchange="toggleVisible('${m.id}',this.checked)"><span>Visible para vendedores</span></label>
         </div></div>`;
     }).join('');
@@ -641,7 +643,7 @@
           <div class="rec-prov">${esc(PROV[m.supplier_id]||'Sin proveedor')}</div>
           <div class="rec-linea">${esc(BRANDS[m.brand_id]||'—')}</div>
           <div class="rec-dep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(WH[m.warehouse_id]||'—')} <span class="est ${e.cls}" style="margin-left:auto">${e.txt}</span></div>
-          <button class="rec-edit" type="button" onclick="abrirAjuste('${m.id}')">✎ Editar stock</button>
+          <div class="rec-acts"><button class="rec-edit" type="button" onclick="location.href='admin-material-nuevo.html?id=${m.id}'">✎ Editar</button><button class="rec-edit" type="button" onclick="abrirAjuste('${m.id}')">± Stock</button></div>
         </div></div>`;
     }).join('');
   }
