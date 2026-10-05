@@ -49,6 +49,7 @@
     </nav>
     <div class="sb-spacer"></div>
     <button type="button" class="sb-item" data-soporte style="background:none;border:0;font:inherit;text-align:left;cursor:pointer"><span class="i">💬</span> Soporte</button>
+    <button type="button" class="sb-item" id="ep-salir" style="background:none;border:0;font:inherit;text-align:left;cursor:pointer"><span class="i">↩</span> Cerrar sesión</button>
     <div class="sb-pie">La agenda del equipo la comparten Brenda, Mónica y el equipo de administración.</div>
   </aside>
 
@@ -178,6 +179,12 @@
     ir();
   })();
 
+  // Cerrar sesión: corta la sesión del Portal y vuelve al ingreso (05/10/2026).
+  document.getElementById('ep-salir').addEventListener('click', async (ev) => {
+    ev.currentTarget.disabled = true;
+    try { localStorage.removeItem('gb_nav_rol'); localStorage.removeItem('gb_es_sup'); } catch (e) {}
+    await GBAuth.signOut();
+  });
   document.querySelector('[data-soporte]').addEventListener('click', () => {
     if (window.abrirSoporteWA) window.abrirSoporteWA(); else alert('Escribinos al WhatsApp de soporte: +54 9 261 245-2651');
   });
