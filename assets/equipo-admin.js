@@ -20,8 +20,10 @@ const eqQ   = id => document.getElementById(id);
 const eqEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const eqErr = m => `<div class="aviso"><span>⚠️</span><div>${eqEsc(m)}</div></div>`;
 // Dentro del panel de Cobranzas vuelve al tablero; sola en el Hub, al Hub.
+// En el panel del equipo (equipo-panel.html) la agenda va sin botón de volver: el
+// menú de la izquierda ya lleva a las otras secciones (window.EQ_SIN_VOLVER).
 const eqCabecera = (t, sub) =>
-  (typeof cobTablero === 'function'
+  (window.EQ_SIN_VOLVER ? '' : typeof cobTablero === 'function'
     ? `<button class="cb-volver" onclick="cobTablero()">‹ Volver al tablero</button>`
     : `<a class="cb-volver" href="hub.html">‹ Volver al Hub</a>`) +
   `<div class="head"><div><h1>${eqEsc(t)}</h1><div class="head-sub">${eqEsc(sub)}</div></div></div>`;

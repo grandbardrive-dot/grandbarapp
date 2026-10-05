@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2238">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>GrandBar — Equipo de administración</title>
+<link rel="stylesheet" href="assets/panel-admin.css">
+<link rel="stylesheet" href="assets/cobranzas.css">
+<style>
+  /* Panel del equipo de administración (05/10/2026): Sebastián (análisis de datos),
+     Andrea (facturación), Laura (pagos y proveedores) y Khaty (contadora).
+     Todo en el mismo lugar: sus tareas, la agenda del equipo y la propia. */
+  .ep-marco{display:block;width:100%;height:calc(100vh - 40px);border:0;background:transparent}
+  .main.sin-pad{padding:0;max-width:none}
+  .ep-hoy{display:flex;flex-direction:column;gap:2px;margin-top:18px}
+  .ep-t{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 16px;display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+  .ep-t + .ep-t{margin-top:8px}
+  .ep-t.lista{opacity:.6}
+  .ep-t.lista b{text-decoration:line-through}
+  .ep-t input{width:20px;height:20px;margin-top:1px;flex:none;accent-color:var(--green);cursor:pointer}
+  .ep-t b{display:block;font-size:14.5px;color:var(--navy)}
+  .ep-t small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+  .ep-t .quien{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .ep-prox{margin-top:26px}
+  .ep-prox h2{font-size:15px;color:var(--navy);margin:0 0 8px}
+  .ep-ev{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2);font-size:13.5px}
+  .ep-ev .f{min-width:92px;color:var(--muted);font-weight:700;font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<b>Bar</b></div>
+    <div class="sb-sub">Distribuciones</div>
+    <div class="sb-rol">Administración</div>
+    <div class="sb-sub" id="ep-quien" style="color:#dfe7ec;font-size:13px;letter-spacing:0;text-transform:none;padding-top:2px"></div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="#tareas" data-v="tareas"><span class="i">✅</span> Mis tareas</a>
+      <a class="sb-item" href="#agenda" data-v="agenda"><span class="i">📅</span> Agenda del equipo</a>
+      <a class="sb-item" href="#mi-agenda" data-v="mi-agenda"><span class="i">🗓️</span> Mi agenda</a>
+    </nav>
+    <div class="sb-spacer"></div>
+    <button type="button" class="sb-item" data-soporte style="background:none;border:0;font:inherit;text-align:left;cursor:pointer"><span class="i">💬</span> Soporte</button>
+    <div class="sb-pie">La agenda del equipo la comparten Brenda, Mónica y el equipo de administración.</div>
+  </aside>
+
+  <main class="main" id="main">
+    <div id="cob"><div class="pv-vacio">Cargando…</div></div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/equipo-admin.js?v=3"></script>
+<script>
+  window.EQ_SIN_VOLVER = true;      // el menú de la izquierda reemplaza al "volver"
+  const ROLES_EQUIPO = ['equipo_admin'];
+  let SES = null, YO = null;        // la sesión y la fila de admin_equipo de esta persona
+  let _epDia = null;
+
+  const nrm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+
+  // ¿Quién soy en el equipo? Por la cuenta (usuario_id); si todavía no está vinculada,
+  // por el nombre (la primera vez que entra), y se deja vinculada.
+  async function quienSoy() {
+    const gente = await eqGente(true);
+    const uid = SES.user && SES.user.id;
+    let p = gente.find(x => x.usuario_id && x.usuario_id === uid);
+    if (!p) {
+      const nombre = nrm(SES.nombre), primero = nombre.split(/\s+/)[0];
+      p = gente.find(x => !x.usuario_id && (nrm(x.nombre) === nombre || nrm(x.nombre).split(/\s+/)[0] === primero));
+      if (p) {
+        const { data } = await eqSb().from('admin_equipo').update({ usuario_id: uid }).eq('id', p.id).select('id');
+        if (data && data.length) p.usuario_id = uid;
+      }
+    }
+    return p || null;
+  }
+
+  // ── Mis tareas: las que le asignó Brenda, del día ─────────────────────────
+  async function verTareas(fecha) {
+    _epDia = fecha || _epDia || eqHoy();
+    const cont = eqQ('cob');
+    cont.innerHTML = `<div class="head"><div><h1>Mis tareas</h1><div class="head-sub">Las que te asigna Brenda. Tildalas cuando las termines: ella ve el avance.</div></div></div>
+      <div class="cb-paginado">
+        <button class="cb-b" onclick="verTareas('${eqSuma(_epDia, -1)}')" aria-label="Día anterior">‹</button>
+        <b style="font-size:14px;min-width:210px;text-align:center">${eqEsc(eqCap(eqLargo(_epDia)))}</b>
+        <button class="cb-b" onclick="verTareas('${eqSuma(_epDia, 1)}')" aria-label="Día siguiente">›</button>
+        ${_epDia !== eqHoy() ? `<button class="cb-b" onclick="verTareas('${eqHoy()}')">Volver a hoy</button>` : ''}
+      </div>
+      <div id="ep-lista"><div class="pv-vacio">Cargando…</div></div>
+      <div class="ep-prox" id="ep-prox"></div>`;
+    if (!YO) {
+      eqQ('ep-lista').innerHTML = `<div class="pv-vacio">Tu usuario todavía no está vinculado al equipo de administración, así que no vemos tus tareas.
+        Avisale a Brenda o a Desarrollo para que te sumen.</div>`;
+      return;
+    }
+    try {
+      const [rt, rh] = await Promise.all([
+        eqSb().from('admin_tareas').select('*').eq('activa', true).eq('persona_id', YO.id).order('created_at'),
+        eqSb().from('admin_tareas_hechas').select('tarea_id,quien').eq('fecha', _epDia),
+      ]);
+      if (rt.error) throw rt.error;
+      const hecho = new Map((rh.data || []).map(h => [h.tarea_id, h.quien]));
+      const delDia = (rt.data || []).filter(t => eqAplica(t, _epDia));
+      const listas = delDia.filter(t => hecho.has(t.id)).length;
+      eqQ('ep-lista').innerHTML = !delDia.length
+        ? `<div class="pv-vacio">No tenés tareas para este día.</div>`
+        : `<div class="eq-barra"><div class="eq-barra-in" style="width:${Math.round(listas / delDia.length * 100)}%"></div></div>
+           <p style="font-size:13px;color:var(--muted);margin:8px 0 0">${listas} de ${delDia.length} hechas${listas === delDia.length ? ' — todo al día 🎉' : ''}</p>
+           <div class="ep-hoy">${delDia.map(t => `
+             <label class="ep-t ${hecho.has(t.id) ? 'lista' : ''}">
+               <input type="checkbox" ${hecho.has(t.id) ? 'checked' : ''} onchange="marcar('${t.id}', this.checked)">
+               <div><b>${eqEsc(t.titulo)}</b>
+                 ${t.descripcion ? `<small>${eqEsc(t.descripcion)}</small>` : ''}
+                 <div class="quien">${eqEsc(EQ_FREQ[t.frecuencia] || t.frecuencia)}${t.creado_por ? ' · la cargó ' + eqEsc(t.creado_por) : ''}</div></div>
+             </label>`).join('')}</div>`;
+    } catch (e) { eqQ('ep-lista').innerHTML = eqErr('No se pudieron leer tus tareas: ' + (e.message || e)); }
+    proximos();
+  }
+  async function marcar(id, marcada) {
+    if (marcada) {
+      await eqEscribir(eqSb().from('admin_tareas_hechas').insert({ tarea_id: id, fecha: _epDia, quien: SES.nombre || null }).select(), 'marcar la tarea');
+    } else {
+      await eqSb().from('admin_tareas_hechas').delete().eq('tarea_id', id).eq('fecha', _epDia);
+    }
+    verTareas(_epDia);
+  }
+
+  // Lo que viene en la agenda del equipo (7 días), para tenerlo a mano en Mis tareas.
+  async function proximos() {
+    const el = eqQ('ep-prox'); if (!el) return;
+    const hoy = eqHoy(), hasta = eqSuma(hoy, 7);
+    const { data } = await eqSb().from('admin_agenda').select('*').gte('fecha', hoy).lte('fecha', hasta).order('fecha').order('hora');
+    const evs = (data || []).filter(e => !e.persona_id || (YO && e.persona_id === YO.id));
+    el.innerHTML = `<h2>Próximos 7 días en la agenda del equipo</h2>` + (evs.length
+      ? evs.map(e => `<div class="ep-ev"><span class="f">${eqEsc(eqCap(eqLargo(e.fecha).split(' ').slice(0, 2).join(' ')))}${e.hora ? '<br>' + eqEsc(String(e.hora).slice(0, 5)) : ''}</span>
+          <span>${eqEsc((EQ_TIPOS[e.tipo] || {}).ico || '📌')} ${eqEsc(e.titulo)}${e.detalle ? `<br><small style="color:var(--muted)">${eqEsc(e.detalle)}</small>` : ''}</span></div>`).join('')
+      : `<div class="pv-vacio" style="padding:14px">No hay nada agendado para esta semana.</div>`);
+  }
+
+  // ── Secciones del panel ────────────────────────────────────────────────────
+  function ir() {
+    const v = (location.hash || '#tareas').slice(1);
+    document.querySelectorAll('.sb-nav .sb-item').forEach(a => a.classList.toggle('on', a.dataset.v === v));
+    const main = eqQ('main');
+    if (v === 'mi-agenda') {
+      main.classList.add('sin-pad');
+      main.innerHTML = '<iframe class="ep-marco" src="/mi-agenda.html?embed=1" title="Mi agenda"></iframe>';
+      return;
+    }
+    main.classList.remove('sin-pad');
+    if (!eqQ('cob')) main.innerHTML = '<div id="cob"></div>';
+    if (v === 'agenda') eqAgenda(); else verTareas();
+  }
+  window.addEventListener('hashchange', ir);
+
+  (async function () {
+    const s = await GBAuth.requireAuth();
+    if (!s) return;
+    const rol = String(s.role || '').toLowerCase();
+    // Solo el equipo de administración (y quienes mantienen el sistema, para revisarlo).
+    if (!ROLES_EQUIPO.includes(rol) && !['desarrollo', 'diseno'].includes(rol)) { location.replace('hub.html'); return; }
+    SES = s;
+    eqQ('ep-quien').textContent = s.nombre || '';
+    try { YO = await quienSoy(); } catch (e) { YO = null; }
+    if (YO && YO.puesto) eqQ('ep-quien').textContent = (s.nombre || YO.nombre) + ' · ' + YO.puesto;
+    ir();
+  })();
+
+  document.querySelector('[data-soporte]').addEventListener('click', () => {
+    if (window.abrirSoporteWA) window.abrirSoporteWA(); else alert('Escribinos al WhatsApp de soporte: +54 9 261 245-2651');
+  });
+</script>
+<script src="assets/notif.js?v=3"></script>
+<script src="assets/soporte.js?v=1"></script>
+<script src="/assets/minuta-fab.js?v=2"></script>
+<script src="/assets/cuenta-activa.js?v=1"></script>
+</body>
+</html>

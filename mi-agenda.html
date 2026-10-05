@@ -262,6 +262,7 @@
     if (rol === 'proveedor') { location.replace('manual-vendedores/proveedor.html'); return; }
     // Luciana ve su agenda dentro de su panel comercial, sin cambiar de pantalla (30/09/2026).
     if (rol === 'compras' && !document.documentElement.classList.contains('gb-embed')) { location.replace('manual-vendedores/admin-agenda.html'); return; }
+    if (rol === 'equipo_admin' && !document.documentElement.classList.contains('gb-embed')) { location.replace('equipo-panel.html#mi-agenda'); return; }
 
     const volver = { compras:'manual-vendedores/admin-comercial.html', diseno:'panel-diseno.html', marketing:'panel-diseno.html', desarrollo:'panel-desarrollo.html' }[rol] || 'hub.html';
     $('ma-volver').href = volver;
