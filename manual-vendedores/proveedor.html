@@ -61,13 +61,36 @@
 
     <h2>Herramientas</h2>
     <div class="tools">
+      <button class="tool" type="button" onclick="abrirAM()" style="width:100%;font-family:inherit;text-align:left;cursor:pointer;border-color:var(--gold);background:var(--gold-s)"><div class="ti" style="background:var(--gold);color:#fff">📤</div><div><div class="tn">Cargar acciones mensuales</div><div class="ts">Subí tu plan del mes (PDF, PPT, Word, imagen) para que lo apruebe GrandBar</div></div></button>
       <a class="tool" href="proveedor-manual.html"><div class="ti">📖</div><div><div class="tn">Manual de vendedores</div><div class="ts">Proponé acciones por rubro y sección</div></div></a>
       <a class="tool soon" href="#"><div class="ti">📣</div><div><div class="tn">Novedades a vendedores</div><div class="ts">Próximamente</div></div></a>
       <a class="tool" href="proveedor-reportes.html"><div class="ti">📊</div><div><div class="tn">Mis reportes</div><div class="ts">Sellout mensual por canal, producto y cliente</div></div></a>
     </div>
 
+    <h2>Mis acciones mensuales</h2>
+    <div id="amList"><div class="empty">Cargando…</div></div>
+
     <h2>Mis propuestas</h2>
     <div id="props"><div class="empty">Cargando…</div></div>
+  </div>
+
+  <!-- Modal: cargar acciones mensuales -->
+  <div id="amModal" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:100;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)cerrarAM()">
+    <div style="background:#fff;border-radius:16px;max-width:460px;width:100%;padding:22px;max-height:90vh;overflow:auto">
+      <h3 style="margin:0 0 4px;font-size:18px;color:var(--navy)">Cargar acciones mensuales</h3>
+      <p style="margin:0 0 16px;font-size:13px;color:var(--muted)">Subí tu plan de acciones del mes. Le llega a GrandBar (Luciana) para aprobarlo o pedirte cambios.</p>
+      <label style="display:block;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Archivo</label>
+      <input type="file" id="amFile" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,image/*,application/pdf" style="width:100%;font-size:13px;margin-bottom:4px">
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:14px">PDF, PowerPoint, Word, Excel o imagen (máx. 25 MB).</div>
+      <label style="display:block;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Observaciones (opcional)</label>
+      <textarea id="amObs" rows="3" placeholder="Algo que quieras aclararle a GrandBar…" style="width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px;resize:vertical;margin-bottom:12px"></textarea>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">📅 Fecha de carga: <b id="amFecha">—</b></div>
+      <div id="amMsg" style="font-size:13px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button type="button" onclick="cerrarAM()" style="background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;color:var(--ink);cursor:pointer">Cancelar</button>
+        <button type="button" id="amSend" onclick="subirAM()" style="background:var(--gold);border:none;border-radius:10px;padding:10px 18px;font:inherit;font-weight:800;color:#fff;cursor:pointer">Enviar a GrandBar</button>
+      </div>
+    </div>
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -111,8 +134,51 @@ async function cargarBanner(){
   $('hola').textContent='Hola, '+PROV.empresa+' 👋';
   cargarBanner();
   cargarAlertas();
+  cargarAccionesMensuales();
   cargarPropuestas();
 })();
+
+// ── Cargar acciones mensuales (archivo general que revisa Luciana) ──────────
+function abrirAM(){ $('amFecha').textContent=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'}); $('amMsg').textContent=''; $('amFile').value=''; $('amObs').value=''; $('amSend').disabled=false; $('amModal').style.display='flex'; }
+function cerrarAM(){ $('amModal').style.display='none'; }
+window.abrirAM=abrirAM; window.cerrarAM=cerrarAM;
+async function subirAM(){
+  const f=$('amFile').files[0];
+  const msg=(t,c)=>{ $('amMsg').textContent=t; $('amMsg').style.color=c||'var(--muted)'; };
+  if(!f){ msg('Elegí un archivo primero.','var(--danger)'); return; }
+  if(f.size>25*1024*1024){ msg('El archivo es muy grande (máx. 25 MB).','var(--danger)'); return; }
+  const btn=$('amSend'); btn.disabled=true; msg('Subiendo…');
+  try{
+    const safe=f.name.replace(/[^\w.\-]+/g,'_');
+    const path='acciones-mensuales/'+String(PROV.empresa).replace(/[^\w.\-]+/g,'_')+'/'+Date.now()+'_'+safe;
+    const up=await sb.storage.from('Activaciones').upload(path,f,{upsert:false,contentType:f.type||undefined});
+    if(up.error) throw up.error;
+    const url=sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+    const ins=await sb.from('acciones_prov_mensuales').insert({proveedor_empresa:PROV.empresa,archivo_url:url,archivo_nombre:f.name,archivo_tipo:f.type||null,observaciones:($('amObs').value||'').trim()||null,estado:'pendiente'});
+    if(ins.error) throw ins.error;
+    msg('✅ Enviado. GrandBar lo va a revisar.','var(--green-d)');
+    setTimeout(()=>{ cerrarAM(); cargarAccionesMensuales(); },1100);
+  }catch(e){ msg('No se pudo enviar: '+(e.message||e),'var(--danger)'); btn.disabled=false; }
+}
+window.subirAM=subirAM;
+async function cargarAccionesMensuales(){
+  try{
+    const { data }=await sb.from('acciones_prov_mensuales').select('*').eq('proveedor_empresa',PROV.empresa).order('created_at',{ascending:false}).limit(40);
+    const rows=data||[]; const cont=$('amList');
+    if(!rows.length){ cont.innerHTML='<div class="empty">Todavía no cargaste acciones mensuales.<br>Usá el botón <b>Cargar acciones mensuales</b> de arriba para subir tu plan del mes.</div>'; return; }
+    const EST={pendiente:['pend','⏳ Pendiente'],aprobada:['ok','✓ Aprobada'],cambios:['cam','✎ Te pidieron cambios'],descartada:['no','✕ Descartada']};
+    cont.innerHTML=rows.map(r=>{
+      const [cls,txt]=EST[r.estado]||EST.pendiente;
+      const fecha=new Date(r.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'});
+      const nota=(r.estado==='cambios'||r.estado==='descartada')&&r.nota_revision?`<div class="pnota">📝 ${esc(r.nota_revision)}</div>`:'';
+      const obs=r.observaciones?`<div class="pm" style="margin-top:4px">💬 ${esc(r.observaciones)}</div>`:'';
+      return `<div class="prop"><div class="pi">
+        <div class="pt"><a href="${esc(r.archivo_url)}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none">📎 ${esc(r.archivo_nombre||'archivo')}</a></div>
+        <div class="pm">Cargado el ${fecha}</div>${obs}${nota}
+      </div><span class="chip ${cls}">${txt}</span></div>`;
+    }).join('');
+  }catch(e){ $('amList').innerHTML='<div class="empty">No se pudieron cargar tus acciones mensuales.</div>'; }
+}
 
 // Alerta competitiva: secciones donde OTROS proveedores tienen acciones y este proveedor no.
 async function cargarAlertas(){
