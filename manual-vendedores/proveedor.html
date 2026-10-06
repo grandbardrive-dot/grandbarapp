@@ -113,6 +113,8 @@
     <input id="epCond" class="ep-in" type="text" placeholder="Ej: tope 1 combo por PDV">
     <label class="ep-field">Descripción / detalle</label>
     <textarea id="epDesc" class="ep-in" rows="5" placeholder="Detalle de la acción, con los cambios que te pidió Luci…" style="resize:vertical"></textarea>
+    <label class="ep-field">Cajas disponibles para la acción</label>
+    <input id="epCajas" class="ep-in" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej: 50">
     <div id="epMsg" style="font-size:13px;margin:12px 0 8px"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button type="button" onclick="cerrarEdit()" style="background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;color:var(--ink);cursor:pointer">Cancelar</button>
@@ -236,6 +238,8 @@ async function cargarAlertas(){
 }
 
 let _props=[];
+// Cajas disponibles para la acción (06/10/2026): columna propia o, si todavía no existe, en payload.
+const cajasDe=p=>(p&&p.cajas_disponibles!=null)?p.cajas_disponibles:((p&&p.payload&&p.payload.cajas)||null);
 async function cargarPropuestas(){
   try{
     const { data } = await sb.from('propuestas_acciones')
@@ -247,9 +251,10 @@ async function cargarPropuestas(){
       const [cls,txt]=ESTADO[p.estado]||ESTADO.pendiente;
       const nota=(p.estado==='cambios'||p.estado==='descartada')&&p.nota_revision?`<div class="pnota">📝 ${esc(p.nota_revision)}</div>`:'';
       const btn=p.estado==='cambios'?`<button type="button" class="prop-edit" onclick="editarProp('${p.id}')">✎ Editar y reenviar</button>`:'';
+      const cajas=cajasDe(p);
       return `<div class="prop"><div class="pi">
         <div class="pt">${esc(p.titulo)}${p.condicion?' · '+esc(p.condicion):''}</div>
-        <div class="pm">${esc(rLbl(p.rubro))} › ${esc(p.seccion)}${p.subseccion?' › '+esc(p.subseccion):''}</div>
+        <div class="pm">${esc(rLbl(p.rubro))} › ${esc(p.seccion)}${p.subseccion?' › '+esc(p.subseccion):''}${cajas?' · 📦 '+esc(cajas)+' cajas disponibles':''}</div>
         ${nota}${btn}
       </div><span class="chip ${cls}">${txt}</span></div>`;
     }).join('');
@@ -265,6 +270,7 @@ function editarProp(id){
   $('epTitulo').value=p.titulo||'';
   $('epCond').value=p.condicion||'';
   $('epDesc').value=p.descripcion||'';
+  $('epCajas').value=cajasDe(p)||'';
   $('epMsg').textContent='';
   $('epSend').disabled=false;
   $('epModal').style.display='flex';
@@ -276,15 +282,23 @@ async function guardarEditProp(){
   const msg=(t,c)=>{ $('epMsg').textContent=t; $('epMsg').style.color=c||'var(--muted)'; };
   const titulo=($('epTitulo').value||'').trim();
   if(!titulo){ msg('El título no puede quedar vacío.','var(--danger)'); return; }
+  const cajas=Math.floor(Number($('epCajas').value));
+  if(!(cajas>=1)){ msg('Poné cuántas cajas tenés disponibles para la acción.','var(--danger)'); return; }
+  const p=_props.find(x=>String(x.id)===String(id))||{};
   $('epSend').disabled=true; msg('Reenviando…');
   try{
-    const { error }=await sb.from('propuestas_acciones').update({
+    const cambios={
       titulo,
       condicion:($('epCond').value||'').trim()||null,
       descripcion:($('epDesc').value||'').trim()||null,
+      payload:Object.assign({},p.payload||{},{cajas}),
+      cajas_disponibles:cajas,
       estado:'pendiente',
       nota_revision:null
-    }).eq('id',id);
+    };
+    let { error }=await sb.from('propuestas_acciones').update(cambios).eq('id',id);
+    // Sin la columna cajas_disponibles (falta propuestas-cajas.sql) se guarda igual, en payload.
+    if(error && /cajas_disponibles/.test(error.message||'')){ const { cajas_disponibles, ...sin }=cambios; ({ error }=await sb.from('propuestas_acciones').update(sin).eq('id',id)); }
     if(error) throw error;
     msg('✅ Reenviada. Luci la va a revisar de nuevo.','var(--green-d)');
     setTimeout(()=>{ cerrarEdit(); cargarPropuestas(); },1100);

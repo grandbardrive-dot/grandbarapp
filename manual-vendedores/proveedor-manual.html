@@ -159,7 +159,17 @@ function tipoDe(sec){
 }
 const TIPO_LBL={mix_ideal:'✨ Mix Ideal',vino_copa:'🍷 Vino por Copa',accion:''};
 
+// Cuántas cajas del producto tiene el proveedor para ofrecer en la acción (06/10/2026):
+// obligatorio en todas las propuestas, así GrandBar sabe hasta dónde puede vender.
+const CAMPO_CAJAS = `
+    <label for="f-cajas">Cajas disponibles para la acción *</label>
+    <input id="f-cajas" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej: 50">
+    <div style="font-size:11.5px;color:#7a8890;margin-top:5px">Cuántas cajas de este producto tenés para ofrecer en esta acción.</div>`;
+
 function formBody(tipo){
+  return formCampos(tipo) + CAMPO_CAJAS;
+}
+function formCampos(tipo){
   if(tipo==='mix_ideal') return `
     <label for="f-nombre">Nombre del mix *</label><input id="f-nombre" placeholder="Ej: Mix Previa Campari">
     <label for="f-nivel">Nivel (opcional)</label><input id="f-nivel" placeholder="Ej: Básico / Alta gama">
@@ -219,14 +229,19 @@ async function enviar(){
     titulo=val('f-tit'); if(!titulo){ toast('Poné un título',true); return; }
     condicion=val('f-cond')||null; descripcion=val('f-desc')||null; vd=val('f-vd')||null; vh=val('f-vh')||null;
   }
+  const cajas=Math.floor(Number(val('f-cajas')));
+  if(!(cajas>=1)){ toast('Poné cuántas cajas tenés disponibles para la acción',true); const c=$('f-cajas'); if(c) c.focus(); return; }
+  payload=Object.assign({},payload,{cajas});   // copia: si la columna todavía no existe, queda acá
   const row={
     rubro:curCanal, seccion:curSec.nombre, subseccion:sub, titulo, condicion, descripcion,
     vigencia_desde:vd, vigencia_hasta:vh, adjuntos:[], autor_nombre:PROV.empresa, autor_rol:'proveedor',
-    autor_empresa:PROV.empresa, estado:'pendiente', tipo:curTipo, payload
+    autor_empresa:PROV.empresa, estado:'pendiente', tipo:curTipo, payload, cajas_disponibles:cajas
   };
   $('f-btn').disabled=true; $('f-btn').textContent='Enviando…';
   try{
-    const { error }=await sb.from('propuestas_acciones').insert(row);
+    let { error }=await sb.from('propuestas_acciones').insert(row);
+    // Sin la columna cajas_disponibles (falta propuestas-cajas.sql) se guarda igual: las cajas van en payload.
+    if(error && /cajas_disponibles/.test(error.message||'')){ const { cajas_disponibles, ...sin }=row; ({ error }=await sb.from('propuestas_acciones').insert(sin)); }
     if(error) throw error;
     const k=curCanal+'|'+curSec.nombre; PROPS[k]=PROPS[k]||{otras:new Set(),mia:false}; PROPS[k].mia=true;
     $('ov').classList.remove('open');

@@ -71,6 +71,7 @@
   .pc-tit{font-size:16px;font-weight:800}
   .pc-cond{font-weight:700;color:var(--gold-d)}
   .pc-meta{font-size:12.5px;color:var(--ink3);margin-top:2px}
+  .pc-cajas{display:inline-block;margin-top:8px;font-size:13px;color:var(--navy);background:rgba(31,68,127,.07);border-radius:8px;padding:5px 10px}
   .pc-desc{font-size:13.5px;color:var(--ink2);margin-top:8px;line-height:1.5}
   .pc-vig{font-size:12px;color:var(--ink3);margin-top:6px}
   .est{font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap}
@@ -227,6 +228,9 @@
     $('lista').innerHTML=lista.map(p=>{
       const vig=(p.vigencia_desde||p.vigencia_hasta)?`<div class="pc-vig">🗓️ ${fmtV(p.vigencia_desde)||'…'} → ${fmtV(p.vigencia_hasta)||'…'}</div>`:'';
       const nota=p.nota_revision?`<div class="pc-nota">📝 ${esc(p.nota_revision)}</div>`:'';
+      // Cajas que el proveedor tiene para la acción (06/10/2026): columna propia o, si falta, en payload.
+      const cajas=(p.cajas_disponibles!=null)?p.cajas_disponibles:((p.payload&&p.payload.cajas)||null);
+      const cajasH=cajas?`<div class="pc-cajas">📦 <b>${esc(cajas)}</b> cajas disponibles para la acción</div>`:'';
       return `<div class="pcard">
         <div class="pc-top">
           <div class="pc-emp">${esc(ini(p.autor_empresa||p.autor_nombre))}</div>
@@ -234,7 +238,7 @@
             <div class="pc-tit">${esc(p.titulo)} ${p.condicion?`<span class="pc-cond">· ${esc(p.condicion)}</span>`:''}${TIPO_CHIP[p.tipo]?`<span class="pc-tipochip">${TIPO_CHIP[p.tipo]}</span>`:''}</div>
             <div class="pc-meta">${esc(p.autor_empresa||p.autor_nombre||'')} · ${esc(rLbl(p.rubro))} › ${esc(p.seccion)}${p.subseccion?' › '+esc(p.subseccion):''}</div>
             ${(!p.tipo||p.tipo==='accion')&&p.descripcion?`<div class="pc-desc">${esc(p.descripcion)}</div>`:''}
-            ${payloadHtml(p)}${vig}${nota}
+            ${payloadHtml(p)}${cajasH}${vig}${nota}
           </div>
           <span class="est ${p.estado}">${p.estado}</span>
         </div>
