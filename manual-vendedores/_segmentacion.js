@@ -131,7 +131,15 @@
       return out;
     }
 
+    // Cada toque redibuja el árbol: se guarda dónde estaba su scroll y qué casilla
+    // tenía el foco, y se devuelven después (si no, la lista volvía al principio).
     function render() {
+      const arbolAntes = root.querySelector('.seg-arbol');
+      const scroll = arbolAntes ? arbolAntes.scrollTop : 0;
+      const f = root.contains(document.activeElement) ? document.activeElement : null;
+      const foco = f && (f.dataset.z ? `[data-z="${f.dataset.z}"]`
+        : f.dataset.todo != null ? `[data-todo="${f.dataset.todo}"]`
+        : f.value ? `input[value="${f.value}"]` : '');
       const G = grupos();
       const visibles = new Set(G.flatMap(g => g.madres.flatMap(hojasDe)).map(h => h.id));
       const ocultas = [...st.secciones].filter(id => !visibles.has(id)).length;
@@ -162,6 +170,10 @@
           : 'Sin secciones marcadas: se ve donde corresponde, como hasta ahora.'}</div>
       </div>`;
       root._grupos = G;
+      const arbol = root.querySelector('.seg-arbol');
+      if (arbol && scroll) arbol.scrollTop = scroll;
+      const nuevo = foco && root.querySelector(foco);
+      if (nuevo) nuevo.focus({ preventScroll: true });
     }
 
     root.addEventListener('click', e => {
