@@ -3085,6 +3085,7 @@ body { background:transparent !important; }
         ${sec.especial !== 'acciones_mensuales' ? `<div id="acm-${sec.id}"></div>` : ''}
         ${sec.intro?`<div class="sec-intro">${esc(sec.intro)}</div>`:''}
         ${widgetSlotHtml(sec)}
+        <div id="vsm-${sec.id}"></div>
         ${itemsHtml}
         ${notaHtml}
         ${sec.especial === 'segafreddo' ? renderEspSegaFoto() : ''}
@@ -4650,6 +4651,7 @@ body { background:transparent !important; }
     // Cargar acciones/campañas en TODAS las hojas: la general muestra las 'general',
     // y cada sección específica muestra las campañas que el admin le asignó.
     seccionesHoja(checklist).forEach(sec => { cargarAccionesMensualesSeccion(sec.id); });
+    cargarVinosMesa();
     // Widgets de subsección (propuestas / ofertas) según el mapa WIDGET_SUBSEC.
     // (campari no carga acá: cargarProgresos/cargarAcuerdosCampari ya corren en init)
     seccionesHoja(checklist).forEach(sec => {
@@ -5999,6 +6001,56 @@ body { background:transparent !important; }
       </div>`;
 
     el.innerHTML = lista + calc;
+  }
+
+  // ── VINOS SOBRE LA MESA (06/10/2026): acciones que carga Luciana en
+  // admin-vinos-mesa.html (tabla vinos_sobre_mesa de la base del Portal, que deja
+  // leer solo las visibles). Cada acción sale en las secciones que ella marcó, en
+  // cualquier manual; si no marcó ninguna, en las que tienen la herramienta: la
+  // elegida en Secciones (w:vinos_mesa) o la subsección de vinos de "SOBRE LA MESA".
+  function tieneVinosMesa(sec) {
+    if (!sec) return false;
+    if (sec.especial === 'w:vinos_mesa') return true;
+    const nom = String(sec.titulo || sec.nombre || '');
+    if (/sobre\s+la\s+mesa/i.test(nom)) return true;
+    const madre = madreDe(sec.id);
+    return !!(madre && /sobre\s+la\s+mesa/i.test(String(madre.titulo || madre.nombre || '')) && /vino/i.test(nom));
+  }
+  let _vsmPromesa = null;
+  function _vinosMesa() {
+    if (!_vsmPromesa) _vsmPromesa = (async () => {
+      try {
+        const hubSb = supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc', { auth: { persistSession: false } });
+        const { data, error } = await hubSb.from('vinos_sobre_mesa')
+          .select('id,nombre,proveedor,condicion,descripcion,secciones,zonas,orden')
+          .eq('activo', true).order('orden').order('created_at');
+        return error ? [] : (data || []);
+      } catch (e) { return []; }
+    })();
+    return _vsmPromesa;
+  }
+  async function cargarVinosMesa() {
+    const hojas = seccionesHoja(checklist);
+    const todos = await _vinosMesa();
+    hojas.forEach(sec => {
+      const el = document.getElementById(`vsm-${sec.id}`);
+      if (!el) return;
+      const conHerramienta = tieneVinosMesa(sec);
+      const uuid = (buscarSec(sec.id) || sec)._uuid;
+      const items = todos.filter(v => segMarcado(v)
+        ? !!(uuid && v.secciones.includes(uuid) && segVa(v, uuid))
+        : (conHerramienta && segVa(v, null)));
+      if (!items.length) {
+        el.innerHTML = conHerramienta ? `<div class="vc-empty">Todavía no hay vinos sobre la mesa cargados.</div>` : '';
+        return;
+      }
+      el.innerHTML = `<div class="vc-list">` + items.map(v => `
+        <div class="vc-card">
+          <div class="vc-head"><div class="vc-nom">${esc(v.nombre)}</div>${conHerramienta ? '' : '<span class="vc-prov">Sobre la mesa</span>'}${v.proveedor ? `<span class="vc-prov">${esc(v.proveedor)}</span>` : ''}</div>
+          ${v.condicion ? `<div class="vc-cond">${esc(v.condicion)}</div>` : ''}
+          ${v.descripcion ? `<div class="vc-desc">${esc(v.descripcion)}</div>` : ''}
+        </div>`).join('') + `</div>`;
+    });
   }
 
   function vcUsar(precio) {

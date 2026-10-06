@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Vinos sobre la mesa</title>
+<style>
+  :root{
+    --navy:#1F447F; --navy-d:#16305a; --navy-dd:#0f2340;
+    --gold:#CBB86A; --gold-d:#B08D2E;
+    --bg:#F4F1EA; --surface:#FFFFFF; --surface2:#FBF9F5;
+    --ink:#1F1B16; --ink2:#5f574c; --ink3:#9a9187;
+    --line:rgba(31,68,127,.10); --line-2:rgba(31,68,127,.16);
+    --green:#2D6A4F; --green-bg:#E7F1EC;
+    --red:#C0392B;  --red-bg:#FBEAE7;
+    --amber:#9A6B0E; --amber-bg:#FaF0DA;
+    --shadow:0 1px 2px rgba(31,68,127,.05), 0 14px 34px rgba(31,68,127,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+
+  .layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  @media (max-width:820px){ .layout{grid-template-columns:1fr} .sidebar{display:none} }
+
+  .sidebar{background:linear-gradient(185deg,var(--navy),var(--navy-d) 62%,var(--navy-dd));color:#fff;display:flex;flex-direction:column;padding:0 0 18px;position:sticky;top:0;height:100vh}
+  .sb-logo{padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px}
+  .sb-logo img{height:38px;object-fit:contain}
+  .sb-collapse{background:rgba(255,255,255,.08);border:none;color:#fff;width:30px;height:30px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
+  .sb-collapse svg{width:16px;height:16px}
+  .sb-nav{display:flex;flex-direction:column;gap:3px;padding:16px 12px}
+  .sb-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:rgba(255,255,255,.72);cursor:pointer;background:none;border:none;font-family:inherit;text-align:left;width:100%}
+  .sb-item:hover{background:rgba(255,255,255,.07);color:#fff}
+  .sb-item.active{background:rgba(255,255,255,.12);color:#fff}
+  .sb-item.active .sb-ico{color:var(--gold)}
+  .sb-item.active .sb-txt-main{font-weight:700}
+  .sb-ico{width:20px;height:20px;flex:none;color:rgba(255,255,255,.6)}
+  .sb-txt-main{font-size:14px;line-height:1.15}
+  .sb-txt-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:1px}
+  .sb-spacer{flex:1}
+  .sb-help{margin:0 14px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:16px}
+  .sb-help-t{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
+  .sb-help-p{font-size:12.5px;color:rgba(255,255,255,.88);margin:7px 0 0;line-height:1.45}
+
+  .topbar{background:var(--navy);border-bottom:3px solid var(--gold);height:70px;display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 26px;position:relative}
+  .tb-user{display:flex;align-items:center;gap:11px;cursor:pointer;padding:6px 8px;border-radius:11px}
+  .tb-user:hover{background:rgba(255,255,255,.08)}
+  .tb-ava{width:38px;height:38px;border-radius:50%;background:var(--gold);color:var(--navy-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+  .tb-user-info{text-align:right;line-height:1.2}
+  .tb-user-name{font-size:14px;font-weight:700;color:#fff}
+  .tb-user-role{font-size:11px;color:rgba(255,255,255,.6)}
+  .menu{position:absolute;top:64px;right:26px;background:var(--surface);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.16);padding:6px;display:none;z-index:50;min-width:180px}
+  .menu.open{display:block}
+  .menu button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;padding:10px 12px;border-radius:8px;font-size:13.5px;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left}
+  .menu button:hover{background:var(--surface2)}
+
+  .content{padding:28px 30px 44px;min-width:0;max-width:1000px}
+  .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  .page-title{font-size:clamp(24px,3vw,31px);font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:12px}
+  .page-title .ico{width:44px;height:44px;border-radius:12px;background:rgba(31,68,127,.09);display:flex;align-items:center;justify-content:center;flex:none;font-size:22px}
+  .page-sub{color:var(--ink2);font-size:14.5px;margin-top:8px;max-width:64ch;line-height:1.5}
+  .btn-new{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none;border-radius:13px;padding:14px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:var(--shadow);white-space:nowrap}
+  .btn-new svg{width:20px;height:20px;color:var(--gold)}
+
+  .aviso{display:flex;align-items:flex-start;gap:11px;background:rgba(31,68,127,.05);border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:13px;color:var(--ink2);margin-top:18px;line-height:1.5}
+  .aviso.error{background:var(--red-bg);border-color:rgba(192,57,43,.25);color:#8a2b20}
+  .aviso svg{width:18px;height:18px;color:var(--navy);flex:none;margin-top:1px}
+  .aviso code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:5px;font-size:12px}
+
+  .combos{margin-top:18px;display:flex;flex-direction:column;gap:14px}
+  .combo{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);display:flex;align-items:flex-start;gap:14px;padding:15px 18px}
+  .combo.off{opacity:.6}
+  .combo-img{width:54px;height:54px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);object-fit:cover;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .combo-info{flex:1;min-width:0}
+  .combo-nom{font-size:15.5px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .combo-cont{font-size:13px;color:var(--ink2);margin-top:5px;white-space:pre-line;line-height:1.5}
+  .combo-desc{font-size:12.5px;color:var(--ink3);margin-top:5px}
+  .tag{font-size:10.5px;font-weight:700;border-radius:6px;padding:3px 8px;background:rgba(31,68,127,.07);color:var(--navy)}
+  .tag.nivel{background:var(--amber-bg);color:var(--amber)}
+  .tag.precio{background:var(--green-bg);color:var(--green)}
+  .tag.off{background:var(--red-bg);color:var(--red)}
+  .acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .ab{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line-2);border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;white-space:nowrap}
+  .ab:hover{border-color:var(--navy);color:var(--navy)}
+  .ab.danger:hover{border-color:var(--red);color:var(--red)}
+  .empty{padding:40px 18px;text-align:center;color:var(--ink3);font-size:13.5px;background:var(--surface);border:1px dashed var(--line-2);border-radius:16px;margin-top:18px}
+
+  .ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9998;align-items:flex-start;justify-content:center;padding:36px 16px;overflow-y:auto}
+  .ov.open{display:flex}
+  .modal{background:var(--surface);max-width:580px;width:100%;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.3);overflow:hidden}
+  .modal-head{background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;padding:20px 24px;position:relative}
+  .modal-head h3{font-size:19px;font-weight:800}
+  .modal-head .sub{font-size:13px;color:rgba(255,255,255,.72);margin-top:3px}
+  .modal-x{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.14);border:none;color:#fff;width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:20px;line-height:1}
+  .modal-body{padding:20px 24px;max-height:64vh;overflow-y:auto}
+  .fld{margin-bottom:15px}
+  .fld label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+  .fld input,.fld textarea{width:100%;padding:11px 13px;border:1.5px solid var(--line-2);border-radius:11px;font-size:14px;font-family:inherit;color:var(--ink);outline:none;background:var(--surface)}
+  .fld input:focus,.fld textarea:focus{border-color:var(--navy)}
+  .fld textarea{min-height:90px;resize:vertical;line-height:1.6}
+  .fld .hint{font-size:11.5px;color:var(--ink3);margin-top:5px;line-height:1.45}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .sw{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink2);cursor:pointer;font-weight:600}
+  .sw input{width:18px;height:18px;accent-color:var(--navy)}
+  .modal-foot{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:16px 24px;border-top:1px solid var(--line);background:var(--surface2)}
+  .mb{display:inline-flex;align-items:center;gap:8px;border-radius:11px;padding:11px 20px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid var(--line-2);background:var(--surface);color:var(--ink2)}
+  .mb.primary{background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none}
+  .msg{font-size:12.5px;font-weight:600}
+  .rub{display:flex;gap:18px;flex-wrap:wrap;padding:4px 0}
+  .tag.donde{background:rgba(122,36,62,.08);color:#7a243e}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <button class="sb-collapse" onclick="location.href='admin-comercial.html'" title="Volver al inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar Distribuciones">
+    </div>
+    <nav class="sb-nav"></nav>
+  </aside>
+
+  <div>
+    <header class="topbar">
+      <div class="tb-user" onclick="toggleMenu(event)">
+        <div class="tb-ava">L</div>
+        <div class="tb-user-info"><div class="tb-user-name">Luciana</div><div class="tb-user-role">Gestora Comercial</div></div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="menu" id="perfil-menu"><button onclick="cerrarSesion()">🚪 Cerrar sesión</button></div>
+    </header>
+
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <div class="page-title"><span class="ico">🍷</span>Vinos sobre la mesa</div>
+          <div class="page-sub">Acciones de vino sobre la mesa que dan los proveedores. En cada una elegís en qué parte del manual sale; el vendedor la ve en esa sección durante la visita.</div>
+        </div>
+        <button class="btn-new" onclick="abrirNuevo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>Nueva acción</button>
+      </div>
+
+      <div id="aviso"></div>
+      <div id="lista"><div class="empty">Cargando…</div></div>
+    </main>
+  </div>
+</div>
+
+<div class="ov" id="ov" onclick="if(event.target===this)cerrar()">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="m-title">Nueva acción de vino sobre la mesa</h3>
+      <div class="sub">La va a ver el vendedor para proponérsela al cliente</div>
+      <button class="modal-x" onclick="cerrar()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="row2">
+        <div class="fld">
+          <label>Vino</label>
+          <input type="text" id="f-nombre" placeholder="Nombre del vino o de la línea" maxlength="80">
+        </div>
+        <div class="fld">
+          <label>Proveedor</label>
+          <input type="text" id="f-proveedor" placeholder="Bodega o proveedor" maxlength="50" list="provs">
+          <datalist id="provs"></datalist>
+        </div>
+      </div>
+      <div class="fld">
+        <label>La acción</label>
+        <textarea id="f-condicion" placeholder="Qué da el proveedor y con qué condición, para tener el vino sobre la mesa"></textarea>
+        <div class="hint">Es lo que ve el vendedor.</div>
+      </div>
+      <div class="fld">
+        <label>Nota para el vendedor <span style="text-transform:none;font-weight:400">(opcional)</span></label>
+        <input type="text" id="f-desc" placeholder="Algo que le sirva para ofrecerla" maxlength="140">
+      </div>
+      <div class="fld">
+        <label>¿Dónde sale en el manual?</label>
+        <div id="seg-dest"></div>
+        <div class="hint">Marcá las secciones donde tiene que aparecer. Si no marcás ninguna, sale en las secciones que tienen la herramienta Vinos sobre la mesa (hoy: Restaurantes › “SOBRE LA MESA” › Vinos).</div>
+      </div>
+      <div class="fld"><label class="sw"><input type="checkbox" id="f-activo" checked> Visible para los vendedores</label></div>
+      <div class="msg" id="m-msg"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="mb" onclick="cerrar()">Cancelar</button>
+      <button class="mb primary" id="m-save" onclick="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="_segmentacion.js"></script>
+<script>
+  // Vinos sobre la mesa (06/10/2026). La tabla está en la base del Portal y se guarda
+  // con la sesión de quien entra: solo los roles del panel comercial pueden cargar
+  // (vinos-sobre-mesa-setup.sql). El vendedor la ve en la visita (visita.html, cargarVinosMesa).
+  const HUB_URL = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
+  const HUB_KEY = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
+  const hub = supabase.createClient(HUB_URL, HUB_KEY);
+  const TABLA = 'vinos_sobre_mesa';
+
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const $=id=>document.getElementById(id);
+
+  let VINOS=[], edit=null;
+  let SEG = null, MAPA = {};
+  const segmentado = c => !!(((c && c.secciones) || []).length || ((c && c.zonas) || []).length);
+  const dondeTxt = c => segmentado(c) ? Segmentacion.texto(c, MAPA) : 'Donde está la herramienta (Restaurantes › Sobre la mesa › Vinos)';
+
+  const faltaTabla = e => /vinos_sobre_mesa|PGRST205|42P01/.test(((e && (e.message || '')) + ' ' + ((e && e.code) || '')));
+  const sinPermiso = e => /42501|PGRST116|row-level security|permission denied/i.test(((e && (e.message || '')) + ' ' + ((e && e.code) || '')));
+
+  async function cargar(){
+    const { data, error } = await hub.from(TABLA).select('*').order('orden').order('created_at');
+    if(error){
+      $('aviso').innerHTML = faltaTabla(error)
+        ? `<div class="aviso error"><span>⚠️</span><div>Todavía no está creada la tabla de Vinos sobre la mesa. Hay que correr
+            <code>vinos-sobre-mesa-setup.sql</code> en Supabase del Portal (SQL Editor) y después recargar esta página.</div></div>`
+        : `<div class="aviso error"><span>⚠️</span><div>No se pudieron leer las acciones: ${esc(error.message)}</div></div>`;
+      $('lista').innerHTML='';
+      return;
+    }
+    $('aviso').innerHTML='';
+    VINOS = data || [];
+    render();
+  }
+
+  function render(){
+    if(!VINOS.length){ $('lista').innerHTML='<div class="empty">Todavía no cargaste ninguna acción de vino sobre la mesa. Tocá <b>Nueva acción</b> para la primera.</div>'; return; }
+    $('lista').innerHTML='<div class="combos">'+VINOS.map((c,i)=>`
+      <div class="combo ${c.activo===false?'off':''}">
+        <div class="combo-img">🍷</div>
+        <div class="combo-info">
+          <div class="combo-nom">${esc(c.nombre)}
+            ${c.proveedor?`<span class="tag nivel">${esc(c.proveedor)}</span>`:''}
+            ${c.activo===false?'<span class="tag off">Oculta</span>':''}</div>
+          <div style="margin-top:6px"><span class="tag donde">📍 ${esc(dondeTxt(c))}</span></div>
+          ${c.condicion?`<div class="combo-cont">${esc(c.condicion)}</div>`:''}
+          ${c.descripcion?`<div class="combo-desc">${esc(c.descripcion)}</div>`:''}
+        </div>
+        <div class="acts">
+          <button class="ab" onclick="mover('${c.id}',-1)" ${i===0?'disabled style="opacity:.35"':''}>↑</button>
+          <button class="ab" onclick="mover('${c.id}',1)" ${i===VINOS.length-1?'disabled style="opacity:.35"':''}>↓</button>
+          <button class="ab" onclick="abrirEdicion('${c.id}')">Editar</button>
+          <button class="ab" onclick="toggleActivo('${c.id}')">${c.activo===false?'Mostrar':'Ocultar'}</button>
+          <button class="ab danger" onclick="borrar('${c.id}')">Eliminar</button>
+        </div>
+      </div>`).join('')+'</div>';
+  }
+
+  function abrirNuevo(){
+    edit=null; $('m-title').textContent='Nueva acción de vino sobre la mesa';
+    $('f-nombre').value=''; $('f-proveedor').value=''; $('f-condicion').value=''; $('f-desc').value='';
+    $('f-activo').checked=true; SEG && SEG.set({}); $('m-msg').textContent='';
+    $('ov').classList.add('open'); setTimeout(()=>$('f-nombre').focus(),80);
+  }
+  function abrirEdicion(id){
+    edit=VINOS.find(c=>c.id===id); if(!edit) return;
+    $('m-title').textContent='Editar acción de vino sobre la mesa';
+    $('f-nombre').value=edit.nombre||''; $('f-proveedor').value=edit.proveedor||''; $('f-condicion').value=edit.condicion||'';
+    $('f-desc').value=edit.descripcion||''; $('f-activo').checked=edit.activo!==false;
+    SEG && SEG.set({ secciones: edit.secciones || [], zonas: edit.zonas || [] }); $('m-msg').textContent='';
+    $('ov').classList.add('open');
+  }
+  function cerrar(){ $('ov').classList.remove('open'); }
+
+  function errTxt(e){
+    if(faltaTabla(e)) return 'Falta correr vinos-sobre-mesa-setup.sql en Supabase del Portal.';
+    if(sinPermiso(e)) return 'Tu usuario no tiene permiso para cargar acciones (hace falta el rol del panel comercial).';
+    return 'No se pudo guardar: '+((e && e.message)||e);
+  }
+
+  async function guardar(){
+    const msg=$('m-msg');
+    const nombre=$('f-nombre').value.trim(), condicion=$('f-condicion').value.trim();
+    if(!nombre){ msg.style.color='#c0392b'; msg.textContent='Poné el nombre del vino.'; return; }
+    if(!condicion){ msg.style.color='#c0392b'; msg.textContent='Escribí la acción: qué da el proveedor y con qué condición.'; return; }
+    const fila={
+      nombre, condicion,
+      proveedor:   $('f-proveedor').value.trim() || null,
+      descripcion: $('f-desc').value.trim() || null,
+      activo:      $('f-activo').checked,
+      ...(SEG ? SEG.valor() : { secciones: [], zonas: [] }),
+    };
+    msg.style.color='var(--ink2)'; msg.textContent='Guardando…'; $('m-save').disabled=true;
+    try{
+      let error;
+      if(edit){ fila.updated_at = new Date().toISOString(); ({ error } = await hub.from(TABLA).update(fila).eq('id', edit.id).select('id').single()); }
+      else { fila.orden = VINOS.length ? Math.max(...VINOS.map(c=>c.orden||0))+1 : 0;
+             ({ error } = await hub.from(TABLA).insert(fila).select('id').single()); }
+      if(error) throw error;
+      cerrar(); await cargar();
+    }catch(e){ msg.style.color='#c0392b'; msg.textContent = errTxt(e); }
+    finally{ $('m-save').disabled=false; }
+  }
+
+  async function toggleActivo(id){
+    const c=VINOS.find(x=>x.id===id); if(!c) return;
+    const { error } = await hub.from(TABLA).update({ activo: c.activo===false, updated_at: new Date().toISOString() }).eq('id', id).select('id').single();
+    if(error){ alert(errTxt(error)); return; }
+    await cargar();
+  }
+
+  async function mover(id, dir){
+    const i=VINOS.findIndex(c=>c.id===id), j=i+dir;
+    if(i<0||j<0||j>=VINOS.length) return;
+    const arr=VINOS.slice(); arr.splice(j,0,arr.splice(i,1)[0]);
+    const res = await Promise.all(arr.map((c,k)=> c.orden===k ? null : hub.from(TABLA).update({orden:k}).eq('id',c.id)).filter(Boolean));
+    const err = res.find(r => r && r.error); if(err){ alert(errTxt(err.error)); }
+    await cargar();
+  }
+
+  async function borrar(id){
+    const c=VINOS.find(x=>x.id===id); if(!c) return;
+    if(!confirm(`¿Eliminar la acción "${c.nombre}"?\n\nDeja de verse en el manual de los vendedores.\nSi solo querés sacarla por ahora, cancelá y usá "Ocultar".`)) return;
+    const { error } = await hub.from(TABLA).delete().eq('id', id);
+    if(error){ alert('No se pudo eliminar: '+errTxt(error)); return; }
+    await cargar();
+  }
+
+  // Proveedores del catálogo como sugerencia (se puede escribir otro).
+  async function sugerirProveedores(){
+    try{
+      const cat = supabase.createClient('https://zlwnoqdxendsgbfvfyue.supabase.co', 'sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4', { auth:{ persistSession:false } });
+      const { data } = await cat.from('catalogo_proveedores').select('nombre');
+      const nombres = [...new Set((data||[]).map(p=>String(p.nombre||'').trim()).filter(Boolean))]
+        .sort((a,b)=>a.localeCompare(b,'es',{sensitivity:'base'}));
+      $('provs').innerHTML = nombres.map(n=>`<option value="${esc(n)}">`).join('');
+    }catch(e){}
+  }
+
+  function toggleMenu(ev){ ev.stopPropagation(); $('perfil-menu').classList.toggle('open'); }
+  document.addEventListener('click',()=>$('perfil-menu').classList.remove('open'));
+  function cerrarSesion(){
+    sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil');
+    try{ localStorage.removeItem('gb_demo');
+      Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k));
+    }catch(e){}
+    location.href='/index.html';
+  }
+
+  (async () => {
+    sugerirProveedores();
+    try { MAPA = await Segmentacion.mapa(); } catch (e) {}
+    SEG = await Segmentacion.montar('#seg-dest');
+    cargar();
+  })();
+
+</script>
+<script src="/assets/minuta-fab.js?v=2"></script>
+<script src="_comercial-nav.js?v=7"></script>
+</body>
+</html>
