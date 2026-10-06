@@ -15,7 +15,8 @@ const HUB_URL = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const TRADE = ['torneo', 'desarrollo', 'diseno'];                  // quien devuelve
 const COMERCIAL = ['compras', 'desarrollo', 'diseno', 'marketing']; // quien responde
-const ORIGENES = ['campania', 'plan', 'fecha', 'catalogo', 'vino_mesa'];   // vino_mesa: 06/10/2026
+// vino_mesa, puntera, volumen y degustacion: 06/10/2026 (CHECK en acciones-herramientas-setup.sql)
+const ORIGENES = ['campania', 'plan', 'fecha', 'catalogo', 'vino_mesa', 'puntera', 'volumen', 'degustacion'];
 const ESTADOS = ['pendiente', 'vista', 'resuelta'];
 const LINK_LUCIANA = '/manual-vendedores/admin-devoluciones.html';
 const LINK_TRADE = '/trade-acciones.html#devoluciones';

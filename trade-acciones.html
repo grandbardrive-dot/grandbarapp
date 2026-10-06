@@ -149,6 +149,9 @@
           <option value="fecha">Fechas especiales</option>
           <option value="catalogo">Catálogo de clientes</option>
           <option value="vino_mesa">Vinos sobre la mesa</option>
+          <option value="puntera">Punteras</option>
+          <option value="volumen">Acciones de volumen</option>
+          <option value="degustacion">Degustaciones</option>
         </select>
         <select id="fCanal">
           <option value="">Todos los canales</option>
@@ -212,10 +215,18 @@
   const hoyISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
   function toast(m, e){ const t = $('toast'); t.textContent = m; t.className = 'toast show' + (e ? ' err' : ''); setTimeout(() => t.className = 'toast', 2800); }
 
-  const TIPO = { campania:'Campaña del manual', plan:'Plan de proveedor', fecha:'Fecha especial', catalogo:'Catálogo de clientes', vino_mesa:'Vino sobre la mesa' };
+  const TIPO = { campania:'Campaña del manual', plan:'Plan de proveedor', fecha:'Fecha especial', catalogo:'Catálogo de clientes', vino_mesa:'Vino sobre la mesa',
+    puntera:'Puntera', volumen:'Acción de volumen', degustacion:'Degustación' };
   // Para contar en cada proveedor: [una, varias].
   const TIPO_CUENTA = { campania:['campaña','campañas'], plan:['plan','planes'], fecha:['fecha especial','fechas especiales'],
-    catalogo:['del catálogo','del catálogo'], vino_mesa:['vino sobre la mesa','vinos sobre la mesa'] };
+    catalogo:['del catálogo','del catálogo'], vino_mesa:['vino sobre la mesa','vinos sobre la mesa'],
+    puntera:['puntera','punteras'], volumen:['acción de volumen','acciones de volumen'], degustacion:['degustación','degustaciones'] };
+  // Punteras, volumen y degustaciones (acciones_herramientas): dónde salen si Luciana no marcó secciones.
+  const HERR_DEFECTO = {
+    puntera:     { donde:'Autoservicios › Plan de Punteras', rubros:['autoservicio'] },
+    volumen:     { donde:'Autoservicios, Vinotecas y Tiendas de bebidas › Acciones de Volumen y Exhibidores', rubros:['autoservicio', 'vinoteca', 'tienda_bebidas'] },
+    degustacion: { donde:'Autoservicios, Vinotecas y Tiendas de bebidas › Plan de Degustaciones', rubros:['autoservicio', 'vinoteca', 'tienda_bebidas'] },
+  };
   const RUBRO = { restaurante:'Restaurantes', restaurantes:'Restaurantes', bar:'Bares', bares:'Bares', vinoteca:'Vinotecas', vinotecas:'Vinotecas',
     tienda_bebidas:'Tiendas de bebidas', tiendas_bebidas:'Tiendas de bebidas', autoservicio:'Autoservicios', autoservicios:'Autoservicios',
     hotel:'Hoteles', hoteles:'Hoteles', disco:'Discos', discos:'Discos', evento:'Eventos', eventos:'Eventos', mayorista:'Mayoristas', mayoristas:'Mayoristas',
@@ -272,16 +283,19 @@
   async function cargarAcciones(){
     const man = supabase.createClient(MAN.url, MAN.key, { auth:{ persistSession:false } });
     const cat = supabase.createClient(CAT.url, CAT.key, { auth:{ persistSession:false } });
-    // Vinos sobre la mesa (06/10/2026): están en la base del Portal; se leen las visibles.
+    // Vinos sobre la mesa, Punteras, Acciones de volumen y Degustaciones (06/10/2026):
+    // están en la base del Portal; se leen las visibles.
     const hubLect = supabase.createClient(HUB.url, HUB.key, { auth:{ persistSession:false } });
     try{ MAPA = await Segmentacion.mapa(); }catch(e){ MAPA = null; }
-    const [camps, planes, fechas, catal, provs, vinosMesa] = await Promise.all([
+    const [camps, planes, fechas, catal, provs, vinosMesa, herr] = await Promise.all([
       todas(man, 'acciones_mensuales', q => q.eq('activa', true)),
       todas(man, 'checklist_planes', q => q),
       todas(man, 'acciones_fechas', q => q.eq('activa', true)),
       todas(cat, 'catalogo_acciones', q => q.eq('activo', true)),
       todas(cat, 'catalogo_proveedores', q => q),
       todas(hubLect, 'vinos_sobre_mesa', q => q.eq('activo', true)),
+      // Si la tabla todavía no está creada (falta acciones-herramientas-setup.sql), el resto se ve igual.
+      todas(hubLect, 'acciones_herramientas', q => q.eq('activo', true)).catch(e => { console.warn('acciones_herramientas:', e && e.message); return []; }),
     ]);
     const prov = {}; provs.forEach(p => prov[p.id] = p);
     const lista = [];
@@ -311,6 +325,14 @@
       lista.push({ origen:'vino_mesa', id:v.id, titulo:v.nombre || 'Vino sobre la mesa', proveedor:v.proveedor || '',
         mecanica:v.condicion || '', detalle:v.descripcion || '', desde:null, hasta:null,
         donde, canales:canalesManual(v, marcadas ? [] : ['restaurante']), imagen:null });
+    });
+    herr.filter(a => HERR_DEFECTO[a.tipo]).forEach(a => {
+      const def = HERR_DEFECTO[a.tipo], marcadas = (a.secciones || []).length > 0, zonas = a.zonas || [];
+      const donde = marcadas && MAPA ? Segmentacion.texto(a, MAPA)
+        : (zonas.length === 1 ? 'Solo ' + (zonas[0] === 'sanluis' ? 'San Luis' : 'Mendoza') + ' · ' : '') + def.donde;
+      lista.push({ origen:a.tipo, id:a.id, titulo:a.nombre || TIPO[a.tipo], proveedor:a.proveedor || '',
+        mecanica:a.condicion || '', detalle:a.descripcion || '', desde:a.fecha_desde, hasta:a.fecha_hasta,
+        donde, canales:canalesManual(a, marcadas ? [] : def.rubros), imagen:null });
     });
     // El mismo proveedor escrito distinto ("DOÑA PAULA" / "Doña Paula") va al mismo grupo,
     // con el nombre mejor escrito (el que no está todo en mayúsculas, si hay).

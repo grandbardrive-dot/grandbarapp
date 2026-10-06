@@ -3085,7 +3085,7 @@ body { background:transparent !important; }
         ${sec.especial !== 'acciones_mensuales' ? `<div id="acm-${sec.id}"></div>` : ''}
         ${sec.intro?`<div class="sec-intro">${esc(sec.intro)}</div>`:''}
         ${widgetSlotHtml(sec)}
-        <div id="vsm-${sec.id}"></div>
+        <div id="hacc-${sec.id}"></div>
         ${itemsHtml}
         ${notaHtml}
         ${sec.especial === 'segafreddo' ? renderEspSegaFoto() : ''}
@@ -4651,7 +4651,7 @@ body { background:transparent !important; }
     // Cargar acciones/campañas en TODAS las hojas: la general muestra las 'general',
     // y cada sección específica muestra las campañas que el admin le asignó.
     seccionesHoja(checklist).forEach(sec => { cargarAccionesMensualesSeccion(sec.id); });
-    cargarVinosMesa();
+    cargarAccionesHerramientas();
     // Widgets de subsección (propuestas / ofertas) según el mapa WIDGET_SUBSEC.
     // (campari no carga acá: cargarProgresos/cargarAcuerdosCampari ya corren en init)
     seccionesHoja(checklist).forEach(sec => {
@@ -6003,53 +6003,79 @@ body { background:transparent !important; }
     el.innerHTML = lista + calc;
   }
 
-  // ── VINOS SOBRE LA MESA (06/10/2026): acciones que carga Luciana en
-  // admin-vinos-mesa.html (tabla vinos_sobre_mesa de la base del Portal, que deja
-  // leer solo las visibles). Cada acción sale en las secciones que ella marcó, en
-  // cualquier manual; si no marcó ninguna, en las que tienen la herramienta: la
-  // elegida en Secciones (w:vinos_mesa) o la subsección de vinos de "SOBRE LA MESA".
-  function tieneVinosMesa(sec) {
+  // ── ACCIONES DE LAS HERRAMIENTAS (06/10/2026): Vinos sobre la mesa, Punteras,
+  // Acciones de volumen y Degustaciones. Las carga Luciana (admin-vinos-mesa.html y
+  // admin-acciones-herramienta.html) en la base del Portal, que deja leer solo las
+  // visibles (tablas vinos_sobre_mesa y acciones_herramientas). Cada acción sale en
+  // las secciones que ella marcó, en cualquier manual; si no marcó ninguna, en las que
+  // tienen esa herramienta: la elegida en Secciones (especial "w:…") o una sección
+  // que se llama como la herramienta. La zona vale siempre; las vencidas no salen.
+  const HERR_ACCIONES = [
+    { tipo:'vino_mesa', w:'w:vinos_mesa', etiqueta:'Sobre la mesa', vacio:'Todavía no hay vinos sobre la mesa cargados.',
+      porNombre: (nom, madre) => /sobre\s+la\s+mesa/i.test(nom) || (/sobre\s+la\s+mesa/i.test(madre) && /vino/i.test(nom)) },
+    { tipo:'puntera', w:'w:punteras', etiqueta:'Puntera', vacio:'Todavía no hay acciones de punteras cargadas.',
+      porNombre: nom => /puntera/i.test(nom) },
+    { tipo:'volumen', w:'w:volumen', etiqueta:'Acción de volumen', vacio:'Todavía no hay acciones de volumen cargadas.',
+      porNombre: nom => /acci[oó]n(es)?\s+de\s+volumen/i.test(nom) },
+    { tipo:'degustacion', w:'w:degustaciones', etiqueta:'Degustación', vacio:'Todavía no hay degustaciones cargadas.',
+      porNombre: nom => /degustaci/i.test(nom) },
+  ];
+  const _hoyAcc = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const _fechaAcc = f => { const [y, m, d] = String(f).slice(0, 10).split('-'); return d + '/' + m + '/' + y; };
+  function herramientaAcciones(sec, h) {
     if (!sec) return false;
-    if (sec.especial === 'w:vinos_mesa') return true;
-    const nom = String(sec.titulo || sec.nombre || '');
-    if (/sobre\s+la\s+mesa/i.test(nom)) return true;
+    if (sec.especial === h.w) return true;
     const madre = madreDe(sec.id);
-    return !!(madre && /sobre\s+la\s+mesa/i.test(String(madre.titulo || madre.nombre || '')) && /vino/i.test(nom));
+    return h.porNombre(String(sec.titulo || sec.nombre || ''), madre ? String(madre.titulo || madre.nombre || '') : '');
   }
-  let _vsmPromesa = null;
-  function _vinosMesa() {
-    if (!_vsmPromesa) _vsmPromesa = (async () => {
-      try {
-        const hubSb = supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc', { auth: { persistSession: false } });
-        const { data, error } = await hubSb.from('vinos_sobre_mesa')
-          .select('id,nombre,proveedor,condicion,descripcion,secciones,zonas,orden')
-          .eq('activo', true).order('orden').order('created_at');
-        return error ? [] : (data || []);
-      } catch (e) { return []; }
+  let _haccPromesa = null;
+  function _accionesHerramientas() {
+    if (!_haccPromesa) _haccPromesa = (async () => {
+      const hubSb = supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc', { auth: { persistSession: false } });
+      const leer = async (tabla, campos) => {
+        try {
+          const { data, error } = await hubSb.from(tabla).select(campos).eq('activo', true).order('orden').order('created_at');
+          return error ? [] : (data || []);
+        } catch (e) { return []; }
+      };
+      const [vinos, otras] = await Promise.all([
+        leer('vinos_sobre_mesa', 'id,nombre,proveedor,condicion,descripcion,secciones,zonas,orden'),
+        leer('acciones_herramientas', 'id,tipo,nombre,proveedor,condicion,descripcion,fecha_desde,fecha_hasta,secciones,zonas,orden'),
+      ]);
+      const hoy = _hoyAcc();
+      return vinos.map(v => ({ ...v, tipo: 'vino_mesa' }))
+        .concat(otras.filter(a => !a.fecha_hasta || String(a.fecha_hasta) >= hoy));
     })();
-    return _vsmPromesa;
+    return _haccPromesa;
   }
-  async function cargarVinosMesa() {
-    const hojas = seccionesHoja(checklist);
-    const todos = await _vinosMesa();
-    hojas.forEach(sec => {
-      const el = document.getElementById(`vsm-${sec.id}`);
-      if (!el) return;
-      const conHerramienta = tieneVinosMesa(sec);
-      const uuid = (buscarSec(sec.id) || sec)._uuid;
-      const items = todos.filter(v => segMarcado(v)
-        ? !!(uuid && v.secciones.includes(uuid) && segVa(v, uuid))
-        : (conHerramienta && segVa(v, null)));
-      if (!items.length) {
-        el.innerHTML = conHerramienta ? `<div class="vc-empty">Todavía no hay vinos sobre la mesa cargados.</div>` : '';
-        return;
-      }
-      el.innerHTML = `<div class="vc-list">` + items.map(v => `
+  function tarjetaAccionHerr(a, etiqueta) {
+    const vig = a.fecha_desde && String(a.fecha_desde) > _hoyAcc() ? 'Desde el ' + _fechaAcc(a.fecha_desde)
+      : a.fecha_hasta ? 'Hasta el ' + _fechaAcc(a.fecha_hasta) : '';
+    return `
         <div class="vc-card">
-          <div class="vc-head"><div class="vc-nom">${esc(v.nombre)}</div>${conHerramienta ? '' : '<span class="vc-prov">Sobre la mesa</span>'}${v.proveedor ? `<span class="vc-prov">${esc(v.proveedor)}</span>` : ''}</div>
-          ${v.condicion ? `<div class="vc-cond">${esc(v.condicion)}</div>` : ''}
-          ${v.descripcion ? `<div class="vc-desc">${esc(v.descripcion)}</div>` : ''}
-        </div>`).join('') + `</div>`;
+          <div class="vc-head"><div class="vc-nom">${esc(a.nombre)}</div>${etiqueta ? `<span class="vc-prov">${esc(etiqueta)}</span>` : ''}${a.proveedor ? `<span class="vc-prov">${esc(a.proveedor)}</span>` : ''}</div>
+          ${a.condicion ? `<div class="vc-cond">${esc(a.condicion)}</div>` : ''}
+          ${vig ? `<div class="vc-desc">${vig}</div>` : ''}
+          ${a.descripcion ? `<div class="vc-desc">${esc(a.descripcion)}</div>` : ''}
+        </div>`;
+  }
+  async function cargarAccionesHerramientas() {
+    const todas = await _accionesHerramientas();
+    seccionesHoja(checklist).forEach(sec => {
+      const el = document.getElementById(`hacc-${sec.id}`);
+      if (!el) return;
+      const uuid = (buscarSec(sec.id) || sec)._uuid;
+      const tarjetas = [], vacios = [];
+      HERR_ACCIONES.forEach(h => {
+        const propia = herramientaAcciones(sec, h);
+        const items = todas.filter(a => a.tipo === h.tipo && (segMarcado(a)
+          ? !!(uuid && a.secciones.includes(uuid) && segVa(a, uuid))
+          : (propia && segVa(a, null))));
+        // En la sección de su herramienta no hace falta decir qué es; en otra, sí.
+        if (items.length) items.forEach(a => tarjetas.push(tarjetaAccionHerr(a, propia ? '' : h.etiqueta)));
+        else if (propia) vacios.push(`<div class="vc-empty">${h.vacio}</div>`);
+      });
+      el.innerHTML = (tarjetas.length ? `<div class="vc-list">${tarjetas.join('')}</div>` : '') + vacios.join('');
     });
   }
 

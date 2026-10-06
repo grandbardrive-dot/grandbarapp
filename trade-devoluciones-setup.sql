@@ -14,7 +14,7 @@
 create table if not exists public.acciones_devoluciones (
   id             uuid primary key default gen_random_uuid(),
   created_at     timestamptz not null default now(),
-  origen         text not null check (origen in ('campania', 'plan', 'fecha', 'catalogo', 'vino_mesa')),
+  origen         text not null check (origen in ('campania', 'plan', 'fecha', 'catalogo', 'vino_mesa', 'puntera', 'volumen', 'degustacion')),
   accion_id      text not null,                  -- id de la acción en su base (manual o catálogo)
   accion_nombre  text not null,
   accion_detalle jsonb not null default '{}',    -- cómo estaba la acción cuando se devolvió
@@ -34,11 +34,12 @@ create index if not exists acciones_devoluciones_accion_idx on public.acciones_d
 alter table public.acciones_devoluciones enable row level security;
 revoke all on public.acciones_devoluciones from anon, authenticated;
 
--- 06/10/2026: también se devuelven los Vinos sobre la mesa (tabla vinos_sobre_mesa).
+-- 06/10/2026: también se devuelven los Vinos sobre la mesa (vinos_sobre_mesa) y las
+-- Punteras, Acciones de volumen y Degustaciones (acciones_herramientas).
 -- En una base que ya tenía la tabla, esto amplía los tipos permitidos.
 alter table public.acciones_devoluciones drop constraint if exists acciones_devoluciones_origen_check;
 alter table public.acciones_devoluciones add constraint acciones_devoluciones_origen_check
-  check (origen in ('campania', 'plan', 'fecha', 'catalogo', 'vino_mesa'));
+  check (origen in ('campania', 'plan', 'fecha', 'catalogo', 'vino_mesa', 'puntera', 'volumen', 'degustacion'));
 
 -- Control: tiene que dar 0 filas y ningún error.
 select count(*) as devoluciones from public.acciones_devoluciones;

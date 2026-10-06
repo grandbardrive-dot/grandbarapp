@@ -43,6 +43,9 @@
   I.incorp = '<path d="M12 5v14M5 12h14" stroke-linecap="round"/><rect x="3" y="3" width="18" height="18" rx="4"/>';
   I.copa = '<path d="M8 3h8l-1 6a3 3 0 0 1-6 0zM12 15v5M9 21h6" stroke-linejoin="round" stroke-linecap="round"/>';
   I.mesa = '<path d="M10 3h4v4l2 3v11H8V10l2-3z" stroke-linejoin="round"/><path d="M8 14h8" stroke-linecap="round"/>';
+  I.puntera = '<path d="M5 3v18M19 3v18M5 8h14M5 14h14M5 20h14" stroke-linecap="round"/>';
+  I.volumen = '<rect x="3" y="12" width="8" height="8" rx="1"/><rect x="13" y="12" width="8" height="8" rx="1"/><rect x="8" y="4" width="8" height="8" rx="1"/>';
+  I.degustacion = '<path d="M7 3h4l-.5 5a1.5 1.5 0 0 1-3 0zM9 10v8M7 20h4M14 3h4l-.5 5a1.5 1.5 0 0 1-3 0zM16 10v8M14 20h4" stroke-linejoin="round" stroke-linecap="round"/>';
   I.aperitivo ='<path d="M6 4h12l-6 8zM12 12v7M8 20h8" stroke-linejoin="round" stroke-linecap="round"/>';
   I.mix = '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>';
   I.frigobar = '<rect x="6" y="3" width="12" height="18" rx="2"/><path d="M6 10h12M9 6v2M9 13v3" stroke-linecap="round"/>';
@@ -69,6 +72,10 @@
       { h: 'admin-propuestas.html', t: 'Propuestas de incorporación', s: 'Vinos y spirits para sumar', i: 'incorp' },
       { h: 'admin-vino-copa.html', t: 'Vino por copa', s: 'Vinos y condiciones', i: 'copa' },
       { h: 'admin-vinos-mesa.html', t: 'Vinos sobre la mesa', s: 'Acciones y dónde salen', i: 'mesa' },
+      // Una pantalla para las tres; el # elige cuál (06/10/2026).
+      { h: 'admin-acciones-herramienta.html#punteras', t: 'Punteras', s: 'Acciones y dónde salen', i: 'puntera' },
+      { h: 'admin-acciones-herramienta.html#volumen', t: 'Acciones de volumen', s: 'Volumen y exhibidores', i: 'volumen' },
+      { h: 'admin-acciones-herramienta.html#degustaciones', t: 'Degustaciones', s: 'Acciones y dónde salen', i: 'degustacion' },
       { h: 'admin-aperitivos.html', t: 'Aperitivos', s: 'De bienvenida o pre cena', i: 'aperitivo' },
       { h: 'admin-mixes.html', t: 'Mix Ideal', s: 'Combos de productos', i: 'mix' },
       { h: 'admin-frigobar.html', t: 'Frigobar', s: 'Packs para hoteles', i: 'frigobar' },
