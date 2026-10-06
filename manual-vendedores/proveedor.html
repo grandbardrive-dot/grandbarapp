@@ -48,6 +48,7 @@
   <div class="top">
     <div class="b"><span class="g">Grand</span>Bar · Proveedores</div>
     <div class="emp" id="emp">—</div>
+    <a class="out" href="/guia-proveedores.html" target="_blank" rel="noopener" style="text-decoration:none">Guía</a>
     <button class="out" onclick="salir()">Salir</button>
   </div>
   <div class="banner" id="banner" hidden><img id="bannerImg" alt=""></div>
@@ -231,7 +232,7 @@ async function cargarAlertas(){
     if(!alertas.length){ cont.innerHTML='<div class="ok-box">🎉 Estás cubriendo todas las secciones donde hay movimiento. ¡Buen trabajo!</div>'; return; }
     cont.innerHTML=alertas.map(a=>`<div class="alerta">
       <div class="ico">👀</div>
-      <div class="tx"><b>${esc(a.ejemplo)}</b>${a.n>1?' y otros':''} cargaron una acción en <b>${esc(a.seccion)}</b> · ${esc(rLbl(a.rubro))} y vos no tenés ninguna.</div>
+      <div class="tx"><b>${esc(a.ejemplo)}</b>${a.n>1?' y otros cargaron':' cargó'} una acción en <b>${esc(a.seccion)}</b> · ${esc(rLbl(a.rubro))} y vos no tenés ninguna.</div>
       <a class="go" href="proveedor-manual.html?rubro=${encodeURIComponent(a.rubro)}&seccion=${encodeURIComponent(a.seccion)}">Proponer</a>
     </div>`).join('');
   }catch(e){ $('alertas').innerHTML='<div class="empty">No se pudieron cargar las oportunidades.</div>'; }

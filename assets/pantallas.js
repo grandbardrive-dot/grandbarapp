@@ -76,7 +76,8 @@ const PANTALLAS = [
       { n:'Comparador de precios',r:'manual-vendedores/admin-comparador.html',      nota:'Precios de la competencia.' },
       { n:'Importar clientes',   r:'manual-vendedores/admin-importar.html',         nota:'Carga masiva desde planilla.' },
       { n:'Propuestas de proveedores', r:'manual-vendedores/propuestas.html',       nota:'Lo que cargan los proveedores para aprobar.' },
-      { n:'Guía para proveedores',r:'manual-vendedores/proveedores-info.html',      nota:'Instructivo que se les comparte.' },
+      { n:'Guía del portal de proveedores', r:'guia-proveedores.html',              nota:'Manual del portal actual, pantalla por pantalla (06/10/2026).' },
+      { n:'Guía para proveedores (vieja)',r:'manual-vendedores/proveedores-info.html', nota:'Explica el recolector anterior; reemplazada por guia-proveedores.html.' },
     ],
   },
   {
