@@ -316,10 +316,10 @@ function renderAccionesTab() {
   ['todos', ...CANALES].forEach((c) =>
     selCanal.appendChild(el('option', { value: c, ...(state.filtroCanal === c ? { selected: '' } : {}) }, c)));
 
-  // filtro por proveedor (ordenado por categoría y orden)
+  // filtro por proveedor (alfabético, igual que los demás desplegables)
   const selProv = el('select', { onchange: (e) => { state.filtroProv = e.target.value; refreshAcciones(); } });
   selProv.appendChild(el('option', { value: 'todos', ...(state.filtroProv === 'todos' ? { selected: '' } : {}) }, 'todos'));
-  proveedoresOrdenados().forEach((p) =>
+  provAlfabetico().forEach((p) =>
     selProv.appendChild(el('option', { value: p.id, ...(state.filtroProv === p.id ? { selected: '' } : {}) },
       `${p.nombre} (${p.categoria})`)));
 
