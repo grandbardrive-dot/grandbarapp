@@ -142,11 +142,11 @@
   const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fFecha = d => { if(!d) return ''; const [y,m,dd] = String(d).slice(0,10).split('-'); return dd + '/' + m + '/' + y; };
   const fHora = iso => iso ? new Date(iso).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
-  const TIPO = { campania:'Campaña del manual', plan:'Plan de proveedor', fecha:'Fecha especial', catalogo:'Catálogo de clientes' };
+  const TIPO = { campania:'Campaña del manual', plan:'Plan de proveedor', fecha:'Fecha especial', catalogo:'Catálogo de clientes', vino_mesa:'Vino sobre la mesa' };
   const EST = { pendiente:'Sin ver', vista:'Vista', resuelta:'Resuelta' };
   // Dónde se edita cada acción en este panel.
   const ABRIR = { campania: id => 'admin-nueva-campania.html?id=' + encodeURIComponent(id), plan: id => 'admin-nuevo-plan.html?id=' + encodeURIComponent(id),
-                  fecha: () => 'admin-fechas.html', catalogo: () => 'admin-catalogo-clientes.html' };
+                  fecha: () => 'admin-fechas.html', catalogo: () => 'admin-catalogo-clientes.html', vino_mesa: () => 'admin-vinos-mesa.html' };
   let TOKEN = null, DEV = [], FILTRO = 'pendiente', ERR = '';
 
   function contar(){

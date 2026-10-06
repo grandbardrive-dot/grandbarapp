@@ -148,6 +148,7 @@
           <option value="plan">Planes de proveedores</option>
           <option value="fecha">Fechas especiales</option>
           <option value="catalogo">Catálogo de clientes</option>
+          <option value="vino_mesa">Vinos sobre la mesa</option>
         </select>
         <select id="fCanal">
           <option value="">Todos los canales</option>
@@ -211,7 +212,10 @@
   const hoyISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
   function toast(m, e){ const t = $('toast'); t.textContent = m; t.className = 'toast show' + (e ? ' err' : ''); setTimeout(() => t.className = 'toast', 2800); }
 
-  const TIPO = { campania:'Campaña del manual', plan:'Plan de proveedor', fecha:'Fecha especial', catalogo:'Catálogo de clientes' };
+  const TIPO = { campania:'Campaña del manual', plan:'Plan de proveedor', fecha:'Fecha especial', catalogo:'Catálogo de clientes', vino_mesa:'Vino sobre la mesa' };
+  // Para contar en cada proveedor: [una, varias].
+  const TIPO_CUENTA = { campania:['campaña','campañas'], plan:['plan','planes'], fecha:['fecha especial','fechas especiales'],
+    catalogo:['del catálogo','del catálogo'], vino_mesa:['vino sobre la mesa','vinos sobre la mesa'] };
   const RUBRO = { restaurante:'Restaurantes', restaurantes:'Restaurantes', bar:'Bares', bares:'Bares', vinoteca:'Vinotecas', vinotecas:'Vinotecas',
     tienda_bebidas:'Tiendas de bebidas', tiendas_bebidas:'Tiendas de bebidas', autoservicio:'Autoservicios', autoservicios:'Autoservicios',
     hotel:'Hoteles', hoteles:'Hoteles', disco:'Discos', discos:'Discos', evento:'Eventos', eventos:'Eventos', mayorista:'Mayoristas', mayoristas:'Mayoristas',
@@ -268,13 +272,16 @@
   async function cargarAcciones(){
     const man = supabase.createClient(MAN.url, MAN.key, { auth:{ persistSession:false } });
     const cat = supabase.createClient(CAT.url, CAT.key, { auth:{ persistSession:false } });
+    // Vinos sobre la mesa (06/10/2026): están en la base del Portal; se leen las visibles.
+    const hubLect = supabase.createClient(HUB.url, HUB.key, { auth:{ persistSession:false } });
     try{ MAPA = await Segmentacion.mapa(); }catch(e){ MAPA = null; }
-    const [camps, planes, fechas, catal, provs] = await Promise.all([
+    const [camps, planes, fechas, catal, provs, vinosMesa] = await Promise.all([
       todas(man, 'acciones_mensuales', q => q.eq('activa', true)),
       todas(man, 'checklist_planes', q => q),
       todas(man, 'acciones_fechas', q => q.eq('activa', true)),
       todas(cat, 'catalogo_acciones', q => q.eq('activo', true)),
       todas(cat, 'catalogo_proveedores', q => q),
+      todas(hubLect, 'vinos_sobre_mesa', q => q.eq('activo', true)),
     ]);
     const prov = {}; provs.forEach(p => prov[p.id] = p);
     const lista = [];
@@ -295,6 +302,15 @@
       lista.push({ origen:'catalogo', id:a.id, titulo:a.nombre_producto || 'Acción del catálogo', proveedor:p.nombre || '',
         mecanica:mec, precioReg:a.precio_regular, precioAcc:a.precio_accionado, detalle:[a.info_adicional, a.sku_promo ? 'SKU promo: ' + a.sku_promo : ''].filter(Boolean).join('\n'),
         desde:null, hasta:a.vigente_hasta, donde, canales:CANALES_CAT[a.canal] || TODOS_CANALES, imagen:a.imagen_url });
+    });
+    // Sin secciones marcadas salen donde está la herramienta (Restaurantes › "SOBRE LA MESA" › Vinos).
+    vinosMesa.forEach(v => {
+      const marcadas = (v.secciones || []).length > 0, zonas = v.zonas || [];
+      const donde = marcadas && MAPA ? Segmentacion.texto(v, MAPA)
+        : (zonas.length === 1 ? 'Solo ' + (zonas[0] === 'sanluis' ? 'San Luis' : 'Mendoza') + ' · ' : '') + 'Restaurantes › Sobre la mesa › Vinos';
+      lista.push({ origen:'vino_mesa', id:v.id, titulo:v.nombre || 'Vino sobre la mesa', proveedor:v.proveedor || '',
+        mecanica:v.condicion || '', detalle:v.descripcion || '', desde:null, hasta:null,
+        donde, canales:canalesManual(v, marcadas ? [] : ['restaurante']), imagen:null });
     });
     // El mismo proveedor escrito distinto ("DOÑA PAULA" / "Doña Paula") va al mismo grupo,
     // con el nombre mejor escrito (el que no está todo en mayúsculas, si hay).
@@ -339,7 +355,7 @@
     $('lista').className = 'lista agrupada';
     $('lista').innerHTML = visibles.map(g => {
       const tipos = {}; g.items.forEach(a => tipos[a.origen] = (tipos[a.origen] || 0) + 1);
-      const tiposTxt = Object.keys(tipos).map(t => tipos[t] + ' ' + ({ campania:'campaña', plan:'plan', fecha:'fecha especial', catalogo:'del catálogo' }[t]) + (tipos[t] > 1 && t !== 'catalogo' ? (t === 'plan' ? 'es' : 's') : '')).join(' · ');
+      const tiposTxt = Object.keys(tipos).map(t => tipos[t] + ' ' + (TIPO_CUENTA[t] || [t, t])[tipos[t] > 1 ? 1 : 0]).join(' · ');
       const abierto = abrirTodo || ABIERTOS.has(g.key);
       return '<details class="grupo" data-g="' + esc(g.key) + '"' + (abierto ? ' open' : '') + '><summary>' + esc(g.nombre)
         + ' <span class="cant">' + g.items.length + '</span> <span class="tipos">' + esc(tiposTxt) + '</span></summary>'
