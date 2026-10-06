@@ -715,7 +715,10 @@ async function getChecklistDynamic(tipo, zonaPedida) {
     nodos.forEach(n => {
       const madre = n._parentUuid ? porUuid[n._parentUuid] : null;
       if (madre) (madre.subsecciones = madre.subsecciones || []).push(n);
-      else topLevel.push(n);
+      // Una subsección cuya madre está OCULTA no se muestra, igual que en el panel de
+      // Secciones. Antes quedaba suelta como sección propia: en Autoservicios de Mendoza
+      // aparecían "GRUPO CAMPARI", "PERNOD RICARD" y "DIAGEO" sueltas (06/10/2026).
+      else if (!n._parentUuid) topLevel.push(n);
     });
     // Ordenar madres por orden y, dentro de cada madre, sus hijas por orden
     topLevel.sort((a, b) => a._orden - b._orden);
