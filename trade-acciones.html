@@ -95,7 +95,21 @@
   .modal .msg{font-size:13px;color:var(--danger);margin-top:8px;min-height:16px}
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 18px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:90}
   .toast.show{opacity:1} .toast.err{background:var(--danger)}
-  @media(max-width:900px){ .sidebar{display:none} .content{padding:18px 14px 50px} .lista{grid-template-columns:1fr} }
+  /* Agrupado por proveedor (06/10/2026): con 190 acciones la lista sola no se leía. */
+  .cuenta-fila{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:-6px 0 12px}
+  .cuenta-fila .cuenta{margin:0}
+  .agrupar{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+  .lnk{background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:600;color:var(--gold-d);text-decoration:underline;cursor:pointer}
+  .lista.agrupada{display:block}
+  .grupo{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+  .grupo > summary{list-style:none;display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;font-weight:800;font-size:15px}
+  .grupo > summary::-webkit-details-marker{display:none}
+  .grupo > summary::after{content:'▾';margin-left:auto;color:var(--muted);transition:transform .15s}
+  .grupo:not([open]) > summary::after{transform:rotate(-90deg)}
+  .grupo .cant{font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;background:var(--gold-s);color:var(--gold-d)}
+  .grupo .tipos{font-size:12px;font-weight:500;color:var(--muted)}
+  .grupo .dentro{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;padding:0 14px 14px}
+  @media(max-width:900px){ .sidebar{display:none} .content{padding:18px 14px 50px} .lista,.grupo .dentro{grid-template-columns:1fr} }
 </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
@@ -135,9 +149,21 @@
           <option value="fecha">Fechas especiales</option>
           <option value="catalogo">Catálogo de clientes</option>
         </select>
+        <select id="fCanal">
+          <option value="">Todos los canales</option>
+          <option value="on">ON (restaurantes, bares, hoteles…)</option>
+          <option value="off">OFF (vinotecas, tiendas, autoservicios)</option>
+          <option value="mayorista">Mayoristas</option>
+        </select>
+        <select id="fProv"><option value="">Todos los proveedores</option></select>
         <input id="q" type="search" placeholder="Buscar producto, proveedor o mecánica…" autocomplete="off">
       </div>
-      <div class="cuenta" id="cuenta"></div>
+      <div class="cuenta-fila">
+        <div class="cuenta" id="cuenta"></div>
+        <label class="agrupar"><input type="checkbox" id="fAgrupar" checked> Agrupar por proveedor</label>
+        <button type="button" class="lnk" id="bAbrir">Abrir todos</button>
+        <button type="button" class="lnk" id="bCerrar">Cerrar todos</button>
+      </div>
       <div id="lista" class="lista"><div class="vacio">Cargando…</div></div>
     </div>
 
@@ -216,6 +242,22 @@
     const r = (rubros || []).map(x => RUBRO[x] || x).filter(Boolean);
     return r.length ? [...new Set(r)].join(', ') : 'Donde corresponda en el manual';
   }
+  // Canal de venta (ON / OFF / mayorista) de cada acción, para filtrar lo de cada equipo.
+  const CANAL_DE_RUBRO = { restaurante:'on', restaurantes:'on', bar:'on', bares:'on', hotel:'on', hoteles:'on', disco:'on', discos:'on', discotecas:'on',
+    evento:'on', eventos:'on', vinoteca:'off', vinotecas:'off', tienda_bebidas:'off', tiendas_bebidas:'off', 'tienda de bebidas':'off',
+    autoservicio:'off', autoservicios:'off', kiosco:'off', kioscos:'off', mayorista:'mayorista', mayoristas:'mayorista',
+    mayorista_mendoza:'mayorista', mayorista_sanluis:'mayorista' };
+  const TODOS_CANALES = ['on', 'off', 'mayorista'];
+  function canalesManual(fila, rubros){
+    const s = new Set();
+    const secs = (Array.isArray(fila.secciones) && fila.secciones.length) ? fila.secciones : (fila.seccion_id ? [fila.seccion_id] : []);
+    if(secs.length && MAPA) secs.forEach(id => { const m = MAPA[id]; if(m && CANAL_DE_RUBRO[m.canal]) s.add(CANAL_DE_RUBRO[m.canal]); });
+    else (rubros || []).forEach(r => { if(r === 'todos') TODOS_CANALES.forEach(c => s.add(c)); else if(CANAL_DE_RUBRO[r]) s.add(CANAL_DE_RUBRO[r]); });
+    return s.size ? [...s] : TODOS_CANALES;   // sin dato = se ve donde corresponda
+  }
+  const CANALES_CAT = { on:['on'], off:['off'], ambos:['on','off'], mayorista:['mayorista'] };
+  const nrm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+
   function estadoTiempo(desde, hasta){
     const h = hoyISO(), d = desde ? String(desde).slice(0,10) : '', f = hasta ? String(hasta).slice(0,10) : '';
     if(f && f < h) return 'vencida';
@@ -238,22 +280,29 @@
     const lista = [];
     camps.forEach(a => lista.push({ origen:'campania', id:a.id, titulo:a.producto || a.accion || 'Campaña', proveedor:a.proveedor || '',
       mecanica:a.accion || '', precioReg:a.precio_regular, precioAcc:a.precio_accionado, detalle:a.varietales || '',
-      desde:a.fecha_inicio, hasta:a.fecha_fin, donde:dondeManual(a, a.aplica_a), imagen:a.imagen_url }));
+      desde:a.fecha_inicio, hasta:a.fecha_fin, donde:dondeManual(a, a.aplica_a), canales:canalesManual(a, a.aplica_a), imagen:a.imagen_url }));
     planes.filter(p => p.activo !== false).forEach(p => lista.push({ origen:'plan', id:p.id, titulo:p.nombre || 'Plan', proveedor:p.proveedor || '',
       mecanica:p.condicion || '', detalle:[p.descripcion, (p.lineas_participantes || []).length ? 'Líneas: ' + p.lineas_participantes.join(', ') : ''].filter(Boolean).join('\n'),
-      desde:p.fecha_inicio, hasta:p.fecha_fin, donde:dondeManual(p, []), imagen:null }));
-    fechas.forEach(f => lista.push({ origen:'fecha', id:f.id, titulo:f.nombre || 'Fecha especial', proveedor:'',
+      desde:p.fecha_inicio, hasta:p.fecha_fin, donde:dondeManual(p, []), canales:canalesManual(p, []), imagen:null }));
+    fechas.forEach(f => { const rub = (f.rubros && f.rubros.length) ? f.rubros : [f.canal];
+      lista.push({ origen:'fecha', id:f.id, titulo:f.nombre || 'Fecha especial', proveedor:'',
       mecanica:f.condicion || '', detalle:f.descripcion || '', desde:f.fecha_inicio, hasta:f.fecha_fin,
-      donde:dondeManual(f, (f.rubros && f.rubros.length) ? f.rubros : [f.canal]), imagen:f.imagen_url }));
+      donde:dondeManual(f, rub), canales:canalesManual(f, rub), imagen:f.imagen_url }); });
     catal.forEach(a => {
       const p = prov[a.proveedor_id] || {};
       const mec = a.mecanica || (a.porcentaje_off ? a.porcentaje_off + '% OFF' : '');
       const donde = (CANAL_CAT[a.canal] || 'Catálogo de clientes') + ((a.secciones || []).length && MAPA ? ' · en el manual: ' + Segmentacion.texto(a, MAPA) : '');
       lista.push({ origen:'catalogo', id:a.id, titulo:a.nombre_producto || 'Acción del catálogo', proveedor:p.nombre || '',
         mecanica:mec, precioReg:a.precio_regular, precioAcc:a.precio_accionado, detalle:[a.info_adicional, a.sku_promo ? 'SKU promo: ' + a.sku_promo : ''].filter(Boolean).join('\n'),
-        desde:null, hasta:a.vigente_hasta, donde, imagen:a.imagen_url });
+        desde:null, hasta:a.vigente_hasta, donde, canales:CANALES_CAT[a.canal] || TODOS_CANALES, imagen:a.imagen_url });
     });
-    lista.forEach(x => { x.tiempo = estadoTiempo(x.desde, x.hasta); x.key = x.origen + ':' + x.id; });
+    // El mismo proveedor escrito distinto ("DOÑA PAULA" / "Doña Paula") va al mismo grupo,
+    // con el nombre mejor escrito (el que no está todo en mayúsculas, si hay).
+    const nombreProv = {};
+    lista.forEach(x => { const k = nrm(x.proveedor); if(!k) return;
+      const ya = nombreProv[k]; if(!ya || (ya === ya.toUpperCase() && x.proveedor !== x.proveedor.toUpperCase())) nombreProv[k] = x.proveedor.trim(); });
+    lista.forEach(x => { x.tiempo = estadoTiempo(x.desde, x.hasta); x.key = x.origen + ':' + x.id;
+      x.provKey = nrm(x.proveedor) || '~'; x.provNombre = nombreProv[x.provKey] || 'Sin proveedor'; });
     // Primero lo que vence antes; lo que no tiene fecha, al final.
     ACC = lista.sort((a, b) => String(a.hasta || '9999').localeCompare(String(b.hasta || '9999')) || a.titulo.localeCompare(b.titulo));
   }
@@ -268,13 +317,52 @@
 
   function pintarAcciones(){
     if(ERR_ACC){ $('lista').innerHTML = '<div class="vacio">No se pudieron leer las acciones: ' + esc(ERR_ACC) + '</div>'; $('cuenta').textContent = ''; return; }
-    const q = $('q').value.toLowerCase().trim(), tipo = $('fTipo').value;
-    const arr = ACC.filter(a => (TAB === 'todas' || (TAB === 'vigentes' ? a.tiempo === 'vigente' : a.tiempo === 'proxima'))
-      && (!tipo || a.origen === tipo)
+    const q = $('q').value.toLowerCase().trim(), tipo = $('fTipo').value, canal = $('fCanal').value, provSel = $('fProv').value;
+    // Todo menos el proveedor: con eso se arma la lista de proveedores (con cuántas tiene cada uno).
+    const base = ACC.filter(a => (TAB === 'todas' || (TAB === 'vigentes' ? a.tiempo === 'vigente' : a.tiempo === 'proxima'))
+      && (!tipo || a.origen === tipo) && (!canal || (a.canales || []).includes(canal))
       && (!q || [a.titulo, a.proveedor, a.mecanica, a.detalle, a.donde].join(' ').toLowerCase().includes(q)));
-    $('cuenta').textContent = arr.length + (arr.length === 1 ? ' acción' : ' acciones');
-    if(!arr.length){ $('lista').innerHTML = '<div class="vacio">' + (ACC.length ? 'No hay acciones con ese filtro.' : 'Luciana todavía no tiene acciones cargadas.') + '</div>'; return; }
-    $('lista').innerHTML = arr.map(a => {
+    const grupos = {};
+    base.forEach(a => { (grupos[a.provKey] = grupos[a.provKey] || { key:a.provKey, nombre:a.provNombre, items:[] }).items.push(a); });
+    const orden = Object.values(grupos).sort((x, y) => (x.key === '~') - (y.key === '~') || x.nombre.localeCompare(y.nombre, 'es'));
+    $('fProv').innerHTML = '<option value="">Todos los proveedores (' + orden.length + ')</option>'
+      + orden.map(g => '<option value="' + esc(g.key) + '"' + (g.key === provSel ? ' selected' : '') + '>' + esc(g.nombre) + ' (' + g.items.length + ')</option>').join('');
+    if(provSel && !grupos[provSel]) $('fProv').insertAdjacentHTML('beforeend', '<option value="' + esc(provSel) + '" selected>(sin acciones con este filtro)</option>');
+    const arr = provSel ? base.filter(a => a.provKey === provSel) : base;
+    $('cuenta').textContent = arr.length + (arr.length === 1 ? ' acción' : ' acciones') + (provSel || !$('fAgrupar').checked ? '' : ' de ' + orden.length + (orden.length === 1 ? ' proveedor' : ' proveedores'));
+    if(!arr.length){ $('lista').className = 'lista'; $('lista').innerHTML = '<div class="vacio">' + (ACC.length ? 'No hay acciones con ese filtro.' : 'Luciana todavía no tiene acciones cargadas.') + '</div>'; return; }
+    if(!$('fAgrupar').checked){ $('lista').className = 'lista'; $('lista').innerHTML = arr.map(tarjeta).join(''); return; }
+    // Agrupado: un bloque por proveedor. Cerrados de entrada, salvo que haya uno solo,
+    // un proveedor elegido o una búsqueda (ahí se quiere ver el resultado).
+    const abrirTodo = !!provSel || !!q || orden.length === 1;
+    const visibles = provSel ? orden.filter(g => g.key === provSel) : orden;
+    $('lista').className = 'lista agrupada';
+    $('lista').innerHTML = visibles.map(g => {
+      const tipos = {}; g.items.forEach(a => tipos[a.origen] = (tipos[a.origen] || 0) + 1);
+      const tiposTxt = Object.keys(tipos).map(t => tipos[t] + ' ' + ({ campania:'campaña', plan:'plan', fecha:'fecha especial', catalogo:'del catálogo' }[t]) + (tipos[t] > 1 && t !== 'catalogo' ? (t === 'plan' ? 'es' : 's') : '')).join(' · ');
+      const abierto = abrirTodo || ABIERTOS.has(g.key);
+      return '<details class="grupo" data-g="' + esc(g.key) + '"' + (abierto ? ' open' : '') + '><summary>' + esc(g.nombre)
+        + ' <span class="cant">' + g.items.length + '</span> <span class="tipos">' + esc(tiposTxt) + '</span></summary>'
+        + '<div class="dentro">' + (abierto ? g.items.map(tarjeta).join('') : '') + '</div></details>';
+    }).join('');
+  }
+  // Los bloques cerrados no arman sus tarjetas hasta que se abren (son casi 200).
+  const ABIERTOS = new Set();
+  $('lista').addEventListener('toggle', ev => {
+    const d = ev.target; if(!d.matches || !d.matches('details.grupo')) return;
+    const k = d.dataset.g, dentro = d.querySelector('.dentro');
+    if(d.open){ ABIERTOS.add(k); if(!dentro.children.length) dentro.innerHTML = ACC.filter(a => a.provKey === k && pasaFiltro(a)).map(tarjeta).join(''); }
+    else ABIERTOS.delete(k);
+  }, true);
+  function pasaFiltro(a){
+    const q = $('q').value.toLowerCase().trim(), tipo = $('fTipo').value, canal = $('fCanal').value;
+    return (TAB === 'todas' || (TAB === 'vigentes' ? a.tiempo === 'vigente' : a.tiempo === 'proxima'))
+      && (!tipo || a.origen === tipo) && (!canal || (a.canales || []).includes(canal))
+      && (!q || [a.titulo, a.proveedor, a.mecanica, a.detalle, a.donde].join(' ').toLowerCase().includes(q));
+  }
+
+  function tarjeta(a){
+    {
       const suyas = DEV.filter(d => d.origen === a.origen && String(d.accion_id) === String(a.id));
       const ult = suyas[0];
       const hist = suyas.length ? suyas.length + (suyas.length === 1 ? ' devolución' : ' devoluciones') + ' · la última <span class="estado e-' + esc(ult.estado) + '">' + esc(estadoTxt(ult.estado)) + '</span>' : 'Sin devoluciones todavía';
@@ -293,7 +381,7 @@
         + (a.detalle ? '<div class="det">' + esc(a.detalle) + '</div>' : '')
         + '</div><div class="pie"><span class="hist">' + hist + '</span>'
         + '<button class="btn dev" type="button" data-dev="' + esc(a.key) + '">Devolver a Luciana</button></div></div>';
-    }).join('');
+    }
   }
 
   const estadoTxt = e => ({ pendiente:'Sin ver', vista:'Vista por Luciana', resuelta:'Resuelta' }[e] || e);
@@ -324,7 +412,9 @@
   document.querySelectorAll('.vistas button').forEach(b => b.onclick = () => ir(b.dataset.v));
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { $('tabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); TAB = b.dataset.t; pintarAcciones(); });
   $('tabsDev').querySelectorAll('button').forEach(b => b.onclick = () => { $('tabsDev').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); EST_DEV = b.dataset.e; pintarDevoluciones(); });
-  ['q', 'fTipo'].forEach(id => $(id).addEventListener('input', pintarAcciones));
+  ['q', 'fTipo', 'fCanal', 'fProv', 'fAgrupar'].forEach(id => $(id).addEventListener(id === 'q' ? 'input' : 'change', pintarAcciones));
+  $('bAbrir').onclick = () => { document.querySelectorAll('details.grupo').forEach(d => d.open = true); };
+  $('bCerrar').onclick = () => { document.querySelectorAll('details.grupo').forEach(d => d.open = false); };
 
   // Devolver a Luciana
   $('lista').addEventListener('click', ev => {
