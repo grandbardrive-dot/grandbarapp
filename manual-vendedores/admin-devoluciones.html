@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrandBar — Devoluciones de Trade Marketing</title>
+<style>
+  /* Devoluciones de Trade Marketing (06/10/2026): Juan Pablo Sepúlveda trabaja las
+     acciones de Luciana con los vendedores y se las devuelve con observaciones. */
+  :root{
+    --navy:#1F447F; --navy-d:#16305a; --navy-dd:#0f2340;
+    --gold:#CBB86A; --gold-d:#B08D2E;
+    --bg:#F4F1EA; --surface:#FFFFFF; --surface2:#FBF9F5;
+    --ink:#1F1B16; --ink2:#5f574c; --ink3:#9a9187;
+    --line:rgba(31,68,127,.10); --line-2:rgba(31,68,127,.16);
+    --green:#2D6A4F; --green-bg:#E7F1EC;
+    --red:#C0392B;  --red-bg:#FBEAE7;
+    --amber:#9A6B0E; --amber-bg:#FaF0DA;
+    --shadow:0 1px 2px rgba(31,68,127,.05), 0 14px 34px rgba(31,68,127,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  @media (max-width:820px){ .layout{grid-template-columns:1fr} .sidebar{display:none} }
+
+  /* Sidebar */
+  .sidebar{background:linear-gradient(185deg,var(--navy),var(--navy-d) 62%,var(--navy-dd));color:#fff;display:flex;flex-direction:column;padding:0 0 18px;position:sticky;top:0;height:100vh;overflow-y:auto}
+  .sb-logo{padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px}
+  .sb-logo img{height:38px;object-fit:contain}
+  .sb-collapse{background:rgba(255,255,255,.08);border:none;color:#fff;width:30px;height:30px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
+  .sb-collapse svg{width:16px;height:16px}
+  .sb-nav{display:flex;flex-direction:column;gap:3px;padding:16px 12px}
+  .sb-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:rgba(255,255,255,.72);cursor:pointer;transition:background .15s,color .15s;background:none;border:none;font-family:inherit;text-align:left;width:100%}
+  .sb-item:hover{background:rgba(255,255,255,.07);color:#fff}
+  .sb-item.active{background:rgba(255,255,255,.12);color:#fff}
+  .sb-item.active .sb-ico{color:var(--gold)}
+  .sb-ico{width:20px;height:20px;flex:none;color:rgba(255,255,255,.6)}
+  .sb-item.active .sb-txt-main{font-weight:700}
+  .sb-txt-main{font-size:14px;line-height:1.15}
+  .sb-txt-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:1px}
+  .sb-spacer{flex:1}
+
+  /* Topbar */
+  .topbar{background:var(--navy);border-bottom:3px solid var(--gold);height:70px;display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 70px 0 26px;position:relative}
+  .tb-user{display:flex;align-items:center;gap:11px;cursor:pointer;padding:6px 8px;border-radius:11px;transition:background .15s}
+  .tb-user:hover{background:rgba(255,255,255,.08)}
+  .tb-ava{width:38px;height:38px;border-radius:50%;background:var(--gold);color:var(--navy-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+  .tb-user-info{text-align:right;line-height:1.2}
+  .tb-user-name{font-size:14px;font-weight:700;color:#fff}
+  .tb-user-role{font-size:11px;color:rgba(255,255,255,.6)}
+  .menu{position:absolute;top:64px;right:70px;background:var(--surface);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.16);padding:6px;display:none;z-index:50;min-width:180px}
+  .menu.open{display:block}
+  .menu button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;padding:10px 12px;border-radius:8px;font-size:13.5px;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left}
+  .menu button:hover{background:var(--surface2)}
+
+  /* Contenido */
+  .content{padding:28px 30px 60px;max-width:980px}
+  .page-title{font-size:clamp(24px,3vw,31px);font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:12px}
+  .page-title .ico{width:44px;height:44px;border-radius:12px;background:rgba(31,68,127,.09);color:var(--navy);display:flex;align-items:center;justify-content:center;flex:none}
+  .page-title .ico svg{width:24px;height:24px}
+  .page-sub{color:var(--ink2);font-size:14.5px;margin-top:8px;max-width:64ch;line-height:1.5}
+  .tabs{display:inline-flex;background:var(--surface);border:1px solid var(--line-2);border-radius:12px;padding:3px;gap:3px;margin-top:22px;flex-wrap:wrap}
+  .tabs button{border:0;background:none;font:inherit;font-size:13.5px;font-weight:700;color:var(--ink2);padding:8px 13px;border-radius:9px;cursor:pointer}
+  .tabs button.on{background:var(--navy);color:#fff}
+  .tabs .n{display:inline-block;min-width:18px;padding:0 6px;border-radius:999px;background:rgba(203,184,106,.25);color:var(--gold-d);font-size:11px;margin-left:5px}
+  .tabs button.on .n{background:rgba(255,255,255,.2);color:#fff}
+  .lista{margin-top:16px}
+  .dv{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:16px 18px}
+  .dv + .dv{margin-top:12px}
+  .dv.pendiente{border-left:4px solid var(--gold)}
+  .dv .h{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+  .dv .tit{font-size:16px;font-weight:800;flex:1;min-width:220px}
+  .dv .meta{font-size:12.5px;color:var(--ink3);margin-top:3px;line-height:1.45}
+  .chip{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;background:rgba(31,68,127,.08);color:var(--navy)}
+  .est{font-size:11.5px;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap}
+  .e-pendiente{background:var(--amber-bg);color:var(--amber)} .e-vista{background:rgba(31,68,127,.09);color:var(--navy)} .e-resuelta{background:var(--green-bg);color:var(--green)}
+  .snap{display:grid;grid-template-columns:90px 1fr;gap:4px 10px;font-size:13px;margin-top:10px;color:var(--ink2)}
+  .snap b{color:var(--ink3);font-weight:700}
+  .obs{background:#FBF6E6;border-left:3px solid var(--gold);border-radius:0 10px 10px 0;padding:10px 12px;font-size:14px;white-space:pre-wrap;margin-top:12px;line-height:1.45}
+  .obs .q{display:block;font-size:11.5px;font-weight:800;color:var(--gold-d);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+  .resp{background:var(--green-bg);border-left:3px solid var(--green);border-radius:0 10px 10px 0;padding:10px 12px;font-size:13.5px;white-space:pre-wrap;margin-top:10px}
+  .responder{margin-top:12px}
+  .responder textarea{width:100%;min-height:72px;padding:10px 12px;border:1.5px solid var(--line-2);border-radius:10px;font:inherit;font-size:14px;resize:vertical;outline:none}
+  .responder textarea:focus{border-color:var(--navy)}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+  .b{border:1.5px solid var(--line-2);background:var(--surface);border-radius:10px;padding:9px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink2)}
+  .b.ok{background:var(--green);border-color:var(--green);color:#fff}
+  .b:disabled{opacity:.55;cursor:default}
+  .abrir{font-size:13px;font-weight:700;color:var(--navy);text-decoration:underline;margin-left:auto}
+  .empty{padding:34px;text-align:center;color:var(--ink3);background:var(--surface);border:1px dashed var(--line-2);border-radius:14px;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <button class="sb-collapse" onclick="location.href='admin-comercial.html'" title="Volver al inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar Distribuciones">
+    </div>
+    <nav class="sb-nav"></nav>
+    <div class="sb-spacer"></div>
+  </aside>
+
+  <div>
+    <header class="topbar">
+      <div class="tb-user" onclick="toggleMenu(event)">
+        <div class="tb-ava" id="tb-ava">L</div>
+        <div class="tb-user-info"><div class="tb-user-name" id="tb-nombre">Luciana</div><div class="tb-user-role">Gestora Comercial</div></div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="menu" id="perfil-menu"><button onclick="cerrarSesion()">🚪 Cerrar sesión</button></div>
+    </header>
+
+    <main class="content">
+      <div class="page-title"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H8l-4 4z" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke-linecap="round"/></svg></span>Devoluciones de Trade Marketing</div>
+      <div class="page-sub">Juan Pablo Sepúlveda les muestra tus acciones a los vendedores y te las devuelve con lo que salió. Respondele y marcalas resueltas: a él le llega el aviso.</div>
+      <div class="tabs" id="tabs">
+        <button data-e="pendiente" class="on">Sin ver<span class="n" id="n-pendiente">0</span></button>
+        <button data-e="vista">Vistas<span class="n" id="n-vista">0</span></button>
+        <button data-e="resuelta">Resueltas<span class="n" id="n-resuelta">0</span></button>
+        <button data-e="">Todas<span class="n" id="n-todas">0</span></button>
+      </div>
+      <div class="lista" id="lista"><div class="empty">Cargando…</div></div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const HUB = { url:'https://xqhyemccbwmzxqzkrtwa.supabase.co', key:'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
+  const FN = '/.netlify/functions/trade-devoluciones';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fFecha = d => { if(!d) return ''; const [y,m,dd] = String(d).slice(0,10).split('-'); return dd + '/' + m + '/' + y; };
+  const fHora = iso => iso ? new Date(iso).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
+  const TIPO = { campania:'Campaña del manual', plan:'Plan de proveedor', fecha:'Fecha especial', catalogo:'Catálogo de clientes' };
+  const EST = { pendiente:'Sin ver', vista:'Vista', resuelta:'Resuelta' };
+  // Dónde se edita cada acción en este panel.
+  const ABRIR = { campania: id => 'admin-nueva-campania.html?id=' + encodeURIComponent(id), plan: id => 'admin-nuevo-plan.html?id=' + encodeURIComponent(id),
+                  fecha: () => 'admin-fechas.html', catalogo: () => 'admin-catalogo-clientes.html' };
+  let TOKEN = null, DEV = [], FILTRO = 'pendiente', ERR = '';
+
+  function contar(){
+    ['pendiente','vista','resuelta'].forEach(e => $('n-' + e).textContent = DEV.filter(d => d.estado === e).length);
+    $('n-todas').textContent = DEV.length;
+  }
+  function pintar(){
+    if(ERR){ $('lista').innerHTML = '<div class="empty">' + esc(ERR) + '</div>'; return; }
+    const arr = DEV.filter(d => !FILTRO || d.estado === FILTRO);
+    if(!arr.length){
+      $('lista').innerHTML = '<div class="empty">' + (DEV.length ? 'No hay devoluciones en esta lista.' : 'Todavía no hay devoluciones. Cuando Juan Pablo te devuelva una acción, aparece acá y te llega el aviso.') + '</div>';
+      return;
+    }
+    $('lista').innerHTML = arr.map(d => {
+      const det = d.accion_detalle || {};
+      const vig = (det.desde || det.hasta) ? (det.desde ? fFecha(det.desde) : '…') + ' → ' + (det.hasta ? fFecha(det.hasta) : 'sin fin') : '';
+      const link = ABRIR[d.origen] ? ABRIR[d.origen](d.accion_id) : '';
+      return '<div class="dv ' + esc(d.estado) + '">'
+        + '<div class="h"><div class="tit">' + esc(d.accion_nombre) + '<div class="meta"><span class="chip">' + esc(TIPO[d.origen] || d.origen) + '</span></div></div>'
+        + '<span class="est e-' + esc(d.estado) + '">' + esc(EST[d.estado] || d.estado) + '</span></div>'
+        + '<div class="snap">'
+        + (det.proveedor ? '<b>Proveedor</b><span>' + esc(det.proveedor) + '</span>' : '')
+        + (det.mecanica ? '<b>Mecánica</b><span>' + esc(det.mecanica) + '</span>' : '')
+        + (vig ? '<b>Vigencia</b><span>' + esc(vig) + '</span>' : '')
+        + (det.donde ? '<b>Dónde</b><span>' + esc(det.donde) + '</span>' : '')
+        + '</div>'
+        + '<div class="obs"><span class="q">' + esc(d.autor_nombre || 'Trade Marketing') + ' · ' + esc(fHora(d.created_at)) + (d.vendedores ? ' · con ' + esc(d.vendedores) : '') + '</span>' + esc(d.observacion) + '</div>'
+        + (d.respuesta ? '<div class="resp"><b>' + esc(d.respondido_por || 'Respuesta') + '</b> · ' + esc(fHora(d.respondido_at)) + '\n' + esc(d.respuesta) + '</div>' : '')
+        + (d.estado !== 'resuelta'
+          ? '<div class="responder"><textarea id="r-' + esc(d.id) + '" maxlength="2000" placeholder="Tu respuesta para Juan Pablo (qué vas a cambiar, o por qué queda así)"></textarea>'
+            + '<div class="acts"><button class="b ok" data-res="' + esc(d.id) + '" type="button">Responder y marcar resuelta</button>'
+            + (d.estado === 'pendiente' ? '<button class="b" data-vista="' + esc(d.id) + '" type="button">Marcar como vista</button>' : '')
+            + (link ? '<a class="abrir" href="' + esc(link) + '">Abrir la acción</a>' : '') + '</div></div>'
+          : '<div class="acts"><button class="b" data-reabrir="' + esc(d.id) + '" type="button">Volver a abrir</button>' + (link ? '<a class="abrir" href="' + esc(link) + '">Abrir la acción</a>' : '') + '</div>')
+        + '</div>';
+    }).join('');
+  }
+
+  async function cargar(){
+    try{
+      const r = await fetch(FN, { headers:{ Authorization:'Bearer ' + TOKEN } });
+      const d = await r.json().catch(() => ({}));
+      if(!r.ok) throw new Error(d.error || 'error ' + r.status);
+      DEV = d.devoluciones || []; ERR = '';
+    }catch(e){ ERR = 'No se pudieron leer las devoluciones: ' + e.message; }
+    contar(); pintar();
+  }
+
+  async function responder(id, estado, btn){
+    const ta = $('r-' + id), respuesta = ta ? ta.value.trim() : '';
+    if(btn) btn.disabled = true;
+    try{
+      const r = await fetch(FN, { method:'POST', headers:{ Authorization:'Bearer ' + TOKEN, 'Content-Type':'application/json' }, body: JSON.stringify({ accion:'responder', id, estado, respuesta }) });
+      const d = await r.json().catch(() => ({}));
+      if(!r.ok) throw new Error(d.error || 'error ' + r.status);
+      const i = DEV.findIndex(x => String(x.id) === String(id)); if(i >= 0) DEV[i] = d.devolucion;
+      contar(); pintar();
+    }catch(e){ alert('No se pudo guardar: ' + e.message); if(btn) btn.disabled = false; }
+  }
+  $('lista').addEventListener('click', ev => {
+    const b = ev.target.closest('button'); if(!b) return;
+    if(b.dataset.res) responder(b.dataset.res, 'resuelta', b);
+    else if(b.dataset.vista) responder(b.dataset.vista, 'vista', b);
+    else if(b.dataset.reabrir) responder(b.dataset.reabrir, 'vista', b);
+  });
+  $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => {
+    $('tabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); FILTRO = b.dataset.e; pintar();
+  });
+
+  function toggleMenu(ev){ ev.stopPropagation(); $('perfil-menu').classList.toggle('open'); }
+  document.addEventListener('click', () => $('perfil-menu').classList.remove('open'));
+  function cerrarSesion(){
+    sessionStorage.removeItem('admin_auth'); sessionStorage.removeItem('admin_perfil');
+    try{ localStorage.removeItem('gb_demo'); Object.keys(localStorage).filter(k=>/^sb-.*-auth-token/.test(k)).forEach(k=>localStorage.removeItem(k)); }catch(e){}
+    location.href = '/index.html';
+  }
+
+  (async () => {
+    const hub = supabase.createClient(HUB.url, HUB.key);
+    const { data:{ session } } = await hub.auth.getSession();
+    if(!session){ location.href = '/index.html'; return; }
+    TOKEN = session.access_token;
+    const { data:u } = await hub.from('usuarios').select('nombre').eq('id', session.user.id).maybeSingle();
+    if(u && u.nombre){ $('tb-nombre').textContent = u.nombre.trim().split(/\s+/)[0]; $('tb-ava').textContent = u.nombre.trim().charAt(0).toUpperCase(); }
+    cargar();
+  })();
+</script>
+<script src="/assets/minuta-fab.js?v=2"></script>
+<script src="_comercial-nav.js?v=7"></script>
+</body>
+</html>

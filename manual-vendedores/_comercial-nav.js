@@ -56,6 +56,8 @@
       { h: 'admin-campanias.html?estado=borrador', t: 'Borradores', s: 'En edición', i: 'borrador' },
       { h: 'admin-planes.html', t: 'Planes', s: 'Planes de proveedores', i: 'planes' },
       { h: 'admin-resultados.html', t: 'Resultados', s: 'Desempeño de campañas', i: 'resultados' },
+      // Lo que Juan Pablo Sepúlveda (Trade Marketing) devuelve después de trabajar las acciones con los vendedores (06/10/2026).
+      { h: 'admin-devoluciones.html', t: 'Devoluciones de Trade Marketing', s: 'Observaciones de los vendedores', i: 'propuestas' },
     ]},
     { titulo: 'Manual de vendedores', items: [
       { h: 'admin-secciones.html', t: 'Secciones', s: 'Estructura del manual', i: 'secciones' },
@@ -200,12 +202,22 @@
       var iso = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
       var fecha = function (s) { var x = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return x ? new Date(+x[1], +x[2] - 1, +x[3]) : null; };
       var vigente = function (a) { var fi = fecha(a.fecha_inicio); return !fi || fi <= d0; };
+      // Devoluciones de Trade Marketing sin ver (viven en el Hub: se cuentan con la función).
+      var devoluciones = window.supabase.createClient(HUB.url, HUB.key).auth.getSession().then(function (s) {
+        var t = s && s.data && s.data.session && s.data.session.access_token;
+        if (!t) return 0;
+        return fetch('/.netlify/functions/trade-devoluciones?vista=contar', { headers: { Authorization: 'Bearer ' + t } })
+          .then(function (x) { return x.ok ? x.json() : {}; }).then(function (j) { return j.pendientes || 0; });
+      }).catch(function () { return 0; });
       Promise.all([
         m.from('propuestas_acciones').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente'),
         m.from('acciones_mensuales').select('*').eq('activa', true).gte('fecha_fin', iso(d0)).lte('fecha_fin', iso(d7) + 'T23:59:59'),
         m.from('checklist_planes').select('*').gte('fecha_fin', iso(d0)).lte('fecha_fin', iso(d7) + 'T23:59:59'),
+        devoluciones,
       ]).then(function (r) {
         var lista = [];
+        var dev = r[3] || 0;
+        if (dev) lista.push({ icon: '📣', titulo: 'Tenés ' + dev + (dev > 1 ? ' devoluciones' : ' devolución') + ' de Trade Marketing sin ver', detalle: 'Observaciones de los vendedores sobre tus acciones', link: 'admin-devoluciones.html' });
         var prop = (r[0] && r[0].count) || 0;
         if (prop) lista.push({ icon: '📥', titulo: 'Tenés ' + prop + ' propuesta' + (prop > 1 ? 's' : '') + ' de proveedores para revisar', detalle: 'Propuestas de proveedores', link: 'admin-propuestas-proveedores.html' });
         var camps = ((r[1] && r[1].data) || []).filter(vigente)

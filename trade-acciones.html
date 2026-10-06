@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Acciones comerciales</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* Acciones comerciales para Trade Marketing (06/10/2026): Juan Pablo Sepúlveda ve
+     todo lo que carga Luciana (manual de vendedores y catálogos de clientes), lo
+     trabaja con los vendedores y se lo devuelve con observaciones. Mismo marco que
+     torneo-evidencias.html: las dos pantallas comparten el menú. */
+  :root{--navy:#0d2230;--navy-2:#14304c;--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;
+    --gold:#c0912f;--gold-d:#a97c22;--gold-s:#f7efdc;--green:#2f6f5e;--green-d:#245647;--green-s:#e3efe9;--danger:#b5482d;--danger-s:#f7e1da;--amber:#8a6412;--amber-s:#f8efd6;
+    --blue:#2b5aa3;--blue-s:#e4ecf6;
+    --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+  *{box-sizing:border-box} body{margin:0;font-family:var(--font);background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+  .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+  .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+  .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+  .sb-nav{display:flex;flex-direction:column;gap:3px}
+  .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+  .sb-nav a.active{background:var(--gold);color:#2a2007;font-weight:600}
+  .sb-nav svg{width:19px;height:19px;flex:none}
+  .sb-foot{margin-top:auto;padding-top:16px}
+  .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px;cursor:pointer}
+  .sb-user .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy)}
+  .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+  .main{flex:1;min-width:0}
+  .content{max-width:1180px;margin:0 auto;padding:26px 28px 60px}
+  .head h1{font-size:25px;margin:0 0 4px;font-weight:800}
+  .head p{margin:0 0 18px;color:var(--muted);font-size:14px;max-width:70ch}
+  .vistas{display:flex;gap:8px;margin-bottom:16px}
+  .vistas button{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 14px;font:inherit;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer}
+  .vistas button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .vistas .n{display:inline-block;min-width:20px;padding:1px 6px;border-radius:999px;background:var(--gold-s);color:var(--gold-d);font-size:11.5px;margin-left:6px}
+  .barra{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+  .tabs{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px}
+  .tabs button{border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .tabs button.on{background:var(--navy);color:#fff}
+  .barra input,.barra select{border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:13.5px;background:#fff;color:var(--ink)}
+  .barra input{flex:1;min-width:180px}
+  .cuenta{font-size:13px;color:var(--muted);margin:-6px 0 12px}
+  .btn{border:0;border-radius:10px;padding:9px 14px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .btn.ok{background:var(--green);color:#fff} .btn.claro{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+  .btn.dev{background:var(--gold);color:#2a2007}
+  .btn:disabled{opacity:.55;cursor:default}
+  .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+  .ac{background:var(--card);border:1px solid var(--line);border-radius:15px;overflow:hidden;display:flex;flex-direction:column}
+  .ac .top{display:flex;gap:12px;padding:14px 15px 10px}
+  .ac .img{width:64px;height:64px;flex:none;border-radius:10px;background:var(--cream);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:24px}
+  .ac .img img{max-width:100%;max-height:100%;object-fit:contain}
+  .ac .tit{font-weight:800;font-size:15.5px;line-height:1.25}
+  .ac .prov{font-size:13px;color:var(--muted);margin-top:2px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--blue-s);color:var(--blue)}
+  .chip.vig{background:var(--green-s);color:var(--green-d)} .chip.prox{background:var(--amber-s);color:var(--amber)} .chip.venc{background:#eee;color:#777}
+  .ac .cuerpo{padding:0 15px 12px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .dato{display:grid;grid-template-columns:86px 1fr;gap:8px;font-size:13.5px}
+  .dato .k{color:var(--muted)}
+  .mec{font-size:15px;font-weight:800;color:var(--green-d)}
+  .det{background:var(--cream);border-radius:9px;padding:8px 10px;font-size:13px;white-space:pre-wrap;max-height:120px;overflow:auto}
+  .pie{display:flex;gap:8px;align-items:center;padding:11px 15px;border-top:1px solid var(--line2);flex-wrap:wrap}
+  .pie .hist{font-size:12.5px;color:var(--muted);flex:1;min-width:140px}
+  .estado{font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px}
+  .e-pendiente{background:var(--amber-s);color:var(--amber)} .e-vista{background:var(--blue-s);color:var(--blue)} .e-resuelta{background:var(--green-s);color:var(--green-d)}
+  .dv{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 16px}
+  .dv + .dv{margin-top:12px}
+  .dv .h{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+  .dv .h .tit{font-weight:800;font-size:15px;flex:1;min-width:200px}
+  .dv .meta{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .obs{background:var(--gold-s);border-left:3px solid var(--gold);border-radius:0 10px 10px 0;padding:9px 12px;font-size:13.5px;white-space:pre-wrap;margin-top:10px}
+  .resp{background:var(--green-s);border-left:3px solid var(--green);border-radius:0 10px 10px 0;padding:9px 12px;font-size:13.5px;white-space:pre-wrap;margin-top:8px}
+  .borrar{background:none;border:0;color:var(--muted);font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0;margin-top:8px}
+  .vacio{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:34px 20px;text-align:center;color:var(--muted);font-size:14px}
+  .ov{position:fixed;inset:0;background:rgba(13,34,48,.6);display:none;align-items:center;justify-content:center;z-index:80;padding:16px}
+  .ov.open{display:flex}
+  .modal{background:#fff;border-radius:16px;padding:18px;width:100%;max-width:520px;max-height:92vh;overflow:auto}
+  .modal h3{margin:0 0 4px;font-size:17px} .modal p{margin:0 0 10px;color:var(--muted);font-size:13.5px}
+  .modal label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:12px 0 5px}
+  .modal textarea,.modal input{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:14px}
+  .modal textarea{min-height:120px;resize:vertical}
+  .modal .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+  .modal .msg{font-size:13px;color:var(--danger);margin-top:8px;min-height:16px}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 18px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:90}
+  .toast.show{opacity:1} .toast.err{background:var(--danger)}
+  @media(max-width:900px){ .sidebar{display:none} .content{padding:18px 14px 50px} .lista{grid-template-columns:1fr} }
+</style>
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav">
+      <a href="torneo-evidencias.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg> Evidencias del torneo</a>
+      <a href="trade-acciones.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h10"/></svg> Acciones comerciales</a>
+    </nav>
+    <div class="sb-foot"><div class="sb-user" id="logout"><div class="av" id="av">T</div><div><div class="t" id="uName">Trade Marketing</div><div class="s">Jefe de Trade Marketing</div></div></div></div>
+  </aside>
+
+  <div class="main"><div class="content">
+    <div class="head">
+      <h1>Acciones comerciales</h1>
+      <p>Todo lo que carga Luciana para el manual de vendedores y para los catálogos de clientes. Mostráselas a los vendedores y devolvéselas a Luciana con lo que salió.</p>
+    </div>
+    <div class="vistas">
+      <button data-v="acciones" class="on">Acciones de Luciana</button>
+      <button data-v="devoluciones">Mis devoluciones<span class="n" id="nDev">0</span></button>
+    </div>
+
+    <div id="vAcciones">
+      <div class="barra">
+        <div class="tabs" id="tabs">
+          <button data-t="vigentes" class="on">Vigentes</button>
+          <button data-t="proximas">Próximas</button>
+          <button data-t="todas">Todas</button>
+        </div>
+        <select id="fTipo">
+          <option value="">Todas las acciones</option>
+          <option value="campania">Campañas del manual</option>
+          <option value="plan">Planes de proveedores</option>
+          <option value="fecha">Fechas especiales</option>
+          <option value="catalogo">Catálogo de clientes</option>
+        </select>
+        <input id="q" type="search" placeholder="Buscar producto, proveedor o mecánica…" autocomplete="off">
+      </div>
+      <div class="cuenta" id="cuenta"></div>
+      <div id="lista" class="lista"><div class="vacio">Cargando…</div></div>
+    </div>
+
+    <div id="vDev" hidden>
+      <div class="barra">
+        <div class="tabs" id="tabsDev">
+          <button data-e="" class="on">Todas</button>
+          <button data-e="pendiente">Sin ver</button>
+          <button data-e="vista">Vistas</button>
+          <button data-e="resuelta">Resueltas</button>
+        </div>
+      </div>
+      <div id="listaDev"><div class="vacio">Cargando…</div></div>
+    </div>
+  </div></div>
+</div>
+
+<div class="ov" id="ovDev"><div class="modal">
+  <h3>Devolver a Luciana</h3>
+  <p id="dAccion"></p>
+  <label for="dObs">Observaciones (lo que salió con los vendedores)</label>
+  <textarea id="dObs" maxlength="2000" placeholder="Ej: los vendedores dicen que el tope por cliente es bajo; en San Luis el producto no tiene stock; conviene sumar la placa para mostrar…"></textarea>
+  <label for="dVend">¿Con qué vendedores la trabajaste? (opcional)</label>
+  <input id="dVend" maxlength="300" placeholder="Ej: equipo ON Mendoza, reunión del lunes">
+  <div class="msg" id="dMsg"></div>
+  <div class="acts"><button class="btn claro" id="dCancel" type="button">Cancelar</button><button class="btn dev" id="dOk" type="button">Enviar a Luciana</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="manual-vendedores/_segmentacion.js"></script>
+<script>
+  const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+  // Las acciones se leen de sus bases, solo lectura (las mismas claves públicas que usa el manual).
+  const MAN = { url:"https://fzaxwuuodseyyinveknn.supabase.co", key:"sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk" };
+  const CAT = { url:"https://zlwnoqdxendsgbfvfyue.supabase.co", key:"sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4" };
+  const FN = '/.netlify/functions/trade-devoluciones';
+  const ROLES = ['torneo', 'desarrollo', 'diseno'];
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fFecha = d => { if(!d) return ''; const [y,m,dd] = String(d).slice(0,10).split('-'); return dd + '/' + m + '/' + y; };
+  const fHora = iso => iso ? new Date(iso).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
+  const fPlata = n => (n == null || n === '' || isNaN(Number(n))) ? '' : '$ ' + Math.round(Number(n)).toLocaleString('es-AR');
+  const hoyISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+  function toast(m, e){ const t = $('toast'); t.textContent = m; t.className = 'toast show' + (e ? ' err' : ''); setTimeout(() => t.className = 'toast', 2800); }
+
+  const TIPO = { campania:'Campaña del manual', plan:'Plan de proveedor', fecha:'Fecha especial', catalogo:'Catálogo de clientes' };
+  const RUBRO = { restaurante:'Restaurantes', restaurantes:'Restaurantes', bar:'Bares', bares:'Bares', vinoteca:'Vinotecas', vinotecas:'Vinotecas',
+    tienda_bebidas:'Tiendas de bebidas', tiendas_bebidas:'Tiendas de bebidas', autoservicio:'Autoservicios', autoservicios:'Autoservicios',
+    hotel:'Hoteles', hoteles:'Hoteles', disco:'Discos', discos:'Discos', evento:'Eventos', eventos:'Eventos', mayorista:'Mayoristas', mayoristas:'Mayoristas',
+    kiosco:'Kioscos', kioscos:'Kioscos', todos:'Todos los rubros' };
+  const CANAL_CAT = { on:'Catálogo ON', off:'Catálogo OFF', ambos:'Catálogos ON y OFF', mayorista:'Catálogo mayorista' };
+
+  let TOKEN = null, ACC = [], DEV = [], MAPA = null, TAB = 'vigentes', EST_DEV = '', VISTA = 'acciones', ACTUAL = null;
+  let ERR_ACC = '', ERR_DEV = '';   // si una lectura falla, se dice en pantalla (no "no hay nada")
+
+  // Trae todas las filas (la base corta en 1000 sin avisar).
+  async function todas(cli, tabla, armar){
+    const out = [];
+    for(let d = 0; d < 20000; d += 1000){
+      const { data, error } = await armar(cli.from(tabla).select('*')).range(d, d + 999);
+      if(error) throw error;
+      out.push(...(data || []));
+      if(!data || data.length < 1000) break;
+    }
+    return out;
+  }
+
+  function dondeManual(fila, rubros){
+    const conSecc = (Array.isArray(fila.secciones) && fila.secciones.length) || fila.seccion_id;
+    if(conSecc && MAPA && window.Segmentacion){
+      const f = (Array.isArray(fila.secciones) && fila.secciones.length) ? fila : { ...fila, secciones: [fila.seccion_id] };
+      return Segmentacion.texto(f, MAPA);
+    }
+    const r = (rubros || []).map(x => RUBRO[x] || x).filter(Boolean);
+    return r.length ? [...new Set(r)].join(', ') : 'Donde corresponda en el manual';
+  }
+  function estadoTiempo(desde, hasta){
+    const h = hoyISO(), d = desde ? String(desde).slice(0,10) : '', f = hasta ? String(hasta).slice(0,10) : '';
+    if(f && f < h) return 'vencida';
+    if(d && d > h) return 'proxima';
+    return 'vigente';
+  }
+
+  async function cargarAcciones(){
+    const man = supabase.createClient(MAN.url, MAN.key, { auth:{ persistSession:false } });
+    const cat = supabase.createClient(CAT.url, CAT.key, { auth:{ persistSession:false } });
+    try{ MAPA = await Segmentacion.mapa(); }catch(e){ MAPA = null; }
+    const [camps, planes, fechas, catal, provs] = await Promise.all([
+      todas(man, 'acciones_mensuales', q => q.eq('activa', true)),
+      todas(man, 'checklist_planes', q => q),
+      todas(man, 'acciones_fechas', q => q.eq('activa', true)),
+      todas(cat, 'catalogo_acciones', q => q.eq('activo', true)),
+      todas(cat, 'catalogo_proveedores', q => q),
+    ]);
+    const prov = {}; provs.forEach(p => prov[p.id] = p);
+    const lista = [];
+    camps.forEach(a => lista.push({ origen:'campania', id:a.id, titulo:a.producto || a.accion || 'Campaña', proveedor:a.proveedor || '',
+      mecanica:a.accion || '', precioReg:a.precio_regular, precioAcc:a.precio_accionado, detalle:a.varietales || '',
+      desde:a.fecha_inicio, hasta:a.fecha_fin, donde:dondeManual(a, a.aplica_a), imagen:a.imagen_url }));
+    planes.filter(p => p.activo !== false).forEach(p => lista.push({ origen:'plan', id:p.id, titulo:p.nombre || 'Plan', proveedor:p.proveedor || '',
+      mecanica:p.condicion || '', detalle:[p.descripcion, (p.lineas_participantes || []).length ? 'Líneas: ' + p.lineas_participantes.join(', ') : ''].filter(Boolean).join('\n'),
+      desde:p.fecha_inicio, hasta:p.fecha_fin, donde:dondeManual(p, []), imagen:null }));
+    fechas.forEach(f => lista.push({ origen:'fecha', id:f.id, titulo:f.nombre || 'Fecha especial', proveedor:'',
+      mecanica:f.condicion || '', detalle:f.descripcion || '', desde:f.fecha_inicio, hasta:f.fecha_fin,
+      donde:dondeManual(f, (f.rubros && f.rubros.length) ? f.rubros : [f.canal]), imagen:f.imagen_url }));
+    catal.forEach(a => {
+      const p = prov[a.proveedor_id] || {};
+      const mec = a.mecanica || (a.porcentaje_off ? a.porcentaje_off + '% OFF' : '');
+      const donde = (CANAL_CAT[a.canal] || 'Catálogo de clientes') + ((a.secciones || []).length && MAPA ? ' · en el manual: ' + Segmentacion.texto(a, MAPA) : '');
+      lista.push({ origen:'catalogo', id:a.id, titulo:a.nombre_producto || 'Acción del catálogo', proveedor:p.nombre || '',
+        mecanica:mec, precioReg:a.precio_regular, precioAcc:a.precio_accionado, detalle:[a.info_adicional, a.sku_promo ? 'SKU promo: ' + a.sku_promo : ''].filter(Boolean).join('\n'),
+        desde:null, hasta:a.vigente_hasta, donde, imagen:a.imagen_url });
+    });
+    lista.forEach(x => { x.tiempo = estadoTiempo(x.desde, x.hasta); x.key = x.origen + ':' + x.id; });
+    // Primero lo que vence antes; lo que no tiene fecha, al final.
+    ACC = lista.sort((a, b) => String(a.hasta || '9999').localeCompare(String(b.hasta || '9999')) || a.titulo.localeCompare(b.titulo));
+  }
+
+  async function cargarDevoluciones(){
+    const r = await fetch(FN, { headers:{ Authorization:'Bearer ' + TOKEN } });
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(d.error || 'No se pudieron leer las devoluciones');
+    DEV = d.devoluciones || [];
+    $('nDev').textContent = DEV.length;
+  }
+
+  function pintarAcciones(){
+    if(ERR_ACC){ $('lista').innerHTML = '<div class="vacio">No se pudieron leer las acciones: ' + esc(ERR_ACC) + '</div>'; $('cuenta').textContent = ''; return; }
+    const q = $('q').value.toLowerCase().trim(), tipo = $('fTipo').value;
+    const arr = ACC.filter(a => (TAB === 'todas' || (TAB === 'vigentes' ? a.tiempo === 'vigente' : a.tiempo === 'proxima'))
+      && (!tipo || a.origen === tipo)
+      && (!q || [a.titulo, a.proveedor, a.mecanica, a.detalle, a.donde].join(' ').toLowerCase().includes(q)));
+    $('cuenta').textContent = arr.length + (arr.length === 1 ? ' acción' : ' acciones');
+    if(!arr.length){ $('lista').innerHTML = '<div class="vacio">' + (ACC.length ? 'No hay acciones con ese filtro.' : 'Luciana todavía no tiene acciones cargadas.') + '</div>'; return; }
+    $('lista').innerHTML = arr.map(a => {
+      const suyas = DEV.filter(d => d.origen === a.origen && String(d.accion_id) === String(a.id));
+      const ult = suyas[0];
+      const hist = suyas.length ? suyas.length + (suyas.length === 1 ? ' devolución' : ' devoluciones') + ' · la última <span class="estado e-' + esc(ult.estado) + '">' + esc(estadoTxt(ult.estado)) + '</span>' : 'Sin devoluciones todavía';
+      const vig = (a.desde || a.hasta) ? (a.desde ? fFecha(a.desde) : '…') + ' → ' + (a.hasta ? fFecha(a.hasta) : 'sin fecha de fin') : 'Sin fecha de fin';
+      const chipT = { vigente:['vig','Vigente'], proxima:['prox','Próxima'], vencida:['venc','Vencida'] }[a.tiempo];
+      const precio = (a.precioAcc || a.precioReg) ? '<div class="dato"><span class="k">Precio</span><span>' + (a.precioAcc ? '<b>' + esc(fPlata(a.precioAcc)) + '</b>' : '') + (a.precioReg ? ' <s style="color:var(--muted)">' + esc(fPlata(a.precioReg)) + '</s>' : '') + '</span></div>' : '';
+      return '<div class="ac"><div class="top">'
+        + '<div class="img">' + (a.imagen ? '<img src="' + esc(a.imagen) + '" alt="" loading="lazy">' : '📣') + '</div>'
+        + '<div style="min-width:0"><div class="tit">' + esc(a.titulo) + '</div>' + (a.proveedor ? '<div class="prov">' + esc(a.proveedor) + '</div>' : '')
+        + '<div class="chips"><span class="chip">' + esc(TIPO[a.origen]) + '</span><span class="chip ' + chipT[0] + '">' + chipT[1] + '</span></div></div></div>'
+        + '<div class="cuerpo">'
+        + (a.mecanica ? '<div class="dato"><span class="k">Mecánica</span><span class="mec">' + esc(a.mecanica) + '</span></div>' : '')
+        + precio
+        + '<div class="dato"><span class="k">Vigencia</span><span>' + esc(vig) + '</span></div>'
+        + '<div class="dato"><span class="k">Dónde</span><span>' + esc(a.donde) + '</span></div>'
+        + (a.detalle ? '<div class="det">' + esc(a.detalle) + '</div>' : '')
+        + '</div><div class="pie"><span class="hist">' + hist + '</span>'
+        + '<button class="btn dev" type="button" data-dev="' + esc(a.key) + '">Devolver a Luciana</button></div></div>';
+    }).join('');
+  }
+
+  const estadoTxt = e => ({ pendiente:'Sin ver', vista:'Vista por Luciana', resuelta:'Resuelta' }[e] || e);
+  function pintarDevoluciones(){
+    if(ERR_DEV){ $('listaDev').innerHTML = '<div class="vacio">' + esc(ERR_DEV) + '</div>'; return; }
+    const arr = DEV.filter(d => !EST_DEV || d.estado === EST_DEV);
+    if(!arr.length){ $('listaDev').innerHTML = '<div class="vacio">' + (DEV.length ? 'No hay devoluciones en esta lista.' : 'Todavía no devolviste ninguna acción. Tocá “Devolver a Luciana” en una acción.') + '</div>'; return; }
+    $('listaDev').innerHTML = arr.map(d => {
+      const det = d.accion_detalle || {};
+      return '<div class="dv"><div class="h"><div class="tit">' + esc(d.accion_nombre) + '<div class="meta">' + esc(TIPO[d.origen] || '') + (det.proveedor ? ' · ' + esc(det.proveedor) : '') + (det.mecanica ? ' · ' + esc(det.mecanica) : '') + '</div></div>'
+        + '<span class="estado e-' + esc(d.estado) + '">' + esc(estadoTxt(d.estado)) + '</span></div>'
+        + '<div class="meta">Enviada ' + esc(fHora(d.created_at)) + (d.autor_nombre ? ' por ' + esc(d.autor_nombre) : '') + (d.vendedores ? ' · con ' + esc(d.vendedores) : '') + '</div>'
+        + '<div class="obs">' + esc(d.observacion) + '</div>'
+        + (d.respuesta ? '<div class="resp"><b>' + esc(d.respondido_por || 'Luciana') + ' respondió</b> (' + esc(fHora(d.respondido_at)) + '):\n' + esc(d.respuesta) + '</div>'
+          : (d.estado !== 'pendiente' && d.respondido_por ? '<div class="meta" style="margin-top:8px">' + esc(d.respondido_por) + ' la marcó como ' + esc(estadoTxt(d.estado).toLowerCase()) + ' · ' + esc(fHora(d.respondido_at)) + '</div>' : ''))
+        + (d.estado === 'pendiente' ? '<button class="borrar" type="button" data-borrar="' + esc(d.id) + '">Borrar (Luciana todavía no la vio)</button>' : '')
+        + '</div>';
+    }).join('');
+  }
+
+  function ir(v){
+    VISTA = v;
+    document.querySelectorAll('.vistas button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+    $('vAcciones').hidden = v !== 'acciones'; $('vDev').hidden = v !== 'devoluciones';
+    history.replaceState(null, '', v === 'devoluciones' ? '#devoluciones' : location.pathname);
+    v === 'devoluciones' ? pintarDevoluciones() : pintarAcciones();
+  }
+  document.querySelectorAll('.vistas button').forEach(b => b.onclick = () => ir(b.dataset.v));
+  $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { $('tabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); TAB = b.dataset.t; pintarAcciones(); });
+  $('tabsDev').querySelectorAll('button').forEach(b => b.onclick = () => { $('tabsDev').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); EST_DEV = b.dataset.e; pintarDevoluciones(); });
+  ['q', 'fTipo'].forEach(id => $(id).addEventListener('input', pintarAcciones));
+
+  // Devolver a Luciana
+  $('lista').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-dev]'); if(!b) return;
+    ACTUAL = ACC.find(a => a.key === b.dataset.dev); if(!ACTUAL) return;
+    $('dAccion').textContent = TIPO[ACTUAL.origen] + ' · ' + ACTUAL.titulo + (ACTUAL.proveedor ? ' (' + ACTUAL.proveedor + ')' : '');
+    $('dObs').value = ''; $('dVend').value = ''; $('dMsg').textContent = ''; $('dOk').disabled = false;
+    $('ovDev').classList.add('open'); setTimeout(() => $('dObs').focus(), 50);
+  });
+  $('dCancel').onclick = () => $('ovDev').classList.remove('open');
+  $('ovDev').onclick = e => { if(e.target.id === 'ovDev') $('ovDev').classList.remove('open'); };
+  $('dOk').onclick = async () => {
+    const obs = $('dObs').value.trim();
+    if(!obs){ $('dMsg').textContent = 'Escribí las observaciones.'; return; }
+    const a = ACTUAL; $('dOk').disabled = true; $('dMsg').textContent = '';
+    try{
+      const r = await fetch(FN, { method:'POST', headers:{ Authorization:'Bearer ' + TOKEN, 'Content-Type':'application/json' },
+        body: JSON.stringify({ accion:'crear', origen:a.origen, accion_id:a.id, accion_nombre:a.titulo, observacion:obs, vendedores:$('dVend').value.trim(),
+          detalle:{ tipo:TIPO[a.origen], proveedor:a.proveedor, mecanica:a.mecanica, desde:a.desde, hasta:a.hasta, donde:a.donde } }) });
+      const d = await r.json().catch(() => ({}));
+      if(!r.ok) throw new Error(d.error || 'No se pudo enviar');
+      DEV.unshift(d.devolucion); $('nDev').textContent = DEV.length;
+      $('ovDev').classList.remove('open'); pintarAcciones(); toast('Enviada a Luciana ✓');
+    }catch(e){ $('dMsg').textContent = e.message; $('dOk').disabled = false; }
+  };
+  $('listaDev').addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-borrar]'); if(!b) return;
+    if(!confirm('¿Borrar esta devolución? Luciana todavía no la vio.')) return;
+    try{
+      const r = await fetch(FN, { method:'POST', headers:{ Authorization:'Bearer ' + TOKEN, 'Content-Type':'application/json' }, body: JSON.stringify({ accion:'borrar', id:b.dataset.borrar }) });
+      const d = await r.json().catch(() => ({})); if(!r.ok) throw new Error(d.error || 'No se pudo borrar');
+      DEV = DEV.filter(x => String(x.id) !== String(b.dataset.borrar)); $('nDev').textContent = DEV.length; pintarDevoluciones();
+    }catch(e){ toast(e.message, true); }
+  });
+
+  (async () => {
+    const hub = supabase.createClient(HUB.url, HUB.key);
+    const { data:{ session } } = await hub.auth.getSession();
+    if(!session){ location.href = 'index.html'; return; }
+    TOKEN = session.access_token;
+    const { data:u } = await hub.from('usuarios').select('nombre,rol').eq('id', session.user.id).maybeSingle();
+    if(!u || !ROLES.includes(String(u.rol || '').toLowerCase())){ location.replace('hub.html'); return; }
+    if(u.nombre){ $('uName').textContent = u.nombre; $('av').textContent = u.nombre.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+    const [ra, rd] = await Promise.allSettled([cargarAcciones(), cargarDevoluciones()]);
+    if(ra.status === 'rejected') ERR_ACC = String(ra.reason && ra.reason.message || ra.reason);
+    if(rd.status === 'rejected') ERR_DEV = String(rd.reason && rd.reason.message || rd.reason);
+    ir(location.hash === '#devoluciones' ? 'devoluciones' : 'acciones');
+  })();
+</script>
+<script src="assets/notif.js?v=3"></script>
+<script src="assets/user-menu.js?v=1"></script>
+<script src="assets/mobile-nav.js?v=1"></script>
+<script src="/assets/cuenta-activa.js?v=1"></script>
+</body>
+</html>

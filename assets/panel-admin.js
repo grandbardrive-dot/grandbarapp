@@ -415,7 +415,7 @@ const US_ROLES = [
   { k:'deposito',       n:'Depósito',        d:'Stock, vencimientos, materiales.' },
   { k:'mayorista',      n:'Mayorista',       d:'Puntos de venta al público.' },
   { k:'reportes',       n:'Reportes',        d:'Solo dashboards.' },
-  { k:'torneo',         n:'Validación del torneo', d:'Juan Pablo Sepúlveda, jefe de Trade Marketing: acepta o rechaza las evidencias del Torneo Doña Paula.' },
+  { k:'torneo',         n:'Trade Marketing', d:'Juan Pablo Sepúlveda, jefe de Trade Marketing: evidencias del Torneo Doña Paula y devoluciones de las acciones de Luciana.' },
   { k:'cliente',        n:'Cliente',         d:'Externo: portal de cuenta corriente.' },
 ];
 let US = [], _usYo = null;
