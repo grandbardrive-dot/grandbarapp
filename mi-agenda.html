@@ -257,7 +257,7 @@
     if (!s) return;
     const rol = String(s.role || '').toLowerCase();
     // Vendedores/supervisores y Dirección tienen su propia agenda (con clientes y minutas).
-    if (rol === 'ventas') { location.replace('agenda.html'); return; }
+    if (rol === 'ventas' || rol === 'mayorista') { location.replace('agenda.html'); return; }
     if (DIR.includes(rol)) { location.replace('dir-agenda.html'); return; }
     if (rol === 'proveedor') { location.replace('manual-vendedores/proveedor.html'); return; }
     // Luciana ve su agenda dentro de su panel comercial, sin cambiar de pantalla (30/09/2026).

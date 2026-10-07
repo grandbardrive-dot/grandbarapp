@@ -43,7 +43,7 @@ exports.handler = async (event) => {
 
     // ---- Vendedores (Hub) con región ----
     let vendList = [];
-    try { vendList = await (await hub('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,region')).json(); } catch (e) {}
+    try { vendList = await (await hub('usuarios?rol=in.(ventas,mayorista)&select=nombre,codigo_vendedor,region')).json(); } catch (e) {}
     vendList = Array.isArray(vendList) ? vendList : [];
     const nombreDeCod = {};
     vendList.forEach(v => { if (v.codigo_vendedor) nombreDeCod[String(v.codigo_vendedor)] = v.nombre; });

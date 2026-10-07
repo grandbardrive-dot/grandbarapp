@@ -413,7 +413,7 @@ const US_ROLES = [
   { k:'tesoreria',      n:'Tesorería',       d:'Revisión de cobranzas.' },
   { k:'equipo_admin',   n:'Equipo de administración', d:'Sebastián, Andrea, Laura y Kathy: sus tareas (las asigna Brenda), la agenda del equipo y la propia.' },
   { k:'deposito',       n:'Depósito',        d:'Stock, vencimientos, materiales.' },
-  { k:'mayorista',      n:'Mayorista',       d:'Puntos de venta al público.' },
+  { k:'mayorista',      n:'Mayorista',       d:'Tienda (Mza Distribución): panel de vendedor sin ruta ni agenda eficiente. Necesita código de vendedor.' },
   { k:'reportes',       n:'Reportes',        d:'Solo dashboards.' },
   { k:'torneo',         n:'Trade Marketing', d:'Juan Pablo Sepúlveda, jefe de Trade Marketing: evidencias del Torneo Doña Paula y devoluciones de las acciones de Luciana.' },
   { k:'cliente',        n:'Cliente',         d:'Externo: portal de cuenta corriente.' },

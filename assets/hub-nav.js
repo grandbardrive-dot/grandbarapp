@@ -70,15 +70,26 @@
   function pintar(forzar, rol) {
     if (!forzar && (window.__gbSupNav || document.documentElement.classList.contains('gb-sup'))) return;
     if (rol === undefined) { const s = sesionGuardada(); rol = s ? rolGuardado(s.user.id) : null; }
-    const noVende = rol && rol !== 'ventas';
-    const lista = noVende ? itemsNoVende(rol) : ITEMS;
+    const noVende = rol && !VENDE.includes(rol);
+    const items = itemsVende(rol);
+    const lista = noVende ? itemsNoVende(rol) : items;
     document.querySelectorAll('nav.sb-nav').forEach(nav => {
       nav.innerHTML = lista.map(it => link(it, false)).join('\n');
     });
     document.querySelectorAll('nav.bottomnav').forEach(nav => {
       nav.innerHTML = noVende ? lista.map(it => link(it, true)).join('\n')
-        : ITEMS.filter(it => it.m).map(it => link(it, true)).join('\n') + link(MAS, true);
+        : items.filter(it => it.m).map(it => link(it, true)).join('\n') + link(MAS, true);
     });
+  }
+
+  // ── Tienda mayorista (Mza Distribución, rol "mayorista") ───────────────────
+  // Es el local: los clientes van a GrandBar, no se sale a visitarlos. Tiene el mismo
+  // panel que un vendedor (clientes, cobranzas, deudas, tareas…) pero sin las
+  // herramientas de recorrido: Planificador de ruta IA y Agenda Eficiente (07/10/2026).
+  const VENDE = ['ventas', 'mayorista'];
+  const SOLO_CALLE = ['planificador-ia', 'agenda-eficiente'];
+  function itemsVende(rol) {
+    return rol === 'mayorista' ? ITEMS.filter(it => !SOLO_CALLE.includes(base(it.h))) : ITEMS;
   }
 
   // ── Quien no vende (Luciana, Depósito, Administración…) ────────────────────
@@ -105,7 +116,7 @@
   const ROLES_DIRECCION = ['direccion', 'admin', 'duenio'];
   const EQUIVALENTE_DIR = { 'agenda': 'dir-agenda.html', 'clientes-hub': 'dir-clientes.html', 'inicio': 'direccion.html' };
   const ETIQUETA_ROL = { ventas:'Vendedor', direccion:'Dirección', admin:'Dirección', duenio:'Dirección', administracion:'Administración',
-    tesoreria:'Tesorería', compras:'Compras', marketing:'Marketing', diseno:'Diseño', desarrollo:'Desarrollo', deposito:'Depósito', mayorista:'Mayorista', equipo_admin:'Administración' };
+    tesoreria:'Tesorería', compras:'Compras', marketing:'Marketing', diseno:'Diseño', desarrollo:'Desarrollo', deposito:'Depósito', mayorista:'Tienda mayorista', equipo_admin:'Administración' };
   function sesionGuardada() {
     try {
       for (let i = 0; i < localStorage.length; i++) {
@@ -133,6 +144,8 @@
       location.replace(EQUIVALENTE_DIR[actual] || 'direccion.html');
       return;
     }
+    // La tienda no usa las pantallas de recorrido: si llega por un link, va a su inicio.
+    if (rol === 'mayorista' && SOLO_CALLE.includes(actual)) { location.replace('inicio.html'); return; }
     try { localStorage.setItem('gb_nav_rol', JSON.stringify({ uid: s.user.id, rol })); } catch (e) {}
     if (!perfil.es_supervisor) pintar(false, rol);
     // El rol que se ve abajo del nombre (antes decía "Vendedor" para todos)

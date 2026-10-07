@@ -236,7 +236,7 @@
         else if (s && s.role === "equipo_admin") d = "equipo-panel.html";   // equipo de administración (05/10/2026)
         else if (s && (s.role === "administracion" || s.role === "tesoreria")) d = "panel-cobranzas.html";   // Brenda y Mónica: todo en su panel (06/10/2026)
         else if (s && s.es_supervisor) d = "supervisor-equipo.html";
-        else if (s && s.role === "ventas") d = "inicio.html";
+        else if (s && (s.role === "ventas" || s.role === "mayorista")) d = "inicio.html";   // mayorista = Mza Distribución, la tienda (07/10/2026)
       } catch (e) {}
       return d;
     }

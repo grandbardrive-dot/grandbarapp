@@ -91,6 +91,16 @@
     .cta-ruta{margin-top:14px;background:var(--gold-soft);border:1px solid #e5d3a3;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer}
     .cta-ruta .t{font-weight:700;font-size:14px}.cta-ruta .s{font-size:12px;color:#7a5a12}
     .cta-ruta .go{margin-left:auto;color:var(--gold-d)}
+    /* Tienda mayorista: cobranzas de los clientes en lugar de la agenda del día */
+    .tc-k{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+    .tc-k div{background:var(--cream,#f5f1e8);border-radius:11px;padding:10px 12px}
+    .tc-k .l{font-size:11.5px;color:var(--muted);font-weight:600}
+    .tc-k .v{font-size:17px;font-weight:800;margin-top:2px}
+    .tc-k .v.rojo{color:#c0603e}
+    .tc-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2);text-decoration:none;color:inherit}
+    .tc-row:last-child{border-bottom:0}
+    .tc-row .nm{font-weight:700;font-size:13.5px}.tc-row .meta{font-size:12px;color:var(--muted)}
+    .tc-row .m{margin-left:auto;font-weight:800;font-size:13.5px;color:#c0603e;white-space:nowrap}
 
     /* Resumen semanal */
     .donut{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;flex:none}
@@ -211,7 +221,7 @@
       <!-- Stat cards -->
       <div class="stats">
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Clientes asignados</div><div class="v" id="stClientes">—</div><div class="sub" id="stClientesSub">Activos</div></div></div>
-        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas de hoy</div><div class="v" id="stVisitas">—</div><div class="sub mut" id="stVisitasSub">Cargando…</div></div></div>
+        <div class="stat gold" id="statVisitas"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas de hoy</div><div class="v" id="stVisitas">—</div><div class="sub mut" id="stVisitasSub">Cargando…</div></div></div>
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg></div><div><div class="l">Tareas pendientes</div><div class="v" id="stTareas">—</div><div class="sub mut" id="stTareasSub">Cargando…</div></div></div>
         <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas acumuladas</div><div class="v" id="stVentas">—</div><div class="sub" id="stVentasSub">Cargando…</div></div></div>
       </div>
@@ -219,7 +229,7 @@
       <!-- Fila media -->
       <div class="grid3">
         <!-- Agenda -->
-        <div class="card">
+        <div class="card" id="cardAgenda">
           <div class="card-h"><span class="t">📅 Tu agenda de hoy</span><a class="lnk" href="agenda-eficiente.html">Ver agenda completa ›</a></div>
           <div class="ag" id="agendaHoy">
             <div class="ag-vacia" style="color:var(--muted);font-size:13.5px;padding:6px 2px">Cargando tu agenda…</div>
@@ -230,7 +240,7 @@
         <!-- Resumen semanal -->
         <div class="card">
           <div class="card-h"><span class="t">Resumen semanal</span><span style="color:var(--muted);font-size:12.5px;font-weight:600">Esta semana</span></div>
-          <div class="rs-row">
+          <div class="rs-row" id="rsFilaVisitas">
             <div><div class="rs-lbl">Visitas realizadas</div><div class="rs-big" id="rsVisitas">—</div><div class="rs-lbl" id="rsVisitasSub">de la agenda</div></div>
             <div class="donut" id="rsDonut" style="background:conic-gradient(var(--gold) 0%, #ece4d6 0)"><div class="inner">0%</div></div>
           </div>
@@ -272,7 +282,7 @@
         <div class="card">
           <div class="card-h"><span class="t">Tu mes</span><a class="lnk" href="reporte-semanal.html">Ver más</a></div>
           <div class="perf">
-            <div><div class="p-lbl">Visitas</div><div class="p-val" id="pfVisitas">—</div><div class="p-obj" id="pfVisitasSub">Cargando…</div></div>
+            <div id="pfColVisitas"><div class="p-lbl">Visitas</div><div class="p-val" id="pfVisitas">—</div><div class="p-obj" id="pfVisitasSub">Cargando…</div></div>
             <div><div class="p-lbl">Ventas</div><div class="p-val" id="pfVentas">—</div><div class="p-obj" id="pfVentasSub">Cargando…</div></div>
             <div><div class="p-lbl">Clientes con compra</div><div class="p-val" id="pfCcc">—</div><div class="p-obj" id="pfCccSub">Cargando…</div></div>
             <div style="text-align:center"><div class="p-lbl">Cobertura</div><div class="donut" id="pfDonut" style="background:conic-gradient(#ece4d6 0 100%);margin:6px auto"><div class="inner" id="pfCob" style="font-size:14px">—</div></div><div class="p-obj" id="pfCobSub">de tu cartera</div></div>
@@ -552,6 +562,45 @@
     }catch(e){}
   }
 
+  // ── Tienda mayorista (rol "mayorista": Mza Distribución) ─────────────────────
+  // Es el local: los clientes van a GrandBar, no hay visitas ni ruta. Donde el vendedor
+  // ve su agenda del día, la tienda ve las cobranzas de sus clientes, con los mismos
+  // números que la pantalla Cobranzas (saldo neto, vencido sin descontar el saldo a
+  // favor). Se ocultan las visitas del resumen y del mes (07/10/2026).
+  let TIENDA = false;
+  const plata = n => "$ " + Math.round(Number(n)||0).toLocaleString("es-AR");
+  async function modoTienda(token){
+    const ocultar = id => { const e = document.getElementById(id); if(e) e.style.display = "none"; };
+    ocultar("rsFilaVisitas"); ocultar("pfColVisitas");
+    const lbl = document.querySelector("#statVisitas .l"); if(lbl) lbl.textContent = "Deuda vencida";
+    const sv = document.getElementById("stVisitas"), ss = document.getElementById("stVisitasSub");
+    sv.textContent = "…"; ss.textContent = "Cargando…"; ss.className = "sub mut";
+    const card = document.getElementById("cardAgenda");
+    card.innerHTML = `<div class="card-h"><span class="t">💰 Cobranzas de tus clientes</span><a class="lnk" href="cobranzas-vendedor.html">Ver cobranzas ›</a></div>
+      <div id="tiendaCob"><div style="color:var(--muted);font-size:13.5px;padding:6px 2px">Cargando…</div></div>`;
+    const box = document.getElementById("tiendaCob");
+    const j = await traer("cuentas-vendedor", token);
+    if(!j || !j.codigo){
+      box.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:6px 2px">Tu usuario todavía no tiene código de vendedor cargado, así que no se pueden mostrar las cuentas de tus clientes. Avisá a soporte.</div>`;
+      sv.textContent = "—"; ss.textContent = "Sin código de vendedor"; return;
+    }
+    const cli = (j.clientes || []).map(c => ({ ...c, saldo: Number(c.saldo)||0, vencida: Number(c.vencida)||0 }));
+    const conVenc = cli.filter(c => c.vencida > 0).sort((a,b) => b.vencida - a.vencida);
+    const conDeuda = cli.filter(c => c.saldo > 0);
+    const totVenc = cli.reduce((a,c) => a + c.vencida, 0);
+    sv.textContent = plata(totVenc);
+    ss.textContent = conVenc.length ? (conVenc.length === 1 ? "1 cliente con vencido" : conVenc.length + " clientes con vencido") : "Nadie con deuda vencida";
+    ss.className = conVenc.length ? "sub" : "sub mut";
+    box.innerHTML = `<div class="tc-k">
+        <div><div class="l">Saldo de la cartera</div><div class="v">${plata(cli.reduce((a,c) => a + c.saldo, 0))}</div></div>
+        <div><div class="l">Vencido</div><div class="v rojo">${plata(totVenc)}</div></div>
+        <div><div class="l">Clientes que deben</div><div class="v">${conDeuda.length} <span style="font-size:12px;color:var(--muted);font-weight:600">de ${cli.length}</span></div></div>
+      </div>` + (conVenc.length
+        ? `<div style="font-size:12px;color:var(--muted);font-weight:700;margin:2px 0 4px">Más vencido</div>` + conVenc.slice(0,5).map(c => `
+          <a class="tc-row" href="cobranzas-vendedor.html"><div><div class="nm">${escTxt(c.nombre || "Cliente")}</div><div class="meta">#${escTxt(c.codigo || "")}</div></div><div class="m">${plata(c.vencida)}</div></a>`).join("")
+        : `<div style="color:var(--muted);font-size:13px;padding:6px 2px">Ningún cliente tiene deuda vencida.</div>`);
+  }
+
   // ── Avisos importantes ──────────────────────────────────────────────────────
   // Eran dos textos fijos de la maqueta ("Nuevo producto destacado", "Promoción
   // activa") que no llevaban a ningún lado. Ahora se arman con lo que el vendedor
@@ -572,7 +621,8 @@
 
       const hoyPend = comp.filter(c => c.fecha === hoy && c.estado !== 'completado');
       if(hoyPend.length) avisos.push({ p:2, ico:"📅", cls:"",
-        t: hoyPend.length===1 ? "1 visita pendiente para hoy" : hoyPend.length+" visitas pendientes para hoy",
+        t: TIENDA ? (hoyPend.length===1 ? "1 compromiso para hoy" : hoyPend.length+" compromisos para hoy")
+                  : (hoyPend.length===1 ? "1 visita pendiente para hoy" : hoyPend.length+" visitas pendientes para hoy"),
         s: hoyPend[0].hora ? "La próxima, "+hoyPend[0].hora+" hs · "+(hoyPend[0].cliente_nombre||"") : (hoyPend[0].cliente_nombre||""),
         h:"agenda.html" });
     }catch(e){}
@@ -717,7 +767,8 @@
       // propósito desde el mapa de pantallas de su panel.
       const ROL_MIRA = ["admin", "direccion", "duenio", "desarrollo", "diseno"];
       const rol = perfil && perfil.rol ? String(perfil.rol).toLowerCase() : "ventas";
-      if(rol !== "ventas" && !ROL_MIRA.includes(rol)){ location.replace("hub.html"); return; }
+      if(rol !== "ventas" && rol !== "mayorista" && !ROL_MIRA.includes(rol)){ location.replace("hub.html"); return; }
+      TIENDA = rol === "mayorista";   // Mza Distribución: sin visitas ni ruta (ver modoTienda)
       // Los supervisores también venden: acá ven su inicio de vendedor, con el menú de
       // supervisor (supervisor-nav.js). Antes se los mandaba siempre a su panel de equipo.
       let nombre = perfil && perfil.nombre ? perfil.nombre : session.user.email;
@@ -748,14 +799,18 @@
         cargarRendimiento(null, null, null, null);
       }
       if(perfil && perfil.codigo_vendedor) cargarVentas(perfil.codigo_vendedor);
-      cargarAgendaEficiente(session.access_token); // plan del vendedor (Agenda Eficiente): manda
-      cargarAgenda(session.access_token);        // ruta sugerida (si no hay nada agendado)
-      cargarAgendaReal(session.access_token);    // compromisos sueltos + resumen semanal
+      if(TIENDA){
+        modoTienda(session.access_token);          // cobranzas en lugar de agenda y ruta
+      } else {
+        cargarAgendaEficiente(session.access_token); // plan del vendedor (Agenda Eficiente): manda
+        cargarAgenda(session.access_token);        // ruta sugerida (si no hay nada agendado)
+        cargarAgendaReal(session.access_token);    // compromisos sueltos + resumen semanal
+      }
       cargarTareas(session.access_token);
       cargarAvisos(session.access_token);
       cargarCurso(session.access_token);
       // Si ninguna fuente llenó la agenda, no dejar el ejemplo de la maqueta.
-      setTimeout(()=>{
+      if(!TIENDA) setTimeout(()=>{
         const c=document.getElementById("agendaHoy");
         if(c && !c.dataset.prio){
           c.innerHTML = `<div style="padding:18px 4px;color:var(--muted);font-size:13px">No tenés nada agendado para hoy.<br>Armá tu <b>Agenda Eficiente</b> o agregá una visita en <b>Agenda</b>.</div>`;
