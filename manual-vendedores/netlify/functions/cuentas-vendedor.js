@@ -58,8 +58,11 @@ exports.handler = async (event) => {
     const cob = (p, o) => fetch(COB_URL + '/rest/v1/' + p, { headers: Object.assign({ apikey: service, Authorization: 'Bearer ' + service }, (o && o.headers) || {}) });
     let clientes = await traerTodo(cob, 'cuentas_cubo?vendedor=eq.' + encodeURIComponent(codigo) + '&select=codigo,nombre,saldo,vencida,telefono&order=codigo.asc');
     if (!Array.isArray(clientes)) clientes = [];
-    // La deuda vencida no puede superar el saldo neto (una nota de crédito la cancela).
-    clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, Math.min(Number(c.vencida) || 0, Number(c.saldo) || 0)) }));
+    // Deuda vencida = todas las facturas vencidas, sin descontar el saldo a favor y sin
+    // tope (regla del 29/09/2026, igual que supervisor, Dirección y tesorería). Hasta el
+    // 07/10 acá se la recortaba al saldo neto (regla vieja del 02/09), y el vendedor y la
+    // tienda veían menos vencido que el resto en los clientes con saldo a favor.
+    clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, Number(c.vencida) || 0) }));
 
     // 4) Coordenadas + dirección desde clientes_geo (Supabase del Hub, service role).
     //    OJO: clientes_geo.codigo quedó numérico (sin ceros) → cruzamos por número.
