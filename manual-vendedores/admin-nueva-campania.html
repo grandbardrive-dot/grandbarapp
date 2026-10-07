@@ -324,6 +324,21 @@
   const PASOS=['Proveedor','Producto','Canales','Ubicaciones','Promoción','Materiales','Revisión'];
 
   let paso=1, PROV=[], PROD=[], SECS=[], MAT=[]; const BRANDS={};
+
+  // Materiales (con stock) del proveedor de la campaña: los cargados a su nombre, los de
+  // una línea que se llama como él, o los que lo dicen en el nombre. Pasaba con Absolut:
+  // el proveedor elegido es "Absolut", pero sus materiales están cargados a Pernod Ricard
+  // con la línea Absolut, y el paso 6 decía que no había ninguno (07/10/2026).
+  const _nrm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+  function matsDelProveedor(provId, provNom){
+    const n = _nrm(provNom);
+    const re = n.length >= 4 ? new RegExp('(^|[^a-z0-9])' + n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '([^a-z0-9]|$)') : null;
+    return MAT.filter(m => Number(m.stock_actual||0) > 0 && (
+      (provId && m.supplier_id === provId) ||
+      (n && _nrm(BRANDS[m.brand_id]) === n) ||
+      (re && re.test(_nrm(m.name)))
+    ));
+  }
   let _matVerTodos=false, _ubicVerTodas=false;
   // Segmentación (zona + secciones): se monta una sola vez en #seg-dest
   let SEG=null, SEG_OK=false, SEG_MAPA=null;
@@ -505,7 +520,7 @@
     } else if(paso===6){
       const imgOf=m=>m.processed_image_url||m.original_image_url||'';
       const provId=st.proveedor?.id||null, provNom=st.proveedor?.nombre||'';
-      const delProv = provId ? MAT.filter(m=>m.supplier_id===provId && Number(m.stock_actual||0)>0) : [];
+      const delProv = (provId||provNom) ? matsDelProveedor(provId, provNom) : [];
       const lista = _matVerTodos ? MAT : (delProv.length?delProv:MAT);
       const cardHTML = m=>{
         const on=st.materiales.some(x=>x.id===m.id), img=imgOf(m);
@@ -520,12 +535,12 @@
       let cuerpo;
       if(!MAT.length){
         cuerpo=`<div class="empty" style="border:1px dashed var(--line-2);border-radius:12px">No hay materiales disponibles.<br>Marketing los carga en <b>Materiales</b> y los marca visibles para Luciana.</div>`;
-      } else if(!provId){
+      } else if(!provId && !provNom){
         cuerpo=`<div class="empty" style="border:1px dashed var(--line-2);border-radius:12px">Elegí el <b>proveedor</b> (paso 1) para ver los materiales que podés usar en esta acción.</div>`;
       } else {
         const banner = (!_matVerTodos && delProv.length)
-          ? `<div class="info-box" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>Materiales de <b>${esc(provNom)}</b> con stock que podés usar en esta acción. Tocá para vincular.</div>`
-          : (!_matVerTodos && !delProv.length ? `<div class="info-box" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>No hay materiales de <b>${esc(provNom)}</b> con stock. Te muestro todos los disponibles.</div>` : '');
+          ? `<div class="info-box" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg><span>Materiales de <b>${esc(provNom)}</b> con stock que podés usar en esta acción. Tocá para vincular.</span></div>`
+          : (!_matVerTodos && !delProv.length ? `<div class="info-box" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg><span>No hay materiales de <b>${esc(provNom)}</b> con stock. Te muestro todos los disponibles.</span></div>` : '');
         const ideaBtn = delProv.length ? `<button class="btn sec" style="margin-bottom:12px" onclick="ideaMateriales()">💡 Sugerir idea con IA</button><div id="mat-idea" style="margin-bottom:12px"></div>` : '';
         const toggle = (MAT.length>delProv.length && delProv.length) ? `<div class="foot-note" style="cursor:pointer;margin-top:12px" onclick="_matVerTodos=!_matVerTodos;renderPaso()">${_matVerTodos?'◂ Ver solo los de '+esc(provNom):'Ver todos los materiales ▸'}</div>` : '';
         cuerpo = banner + ideaBtn + `<div class="card-grid" id="mat-grid">${lista.map(cardHTML).join('')}</div>` + toggle;
@@ -614,8 +629,8 @@
     else st.materiales.splice(i,1);
     renderPaso(); renderResumen(); }
   async function ideaMateriales(){
-    const provId=st.proveedor?.id; if(!provId) return;
-    const mats=MAT.filter(m=>m.supplier_id===provId && Number(m.stock_actual||0)>0).slice(0,14)
+    const provId=st.proveedor?.id, provNom=st.proveedor?.nombre; if(!provId && !provNom) return;
+    const mats=matsDelProveedor(provId, provNom).slice(0,14)
       .map(m=>({nombre:m.name, linea:BRANDS[m.brand_id]||'', stock:Number(m.stock_actual||0)}));
     const out=document.getElementById('mat-idea'); if(!out||!mats.length) return;
     out.innerHTML='<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--navy);font-weight:700"><span style="width:15px;height:15px;border:2.5px solid var(--line-2);border-top-color:var(--navy);border-radius:50%;display:inline-block;animation:sp .8s linear infinite"></span> Pensando una idea…</div>';
