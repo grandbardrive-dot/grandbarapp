@@ -390,17 +390,24 @@
           <div class="rec-linea">${esc(BRANDS[m.brand_id]||'—')}</div>
           <div class="rec-dep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(WH[m.warehouse_id]||'—')}</div>
           <div class="rec-acts"><button class="rec-edit" type="button" onclick="location.href='admin-material-nuevo.html?id=${m.id}'">✎ Editar</button><button class="rec-edit" type="button" onclick="abrirAjuste('${m.id}')">± Stock</button></div>
-          <label class="rec-vis" title="Si está prendido, los vendedores lo ven en su app"><input type="checkbox" ${m.visible_to_sellers?'checked':''} onchange="toggleVisible('${m.id}',this.checked)"><span>Visible para vendedores</span></label>
+          ${casillaVisible(m)}
         </div></div>`;
     }).join('');
   }
 
+  // "Visible para vendedores": la misma casilla en Materiales recientes y en el catálogo
+  // (07/10/2026; antes estaba solo en recientes). Las dos copias se mantienen iguales.
+  function casillaVisible(m){
+    return `<label class="rec-vis" title="Si está prendido, los vendedores lo ven en su app"><input type="checkbox" data-vis="${m.id}" ${m.visible_to_sellers?'checked':''} onchange="toggleVisible('${m.id}',this.checked)"><span>Visible para vendedores</span></label>`;
+  }
   async function toggleVisible(id, checked){
+    const marcar = v => document.querySelectorAll(`[data-vis="${id}"]`).forEach(c => { c.checked = v; });
+    marcar(checked);
     try{
       const { error } = await sb.from('materials').update({ visible_to_sellers: checked }).eq('id', id);
-      if(error){ alert('No se pudo actualizar: '+error.message); return; }
+      if(error){ marcar(!checked); alert('No se pudo actualizar: '+error.message); return; }
       const m = MATS.find(x=>x.id===id); if(m) m.visible_to_sellers = checked;
-    }catch(e){ alert('Error: '+(e.message||e)); }
+    }catch(e){ marcar(!checked); alert('Error: '+(e.message||e)); }
   }
   window.toggleVisible = toggleVisible;
 
@@ -644,6 +651,7 @@
           <div class="rec-linea">${esc(BRANDS[m.brand_id]||'—')}</div>
           <div class="rec-dep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(WH[m.warehouse_id]||'—')} <span class="est ${e.cls}" style="margin-left:auto">${e.txt}</span></div>
           <div class="rec-acts"><button class="rec-edit" type="button" onclick="location.href='admin-material-nuevo.html?id=${m.id}'">✎ Editar</button><button class="rec-edit" type="button" onclick="abrirAjuste('${m.id}')">± Stock</button></div>
+          ${casillaVisible(m)}
         </div></div>`;
     }).join('');
   }
