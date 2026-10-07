@@ -31,7 +31,16 @@ const state = {
   filtroCat: 'todas',
   filtroCanal: 'todos',
   filtroProv: 'todos',   // id de proveedor o 'todos'
+  ordenAcc: leerOrdenAcc(), // cómo se listan las acciones (ver ORDENES_ACC)
 };
+
+// Cómo se ordena la tabla de acciones (07/10/2026). Por defecto, las últimas cargadas
+// arriba. "Orden del catálogo" es el que ve el cliente (categoría + orden manual) y es el
+// único donde tienen sentido las flechas ▲▼. Se recuerda en este navegador.
+function leerOrdenAcc() {
+  try { const v = localStorage.getItem('cat_orden_acc'); if (['nuevas', 'catalogo', 'proveedor', 'producto'].includes(v)) return v; } catch (e) {}
+  return 'nuevas';
+}
 
 const app = document.getElementById('app');
 
@@ -295,13 +304,29 @@ function abrirExportarAcciones() {
 // ============================================================
 //  TAB A · ACCIONES
 // ============================================================
+const ORDENES_ACC = [
+  ['nuevas', 'más nuevas primero'],
+  ['catalogo', 'orden del catálogo'],
+  ['proveedor', 'proveedor (A-Z)'],
+  ['producto', 'producto (A-Z)'],
+];
+const _txt = (s) => String(s || '');
+const _alfa = (x, y) => _txt(x).localeCompare(_txt(y), 'es', { sensitivity: 'base' });
+const _nuevas = (a, b) => _txt(b.created_at).localeCompare(_txt(a.created_at));
+
 function accionesFiltradas() {
-  return state.acciones.filter((a) => {
+  const filas = state.acciones.filter((a) => {
     if (state.filtroCat !== 'todas' && a.proveedor?.categoria !== state.filtroCat) return false;
     if (state.filtroCanal !== 'todos' && (a.canal || 'ambos') !== state.filtroCanal) return false;
     if (state.filtroProv !== 'todos' && a.proveedor_id !== state.filtroProv) return false;
     return true;
   });
+  // state.acciones queda siempre en el orden del catálogo (lo usa moverAccion); acá se
+  // ordena una copia para mostrar.
+  if (state.ordenAcc === 'nuevas') filas.sort(_nuevas);
+  else if (state.ordenAcc === 'proveedor') filas.sort((a, b) => _alfa(a.proveedor?.nombre, b.proveedor?.nombre) || _nuevas(a, b));
+  else if (state.ordenAcc === 'producto') filas.sort((a, b) => _alfa(a.nombre_producto, b.nombre_producto));
+  return filas;
 }
 
 function renderAccionesTab() {
@@ -323,7 +348,16 @@ function renderAccionesTab() {
     selProv.appendChild(el('option', { value: p.id, ...(state.filtroProv === p.id ? { selected: '' } : {}) },
       `${p.nombre} (${p.categoria})`)));
 
+  const selOrden = el('select', { onchange: (e) => {
+    state.ordenAcc = e.target.value;
+    try { localStorage.setItem('cat_orden_acc', state.ordenAcc); } catch (err) {}
+    refreshAcciones();
+  } });
+  ORDENES_ACC.forEach(([v, t]) =>
+    selOrden.appendChild(el('option', { value: v, ...(state.ordenAcc === v ? { selected: '' } : {}) }, t)));
+
   cont.appendChild(el('div', { class: 'toolbar' }, [
+    el('div', { class: 'filter' }, [el('span', {}, 'Ordenar:'), selOrden]),
     el('div', { class: 'filter' }, [el('span', {}, 'Categoría:'), selCat]),
     el('div', { class: 'filter' }, [el('span', {}, 'Canal:'), selCanal]),
     el('div', { class: 'filter' }, [el('span', {}, 'Proveedor:'), selProv]),
@@ -554,11 +588,14 @@ function filaAccion(a) {
   });
   const toggle = el('label', { class: 'toggle' }, [chk, el('span', { class: 'track' })]);
 
-  // orden ↑↓
-  const ord = el('div', { class: 'ord' }, [
-    el('button', { type: 'button', title: 'subir', onclick: () => moverAccion(a, -1) }, '▲'),
-    el('button', { type: 'button', title: 'bajar', onclick: () => moverAccion(a, 1) }, '▼'),
-  ]);
+  // orden ↑↓ (solo con "Ordenar: orden del catálogo"; en los otros órdenes la fila no se
+  // movería en pantalla y parecería que no anda)
+  const ord = state.ordenAcc === 'catalogo'
+    ? el('div', { class: 'ord' }, [
+      el('button', { type: 'button', title: 'subir', onclick: () => moverAccion(a, -1) }, '▲'),
+      el('button', { type: 'button', title: 'bajar', onclick: () => moverAccion(a, 1) }, '▼'),
+    ])
+    : el('span', { class: 'muted', title: 'Para cambiar el orden en el catálogo, elegí Ordenar: orden del catálogo' }, '—');
 
   // dónde se ve en el manual (zona + secciones)
   const btnSeg = el('button', { class: 'btn-sm btn-ghost', type: 'button',
