@@ -141,11 +141,16 @@ exports.handler = async (event) => {
 
     // Vendedor: tareas del día que le aplican
     const cod = perfil.codigo_vendedor, canal = perfil.canal, hoy = new Date().toISOString().slice(0, 10);
+    // La tienda mayorista (rol "mayorista", Mza Distribución) no es parte del equipo de
+    // ningún supervisor: sin canal cargado le llegaban todas las tareas de equipo de su
+    // región, que no le corresponden. Recibe solo las que le asignan a ella (07/10/2026).
+    const esTienda = String(perfil.rol || '').toLowerCase() === 'mayorista';
     const r = await sb('tareas?activa=eq.true&select=*&order=created_at.desc');
     const todas = await r.json();
     const aplica = (Array.isArray(todas) ? todas : []).filter(t => {
       if (t.frecuencia === 'puntual' && t.fecha !== hoy) return false;
       if (t.alcance === 'vendedores') return Array.isArray(t.asignados) && t.asignados.map(String).includes(String(cod));
+      if (esTienda) return false;
       // alcance canal = equipo del supervisor: misma región + (canal coincide o alguno es 'ambos')
       if (t.region && regionDe(perfil) && regionDe({ region: t.region }) !== regionDe(perfil)) return false;
       const tc = String(t.canal || '').toLowerCase(), vc = String(canal || '').toLowerCase();

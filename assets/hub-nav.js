@@ -85,11 +85,12 @@
   // ── Tienda mayorista (Mza Distribución, rol "mayorista") ───────────────────
   // Es el local: los clientes van a GrandBar, no se sale a visitarlos. Tiene el mismo
   // panel que un vendedor (clientes, cobranzas, deudas, tareas…) pero sin las
-  // herramientas de recorrido: Planificador de ruta IA y Agenda Eficiente (07/10/2026).
+  // herramientas de recorrido (Planificador de ruta IA y Agenda Eficiente, 07/10/2026) y,
+  // a pedido del usuario el mismo día, sin Leads ni Torneo Doña Paula.
   const VENDE = ['ventas', 'mayorista'];
-  const SOLO_CALLE = ['planificador-ia', 'agenda-eficiente'];
+  const FUERA_TIENDA = ['planificador-ia', 'agenda-eficiente', 'leads', 'torneo-vendedor'];
   function itemsVende(rol) {
-    return rol === 'mayorista' ? ITEMS.filter(it => !SOLO_CALLE.includes(base(it.h))) : ITEMS;
+    return rol === 'mayorista' ? ITEMS.filter(it => !FUERA_TIENDA.includes(base(it.h))) : ITEMS;
   }
 
   // ── Quien no vende (Luciana, Depósito, Administración…) ────────────────────
@@ -144,8 +145,8 @@
       location.replace(EQUIVALENTE_DIR[actual] || 'direccion.html');
       return;
     }
-    // La tienda no usa las pantallas de recorrido: si llega por un link, va a su inicio.
-    if (rol === 'mayorista' && SOLO_CALLE.includes(actual)) { location.replace('inicio.html'); return; }
+    // La tienda no usa esas pantallas: si llega por un link, va a su inicio.
+    if (rol === 'mayorista' && FUERA_TIENDA.includes(actual)) { location.replace('inicio.html'); return; }
     try { localStorage.setItem('gb_nav_rol', JSON.stringify({ uid: s.user.id, rol })); } catch (e) {}
     if (!perfil.es_supervisor) pintar(false, rol);
     // El rol que se ve abajo del nombre (antes decía "Vendedor" para todos)

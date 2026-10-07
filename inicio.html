@@ -636,7 +636,7 @@
     }catch(e){}
 
     try{
-      const leads = (await traer("leads", token)).leads || [];
+      const leads = TIENDA ? [] : ((await traer("leads", token)).leads || []);   // la tienda no trabaja leads
       const sinContactar = leads.filter(l => ['nuevo','asignado'].includes(String(l.estado||'').toLowerCase()));
       if(sinContactar.length){
         const viejo = sinContactar.map(l=>String(l.created_at||'').slice(0,10)).filter(Boolean).sort()[0];
@@ -667,7 +667,7 @@
             <div><div class="at">${escTxt(a.t)}</div><div class="as">${escTxt(a.s)}</div></div>
             <div class="go">›</div>
           </a>`).join("")
-      : `<div class="aviso"><div class="ai">🎉</div><div><div class="at">Estás al día</div><div class="as">No tenés compromisos atrasados, tareas ni leads pendientes.</div></div></div>`;
+      : `<div class="aviso"><div class="ai">🎉</div><div><div class="at">Estás al día</div><div class="as">${TIENDA ? "No tenés compromisos atrasados ni tareas pendientes." : "No tenés compromisos atrasados, tareas ni leads pendientes."}</div></div></div>`;
   }
 
   // Tarjeta "Tareas pendientes": tareas sin completar y cuántas son de hoy.
