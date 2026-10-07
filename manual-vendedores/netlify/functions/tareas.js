@@ -27,6 +27,10 @@ exports.handler = async (event) => {
     const perfil = (await pRes.json())[0] || {};
 
     const sb = (path, opts = {}) => fetch(HUB_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: srole, Authorization: 'Bearer ' + srole, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+    // La tienda mayorista (rol "mayorista", Mza Distribución) carga sus propias tareas,
+    // igual que las tareas personales de los supervisores (07/10/2026).
+    const esTienda = String(perfil.rol || '').toLowerCase() === 'mayorista';
+    const cargaPropias = !!perfil.es_supervisor || esTienda;
 
     // ---------- POST (acciones) ----------
     if (event.httpMethod === 'POST') {
@@ -72,7 +76,7 @@ exports.handler = async (event) => {
       // --- Tareas PERSONALES del supervisor (sus propias responsabilidades) ---
       // Se identifican por creado_por_id y la finalización se registra con vendedor = user.id.
       if (b.accion === 'crear-personal') {
-        if (!perfil.es_supervisor) return json(403, { error: 'Solo supervisores.' });
+        if (!cargaPropias) return json(403, { error: 'Solo supervisores y la tienda.' });
         if (!b.titulo) return json(400, { error: 'Falta el título.' });
         const fila = {
           titulo: b.titulo, descripcion: b.descripcion || null,
@@ -102,7 +106,8 @@ exports.handler = async (event) => {
     }
 
     // ---------- GET (listar) ----------
-    const vista = (event.queryStringParameters && event.queryStringParameters.vista) || (perfil.es_supervisor ? 'supervisor' : 'vendedor');
+    // La tienda ve sus tareas propias (también en el inicio, que pide la vista por defecto).
+    const vista = (event.queryStringParameters && event.queryStringParameters.vista) || (perfil.es_supervisor ? 'supervisor' : (esTienda ? 'personales' : 'vendedor'));
 
     if (vista === 'supervisor') {
       if (!perfil.es_supervisor) return json(403, { error: 'No autorizado.' });
@@ -135,16 +140,15 @@ exports.handler = async (event) => {
       const aplica = (Array.isArray(todas) ? todas : []).filter(t => !(t.frecuencia === 'puntual' && t.fecha !== hoyP));
       const misComp = await sb('tareas_completadas?vendedor=eq.' + encodeURIComponent(user.id) + '&fecha=eq.' + hoyP + '&select=tarea_id');
       const hechas = new Set((await misComp.json() || []).map(x => x.tarea_id));
-      const out = aplica.map(t => ({ id: t.id, titulo: t.titulo, descripcion: t.descripcion, frecuencia: t.frecuencia, completada: hechas.has(t.id) }));
+      const out = aplica.map(t => ({ id: t.id, titulo: t.titulo, descripcion: t.descripcion, frecuencia: t.frecuencia, fecha: t.fecha, completada: hechas.has(t.id) }));
       return json(200, { rol: 'personal', tareas: out });
     }
 
     // Vendedor: tareas del día que le aplican
     const cod = perfil.codigo_vendedor, canal = perfil.canal, hoy = new Date().toISOString().slice(0, 10);
-    // La tienda mayorista (rol "mayorista", Mza Distribución) no es parte del equipo de
-    // ningún supervisor: sin canal cargado le llegaban todas las tareas de equipo de su
-    // región, que no le corresponden. Recibe solo las que le asignan a ella (07/10/2026).
-    const esTienda = String(perfil.rol || '').toLowerCase() === 'mayorista';
+    // La tienda (esTienda, más arriba) no es parte del equipo de ningún supervisor: sin
+    // canal cargado le llegaban todas las tareas de equipo de su región, que no le
+    // corresponden. Acá (vista=vendedor) recibe solo las que le asignan a ella (07/10/2026).
     const r = await sb('tareas?activa=eq.true&select=*&order=created_at.desc');
     const todas = await r.json();
     const aplica = (Array.isArray(todas) ? todas : []).filter(t => {
