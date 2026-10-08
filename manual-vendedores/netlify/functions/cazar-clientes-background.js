@@ -224,81 +224,89 @@ async function buscarInstagram(hashtags, idx, yaRef) {
 }
 
 // ── Claude: puntúa + descarta + redacta los mensajes ─────────
-// Puntúa TODO pero DE A TANDAS de 25, así aunque haya cientos de candidatos la
-// respuesta de Claude nunca se corta (ese era el bug de "todos con score 50").
-async function puntuar(cands) {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return cands.map(c => ({ ...c, score: null, descartar: true }));
-  if (!cands.length) return [];
-  const CHUNK = 15; const salida = [];
-  for (let b = 0; b < cands.length; b += CHUNK) {
-    try { salida.push(...await scoreBatch(cands.slice(b, b + CHUNK), key)); }
-    catch (e) { console.error('scoreBatch', e.message); salida.push(...cands.slice(b, b + CHUNK).map(c => ({ ...c, score: 40, descartar: false, canal_contacto: c.fuente === 'instagram' ? 'instagram' : (c.telefono ? 'whatsapp' : 'instagram') }))); }
-  }
-  return salida;
+// Reglas de qué es (y qué NO) un prospecto, para la IA.
+const REGLAS = `GrandBar Distribuciones es una distribuidora de bebidas en Mendoza y San Luis (Argentina). Sus canales:
+- ON (se consume en el local): bares, discos/boliches, restaurantes, hoteles, salones de eventos/fiestas de ADULTOS.
+- OFF (reventa): vinotecas, tiendas de bebidas, autoservicios/mini-mercados de barrio.
+DESCARTAR siempre (descartar=true): bodegas/wineries (les compramos, no les vendemos); hipermercados y cadenas de súper; la COMPETENCIA (otras distribuidoras o cadenas de bebidas, ej. Go Bar); teatros, cines, museos, estadios/clubes deportivos, gimnasios, iglesias, escuelas, hospitales, plazas; peloteros y salones de fiestas INFANTILES; frigoríficos/carnicerías, panaderías, ferreterías, farmacias, fábricas de soda/garrafas y cualquier negocio que no venda ni sirva bebidas alcohólicas.`;
+
+// Lee un array JSON de la respuesta de Claude, tolerante a ```json / texto extra.
+function leerArray(txt) {
+  const s = String(txt || ''); const a = s.indexOf('['); const z = s.lastIndexOf(']');
+  if (a < 0 || z < 0 || z < a) return null;
+  try { return JSON.parse(s.slice(a, z + 1)); } catch { return null; }
+}
+async function claudeJSON(key, prompt, maxTok) {
+  const r = await fetch(ANTHROPIC_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: MODELO, max_tokens: maxTok, messages: [{ role: 'user', content: prompt }] }),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error('Claude ' + r.status + ': ' + JSON.stringify(j).slice(0, 160));
+  const txt = ((j.content || []).filter(b => b && b.type === 'text').map(b => b.text).join('\n')) || '';
+  const arr = leerArray(txt);
+  if (!arr) throw new Error('sin array; inicio: ' + txt.slice(0, 120));
+  return arr;
 }
 
-async function scoreBatch(cands, key) {
-  const lista = cands.map((c, i) => ({ i, fuente: c.fuente, nombre: c.nombre || null, tipo: c.tipo || null, canal: c.canal, zona: c.zona, direccion: c.direccion || null, rating: c.rating || null, reviews: c.reviews || null, caption: c._caption || null }));
-  const PROMPT = `Sos el analista comercial de GrandBar Distribuciones, una distribuidora de bebidas en Mendoza y San Luis (Argentina). Sus canales son:
-- ON (se consume en el local): bares, discos/boliches, restaurantes, hoteles, salones de eventos/fiestas, eventos y sunsets.
-- OFF (reventa): vinotecas, tiendas de bebidas y autoservicios/mini-mercados de barrio.
-Le interesan los negocios INDEPENDIENTES de zona. NO le interesan, y hay que DESCARTAR siempre:
-- Bodegas / wineries: GrandBar les COMPRA el vino, no les vende. Descartar.
-- Hipermercados y grandes cadenas de súper (Carrefour, Walmart, Jumbo, Vea, Disco, ChangoMás, Día, Coto, La Anónima, Átomo, Makro, Maxiconsumo, Toledo, etc.).
-- Lugares donde no se consume ni se revende alcohol de forma comercial: teatros, cines, museos, estadios y clubes deportivos, gimnasios, iglesias, escuelas, hospitales, plazas/parques, peloteros y salones de cumpleaños/fiestas INFANTILES.
-- La COMPETENCIA: otras distribuidoras de bebidas o cadenas de vinotecas/bebidas que revenden (ej. Go Bar). GrandBar NO le vende a su competencia.
-- Cualquier negocio que no venda ni sirva bebidas alcohólicas (ferreterías, farmacias, kioscos mínimos, etc.).
-Un salón de eventos/fiestas de ADULTOS sí sirve. Un autoservicio o mini-mercado de barrio independiente sí sirve (OFF).
+// PASO 1 — clasificar: salida CHICA (sin mensajes) → rápida y nunca se corta.
+// Tandas de 30. Lo que la IA no llegue a clasificar NO se marca → no se guarda.
+async function clasificar(cands, key) {
+  for (let b = 0; b < cands.length; b += 30) {
+    const lote = cands.slice(b, b + 30);
+    const lista = lote.map((c, i) => ({ i, nombre: c.nombre || null, tipo: c.tipo || null, canal: c.canal, zona: c.zona, rating: c.rating || null, reviews: c.reviews || null, caption: c._caption || null, tel: !!c.telefono }));
+    const prompt = `${REGLAS}
 
-Te paso una lista de posibles clientes nuevos (de Google y de posts de Instagram). Para cada uno devolvé un objeto con:
-- "i": el índice que te di.
-- "descartar": true si NO es un prospecto válido según lo de arriba (bodega/winery, hipermercado o cadena grande, teatro/cine/museo/estadio/club deportivo/gimnasio/iglesia/escuela/hospital/plaza, pelotero o salón de fiestas infantiles, mayorista, un negocio que no vende/sirve bebidas, o un post de Instagram que no es claramente un local comercial). Si dudás y parece un bar/restó/boliche/hotel/salón de adultos/vinoteca/autoservicio independiente, dejalo (descartar=false).
-- "nombre": para los de Instagram, deducí del caption el nombre del local (ej. "Bar La Esquina"). Para los de Google, repetí el nombre que te di. Si no se puede saber, null.
-- "categoria": una de "bar","disco","restaurante","hotel","salon_eventos","cafe","cerveceria","vinoteca","autoservicio","tienda_bebidas","otro".
-- "score": 0 a 100. Más alto = mejor prospecto (local activo, buena reputación, encaja con el target). Usá rating/reviews y el tipo. Si descartar=true, score 0.
-- "motivo": una frase corta explicando el score (ej. "Resto activo, 4.6★ con 320 reseñas, zona céntrica").
-- "canal_contacto": "whatsapp" si es de Google y conviene WhatsApp, "instagram" si vino de Instagram o no hay teléfono, "ninguno" si descartado.
-- "mensaje_wsp": mensaje corto (2-3 frases) de PRIMER contacto por WhatsApp, de parte del equipo de GrandBar Distribuciones, presentándose como distribuidora de bebidas de la zona y ofreciendo pasar a visitarlos/mostrarles el catálogo. Tono argentino, cálido y profesional, tuteo, sin exagerar, sin emojis excesivos (1 como mucho). Usá el nombre del local si lo tenés. Vacío si descartado.
-- "mensaje_ig": igual pero para mensaje directo de Instagram, un toque más breve e informal.
-
-Devolvé ÚNICAMENTE un array JSON, sin texto antes ni después, sin markdown.
+Clasificá cada negocio de la lista. Devolvé SOLO un array JSON, sin texto ni markdown, de objetos:
+{"i": índice, "descartar": true/false, "nombre": nombre del local (para Instagram deducilo del caption; si no se sabe null), "categoria": "bar"|"disco"|"restaurante"|"hotel"|"salon_eventos"|"cerveceria"|"vinoteca"|"autoservicio"|"tienda_bebidas"|"otro", "score": 0-100 (mejor prospecto=más alto, usá rating/reviews/tipo; si descartar, 0), "motivo": frase corta, "canal_contacto": "whatsapp"|"instagram"|"ninguno"}
 
 Lista:
 ${JSON.stringify(lista)}`;
-  try {
-    const r = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODELO, max_tokens: 16000, messages: [{ role: 'user', content: PROMPT }] }),
-    });
-    const j = await r.json();
-    if (!r.ok) throw new Error('Claude ' + r.status + ': ' + JSON.stringify(j).slice(0, 160));
-    const txt = (j.content && j.content[0] && j.content[0].text) || '';
-    // Claude suele devolver el JSON envuelto en ```json ... ``` (o con algún texto
-    // alrededor). Extraemos del primer "[" al último "]" → robusto a eso.
-    const a = txt.indexOf('['); const z = txt.lastIndexOf(']');
-    if (a < 0 || z < 0 || z < a) throw new Error('Claude no devolvió un array JSON: ' + txt.slice(0, 120));
-    const arr = JSON.parse(txt.slice(a, z + 1));
+    let arr;
+    try { arr = await claudeJSON(key, prompt, 8000); }
+    catch (e) { console.error('clasificar lote', b, e.message); continue; }
     const byI = {}; for (const o of arr) byI[o.i] = o;
-    return cands.map((c, i) => {
-      const o = byI[i] || {};
-      return {
-        ...c,
-        nombre: c.nombre || o.nombre || '(ver post de Instagram)',
-        tipo: c.tipo || o.categoria || '',
-        score: o.descartar ? 0 : (typeof o.score === 'number' ? o.score : 50),
-        score_motivo: o.motivo || '',
-        canal_contacto: o.canal_contacto || (c.fuente === 'instagram' ? 'instagram' : (c.telefono ? 'whatsapp' : 'instagram')),
-        mensaje_wsp: o.mensaje_wsp || '',
-        mensaje_ig: o.mensaje_ig || '',
-        descartar: !!o.descartar,
-      };
+    lote.forEach((c, i) => {
+      const o = byI[i]; if (!o) return;
+      c._clasificado = true;
+      c.descartar = !!o.descartar;
+      c.score = o.descartar ? 0 : (typeof o.score === 'number' ? Math.round(o.score) : 50);
+      c.score_motivo = o.motivo || '';
+      c.tipo = c.tipo || o.categoria || '';
+      if (!c.nombre && o.nombre) c.nombre = o.nombre;
+      c.canal_contacto = o.canal_contacto || (c.fuente === 'instagram' ? 'instagram' : (c.telefono ? 'whatsapp' : 'instagram'));
     });
-  } catch (e) {
-    console.error('Claude puntuar:', e.message);
-    return cands.map(c => ({ ...c, score: 50, descartar: false, canal_contacto: c.fuente === 'instagram' ? 'instagram' : (c.telefono ? 'whatsapp' : 'instagram') }));
   }
+}
+
+// PASO 2 — redactar los mensajes SOLO para los que quedaron (tandas de 10).
+async function redactar(buenos, key) {
+  for (let b = 0; b < buenos.length; b += 10) {
+    const lote = buenos.slice(b, b + 10);
+    const lista = lote.map((c, i) => ({ i, nombre: c.nombre, tipo: c.tipo, zona: c.zona, canal: c.canal }));
+    const prompt = `Sos del equipo de GrandBar Distribuciones (bebidas, Mendoza/San Luis). Por cada local escribí un PRIMER contacto cálido, argentino, con tuteo, presentándote como distribuidora de bebidas de la zona y ofreciendo pasar a visitarlos / mostrar el catálogo. Sin exagerar, máximo 1 emoji.
+Devolvé SOLO un array JSON de objetos {"i": índice, "mensaje_wsp": 2-3 frases para WhatsApp, "mensaje_ig": igual pero más breve e informal para Instagram}.
+
+Lista:
+${JSON.stringify(lista)}`;
+    let arr;
+    try { arr = await claudeJSON(key, prompt, 6000); }
+    catch (e) { console.error('redactar lote', b, e.message); continue; }
+    const byI = {}; for (const o of arr) byI[o.i] = o;
+    lote.forEach((c, i) => { const o = byI[i]; if (o) { c.mensaje_wsp = o.mensaje_wsp || ''; c.mensaje_ig = o.mensaje_ig || ''; } });
+  }
+}
+
+// Orquesta: 1) clasificar todo, 2) redactar mensajes a los que quedan.
+// Devuelve la lista completa; el handler guarda solo los _clasificado && !descartar.
+async function puntuar(cands) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key || !cands.length) return cands;
+  await clasificar(cands, key);
+  const buenos = cands.filter(c => c._clasificado && !c.descartar);
+  await redactar(buenos, key);
+  return cands;
 }
 
 // ── Guardado (solo inserta nuevos; nunca pisa el trabajo del supervisor) ──
@@ -345,7 +353,9 @@ exports.handler = async (event) => {
     // 4) puntuar + redactar con IA (de a tandas), y descartar lo que la IA marque
     const recortados = crudos.slice(0, MAX_CANDIDATOS);
     const puntuados = await puntuar(recortados);
-    const buenos = puntuados.filter(c => !c.descartar);
+    // Solo guardamos lo que la IA CLASIFICÓ y NO descartó. Lo que no llegó a
+    // clasificar no se guarda (así nunca más entra basura sin filtrar).
+    const buenos = puntuados.filter(c => c._clasificado && !c.descartar);
 
     // 5) guardar
     const filas = buenos.map(c => ({

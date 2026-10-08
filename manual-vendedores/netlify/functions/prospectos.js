@@ -10,9 +10,13 @@
 //  Env: HUB_SERVICE_ROLE
 // ============================================================
 
+const { regionDe } = require('./_equipo.js');
+
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const ESTADOS  = ['nuevo', 'contactado', 'interesado', 'visita', 'descartado', 'ya_cliente'];
+// Región de un prospecto según su zona (San Luis vs Mendoza).
+const regionZona = z => /san\s*luis/i.test(String(z || '')) ? 'san_luis' : 'mendoza';
 
 const json = (s, b) => ({ statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) });
 
@@ -55,11 +59,29 @@ exports.handler = async (event) => {
 
     // ── GET: lista ──
     const qs = (event.queryStringParameters || {});
-    let path = 'prospectos?select=*&order=estado.asc,score.desc.nullslast,created_at.desc&limit=500';
-    if (qs.estado && ESTADOS.includes(qs.estado)) path = 'prospectos?select=*&estado=eq.' + qs.estado + '&order=score.desc.nullslast,created_at.desc&limit=500';
+    let path = 'prospectos?select=*&order=estado.asc,score.desc.nullslast,created_at.desc&limit=1000';
+    if (qs.estado && ESTADOS.includes(qs.estado)) path = 'prospectos?select=*&estado=eq.' + qs.estado + '&order=score.desc.nullslast,created_at.desc&limit=1000';
     const r = await sb(path);
-    const prospectos = await r.json().catch(() => []);
-    return json(200, { prospectos: Array.isArray(prospectos) ? prospectos : [] });
+    let lista = await r.json().catch(() => []);
+    if (!Array.isArray(lista)) lista = [];
+
+    // Filtro por supervisor: cada uno ve SU canal + SU región.
+    //   Diego → OFF Mendoza · Mollar → ON Mendoza · Martín Juárez → ON+OFF San Luis.
+    // Dirección/admin (no supervisores) ven todo.
+    const pRes = await sb('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=canal,region,codigo_vendedor,es_supervisor');
+    const perfil = (await pRes.json().catch(() => []))[0] || {};
+    if (perfil.es_supervisor) {
+      const uc = String(perfil.canal || '').toLowerCase();
+      const ureg = regionDe(perfil); // 'mendoza' | 'san_luis' | ''
+      lista = lista.filter(p => {
+        const pc = String(p.canal || '').toLowerCase();
+        if (uc === 'on' && pc !== 'on') return false;
+        if (uc === 'off' && pc !== 'off') return false; // 'ambos'/'' no filtra por canal
+        if (ureg && regionZona(p.zona) !== ureg) return false;
+        return true;
+      });
+    }
+    return json(200, { prospectos: lista, perfil: { canal: perfil.canal || null, region: regionDe(perfil) || null, es_supervisor: !!perfil.es_supervisor } });
   } catch (e) {
     return json(500, { error: (e && e.message) || String(e) });
   }
