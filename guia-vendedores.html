@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f447f">
+<title>Guía del portal de vendedores · GrandBar</title>
+<meta name="description" content="Manual del Portal GrandBar para vendedores: clientes, visitas con el manual, agenda, agenda eficiente, ruta, tareas, cobranzas, torneo, herramientas y reportes, pantalla por pantalla.">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  /* Estilo de manual impreso (25/09/2026): logo y azul de GrandBar, títulos en
+     Oswald (la letra del "GRANDBAR" del ingreso), texto en Source Sans 3 y
+     capturas reales del panel con los datos difuminados. Sin emojis ni tarjetas. */
+  :root {
+    --papel: #efebe2; --hoja: #fffdf8; --tinta: #1c2733; --gris: #5b6670; --linea: #dcd5c6;
+    --azul: #1f447f; --azul-2: #2b5aa3; --oro: #9c7220;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body { margin: 0; background: var(--papel); color: var(--tinta); font-family: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 18px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  a { color: var(--azul-2); }
+  b, strong { font-weight: 700; }
+
+  /* Barra de arriba */
+  .barra { position: sticky; top: 0; z-index: 10; background: rgba(255,253,248,.96); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border-bottom: 1px solid var(--linea); }
+  .barra-in { max-width: 880px; margin: 0 auto; padding: 8px 20px; display: flex; align-items: center; gap: 16px; }
+  .barra img { height: 28px; width: auto; display: block; }
+  .barra .esp { flex: 1; }
+  .barra a.lnk { font-family: 'Oswald', sans-serif; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--azul); text-decoration: none; }
+  .barra a.lnk.portal { color: #fff; background: var(--azul); padding: 6px 12px; border-radius: 6px; }
+
+  .hoja { max-width: 880px; margin: 0 auto; background: var(--hoja); box-shadow: 0 0 0 1px var(--linea); }
+
+  /* Portada */
+  .portada { padding: 44px 48px 36px; border-bottom: 3px double var(--linea); }
+  .portada img { width: 190px; height: auto; display: block; margin: 0 0 30px; }
+  .rotulo { font-family: 'Oswald', sans-serif; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; font-size: 13px; color: var(--oro); }
+  .portada h1 { font-family: 'Oswald', sans-serif; font-weight: 600; text-transform: uppercase; color: var(--azul); font-size: clamp(36px, 7.4vw, 58px); line-height: 1.02; letter-spacing: .005em; margin: 10px 0 18px; }
+  .portada p { max-width: 34em; margin: 0 0 24px; color: #36414b; font-size: 19px; }
+  .ficha { display: flex; flex-wrap: wrap; gap: 6px 30px; font-size: 14.5px; color: var(--gris); border-top: 1px solid var(--linea); padding-top: 14px; }
+  .ficha b { color: var(--tinta); font-weight: 600; }
+
+  /* Índice */
+  .indice { padding: 30px 48px 34px; border-bottom: 1px solid var(--linea); scroll-margin-top: 50px; }
+  .partes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 44px; margin-top: 6px; }
+  .parte h3 { font-family: 'Oswald', sans-serif; font-weight: 500; font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--azul); margin: 16px 0 6px; }
+  .parte ol { list-style: none; margin: 0; padding: 0; }
+  .parte li a { display: flex; gap: 12px; align-items: baseline; padding: 3px 0; font-size: 16.5px; color: var(--tinta); text-decoration: none; }
+  .parte li a:hover .t { text-decoration: underline; }
+  .parte li .n { font-family: 'Oswald', sans-serif; color: var(--azul-2); font-size: 14px; min-width: 20px; }
+
+  /* Secciones */
+  .seccion { padding: 42px 48px 40px; border-bottom: 1px solid var(--linea); scroll-margin-top: 50px; }
+  .cab { display: grid; grid-template-columns: auto 1fr; gap: 0 18px; align-items: end; border-bottom: 2px solid var(--tinta); padding-bottom: 12px; margin: 6px 0 20px; }
+  .cab .num { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 70px; line-height: .82; color: transparent; -webkit-text-stroke: 1.6px var(--azul); }
+  .cab h2 { font-family: 'Oswald', sans-serif; font-weight: 600; text-transform: uppercase; color: var(--azul); font-size: 32px; line-height: 1.05; margin: 3px 0 0; }
+  .lede { font-size: 20px; color: #36414b; margin: 0 0 18px; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 40px; align-items: start; }
+  .seccion p { margin: 0 0 14px; }
+  h3.sub { font-family: 'Oswald', sans-serif; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; font-size: 17px; color: var(--tinta); margin: 26px 0 8px; }
+  .cols > div > h3.sub:first-child { margin-top: 0; }
+
+  figure { margin: 0; }
+  .captura { position: relative; border-radius: 30px; border: 9px solid #141d27; background: #141d27; }
+  .captura img { display: block; width: 100%; height: auto; border-radius: 21px; }
+  .marca { position: absolute; left: -21px; width: 26px; height: 26px; border-radius: 50%; background: var(--azul); color: #fff; font: 600 13px/26px 'Oswald', sans-serif; text-align: center; box-shadow: 0 0 0 3px var(--hoja); }
+  figcaption { font-size: 14px; color: var(--gris); margin-top: 12px; line-height: 1.45; }
+  figcaption b { color: var(--tinta); font-weight: 600; }
+
+  ol.claves { list-style: none; margin: 0; padding: 0; counter-reset: c; }
+  ol.claves li { counter-increment: c; display: grid; grid-template-columns: 30px 1fr; gap: 8px; padding: 9px 0; border-top: 1px solid var(--linea); }
+  ol.claves li:last-child { border-bottom: 1px solid var(--linea); }
+  ol.claves + p { margin-top: 14px; }
+  ol.claves li::before { content: counter(c); width: 24px; height: 24px; border-radius: 50%; background: var(--azul); color: #fff; font: 600 13px/24px 'Oswald', sans-serif; text-align: center; margin-top: 3px; }
+  ol.pasos { margin: 0; padding: 0; list-style: none; counter-reset: p; }
+  ol.pasos li { counter-increment: p; position: relative; padding-left: 34px; margin: 0 0 12px; }
+  ol.pasos li::before { content: counter(p) "."; position: absolute; left: 0; top: -1px; font-family: 'Oswald', sans-serif; font-weight: 600; color: var(--azul); font-size: 20px; }
+  ul.lista { margin: 0 0 14px; padding-left: 20px; }
+  ul.lista li { margin-bottom: 7px; }
+  dl.ref { margin: 0; }
+  dl.ref dt { font-weight: 700; margin-top: 12px; }
+  dl.ref dt:first-child { margin-top: 0; }
+  dl.ref dd { margin: 2px 0 0; color: #36414b; }
+
+  .ui { font-weight: 600; }
+  .boton { display: inline-block; font-weight: 700; font-size: .8em; padding: 0 9px; border-radius: 6px; background: #c0912f; color: #241a06; white-space: nowrap; line-height: 1.75; vertical-align: 1px; }
+  .boton.oscuro { background: #0d2230; color: #fff; }
+  .boton.verde { background: #2f6f5e; color: #fff; }
+  .boton.ambar { background: #fff; color: #93600f; box-shadow: inset 0 0 0 1.5px #e0c07c; }
+  .boton.rojo { background: #fff; color: #b5482d; box-shadow: inset 0 0 0 1.5px #e6c3b8; }
+  .boton.claro { background: #fff; color: #1c2733; box-shadow: inset 0 0 0 1.5px var(--linea); }
+  .boton.wa { background: #e8f6ee; color: #1f7a4d; box-shadow: inset 0 0 0 1.5px #bfe0cd; }
+  .boton.azul { background: #2f5fd0; color: #fff; }
+  .boton.verde-claro { background: #e3efe9; color: #245647; }
+  .boton.gris { background: #f0ece4; color: #5b6670; }
+  .estado { display: inline-block; font-size: .78em; font-weight: 700; padding: 0 8px; border-radius: 999px; line-height: 1.7; white-space: nowrap; }
+  .e-amb { background: #f8efd6; color: #8a6412; } .e-ver { background: #e3efe9; color: #245647; } .e-roj { background: #f7e1da; color: #a9442b; }
+  .e-gri { background: #eceeef; color: #4d5b64; } .e-azu { background: #e4ecf6; color: #2b5aa3; }
+
+  .nota { border-left: 3px solid var(--oro); padding: 2px 0 2px 16px; margin: 22px 0 0; }
+  .nota p { margin: 2px 0 0; }
+  .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 28px; margin-top: 10px; }
+  .dos p { margin: 0; }
+  .arriba { display: inline-block; margin-top: 22px; font-family: 'Oswald', sans-serif; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; font-size: 12.5px; color: var(--gris); text-decoration: none; }
+
+  details.faq { border-top: 1px solid var(--linea); }
+  details.faq:last-of-type { border-bottom: 1px solid var(--linea); }
+  details.faq summary { cursor: pointer; list-style: none; padding: 13px 0; font-weight: 600; display: flex; justify-content: space-between; gap: 16px; }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::after { content: '+'; font-family: 'Oswald', sans-serif; color: var(--azul); font-size: 20px; line-height: 1.2; }
+  details.faq[open] summary::after { content: '–'; }
+  details.faq p { margin: 0 0 14px; color: #36414b; }
+
+  .pie { padding: 18px 48px 26px; font-size: 13.5px; color: var(--gris); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+  @media (max-width: 760px) {
+    body { font-size: 17px; }
+    .barra-in { padding: 8px 16px; gap: 12px; }
+    .portada, .indice, .seccion, .pie { padding-left: 22px; padding-right: 22px; }
+    .partes, .dos { grid-template-columns: 1fr; }
+    .cols { grid-template-columns: 1fr; gap: 24px; }
+    .cols figure { order: -1; max-width: 290px; margin: 0 auto; }
+    .cab .num { font-size: 56px; }
+    .cab h2 { font-size: 27px; }
+    .lede { font-size: 19px; }
+  }
+  @media print {
+    .barra, .arriba { display: none !important; }
+    body { background: #fff; }
+    .hoja { box-shadow: none; }
+    .seccion { break-inside: avoid-page; }
+    .captura, .marca, .boton, .estado { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<header class="barra">
+  <div class="barra-in">
+    <a href="#indice"><img src="assets/guia-supervisores/logo-grandbar.png" alt="GrandBar Distribuciones" width="235" height="78"></a>
+    <span class="esp"></span>
+    <a class="lnk" href="#indice">Índice</a>
+    <a class="lnk portal" href="https://portalgrandbar.com" target="_blank" rel="noopener">Abrir el portal</a>
+  </div>
+</header>
+
+<div class="hoja">
+
+  <section class="portada">
+    <img src="assets/guia-supervisores/logo-grandbar.png" alt="GrandBar Distribuciones" width="235" height="78">
+    <div class="rotulo">Portal GrandBar · Manual de uso</div>
+    <h1>Guía del portal de vendedores</h1>
+    <p>Cómo usar el Portal GrandBar en tu día a día: tus clientes, las visitas con el manual, la agenda, las cobranzas y el resto de las herramientas, pantalla por pantalla.</p>
+    <div class="ficha">
+      <span><b>Para</b> vendedores de Mendoza y San Luis</span>
+      <span><b>Versión</b> octubre 2026</span>
+      <span><b>Ayuda</b> WhatsApp +54 9 261 245-2651</span>
+    </div>
+  </section>
+
+  <nav class="indice" id="indice" aria-label="Contenido">
+    <div class="rotulo">Contenido</div>
+    <div class="partes">
+      <div class="parte">
+        <h3>I. Empezar</h3>
+        <ol>
+          <li><a href="#s01"><span class="n">01</span><span class="t">Entrar al portal</span></a></li>
+          <li><a href="#s02"><span class="n">02</span><span class="t">El menú, los avisos y la ayuda</span></a></li>
+          <li><a href="#s03"><span class="n">03</span><span class="t">Inicio</span></a></li>
+        </ol>
+        <h3>II. Clientes y visitas</h3>
+        <ol>
+          <li><a href="#s04"><span class="n">04</span><span class="t">Clientes</span></a></li>
+          <li><a href="#s05"><span class="n">05</span><span class="t">La ficha del cliente</span></a></li>
+          <li><a href="#s06"><span class="n">06</span><span class="t">La App de Vendedores</span></a></li>
+          <li><a href="#s07"><span class="n">07</span><span class="t">La visita</span></a></li>
+          <li><a href="#s08"><span class="n">08</span><span class="t">Cerrar y guardar la visita</span></a></li>
+        </ol>
+        <h3>III. Organizar el día</h3>
+        <ol>
+          <li><a href="#s09"><span class="n">09</span><span class="t">Agenda</span></a></li>
+          <li><a href="#s10"><span class="n">10</span><span class="t">Agenda Eficiente</span></a></li>
+          <li><a href="#s11"><span class="n">11</span><span class="t">Planificador de ruta</span></a></li>
+          <li><a href="#s12"><span class="n">12</span><span class="t">Tareas</span></a></li>
+        </ol>
+      </div>
+      <div class="parte">
+        <h3>IV. Cobranzas</h3>
+        <ol>
+          <li><a href="#s13"><span class="n">13</span><span class="t">Cobranzas</span></a></li>
+        </ol>
+        <h3>V. Más herramientas</h3>
+        <ol>
+          <li><a href="#s14"><span class="n">14</span><span class="t">Leads</span></a></li>
+          <li><a href="#s15"><span class="n">15</span><span class="t">Torneo Doña Paula</span></a></li>
+          <li><a href="#s16"><span class="n">16</span><span class="t">Herramientas de venta</span></a></li>
+          <li><a href="#s17"><span class="n">17</span><span class="t">Reportes</span></a></li>
+          <li><a href="#s18"><span class="n">18</span><span class="t">Curso de vendedores</span></a></li>
+        </ol>
+        <h3>VI. Ayuda</h3>
+        <ol>
+          <li><a href="#s19"><span class="n">19</span><span class="t">Ayuda y preguntas frecuentes</span></a></li>
+        </ol>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===================== I. EMPEZAR ===================== -->
+
+  <section class="seccion" id="s01">
+    <div class="rotulo">Parte I · Empezar</div>
+    <div class="cab"><span class="num">01</span><h2>Entrar al portal</h2></div>
+    <p class="lede">Con tu email y tu contraseña de GrandBar, desde el celular o la compu.</p>
+    <div class="cols">
+      <div>
+        <ol class="pasos">
+          <li>Abrí <a href="https://portalgrandbar.com" target="_blank" rel="noopener"><b>portalgrandbar.com</b></a> en el navegador.</li>
+          <li>En <span class="ui">Email</span>, escribí tu email de GrandBar.</li>
+          <li>Escribí tu contraseña. El ojo del costado la muestra, para que veas si está bien escrita.</li>
+          <li>Tocá <span class="boton azul">Ingresar</span>. Entrás directo a tu <span class="ui">Inicio</span>.</li>
+        </ol>
+        <div class="nota">
+          <div class="rotulo">Si te olvidaste la contraseña</div>
+          <p>Escribí tu email y tocá <span class="ui">¿Olvidaste tu contraseña?</span>. Se abre WhatsApp con soporte, con el pedido ya escrito, y te la restablecen.</p>
+        </div>
+        <h3 class="sub">Tenerlo a mano como una app</h3>
+        <div class="dos">
+          <p><b>Android (Chrome).</b> Con el portal abierto, tocá los tres puntos de arriba a la derecha y después <span class="ui">Agregar a la pantalla principal</span>.</p>
+          <p><b>iPhone (Safari).</b> Con el portal abierto, tocá <span class="ui">Compartir</span> (el cuadrado con la flecha) y después <span class="ui">Agregar a inicio</span>.</p>
+        </div>
+        <div class="nota">
+          <div class="rotulo">Una cuenta por navegador</div>
+          <p>El navegador guarda una sola sesión del portal. Si en otra pestaña alguien entra con otra cuenta, arriba aparece un aviso para actualizar. Para tener dos cuentas abiertas a la vez, usá otro perfil de Chrome o una ventana de incógnito.</p>
+        </div>
+      </div>
+      <figure>
+        <div class="captura"><img src="assets/guia-vendedores/01-ingreso.jpg" alt="Pantalla de ingreso del Portal GrandBar" width="720" height="1498"></div>
+        <figcaption><b>Figura 1</b> · La pantalla de ingreso de portalgrandbar.com.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s02">
+    <div class="rotulo">Parte I · Empezar</div>
+    <div class="cab"><span class="num">02</span><h2>El menú, los avisos y la ayuda</h2></div>
+    <p class="lede">Todas las pantallas del portal están en el menú, que es el mismo en todas.</p>
+    <div class="cols">
+      <div>
+        <p>En el celular, el menú se abre con el botón de las tres rayas, arriba a la izquierda, y se cierra tocando afuera. En la compu está siempre a la izquierda.</p>
+        <dl class="ref">
+          <dt>Clientes y visitas</dt><dd>Clientes (sección 4) y, desde Herramientas de venta, la App de Vendedores, donde hacés las visitas (secciones 6 a 8).</dd>
+          <dt>Organizar el día</dt><dd>Agenda, Agenda Eficiente, Planificador de ruta IA y Tareas.</dd>
+          <dt>Lo demás</dt><dd>Leads, Cobranzas, Torneo Doña Paula, Herramientas de venta y Reportes.</dd>
+          <dt>Pedidos</dt><dd>Todavía no está disponible: al tocarlo aparece un aviso que lo dice.</dd>
+        </dl>
+        <h3 class="sub">La campanita</h3>
+        <p>Está arriba a la derecha. El número rojo cuenta los avisos nuevos y se actualiza solo cada minuto. Tocá un aviso para ir a la pantalla que corresponde. Te avisa, por ejemplo, cuando te invitan a una reunión, cuando te asignan un lead, cuando tu supervisor aprueba tu Agenda Eficiente o te pide cambios, y cuando revisan una activación del torneo.</p>
+        <h3 class="sub">Soporte</h3>
+        <p>Abajo del menú está el recuadro <span class="ui">Soporte</span>: abre WhatsApp con el equipo de sistemas, con un mensaje que ya dice tu nombre y en qué pantalla estás.</p>
+        <h3 class="sub">Cerrar sesión</h3>
+        <p>Tocá tu nombre, abajo del menú (o tu avatar, arriba a la derecha, en Inicio y Clientes) y después <span class="ui">Cerrar sesión</span>. Hacelo siempre que uses un celular o una compu que no sea tuya.</p>
+      </div>
+      <figure>
+        <div class="captura"><img src="assets/guia-vendedores/02-menu.jpg" alt="Menú del vendedor abierto en el celular" width="720" height="1498" loading="lazy"></div>
+        <figcaption><b>Figura 2</b> · El menú abierto en el celular.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s03">
+    <div class="rotulo">Parte I · Empezar</div>
+    <div class="cab"><span class="num">03</span><h2>Inicio</h2></div>
+    <p class="lede">Tu día de un vistazo: lo primero que ves al entrar.</p>
+    <div class="cols">
+      <div>
+        <h3 class="sub">Qué hay en la pantalla</h3>
+        <ol class="claves">
+          <li><span>Los cuatro números: clientes asignados, visitas de hoy (con la próxima), tareas pendientes y ventas acumuladas del mes, que se actualizan a diario.</span></li>
+          <li><span><span class="ui">Tu agenda de hoy</span>: las visitas y compromisos del día, con su estado (Agendada, Hecha, Visitada…). <span class="ui">Ver agenda completa</span> abre la Agenda Eficiente (sección 10).</span></li>
+          <li><span><span class="ui">Iniciar ruta con IA</span>: abre el planificador de ruta (sección 11).</span></li>
+          <li><span>El resumen semanal: visitas realizadas de las agendadas, ventas acumuladas y clientes nuevos. <span class="ui">Ver reporte completo</span> abre el reporte semanal.</span></li>
+        </ol>
+        <h3 class="sub">Más abajo</h3>
+        <dl class="ref">
+          <dt>Avisos importantes</dt><dd>Compromisos atrasados, visitas pendientes de hoy, tareas sin completar, leads sin contactar y clientes con deuda vencida. Cada aviso te lleva a su pantalla.</dd>
+          <dt>Herramientas rápidas</dt><dd>Catálogo de productos (el de tu canal), Materiales de venta (con el stock disponible) y Curso de vendedores.</dd>
+          <dt>Acciones y promociones activas</dt><dd>Las acciones vigentes del catálogo de tu canal. <span class="ui">Ver todas</span> abre el catálogo.</dd>
+          <dt>Tu mes</dt><dd>Visitas, ventas, clientes con compra y cobertura: qué parte de tu cartera compró este mes.</dd>
+        </dl>
+        <div class="nota">
+          <div class="rotulo">Curso pendiente</div>
+          <p>Si tenés el curso obligatorio sin terminar, arriba aparece un aviso con los módulos que te faltan y la fecha límite. Tocalo para seguirlo (sección 18).</p>
+        </div>
+      </div>
+      <figure>
+        <div class="captura">
+          <img src="assets/guia-vendedores/03-inicio.jpg" alt="Pantalla Inicio del vendedor" width="720" height="1498" loading="lazy">
+          <span class="marca" style="top:15%">1</span>
+          <span class="marca" style="top:39%">2</span>
+          <span class="marca" style="top:61%">3</span>
+          <span class="marca" style="top:70%">4</span>
+        </div>
+        <figcaption><b>Figura 3</b> · Inicio. Los nombres y los números están difuminados.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <!-- ===================== II. CLIENTES Y VISITAS ===================== -->
+
+  <section class="seccion" id="s04">
+    <div class="rotulo">Parte II · Clientes y visitas</div>
+    <div class="cab"><span class="num">04</span><h2>Clientes</h2></div>
+    <p class="lede">Tu cartera, con la deuda y la última visita de cada cliente.</p>
+    <div class="cols">
+      <div>
+        <ol class="claves">
+          <li><span>Arriba: clientes asignados, visitas de esta semana (desde el lunes) y tus ventas del mes.</span></li>
+          <li><span>Las pestañas <span class="ui">Clientes</span> y <span class="ui">Quitados</span>, y los menús para filtrar y ordenar: <span class="ui">Todos los clientes</span> (o solo los que tienen deuda vencida, saldo pendiente o están al día), <span class="ui">Filtros</span> por rubro y <span class="ui">Ordenar</span> (por nombre, más deuda vencida o última visita).</span></li>
+          <li><span>Cada cliente, con su rubro, dirección y la fecha de la última visita. Tocalo para abrir su ficha (sección 5).</span></li>
+        </ol>
+        <h3 class="sub">Sacar un cliente de tu lista</h3>
+        <p>Si un cliente ya no corresponde a tu cartera, tocá <span class="boton claro">✕ Quitar</span> y confirmá. Deja de aparecer en tu lista. Para volver a sumarlo, entrá a la pestaña <span class="ui">Quitados</span> y tocá <span class="boton claro">↺ Volver a la cartera</span>.</p>
+        <div class="nota">
+          <div class="rotulo">Buscar un cliente</div>
+          <p>En la compu, el buscador está arriba: busca por nombre, dirección, rubro o código. En el celular no se ve: usá los filtros, o el buscador de la App de Vendedores (sección 6).</p>
+        </div>
+      </div>
+      <figure>
+        <div class="captura">
+          <img src="assets/guia-vendedores/04-clientes.jpg" alt="Pantalla Clientes" width="720" height="1498" loading="lazy">
+          <span class="marca" style="top:13%">1</span>
+          <span class="marca" style="top:38.5%">2</span>
+          <span class="marca" style="top:50.5%">3</span>
+        </div>
+        <figcaption><b>Figura 4</b> · Clientes. Los nombres y las direcciones están difuminados.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s05">
+    <div class="rotulo">Parte II · Clientes y visitas</div>
+    <div class="cab"><span class="num">05</span><h2>La ficha del cliente</h2></div>
+    <p class="lede">Todo lo de un cliente en un solo lugar. En el celular se abre como ventana y se cierra con la ✕.</p>
+    <div class="cols">
+      <div>
+        <ol class="claves">
+          <li><span><span class="ui">Llamar</span> llama al cliente y <span class="ui">Cómo llegar</span> abre Google Maps con su dirección. Si falta el teléfono o la dirección, la ficha te lo dice.</span></li>
+          <li><span>Las pestañas. <span class="ui">Resumen</span>: tipo de cliente, teléfono, código, dirección, saldo actual, deuda vencida, vendido acumulado y última visita. <span class="ui">Historial</span>: sus visitas, de la más nueva a la más vieja. <span class="ui">Notas</span>: escribí lo que quieras recordar y tocá <span class="ui">＋ Agregar nota</span>.</span></li>
+          <li><span>Los datos comerciales salen del sistema de la empresa. Si un cliente no tiene cuenta corriente, la ficha lo aclara.</span></li>
+          <li><span><span class="boton">Agregar visita</span> abre tu Agenda con un compromiso nuevo, del tipo Visita y con el cliente ya escrito: completá la fecha y guardalo (sección 9).</span></li>
+        </ol>
+        <div class="nota">
+          <div class="rotulo">Para tener en cuenta</div>
+          <p><span class="ui">Agregar visita</span> agenda la visita, no la empieza. La visita se hace en la App de Vendedores (secciones 6 a 8).</p>
+        </div>
+      </div>
+      <figure>
+        <div class="captura">
+          <img src="assets/guia-vendedores/05-ficha.jpg" alt="Ficha de un cliente en el celular" width="720" height="1498" loading="lazy">
+          <span class="marca" style="top:6.5%">1</span>
+          <span class="marca" style="top:13%">2</span>
+          <span class="marca" style="top:41%">3</span>
+          <span class="marca" style="top:60.3%">4</span>
+        </div>
+        <figcaption><b>Figura 5</b> · La ficha de un cliente. Los datos están difuminados.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s06">
+    <div class="rotulo">Parte II · Clientes y visitas</div>
+    <div class="cab"><span class="num">06</span><h2>La App de Vendedores</h2></div>
+    <p class="lede">El manual de vendedores con tu cartera: ahí hacés las visitas.</p>
+    <div class="cols">
+      <div>
+        <ol class="pasos">
+          <li>En el menú, tocá <span class="ui">Herramientas de venta</span> y después <span class="ui">App de Vendedores</span>.</li>
+          <li>Entrás directo con tu cuenta del portal. Si te pide el código de vendedor, escribilo (por ejemplo, 027) y tocá <span class="boton azul">Ingresar</span>.</li>
+          <li>Buscá el cliente por nombre o código, o filtrá por rubro, y tocalo para empezar la visita (sección 7).</li>
+        </ol>
+        <ol class="claves">
+          <li><span>Tu perfil, con tu avatar. <span class="ui">Mi avatar y accesorios</span> abre el vestidor.</span></li>
+          <li><span>El buscador y los filtros por rubro.</span></li>
+          <li><span>Cada cliente, con su código, dirección, rubro y el porcentaje y la fecha de la última visita (o <i>Sin visitas</i>).</span></li>
+        </ol>
+        <h3 class="sub">La ruta de hoy</h3>
+        <p>Si entrás desde <span class="ui">▶ Iniciar visitas</span> de la Agenda Eficiente (sección 10), arriba aparece la tarjeta <span class="ui">Ruta de hoy</span> con tus visitas del día en orden y cuántas hiciste. Tocá <span class="boton">▶ Iniciar</span> en el siguiente cliente.</p>
+        <div class="nota">
+          <div class="rotulo">Para tener en cuenta</div>
+          <p><span class="ui">Salir</span>, arriba a la derecha, cierra solo la App de Vendedores: seguís con la sesión del portal abierta. Acá también podés quitar un cliente de tu lista, pero para devolverlo a la cartera usá la pestaña Quitados de Clientes (sección 4).</p>
+        </div>
+      </div>
+      <figure>
+        <div class="captura">
+          <img src="assets/guia-vendedores/06-app-vendedores.jpg" alt="Cartera en la App de Vendedores" width="720" height="1498" loading="lazy">
+          <span class="marca" style="top:10.5%">1</span>
+          <span class="marca" style="top:30.5%">2</span>
+          <span class="marca" style="top:48%">3</span>
+        </div>
+        <figcaption><b>Figura 6</b> · Tu cartera en la App de Vendedores. Los nombres están difuminados.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s07">
+    <div class="rotulo">Parte II · Clientes y visitas</div>
+    <div class="cab"><span class="num">07</span><h2>La visita</h2></div>
+    <p class="lede">Recorrés el manual del rubro del cliente, sección por sección, y vas cargando lo que acordás.</p>
+    <div class="cols">
+      <div>
+        <ol class="claves">
+          <li><span>La ficha del cliente: nombre, código, rubro y dirección. Tocá el logo para subir uno, o <span class="ui">+ Agregar WhatsApp</span> si falta su número. Debajo están las visitas anteriores y los puntos del Torneo Doña Paula.</span></li>
+          <li><span>En restaurantes, bares, vinotecas y tiendas de bebidas, la carta o el catálogo del cliente: sacale fotos para tenerla siempre a mano y analizarla.</span></li>
+          <li><span><span class="boton verde">INICIO VISITA</span> arranca el cronómetro de la visita. Si no lo tocás, la visita se guarda igual, pero sin duración.</span></li>
+          <li><span><span class="ui">Tu recorrido de hoy</span>: cada círculo es una sección del manual. Tocalo para abrirla.</span></li>
+        </ol>
+        <h3 class="sub">Dentro de cada sección</h3>
+        <ul class="lista">
+          <li>Los <b>planes activos</b> de esa sección, con <span class="ui">Ver plan completo</span>.</li>
+          <li>Las <b>acciones y ofertas</b> vigentes para ese cliente. Con <span class="ui">Agregar a visita</span> o <span class="ui">+ Agregar al carrito</span> las sumás al carrito de acuerdos.</li>
+          <li><span class="ui">Programar</span>: registra una acción para más adelante, con la fecha de ejecución. Aparece en la Introducción de la próxima visita, en <i>Acciones programadas</i>.</li>
+          <li>Al final, <span class="ui">Observaciones de esta sección</span>.</li>
+        </ul>
+        <p>En la Introducción ves el resumen de la visita anterior: acuerdos, materiales pedidos, acciones programadas, observaciones y el próximo seguimiento.</p>
+        <p>Una sección queda completa (con ✓) cuando la trabajaste: agregaste algo o escribiste una observación. Arriba ves el progreso general.</p>
+      </div>
+      <figure>
+        <div class="captura">
+          <img src="assets/guia-vendedores/07-visita.jpg" alt="Comienzo de una visita en el manual" width="720" height="1498" loading="lazy">
+          <span class="marca" style="top:12.5%">1</span>
+          <span class="marca" style="top:26.5%">2</span>
+          <span class="marca" style="top:61.5%">3</span>
+          <span class="marca" style="top:68.5%">4</span>
+        </div>
+        <figcaption><b>Figura 7</b> · El comienzo de una visita a una vinoteca. Los datos del cliente están difuminados.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s08">
+    <div class="rotulo">Parte II · Clientes y visitas</div>
+    <div class="cab"><span class="num">08</span><h2>Cerrar y guardar la visita</h2></div>
+    <p class="lede">La visita se termina con <span class="ui">Guardar visita</span>, al final de la pantalla.</p>
+    <div class="cols">
+      <div>
+        <h3 class="sub">El carrito de acuerdos</h3>
+        <p>Lo que vas sumando aparece en la barra <span class="ui">N acuerdos seleccionados</span>. Tocala para ver el carrito: cada acuerdo con su sección y su estado, y la cantidad en botellas o cajas. Con la ✕ sacás uno. <span class="boton">Finalizar visita →</span> te lleva a la sección de cierre (todavía no guarda nada).</p>
+        <h3 class="sub">El cierre</h3>
+        <ol class="pasos">
+          <li>En la sección de cierre, revisá los acuerdos y completá la <span class="ui">Próxima acción</span> y la <span class="ui">Fecha de seguimiento</span>. Si te acompañó alguien, marcalo.</li>
+          <li>Abajo de todo, escribí las <span class="ui">Observaciones generales de la visita</span> si querés.</li>
+          <li>Tocá <span class="boton verde">Guardar visita</span>. Aparece <i>“✓ Visita guardada”</i>.</li>
+          <li>Si hubo acuerdos, próxima acción o materiales, podés descargar el <span class="ui">PDF</span> con el resumen o mandarlo por <span class="ui">WhatsApp</span> al cliente (hace falta su WhatsApp cargado). Si no, tocá <span class="ui">Continuar sin PDF</span>.</li>
+        </ol>
+        <p>La visita guardada queda en el historial del cliente y, si estaba en tu Agenda Eficiente de hoy, se tilda sola con su duración.</p>
+      </div>
+      <figure>
+        <div class="captura"><img src="assets/guia-vendedores/08-estacion.jpg" alt="Una sección del manual abierta durante la visita" width="720" height="1498" loading="lazy"></div>
+        <figcaption><b>Figura 8</b> · La sección Vinos abierta, con sus subsecciones de acciones.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <!-- ===================== III. ORGANIZAR EL DÍA ===================== -->
+
+  <section class="seccion" id="s09">
+    <div class="rotulo">Parte III · Organizar el día</div>
+    <div class="cab"><span class="num">09</span><h2>Agenda</h2></div>
+    <p class="lede">Tus visitas y compromisos sueltos, las reuniones con otras personas del portal y sus minutas.</p>
+    <div class="cols">
+      <div>
+        <ol class="claves">
+          <li><span><span class="boton claro">Reunión</span> para invitar a otras personas del portal y <span class="boton verde">+ Nuevo</span> para un compromiso tuyo.</span></li>
+          <li><span>El aviso para recibir los recordatorios de reunión en este celular: tocá <span class="ui">Activar</span>. Te avisa un día antes y una hora antes, aunque tengas la app cerrada.</span></li>
+          <li><span>La semana: movete con las flechas y <span class="ui">Hoy</span>, y tocá un día para ver lo que tiene.</span></li>
+          <li><span>Cada compromiso, con la hora, el tipo y el objetivo. Tocá el círculo para marcarlo hecho, o el texto para editarlo o borrarlo. Si lo cargó tu supervisor, lo dice.</span></li>
+        </ol>
+        <h3 class="sub">Cargar un compromiso</h3>
+        <ol class="pasos">
+          <li>Tocá <span class="boton verde">+ Nuevo</span> y elegí el tipo: Visita, Reunión, Llamada o Tarea.</li>
+          <li>Completá el cliente o lugar y la fecha. La hora y el objetivo son opcionales.</li>
+          <li>Tocá <span class="boton verde">Guardar</span>.</li>
+        </ol>
+        <h3 class="sub">Reuniones con otras personas</h3>
+        <ol class="pasos">
+          <li>Tocá <span class="boton claro">Reunión</span>. Escribí qué es, el tipo, el lugar, el día y, si querés, la hora.</li>
+          <li>En <span class="ui">Con quién del Portal</span>, escribí un nombre y elegilo. Si alguien no está en el portal, usá <span class="ui">Otra persona</span>. Si no sumás a nadie, es un evento personal.</li>
+          <li>Tocá <span class="boton">Agendar</span>. A los invitados les llega el aviso y confirman si van o no.</li>
+        </ol>
+        <p>Si te invitan a vos, tocá <span class="ui">Confirmar asistencia</span> o <span class="ui">No puedo asistir</span> (te pide el motivo, que le llega a quien la organizó).</p>
+        <h3 class="sub">Minutas</h3>
+        <p>En cada reunión está <span class="ui">Hacer minuta</span>: cargá los temas que se hablaron, los pendientes y los acuerdos, y tocá <span class="ui">✔ Finalizar y guardar</span>. Con <span class="ui">Grabar</span> o <span class="ui">Subir audio</span> (hasta 100 MB), la IA transcribe y completa la minuta por vos; revisala antes de guardar. El botón redondo del micrófono, abajo a la derecha, sirve para una minuta que no está en la agenda.</p>
+      </div>
+      <figure>
+        <div class="captura">
+          <img src="assets/guia-vendedores/09-agenda.jpg" alt="Pantalla Agenda" width="720" height="1498" loading="lazy">
+          <span class="marca" style="top:6.5%">1</span>
+          <span class="marca" style="top:13.3%">2</span>
+          <span class="marca" style="top:20%">3</span>
+          <span class="marca" style="top:35.5%">4</span>
+        </div>
+        <figcaption><b>Figura 9</b> · La agenda del día. Los clientes y los objetivos están difuminados.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s10">
+    <div class="rotulo">Parte III · Organizar el día</div>
+    <div class="cab"><span class="num">10</span><h2>Agenda Eficiente</h2></div>
+    <p class="lede">Tu plan de visitas del mes: lo armás una vez, se lo mandás a tu supervisor y cada día te dice a quién visitar.</p>
+    <div class="cols">
+      <div>
+        <p>Tiene cuatro pestañas: <span class="ui">Hoy</span>, <span class="ui">Categorizar</span>, <span class="ui">Mensual</span> y <span class="ui">Envío</span>.</p>
+        <dl class="ref">
+          <dt>Categorizar (una sola vez)</dt><dd>A cada cliente le ponés su frecuencia de visita: semanal, quincenal o mensual. Queda guardado.</dd>
+          <dt>Mensual</dt><dd>Ubicás cada cliente una sola vez con <span class="ui">Ubicar</span>: elegís el primer día y se repite solo (los semanales cada 7 días, los quincenales a los 15). La barra <span class="ui">Clientes ubicados</span> dice cuánto te falta. Tocá un día del calendario para ver o ajustar sus visitas.</dd>
+          <dt>Envío</dt><dd>Cuando esté lista, tocá <span class="boton">Enviar agenda al supervisor</span>. Arriba ves el estado: borrador, enviada, aprobada o con cambios pedidos (con la nota del supervisor). Te avisa en la campanita.</dd>
+          <dt>Hoy</dt><dd>Tus visitas del día. <span class="boton verde">▶ Iniciar visitas (manual)</span> abre la App de Vendedores con la ruta de hoy, y cada visita que guardás ahí se tilda sola con su tiempo.</dd>
+        </dl>
+        <h3 class="sub">Si no pudiste ir a un cliente</h3>
+        <p>En <span class="ui">Hoy</span>, tocá <span class="ui">No pude visitar</span>: escribí el motivo y, si querés, pasá la visita a otro día. Le llega a tu supervisor.</p>
+      </div>
+      <figure>
+        <div class="captura"><img src="assets/guia-vendedores/10-agenda-eficiente.jpg" alt="Pestaña Mensual de la Agenda Eficiente" width="720" height="1498" loading="lazy"></div>
+        <figcaption><b>Figura 10</b> · La pestaña Mensual, con el calendario del mes.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s11">
+    <div class="rotulo">Parte III · Organizar el día</div>
+    <div class="cab"><span class="num">11</span><h2>Planificador de ruta</h2></div>
+    <p class="lede">El recorrido del día, ordenado para hacer menos kilómetros.</p>
+    <div class="cols">
+      <div>
+        <p>Se arma solo al entrar. Toma los clientes de tu cartera que tienen la ubicación cargada, elige hasta 12 que estén cerca entre sí y los ordena para recorrer lo menos posible.</p>
+        <dl class="ref">
+          <dt>Arriba</dt><dd>Cuántas visitas tiene la ruta, los kilómetros y la duración estimada (15 minutos por visita, más el viaje).</dd>
+          <dt>Tu recorrido de hoy</dt><dd>Las paradas en orden, con un horario estimado desde las 8:45, y el mapa con el camino.</dd>
+          <dt>Comparación de rutas</dt><dd>Cuántos kilómetros serían en el orden de tu cartera y cuántos ordenada por cercanía.</dd>
+          <dt>Iniciar navegación</dt><dd>Abre Google Maps con todas las paradas en ese orden.</dd>
+        </dl>
+        <div class="nota">
+          <div class="rotulo">Para tener en cuenta</div>
+          <p>Ordena solo por cercanía: no tiene en cuenta el tránsito, los horarios de los clientes ni tu Agenda Eficiente. Si tus clientes no tienen la ubicación cargada, la pantalla te lo dice y no arma la ruta.</p>
+        </div>
+      </div>
+      <figure>
+        <div class="captura"><img src="assets/guia-vendedores/11-ruta.jpg" alt="Ruta del día ordenada por cercanía" width="720" height="1498" loading="lazy"></div>
+        <figcaption><b>Figura 11</b> · La ruta del día, ordenada por cercanía.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s12">
+    <div class="rotulo">Parte III · Organizar el día</div>
+    <div class="cab"><span class="num">12</span><h2>Tareas</h2></div>
+    <p class="lede">Las tareas que te carga tu supervisor.</p>
+    <div class="cols">
+      <div>
+        <ol class="pasos">
+          <li>Entrá a <span class="ui">Tareas</span>. Arriba ves cuántas completaste hoy.</li>
+          <li>Cuando cumplas una, tocala para tildarla. Si te equivocaste, tocala de nuevo.</li>
+        </ol>
+        <p>Cada tarea dice si es de <span class="estado e-amb">Todos los días</span> o <span class="estado e-roj">Solo hoy</span>. Las de todos los días vuelven a aparecer sin tildar al día siguiente.</p>
+        <p>Las tareas las carga tu supervisor: si no tenés ninguna, la pantalla dice <i>“No tenés tareas para hoy”</i>.</p>
+      </div>
+      <figure>
+        <div class="captura"><img src="assets/guia-vendedores/12-tareas.jpg" alt="Pantalla Tareas del día" width="720" height="1498" loading="lazy"></div>
+        <figcaption><b>Figura 12</b> · Tareas del día. Los textos están difuminados.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <!-- ===================== IV. COBRANZAS ===================== -->
+
+  <section class="seccion" id="s13">
+    <div class="rotulo">Parte IV · Cobranzas</div>
+    <div class="cab"><span class="num">13</span><h2>Cobranzas</h2></div>
+    <p class="lede">La deuda de tus clientes y los comprobantes de pago que suben.</p>
+    <div class="cols">
+      <div>
+        <ol class="claves">
+          <li><span>Las pestañas <span class="ui">Deuda de mis clientes</span> y <span class="ui">Comprobantes</span>.</span></li>
+          <li><span>Los números de toda tu cartera: clientes con deuda, saldo de tu cartera y vencido.</span></li>
+          <li><span>El buscador (nombre o código), el orden (más vencidos, más saldo o nombre) y el filtro (solo con deuda, solo con vencido o todos).</span></li>
+          <li><span>Cada cliente con su saldo y lo vencido. <span class="boton wa">WhatsApp</span> abre un mensaje listo: <i>“Hola! Te escribo de GrandBar por el saldo de tu cuenta… ¿Cómo lo coordinamos?”</i>.</span></li>
+        </ol>
+        <div class="nota">
+          <div class="rotulo">Cómo se cuenta la deuda</div>
+          <p>El saldo es lo que debe el cliente menos su saldo a favor. Lo vencido son todas sus facturas vencidas, sin descontar el saldo a favor: ese saldo lo usa el cliente cuando paga. Los números salen del sistema de la empresa; si cobraste hoy, puede tardar en verse.</p>
+        </div>
+        <h3 class="sub">Comprobantes</h3>
+        <ol class="pasos">
+          <li>El cliente sube el comprobante de su pago en el Portal del Cliente. Te aparece como <span class="estado e-amb">A procesar</span>.</li>
+          <li>Lo cargás en Conquer y tocás <span class="boton">Marcar procesado</span>. Te pide confirmar y pasa a <span class="estado e-azu">En tesorería</span>.</li>
+          <li>Tesorería lo revisa: queda <span class="estado e-ver">Confirmado ✓</span> o <span class="estado e-roj">Rechazado</span>.</li>
+        </ol>
+        <p><span class="ui">Ver</span> abre el comprobante. Si el cliente usó saldo a favor, aparece un aviso en verde: el monto puede no coincidir con las facturas.</p>
+      </div>
+      <figure>
+        <div class="captura">
+          <img src="assets/guia-vendedores/13-cobranzas.jpg" alt="Pantalla Cobranzas" width="720" height="1498" loading="lazy">
+          <span class="marca" style="top:13.4%">1</span>
+          <span class="marca" style="top:20.5%">2</span>
+          <span class="marca" style="top:34.5%">3</span>
+          <span class="marca" style="top:46.5%">4</span>
+        </div>
+        <figcaption><b>Figura 13</b> · La deuda de tu cartera. Los nombres y los montos están difuminados.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <!-- ===================== V. MÁS HERRAMIENTAS ===================== -->
+
+  <section class="seccion" id="s14">
+    <div class="rotulo">Parte V · Más herramientas</div>
+    <div class="cab"><span class="num">14</span><h2>Leads</h2></div>
+    <p class="lede">Contactos nuevos que te asigna tu supervisor para que los conviertas en clientes.</p>
+    <ol class="pasos">
+      <li>Cuando te asignan uno, te llega el aviso a la campanita. Entrá a <span class="ui">Leads</span>.</li>
+      <li>Filtrá con las pestañas: Todos, Nuevos, Contactados, Convertidos o Descartados.</li>
+      <li>Contactá a la persona con <span class="boton wa">WhatsApp</span>, el botón del teléfono o el email.</li>
+      <li>Actualizá el estado: <span class="ui">Marcar contactado</span>, <span class="ui">✓ Convertido</span> o <span class="ui">Descartar</span>.</li>
+      <li>Anotá el seguimiento en <span class="ui">Nota / seguimiento</span>: se guarda solo cuando salís del campo.</li>
+    </ol>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s15">
+    <div class="rotulo">Parte V · Más herramientas</div>
+    <div class="cab"><span class="num">15</span><h2>Torneo Doña Paula</h2></div>
+    <p class="lede">Tus puntos, el ranking de cada sucursal y las activaciones que cargás.</p>
+    <div class="cols">
+      <div>
+        <ol class="claves">
+          <li><span>Las pestañas: <span class="ui">Mi puntaje</span>, <span class="ui">Mis activaciones</span> y los rankings de <span class="ui">Mendoza</span> y <span class="ui">San Luis</span> (tu fila dice “· vos”).</span></li>
+          <li><span>Tus puntos totales, tu puesto en tu sucursal y cuántos puntos te faltan para pasar al siguiente.</span></li>
+          <li><span>Los puntos por categoría: acciones, volumen y activaciones.</span></li>
+          <li><span>El detalle de cada concepto y producto.</span></li>
+        </ol>
+        <p>Los puntos oficiales los carga Administración en su planilla; se actualizan cuando la cambian.</p>
+        <h3 class="sub">Cargar una activación</h3>
+        <ol class="pasos">
+          <li>En <span class="ui">Mis activaciones</span>, tocá <span class="boton">+ Cargar activación</span>.</li>
+          <li>Elegí la línea y la acción, el cliente (escribí el nombre o el código y elegilo de tu cartera) y la fecha de la activación.</li>
+          <li>Sumá hasta 2 fotos y, si querés, un video corto (hasta 60 segundos y 50 MB). Hace falta al menos una foto o el video.</li>
+          <li>Tocá <span class="boton">Enviar activación</span>.</li>
+        </ol>
+        <p>La revisa Juan Pablo Sepúlveda, jefe de Trade Marketing. Queda <span class="estado e-gri">Para revisar</span> y después <span class="estado e-ver">Aceptada</span> o <span class="estado e-roj">Rechazada</span> (con el motivo); te avisa en la campanita. Mientras está para revisar la podés borrar.</p>
+      </div>
+      <figure>
+        <div class="captura">
+          <img src="assets/guia-vendedores/14-torneo.jpg" alt="Pantalla del Torneo Doña Paula" width="720" height="1498" loading="lazy">
+          <span class="marca" style="top:30.5%">1</span>
+          <span class="marca" style="top:39.5%">2</span>
+          <span class="marca" style="top:48.5%">3</span>
+          <span class="marca" style="top:63.5%">4</span>
+        </div>
+        <figcaption><b>Figura 14</b> · Mi puntaje en el torneo. Los puntos están difuminados.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s16">
+    <div class="rotulo">Parte V · Más herramientas</div>
+    <div class="cab"><span class="num">16</span><h2>Herramientas de venta</h2></div>
+    <p class="lede">Lo que necesitás para tus visitas, en un solo lugar.</p>
+    <div class="cols">
+      <div>
+        <dl class="ref">
+          <dt>App de Vendedores</dt><dd>El manual de vendedores con tu cartera: ahí hacés las visitas (secciones 6 a 8).</dd>
+          <dt>Posibles nuevos clientes</dt><dd>La IA busca en el mapa bares, restaurantes o vinotecas (según tu canal) que todavía no son clientes tuyos.</dd>
+          <dt>Catálogo de productos</dt><dd>Acciones, promos y precios vigentes por marca. Se abre el catálogo de tu canal (catalogoon.com o catalogooff.com) en otra pestaña.</dd>
+        </dl>
+      </div>
+      <figure>
+        <div class="captura"><img src="assets/guia-vendedores/15-herramientas.jpg" alt="Pantalla Herramientas de venta" width="720" height="1498" loading="lazy"></div>
+        <figcaption><b>Figura 15</b> · Herramientas de venta.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s17">
+    <div class="rotulo">Parte V · Más herramientas</div>
+    <div class="cab"><span class="num">17</span><h2>Reportes</h2></div>
+    <p class="lede">Mandale tus reportes a Dirección.</p>
+    <div class="cols">
+      <div>
+        <ol class="pasos">
+          <li>En <span class="ui">Nuevo reporte</span>, poné un título (por ejemplo, “Ventas del día — Mendoza ON”).</li>
+          <li>Elegí el tipo (diario, semanal, mensual o puntual) y escribí el período.</li>
+          <li>Escribí el reporte: qué se hizo, números, novedades y pendientes. Si tenés un archivo en Drive, pegá el enlace.</li>
+          <li>Tocá <span class="boton">Enviar a Dirección</span>.</li>
+        </ol>
+        <p>En <span class="ui">Enviados</span> ves cada reporte con su estado: <span class="estado e-gri">Pendiente</span> <span class="estado e-ver">Aprobado ✓</span> <span class="estado e-amb">Pide cambios</span> <span class="estado e-roj">Rechazado</span>. Si Dirección te dejó una devolución, aparece debajo. Mientras está pendiente lo podés eliminar.</p>
+        <div class="nota">
+          <div class="rotulo">Para tener en cuenta</div>
+          <p>Cuando Dirección revisa un reporte no te llega un aviso: entrá a Reportes para ver la respuesta.</p>
+        </div>
+      </div>
+      <figure>
+        <div class="captura"><img src="assets/guia-vendedores/16-reportes.jpg" alt="Pantalla Mis reportes" width="720" height="1498" loading="lazy"></div>
+        <figcaption><b>Figura 16</b> · Mis reportes.</figcaption>
+      </figure>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s18">
+    <div class="rotulo">Parte V · Más herramientas</div>
+    <div class="cab"><span class="num">18</span><h2>Curso de vendedores</h2></div>
+    <p class="lede">Tu formación en el manual de tu canal, rubro por rubro.</p>
+    <p>Se entra desde Inicio: el aviso del curso pendiente o <span class="ui">Curso de vendedores</span> en Herramientas rápidas. Para volver, tocá la flecha de arriba a la izquierda.</p>
+    <ol class="pasos">
+      <li>Cada módulo es un rubro. Abrilo y leé sus lecciones: qué incluye, la explicación y el consejo para la visita. Al terminar cada una, tocá <span class="ui">Marcar como leída</span>.</li>
+      <li>Con todas las lecciones leídas se habilita el <span class="ui">Quiz del módulo</span>. Respondé todas las preguntas y tocá <span class="boton">Enviar respuestas</span>.</li>
+      <li>Para aprobar necesitás el mínimo que dice arriba (en general, 70 %). Si no llegás, repasá las lecciones y volvé a intentarlo.</li>
+    </ol>
+    <p>Arriba ves cuántos módulos aprobaste y la fecha límite. Cuando aprobás todos aparece tu certificado, que podés imprimir o guardar en PDF.</p>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <!-- ===================== VI. AYUDA ===================== -->
+
+  <section class="seccion" id="s19">
+    <div class="rotulo">Parte VI · Ayuda</div>
+    <div class="cab"><span class="num">19</span><h2>Ayuda y preguntas frecuentes</h2></div>
+    <p class="lede">Si algo no anda o no encontrás algo.</p>
+    <dl class="ref">
+      <dt>WhatsApp de soporte</dt><dd><a href="https://wa.me/5492612452651" target="_blank" rel="noopener">+54 9 261 245-2651</a>, el equipo de sistemas.</dd>
+      <dt>Recuadro Soporte del menú</dt><dd>Abre WhatsApp con un mensaje que ya dice tu nombre y en qué pantalla estás.</dd>
+      <dt>Esta guía</dt><dd>En el menú del portal, <span class="ui">Guía del portal</span>.</dd>
+    </dl>
+    <p style="margin-top:14px">Para que te ayuden más rápido, contá en qué pantalla estabas, qué tocaste y qué esperabas que pasara. Si podés, mandá una captura.</p>
+
+    <h3 class="sub">Preguntas frecuentes</h3>
+    <details class="faq"><summary>No veo mis clientes ni mis cobranzas.</summary><p>Tu usuario tiene que tener cargado tu código de vendedor. Si Clientes o Cobranzas te dicen que falta el código, avisale a soporte.</p></details>
+    <details class="faq"><summary>¿“Agregar visita” empieza la visita?</summary><p>No: la agenda en tu Agenda. La visita se hace en la App de Vendedores, desde Herramientas de venta.</p></details>
+    <details class="faq"><summary>¿Dónde veo lo que programé durante una visita?</summary><p>En la próxima visita a ese cliente, en la Introducción, en “Acciones programadas”. No aparece en tu Agenda.</p></details>
+    <details class="faq"><summary>¿Cada cuánto se actualizan los saldos y la deuda?</summary><p>Salen del sistema de la empresa y se actualizan solos. Si un cliente pagó hoy, puede tardar en verse.</p></details>
+    <details class="faq"><summary>Quité un cliente por error. ¿Lo puedo recuperar?</summary><p>Sí. En Clientes, entrá a la pestaña Quitados, buscá el cliente y tocá Volver a la cartera.</p></details>
+    <details class="faq"><summary>¿Cómo sé si mi supervisor aprobó mi Agenda Eficiente?</summary><p>Te llega un aviso a la campanita, y en la pestaña Envío ves el estado y la nota si te pidió cambios.</p></details>
+    <details class="faq"><summary>Toqué Pedidos y no pasa nada.</summary><p>Todavía no está disponible: por eso aparece el aviso.</p></details>
+    <details class="faq"><summary>Me olvidé la contraseña.</summary><p>En la pantalla de ingreso, escribí tu email y tocá ¿Olvidaste tu contraseña?. Se abre WhatsApp con soporte para restablecerla.</p></details>
+    <details class="faq"><summary>Me apareció un aviso de que cambió la cuenta. ¿Qué pasó?</summary><p>Alguien entró con otra cuenta en otra pestaña del mismo navegador. Actualizá la pantalla, fijate con qué cuenta quedaste y, si no es la tuya, cerrá sesión y volvé a entrar.</p></details>
+    <details class="faq"><summary>¿Funciona en la compu?</summary><p>Sí. En la compu el menú queda fijo a la izquierda y las pantallas se ven más anchas.</p></details>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <footer class="pie">
+    <span>GrandBar Distribuciones · Guía del portal de vendedores</span>
+    <span>Grandbar S.A. · Cervantes 2511, Godoy Cruz, Mendoza</span>
+  </footer>
+</div>
+
+</body>
+</html>
