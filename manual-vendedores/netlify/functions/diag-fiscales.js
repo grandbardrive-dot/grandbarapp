@@ -25,14 +25,15 @@ async function aikon(url, body, ms = 40000) {
   finally { clearTimeout(t); }
 }
 
-async function login() {
+async function login(empresaQ) {
   const cuenta = process.env.AIKON_CUENTA;
-  if (!cuenta || !process.env.AIKON_EMPRESA) throw new Error('Faltan AIKON_CUENTA / AIKON_EMPRESA.');
+  const empresa = empresaQ || process.env.AIKON_EMPRESA;
+  if (!cuenta || !empresa) throw new Error('Faltan AIKON_CUENTA / AIKON_EMPRESA.');
   const managerUrl = process.env.AIKON_MANAGER_URL || 'http://aikonmanager.com/Manager/api/CuentaURL';
   const j1 = await aikon(managerUrl, { Cuenta: cuenta, CuentaPwd: process.env.AIKON_CUENTA_PWD });
   const urlCuenta = String(j1.retorno || '').replace(/\/+$/, '');
   if (!urlCuenta) throw new Error('CuentaURL no devolvió URL: ' + JSON.stringify(j1).slice(0, 160));
-  const j2 = await aikon(urlCuenta + '/IS3/ObtenerToken', { cuenta, usuario: process.env.AIKON_USUARIO || 'CS', 'contraseña': process.env.AIKON_PASS || '', empresa: process.env.AIKON_EMPRESA });
+  const j2 = await aikon(urlCuenta + '/IS3/ObtenerToken', { cuenta, usuario: process.env.AIKON_USUARIO || 'CS', 'contraseña': process.env.AIKON_PASS || '', empresa });
   const token = j2.token && j2.token.Codigo;
   if (!token) throw new Error('ObtenerToken falló: ' + JSON.stringify(j2).slice(0, 160));
   return { urlCuenta, cuenta, token };
@@ -49,7 +50,7 @@ exports.handler = async (event) => {
   const out = (code, o) => ({ statusCode: code, headers, body: JSON.stringify(o, null, 2) });
 
   try {
-    const { urlCuenta, cuenta, token } = await login();
+    const { urlCuenta, cuenta, token } = await login(/^\d{4}$/.test(q.empresa || '') ? q.empresa : null);
 
     if (q.modo === 'puntos') {
       const j = await aikon(urlCuenta + '/IS3/ListarSaldosClientes', { cuenta, token }, 60000);
@@ -89,7 +90,7 @@ exports.handler = async (event) => {
           ? { numero, existe: true, fecha: netISO(c.FechaEmision), renglones: det.length, neto: Math.round(num(c.SubTotalComprobante || c.Neto || c.TotalNeto)), cae: !!String(c.CAENumero || '').trim(), anulado: !!c.FechaAnulacion }
           : { numero, existe: false, resp: (j._error || j._raw || JSON.stringify(j)).slice(0, 140) });
       }
-      return out(200, { ok: true, codigo, suc, tipo, res, campos: (() => { return null; })() });
+      return out(200, { ok: true, codigo, suc, tipo, res });
     }
 
     return out(400, { error: 'modo=puntos | modo=probar' });
