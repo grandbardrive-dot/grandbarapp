@@ -9,6 +9,7 @@
 //    ?key=XXX&fecha=15/09/2026            → conteo por tipo de un día
 //    ?key=XXX&fecha=15/09/2026&ver=REM    → además, 1 comprobante de ese
 //                                           tipo: campos del detalle
+//    ?...&empresa=1                      → login con otro código de empresa
 //  Para tablas crudas del ERP usar diag-erp?tabla=NOMBRE.
 //  BORRAR cuando terminemos.
 // ============================================================
@@ -24,14 +25,15 @@ async function aikon(url, body, ms = 40000) {
   finally { clearTimeout(t); }
 }
 
-async function login() {
+async function login(empresaQ) {
   const cuenta = process.env.AIKON_CUENTA;
-  if (!cuenta || !process.env.AIKON_EMPRESA) throw new Error('Faltan AIKON_CUENTA / AIKON_EMPRESA.');
+  const empresa = empresaQ || process.env.AIKON_EMPRESA;
+  if (!cuenta || !empresa) throw new Error('Faltan AIKON_CUENTA / AIKON_EMPRESA.');
   const managerUrl = process.env.AIKON_MANAGER_URL || 'http://aikonmanager.com/Manager/api/CuentaURL';
   const j1 = await aikon(managerUrl, { Cuenta: cuenta, CuentaPwd: process.env.AIKON_CUENTA_PWD });
   const urlCuenta = String(j1.retorno || '').replace(/\/+$/, '');
   if (!urlCuenta) throw new Error('CuentaURL no devolvió URL: ' + JSON.stringify(j1).slice(0, 160));
-  const j2 = await aikon(urlCuenta + '/IS3/ObtenerToken', { cuenta, usuario: process.env.AIKON_USUARIO || 'CS', 'contraseña': process.env.AIKON_PASS || '', empresa: process.env.AIKON_EMPRESA });
+  const j2 = await aikon(urlCuenta + '/IS3/ObtenerToken', { cuenta, usuario: process.env.AIKON_USUARIO || 'CS', 'contraseña': process.env.AIKON_PASS || '', empresa });
   const token = j2.token && j2.token.Codigo;
   if (!token) throw new Error('ObtenerToken falló: ' + JSON.stringify(j2).slice(0, 160));
   return { urlCuenta, cuenta, token };
@@ -47,7 +49,8 @@ exports.handler = async (event) => {
   if (!fecha) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Pasá ?fecha=dd/mm/aaaa' }) };
 
   try {
-    const { urlCuenta, cuenta, token } = await login();
+    // ?empresa=N → entrar con otro código de empresa (¿lo fiscal vive en otra empresa?)
+    const { urlCuenta, cuenta, token } = await login(q.empresa && /^\d{1,6}$/.test(q.empresa) ? q.empresa : null);
     // ?extra={"Fiscalizado":"S"} → campos adicionales para ListarComprobantes (probar filtros).
     let extra = {};
     try { extra = q.extra ? JSON.parse(q.extra) : {}; } catch { return { statusCode: 400, headers, body: JSON.stringify({ error: 'extra no es JSON' }) }; }
