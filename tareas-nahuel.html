@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2238">
+<title>GrandBar — Mis tareas (Nahuel)</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--gold:#c9a13b;--gold-d:#a9852a;--green:#2f8f6e;--green-d:#256f54;--green-s:#e6f2ec;--danger:#c0603e;--danger-s:#fbe9e4;--amber:#c99a2e;--amber-s:#f8efd6;--navy:#0d2238;--blue:#3f6f9c}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--ink)}
+  .top{background:var(--navy);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+  .top .b{font-weight:800;font-size:15px}.top .b .g{color:#e7c778}
+  .top .out{margin-left:auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cdd9e0;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer}
+  .wrap{max-width:820px;margin:0 auto;padding:22px 16px 70px}
+  h1{font-size:22px;margin:0 0 3px}.sub{color:var(--muted);font-size:14px;margin:0 0 18px}
+  .filtros{display:flex;gap:7px;flex-wrap:wrap;margin:4px 0 14px}
+  .fb{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:20px;padding:6px 13px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .fb.on{background:var(--navy);border-color:var(--navy);color:#fff}.fb .n{opacity:.6;margin-left:5px}
+  .tk{background:#fff;border:1px solid var(--line);border-radius:13px;padding:14px 16px;margin-bottom:9px;border-left:4px solid var(--line)}
+  .tk.p-alta{border-left-color:var(--danger)}.tk.p-media{border-left-color:var(--amber)}.tk.p-baja{border-left-color:var(--blue)}
+  .tk.hecha{opacity:.62}
+  .tt{font-weight:700;font-size:15px}.tk.hecha .tt{text-decoration:line-through;color:var(--muted)}
+  .det{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.4;white-space:pre-wrap}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+  .pill{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .pill.alta{background:var(--danger-s);color:var(--danger)}.pill.media{background:var(--amber-s);color:#8a6a1e}.pill.baja{background:#e8f0f7;color:var(--blue)}
+  .pill.pendiente{background:#eef1f3;color:#5a6b73}.pill.en_curso{background:var(--amber-s);color:#8a6a1e}.pill.hecha{background:var(--green-s);color:var(--green-d)}
+  .fecha{font-size:11.5px;color:var(--muted)}.de{font-size:11.5px;color:var(--muted)}
+  .acts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+  .mini{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;font-weight:700;color:var(--ink);cursor:pointer}
+  .mini.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .mini.ok:hover{border-color:var(--green);color:var(--green-d)}
+  .empty{text-align:center;color:var(--muted);font-size:13.5px;padding:30px 16px;background:#fff;border:1px dashed var(--line);border-radius:12px}
+</style>
+</head>
+<body>
+  <div class="top"><div class="b"><span class="g">Grand</span>Bar · Tareas</div><button class="out" onclick="salir()">Salir</button></div>
+  <div class="wrap">
+    <h1>Mis tareas</h1>
+    <p class="sub">Lo que te asignó Josefina. Marcá en qué estado va cada una.</p>
+    <div class="filtros" id="filtros"></div>
+    <div id="lista"><div class="empty">Cargando…</div></div>
+  </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script>
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let sb=null, TAREAS=[], FILTRO='abiertas';
+  const PRI={alta:'🔴 Alta',media:'🟡 Media',baja:'🔵 Baja'}, EST={pendiente:'Pendiente',en_curso:'En curso',hecha:'Hecha'};
+  function salir(){ try{ GBAuth.signOut(); }catch(e){} location.href='index.html'; }
+  window.salir=salir;
+  (async()=>{ const s=await GBAuth.requireAuth(); if(!s) return; sb=GBAuth.client; cargar(); })();
+  function fFecha(d){ if(!d) return ''; const [a,m,dd]=String(d).split('-'); return dd+'/'+m+'/'+a.slice(2); }
+  async function cargar(){
+    try{ const {data,error}=await sb.from('tareas_para_nahuel').select('*').order('created_at',{ascending:false});
+      if(error) throw error; TAREAS=data||[]; render();
+    }catch(e){ $('lista').innerHTML='<div class="empty">No se pudieron cargar.<br>'+esc(e.message||e)+'</div>'; }
+  }
+  function cuenta(f){ if(f==='abiertas') return TAREAS.filter(t=>t.estado!=='hecha').length; if(f==='') return TAREAS.length; return TAREAS.filter(t=>t.estado===f).length; }
+  function render(){
+    const FS=[['abiertas','Por hacer'],['en_curso','En curso'],['hecha','Hechas'],['','Todas']];
+    $('filtros').innerHTML=FS.map(([k,l])=>`<button class="fb ${FILTRO===k?'on':''}" onclick="setF('${k}')">${l}<span class="n">${cuenta(k)}</span></button>`).join('');
+    let lista = FILTRO==='abiertas' ? TAREAS.filter(t=>t.estado!=='hecha') : (FILTRO? TAREAS.filter(t=>t.estado===FILTRO) : TAREAS);
+    if(!lista.length){ $('lista').innerHTML='<div class="empty">No hay tareas acá. 🎉</div>'; return; }
+    $('lista').innerHTML=lista.map(t=>`
+      <div class="tk p-${esc(t.prioridad||'media')} ${t.estado==='hecha'?'hecha':''}">
+        <div class="tt">${esc(t.titulo)}</div>
+        ${t.detalle?`<div class="det">${esc(t.detalle)}</div>`:''}
+        <div class="meta">
+          <span class="pill ${esc(t.prioridad||'media')}">${PRI[t.prioridad]||t.prioridad}</span>
+          <span class="pill ${esc(t.estado)}">${EST[t.estado]||t.estado}</span>
+          ${t.fecha_limite?`<span class="fecha">🗓️ ${fFecha(t.fecha_limite)}</span>`:''}
+          ${t.creado_por?`<span class="de">· de ${esc(t.creado_por)}</span>`:''}
+          <div class="acts">
+            <button class="mini ${t.estado==='pendiente'?'on':''}" onclick="marcar('${t.id}','pendiente')">Pendiente</button>
+            <button class="mini ${t.estado==='en_curso'?'on':''}" onclick="marcar('${t.id}','en_curso')">En curso</button>
+            <button class="mini ok ${t.estado==='hecha'?'on':''}" onclick="marcar('${t.id}','hecha')">✓ Hecha</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+  function setF(k){ FILTRO=k; render(); }
+  window.setF=setF;
+  async function marcar(id,estado){
+    const {error}=await sb.from('tareas_para_nahuel').update({estado, hecha_at: estado==='hecha'? new Date().toISOString():null}).eq('id',id);
+    if(error){ alert('No se pudo: '+error.message); return; }
+    const t=TAREAS.find(x=>x.id===id); if(t) t.estado=estado; render();
+  }
+  window.marcar=marcar;
+</script>
+</body>
+</html>

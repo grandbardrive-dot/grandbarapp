@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2238">
+<title>GrandBar — Mi panel</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="manifest" href="/manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;--gold:#c9a13b;--gold-d:#a9852a;--gold-s:#f7efda;--green:#2f8f6e;--green-d:#256f54;--green-s:#e6f2ec;--danger:#c0603e;--danger-s:#fbe9e4;--amber:#c99a2e;--amber-s:#f8efd6;--navy:#0d2238;--blue:#3f6f9c}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .top{background:var(--navy);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+  .top .b{font-weight:800;font-size:15px}.top .b .g{color:#e7c778}
+  .top .me{margin-left:auto;font-size:12.5px;color:#b9c6cd}
+  .top .out{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cdd9e0;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer}
+  .wrap{max-width:860px;margin:0 auto;padding:22px 16px 70px}
+  .hero h1{font-size:23px;margin:0 0 3px;font-weight:800}
+  .hero p{margin:0;color:var(--muted);font-size:14px}
+  h2{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:26px 0 12px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+  .tile{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px;text-decoration:none;color:inherit;cursor:pointer;transition:box-shadow .15s,border-color .15s;font-family:inherit;text-align:left;width:100%}
+  .tile:hover{box-shadow:0 5px 20px rgba(13,34,56,.09);border-color:var(--gold)}
+  .tile .ic{width:46px;height:46px;flex:none;border-radius:12px;background:var(--gold-s);color:var(--gold-d);display:grid;place-items:center;font-size:23px}
+  .tile .tn{font-weight:800;font-size:15px}.tile .ts{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+  /* Tareas */
+  .form{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+  .form .row{display:grid;grid-template-columns:1fr;gap:10px}
+  .lab{display:block;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:5px}
+  .in{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;color:var(--ink);background:#fff;outline:none}
+  .in:focus{border-color:var(--gold)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{border:0;border-radius:11px;background:var(--navy);color:#fff;font:inherit;font-weight:800;font-size:14.5px;padding:12px 18px;cursor:pointer}
+  .btn:disabled{opacity:.5;cursor:default}
+  .filtros{display:flex;gap:7px;flex-wrap:wrap;margin:4px 0 12px}
+  .fb{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:20px;padding:6px 13px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .fb.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .fb .n{opacity:.6;margin-left:5px}
+  .tk{background:#fff;border:1px solid var(--line);border-radius:13px;padding:13px 15px;margin-bottom:9px;border-left:4px solid var(--line)}
+  .tk.p-alta{border-left-color:var(--danger)}.tk.p-media{border-left-color:var(--amber)}.tk.p-baja{border-left-color:var(--blue)}
+  .tk.hecha{opacity:.62}
+  .tk .th{display:flex;align-items:flex-start;gap:10px}
+  .tk .tt{font-weight:700;font-size:14.5px;flex:1}
+  .tk.hecha .tt{text-decoration:line-through;color:var(--muted)}
+  .tk .det{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.4;white-space:pre-wrap}
+  .tk .meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:9px}
+  .pill{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .pill.alta{background:var(--danger-s);color:var(--danger)}.pill.media{background:var(--amber-s);color:#8a6a1e}.pill.baja{background:#e8f0f7;color:var(--blue)}
+  .pill.pendiente{background:#eef1f3;color:#5a6b73}.pill.en_curso{background:var(--amber-s);color:#8a6a1e}.pill.hecha{background:var(--green-s);color:var(--green-d)}
+  .fecha{font-size:11.5px;color:var(--muted)}
+  .acts{margin-left:auto;display:flex;gap:6px}
+  .mini{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font:inherit;font-size:11.5px;font-weight:700;color:var(--ink);cursor:pointer}
+  .mini:hover{border-color:var(--navy)} .mini.ok:hover{border-color:var(--green);color:var(--green-d)} .mini.del:hover{border-color:var(--danger);color:var(--danger)}
+  .empty{text-align:center;color:var(--muted);font-size:13.5px;padding:26px 16px;background:#fff;border:1px dashed var(--line);border-radius:12px}
+  @media (max-width:560px){ .grid2{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="b"><span class="g">Grand</span>Bar</div>
+    <div class="me" id="me">—</div>
+    <button class="out" onclick="salir()">Salir</button>
+  </div>
+  <div class="wrap">
+    <div class="hero"><h1 id="hola">Mi panel</h1><p>Tu espacio: tu agenda y lo que le dejás a Nahuel.</p></div>
+
+    <h2>Accesos</h2>
+    <div class="tiles">
+      <a class="tile" href="mi-agenda.html"><div class="ic">📅</div><div><div class="tn">Mi agenda</div><div class="ts">Tus eventos y reuniones</div></div></a>
+      <button class="tile" type="button" onclick="document.getElementById('tareas').scrollIntoView({behavior:'smooth'})"><div class="ic">✅</div><div><div class="tn">Tareas para Nahuel</div><div class="ts">Asignale y seguí el estado</div></div></button>
+    </div>
+
+    <h2 id="tareas">Tareas para Nahuel</h2>
+    <div class="form">
+      <div class="row">
+        <div><span class="lab">Tarea</span><input id="t-tit" class="in" type="text" placeholder="Ej: Agregar el link del Sellout al menú de Luci"></div>
+        <div><span class="lab">Detalle (opcional)</span><textarea id="t-det" class="in" rows="2" placeholder="Más contexto si hace falta…" style="resize:vertical"></textarea></div>
+        <div class="grid2">
+          <div><span class="lab">Prioridad</span><select id="t-pri" class="in"><option value="alta">🔴 Alta</option><option value="media" selected>🟡 Media</option><option value="baja">🔵 Baja</option></select></div>
+          <div><span class="lab">Para cuándo (opcional)</span><input id="t-fec" class="in" type="date"></div>
+        </div>
+      </div>
+      <div id="t-msg" style="font-size:13px;margin:10px 0 0"></div>
+      <button class="btn" id="t-add" onclick="agregar()" style="margin-top:12px">＋ Asignar a Nahuel</button>
+    </div>
+
+    <div class="filtros" id="filtros"></div>
+    <div id="lista"><div class="empty">Cargando…</div></div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script>
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let sb=null, YO='', TAREAS=[], FILTRO='abiertas';
+  const PRI={alta:'🔴 Alta',media:'🟡 Media',baja:'🔵 Baja'};
+  const EST={pendiente:'Pendiente',en_curso:'En curso',hecha:'Hecha'};
+  function salir(){ try{ GBAuth.signOut(); }catch(e){} location.href='index.html'; }
+  window.salir=salir;
+
+  (async()=>{
+    const s = await GBAuth.requireAuth();   // si no hay sesión, redirige al login
+    if(!s) return;
+    sb = GBAuth.client;
+    YO = s.nombre || (s.user && s.user.email) || 'Josefina';
+    $('me').textContent = YO;
+    $('hola').textContent = 'Hola, ' + (YO.split(/\s+/)[0]) + ' 👋';
+    cargar();
+  })();
+
+  function fFecha(d){ if(!d) return ''; const [a,m,dd]=String(d).split('-'); return dd+'/'+m+'/'+a.slice(2); }
+
+  async function cargar(){
+    try{
+      const { data, error } = await sb.from('tareas_para_nahuel').select('*').order('created_at',{ascending:false});
+      if(error) throw error;
+      TAREAS = data||[]; render();
+    }catch(e){ $('lista').innerHTML='<div class="empty">No se pudieron cargar las tareas.<br>'+esc(e.message||e)+'</div>'; }
+  }
+  function cuenta(f){
+    if(f==='abiertas') return TAREAS.filter(t=>t.estado!=='hecha').length;
+    if(f==='') return TAREAS.length;
+    return TAREAS.filter(t=>t.estado===f).length;
+  }
+  function render(){
+    const FS=[['abiertas','Abiertas'],['pendiente','Pendientes'],['en_curso','En curso'],['hecha','Hechas'],['','Todas']];
+    $('filtros').innerHTML=FS.map(([k,l])=>`<button class="fb ${FILTRO===k?'on':''}" onclick="setF('${k}')">${l}<span class="n">${cuenta(k)}</span></button>`).join('');
+    let lista = FILTRO==='abiertas' ? TAREAS.filter(t=>t.estado!=='hecha') : (FILTRO? TAREAS.filter(t=>t.estado===FILTRO) : TAREAS);
+    if(!lista.length){ $('lista').innerHTML='<div class="empty">No hay tareas '+(FILTRO==='abiertas'?'abiertas':(FILTRO?('“'+ (EST[FILTRO]||FILTRO).toLowerCase()+'”'):''))+'.</div>'; return; }
+    $('lista').innerHTML=lista.map(t=>`
+      <div class="tk p-${esc(t.prioridad||'media')} ${t.estado==='hecha'?'hecha':''}">
+        <div class="th">
+          <div style="flex:1">
+            <div class="tt">${esc(t.titulo)}</div>
+            ${t.detalle?`<div class="det">${esc(t.detalle)}</div>`:''}
+            <div class="meta">
+              <span class="pill ${esc(t.prioridad||'media')}">${PRI[t.prioridad]||t.prioridad}</span>
+              <span class="pill ${esc(t.estado)}">${EST[t.estado]||t.estado}</span>
+              ${t.fecha_limite?`<span class="fecha">🗓️ para el ${fFecha(t.fecha_limite)}</span>`:''}
+            </div>
+          </div>
+        </div>
+        <div class="meta" style="margin-top:10px">
+          <div class="acts" style="margin-left:0">
+            ${t.estado!=='hecha'?`<button class="mini ok" onclick="marcar('${t.id}','hecha')">✓ Hecha</button>`:`<button class="mini" onclick="marcar('${t.id}','pendiente')">↩ Reabrir</button>`}
+            ${t.estado==='pendiente'?`<button class="mini" onclick="marcar('${t.id}','en_curso')">▶ En curso</button>`:''}
+            <button class="mini del" onclick="borrar('${t.id}')">🗑 Borrar</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+  function setF(k){ FILTRO=k; render(); }
+  window.setF=setF;
+
+  async function agregar(){
+    const tit=($('t-tit').value||'').trim();
+    const msg=(t,c)=>{ $('t-msg').textContent=t; $('t-msg').style.color=c||'var(--muted)'; };
+    if(!tit){ msg('Escribí la tarea.','var(--danger)'); return; }
+    $('t-add').disabled=true; msg('Guardando…');
+    try{
+      const fila={ titulo:tit, detalle:($('t-det').value||'').trim()||null, prioridad:$('t-pri').value, fecha_limite:$('t-fec').value||null, estado:'pendiente', creado_por:YO };
+      const { error } = await sb.from('tareas_para_nahuel').insert(fila);
+      if(error) throw error;
+      $('t-tit').value=''; $('t-det').value=''; $('t-fec').value=''; $('t-pri').value='media';
+      msg('✅ Asignada a Nahuel.','var(--green-d)');
+      setTimeout(()=>{ $('t-msg').textContent=''; },1600);
+      cargar();
+    }catch(e){ msg('No se pudo: '+(e.message||e),'var(--danger)'); }
+    finally{ $('t-add').disabled=false; }
+  }
+  window.agregar=agregar;
+  async function marcar(id,estado){
+    const campos={estado, hecha_at: estado==='hecha'? new Date().toISOString() : null};
+    const { error } = await sb.from('tareas_para_nahuel').update(campos).eq('id',id);
+    if(error){ alert('No se pudo: '+error.message); return; }
+    const t=TAREAS.find(x=>x.id===id); if(t){ t.estado=estado; } render();
+  }
+  window.marcar=marcar;
+  async function borrar(id){
+    if(!confirm('¿Borrar esta tarea?')) return;
+    const { error } = await sb.from('tareas_para_nahuel').delete().eq('id',id);
+    if(error){ alert('No se pudo: '+error.message); return; }
+    TAREAS=TAREAS.filter(x=>x.id!==id); render();
+  }
+  window.borrar=borrar;
+</script>
+</body>
+</html>

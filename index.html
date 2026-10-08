@@ -229,6 +229,7 @@
       let d = "hub.html";
       try {
         const s = await GBAuth.getSession();
+        if (s && s.user && s.user.id === "221ab5e3-f985-4b02-baa8-34fa9b90c14f") return "mi-panel.html";   // Josefina: su panel propio (08/10/2026)
         if (s && (s.role === "direccion" || s.role === "admin" || s.role === "duenio")) d = "direccion.html";
         else if (s && s.role === "proveedor") d = "manual-vendedores/proveedor.html";
         else if (s && s.role === "torneo") d = "torneo-evidencias.html";   // Juan Pablo Sepúlveda (29/09/2026)
