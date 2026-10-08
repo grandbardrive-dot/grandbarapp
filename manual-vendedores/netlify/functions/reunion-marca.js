@@ -190,6 +190,7 @@ exports.handler = async (event) => {
       por_mes: { actual: A.porMes, anterior: P.porMes },
       top_clientes: cA.sort((a, b) => b.u - a.u).slice(0, 15).map((c) => ({ ...c, u: red(c.u), m: red(c.m), nuevo: !setP.has(c.codigo) })),
       dejaron_de_comprar: cP.filter((c) => !setA.has(c.codigo)).sort((a, b) => b.u - a.u).slice(0, 25).map((c) => ({ ...c, u: red(c.u), m: red(c.m) })),
+      dejaron_total: cP.filter((c) => !setA.has(c.codigo)).length,
       nuevos: cA.filter((c) => !setP.has(c.codigo)).length,
       por_vendedor: Object.entries(A.porVend).map(([n, v]) => ({ vendedor: n, botellas: red(v.u), clientes: v.cli.size, anterior: red(P.porVend[n]?.u || 0) })).sort((a, b) => b.botellas - a.botellas),
     });

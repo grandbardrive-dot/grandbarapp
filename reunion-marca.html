@@ -96,6 +96,32 @@
   .hist .h:last-child{border-bottom:0}
   .hist .h b{font-weight:800}
   .link{color:var(--blue);font-weight:700;text-decoration:none}
+  .resp{font-size:16px;line-height:1.5;margin:12px 0 0;color:var(--ink)}
+  .resp b{font-weight:800}
+  details.det{margin-top:18px}
+  details.det>summary{cursor:pointer;font-weight:800;font-size:13.5px;color:var(--blue);list-style:none;padding:10px 0}
+  details.det>summary::-webkit-details-marker{display:none}
+  details.det>summary::before{content:'▸ ';}
+  details.det[open]>summary::before{content:'▾ ';}
+  .hoy .a{padding:9px 0;border-bottom:1px solid var(--line2);font-size:13.5px;line-height:1.4}
+  .hoy .a:last-child{border-bottom:0}
+  .hoy .a .o{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .props{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+  .prop{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:15px 16px;display:flex;flex-direction:column;gap:8px}
+  .prop.usada{border-color:var(--green);box-shadow:0 0 0 3px var(--green-s)}
+  .prop h3{margin:0;font-size:16px;line-height:1.25}
+  .prop .pq{font-size:13.5px;line-height:1.45}
+  .prop .tags{display:flex;flex-wrap:wrap;gap:5px}
+  .prop .tag{font-size:11.5px;font-weight:800;background:var(--gold-s);color:var(--gold-d);border-radius:7px;padding:3px 8px}
+  .prop .tag.n{background:var(--blue-s);color:var(--blue)}
+  .prop .li{font-size:12.8px;line-height:1.45;color:var(--ink)}
+  .prop .li b{color:var(--muted);font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.04em;display:block}
+  .prop .pq2{font-size:12px;color:var(--muted);font-style:italic}
+  .prop button{margin-top:auto;border:0;border-radius:10px;background:var(--navy);color:#fff;font:inherit;font-weight:800;font-size:14px;padding:11px;cursor:pointer}
+  .prop.cargando{min-height:180px;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+  .pbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .pbar button{border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:10px;font:inherit;font-weight:800;font-size:13.5px;padding:9px 14px;cursor:pointer}
+  .mini{border:0;background:none;color:var(--blue);font:inherit;font-weight:700;font-size:12px;cursor:pointer;padding:0;text-decoration:underline}
   @media (max-width:700px){ .cols{grid-template-columns:1fr} .head{grid-template-columns:1fr} .head .big{display:none} .rowb .nm{width:40%;min-width:90px} }
 </style>
 </head>
@@ -218,7 +244,7 @@
     let h='';
     if(!d.productos||!d.productos.length){
       h+='<div class="card"><div class="empty">No encontré productos «'+esc(d.q)+'» en el sistema. Probá con otra palabra (ej: «walker», «smirnoff»).</div></div>';
-      h+=cuestionarioHtml(); $('res').innerHTML=h; prefill(); return;
+      h+=hoyHtml()+propuestasHtml()+cuestionarioHtml(); $('res').innerHTML=h; prefill(); proponer(); return;
     }
     const t=d.total, v=variacion(t.actual.botellas,t.anterior.botellas,cobP);
     const lineas=[...new Set(d.productos.map(p=>p.linea))];
@@ -227,12 +253,13 @@
       <div><h1>${esc(tituloMarca())} · ${esc(rubroTxt)}</h1>
       <div class="sub">${fecha(d.periodo.desde)} – ${fecha(d.periodo.hasta)} contra el mismo período ${d.anterior.desde.slice(0,4)}</div>
       <div class="verd ${v.k}">${v.k==='mal'?'▼':v.k==='bien'?'▲':v.k==='parejo'?'●':'○'} ${esc(v.txt)}${v.pct!=null?' '+(v.pct>0?'+':'')+v.pct+'% en botellas':''}</div>
+      <p class="resp">${respuesta(d,v)}</p>
       <div class="kpis">
         ${kpi(num(t.actual.botellas),'Botellas',t.actual.botellas,t.anterior.botellas,cobP,num(t.anterior.botellas))}
         ${kpi(money(t.actual.monto),d.monto_real?'Venta neta':'Monto estimado',t.actual.monto,t.anterior.monto,cobP,money(t.anterior.monto))}
         ${kpi(num(t.actual.clientes),'Clientes que compraron',t.actual.clientes,t.anterior.clientes,cobP,num(t.anterior.clientes))}
         ${kpi(num(d.nuevos),'Clientes nuevos','','',100,'')}
-        ${kpi(num((d.dejaron_de_comprar||[]).length),'Dejaron de comprar','','',100,'')}
+        ${kpi(num(d.dejaron_total!=null?d.dejaron_total:(d.dejaron_de_comprar||[]).length),'Dejaron de comprar','','',100,'')}
       </div></div></div>`;
     if(d.fuente==='luci') h+=`<div class="aviso" style="background:var(--blue-s);border-color:#cfe0ef;color:#24496d">📊 <b>Datos del tablero de Luciana</b> (export CuboVentas, Diageo y Cinzano). Se usan mientras el sistema termina de cargar ${d.anterior.desde.slice(0,4)}${d.cobertura_sistema?' ('+d.cobertura_sistema.anterior+'% cargado)':''}. ${d.meses_usados&&d.meses_usados.length&&d.meses_usados[d.meses_usados.length-1]===9&&d.periodo_pedido_hasta>'2026-09-30'?'Octubre todavía no está en ese tablero. ':''}Período: ${fecha(d.periodo.desde)} – ${fecha(d.periodo.hasta)}.</div>`;
     if(cobP<90) h+=`<div class="aviso">⏳ Las ventas de ${d.anterior.desde.slice(0,4)} todavía se están cargando desde el sistema (${cobP}% del período). Se completan solas en las próximas horas; por ahora los termómetros quedan en gris.</div>`;
@@ -248,7 +275,8 @@
     const sinVenta=lineas.filter(n=>!conVenta.some(l=>l.linea===n));
     if(sinVenta.length) h+=`<div class="nota">Sin ventas en el período: ${sinVenta.map(esc).join(' · ')}.</div>`;
 
-    // por rubro + mes a mes
+    // detalle plegado: rubros, mes a mes, clientes, vendedores
+    h+='<details class="det"><summary>Ver el detalle: rubros, mes a mes, clientes y vendedores</summary>';
     const pr=d.por_rubro||[], maxR=Math.max(1,...pr.map(r=>Math.max(r.actual.botellas,r.anterior.botellas)));
     h+=`<div class="cols"><div><h2>🏪 Por rubro <span class="per">tocá uno para filtrar</span></h2><div class="card">`+
       (pr.map(r=>`<div class="rowb click" onclick="filtrarRubro('${esc(r.rubro)}')"><div class="nm">${esc(RUBRO_LBL[r.rubro]||r.rubro)}</div><div class="bar2"><i style="width:${Math.round(r.actual.botellas/maxR*100)}%"></i><i class="p" style="width:${Math.round(r.anterior.botellas/maxR*100)}%"></i></div><div class="val">${num(r.actual.botellas)}</div>${delta(r.actual.botellas,r.anterior.botellas,cobP)}</div>`).join('')||'<div class="empty">—</div>')+
@@ -266,109 +294,173 @@
     h+=d.fuente==='luci'
       ? `<div class="nota">Fuente: ${esc(d.fuente_txt||'tablero de Luciana')} Venta neta sin IVA (incluye notas de crédito). Clientes con compra = venta neta positiva. Rubro y vendedor: los de la última compra.</div>`
       : `<div class="nota">Fuente: ventas del sistema (empresas fiscal y no fiscal), actualizadas solas cada 20 min. Monto estimado = botellas × precio neto promedio del mes. Productos incluidos: ${lineas.map(esc).join(' · ')}.</div>`;
+    h+='</details>';
 
-    h+=cuestionarioHtml();
+    h+=hoyHtml()+propuestasHtml()+cuestionarioHtml();
     $('res').innerHTML=h;
     prefill();
+    proponer();
   }
   function kpi(n,l,a,p,cob,ant){ return `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div>${ant!==''?`<div class="v ${(()=>{const v=variacion(a,p,cob);return v.k==='bien'?'up':v.k==='mal'?'down':v.k==='parejo'?'flat':'';})()}">vs ${ant} ${delta(a,p,cob).replace(/<[^>]+>/g,'')}</div>`:''}</div>`; }
   function tituloMarca(){ const q=DATA.q||''; return /^(johnny|johnnie|jonny|jw|walker)$/i.test(q.trim())?'Johnnie Walker':q.charAt(0).toUpperCase()+q.slice(1); }
   function filtrarRubro(r){ $('qRubro').value=(r==='otros'||r==='sin dato')?'':r; consultar(); }
   window.filtrarRubro=filtrarRubro;
 
-  // ── cuestionario de la reunión ──
-  const PREG=[
-    ['lectura','¿Cómo venimos con la marca?'],['descuento','¿Cuál es el descuento?'],['tope','¿Cuál es el tope?'],
-    ['sin_cargo','¿Hay botellas sin cargo?'],['accion','¿Qué acción vamos a hacer?'],['ejecucion','¿Cómo se ejecuta en el punto de venta?'],
-    ['materiales','¿Suma materiales? ¿Cuáles?'],['vigencia','¿Hasta qué fecha está disponible?'],['rubros','¿En qué rubros aplica?'],['notas','Acuerdos y pendientes']];
+  // ── la respuesta, en una frase ──
+  function respuesta(d,v){
+    const rt=d.rubro==='todos'?'en todos los rubros':'en '+(RUBRO_LBL[d.rubro]||d.rubro);
+    if(v.pct==null) return esc(tituloMarca()+' '+rt+': '+(v.txt==='2025 cargando'?'todavía no hay datos del año anterior para comparar.':v.txt.toLowerCase()+'.'));
+    const ls=(d.por_linea||[]).filter(l=>l.anterior.botellas>=20).map(l=>({l:l.linea,p:Math.round((l.actual.botellas-l.anterior.botellas)/l.anterior.botellas*100)}));
+    const peor=ls.slice().sort((a,b)=>a.p-b.p)[0], mejor=ls.slice().sort((a,b)=>b.p-a.p)[0];
+    const n=d.dejaron_total!=null?d.dejaron_total:(d.dejaron_de_comprar||[]).length;
+    let s='<b>'+esc(tituloMarca())+' '+esc(rt)+' viene '+esc(v.txt.toUpperCase())+'</b>: '+(v.pct>0?'+':'')+v.pct+'% en botellas ('+num(d.total.actual.botellas)+' vs '+num(d.total.anterior.botellas)+'); compraron '+num(d.total.actual.clientes)+' clientes contra '+num(d.total.anterior.clientes)+'.';
+    if(peor&&peor.p<-5) s+=' Lo que más cae: <b>'+esc(peor.l)+' '+peor.p+'%</b>.';
+    if(mejor&&mejor.p>5&&(!peor||mejor.l!==peor.l)) s+=' Lo que tira: '+esc(mejor.l)+' +'+mejor.p+'%.';
+    if(n) s+=' <b>'+num(n)+' clientes dejaron de comprar.</b>';
+    return s;
+  }
+
+  // ── lo que hay hoy (referencia para la propuesta) ──
+  function vigentesTxt(){
+    const acc=(DATA.acciones||[]).map(a=>({o:'Catálogo'+(a.proveedor?' · '+a.proveedor:''),t:a.nombre_producto,d:[a.mecanica,a.info_adicional,a.canal&&a.canal!=='ambos'?'canal '+a.canal.toUpperCase():'',a.vigente_hasta?'hasta '+fecha(a.vigente_hasta.slice(0,10)):'sin fecha de fin'].filter(Boolean).join(' · ')}));
+    const pro=(DATA.propuestas||[]).map(p=>({o:'Propuesta de '+(p.autor_empresa||'proveedor')+(p.estado==='pendiente'?' (pendiente)':''),t:p.titulo,d:[p.condicion,p.descripcion,p.vigencia_hasta?'hasta '+fecha(p.vigencia_hasta.slice(0,10)):''].filter(Boolean).join(' · ')}));
+    return acc.concat(pro);
+  }
+  function hoyHtml(){
+    const v=vigentesTxt();
+    return '<h2>🎯 Lo que tienen hoy <span class="per">acción vigente</span></h2><div class="card hoy">'+
+      (v.length?v.map(x=>'<div class="a"><div class="o">'+esc(x.o)+'</div><b>'+esc(x.t)+'</b> — '+esc(x.d)+'</div>').join(''):'<div class="empty">No hay ninguna acción vigente cargada para esta marca.</div>')+'</div>';
+  }
+
+  // ── ¿qué le proponemos? (IA con el diagnóstico) ──
+  let PROPS=[];
+  function propuestasHtml(){
+    return '<h2>💡 ¿Qué le proponemos?</h2><div class="props" id="props"></div>'+
+      '<div class="pbar"><button type="button" onclick="proponer()">↻ Otras ideas</button><button type="button" onclick="document.getElementById(\'cuest\').scrollIntoView({behavior:\'smooth\'})">✍️ Escribir la nuestra</button></div>'+
+      '<div class="nota">Las propuestas las arma la IA con el diagnóstico de arriba, la acción vigente y los materiales con stock. Elegí una con «Usar esta» y ajustala en la ficha.</div>';
+  }
+  function diagnostico(){
+    const d=DATA; if(!d.total) return {};
+    const pct=(a,b)=>b?Math.round((a-b)/b*100):null;
+    return {
+      marca:tituloMarca(), rubro:d.rubro==='todos'?'todos':(RUBRO_LBL[d.rubro]||d.rubro),
+      periodo:d.periodo.desde+' a '+d.periodo.hasta, comparado_con:d.anterior.desde+' a '+d.anterior.hasta,
+      botellas:{actual:d.total.actual.botellas,anterior:d.total.anterior.botellas,variacion_pct:pct(d.total.actual.botellas,d.total.anterior.botellas)},
+      clientes:{actual:d.total.actual.clientes,anterior:d.total.anterior.clientes},
+      lineas:(d.por_linea||[]).slice(0,8).map(l=>({linea:l.linea,actual:l.actual.botellas,anterior:l.anterior.botellas,variacion_pct:pct(l.actual.botellas,l.anterior.botellas)})),
+      rubros:(d.por_rubro||[]).slice(0,6).map(r=>({rubro:RUBRO_LBL[r.rubro]||r.rubro,actual:r.actual.botellas,anterior:r.anterior.botellas,variacion_pct:pct(r.actual.botellas,r.anterior.botellas)})),
+      dejaron_de_comprar:{cantidad:d.dejaron_total!=null?d.dejaron_total:(d.dejaron_de_comprar||[]).length,principales:(d.dejaron_de_comprar||[]).slice(0,8).map(c=>c.nombre+' ('+(c.tipo||'')+', compraba '+c.u+')')},
+      clientes_nuevos:d.nuevos,
+      vendedores:(d.por_vendedor||[]).slice(0,5).map(v=>({vendedor:v.vendedor,actual:v.botellas,anterior:v.anterior})),
+      fuente:d.fuente==='luci'?'tablero de Luciana (CuboVentas)':'sistema',
+    };
+  }
+  async function proponer(){
+    const box=$('props'); if(!box) return;
+    box.innerHTML=[1,2,3].map(()=>'<div class="prop cargando">Pensando una acción…</div>').join('');
+    try{
+      const r=await fetch('/.netlify/functions/reunion-propuesta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        marca:tituloMarca(), rubro:DATA.rubro, proveedor:$('fProv')?$('fProv').value:'', diagnostico:diagnostico(),
+        vigentes:vigentesTxt().map(x=>x.o+': '+x.t+' — '+x.d), materiales:(DATA.materiales||[]).map(m=>({name:m.name,stock_actual:m.stock_actual}))})});
+      const j=await r.json(); if(!r.ok) throw new Error(j.error||('http '+r.status));
+      PROPS=j.propuestas||[];
+      box.innerHTML=PROPS.map((p,i)=>'<div class="prop" id="prop'+i+'"><h3>'+esc(p.titulo)+'</h3><div class="pq">'+esc(p.para_que)+'</div>'+
+        '<div class="tags">'+[p.mecanica,p.tope&&('Tope: '+p.tope),p.vigencia_dias&&(p.vigencia_dias+' días')].filter(Boolean).map(t=>'<span class="tag">'+esc(t)+'</span>').join('')+(p.sin_cargo?'<span class="tag n">Botellas sin cargo</span>':'')+'</div>'+
+        '<div class="li"><b>A quién</b>'+esc(p.a_quien)+'</div><div class="li"><b>Cómo se ejecuta</b>'+esc(p.ejecucion)+'</div>'+
+        (p.materiales&&p.materiales.length?'<div class="li"><b>Materiales</b>'+esc(p.materiales.join(' · '))+'</div>':'')+
+        '<div class="li"><b>Meta</b>'+esc(p.meta)+'</div><div class="pq2">'+esc(p.por_que)+'</div>'+
+        '<button type="button" onclick="usarPropuesta('+i+')">Usar esta</button></div>').join('');
+    }catch(e){ box.innerHTML='<div class="prop cargando">No pude armar propuestas ahora ('+esc(e.message)+'). Escribí la acción en la ficha de abajo.</div>'; }
+  }
+  window.proponer=proponer;
+  function usarPropuesta(i){
+    const p=PROPS[i]; if(!p) return;
+    document.querySelectorAll('.prop').forEach((x,k)=>x.classList.toggle('usada',k===i));
+    $('fAcc').value=p.titulo+(p.para_que?'\n'+p.para_que:'');
+    $('fMeta').value=p.meta||'';
+    $('fQuien').value=p.a_quien||'';
+    $('fDesc').value=p.descuento||(!p.sin_cargo&&/%/.test(p.mecanica)?p.mecanica:'');
+    $('fTope').value=p.tope||'';
+    setT('fSC',p.sin_cargo?'Sí':'No'); $('fSCdet').value=p.sin_cargo?p.mecanica:'';
+    $('fEje').value=p.ejecucion||'';
+    const mats=(p.materiales||[]).map(String), usados=new Set();
+    document.querySelectorAll('#fMatLista input[data-mat]').forEach(cb=>{ const m=mats.find(x=>x.toLowerCase().includes(cb.dataset.mat.toLowerCase())||cb.dataset.mat.toLowerCase().includes(x.toLowerCase())); cb.checked=!!m; if(m) usados.add(m); });
+    $('fMatOtros').value=mats.filter(m=>!usados.has(m)).join(' · ');
+    setT('fMat',mats.length?'Sí':'No');
+    const f=new Date(Date.now()+(Number(p.vigencia_dias)||30)*864e5); $('fVig').value=f.toISOString().slice(0,10);
+    $('estadoFicha').textContent='propuesta cargada · ajustala';
+    $('cuest').scrollIntoView({behavior:'smooth'});
+  }
+  window.usarPropuesta=usarPropuesta;
+
+  // ── ficha de la acción que proponemos ──
   function cuestionarioHtml(){
     const mats=(DATA.materiales||[]);
-    return `<section id="cuest"><h2>📝 Cuestionario de la reunión <span class="per" id="estadoFicha">sin guardar</span></h2>
-    <div class="qi" style="margin-bottom:14px"><label class="qt" for="fProv">Proveedor</label><input type="text" id="fProv" placeholder="Ej: Diageo"></div>
-    <div class="q">
-      <div class="qi"><label class="qt"><span class="qn">1</span>${PREG[0][1]}</label>
-        <div class="chips" id="fLect" role="group" aria-label="Lectura">${['Mal','Parejo','Bien'].map(x=>`<button type="button" class="chip" aria-pressed="false" data-v="${x}">${x}</button>`).join('')}</div>
-        <textarea id="fLectNota" style="margin-top:8px" placeholder="Qué dice el proveedor, por qué creemos que pasa…"></textarea>
-        <div class="src" id="sLect"></div></div>
-      <div class="qi"><label class="qt" for="fDesc"><span class="qn">2</span>${PREG[1][1]}</label><input type="text" id="fDesc" placeholder="Ej: 20% adicional"><div class="src" id="sDesc"></div></div>
-      <div class="qi"><label class="qt" for="fTope"><span class="qn">3</span>${PREG[2][1]}</label><input type="text" id="fTope" placeholder="Ej: sin tope · 2 cajas por PDV · 20 cajas disponibles"><div class="src" id="sTope"></div></div>
-      <div class="qi"><label class="qt"><span class="qn">4</span>${PREG[3][1]}</label>
-        <div class="sn" id="fSC">${['Sí','No'].map(x=>`<button type="button" aria-pressed="false" data-v="${x}">${x}</button>`).join('')}</div>
-        <input type="text" id="fSCdet" placeholder="Mecánica: ej 5+1, 3+1…"><div class="src" id="sSC"></div></div>
-      <div class="qi"><label class="qt" for="fAcc"><span class="qn">5</span>${PREG[4][1]}</label><textarea id="fAcc" placeholder="Ej: incorporación en carta + activación con precio promocional"></textarea><div class="src" id="sAcc"></div></div>
-      <div class="qi"><label class="qt" for="fEje"><span class="qn">6</span>${PREG[5][1]}</label><textarea id="fEje" placeholder="Quién lo hace, qué se muestra, qué evidencia se pide…"></textarea><div class="src" id="sEje"></div></div>
-      <div class="qi"><label class="qt"><span class="qn">7</span>${PREG[6][1]}</label>
-        <div class="sn" id="fMat">${['Sí','No'].map(x=>`<button type="button" aria-pressed="false" data-v="${x}">${x}</button>`).join('')}</div>
-        <div id="fMatLista">${mats.length?mats.map((m,i)=>`<label class="mat"><input type="checkbox" data-mat="${esc(m.name)}"> ${esc(m.name)}<span class="st">${num(m.stock_actual)} ${esc(m.unit_type||'u.')} en stock</span></label>`).join(''):'<div class="src">No hay materiales cargados en la biblioteca para esta marca.</div>'}</div>
-        <input type="text" id="fMatOtros" style="margin-top:6px" placeholder="Otros materiales (los pone el proveedor)…"></div>
-      <div class="qi"><label class="qt" for="fVig"><span class="qn">8</span>${PREG[7][1]}</label><input type="date" id="fVig"><div class="src" id="sVig"></div></div>
-      <div class="qi"><label class="qt"><span class="qn">9</span>${PREG[8][1]}</label>
-        <div class="chips" id="fRub">${Object.entries(RUBRO_LBL).filter(([k])=>!['otros','sin dato'].includes(k)).map(([k,l])=>`<button type="button" class="chip" aria-pressed="false" data-v="${k}">${l}</button>`).join('')}</div></div>
-      <div class="qi"><label class="qt" for="fNotas"><span class="qn">10</span>${PREG[9][1]}</label><textarea id="fNotas" placeholder="Qué quedó acordado, quién hace qué y para cuándo…"></textarea></div>
-    </div>
-    <div class="acciones"><button type="button" class="b-save" onclick="guardar()">Guardar</button><button type="button" class="b-copy" onclick="copiar()">Copiar resumen</button></div>
-    </section>
-    <h2>🗂️ Reuniones anteriores de esta marca</h2><div class="card hist" id="hist"><div class="empty">—</div></div>`;
+    const q=(n,t,campo,extra)=>'<div class="qi"><label class="qt"'+(campo?' for="'+campo+'"':'')+'><span class="qn">'+n+'</span>'+t+'</label>'+extra+'</div>';
+    return '<section id="cuest"><h2>📝 La acción que proponemos <span class="per" id="estadoFicha">sin guardar</span></h2>'+
+    '<div class="qi" style="margin-bottom:14px"><label class="qt" for="fProv">Proveedor</label><input type="text" id="fProv" placeholder="Ej: Diageo"></div>'+
+    '<div class="q">'+
+      q(1,'¿Qué acción proponemos?','fAcc','<textarea id="fAcc" placeholder="Ej: Incorporación de JW Black en carta de bares con 5+1"></textarea>')+
+      q(2,'¿Para qué? ¿Qué meta tiene?','fMeta','<input type="text" id="fMeta" placeholder="Ej: recuperar 10 de los bares que dejaron de comprar"><div class="src" id="sMeta"></div>')+
+      q(3,'¿A quién apunta?','fQuien','<input type="text" id="fQuien" placeholder="Ej: los bares que dejaron de comprar Black"><div class="src" id="sQuien"></div>')+
+      q(4,'¿Cuál es el descuento?','fDesc','<input type="text" id="fDesc" placeholder="Ej: 20% adicional"><div class="src" id="sDesc"></div>')+
+      q(5,'¿Cuál es el tope?','fTope','<input type="text" id="fTope" placeholder="Ej: 2 cajas por PDV · 50 cajas en total"><div class="src" id="sTope"></div>')+
+      q(6,'¿Hay botellas sin cargo?','','<div class="sn" id="fSC"><button type="button" aria-pressed="false" data-v="Sí">Sí</button><button type="button" aria-pressed="false" data-v="No">No</button></div><input type="text" id="fSCdet" placeholder="Mecánica: ej 5+1, 3+1…"><div class="src" id="sSC"></div>')+
+      q(7,'¿Cómo se ejecuta en el punto de venta?','fEje','<textarea id="fEje" placeholder="Quién lo hace, qué se muestra, qué evidencia se pide…"></textarea>')+
+      q(8,'¿Suma materiales? ¿Cuáles?','','<div class="sn" id="fMat"><button type="button" aria-pressed="false" data-v="Sí">Sí</button><button type="button" aria-pressed="false" data-v="No">No</button></div>'+
+        '<div id="fMatLista">'+(mats.length?mats.map(m=>'<label class="mat"><input type="checkbox" data-mat="'+esc(m.name)+'"> '+esc(m.name)+'<span class="st">'+num(m.stock_actual)+' '+esc(m.unit_type||'u.')+' en stock</span></label>').join(''):'<div class="src">No hay materiales de esta marca en la biblioteca.</div>')+'</div>'+
+        '<input type="text" id="fMatOtros" style="margin-top:6px" placeholder="Otros materiales (los pone el proveedor)…">')+
+      q(9,'¿Hasta qué fecha está disponible?','fVig','<input type="date" id="fVig"><div class="src" id="sVig"></div>')+
+      q(10,'¿En qué rubros aplica?','','<div class="chips" id="fRub">'+Object.entries(RUBRO_LBL).filter(([k])=>!['otros','sin dato'].includes(k)).map(([k,l])=>'<button type="button" class="chip" aria-pressed="false" data-v="'+k+'">'+l+'</button>').join('')+'</div>')+
+      q(11,'¿Qué dijo el proveedor? Acuerdos y pendientes','fNotas','<textarea id="fNotas" placeholder="Si acepta, qué cambia, quién hace qué y para cuándo…"></textarea>')+
+    '</div>'+
+    '<div class="acciones"><button type="button" class="b-save" onclick="guardar()">Guardar</button><button type="button" class="b-copy" onclick="copiar()">Copiar resumen</button></div>'+
+    '</section>'+
+    '<h2>🗂️ Reuniones anteriores de esta marca</h2><div class="card hist" id="hist"><div class="empty">—</div></div>';
   }
-  function toggles(id,multi){ document.querySelectorAll(`#${id} [data-v]`).forEach(b=>b.addEventListener('click',()=>{ if(!multi) document.querySelectorAll(`#${id} [data-v]`).forEach(x=>{ if(x!==b) x.setAttribute('aria-pressed','false'); }); b.setAttribute('aria-pressed',String(b.getAttribute('aria-pressed')!=='true')); })); }
-  function setT(id,vals){ const s=new Set([].concat(vals||[])); document.querySelectorAll(`#${id} [data-v]`).forEach(b=>b.setAttribute('aria-pressed',String(s.has(b.dataset.v)))); }
-  function getT(id){ return [...document.querySelectorAll(`#${id} [data-v][aria-pressed=true]`)].map(b=>b.dataset.v); }
+  function toggles(id,multi){ document.querySelectorAll('#'+id+' [data-v]').forEach(b=>b.addEventListener('click',()=>{ if(!multi) document.querySelectorAll('#'+id+' [data-v]').forEach(x=>{ if(x!==b) x.setAttribute('aria-pressed','false'); }); b.setAttribute('aria-pressed',String(b.getAttribute('aria-pressed')!=='true')); })); }
+  function setT(id,vals){ const s=new Set([].concat(vals||[])); document.querySelectorAll('#'+id+' [data-v]').forEach(b=>b.setAttribute('aria-pressed',String(s.has(b.dataset.v)))); }
+  function getT(id){ return [...document.querySelectorAll('#'+id+' [data-v][aria-pressed=true]')].map(b=>b.dataset.v); }
   const src=(id,html)=>{ const e=$(id); if(e) e.innerHTML=html; };
 
-  // Precarga desde el catálogo de acciones, las propuestas de proveedores y la biblioteca de materiales.
+  // La ficha arranca vacía (es la acción NUEVA); abajo de cada campo, lo que hay hoy como referencia.
   function prefill(){
-    ['fLect','fSC','fMat'].forEach(id=>toggles(id,false)); toggles('fRub',true);
+    ['fSC','fMat'].forEach(id=>toggles(id,false)); toggles('fRub',true);
     const d=DATA, acc=d.acciones||[], pro=d.propuestas||[];
-    const prov=(acc[0]&&acc[0].proveedor)||(pro[0]&&pro[0].autor_empresa)||'';
-    $('fProv').value=prov;
-    if(d.total){ const v=variacion(d.total.actual.botellas,d.total.anterior.botellas,d.cobertura_pct?d.cobertura_pct.anterior:0);
-      if(v.pct!=null) setT('fLect',v.txt);
-      src('sLect',`Según el sistema: <b>${esc(v.txt)}</b>${v.pct!=null?' ('+(v.pct>0?'+':'')+v.pct+'% en botellas)':''} · ${num(d.total.actual.botellas)} botellas vs ${num(d.total.anterior.botellas)}.`); }
+    $('fProv').value=(acc[0]&&acc[0].proveedor)||(pro[0]&&pro[0].autor_empresa)||'';
     if(d.rubro&&d.rubro!=='todos') setT('fRub',d.rubro);
-    const textos=[...acc.map(a=>({o:'Catálogo',n:a.nombre_producto,t:[a.mecanica,a.info_adicional].filter(Boolean).join(' · '),a})),...pro.map(p=>({o:'Propuesta de '+(p.autor_empresa||'proveedor'),n:p.titulo,t:[p.condicion,p.descripcion].filter(Boolean).join(' · '),p}))];
-    const lista=(f)=>textos.map(f).filter(Boolean);
-    // descuento
-    const desc=lista(x=>{ const pct=(x.a&&x.a.porcentaje_off)?x.a.porcentaje_off+'%':((x.t.match(/\d+\s*%[^·,.]*/)||[])[0]); return pct?{o:x.o,n:x.n,v:pct.trim()}:null; });
-    if(desc[0]) $('fDesc').value=desc[0].v;
-    src('sDesc',desc.length?desc.map(x=>`<b>${esc(x.o)}</b> · ${esc(x.n)}: ${esc(x.v)}`).join('<br>'):'No hay descuento cargado para esta marca.');
-    // tope
-    const tope=lista(x=>{ const m=x.t.match(/sin tope|tope[^·.\n]*|\d+\s*(cajas|cjs)[^·.\n]*disponibles/i)||(x.p&&x.p.cajas_disponibles?[x.p.cajas_disponibles+' cajas disponibles']:null); return m?{o:x.o,n:x.n,v:m[0].trim()}:null; });
-    if(tope[0]) $('fTope').value=tope[0].v;
-    src('sTope',tope.length?tope.map(x=>`<b>${esc(x.o)}</b> · ${esc(x.n)}: ${esc(x.v)}`).join('<br>'):'No figura tope: preguntalo.');
-    // botellas sin cargo
-    const sc=lista(x=>{ const m=x.t.match(/\b\d+\s*\+\s*\d+\b/)||x.t.match(/sin cargo[^·.\n]*/i); return m?{o:x.o,n:x.n,v:m[0].replace(/\s+/g,'')}:null; });
-    if(sc.length){ setT('fSC','Sí'); $('fSCdet').value=sc[0].v; } else if(desc.length) setT('fSC','No');
-    src('sSC',sc.length?sc.map(x=>`<b>${esc(x.o)}</b> · ${esc(x.n)}: ${esc(x.v)}`).join('<br>'):(desc.length?'Lo cargado es descuento, no producto sin cargo.':'Sin dato.'));
-    // acción y ejecución
-    if(textos[0]) $('fAcc').value=textos.slice(0,3).map(x=>`${x.n}${x.t?' — '+x.t:''}`).join('\n');
-    src('sAcc',textos.length?`${textos.length} acción(es) encontradas en el catálogo y las propuestas. Editá el texto con lo que se acuerde.`:'No hay acciones cargadas: completá con lo que proponga el proveedor.');
-    const eje=pro.filter(p=>p.descripcion);
-    if(eje[0]) $('fEje').value=eje[0].descripcion;
-    src('sEje',eje.length?eje.map(p=>`<b>${esc(p.autor_empresa||'Proveedor')}</b> · ${esc(p.titulo)}${p.seccion?' · sección '+esc(p.seccion)+(p.subseccion?' / '+esc(p.subseccion):''):''}`).join('<br>'):'El catálogo no tiene la ejecución en el PDV: preguntalo (quién lo hace, qué evidencia se pide).');
-    // materiales
-    if((d.materiales||[]).length) setT('fMat','Sí');
-    // vigencia
-    const vig=[...acc.map(a=>a.vigente_hasta&&{o:'Catálogo',n:a.nombre_producto,v:a.vigente_hasta}),...pro.map(p=>p.vigencia_hasta&&{o:'Propuesta',n:p.titulo,v:p.vigencia_hasta})].filter(Boolean);
-    if(vig[0]) $('fVig').value=vig[0].v.slice(0,10);
-    src('sVig',vig.length?vig.map(x=>`<b>${esc(x.o)}</b> · ${esc(x.n)}: hasta ${fecha(x.v.slice(0,10))}`).join('<br>'):(textos.length?'Las acciones cargadas no tienen fecha de fin: preguntala.':'Sin dato.'));
+    const textos=[...acc.map(a=>({o:'Hoy (catálogo)',n:a.nombre_producto,t:[a.mecanica,a.info_adicional].filter(Boolean).join(' · '),a})),...pro.map(p=>({o:'Hoy (propuesta '+(p.autor_empresa||'')+')',n:p.titulo,t:[p.condicion,p.descripcion].filter(Boolean).join(' · '),p}))];
+    const ref=(f,vacio)=>{ const l=textos.map(f).filter(Boolean); return l.length?l.map(x=>'<b>'+esc(x.o)+'</b> · '+esc(x.n)+': '+esc(x.v)).join('<br>'):vacio; };
+    src('sDesc',ref(x=>{ const v=(x.a&&x.a.porcentaje_off)?x.a.porcentaje_off+'%':((x.t.match(/\d+\s*%[^·,.]*/)||[])[0]); return v?{o:x.o,n:x.n,v:v.trim()}:null; },'Hoy no tienen descuento cargado.'));
+    src('sTope',ref(x=>{ const m=x.t.match(/sin tope|tope[^·.\n]*|\d+\s*(cajas|cjs)[^·.\n]*disponibles/i)||(x.p&&x.p.cajas_disponibles?[x.p.cajas_disponibles+' cajas disponibles']:null); return m?{o:x.o,n:x.n,v:m[0].trim()}:null; },'Hoy no figura tope.'));
+    src('sSC',ref(x=>{ const m=x.t.match(/\b\d+\s*\+\s*\d+\b/)||x.t.match(/sin cargo[^·.\n]*/i); return m?{o:x.o,n:x.n,v:m[0].replace(/\s+/g,'')}:null; },'Hoy no hay producto sin cargo.'));
+    src('sVig',ref(x=>{ const v=(x.a&&x.a.vigente_hasta)||(x.p&&x.p.vigencia_hasta); return v?{o:x.o,n:x.n,v:'hasta '+fecha(v.slice(0,10))}:null; },textos.length?'Lo que tienen hoy no tiene fecha de fin.':''));
+    const n=d.dejaron_total!=null?d.dejaron_total:(d.dejaron_de_comprar||[]).length;
+    if(n) src('sQuien','<b>'+num(n)+' clientes dejaron de comprar</b>: '+esc((d.dejaron_de_comprar||[]).slice(0,6).map(c=>c.nombre).join(', '))+(n>6?'…':'')+' <button type="button" class="mini" onclick="usarCaidos()">usar esta lista</button>');
+    if(d.total){ const v=variacion(d.total.actual.botellas,d.total.anterior.botellas,d.cobertura_pct?d.cobertura_pct.anterior:0); src('sMeta','Hoy: '+esc(v.txt)+(v.pct!=null?' ('+(v.pct>0?'+':'')+v.pct+'% en botellas)':'')+'.'); }
   }
+  function usarCaidos(){ const l=(DATA.dejaron_de_comprar||[]); $('fQuien').value='Los '+num(DATA.dejaron_total!=null?DATA.dejaron_total:l.length)+' clientes que dejaron de comprar: '+l.slice(0,10).map(c=>c.nombre).join(', ')+(l.length>10?'…':''); }
+  window.usarCaidos=usarCaidos;
 
   function leerFicha(){
-    return { proveedor:$('fProv').value.trim(), lectura:getT('fLect')[0]||'', lectura_nota:$('fLectNota').value.trim(),
+    const d=DATA, v=d.total?variacion(d.total.actual.botellas,d.total.anterior.botellas,d.cobertura_pct?d.cobertura_pct.anterior:0):null;
+    return { proveedor:$('fProv').value.trim(), lectura:v?v.txt:'', lectura_pct:v?v.pct:null,
+      accion:$('fAcc').value.trim(), meta:$('fMeta').value.trim(), a_quien:$('fQuien').value.trim(),
       descuento:$('fDesc').value.trim(), tope:$('fTope').value.trim(), sin_cargo:getT('fSC')[0]||'', sin_cargo_detalle:$('fSCdet').value.trim(),
-      accion:$('fAcc').value.trim(), ejecucion:$('fEje').value.trim(), suma_materiales:getT('fMat')[0]||'',
+      ejecucion:$('fEje').value.trim(), suma_materiales:getT('fMat')[0]||'',
       materiales:[...document.querySelectorAll('#fMatLista input[data-mat]:checked')].map(x=>x.dataset.mat), materiales_otros:$('fMatOtros').value.trim(),
       vigencia_hasta:$('fVig').value||'', rubros:getT('fRub'), notas:$('fNotas').value.trim() };
   }
   function resumenTexto(r){
-    const t=DATA.total, v=t?variacion(t.actual.botellas,t.anterior.botellas,DATA.cobertura_pct.anterior):null;
-    return [`*Reunión ${r.proveedor||''} · ${tituloMarca()}* (${new Date().toLocaleDateString('es-AR')})`,
-      t?`Cómo venimos: ${r.lectura||v.txt}${v&&v.pct!=null?' ('+(v.pct>0?'+':'')+v.pct+'% vs '+DATA.anterior.desde.slice(0,4)+')':''} · ${num(t.actual.botellas)} bot.${r.lectura_nota?' — '+r.lectura_nota:''}`:'',
-      `Descuento: ${r.descuento||'—'}`,`Tope: ${r.tope||'—'}`,`Botellas sin cargo: ${r.sin_cargo||'—'}${r.sin_cargo_detalle?' ('+r.sin_cargo_detalle+')':''}`,
-      `Acción: ${r.accion||'—'}`,`Ejecución en PDV: ${r.ejecucion||'—'}`,
-      `Materiales: ${r.suma_materiales||'—'}${r.materiales.length?' · '+r.materiales.join(', '):''}${r.materiales_otros?' · '+r.materiales_otros:''}`,
-      `Vigencia: ${r.vigencia_hasta?fecha(r.vigencia_hasta):'—'}`,`Rubros: ${r.rubros.map(x=>RUBRO_LBL[x]||x).join(', ')||'—'}`,
-      r.notas?`Acuerdos: ${r.notas}`:''].filter(Boolean).join('\n');
+    const d=DATA, rt=d.rubro==='todos'?'todos los rubros':(RUBRO_LBL[d.rubro]||d.rubro);
+    return ['*Reunión '+(r.proveedor||'')+' · '+tituloMarca()+' · '+rt+'* ('+new Date().toLocaleDateString('es-AR')+')',
+      d.total?'Cómo venimos: '+r.lectura+(r.lectura_pct!=null?' ('+(r.lectura_pct>0?'+':'')+r.lectura_pct+'% en botellas vs '+d.anterior.desde.slice(0,4)+')':'')+' · '+num(d.total.actual.botellas)+' bot., '+num(d.total.actual.clientes)+' clientes':'',
+      '','*Proponemos:* '+(r.accion||'—'),r.meta?'Meta: '+r.meta:'',r.a_quien?'A quién: '+r.a_quien:'',
+      'Descuento: '+(r.descuento||'—'),'Tope: '+(r.tope||'—'),'Botellas sin cargo: '+(r.sin_cargo||'—')+(r.sin_cargo_detalle?' ('+r.sin_cargo_detalle+')':''),
+      'Ejecución en PDV: '+(r.ejecucion||'—'),
+      'Materiales: '+(r.suma_materiales||'—')+(r.materiales.length?' · '+r.materiales.join(', '):'')+(r.materiales_otros?' · '+r.materiales_otros:''),
+      'Vigencia: '+(r.vigencia_hasta?'hasta '+fecha(r.vigencia_hasta):'—'),'Rubros: '+(r.rubros.map(x=>RUBRO_LBL[x]||x).join(', ')||'—'),
+      r.notas?'Acuerdos: '+r.notas:''].filter(x=>x!==undefined&&x!==null).join('\n').replace(/\n{3,}/g,'\n\n');
   }
   async function copiar(){ const t=resumenTexto(leerFicha()); try{ await navigator.clipboard.writeText(t); $('estadoFicha').textContent='resumen copiado'; }catch(e){ prompt('Copiá el resumen:',t); } }
   window.copiar=copiar;
@@ -393,7 +485,7 @@
     let filas=[];
     if(hub){ const { data, error } = await hub.from('reunion_fichas').select('*').ilike('marca',DATA.q).order('created_at',{ascending:false}).limit(10); if(!error) filas=data||[]; }
     try{ filas=filas.concat(JSON.parse(localStorage.getItem('gb_reunion_fichas')||'[]').filter(f=>String(f.marca).toLowerCase()===String(DATA.q).toLowerCase())); }catch(e){}
-    box.innerHTML=filas.length?filas.map(f=>{ const r=f.respuestas||{}; return `<div class="h"><b>${new Date(f.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</b> · ${esc(r.proveedor||f.proveedor||'')} · ${esc(RUBRO_LBL[f.rubro]||f.rubro||'')}${f.local?' · <i>en este dispositivo</i>':''}<br>${esc([r.lectura&&('Lectura: '+r.lectura),r.descuento&&('Desc.: '+r.descuento),r.tope&&('Tope: '+r.tope),r.sin_cargo&&('Sin cargo: '+r.sin_cargo+(r.sin_cargo_detalle?' '+r.sin_cargo_detalle:'')),r.vigencia_hasta&&('Hasta '+fecha(r.vigencia_hasta))].filter(Boolean).join(' · '))}${r.notas?'<br><span style="color:var(--muted)">'+esc(r.notas)+'</span>':''}</div>`; }).join(''):'<div class="empty">Es la primera reunión registrada de esta marca.</div>';
+    box.innerHTML=filas.length?filas.map(f=>{ const r=f.respuestas||{}; return `<div class="h"><b>${new Date(f.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</b> · ${esc(r.proveedor||f.proveedor||'')} · ${esc(RUBRO_LBL[f.rubro]||f.rubro||'')}${f.local?' · <i>en este dispositivo</i>':''}<br>${esc([r.accion&&('Propuesta: '+r.accion.split('\n')[0]),r.lectura&&('Lectura: '+r.lectura),r.descuento&&('Desc.: '+r.descuento),r.tope&&('Tope: '+r.tope),r.sin_cargo&&('Sin cargo: '+r.sin_cargo+(r.sin_cargo_detalle?' '+r.sin_cargo_detalle:'')),r.vigencia_hasta&&('Hasta '+fecha(r.vigencia_hasta))].filter(Boolean).join(' · '))}${r.notas?'<br><span style="color:var(--muted)">'+esc(r.notas)+'</span>':''}</div>`; }).join(''):'<div class="empty">Es la primera reunión registrada de esta marca.</div>';
   }
 </script>
 </body>

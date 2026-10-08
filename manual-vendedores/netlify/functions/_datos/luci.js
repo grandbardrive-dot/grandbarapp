@@ -87,6 +87,7 @@ function consultar({ claves, rubro, desde, hasta }) {
     por_mes: { actual: A.porMes, anterior: P.porMes },
     top_clientes: compr(A).sort((a, b) => b[1].u - a[1].u).slice(0, 15).map(([ci, v]) => fichaCli(ci, v, !setP.has(ci))),
     dejaron_de_comprar: compr(P).filter(([ci]) => !setA.has(ci)).sort((a, b) => b[1].u - a[1].u).slice(0, 25).map(([ci, v]) => fichaCli(ci, v)),
+    dejaron_total: [...setP].filter((c) => !setA.has(c)).length,
     nuevos: [...setA].filter((c) => !setP.has(c)).length,
     por_vendedor: Object.entries(A.porVend).map(([n, v]) => ({ vendedor: n, botellas: red(v.u), clientes: pos(v.cli), anterior: red(P.porVend[n]?.u || 0) })).sort((a, b) => b.botellas - a.botellas),
   };
