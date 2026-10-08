@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2238">
+<title>GrandBar — Reunión de Proveedor</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;--gold:#c9a13b;--gold-d:#a9852a;--gold-s:#f7efda;--green:#2f8f6e;--green-d:#256f54;--green-s:#e6f2ec;--danger:#c0603e;--danger-s:#fbe9e4;--amber:#c99a2e;--amber-s:#f8efd6;--navy:#0d2238;--navy-2:#14304c;--blue:#3f6f9c;--blue-s:#eaf1f8}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .top{background:var(--navy);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+  .top a.back{color:#cdd9e0;text-decoration:none;font-size:13px;font-weight:700}
+  .top .b{font-weight:800;font-size:15px}.top .b .g{color:#e7c778}
+  .top .out{margin-left:auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cdd9e0;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer}
+  .wrap{max-width:1000px;margin:0 auto;padding:18px 16px 72px}
+  .ctrls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px}
+  .ctrls .f{display:flex;flex-direction:column;gap:5px}
+  .lab{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  select{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14.5px;font-weight:600;color:var(--ink);background:#fff;outline:none;min-width:200px}
+  select:focus{border-color:var(--gold)}
+  h2{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:26px 0 12px;display:flex;align-items:center;gap:9px}
+  h2 .per{margin-left:auto;font-size:11px;font-weight:700;color:var(--gold-d);background:var(--gold-s);border-radius:20px;padding:3px 10px;text-transform:none;letter-spacing:0}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:13px;padding:14px 15px}
+  .kpi .n{font-size:24px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+  .kpi .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:6px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px 16px}
+  .rowb{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line2)}
+  .rowb:last-child{border-bottom:0}
+  .rowb .nm{font-weight:700;font-size:13.5px;flex:none;width:34%;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar{flex:1;height:9px;border-radius:6px;background:var(--line2);overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:6px;background:var(--navy)}
+  .rowb.c .bar i{background:var(--blue)}
+  .val{font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:700;white-space:nowrap;text-align:right;min-width:92px}
+  .delta{font-size:11px;font-weight:800;padding:2px 7px;border-radius:20px;white-space:nowrap;min-width:52px;text-align:center}
+  .delta.up{background:var(--green-s);color:var(--green-d)}.delta.down{background:var(--danger-s);color:var(--danger)}.delta.flat{background:#eef1f3;color:#5a6b73}
+  .acc{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line2);font-size:13.5px}
+  .acc:last-child{border-bottom:0}
+  .acc .mec{margin-left:auto;font-size:11px;font-weight:800;background:var(--gold-s);color:var(--gold-d);border-radius:7px;padding:3px 9px;white-space:nowrap}
+  .acc .ch{font-size:10.5px;font-weight:700;color:var(--blue);background:var(--blue-s);border-radius:6px;padding:2px 7px}
+  .pend-form{display:flex;gap:8px;margin-bottom:12px}
+  .pend-form input{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;outline:none}
+  .pend-form input:focus{border-color:var(--gold)}
+  .pend-form button{border:0;border-radius:10px;background:var(--navy);color:#fff;font:inherit;font-weight:800;font-size:14px;padding:0 16px;cursor:pointer}
+  .pend{display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-bottom:1px solid var(--line2)}
+  .pend:last-child{border-bottom:0}
+  .pend input[type=checkbox]{width:19px;height:19px;margin-top:1px;flex:none;cursor:pointer;accent-color:var(--green)}
+  .pend .tx{flex:1;font-size:14px;line-height:1.4}
+  .pend.done .tx{text-decoration:line-through;color:var(--muted)}
+  .pend .de{font-size:11px;color:var(--muted);display:block;margin-top:2px}
+  .pend .x{background:none;border:0;color:var(--muted);font-size:15px;cursor:pointer;padding:0 4px;opacity:0}
+  .pend:hover .x{opacity:1}.pend .x:hover{color:var(--danger)}
+  .empty{text-align:center;color:var(--muted);font-size:13.5px;padding:22px 10px}
+  .nota{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45}
+  @media (max-width:640px){ .rowb .nm{width:40%;min-width:90px} .val{min-width:74px} select{min-width:150px} }
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="back" href="mi-panel.html">‹ Mi panel</a>
+    <div class="b"><span class="g">Grand</span>Bar · Reunión</div>
+    <button class="out" onclick="salir()">Salir</button>
+  </div>
+  <div class="wrap">
+    <div class="ctrls">
+      <div class="f"><span class="lab">Proveedor</span><select id="selProv"><option>Cargando…</option></select></div>
+      <div class="f"><span class="lab">Período del sellout</span><select id="selPer"></select></div>
+    </div>
+    <div id="cont"><div class="empty">Elegí un proveedor para ver su tablero.</div></div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script>
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const MAN={url:'https://fzaxwuuodseyyinveknn.supabase.co',key:'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk'};
+  const CAT={url:'https://zlwnoqdxendsgbfvfyue.supabase.co',key:'sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4'};
+  let hub=null, man=null, cat=null, YO='', PROVS=[], SELLOUT=[], ACCIONES=[], PROVID={};
+  const money=n=>'$ '+Math.round(Number(n||0)).toLocaleString('es-AR');
+  const num=n=>Math.round(Number(n||0)).toLocaleString('es-AR');
+  function salir(){ try{ GBAuth.signOut(); }catch(e){} location.href='index.html'; }
+  window.salir=salir;
+
+  (async()=>{
+    const s=await GBAuth.requireAuth(); if(!s) return;
+    YO = s.nombre || (s.user&&s.user.email) || 'Josefina';
+    hub = GBAuth.client;
+    man = supabase.createClient(MAN.url,MAN.key,{auth:{persistSession:false}});
+    cat = supabase.createClient(CAT.url,CAT.key,{auth:{persistSession:false}});
+    await cargarProveedores();
+  })();
+
+  async function cargarProveedores(){
+    // Proveedores que tienen sellout cargado (los prioritarios) primero.
+    const r = await man.from('sellout_reportes').select('proveedor');
+    const conSellout=[...new Set((r.data||[]).map(x=>x.proveedor))].sort();
+    // + todos los del catálogo (para poder elegir cualquiera, aunque no tenga sellout).
+    const rc = await cat.from('catalogo_proveedores').select('id,nombre').order('nombre');
+    (rc.data||[]).forEach(p=>{ PROVID[p.nombre.toLowerCase()]=p.id; });
+    const otros=(rc.data||[]).map(p=>p.nombre).filter(n=>!conSellout.includes(n));
+    PROVS=conSellout.concat(otros);
+    $('selProv').innerHTML='<option value="">— Elegí un proveedor —</option>'
+      + (conSellout.length?('<optgroup label="Con sellout (prioritarios)">'+conSellout.map(p=>`<option>${esc(p)}</option>`).join('')+'</optgroup>'):'')
+      + '<optgroup label="Otros">'+otros.map(p=>`<option>${esc(p)}</option>`).join('')+'</optgroup>';
+    $('selProv').onchange=onProv;
+    $('selPer').onchange=render;
+  }
+
+  async function onProv(){
+    const prov=$('selProv').value;
+    if(!prov){ $('cont').innerHTML='<div class="empty">Elegí un proveedor para ver su tablero.</div>'; $('selPer').innerHTML=''; return; }
+    $('cont').innerHTML='<div class="empty">Cargando el tablero…</div>';
+    // sellout (todos los períodos del proveedor), acciones (por id de catálogo), pendientes (HUB)
+    const [rs, ra, rp] = await Promise.all([
+      man.from('sellout_reportes').select('periodo,data').eq('proveedor',prov),
+      (async()=>{ const id=PROVID[prov.toLowerCase()]; return id? cat.from('catalogo_acciones').select('nombre_producto,canal,mecanica,vigente_hasta').eq('proveedor_id',id).eq('activo',true) : {data:[]}; })(),
+      hub.from('reunion_pendientes').select('*').eq('proveedor',prov).order('created_at',{ascending:true}),
+    ]);
+    SELLOUT=(rs.data||[]).filter(x=>x.data).sort((a,b)=>String(b.periodo).localeCompare(String(a.periodo)));
+    ACCIONES=ra.data||[];
+    PENDIENTES=rp.data||[];
+    // período: por defecto el más reciente con forma de mes; si no, el primero.
+    const meses=SELLOUT.map(x=>x.periodo).filter(p=>/^\d{4}-\d{2}$/.test(p));
+    $('selPer').innerHTML=SELLOUT.map(x=>`<option value="${esc(x.periodo)}">${esc(perLbl(x.periodo))}</option>`).join('');
+    if(meses[0]) $('selPer').value=meses[0];
+    render();
+  }
+
+  function perLbl(p){ if(/^\d{4}-\d{2}$/.test(p)){ const [a,m]=p.split('-'); const M=['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; return M[+m]+' '+a; } return p==='stock'?'Stock actual':p; }
+
+  let PENDIENTES=[];
+  function render(){
+    const prov=$('selProv').value; if(!prov) return;
+    const per=$('selPer').value;
+    const rep=SELLOUT.find(x=>x.periodo===per);
+    // período anterior (mes) para comparar
+    const meses=SELLOUT.filter(x=>/^\d{4}-\d{2}$/.test(x.periodo)).sort((a,b)=>String(a.periodo).localeCompare(String(b.periodo)));
+    const idx=meses.findIndex(x=>x.periodo===per);
+    const prev=idx>0?meses[idx-1]:null;
+    const d=rep?rep.data:null;
+
+    let html='';
+    // ── Sellout: totales ──
+    html+='<h2>📊 Sellout <span class="per">'+esc(perLbl(per||'—'))+'</span></h2>';
+    if(!d){ html+='<div class="card"><div class="empty">Todavía no hay sellout cargado para '+esc(prov)+'. Se carga desde el panel de Luci (Proveedores → Acciones mensuales / Sellout).</div></div>'; }
+    else {
+      const t=d.totales||{};
+      html+='<div class="kpis">'
+        +kpi(num(t.botellas),'Botellas')
+        +kpi(money(t.monto),'Monto')
+        +kpi(num(t.cajas),'Cajas')
+        +kpi(num(t.clientes),'Clientes que compraron')
+        +'</div>';
+      // ── Por marca ──
+      const fam=(d.familia||[]).slice().sort((a,b)=>(b.monto||0)-(a.monto||0));
+      const prevFam={}; if(prev&&prev.data&&prev.data.familia) prev.data.familia.forEach(f=>prevFam[f.n]=f.monto||0);
+      const maxF=Math.max(1,...fam.map(f=>f.monto||0));
+      html+='<h2>🍷 Por marca'+(prev?' <span class="per">vs '+esc(perLbl(prev.periodo))+'</span>':'')+'</h2><div class="card">';
+      html+=fam.slice(0,12).map(f=>{
+        const d0=prevFam[f.n], delta=(prev&&d0!=null)?deltaHtml(f.monto,d0):'';
+        return `<div class="rowb"><div class="nm" title="${esc(f.n)}">${esc(f.n)}</div><div class="bar"><i style="width:${Math.round((f.monto||0)/maxF*100)}%"></i></div><div class="val">${money(f.monto)}</div>${delta}</div>`;
+      }).join('')+'</div>';
+      // ── Por canal ──
+      const can=(d.canal||[]).slice().sort((a,b)=>(b.monto||0)-(a.monto||0));
+      const maxC=Math.max(1,...can.map(c=>c.monto||0));
+      html+='<h2>🏪 Por canal</h2><div class="card">'
+        +can.map(c=>`<div class="rowb c"><div class="nm" title="${esc(c.n)}">${esc(c.n)}</div><div class="bar"><i style="width:${Math.round((c.monto||0)/maxC*100)}%"></i></div><div class="val">${money(c.monto)}</div></div>`).join('')
+        +'</div>';
+      // ── Top clientes ──
+      const cli=(d.clientes||[]).slice().sort((a,b)=>(b.monto||0)-(a.monto||0));
+      html+='<h2>👤 Clientes <span class="per">'+num((d.totales||{}).clientes||cli.length)+' compraron</span></h2><div class="card">'
+        +(cli.slice(0,8).map(c=>`<div class="rowb"><div class="nm" title="${esc(c.n)}">${esc(c.n)}</div><div class="bar"><i style="width:${Math.round((c.monto||0)/Math.max(1,cli[0]&&cli[0].monto||1)*100)}%"></i></div><div class="val">${money(c.monto)}</div></div>`).join('')||'<div class="empty">—</div>')
+        +'</div>';
+    }
+
+    // ── Acciones vigentes ──
+    html+='<h2>🎯 Acciones vigentes <span class="per">'+ACCIONES.length+'</span></h2><div class="card">';
+    html+= ACCIONES.length? ACCIONES.map(a=>`<div class="acc"><div style="flex:1;min-width:0">${esc(a.nombre_producto)}</div>${a.canal&&a.canal!=='ambos'?`<span class="ch">${esc(a.canal)}</span>`:''}${a.mecanica?`<span class="mec">${esc(a.mecanica)}</span>`:''}</div>`).join('')
+      : '<div class="empty">Este proveedor no tiene acciones cargadas en el catálogo.</div>';
+    html+='<div class="nota">El resultado real de cada acción (ventas vs objetivo) se mide en «Resultados de acciones» del panel de Luci — lo integramos acá en la próxima vuelta.</div></div>';
+
+    // ── Pendientes de la reunión ──
+    html+='<h2>✅ Pendientes y acuerdos</h2>';
+    html+='<div class="pend-form"><input id="pnew" type="text" placeholder="Acuerdo o pendiente de esta reunión…" onkeydown="if(event.key===\'Enter\')addPend()"><button onclick="addPend()">Agregar</button></div>';
+    html+='<div class="card" id="pendBox"></div>';
+    $('cont').innerHTML=html;
+    renderPend();
+  }
+  function kpi(n,l){ return `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`; }
+  function deltaHtml(a,b){ a=Number(a||0);b=Number(b||0); if(!b) return '<span class="delta flat">—</span>'; const p=Math.round((a-b)/b*100); const cl=p>2?'up':p<-2?'down':'flat'; return `<span class="delta ${cl}">${p>0?'+':''}${p}%</span>`; }
+
+  function renderPend(){
+    const box=$('pendBox'); if(!box) return;
+    if(!PENDIENTES.length){ box.innerHTML='<div class="empty">Sin pendientes. Agregá los acuerdos de esta reunión y la próxima los ves acá.</div>'; return; }
+    box.innerHTML=PENDIENTES.map(p=>`<div class="pend ${p.hecho?'done':''}">
+      <input type="checkbox" ${p.hecho?'checked':''} onchange="togglePend('${p.id}',this.checked)">
+      <div class="tx">${esc(p.texto)}<span class="de">${p.creado_por?esc(p.creado_por)+' · ':''}${new Date(p.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short'})}</span></div>
+      <button class="x" onclick="delPend('${p.id}')" title="Borrar">✕</button>
+    </div>`).join('');
+  }
+  async function addPend(){
+    const inp=$('pnew'); const txt=(inp.value||'').trim(); if(!txt) return;
+    const prov=$('selProv').value;
+    inp.value='';
+    const { data, error } = await hub.from('reunion_pendientes').insert({proveedor:prov,texto:txt,creado_por:YO}).select();
+    if(error){ alert('No se pudo: '+error.message); return; }
+    PENDIENTES.push((data&&data[0])||{id:'tmp',proveedor:prov,texto:txt,creado_por:YO,created_at:new Date().toISOString(),hecho:false});
+    renderPend();
+  }
+  async function togglePend(id,hecho){
+    await hub.from('reunion_pendientes').update({hecho,hecho_at:hecho?new Date().toISOString():null}).eq('id',id);
+    const p=PENDIENTES.find(x=>x.id===id); if(p) p.hecho=hecho; renderPend();
+  }
+  async function delPend(id){
+    if(!confirm('¿Borrar este pendiente?')) return;
+    await hub.from('reunion_pendientes').delete().eq('id',id);
+    PENDIENTES=PENDIENTES.filter(x=>x.id!==id); renderPend();
+  }
+  window.addPend=addPend; window.togglePend=togglePend; window.delPend=delPend;
+</script>
+</body>
+</html>
