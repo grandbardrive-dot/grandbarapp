@@ -177,6 +177,15 @@
       html+='<h2>👤 Clientes <span class="per">'+num((d.totales||{}).clientes||cli.length)+' compraron</span></h2><div class="card">'
         +(cli.slice(0,8).map(c=>`<div class="rowb"><div class="nm" title="${esc(c.n)}">${esc(c.n)}</div><div class="bar"><i style="width:${Math.round((c.monto||0)/Math.max(1,cli[0]&&cli[0].monto||1)*100)}%"></i></div><div class="val">${money(c.monto)}</div></div>`).join('')||'<div class="empty">—</div>')
         +'</div>';
+      // ── Clientes que dejaron de comprar (vs período anterior) — para recuperar ──
+      if(prev && prev.data && prev.data.clientes){
+        const actuales=new Set((d.clientes||[]).map(c=>c.n));
+        const caidos=(prev.data.clientes||[]).filter(c=>!actuales.has(c.n)).sort((a,b)=>(b.monto||0)-(a.monto||0));
+        html+='<h2>🔻 Dejaron de comprar <span class="per">'+caidos.length+' a recuperar</span></h2><div class="card">';
+        html+= caidos.length? caidos.slice(0,20).map(c=>`<div class="rowb"><div class="nm" title="${esc(c.n)}">${esc(c.n)}</div><div style="flex:1"></div><div class="val" style="color:var(--danger)">compraba ${money(c.monto)}</div></div>`).join('')
+          : '<div class="empty">Ningún cliente se cayó respecto a '+esc(perLbl(prev.periodo))+'. 🎉</div>';
+        html+='<div class="nota">Compraron en '+esc(perLbl(prev.periodo))+' y este mes no. Son los primeros a recuperar — pasalos a «Pendientes» con el vendedor que los atiende.</div></div>';
+      }
     }
 
     // ── Acciones vigentes ──
