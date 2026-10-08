@@ -103,7 +103,14 @@ exports.handler = async (event) => {
       .filter((a) => !canal || !a.canal || a.canal === 'ambos' || a.canal === canal)
       .map((a) => ({ ...a, proveedor: a.catalogo_proveedores && a.catalogo_proveedores.nombre, catalogo_proveedores: undefined }));
     const props = propuestas.filter((p) => !rubro || !p.rubro || p.rubro === rubroPropuesta(rubro));
-    const base = { ok: true, q: q.q, tokens: toks, rubro: rubro || 'todos', periodo: { desde, hasta }, anterior: { desde: pDesde, hasta: pHasta }, acciones, propuestas: props, materiales };
+    // Proveedor de la marca: el de la acción del catálogo cuyo NOMBRE es la marca (una acción
+    // grupal que la menciona en el detalle, ej. "Innovaciones" de Peñaflor, no define al dueño).
+    const propia = acciones.find((a) => claves.some((c) => norm(a.nombre_producto).includes(norm(c).replace(/\.\s*/g, ' ').trim()) || norm(a.nombre_producto).includes(c)));
+    // Si no hay acción con su nombre, ¿la marca ES un proveedor del catálogo? ("chandon" → Chandon)
+    const provNombre = (propia && propia.proveedor) ? null
+      : (await todo(CAT, `catalogo_proveedores?select=nombre&or=(${claves.map((c) => `nombre.ilike.${encodeURIComponent(pg(c))}`).join(',')})&limit=1`).catch(() => []))[0];
+    const proveedor = (propia && propia.proveedor) || (provNombre && provNombre.nombre) || (props[0] && props[0].autor_empresa) || (acciones[0] && acciones[0].proveedor) || null;
+    const base = { ok: true, q: q.q, tokens: toks, rubro: rubro || 'todos', proveedor, periodo: { desde, hasta }, anterior: { desde: pDesde, hasta: pHasta }, acciones, propuestas: props, materiales };
     const deLuci = () => (q.fuente === 'erp' ? null : LUCI.consultar({ claves, rubro, desde, hasta }));
     if (!prods.length) {
       const l = deLuci();

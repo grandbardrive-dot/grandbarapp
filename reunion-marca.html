@@ -121,6 +121,9 @@
   .prop.cargando{min-height:180px;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
   .pbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
   .pbar button{border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:10px;font:inherit;font-weight:800;font-size:13.5px;padding:9px 14px;cursor:pointer}
+  .ctx{background:var(--navy);color:#e8eef2;border-radius:12px;padding:11px 14px;font-size:14px;margin-bottom:14px}
+  .ctx b{color:#fff}
+  .ctx .mini{color:#e7c778}
   .mini{border:0;background:none;color:var(--blue);font:inherit;font-weight:700;font-size:12px;cursor:pointer;padding:0;text-decoration:underline}
   @media (max-width:700px){ .cols{grid-template-columns:1fr} .head{grid-template-columns:1fr} .head .big{display:none} .rowb .nm{width:40%;min-width:90px} }
 </style>
@@ -162,7 +165,7 @@
   const fecha=s=>s?new Date(s+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'';
   const RUBRO_LBL={bar:'Bares',restaurante:'Restaurantes',disco:'Disco',hotel:'Hoteles',evento:'Eventos',vinoteca:'Vinotecas','tienda de bebidas':'Tiendas de bebidas',autoservicio:'Autoservicios',mayorista:'Mayoristas',otros:'Otros (sin rubro)','sin dato':'Sin dato'};
   const MES=['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  let hub=null, YO='', DATA=null, FICHA_LOCAL=false;
+  let hub=null, YO='', DATA=null, FICHA_LOCAL=false, PROV='';
   function salir(){ try{ GBAuth.signOut(); }catch(e){} location.href='index.html'; }
   window.salir=salir;
 
@@ -207,6 +210,7 @@
     try{
       const r=await fetch(`/.netlify/functions/reunion-marca?q=${encodeURIComponent(q)}&rubro=${encodeURIComponent(rubro)}&desde=${desde}&hasta=${hasta}`);
       DATA=await r.json();
+      PROV=DATA.proveedor||'';
       if(!r.ok||!DATA.ok) throw new Error(DATA.error||('http '+r.status));
       render();
       cargarHistorial();
@@ -302,7 +306,8 @@
     proponer();
   }
   function kpi(n,l,a,p,cob,ant){ return `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div>${ant!==''?`<div class="v ${(()=>{const v=variacion(a,p,cob);return v.k==='bien'?'up':v.k==='mal'?'down':v.k==='parejo'?'flat':'';})()}">vs ${ant} ${delta(a,p,cob).replace(/<[^>]+>/g,'')}</div>`:''}</div>`; }
-  function tituloMarca(){ const q=DATA.q||''; return /^(johnny|johnnie|jonny|jw|walker)$/i.test(q.trim())?'Johnnie Walker':q.charAt(0).toUpperCase()+q.slice(1); }
+  const NOMBRES={johnny:'Johnnie Walker',johnnie:'Johnnie Walker',jonny:'Johnnie Walker',jw:'Johnnie Walker',walker:'Johnnie Walker',gordon:"Gordon's",gordons:"Gordon's",smirnof:'Smirnoff',jb:'J&B'};
+  function tituloMarca(){ const q=(DATA.q||'').trim(); return NOMBRES[q.toLowerCase().replace(/[^a-z&]/g,'')]||q.charAt(0).toUpperCase()+q.slice(1); }
   function filtrarRubro(r){ $('qRubro').value=(r==='otros'||r==='sin dato')?'':r; consultar(); }
   window.filtrarRubro=filtrarRubro;
 
@@ -360,7 +365,7 @@
     box.innerHTML=[1,2,3].map(()=>'<div class="prop cargando">Pensando una acción…</div>').join('');
     try{
       const r=await fetch('/.netlify/functions/reunion-propuesta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        marca:tituloMarca(), rubro:DATA.rubro, proveedor:$('fProv')?$('fProv').value:'', diagnostico:diagnostico(),
+        marca:tituloMarca(), rubro:DATA.rubro, proveedor:PROV||'', diagnostico:diagnostico(),
         vigentes:vigentesTxt().map(x=>x.o+': '+x.t+' — '+x.d), materiales:(DATA.materiales||[]).map(m=>({name:m.name,stock_actual:m.stock_actual}))})});
       const j=await r.json(); if(!r.ok) throw new Error(j.error||('http '+r.status));
       PROPS=j.propuestas||[];
@@ -394,15 +399,20 @@
   window.usarPropuesta=usarPropuesta;
 
   // ── ficha de la acción que proponemos ──
+  function cambiarProv(){ const v=prompt('Proveedor de esta reunión:',PROV||''); if(v==null) return; PROV=v.trim(); const e=$('ctxProv'); if(e) e.textContent=PROV||'sin definir'; }
+  window.cambiarProv=cambiarProv;
   function cuestionarioHtml(){
     const mats=(DATA.materiales||[]);
     const q=(n,t,campo,extra)=>'<div class="qi"><label class="qt"'+(campo?' for="'+campo+'"':'')+'><span class="qn">'+n+'</span>'+t+'</label>'+extra+'</div>';
-    return '<section id="cuest"><h2>📝 La acción que proponemos <span class="per" id="estadoFicha">sin guardar</span></h2>'+
-    '<div class="qi" style="margin-bottom:14px"><label class="qt" for="fProv">Proveedor</label><input type="text" id="fProv" placeholder="Ej: Diageo"></div>'+
+    // Marca, rubro y proveedor ya los define la búsqueda: no se preguntan, se muestran.
+    const M=esc(tituloMarca()), R=DATA.rubro==='todos'?'':(RUBRO_LBL[DATA.rubro]||DATA.rubro), enR=R?' en '+esc(R):'';
+    const clientesR=R?esc(R.toLowerCase()):'clientes';
+    return '<section id="cuest"><h2>📝 La acción que le proponemos <span class="per" id="estadoFicha">sin guardar</span></h2>'+
+    '<div class="ctx">Para <b>'+M+'</b>'+(R?' · <b>'+esc(R)+'</b>':' · todos los rubros')+' · proveedor <b id="ctxProv">'+esc(PROV||'sin definir')+'</b> <button type="button" class="mini" onclick="cambiarProv()">cambiar</button></div>'+
     '<div class="q">'+
-      q(1,'¿Qué acción proponemos?','fAcc','<textarea id="fAcc" placeholder="Ej: Incorporación de JW Black en carta de bares con 5+1"></textarea>')+
-      q(2,'¿Para qué? ¿Qué meta tiene?','fMeta','<input type="text" id="fMeta" placeholder="Ej: recuperar 10 de los bares que dejaron de comprar"><div class="src" id="sMeta"></div>')+
-      q(3,'¿A quién apunta?','fQuien','<input type="text" id="fQuien" placeholder="Ej: los bares que dejaron de comprar Black"><div class="src" id="sQuien"></div>')+
+      q(1,'¿Qué acción le proponemos a '+M+enR+'?','fAcc','<textarea id="fAcc" placeholder="Ej: incorporación en carta con 5+1"></textarea>')+
+      q(2,'¿Para qué? ¿Qué meta tiene?','fMeta','<input type="text" id="fMeta" placeholder="Ej: recuperar 15 de los que dejaron de comprar"><div class="src" id="sMeta"></div>')+
+      q(3,'¿A qué '+clientesR+' apunta?','fQuien','<input type="text" id="fQuien" placeholder="Ej: los que dejaron de comprar, los nuevos, los que compran poco"><div class="src" id="sQuien"></div>')+
       q(4,'¿Cuál es el descuento?','fDesc','<input type="text" id="fDesc" placeholder="Ej: 20% adicional"><div class="src" id="sDesc"></div>')+
       q(5,'¿Cuál es el tope?','fTope','<input type="text" id="fTope" placeholder="Ej: 2 cajas por PDV · 50 cajas en total"><div class="src" id="sTope"></div>')+
       q(6,'¿Hay botellas sin cargo?','','<div class="sn" id="fSC"><button type="button" aria-pressed="false" data-v="Sí">Sí</button><button type="button" aria-pressed="false" data-v="No">No</button></div><input type="text" id="fSCdet" placeholder="Mecánica: ej 5+1, 3+1…"><div class="src" id="sSC"></div>')+
@@ -411,8 +421,7 @@
         '<div id="fMatLista">'+(mats.length?mats.map(m=>'<label class="mat"><input type="checkbox" data-mat="'+esc(m.name)+'"> '+esc(m.name)+'<span class="st">'+num(m.stock_actual)+' '+esc(m.unit_type||'u.')+' en stock</span></label>').join(''):'<div class="src">No hay materiales de esta marca en la biblioteca.</div>')+'</div>'+
         '<input type="text" id="fMatOtros" style="margin-top:6px" placeholder="Otros materiales (los pone el proveedor)…">')+
       q(9,'¿Hasta qué fecha está disponible?','fVig','<input type="date" id="fVig"><div class="src" id="sVig"></div>')+
-      q(10,'¿En qué rubros aplica?','','<div class="chips" id="fRub">'+Object.entries(RUBRO_LBL).filter(([k])=>!['otros','sin dato'].includes(k)).map(([k,l])=>'<button type="button" class="chip" aria-pressed="false" data-v="'+k+'">'+l+'</button>').join('')+'</div>')+
-      q(11,'¿Qué dijo el proveedor? Acuerdos y pendientes','fNotas','<textarea id="fNotas" placeholder="Si acepta, qué cambia, quién hace qué y para cuándo…"></textarea>')+
+      q(10,'¿Qué dijo el proveedor? Acuerdos y pendientes','fNotas','<textarea id="fNotas" placeholder="Si acepta, qué cambia, quién hace qué y para cuándo…"></textarea>')+
     '</div>'+
     '<div class="acciones"><button type="button" class="b-save" onclick="guardar()">Guardar</button><button type="button" class="b-copy" onclick="copiar()">Copiar resumen</button></div>'+
     '</section>'+
@@ -425,10 +434,8 @@
 
   // La ficha arranca vacía (es la acción NUEVA); abajo de cada campo, lo que hay hoy como referencia.
   function prefill(){
-    ['fSC','fMat'].forEach(id=>toggles(id,false)); toggles('fRub',true);
+    ['fSC','fMat'].forEach(id=>toggles(id,false));
     const d=DATA, acc=d.acciones||[], pro=d.propuestas||[];
-    $('fProv').value=(acc[0]&&acc[0].proveedor)||(pro[0]&&pro[0].autor_empresa)||'';
-    if(d.rubro&&d.rubro!=='todos') setT('fRub',d.rubro);
     const textos=[...acc.map(a=>({o:'Hoy (catálogo)',n:a.nombre_producto,t:[a.mecanica,a.info_adicional].filter(Boolean).join(' · '),a})),...pro.map(p=>({o:'Hoy (propuesta '+(p.autor_empresa||'')+')',n:p.titulo,t:[p.condicion,p.descripcion].filter(Boolean).join(' · '),p}))];
     const ref=(f,vacio)=>{ const l=textos.map(f).filter(Boolean); return l.length?l.map(x=>'<b>'+esc(x.o)+'</b> · '+esc(x.n)+': '+esc(x.v)).join('<br>'):vacio; };
     src('sDesc',ref(x=>{ const v=(x.a&&x.a.porcentaje_off)?x.a.porcentaje_off+'%':((x.t.match(/\d+\s*%[^·,.]*/)||[])[0]); return v?{o:x.o,n:x.n,v:v.trim()}:null; },'Hoy no tienen descuento cargado.'));
@@ -444,12 +451,12 @@
 
   function leerFicha(){
     const d=DATA, v=d.total?variacion(d.total.actual.botellas,d.total.anterior.botellas,d.cobertura_pct?d.cobertura_pct.anterior:0):null;
-    return { proveedor:$('fProv').value.trim(), lectura:v?v.txt:'', lectura_pct:v?v.pct:null,
+    return { proveedor:PROV||'', lectura:v?v.txt:'', lectura_pct:v?v.pct:null,
       accion:$('fAcc').value.trim(), meta:$('fMeta').value.trim(), a_quien:$('fQuien').value.trim(),
       descuento:$('fDesc').value.trim(), tope:$('fTope').value.trim(), sin_cargo:getT('fSC')[0]||'', sin_cargo_detalle:$('fSCdet').value.trim(),
       ejecucion:$('fEje').value.trim(), suma_materiales:getT('fMat')[0]||'',
       materiales:[...document.querySelectorAll('#fMatLista input[data-mat]:checked')].map(x=>x.dataset.mat), materiales_otros:$('fMatOtros').value.trim(),
-      vigencia_hasta:$('fVig').value||'', rubros:getT('fRub'), notas:$('fNotas').value.trim() };
+      vigencia_hasta:$('fVig').value||'', rubros:d.rubro&&d.rubro!=='todos'?[d.rubro]:[], notas:$('fNotas').value.trim() };
   }
   function resumenTexto(r){
     const d=DATA, rt=d.rubro==='todos'?'todos los rubros':(RUBRO_LBL[d.rubro]||d.rubro);

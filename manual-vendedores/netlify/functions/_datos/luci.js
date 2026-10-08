@@ -71,6 +71,8 @@ function consultar({ claves, rubro, desde, hasta }) {
   const mesTxt = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep'];
   return {
     fuente: 'luci',
+    // Proveedor = segmento del tablero de la marca (Diageo / Cinzano).
+    proveedor: [...new Set(L.rows.filter((r) => setM.has(r[3])).slice(0, 200).map((r) => L.seg[r[2]]))].join(' / ') || null,
     fuente_txt: `${L.fuente}. Período usado: ${mesTxt[meses[0]]}–${mesTxt[meses[meses.length - 1]]} 2026 contra el mismo de 2025.`,
     meses_usados: meses,
     periodo_pedido_hasta: hasta,
