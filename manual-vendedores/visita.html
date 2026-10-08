@@ -441,6 +441,7 @@
   /* Aperitivos: párrafo opcional + botón "Ver material" */
   .oferta-desc { font-size: 10.5px; color: var(--text2); line-height: 1.35; margin: 4px 0 6px; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .oferta-desc.expanded { -webkit-line-clamp: unset; }
+  .oferta-evid { align-self: flex-start; font-size: 9.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #fff; background: #1f447f; border-radius: 5px; padding: 2px 7px; margin: 2px 0 4px; }
   .oferta-material { align-self: flex-start; margin-bottom: 7px; background: #fff; border: 1px solid var(--azul); color: var(--azul); font-family: inherit; font-size: 10.5px; font-weight: 700; padding: 4px 9px; border-radius: 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .oferta-material:active { background: var(--blue-lt); }
 
@@ -5782,6 +5783,8 @@ body { background:transparent !important; }
           orden: a.orden || 0,
           secciones: Array.isArray(a.secciones) ? a.secciones : [],
           zonas: Array.isArray(a.zonas) ? a.zonas : [],
+          // Luciana lo marca en su panel (08/10/2026): sale como cartel en la tarjeta.
+          requiere_evidencia: a.requiere_evidencia === true,
         };
       }).filter(o => o.producto);
     } catch (e) { console.warn('catálogo:', e); _catCache = []; }
@@ -6776,6 +6779,7 @@ body { background:transparent !important; }
             ${o.tipo_oferta ? `<span class="oferta-badge">${esc(o.tipo_oferta)}</span>` : ""}
           </div>
           <div class="oferta-nombre">${esc(o.producto)}</div>
+          ${o.requiere_evidencia ? '<div class="oferta-evid">Requiere evidencia</div>' : ''}
           ${o.descripcion_larga ? `<div class="oferta-desc" onclick="this.classList.toggle('expanded')" title="Tocar para ver más">${esc(o.descripcion_larga)}</div>` : ''}
           ${o.material_foto_url ? `<button class="oferta-material" data-url="${esc(o.material_foto_url)}" data-titulo="${esc(o.producto)} — material" data-ctx="${esc(o.producto)}" onclick="abrirPlacaDesde(this)">🖼️ Ver material</button>` : ''}
           ${(() => {

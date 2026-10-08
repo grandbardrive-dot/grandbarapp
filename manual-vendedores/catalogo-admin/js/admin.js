@@ -252,10 +252,11 @@ async function exportarAccionesExcel(canalSel, provSel, provNombre) {
     'Info adicional': a.info_adicional || '',
     'Canal': a.canal || 'ambos',
     'Flag': a.flag || '',
+    'Requiere evidencia': a.requiere_evidencia ? 'Sí' : 'No',
     'Activo': a.activo ? 'Sí' : 'No',
   }));
   const ws = window.XLSX.utils.json_to_sheet(data);
-  ws['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 34 }, { wch: 13 }, { wch: 15 }, { wch: 8 }, { wch: 13 }, { wch: 40 }, { wch: 14 }, { wch: 24 }, { wch: 10 }, { wch: 10 }, { wch: 8 }];
+  ws['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 34 }, { wch: 13 }, { wch: 15 }, { wch: 8 }, { wch: 13 }, { wch: 40 }, { wch: 14 }, { wch: 24 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }];
   const wb = window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(wb, ws, 'Acciones');
   const catLabel = canalSel === 'todos' ? 'Todos' : canalSel.toUpperCase();
@@ -368,7 +369,7 @@ function renderAccionesTab() {
 
   // ---- tabla ----
   const cols = ['estado', 'proveedor', 'producto', 'sku promo', 'accionado', 'regular', 'sugerido', '% off',
-    'mecánica', 'info adicional', 'canal', 'dónde se ve', 'flag', 'foto', 'placa', 'activo', 'orden', ''];
+    'mecánica', 'info adicional', 'canal', 'dónde se ve', 'flag', 'evidencia', 'foto', 'placa', 'activo', 'orden', ''];
   const thead = el('thead', {}, el('tr', {}, cols.map((c) => el('th', {}, c))));
   const tbody = el('tbody', { id: 'acc-body' });
   accionesFiltradas().forEach((a) => tbody.appendChild(filaAccion(a)));
@@ -417,6 +418,10 @@ function cargarMapaSeg() {
   return mapaSegPromise;
 }
 const tieneSeg = (a) => (a.secciones || []).length > 0 || (a.zonas || []).length > 0;
+
+// "Requiere evidencia" (08/10/2026): columna nueva, hasta que se corra el SQL la base no la conoce
+const AVISO_SQL_EVID = 'Falta correr requiere-evidencia.sql en Supabase (proyecto del catálogo).';
+const errorDeEvid = (msg) => /requiere_evidencia/i.test(String(msg || ''));
 
 function pintarBotonSeg(btn, a) {
   if (!tieneSeg(a)) { btn.textContent = '📍 Dónde se ve'; btn.title = 'Sin segmentar: se ubica sola según su categoría'; return; }
@@ -537,6 +542,23 @@ function filaAccion(a) {
     el('option', { value: f.v, ...((a.flag || '') === f.v ? { selected: '' } : {}) }, f.t)));
   selFlag.addEventListener('change', () => updateAccion(a.id, { flag: strOrNull(selFlag.value) }, status));
 
+  // cartel "Requiere evidencia" en la tarjeta del catálogo y en la oferta de la visita
+  const chkEv = el('input', { type: 'checkbox', ...(a.requiere_evidencia ? { checked: '' } : {}) });
+  chkEv.addEventListener('change', async () => {
+    const patch = { requiere_evidencia: chkEv.checked, updated_at: new Date().toISOString() };
+    const r = await supabase.from('catalogo_acciones').update(patch).eq('id', a.id).select('id');
+    const error = r.error || (!r.data || !r.data.length ? { message: 'no se guardó (permisos)' } : null);
+    if (error) {
+      chkEv.checked = !chkEv.checked;
+      flashStatus(status, false, errorDeEvid(error.message) ? AVISO_SQL_EVID : error.message);
+      return;
+    }
+    Object.assign(a, patch);
+    flashStatus(status, true);
+  });
+  const toggleEv = el('label', { class: 'toggle', title: 'Muestra el cartel "Requiere evidencia" en la acción' },
+    [chkEv, el('span', { class: 'track' })]);
+
   // foto
   const thumb = el('img', { class: 'thumb', src: a.imagen_url || '', alt: '', style: a.imagen_url ? '' : 'display:none' });
   const fileInp = el('input', { type: 'file', accept: 'image/*', class: 'hidden' });
@@ -620,6 +642,7 @@ function filaAccion(a) {
     el('td', {}, selCanal),
     el('td', {}, btnSeg),
     el('td', {}, selFlag),
+    el('td', {}, toggleEv),
     el('td', {}, el('div', { class: 'thumb-cell' }, [thumb, btnFoto, fileInp])),
     el('td', {}, el('div', { class: 'thumb-cell' }, [verP, btnP, fileP])),
     el('td', {}, toggle),
@@ -672,6 +695,7 @@ function abrirNuevaAccion() {
   const infoAd = el('input', { type: 'text', placeholder: 'info adicional (opcional)' });
   const selCanal = el('select', {});
   CANALES.forEach((c) => selCanal.appendChild(el('option', { value: c, ...(c === 'ambos' ? { selected: '' } : {}) }, c)));
+  const evid = el('input', { type: 'checkbox', style: 'width:auto;margin:0' });
   const err = el('div', { class: 'login-err' });
 
   // dónde se ve en el manual (opcional): contenedor nuevo en cada apertura
@@ -706,8 +730,13 @@ function abrirNuevaAccion() {
       info_adicional: strOrNull(infoAd.value),
       canal: selCanal.value,
       ...extraSeg,
+      // solo si está marcada: sin marcar es el default de la base
+      ...(evid.checked ? { requiere_evidencia: true } : {}),
     }).select('*, proveedor:catalogo_proveedores(id,nombre,categoria)').single();
-    if (error) { err.textContent = errorDeSeg(error.message) ? AVISO_SQL_SEG : error.message; return; }
+    if (error) {
+      err.textContent = errorDeSeg(error.message) ? AVISO_SQL_SEG : errorDeEvid(error.message) ? AVISO_SQL_EVID : error.message;
+      return;
+    }
     state.acciones.push(data);
     sortAcciones();
     cerrar();
@@ -727,6 +756,8 @@ function abrirNuevaAccion() {
     el('label', {}, 'Mecánica'), mecanica,
     el('label', {}, 'Info adicional'), infoAd,
     el('label', {}, 'Canal'), selCanal,
+    el('label', { style: 'display:flex;align-items:center;gap:8px;font-size:0.9rem;margin-top:14px;cursor:pointer' },
+      [evid, el('span', {}, 'Requiere evidencia (muestra el cartel en la acción)')]),
     el('label', {}, '¿Dónde se ve en el manual? (opcional)'),
     segCont,
     el('div', { class: 'muted', style: 'margin-top:6px' }, 'Si no marcás nada, la oferta se ubica sola según su categoría, como hasta ahora.'),
