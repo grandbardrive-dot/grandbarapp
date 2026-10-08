@@ -98,6 +98,9 @@ Cada valor de texto: máximo 25 palabras. Sin texto antes ni después, sin markd
     if (!propuestas.length) return json(502, { error: 'La IA no devolvió propuestas válidas', modelo });
     return json(200, { propuestas, modelo, ...(motivo ? { motivo_respaldo: motivo.slice(0, 200) } : {}) });
   } catch (e) {
-    return json(500, { error: (e && e.message) || String(e) });
+    const msg = (e && e.message) || String(e);
+    // Sin saldo en la cuenta de Anthropic: mensaje entendible para la reunión.
+    if (/credit balance/i.test(msg)) return json(402, { error: 'Se terminó el saldo de la cuenta de IA (Anthropic). Hay que cargar crédito en console.anthropic.com → Billing; mientras tanto, escribí la acción en la ficha.', codigo: 'sin_saldo' });
+    return json(500, { error: msg });
   }
 };

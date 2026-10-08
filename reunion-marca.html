@@ -388,7 +388,7 @@
         (p.materiales&&p.materiales.length?'<div class="li"><b>Materiales</b>'+esc(p.materiales.join(' · '))+'</div>':'')+
         '<div class="li"><b>Meta</b>'+esc(p.meta)+'</div><div class="pq2">'+esc(p.por_que)+'</div>'+
         '<button type="button" onclick="usarPropuesta('+i+')">Usar esta</button></div>').join('');
-    }catch(e){ box.innerHTML='<div class="prop cargando">No pude armar propuestas ahora ('+esc(e.message)+'). Escribí la acción en la ficha de abajo.</div>'; }
+    }catch(e){ box.innerHTML='<div class="prop cargando">'+(/saldo/i.test(e.message)?'💳 '+esc(e.message):'No pude armar propuestas ahora ('+esc(e.message)+'). Escribí la acción en la ficha de abajo.')+'</div>'; }
   }
   window.proponer=proponer;
   function usarPropuesta(i){
