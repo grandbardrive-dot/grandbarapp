@@ -308,11 +308,11 @@ exports.handler = async (event) => {
       fuente: c.fuente, ref_id: c.ref_id, nombre: c.nombre, direccion: c.direccion || null,
       lat: c.lat || null, lng: c.lng || null, tipo: c.tipo || null, canal: c.canal || null,
       zona: c.zona || null, rating: c.rating || null, reviews: c.reviews || null,
-      telefono: c.telefono || null, whatsapp: c.telefono ? ('54' + soloNum(c.telefono).replace(/^54/, '').replace(/^0/, '').replace(/^9/, '')) : null,
+      telefono: c.telefono || null,
       website: c.website || null, maps_url: c.maps_url || null,
       instagram: c.instagram || null,
       instagram_url: c.instagram_url || (c.fuente === 'google' ? ('https://www.instagram.com/explore/search/keyword/?q=' + encodeURIComponent(c.nombre)) : null),
-      score: c.score, score_motivo: c.score_motivo || null,
+      score: (c.score == null ? null : Math.round(c.score)), score_motivo: c.score_motivo || null,
       canal_contacto: c.canal_contacto || null, mensaje_wsp: c.mensaje_wsp || null, mensaje_ig: c.mensaje_ig || null,
       estado: 'nuevo',
     }));
