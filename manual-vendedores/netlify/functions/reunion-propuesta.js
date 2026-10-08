@@ -36,7 +36,7 @@ async function pedir(key, modelo, prompt, ms) {
     const r = await fetch(URL_IA, {
       method: 'POST', signal: ctrl.signal,
       headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: modelo, max_tokens: 1800, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: modelo, max_tokens: 1300, messages: [{ role: 'user', content: prompt }] }),
     });
     if (!r.ok) throw new Error('IA ' + r.status + ': ' + (await r.text()).slice(0, 200));
     const d = await r.json();
@@ -76,11 +76,16 @@ Tarea: proponé 3 ACCIONES distintas para presentarle al proveedor que ataquen e
 
 Devolvé ÚNICAMENTE un JSON array de 3 objetos, en español rioplatense, cada uno con estas claves:
 "titulo" (corto), "para_que" (qué problema ataca, 1 oración con el dato), "a_quien" (qué clientes: ej. "los 18 bares que dejaron de comprar Black"), "mecanica" (ej. "5+1" o "20% adicional"), "sin_cargo" (true/false), "descuento" (texto o ""), "tope" (texto), "ejecucion" (cómo se ejecuta en el punto de venta y qué evidencia se pide, 1-2 oraciones), "materiales" (array de strings), "vigencia_dias" (número), "meta" (1 oración medible), "por_que" (1 oración: por qué esta y no otra).
-Sin texto antes ni después, sin markdown.`;
+Cada valor de texto: máximo 25 palabras. Sin texto antes ni después, sin markdown.`;
 
+    // Los dos a la vez: si el principal termina a tiempo se usa ese; si no, el rápido
+    // (que ya está listo). Así la reunión nunca espera más de ~20 s.
+    const pPrincipal = pedir(key, MODELO, prompt, 19000);
+    const pRapido = pedir(key, RAPIDO, prompt, 19000);
+    pRapido.catch(() => {});
     let texto, modelo = MODELO;
-    try { texto = await pedir(key, MODELO, prompt, 18000); }
-    catch (e) { modelo = RAPIDO; texto = await pedir(key, RAPIDO, prompt, 7000); }
+    try { texto = await pPrincipal; if (!parseArray(texto).length) throw new Error('vacío'); }
+    catch (e) { modelo = RAPIDO; texto = await pRapido; }
     const propuestas = parseArray(texto).slice(0, 3).map((p) => ({
       titulo: String(p.titulo || '').trim(), para_que: String(p.para_que || '').trim(), a_quien: String(p.a_quien || '').trim(),
       mecanica: String(p.mecanica || '').trim(), sin_cargo: !!p.sin_cargo, descuento: String(p.descuento || '').trim(), tope: String(p.tope || '').trim(),
