@@ -106,12 +106,21 @@ const soloNum=s=>String(s||'').replace(/[^0-9]/g,'');
 const badge={nuevo:['b-nuevo','Nuevo'],contactado:['b-cont','Contactado'],interesado:['b-int','Interesado'],visita:['b-vis','A visitar'],descartado:['b-desc','Descartado'],ya_cliente:['b-yac','Ya cliente']};
 function toast(m,e){const t=$('toast');t.textContent=m;t.className='toast show'+(e?' err':'');setTimeout(()=>t.className='toast',2400);}
 
-// WhatsApp AR: 54 + 9 + número nacional (sin 0 ni 15). Si no parece móvil, igual arma el link y el supervisor corrige.
-function waLink(p,msg){
-  let d=soloNum(p); if(!d) return '';
-  d=d.replace(/^0/,''); d=d.replace(/^54/,''); d=d.replace(/^9/,'');
-  d='549'+d;
+// WhatsApp Argentina. El teléfono de Google viene formateado ("0261 15-508-8506"
+// = celular; "0261 424-0549" = fijo). El celular lleva "15" → se saca y se arma
+// 549+area+numero. El fijo no tiene WhatsApp (se arma igual y el super ve que no).
+function waLink(telFmt,msg){
+  const raw=String(telFmt||''); let d=raw.replace(/\D/g,''); if(!d) return '';
+  d=d.replace(/^0+/,''); if(d.startsWith('54')) d=d.slice(2); d=d.replace(/^9/,'');
+  const esCel=/(^|[\s\-.])15[\s\-.]/.test(raw);           // el "15" aparece como grupo = celular
+  if(esCel){ d=d.replace(/^(\d{2,4})15/,'$1'); d='549'+d; } else { d='54'+d; }
   return 'https://wa.me/'+d+(msg?('?text='+encodeURIComponent(msg)):'');
+}
+// Link de Instagram: si el prospecto vino de IG, abre el post; si vino de Google
+// (no tenemos el @), abre una búsqueda de Google que lleva al perfil real.
+function igLink(p){
+  if(p.fuente==='instagram' && p.instagram_url) return p.instagram_url;
+  return 'https://www.google.com/search?q='+encodeURIComponent((p.nombre||'')+' '+(p.zona||'')+' instagram');
 }
 async function copiar(txt){ try{ await navigator.clipboard.writeText(txt||''); toast('Mensaje copiado ✓'); }catch(e){ toast('No pude copiar',true); } }
 
@@ -140,7 +149,7 @@ function pinta(){
       <div class="contact">
         ${wa?`<a class="cbtn wa" href="${wa}" target="_blank" rel="noopener">💬 Abrir WhatsApp</a>`:''}
         ${tel?`<a class="cbtn" href="tel:${tel}">📞 ${esc(p.telefono)}</a>`:''}
-        ${p.instagram_url?`<a class="cbtn ig" href="${esc(p.instagram_url)}" target="_blank" rel="noopener">📷 Instagram</a>`:''}
+        <a class="cbtn ig" href="${esc(igLink(p))}" target="_blank" rel="noopener">📷 Instagram</a>
         ${p.mensaje_ig?`<button class="cbtn ig" data-cp="${p.id}">📋 Copiar msj IG</button>`:''}
         ${p.maps_url?`<a class="cbtn" href="${esc(p.maps_url)}" target="_blank" rel="noopener">🗺️ Maps</a>`:''}
         ${p.website?`<a class="cbtn" href="${esc(p.website)}" target="_blank" rel="noopener">🌐 Web</a>`:''}
