@@ -20,6 +20,8 @@
       { href: "clientes-hub.html?vista=equipo", label: "Clientes del equipo", short: "Clientes", icon: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/>' },
       { href: "supervisor-pedidos.html", label: "Pedidos de acción",  short: "Pedidos", icon: '<path d="M4 4h16v16H4z"/><path d="M4 9h16M9 14l2 2 4-4"/>' },
       { href: "leads-asignar.html",      label: "Leads",              short: "Leads",   icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>' },
+      // Prospectos que arma solo el agente "Cazador de clientes" cada mañana.
+      { href: "prospectos.html",         label: "Prospectos",         short: "Prospectos", icon: '<path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>' },
       { href: "supervisor-curso.html",   label: "Curso",              short: "Curso",   icon: '<path d="M4 19V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h8M8 11h6"/>' },
       // Cómo va cada vendedor en el torneo (puntos oficiales de Administración).
       { href: "torneo-vendedor.html",    label: "Torneo Doña Paula",  short: "Torneo",  icon: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>' },

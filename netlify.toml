@@ -28,3 +28,12 @@
 # Ver manual-vendedores/netlify/functions/sync-productos-cron.js
 [functions."sync-productos-cron"]
   schedule = "0 9 * * *"
+
+# AGENTE "Cazador de clientes": cada mañana (10:00 UTC ≈ 07:00 ART) busca
+# prospectos nuevos (Google Places + Instagram por hashtags), descarta los que
+# ya son clientes (Aikon + cuentas_cubo), los puntúa con IA y los deja en la
+# tabla `prospectos` para el panel de supervisores (prospectos.html).
+# Dispara la background cazar-clientes-background.
+# Ver manual-vendedores/netlify/functions/cazar-clientes-cron.js
+[functions."cazar-clientes-cron"]
+  schedule = "0 10 * * *"
