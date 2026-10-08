@@ -48,7 +48,10 @@ exports.handler = async (event) => {
 
   try {
     const { urlCuenta, cuenta, token } = await login();
-    const jc = await aikon(urlCuenta + '/IS3/ListarComprobantes', { cuenta, token, FechaDesde: fecha, FechaHasta: fecha }, 40000);
+    // ?extra={"Fiscalizado":"S"} → campos adicionales para ListarComprobantes (probar filtros).
+    let extra = {};
+    try { extra = q.extra ? JSON.parse(q.extra) : {}; } catch { return { statusCode: 400, headers, body: JSON.stringify({ error: 'extra no es JSON' }) }; }
+    const jc = await aikon(urlCuenta + '/IS3/ListarComprobantes', { cuenta, token, FechaDesde: fecha, FechaHasta: fecha, ...extra }, 40000);
     const comps = Array.isArray(jc.lista) ? jc.lista : (Array.isArray(jc) ? jc : []);
     if (!comps.length) return { statusCode: 200, headers, body: JSON.stringify({ ok: true, fecha, total: 0, respuesta: JSON.stringify(jc).slice(0, 300) }, null, 2) };
 
