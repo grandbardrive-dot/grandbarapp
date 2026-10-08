@@ -22,6 +22,44 @@ exports.handler = async (event) => {
     const r = await hub0('prospectos?' + filtro, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
     return json(200, { wipe: q.wipe, status: r.status, ok: r.ok });
   }
+  // ?ia=1 → reproduce EXACTO la puntuación de la IA sobre 15 bares reales y
+  // muestra la respuesta cruda + por qué no se lee. (test decisivo)
+  if (q.ia) {
+    const out = {};
+    try {
+      const gkey = process.env.GOOGLE_GEOCODE_KEY, akey = process.env.ANTHROPIC_API_KEY;
+      const gr = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gkey, 'X-Goog-FieldMask': 'places.displayName,places.primaryType,places.rating,places.userRatingCount,places.formattedAddress' },
+        body: JSON.stringify({ includedTypes: ['bar'], maxResultCount: 15, languageCode: 'es', locationRestriction: { circle: { center: { latitude: -32.8895, longitude: -68.8458 }, radius: 4000 } } }),
+      });
+      const gj = await gr.json();
+      const cands = (gj.places || []).map((p, i) => ({ i, fuente: 'google', nombre: (p.displayName || {}).text, tipo: p.primaryType, canal: 'on', zona: 'Mendoza', direccion: p.formattedAddress || null, rating: p.rating || null, reviews: p.userRatingCount || null, caption: null }));
+      out.n_cands = cands.length;
+      const PROMPT = `Sos el analista comercial de GrandBar Distribuciones (distribuidora de bebidas, Mendoza y San Luis). Para cada negocio de la lista devolvé un objeto con: "i" (el índice), "descartar" (true si no es prospecto de bebidas), "nombre", "categoria", "score" (0-100), "motivo" (frase corta), "canal_contacto" ("whatsapp"/"instagram"/"ninguno"), "mensaje_wsp" (2-3 frases de primer contacto por WhatsApp, tono argentino) y "mensaje_ig" (igual, más breve).
+Devolvé ÚNICAMENTE un array JSON, sin texto antes ni después, sin markdown.
+
+Lista:
+${JSON.stringify(cands)}`;
+      const cr = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': akey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: process.env.IA_MODEL_PROSPECTOS || 'claude-sonnet-5', max_tokens: 16000, messages: [{ role: 'user', content: PROMPT }] }),
+      });
+      const cj = await cr.json();
+      out.claude_status = cr.status;
+      out.stop_reason = cj.stop_reason;
+      out.usage = cj.usage;
+      if (!cr.ok) { out.claude_err = JSON.stringify(cj).slice(0, 500); return json(200, out); }
+      const txt = (cj.content && cj.content[0] && cj.content[0].text) || '';
+      out.raw_head = txt.slice(0, 180);
+      out.raw_tail = txt.slice(-180);
+      const a = txt.indexOf('['); const z = txt.lastIndexOf(']');
+      try { const arr = JSON.parse(txt.slice(a, z + 1)); out.parsed_len = arr.length; out.parsed = arr.slice(0, 4).map(o => ({ i: o.i, score: o.score, descartar: o.descartar, nombre: o.nombre })); }
+      catch (e) { out.parse_err = e.message; }
+    } catch (e) { out.error = e.message; }
+    return json(200, out);
+  }
   const out = { env: {} };
   out.env.GOOGLE = !!process.env.GOOGLE_GEOCODE_KEY;
   out.env.HUB_SERVICE_ROLE = !!process.env.HUB_SERVICE_ROLE;
