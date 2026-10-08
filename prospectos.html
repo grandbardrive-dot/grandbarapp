@@ -86,6 +86,17 @@
         <button data-f="contactado">Contactados</button>
         <button data-f="descartado">Descartados</button>
       </div>
+      <div class="tabsf" id="rubros">
+        <button data-r="" class="on">Todos los rubros</button>
+        <button data-r="Bares">Bares</button>
+        <button data-r="Boliches">Boliches</button>
+        <button data-r="Restós">Restós</button>
+        <button data-r="Hoteles">Hoteles</button>
+        <button data-r="Vinotecas">Vinotecas</button>
+        <button data-r="Autoservicios">Autoservicios</button>
+        <button data-r="Salones">Salones</button>
+        <button data-r="Otros">Otros</button>
+      </div>
       <div id="lista"><div class="empty">Cargando…</div></div>
     </div>
   </div>
@@ -99,8 +110,20 @@
 <script>
 const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
 const FN='/.netlify/functions/prospectos';
-let hub, TOKEN, DATA=[], filtro='nuevo';
+let hub, TOKEN, DATA=[], filtro='nuevo', rubroF='';
 const $=id=>document.getElementById(id);
+// Agrupa el tipo crudo (de Google o la IA) en un rubro lindo para filtrar.
+function rubroDe(t){
+  t=String(t||'').toLowerCase();
+  if(/night_club|disco|boliche/.test(t)) return 'Boliches';
+  if(/liquor|vinoteca|bebida|wine/.test(t)) return 'Vinotecas';
+  if(/convenience|grocery|autoservicio|market|almacen|mini|despensa/.test(t)) return 'Autoservicios';
+  if(/banquet|wedding|salon|salón|evento|fiesta/.test(t)) return 'Salones';
+  if(/hotel|lodging|hosteria|hoster|hostel|posada|cabaña|cabana/.test(t)) return 'Hoteles';
+  if(/bar|pub|brew|cervec|lounge/.test(t)) return 'Bares';
+  if(/restaur|resto|grill|comida|food|parrilla|pizz|cafe|café|sandwich|rotiser/.test(t)) return 'Restós';
+  return 'Otros';
+}
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const soloNum=s=>String(s||'').replace(/[^0-9]/g,'');
 const badge={nuevo:['b-nuevo','Nuevo'],contactado:['b-cont','Contactado'],interesado:['b-int','Interesado'],visita:['b-vis','A visitar'],descartado:['b-desc','Descartado'],ya_cliente:['b-yac','Ya cliente']};
@@ -127,7 +150,7 @@ async function copiar(txt){ try{ await navigator.clipboard.writeText(txt||''); t
 function scoreCls(s){ return s>=70?'sc-hi':s>=40?'sc-mid':'sc-lo'; }
 
 function pinta(){
-  const arr=DATA.filter(p=>!filtro||p.estado===filtro);
+  const arr=DATA.filter(p=>(!filtro||p.estado===filtro)&&(!rubroF||rubroDe(p.tipo)===rubroF));
   if(!arr.length){ $('lista').innerHTML='<div class="empty">No hay prospectos'+(filtro?' en este estado':'')+' por ahora.</div>'; return; }
   $('lista').innerHTML=arr.map(p=>{
     const b=badge[p.estado]||badge.nuevo;
@@ -177,6 +200,7 @@ async function setEstado(id,estado,nota){
   }catch(e){ toast('No se pudo',true); }
 }
 $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('tabs').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); filtro=b.dataset.f; pinta(); });
+$('rubros').querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('rubros').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); rubroF=b.dataset.r; pinta(); });
 
 async function cargar(){
   try{
