@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2238">
+<title>GrandBar — Reunión por marca</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;--gold:#c9a13b;--gold-d:#a9852a;--gold-s:#f7efda;--green:#2f8f6e;--green-d:#256f54;--green-s:#e6f2ec;--danger:#c0603e;--danger-s:#fbe9e4;--amber:#c99a2e;--amber-s:#f8efd6;--navy:#0d2238;--navy-2:#14304c;--blue:#3f6f9c;--blue-s:#eaf1f8;--gray:#a9b4ba}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .top{background:var(--navy);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+  .top a.back{color:#cdd9e0;text-decoration:none;font-size:13px;font-weight:700}
+  .top .b{font-weight:800;font-size:15px}.top .b .g{color:#e7c778}
+  .top .out{margin-left:auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cdd9e0;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer}
+  .wrap{max-width:1040px;margin:0 auto;padding:18px 16px 90px}
+  /* búsqueda */
+  .ask{background:var(--navy);border-radius:18px;padding:18px;color:#fff;margin-bottom:18px}
+  .ask .t{font-size:13px;font-weight:700;color:#e7c778;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px}
+  .ask .row{display:flex;gap:10px;flex-wrap:wrap}
+  .ask input{flex:1 1 260px;border:0;border-radius:12px;padding:14px 16px;font:inherit;font-size:17px;font-weight:600;color:var(--ink);outline:none}
+  .ask select{border:0;border-radius:12px;padding:12px;font:inherit;font-size:14.5px;font-weight:600;color:var(--ink);background:#fff;outline:none;flex:0 1 auto}
+  .ask button{border:0;border-radius:12px;background:var(--gold);color:var(--navy);font:inherit;font-weight:900;font-size:15px;padding:0 22px;cursor:pointer;min-height:48px}
+  .ask button:focus-visible,.ask input:focus-visible,.ask select:focus-visible{outline:3px solid #e7c778;outline-offset:2px}
+  .recent{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .recent button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#e8eef2;border-radius:20px;padding:5px 11px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;min-height:auto}
+  h2{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:26px 0 12px;display:flex;align-items:center;gap:9px}
+  h2 .per{margin-left:auto;font-size:11px;font-weight:700;color:var(--gold-d);background:var(--gold-s);border-radius:20px;padding:3px 10px;text-transform:none;letter-spacing:0}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .empty{text-align:center;color:var(--muted);font-size:13.5px;padding:22px 10px}
+  .nota{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45}
+  .aviso{background:var(--amber-s);border:1px solid #ecd9a6;color:#7a5a12;border-radius:12px;padding:10px 13px;font-size:13px;line-height:1.45;margin:10px 0}
+  /* veredicto */
+  .head{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+  .head h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
+  .head .sub{color:var(--muted);font-size:13.5px}
+  .verd{display:inline-flex;align-items:center;gap:8px;font-weight:900;font-size:15px;padding:6px 13px;border-radius:999px;margin-top:10px}
+  .verd.mal{background:var(--danger-s);color:var(--danger)}.verd.bien{background:var(--green-s);color:var(--green-d)}.verd.parejo{background:var(--amber-s);color:#8a6512}.verd.nd{background:#eef1f3;color:#5a6b73}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 14px}
+  .kpi .n{font-size:21px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+  .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:6px}
+  .kpi .v{font-size:12px;font-weight:700;margin-top:4px}
+  .up{color:var(--green-d)}.down{color:var(--danger)}.flat{color:#8a6512}
+  /* termómetros */
+  .termos{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+  .termo{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 8px 10px;text-align:center}
+  .termo .nm{font-size:12.5px;font-weight:800;line-height:1.25;min-height:32px;display:flex;align-items:center;justify-content:center}
+  .termo .pc{font-size:15px;font-weight:900;margin-top:2px;font-variant-numeric:tabular-nums}
+  .termo .det{font-size:11px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+  /* barras */
+  .rowb{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line2);font-size:13.5px}
+  .rowb:last-child{border-bottom:0}
+  .rowb .nm{font-weight:700;flex:none;width:32%;min-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rowb.click{cursor:pointer}.rowb.click:hover .nm{color:var(--blue)}
+  .bar2{flex:1;display:flex;flex-direction:column;gap:3px}
+  .bar2 i{display:block;height:7px;border-radius:5px;background:var(--navy)}
+  .bar2 i.p{background:#cfd8dc}
+  .val{font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:700;white-space:nowrap;text-align:right;min-width:86px}
+  .delta{font-size:11px;font-weight:800;padding:2px 7px;border-radius:20px;white-space:nowrap;min-width:52px;text-align:center}
+  .delta.up{background:var(--green-s)}.delta.down{background:var(--danger-s)}.delta.flat{background:var(--amber-s)}.delta.nd{background:#eef1f3;color:#5a6b73}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .meses{display:flex;align-items:flex-end;gap:6px;height:120px;padding-top:6px}
+  .meses .m{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end}
+  .meses .bb{display:flex;gap:2px;align-items:flex-end;height:100%;width:100%;justify-content:center}
+  .meses .bb i{display:block;width:42%;border-radius:4px 4px 0 0;background:var(--navy);min-height:1px}
+  .meses .bb i.p{background:#cfd8dc}
+  .meses .lb{font-size:10.5px;color:var(--muted);font-weight:700}
+  .ley{display:flex;gap:14px;font-size:11.5px;color:var(--muted);margin-top:6px}
+  .ley i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  /* cuestionario */
+  .q{display:grid;grid-template-columns:1fr;gap:14px}
+  .qi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .qi label.qt{display:block;font-weight:800;font-size:14.5px;margin-bottom:8px}
+  .qi .qn{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;align-items:center;justify-content:center;margin-right:8px;vertical-align:1px}
+  .qi input[type=text],.qi input[type=date],.qi textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14.5px;outline:none;background:#fff;color:var(--ink)}
+  .qi textarea{min-height:76px;resize:vertical}
+  .qi input:focus,.qi textarea:focus{border-color:var(--gold)}
+  .src{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.45}
+  .src b{color:var(--gold-d)}
+  .sn{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:8px}
+  .sn button{border:0;background:#fff;font:inherit;font-weight:800;font-size:14px;padding:8px 18px;cursor:pointer;color:var(--muted)}
+  .sn button[aria-pressed=true]{background:var(--navy);color:#fff}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:1.5px solid var(--line);background:#fff;border-radius:20px;padding:6px 11px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink)}
+  .chip[aria-pressed=true]{background:var(--gold-s);border-color:var(--gold);color:var(--gold-d)}
+  .mat{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:13.5px}
+  .mat input{width:18px;height:18px;accent-color:var(--green)}
+  .mat .st{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .acciones{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;position:sticky;bottom:12px}
+  .acciones button{border:0;border-radius:12px;font:inherit;font-weight:900;font-size:15px;padding:13px 20px;cursor:pointer;box-shadow:0 6px 18px rgba(13,34,56,.18)}
+  .b-save{background:var(--green);color:#fff}.b-copy{background:#fff;color:var(--navy);border:1.5px solid var(--navy)!important}
+  .hist .h{padding:9px 0;border-bottom:1px solid var(--line2);font-size:13px}
+  .hist .h:last-child{border-bottom:0}
+  .hist .h b{font-weight:800}
+  .link{color:var(--blue);font-weight:700;text-decoration:none}
+  @media (max-width:700px){ .cols{grid-template-columns:1fr} .head{grid-template-columns:1fr} .head .big{display:none} .rowb .nm{width:40%;min-width:90px} }
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="back" href="mi-panel.html">‹ Mi panel</a>
+    <div class="b"><span class="g">Grand</span>Bar · Reunión por marca</div>
+    <button class="out" onclick="salir()">Salir</button>
+  </div>
+  <div class="wrap">
+    <form class="ask" id="fAsk" onsubmit="event.preventDefault();consultar()">
+      <div class="t">¿De qué marca hablamos?</div>
+      <div class="row">
+        <input id="qMarca" type="text" placeholder="Ej: johnny, smirnoff, ramazzotti, chandon…" autocomplete="off" aria-label="Marca o producto">
+        <select id="qRubro" aria-label="Tipo de cliente">
+          <option value="">Todos los rubros</option>
+          <option value="bar">Bares</option><option value="restaurante">Restaurantes</option><option value="disco">Disco</option>
+          <option value="hotel">Hoteles</option><option value="evento">Eventos</option><option value="vinoteca">Vinotecas</option>
+          <option value="tienda de bebidas">Tiendas de bebidas</option><option value="autoservicio">Autoservicios</option><option value="mayorista">Mayoristas</option>
+        </select>
+        <select id="qPer" aria-label="Período"></select>
+        <button type="submit">Ver</button>
+      </div>
+      <div class="recent" id="recent"></div>
+    </form>
+    <div id="res"><div class="empty">Escribí una marca y te muestro cómo viene contra 2025, la acción vigente y el cuestionario de la reunión.</div></div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script>
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const num=n=>Math.round(Number(n||0)).toLocaleString('es-AR');
+  const money=n=>{n=Number(n||0);return Math.abs(n)>=1e6?'$ '+(n/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+' M':'$ '+Math.round(n).toLocaleString('es-AR');};
+  const fecha=s=>s?new Date(s+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'';
+  const RUBRO_LBL={bar:'Bares',restaurante:'Restaurantes',disco:'Disco',hotel:'Hoteles',evento:'Eventos',vinoteca:'Vinotecas','tienda de bebidas':'Tiendas de bebidas',autoservicio:'Autoservicios',mayorista:'Mayoristas',otros:'Otros (sin rubro)','sin dato':'Sin dato'};
+  const MES=['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  let hub=null, YO='', DATA=null, FICHA_LOCAL=false;
+  function salir(){ try{ GBAuth.signOut(); }catch(e){} location.href='index.html'; }
+  window.salir=salir;
+
+  // ── períodos ──
+  (function periodos(){
+    const hoy=new Date(Date.now()-3*3600e3), ayer=new Date(hoy.getTime()-864e5);
+    const iso=d=>d.toISOString().slice(0,10);
+    const ops=[[`${ayer.getFullYear()}-01-01|${iso(ayer)}`,`Año a la fecha (${ayer.getFullYear()})`],
+      [`${iso(new Date(ayer.getTime()-89*864e5))}|${iso(ayer)}`,'Últimos 3 meses'],
+      [`${iso(new Date(ayer.getTime()-29*864e5))}|${iso(ayer)}`,'Últimos 30 días']];
+    for(let i=1;i<=12;i++){ const d=new Date(ayer.getFullYear(),ayer.getMonth()-i,1), f=new Date(d.getFullYear(),d.getMonth()+1,0);
+      ops.push([`${iso(new Date(Date.UTC(d.getFullYear(),d.getMonth(),1)))}|${iso(new Date(Date.UTC(f.getFullYear(),f.getMonth(),f.getDate())))}`, `${MES[d.getMonth()+1]} ${d.getFullYear()}`]); }
+    $('qPer').innerHTML=ops.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  })();
+
+  (async()=>{
+    const s=await GBAuth.requireAuth(); if(!s) return;
+    YO=s.nombre||(s.user&&s.user.email)||'';
+    hub=GBAuth.client;
+    pintarRecientes();
+    const p=new URLSearchParams(location.search);
+    if(p.get('q')){ $('qMarca').value=p.get('q'); if(p.get('rubro')) $('qRubro').value=p.get('rubro'); consultar(); }
+    else $('qMarca').focus();
+  })();
+
+  // ── recientes (comodidad del navegador) ──
+  function recientes(){ try{ return JSON.parse(localStorage.getItem('gb_reunion_marcas')||'[]'); }catch(e){ return []; } }
+  function pintarRecientes(){ const r=recientes(); $('recent').innerHTML=r.map(x=>`<button type="button" onclick="usar('${esc(x).replace(/'/g,'')}')">${esc(x)}</button>`).join(''); }
+  function usar(m){ $('qMarca').value=m; consultar(); }
+  window.usar=usar;
+
+  // ── consulta ──
+  async function consultar(){
+    const q=$('qMarca').value.trim(); if(!q) return;
+    try{ const r=recientes().filter(x=>x.toLowerCase()!==q.toLowerCase()); r.unshift(q); localStorage.setItem('gb_reunion_marcas',JSON.stringify(r.slice(0,8))); }catch(e){}
+    pintarRecientes();
+    const [desde,hasta]=$('qPer').value.split('|'), rubro=$('qRubro').value;
+    history.replaceState(null,'',`?q=${encodeURIComponent(q)}${rubro?'&rubro='+encodeURIComponent(rubro):''}`);
+    $('res').innerHTML='<div class="empty">Buscando ventas, acciones y materiales de «'+esc(q)+'»…</div>';
+    try{
+      const r=await fetch(`/.netlify/functions/reunion-marca?q=${encodeURIComponent(q)}&rubro=${encodeURIComponent(rubro)}&desde=${desde}&hasta=${hasta}`);
+      DATA=await r.json();
+      if(!r.ok||!DATA.ok) throw new Error(DATA.error||('http '+r.status));
+      render();
+      cargarHistorial();
+    }catch(e){ $('res').innerHTML='<div class="card"><div class="empty">No pude traer los datos: '+esc(e.message)+'</div></div>'; }
+  }
+  window.consultar=consultar;
+
+  // ── veredicto y termómetro ──
+  function variacion(a,p,cobAnt){
+    if(cobAnt<90) return {k:'nd',txt:'2025 cargando',pct:null};
+    if(!p) return a>0?{k:'nd',txt:'Nuevo',pct:null}:{k:'nd',txt:'Sin ventas',pct:null};
+    const pct=Math.round((a-p)/p*100);
+    return {k:pct>5?'bien':pct<-5?'mal':'parejo',txt:pct>5?'Bien':pct<-5?'Mal':'Parejo',pct};
+  }
+  function termo(v,size){
+    const w=size==='big'?100:78, h=size==='big'?190:118, tube=size==='big'?18:12, bulb=size==='big'?20:13;
+    const cx=w/2, top=8, bottomTube=h-bulb*2+4, alto=bottomTube-top;
+    const col=v.k==='bien'?'#2f8f6e':v.k==='mal'?'#c0603e':v.k==='parejo'?'#c99a2e':'#a9b4ba';
+    const nivel=v.pct==null?0.5:Math.max(0.04,Math.min(1,(v.pct+50)/100));
+    const y=top+alto*(1-nivel);
+    const mid=top+alto*0.5;
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(v.txt)}${v.pct!=null?' '+v.pct+'%':''}">
+      <rect x="${cx-tube/2}" y="${top}" width="${tube}" height="${alto+bulb}" rx="${tube/2}" fill="#eef1f3" stroke="#d7dee2"/>
+      <rect x="${cx-tube/2+3}" y="${y}" width="${tube-6}" height="${bottomTube-y+bulb}" rx="${(tube-6)/2}" fill="${col}"/>
+      <circle cx="${cx}" cy="${h-bulb-2}" r="${bulb}" fill="${col}" stroke="#d7dee2"/>
+      <line x1="${cx+tube/2+2}" x2="${cx+tube/2+8}" y1="${mid}" y2="${mid}" stroke="#6d7d85" stroke-width="1.5"/>
+      <text x="${cx+tube/2+10}" y="${mid+3.5}" font-size="${size==='big'?10:8}" fill="#6d7d85" font-weight="700">2025</text>
+    </svg>`;
+  }
+  function delta(a,p,cobAnt){ const v=variacion(a,p,cobAnt); return v.pct==null?`<span class="delta nd">${esc(v.txt)}</span>`:`<span class="delta ${v.k==='bien'?'up':v.k==='mal'?'down':'flat'}">${v.pct>0?'+':''}${v.pct}%</span>`; }
+
+  function render(){
+    const d=DATA, cobA=d.cobertura_pct?d.cobertura_pct.actual:0, cobP=d.cobertura_pct?d.cobertura_pct.anterior:0;
+    const rubroTxt=d.rubro==='todos'?'Todos los rubros':(RUBRO_LBL[d.rubro]||d.rubro);
+    let h='';
+    if(!d.productos||!d.productos.length){
+      h+='<div class="card"><div class="empty">No encontré productos «'+esc(d.q)+'» en el sistema. Probá con otra palabra (ej: «walker», «smirnoff»).</div></div>';
+      h+=cuestionarioHtml(); $('res').innerHTML=h; prefill(); return;
+    }
+    const t=d.total, v=variacion(t.actual.botellas,t.anterior.botellas,cobP);
+    const lineas=[...new Set(d.productos.map(p=>p.linea))];
+    h+=`<div class="card head">
+      <div class="big">${termo(v,'big')}</div>
+      <div><h1>${esc(tituloMarca())} · ${esc(rubroTxt)}</h1>
+      <div class="sub">${fecha(d.periodo.desde)} – ${fecha(d.periodo.hasta)} contra el mismo período ${d.anterior.desde.slice(0,4)}</div>
+      <div class="verd ${v.k}">${v.k==='mal'?'▼':v.k==='bien'?'▲':v.k==='parejo'?'●':'○'} ${esc(v.txt)}${v.pct!=null?' '+(v.pct>0?'+':'')+v.pct+'% en botellas':''}</div>
+      <div class="kpis">
+        ${kpi(num(t.actual.botellas),'Botellas',t.actual.botellas,t.anterior.botellas,cobP,num(t.anterior.botellas))}
+        ${kpi(money(t.actual.monto),'Monto estimado',t.actual.monto,t.anterior.monto,cobP,money(t.anterior.monto))}
+        ${kpi(num(t.actual.clientes),'Clientes que compraron',t.actual.clientes,t.anterior.clientes,cobP,num(t.anterior.clientes))}
+        ${kpi(num(d.nuevos),'Clientes nuevos','','',100,'')}
+        ${kpi(num((d.dejaron_de_comprar||[]).length),'Dejaron de comprar','','',100,'')}
+      </div></div></div>`;
+    if(cobP<90) h+=`<div class="aviso">⏳ Las ventas de ${d.anterior.desde.slice(0,4)} todavía se están cargando desde el sistema (${cobP}% del período). Se completan solas en las próximas horas; por ahora los termómetros quedan en gris.</div>`;
+    if(cobA<95) h+=`<div class="aviso">El período actual está cargado al ${cobA}%: los números pueden quedar un poco cortos.</div>`;
+
+    // termómetros por línea
+    h+=`<h2>🌡️ Todos los productos <span class="per">${lineas.length} líneas</span></h2><div class="termos">`;
+    const pl=(d.por_linea||[]);
+    const conVenta=pl.filter(l=>l.actual.botellas||l.anterior.botellas);
+    h+=(conVenta.length?conVenta:pl).map(l=>{ const vv=variacion(l.actual.botellas,l.anterior.botellas,cobP);
+      return `<div class="termo">${termo(vv,'sm')}<div class="nm">${esc(l.linea)}</div><div class="pc ${vv.k==='bien'?'up':vv.k==='mal'?'down':vv.k==='parejo'?'flat':''}">${vv.pct!=null?(vv.pct>0?'+':'')+vv.pct+'%':esc(vv.txt)}</div><div class="det">${num(l.actual.botellas)} vs ${num(l.anterior.botellas)} bot.</div></div>`; }).join('')||'<div class="empty">Sin ventas en el período.</div>';
+    h+='</div>';
+    const sinVenta=lineas.filter(n=>!conVenta.some(l=>l.linea===n));
+    if(sinVenta.length) h+=`<div class="nota">Sin ventas en el período: ${sinVenta.map(esc).join(' · ')}.</div>`;
+
+    // por rubro + mes a mes
+    const pr=d.por_rubro||[], maxR=Math.max(1,...pr.map(r=>Math.max(r.actual.botellas,r.anterior.botellas)));
+    h+=`<div class="cols"><div><h2>🏪 Por rubro <span class="per">tocá uno para filtrar</span></h2><div class="card">`+
+      (pr.map(r=>`<div class="rowb click" onclick="filtrarRubro('${esc(r.rubro)}')"><div class="nm">${esc(RUBRO_LBL[r.rubro]||r.rubro)}</div><div class="bar2"><i style="width:${Math.round(r.actual.botellas/maxR*100)}%"></i><i class="p" style="width:${Math.round(r.anterior.botellas/maxR*100)}%"></i></div><div class="val">${num(r.actual.botellas)}</div>${delta(r.actual.botellas,r.anterior.botellas,cobP)}</div>`).join('')||'<div class="empty">—</div>')+
+      `<div class="ley"><span><i style="background:var(--navy)"></i>${d.periodo.desde.slice(0,4)}</span><span><i style="background:#cfd8dc"></i>${d.anterior.desde.slice(0,4)}</span></div></div></div>`;
+    const ma=d.por_mes.actual||{}, mp=d.por_mes.anterior||{}, ms=[...new Set([...Object.keys(ma),...Object.keys(mp)])].sort();
+    const maxM=Math.max(1,...ms.map(m=>Math.max(ma[m]||0,mp[m]||0)));
+    h+=`<div><h2>📅 Mes a mes</h2><div class="card"><div class="meses">`+ms.map(m=>`<div class="m"><div class="bb"><i style="height:${Math.round((ma[m]||0)/maxM*100)}%" title="${num(ma[m])}"></i><i class="p" style="height:${Math.round((mp[m]||0)/maxM*100)}%" title="${num(mp[m])}"></i></div><div class="lb">${MES[+m]}</div></div>`).join('')+
+      `</div><div class="ley"><span><i style="background:var(--navy)"></i>${d.periodo.desde.slice(0,4)}</span><span><i style="background:#cfd8dc"></i>${d.anterior.desde.slice(0,4)}</span></div></div></div></div>`;
+
+    // clientes y vendedores
+    const top=d.top_clientes||[], caidos=d.dejaron_de_comprar||[], pv=d.por_vendedor||[];
+    h+=`<div class="cols"><div><h2>👤 Quién compra más</h2><div class="card">`+(top.slice(0,8).map(c=>`<div class="rowb"><div class="nm" title="${esc(c.nombre)}">${esc(c.nombre)}${c.nuevo?' <span class="delta up">nuevo</span>':''}</div><div style="flex:1;font-size:12px;color:var(--muted)">${esc(c.vendedor||'')}</div><div class="val">${num(c.u)} bot.</div></div>`).join('')||'<div class="empty">—</div>')+`</div></div>`;
+    h+=`<div><h2>🔻 Dejaron de comprar <span class="per">a recuperar</span></h2><div class="card">`+(cobP<90?'<div class="empty">Se completa cuando terminen de cargar las ventas del año anterior.</div>':(caidos.slice(0,8).map(c=>`<div class="rowb"><div class="nm" title="${esc(c.nombre)}">${esc(c.nombre)}</div><div style="flex:1;font-size:12px;color:var(--muted)">${esc(c.vendedor||'')}</div><div class="val down">compraba ${num(c.u)}</div></div>`).join('')||'<div class="empty">Ninguno 🎉</div>'))+`</div></div></div>`;
+    h+=`<h2>🧑‍💼 Por vendedor</h2><div class="card">`+(pv.slice(0,10).map(v=>`<div class="rowb"><div class="nm">${esc(v.vendedor)}</div><div style="flex:1;font-size:12px;color:var(--muted)">${num(v.clientes)} clientes</div><div class="val">${num(v.botellas)} bot.</div>${delta(v.botellas,v.anterior,cobP)}</div>`).join('')||'<div class="empty">—</div>')+`</div>`;
+    h+=`<div class="nota">Fuente: ventas del sistema (empresas fiscal y no fiscal), actualizadas solas cada 20 min. Monto estimado = botellas × precio neto promedio del mes. Productos incluidos: ${lineas.map(esc).join(' · ')}.</div>`;
+
+    h+=cuestionarioHtml();
+    $('res').innerHTML=h;
+    prefill();
+  }
+  function kpi(n,l,a,p,cob,ant){ return `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div>${ant!==''?`<div class="v ${(()=>{const v=variacion(a,p,cob);return v.k==='bien'?'up':v.k==='mal'?'down':v.k==='parejo'?'flat':'';})()}">vs ${ant} ${delta(a,p,cob).replace(/<[^>]+>/g,'')}</div>`:''}</div>`; }
+  function tituloMarca(){ const q=DATA.q||''; return /^(johnny|johnnie|jonny|jw|walker)$/i.test(q.trim())?'Johnnie Walker':q.charAt(0).toUpperCase()+q.slice(1); }
+  function filtrarRubro(r){ $('qRubro').value=(r==='otros'||r==='sin dato')?'':r; consultar(); }
+  window.filtrarRubro=filtrarRubro;
+
+  // ── cuestionario de la reunión ──
+  const PREG=[
+    ['lectura','¿Cómo venimos con la marca?'],['descuento','¿Cuál es el descuento?'],['tope','¿Cuál es el tope?'],
+    ['sin_cargo','¿Hay botellas sin cargo?'],['accion','¿Qué acción vamos a hacer?'],['ejecucion','¿Cómo se ejecuta en el punto de venta?'],
+    ['materiales','¿Suma materiales? ¿Cuáles?'],['vigencia','¿Hasta qué fecha está disponible?'],['rubros','¿En qué rubros aplica?'],['notas','Acuerdos y pendientes']];
+  function cuestionarioHtml(){
+    const mats=(DATA.materiales||[]);
+    return `<section id="cuest"><h2>📝 Cuestionario de la reunión <span class="per" id="estadoFicha">sin guardar</span></h2>
+    <div class="qi" style="margin-bottom:14px"><label class="qt" for="fProv">Proveedor</label><input type="text" id="fProv" placeholder="Ej: Diageo"></div>
+    <div class="q">
+      <div class="qi"><label class="qt"><span class="qn">1</span>${PREG[0][1]}</label>
+        <div class="chips" id="fLect" role="group" aria-label="Lectura">${['Mal','Parejo','Bien'].map(x=>`<button type="button" class="chip" aria-pressed="false" data-v="${x}">${x}</button>`).join('')}</div>
+        <textarea id="fLectNota" style="margin-top:8px" placeholder="Qué dice el proveedor, por qué creemos que pasa…"></textarea>
+        <div class="src" id="sLect"></div></div>
+      <div class="qi"><label class="qt" for="fDesc"><span class="qn">2</span>${PREG[1][1]}</label><input type="text" id="fDesc" placeholder="Ej: 20% adicional"><div class="src" id="sDesc"></div></div>
+      <div class="qi"><label class="qt" for="fTope"><span class="qn">3</span>${PREG[2][1]}</label><input type="text" id="fTope" placeholder="Ej: sin tope · 2 cajas por PDV · 20 cajas disponibles"><div class="src" id="sTope"></div></div>
+      <div class="qi"><label class="qt"><span class="qn">4</span>${PREG[3][1]}</label>
+        <div class="sn" id="fSC">${['Sí','No'].map(x=>`<button type="button" aria-pressed="false" data-v="${x}">${x}</button>`).join('')}</div>
+        <input type="text" id="fSCdet" placeholder="Mecánica: ej 5+1, 3+1…"><div class="src" id="sSC"></div></div>
+      <div class="qi"><label class="qt" for="fAcc"><span class="qn">5</span>${PREG[4][1]}</label><textarea id="fAcc" placeholder="Ej: incorporación en carta + activación con precio promocional"></textarea><div class="src" id="sAcc"></div></div>
+      <div class="qi"><label class="qt" for="fEje"><span class="qn">6</span>${PREG[5][1]}</label><textarea id="fEje" placeholder="Quién lo hace, qué se muestra, qué evidencia se pide…"></textarea><div class="src" id="sEje"></div></div>
+      <div class="qi"><label class="qt"><span class="qn">7</span>${PREG[6][1]}</label>
+        <div class="sn" id="fMat">${['Sí','No'].map(x=>`<button type="button" aria-pressed="false" data-v="${x}">${x}</button>`).join('')}</div>
+        <div id="fMatLista">${mats.length?mats.map((m,i)=>`<label class="mat"><input type="checkbox" data-mat="${esc(m.name)}"> ${esc(m.name)}<span class="st">${num(m.stock_actual)} ${esc(m.unit_type||'u.')} en stock</span></label>`).join(''):'<div class="src">No hay materiales cargados en la biblioteca para esta marca.</div>'}</div>
+        <input type="text" id="fMatOtros" style="margin-top:6px" placeholder="Otros materiales (los pone el proveedor)…"></div>
+      <div class="qi"><label class="qt" for="fVig"><span class="qn">8</span>${PREG[7][1]}</label><input type="date" id="fVig"><div class="src" id="sVig"></div></div>
+      <div class="qi"><label class="qt"><span class="qn">9</span>${PREG[8][1]}</label>
+        <div class="chips" id="fRub">${Object.entries(RUBRO_LBL).filter(([k])=>!['otros','sin dato'].includes(k)).map(([k,l])=>`<button type="button" class="chip" aria-pressed="false" data-v="${k}">${l}</button>`).join('')}</div></div>
+      <div class="qi"><label class="qt" for="fNotas"><span class="qn">10</span>${PREG[9][1]}</label><textarea id="fNotas" placeholder="Qué quedó acordado, quién hace qué y para cuándo…"></textarea></div>
+    </div>
+    <div class="acciones"><button type="button" class="b-save" onclick="guardar()">Guardar</button><button type="button" class="b-copy" onclick="copiar()">Copiar resumen</button></div>
+    </section>
+    <h2>🗂️ Reuniones anteriores de esta marca</h2><div class="card hist" id="hist"><div class="empty">—</div></div>`;
+  }
+  function toggles(id,multi){ document.querySelectorAll(`#${id} [data-v]`).forEach(b=>b.addEventListener('click',()=>{ if(!multi) document.querySelectorAll(`#${id} [data-v]`).forEach(x=>{ if(x!==b) x.setAttribute('aria-pressed','false'); }); b.setAttribute('aria-pressed',String(b.getAttribute('aria-pressed')!=='true')); })); }
+  function setT(id,vals){ const s=new Set([].concat(vals||[])); document.querySelectorAll(`#${id} [data-v]`).forEach(b=>b.setAttribute('aria-pressed',String(s.has(b.dataset.v)))); }
+  function getT(id){ return [...document.querySelectorAll(`#${id} [data-v][aria-pressed=true]`)].map(b=>b.dataset.v); }
+  const src=(id,html)=>{ const e=$(id); if(e) e.innerHTML=html; };
+
+  // Precarga desde el catálogo de acciones, las propuestas de proveedores y la biblioteca de materiales.
+  function prefill(){
+    ['fLect','fSC','fMat'].forEach(id=>toggles(id,false)); toggles('fRub',true);
+    const d=DATA, acc=d.acciones||[], pro=d.propuestas||[];
+    const prov=(acc[0]&&acc[0].proveedor)||(pro[0]&&pro[0].autor_empresa)||'';
+    $('fProv').value=prov;
+    if(d.total){ const v=variacion(d.total.actual.botellas,d.total.anterior.botellas,d.cobertura_pct?d.cobertura_pct.anterior:0);
+      if(v.pct!=null) setT('fLect',v.txt);
+      src('sLect',`Según el sistema: <b>${esc(v.txt)}</b>${v.pct!=null?' ('+(v.pct>0?'+':'')+v.pct+'% en botellas)':''} · ${num(d.total.actual.botellas)} botellas vs ${num(d.total.anterior.botellas)}.`); }
+    if(d.rubro&&d.rubro!=='todos') setT('fRub',d.rubro);
+    const textos=[...acc.map(a=>({o:'Catálogo',n:a.nombre_producto,t:[a.mecanica,a.info_adicional].filter(Boolean).join(' · '),a})),...pro.map(p=>({o:'Propuesta de '+(p.autor_empresa||'proveedor'),n:p.titulo,t:[p.condicion,p.descripcion].filter(Boolean).join(' · '),p}))];
+    const lista=(f)=>textos.map(f).filter(Boolean);
+    // descuento
+    const desc=lista(x=>{ const pct=(x.a&&x.a.porcentaje_off)?x.a.porcentaje_off+'%':((x.t.match(/\d+\s*%[^·,.]*/)||[])[0]); return pct?{o:x.o,n:x.n,v:pct.trim()}:null; });
+    if(desc[0]) $('fDesc').value=desc[0].v;
+    src('sDesc',desc.length?desc.map(x=>`<b>${esc(x.o)}</b> · ${esc(x.n)}: ${esc(x.v)}`).join('<br>'):'No hay descuento cargado para esta marca.');
+    // tope
+    const tope=lista(x=>{ const m=x.t.match(/sin tope|tope[^·.\n]*|\d+\s*(cajas|cjs)[^·.\n]*disponibles/i)||(x.p&&x.p.cajas_disponibles?[x.p.cajas_disponibles+' cajas disponibles']:null); return m?{o:x.o,n:x.n,v:m[0].trim()}:null; });
+    if(tope[0]) $('fTope').value=tope[0].v;
+    src('sTope',tope.length?tope.map(x=>`<b>${esc(x.o)}</b> · ${esc(x.n)}: ${esc(x.v)}`).join('<br>'):'No figura tope: preguntalo.');
+    // botellas sin cargo
+    const sc=lista(x=>{ const m=x.t.match(/\b\d+\s*\+\s*\d+\b/)||x.t.match(/sin cargo[^·.\n]*/i); return m?{o:x.o,n:x.n,v:m[0].replace(/\s+/g,'')}:null; });
+    if(sc.length){ setT('fSC','Sí'); $('fSCdet').value=sc[0].v; } else if(desc.length) setT('fSC','No');
+    src('sSC',sc.length?sc.map(x=>`<b>${esc(x.o)}</b> · ${esc(x.n)}: ${esc(x.v)}`).join('<br>'):(desc.length?'Lo cargado es descuento, no producto sin cargo.':'Sin dato.'));
+    // acción y ejecución
+    if(textos[0]) $('fAcc').value=textos.slice(0,3).map(x=>`${x.n}${x.t?' — '+x.t:''}`).join('\n');
+    src('sAcc',textos.length?`${textos.length} acción(es) encontradas en el catálogo y las propuestas. Editá el texto con lo que se acuerde.`:'No hay acciones cargadas: completá con lo que proponga el proveedor.');
+    const eje=pro.filter(p=>p.descripcion);
+    if(eje[0]) $('fEje').value=eje[0].descripcion;
+    src('sEje',eje.length?eje.map(p=>`<b>${esc(p.autor_empresa||'Proveedor')}</b> · ${esc(p.titulo)}${p.seccion?' · sección '+esc(p.seccion)+(p.subseccion?' / '+esc(p.subseccion):''):''}`).join('<br>'):'El catálogo no tiene la ejecución en el PDV: preguntalo (quién lo hace, qué evidencia se pide).');
+    // materiales
+    if((d.materiales||[]).length) setT('fMat','Sí');
+    // vigencia
+    const vig=[...acc.map(a=>a.vigente_hasta&&{o:'Catálogo',n:a.nombre_producto,v:a.vigente_hasta}),...pro.map(p=>p.vigencia_hasta&&{o:'Propuesta',n:p.titulo,v:p.vigencia_hasta})].filter(Boolean);
+    if(vig[0]) $('fVig').value=vig[0].v.slice(0,10);
+    src('sVig',vig.length?vig.map(x=>`<b>${esc(x.o)}</b> · ${esc(x.n)}: hasta ${fecha(x.v.slice(0,10))}`).join('<br>'):(textos.length?'Las acciones cargadas no tienen fecha de fin: preguntala.':'Sin dato.'));
+  }
+
+  function leerFicha(){
+    return { proveedor:$('fProv').value.trim(), lectura:getT('fLect')[0]||'', lectura_nota:$('fLectNota').value.trim(),
+      descuento:$('fDesc').value.trim(), tope:$('fTope').value.trim(), sin_cargo:getT('fSC')[0]||'', sin_cargo_detalle:$('fSCdet').value.trim(),
+      accion:$('fAcc').value.trim(), ejecucion:$('fEje').value.trim(), suma_materiales:getT('fMat')[0]||'',
+      materiales:[...document.querySelectorAll('#fMatLista input[data-mat]:checked')].map(x=>x.dataset.mat), materiales_otros:$('fMatOtros').value.trim(),
+      vigencia_hasta:$('fVig').value||'', rubros:getT('fRub'), notas:$('fNotas').value.trim() };
+  }
+  function resumenTexto(r){
+    const t=DATA.total, v=t?variacion(t.actual.botellas,t.anterior.botellas,DATA.cobertura_pct.anterior):null;
+    return [`*Reunión ${r.proveedor||''} · ${tituloMarca()}* (${new Date().toLocaleDateString('es-AR')})`,
+      t?`Cómo venimos: ${r.lectura||v.txt}${v&&v.pct!=null?' ('+(v.pct>0?'+':'')+v.pct+'% vs '+DATA.anterior.desde.slice(0,4)+')':''} · ${num(t.actual.botellas)} bot.${r.lectura_nota?' — '+r.lectura_nota:''}`:'',
+      `Descuento: ${r.descuento||'—'}`,`Tope: ${r.tope||'—'}`,`Botellas sin cargo: ${r.sin_cargo||'—'}${r.sin_cargo_detalle?' ('+r.sin_cargo_detalle+')':''}`,
+      `Acción: ${r.accion||'—'}`,`Ejecución en PDV: ${r.ejecucion||'—'}`,
+      `Materiales: ${r.suma_materiales||'—'}${r.materiales.length?' · '+r.materiales.join(', '):''}${r.materiales_otros?' · '+r.materiales_otros:''}`,
+      `Vigencia: ${r.vigencia_hasta?fecha(r.vigencia_hasta):'—'}`,`Rubros: ${r.rubros.map(x=>RUBRO_LBL[x]||x).join(', ')||'—'}`,
+      r.notas?`Acuerdos: ${r.notas}`:''].filter(Boolean).join('\n');
+  }
+  async function copiar(){ const t=resumenTexto(leerFicha()); try{ await navigator.clipboard.writeText(t); $('estadoFicha').textContent='resumen copiado'; }catch(e){ prompt('Copiá el resumen:',t); } }
+  window.copiar=copiar;
+
+  async function guardar(){
+    const r=leerFicha(), d=DATA;
+    const fila={ proveedor:r.proveedor||null, marca:d.q, rubro:d.rubro, periodo:d.periodo.desde+'..'+d.periodo.hasta,
+      lectura:d.total?{total:d.total,cobertura:d.cobertura_pct}:null, respuestas:r, creado_por:YO };
+    const { error } = hub? await hub.from('reunion_fichas').insert(fila) : { error:{message:'sin sesión'} };
+    if(error){
+      // La tabla todavía no existe (falta correr reunion-pendientes-setup.sql): se guarda en este navegador.
+      try{ const k='gb_reunion_fichas'; const a=JSON.parse(localStorage.getItem(k)||'[]'); a.unshift({...fila,created_at:new Date().toISOString(),local:true}); localStorage.setItem(k,JSON.stringify(a.slice(0,100))); }catch(e){}
+      $('estadoFicha').textContent='guardado en este dispositivo';
+      alert('Guardado en este dispositivo. Para que quede en el sistema y lo vea el equipo falta correr reunion-pendientes-setup.sql en el Hub.\n\n('+error.message+')');
+    } else $('estadoFicha').textContent='guardado ✓';
+    cargarHistorial();
+  }
+  window.guardar=guardar;
+
+  async function cargarHistorial(){
+    const box=$('hist'); if(!box||!DATA) return;
+    let filas=[];
+    if(hub){ const { data, error } = await hub.from('reunion_fichas').select('*').ilike('marca',DATA.q).order('created_at',{ascending:false}).limit(10); if(!error) filas=data||[]; }
+    try{ filas=filas.concat(JSON.parse(localStorage.getItem('gb_reunion_fichas')||'[]').filter(f=>String(f.marca).toLowerCase()===String(DATA.q).toLowerCase())); }catch(e){}
+    box.innerHTML=filas.length?filas.map(f=>{ const r=f.respuestas||{}; return `<div class="h"><b>${new Date(f.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</b> · ${esc(r.proveedor||f.proveedor||'')} · ${esc(RUBRO_LBL[f.rubro]||f.rubro||'')}${f.local?' · <i>en este dispositivo</i>':''}<br>${esc([r.lectura&&('Lectura: '+r.lectura),r.descuento&&('Desc.: '+r.descuento),r.tope&&('Tope: '+r.tope),r.sin_cargo&&('Sin cargo: '+r.sin_cargo+(r.sin_cargo_detalle?' '+r.sin_cargo_detalle:'')),r.vigencia_hasta&&('Hasta '+fecha(r.vigencia_hasta))].filter(Boolean).join(' · '))}${r.notas?'<br><span style="color:var(--muted)">'+esc(r.notas)+'</span>':''}</div>`; }).join(''):'<div class="empty">Es la primera reunión registrada de esta marca.</div>';
+  }
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 // ============================================================
 //  GrandBar Hub · Function PROGRAMADA · sync-ventas-cron
 //  Mantiene las VENTAS del ERP al día sin que nadie apriete nada.
-//  Corre cada hora (ver netlify.toml) y solo DISPARA sync-ventas-background,
+//  Corre cada 20 min (ver netlify.toml; la background dura ~13 min, no se pisan) y solo DISPARA sync-ventas-background,
 //  que baja los días que falten (las dos empresas del ERP): el trabajo
 //  pesado no entra en los 30 s de una función programada.
 // ============================================================

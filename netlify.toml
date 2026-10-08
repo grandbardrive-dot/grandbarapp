@@ -38,9 +38,9 @@
 [functions."cazar-clientes-cron"]
   schedule = "0 10 * * *"
 
-# VENTAS del ERP → ventas_articulos / ventas_cliente, AUTOMÁTICO. Cada hora
+# VENTAS del ERP → ventas_articulos / ventas_cliente, AUTOMÁTICO. Cada 20 min
 # dispara sync-ventas-background, que baja los días que falten (primero ayer,
 # después rellena hasta VENTAS_DESDE) leyendo las DOS empresas del ERP (9999 + 0001).
 # Ver manual-vendedores/netlify/functions/sync-ventas-cron.js
 [functions."sync-ventas-cron"]
-  schedule = "5 * * * *"
+  schedule = "5,25,45 * * * *"

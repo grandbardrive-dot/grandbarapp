@@ -9,7 +9,8 @@
 //         "Actualizar ventas" del panel de Luciana).
 //    POST sin parámetros → baja lo que FALTE (lo dispara sync-ventas-cron):
 //         primero AYER, después rellena hacia atrás hasta VENTAS_DESDE
-//         (default 2026-04-01 = 6 meses, lo que pide el 11T). Un día está
+//         (default 2025-01-01: el año anterior completo, para comparar contra
+//         2025 en la Reunión por marca). Un día está
 //         hecho si tiene fila "v2 …" en ventas_sync_log; los últimos 3 días
 //         se vuelven a bajar a las 48 h (NC y facturas aprobadas tarde).
 //  Responde 202 al instante; el avance se ve en ventas_sync_log.
@@ -24,7 +25,7 @@ const isoDe = (d) => d.toISOString().slice(0, 10);
 const parseFecha = (s) => { const m = String(s || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? new Date(Date.UTC(+m[3], +m[2] - 1, +m[1], 12)) : null; };
 
 async function diasPendientes() {
-  const desdeMin = process.env.VENTAS_DESDE || '2026-04-01';
+  const desdeMin = process.env.VENTAS_DESDE || '2025-01-01';
   const r = await fetch(`${SB_URL}/rest/v1/ventas_sync_log?select=desde,created_at&ok=eq.true&detalle=like.v2*&desde=gte.${desdeMin}&order=created_at.desc&limit=3000`,
     { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } });
   const logs = r.ok ? await r.json() : [];
