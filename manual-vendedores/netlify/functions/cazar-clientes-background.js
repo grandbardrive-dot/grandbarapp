@@ -45,18 +45,31 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 // autoservicios chicos entran por convenience_store/grocery_store y las
 // cadenas que se cuelen las frena la lista negra CADENAS + el filtro de la IA.
 const TIPOS = {
-  on:  ['bar', 'night_club', 'restaurant', 'hotel', 'event_venue', 'banquet_hall', 'wedding_venue'],
+  on:  ['bar', 'night_club', 'restaurant', 'hotel', 'banquet_hall', 'wedding_venue'],
   off: ['liquor_store', 'convenience_store', 'grocery_store'],
 };
+// Tope de candidatos a puntuar por corrida (control de costo/tiempo de IA).
+const MAX_CANDIDATOS = 300;
 // Para CLASIFICAR el canal de cada resultado (no para buscar): qué cuenta como OFF.
 const OFF_DETECT = new Set(['liquor_store', 'convenience_store', 'grocery_store', 'supermarket', 'market', 'food_store', 'wholesaler']);
+// Tipos que NUNCA son prospecto aunque se cuelen (por tener varios types):
+// bodegas (les COMPRAMOS), teatros, estadios, cines, shoppings, hipermercados,
+// museos, parques, gimnasios, atracciones turísticas, peloteros/parques infantiles…
+const TIPO_BLOCK = new Set([
+  'winery', 'stadium', 'arena', 'performing_arts_theater', 'movie_theater', 'amusement_park',
+  'amusement_center', 'water_park', 'museum', 'art_gallery', 'zoo', 'aquarium', 'tourist_attraction',
+  'shopping_mall', 'department_store', 'supermarket', 'hypermarket', 'wholesaler', 'warehouse_store',
+  'convention_center', 'sports_complex', 'sports_activity_location', 'park', 'national_park',
+  'gym', 'fitness_center', 'casino', 'bowling_alley', 'playground', 'church', 'hospital', 'school',
+]);
 
 // Lista negra: cadenas / mayoristas que NO son prospectos de zona.
 const CADENAS = [
   'carrefour', 'walmart', 'jumbo', 'vea', 'disco', 'changomas', 'chango mas',
   'dia ', 'dia%', 'coto', 'la anonima', 'makro', 'maxiconsumo', 'vital',
   'diarco', 'atomo', 'oscar david', 'libertad', 'hipermercado', 'mega',
-  'yaguar', 'nini', 'blow max', 'super a', 'supermercado',
+  'yaguar', 'nini', 'blow max', 'super a', 'supermercado', 'toledo', 'chango mas',
+  'cordiez', 'quijote', 'super vea', 'gran libertad',
   // gastronomía de cadena
   'mcdonald', 'mostaza', 'burger king', 'starbucks', 'havanna', 'grido',
   'bonafide', 'kentucky', 'el noble', 'rapanui', 'subway',
@@ -137,42 +150,47 @@ function yaEsCliente(nombre, idx) {
 async function buscarGoogle(zonas, idx, yaRef) {
   const gkey = process.env.GOOGLE_GEOCODE_KEY;
   if (!gkey) { console.warn('Sin GOOGLE_GEOCODE_KEY'); return []; }
+  const FIELDS = 'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.types,places.rating,places.userRatingCount,places.nationalPhoneNumber,places.websiteUri,places.googleMapsUri,places.businessStatus';
   const cand = [];
+  const vistosRun = new Set(); // un mismo local puede salir en varias búsquedas por tipo
   for (const z of zonas) {
     const canal = (z.canal || 'ambos').toLowerCase();
     const tipos = canal === 'on' ? TIPOS.on : canal === 'off' ? TIPOS.off : [...TIPOS.on, ...TIPOS.off];
     const radius = Math.min(Math.max(+z.radio || 3000, 300), 20000);
-    try {
-      const pr = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': gkey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.primaryType,places.types,places.rating,places.userRatingCount,places.nationalPhoneNumber,places.websiteUri,places.googleMapsUri,places.businessStatus',
-        },
-        body: JSON.stringify({ includedTypes: tipos, maxResultCount: 20, languageCode: 'es', locationRestriction: { circle: { center: { latitude: +z.lat, longitude: +z.lng }, radius } } }),
-      });
-      const pj = await pr.json();
-      if (!pr.ok) { console.error('Places', z.nombre, JSON.stringify(pj).slice(0, 200)); continue; }
-      for (const p of (pj.places || [])) {
-        if (p.businessStatus && p.businessStatus !== 'OPERATIONAL') continue;
-        const nombre = (p.displayName && p.displayName.text) || '';
-        const nn = norm(nombre);
-        if (!nn || !p.id) continue;
-        if (yaRef.has('google:' + p.id)) continue;
-        if (esCadena(nn)) continue;
-        if (yaEsCliente(nombre, idx)) continue;
-        const off = OFF_DETECT.has(p.primaryType);
-        cand.push({
-          fuente: 'google', ref_id: p.id, nombre, direccion: p.formattedAddress || '',
-          lat: p.location && p.location.latitude, lng: p.location && p.location.longitude,
-          tipo: p.primaryType || '', canal: off ? 'off' : 'on', zona: z.nombre,
-          rating: p.rating || null, reviews: p.userRatingCount || null,
-          telefono: p.nationalPhoneNumber || '', website: p.websiteUri || '',
-          maps_url: p.googleMapsUri || '',
+    // UNA búsqueda POR CADA TIPO (bares, después restós, después vinotecas…):
+    // así cada categoría trae sus propios ~20 resultados y los locales chicos no
+    // quedan tapados por los grandes (shoppings, hipermercados). Mucho más coverage.
+    for (const tipo of tipos) {
+      try {
+        const pr = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gkey, 'X-Goog-FieldMask': FIELDS },
+          body: JSON.stringify({ includedTypes: [tipo], maxResultCount: 20, languageCode: 'es', locationRestriction: { circle: { center: { latitude: +z.lat, longitude: +z.lng }, radius } } }),
         });
-      }
-    } catch (e) { console.error('Google zona', z.nombre, e.message); }
+        const pj = await pr.json();
+        if (!pr.ok) { console.error('Places', z.nombre, tipo, JSON.stringify(pj).slice(0, 160)); continue; }
+        for (const p of (pj.places || [])) {
+          if (p.businessStatus && p.businessStatus !== 'OPERATIONAL') continue;
+          const nombre = (p.displayName && p.displayName.text) || '';
+          const nn = norm(nombre);
+          if (!nn || !p.id) continue;
+          if (vistosRun.has(p.id) || yaRef.has('google:' + p.id)) continue;
+          vistosRun.add(p.id);
+          if (TIPO_BLOCK.has(p.primaryType)) continue;   // bodega, teatro, estadio, shopping, pelotero…
+          if (esCadena(nn)) continue;                      // cadena / súper por nombre
+          if (yaEsCliente(nombre, idx)) continue;          // ya es cliente
+          const off = OFF_DETECT.has(p.primaryType);
+          cand.push({
+            fuente: 'google', ref_id: p.id, nombre, direccion: p.formattedAddress || '',
+            lat: p.location && p.location.latitude, lng: p.location && p.location.longitude,
+            tipo: p.primaryType || '', canal: off ? 'off' : 'on', zona: z.nombre,
+            rating: p.rating || null, reviews: p.userRatingCount || null,
+            telefono: p.nationalPhoneNumber || '', website: p.websiteUri || '',
+            maps_url: p.googleMapsUri || '',
+          });
+        }
+      } catch (e) { console.error('Google', z.nombre, tipo, e.message); }
+    }
   }
   return cand;
 }
@@ -204,18 +222,35 @@ async function buscarInstagram(hashtags, idx, yaRef) {
 }
 
 // ── Claude: puntúa + descarta + redacta los mensajes ─────────
+// Puntúa TODO pero DE A TANDAS de 25, así aunque haya cientos de candidatos la
+// respuesta de Claude nunca se corta (ese era el bug de "todos con score 50").
 async function puntuar(cands) {
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key || !cands.length) return cands.map(c => ({ ...c, score: null, descartar: !key }));
+  if (!key) return cands.map(c => ({ ...c, score: null, descartar: true }));
+  if (!cands.length) return [];
+  const CHUNK = 25; const salida = [];
+  for (let b = 0; b < cands.length; b += CHUNK) {
+    try { salida.push(...await scoreBatch(cands.slice(b, b + CHUNK), key)); }
+    catch (e) { console.error('scoreBatch', e.message); salida.push(...cands.slice(b, b + CHUNK).map(c => ({ ...c, score: 40, descartar: false, canal_contacto: c.fuente === 'instagram' ? 'instagram' : (c.telefono ? 'whatsapp' : 'instagram') }))); }
+  }
+  return salida;
+}
+
+async function scoreBatch(cands, key) {
   const lista = cands.map((c, i) => ({ i, fuente: c.fuente, nombre: c.nombre || null, tipo: c.tipo || null, canal: c.canal, zona: c.zona, direccion: c.direccion || null, rating: c.rating || null, reviews: c.reviews || null, caption: c._caption || null }));
   const PROMPT = `Sos el analista comercial de GrandBar Distribuciones, una distribuidora de bebidas en Mendoza y San Luis (Argentina). Sus canales son:
 - ON (se consume en el local): bares, discos/boliches, restaurantes, hoteles, salones de eventos/fiestas, eventos y sunsets.
 - OFF (reventa): vinotecas, tiendas de bebidas y autoservicios/mini-mercados de barrio.
-Le interesan los negocios INDEPENDIENTES de zona. NO le interesan los hipermercados ni las grandes cadenas (Carrefour, Walmart, Jumbo, Vea, Disco, ChangoMás, Día, Coto, La Anónima, Átomo, Makro, Maxiconsumo, etc.), ni negocios que no vendan/sirvan bebidas (ferreterías, farmacias, kioscos mínimos, etc.).
+Le interesan los negocios INDEPENDIENTES de zona. NO le interesan, y hay que DESCARTAR siempre:
+- Bodegas / wineries: GrandBar les COMPRA el vino, no les vende. Descartar.
+- Hipermercados y grandes cadenas de súper (Carrefour, Walmart, Jumbo, Vea, Disco, ChangoMás, Día, Coto, La Anónima, Átomo, Makro, Maxiconsumo, Toledo, etc.).
+- Lugares donde no se consume ni se revende alcohol de forma comercial: teatros, cines, museos, estadios y clubes deportivos, gimnasios, iglesias, escuelas, hospitales, plazas/parques, peloteros y salones de cumpleaños/fiestas INFANTILES.
+- Cualquier negocio que no venda ni sirva bebidas alcohólicas (ferreterías, farmacias, kioscos mínimos, etc.).
+Un salón de eventos/fiestas de ADULTOS sí sirve. Un autoservicio o mini-mercado de barrio independiente sí sirve (OFF).
 
 Te paso una lista de posibles clientes nuevos (de Google y de posts de Instagram). Para cada uno devolvé un objeto con:
 - "i": el índice que te di.
-- "descartar": true si NO es un prospecto válido (hipermercado o cadena grande, mayorista, un negocio que no vende/sirve bebidas, o un post de Instagram que no es claramente un local comercial). Un autoservicio o mini-mercado de barrio independiente SÍ es válido (OFF). Si dudás y parece un local independiente de alguno de los canales, dejalo (descartar=false).
+- "descartar": true si NO es un prospecto válido según lo de arriba (bodega/winery, hipermercado o cadena grande, teatro/cine/museo/estadio/club deportivo/gimnasio/iglesia/escuela/hospital/plaza, pelotero o salón de fiestas infantiles, mayorista, un negocio que no vende/sirve bebidas, o un post de Instagram que no es claramente un local comercial). Si dudás y parece un bar/restó/boliche/hotel/salón de adultos/vinoteca/autoservicio independiente, dejalo (descartar=false).
 - "nombre": para los de Instagram, deducí del caption el nombre del local (ej. "Bar La Esquina"). Para los de Google, repetí el nombre que te di. Si no se puede saber, null.
 - "categoria": una de "bar","disco","restaurante","hotel","salon_eventos","cafe","cerveceria","vinoteca","autoservicio","tienda_bebidas","otro".
 - "score": 0 a 100. Más alto = mejor prospecto (local activo, buena reputación, encaja con el target). Usá rating/reviews y el tipo. Si descartar=true, score 0.
@@ -299,8 +334,9 @@ exports.handler = async (event) => {
     const vistos = new Set(); const crudos = [];
     for (const c of [...gog, ...insta]) { const k = c.fuente + ':' + c.ref_id; if (vistos.has(k)) continue; vistos.add(k); crudos.push(c); }
 
-    // 4) puntuar + redactar con IA, y descartar lo que la IA marque
-    const puntuados = await puntuar(crudos);
+    // 4) puntuar + redactar con IA (de a tandas), y descartar lo que la IA marque
+    const recortados = crudos.slice(0, MAX_CANDIDATOS);
+    const puntuados = await puntuar(recortados);
     const buenos = puntuados.filter(c => !c.descartar);
 
     // 5) guardar

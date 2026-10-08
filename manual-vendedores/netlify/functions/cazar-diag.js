@@ -11,7 +11,17 @@ const TIPOS = {
 };
 const json = (s, b) => ({ statusCode: s, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b, null, 2) });
 
-exports.handler = async () => {
+exports.handler = async (event) => {
+  const q = (event && event.queryStringParameters) || {};
+  const srole0 = process.env.HUB_SERVICE_ROLE;
+  const hub0 = (p, o = {}) => fetch(HUB_URL + '/rest/v1/' + p, { ...o, headers: { apikey: srole0, Authorization: 'Bearer ' + srole0, 'Content-Type': 'application/json', ...(o.headers || {}) } });
+  // ?wipe=nuevos  → borra los prospectos en estado 'nuevo' (limpia la corrida de prueba, respeta lo que el supervisor ya marcó)
+  // ?wipe=todos   → borra TODOS los prospectos
+  if (q.wipe) {
+    const filtro = q.wipe === 'todos' ? 'id=not.is.null' : 'estado=eq.nuevo';
+    const r = await hub0('prospectos?' + filtro, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+    return json(200, { wipe: q.wipe, status: r.status, ok: r.ok });
+  }
   const out = { env: {} };
   out.env.GOOGLE = !!process.env.GOOGLE_GEOCODE_KEY;
   out.env.HUB_SERVICE_ROLE = !!process.env.HUB_SERVICE_ROLE;
