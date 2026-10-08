@@ -36,11 +36,14 @@ async function pedir(key, modelo, prompt, ms) {
     const r = await fetch(URL_IA, {
       method: 'POST', signal: ctrl.signal,
       headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: modelo, max_tokens: 1300, messages: [{ role: 'user', content: prompt }] }),
+      // Sonnet 5 razona por defecto (el primer bloque es "thinking", no texto, y gasta
+      // tokens): para una respuesta corta y rápida se apaga. Haiku 4.5 no razona por defecto.
+      body: JSON.stringify({ model: modelo, max_tokens: 2000, ...(/sonnet-5/.test(modelo) ? { thinking: { type: 'disabled' } } : {}), messages: [{ role: 'user', content: prompt }] }),
     });
     if (!r.ok) throw new Error('IA ' + r.status + ': ' + (await r.text()).slice(0, 200));
     const d = await r.json();
-    return (d.content && d.content[0] && d.content[0].text) || '';
+    if (d.stop_reason === 'max_tokens') throw new Error('respuesta cortada (max_tokens)');
+    return (d.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('');
   } finally { clearTimeout(t); }
 }
 
