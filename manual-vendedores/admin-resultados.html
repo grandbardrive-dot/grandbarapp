@@ -312,23 +312,30 @@
   function toggle(i){ const d=$('det'+i); if(d) d.style.display=d.style.display==='none'?'table-row':'none'; }
 
   // ---- Actualizar ventas (últimos 7 días) ----
+  // Las ventas ya se actualizan solas cada hora (sync-ventas-cron). El botón
+  // fuerza los últimos 7 días: dispara la background (~30 s por día, lee las
+  // dos empresas del ERP) y sigue el avance en ventas_sync_log.
   async function actualizar(){
     const btn=$('btnUpd'), msg=$('updMsg'); btn.disabled=true;
-    const hoy=new Date(); let cursor=new Date(hoy.getTime()-6*864e5); const hasta=ddmm(hoy);
-    let vueltas=0;
+    const hoy=new Date(), desde=new Date(hoy.getTime()-6*864e5);
+    const iso=(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const inicio=new Date().toISOString();
     try{
-      while(vueltas++<15){
-        msg.innerHTML='<span class="spin"></span> Bajando ventas desde '+ddmm(cursor)+'…';
-        const r=await fetch(`/.netlify/functions/sync-ventas?desde=${ddmm(cursor)}&hasta=${hasta}`);
-        const j=await r.json();
-        if(!j.ok) throw new Error(j.error||'Error en el sync');
-        if(j.resto && j.siguiente_desde){ const m=j.siguiente_desde.match(/(\d+)\/(\d+)\/(\d+)/); cursor=new Date(m[3],m[2]-1,m[1]); }
-        else break;
+      const r=await fetch(`/.netlify/functions/sync-ventas-background?desde=${ddmm(desde)}&hasta=${ddmm(hoy)}`,{method:'POST'});
+      if(r.status!==202 && !r.ok) throw new Error('No se pudo iniciar ('+r.status+')');
+      const LOG='https://fzaxwuuodseyyinveknn.supabase.co/rest/v1/ventas_sync_log', K='sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
+      for(let i=0;i<40;i++){                       // hasta ~6 min
+        const q=`${LOG}?select=desde,ok,detalle&created_at=gte.${encodeURIComponent(inicio)}&desde=gte.${iso(desde)}`;
+        const rows=await (await fetch(q,{headers:{apikey:K,Authorization:'Bearer '+K}})).json();
+        const listos=new Set((rows||[]).filter(x=>x.ok).map(x=>x.desde)).size;
+        msg.innerHTML=`<span class="spin"></span> Bajando ventas del sistema… ${listos} de 7 días`;
+        if(listos>=7) break;
+        await new Promise(res=>setTimeout(res,9000));
       }
       msg.textContent='✓ Ventas actualizadas.';
       await cargar();
     }catch(e){ msg.textContent='No se pudo actualizar: '+(e.message||e); }
-    finally{ btn.disabled=false; setTimeout(()=>{msg.textContent='';},4000); }
+    finally{ btn.disabled=false; setTimeout(()=>{msg.textContent='';},5000); }
   }
 
   function abrirSoporte(){ alert('Soporte — escribinos por WhatsApp.'); }
