@@ -5,6 +5,15 @@
   # Funciones serverless del manual de vendedores (IA de fotos y sugerencias).
   functions = "manual-vendedores/netlify/functions"
 
+# El código y los datos de las funciones NO se publican como archivos sueltos
+# (las funciones se llaman por /.netlify/functions/…). Incluye _datos/ con
+# ventas por cliente del tablero de Luciana.
+[[redirects]]
+  from = "/manual-vendedores/netlify/*"
+  to = "/404"
+  status = 404
+  force = true
+
 # La app entra por el login (index.html) automáticamente.
 [[redirects]]
   from = "/hub"

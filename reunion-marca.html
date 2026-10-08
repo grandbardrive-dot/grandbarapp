@@ -144,11 +144,13 @@
   (function periodos(){
     const hoy=new Date(Date.now()-3*3600e3), ayer=new Date(hoy.getTime()-864e5);
     const iso=d=>d.toISOString().slice(0,10);
-    const ops=[[`${ayer.getFullYear()}-01-01|${iso(ayer)}`,`Año a la fecha (${ayer.getFullYear()})`],
-      [`${iso(new Date(ayer.getTime()-89*864e5))}|${iso(ayer)}`,'Últimos 3 meses'],
-      [`${iso(new Date(ayer.getTime()-29*864e5))}|${iso(ayer)}`,'Últimos 30 días']];
-    for(let i=1;i<=12;i++){ const d=new Date(ayer.getFullYear(),ayer.getMonth()-i,1), f=new Date(d.getFullYear(),d.getMonth()+1,0);
-      ops.push([`${iso(new Date(Date.UTC(d.getFullYear(),d.getMonth(),1)))}|${iso(new Date(Date.UTC(f.getFullYear(),f.getMonth(),f.getDate())))}`, `${MES[d.getMonth()+1]} ${d.getFullYear()}`]); }
+    // Siempre año en curso contra el anterior (lo que se pregunta en la reunión).
+    const Y=ayer.getFullYear(), A=Y-1, ult=ayer.getMonth();               // ult = meses completos del año
+    const mesIso=(m,fin)=>fin?iso(new Date(Date.UTC(Y,m,0))):iso(new Date(Date.UTC(Y,m-1,1)));
+    const ops=[[`${Y}-01-01|${iso(ayer)}`,`Año a la fecha · ${Y} vs ${A}`]];
+    if(ult>=3) ops.push([`${mesIso(ult-2)}|${mesIso(ult,true)}`,`${MES[ult-2]}–${MES[ult]} ${Y} vs ${A}`]);
+    ops.push([`${iso(new Date(ayer.getTime()-29*864e5))}|${iso(ayer)}`,`Últimos 30 días vs ${A}`]);
+    for(let m=ult;m>=1;m--) ops.push([`${mesIso(m)}|${mesIso(m,true)}`,`${MES[m]} ${Y} vs ${MES[m]} ${A}`]);
     $('qPer').innerHTML=ops.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
   })();
 
@@ -227,11 +229,12 @@
       <div class="verd ${v.k}">${v.k==='mal'?'▼':v.k==='bien'?'▲':v.k==='parejo'?'●':'○'} ${esc(v.txt)}${v.pct!=null?' '+(v.pct>0?'+':'')+v.pct+'% en botellas':''}</div>
       <div class="kpis">
         ${kpi(num(t.actual.botellas),'Botellas',t.actual.botellas,t.anterior.botellas,cobP,num(t.anterior.botellas))}
-        ${kpi(money(t.actual.monto),'Monto estimado',t.actual.monto,t.anterior.monto,cobP,money(t.anterior.monto))}
+        ${kpi(money(t.actual.monto),d.monto_real?'Venta neta':'Monto estimado',t.actual.monto,t.anterior.monto,cobP,money(t.anterior.monto))}
         ${kpi(num(t.actual.clientes),'Clientes que compraron',t.actual.clientes,t.anterior.clientes,cobP,num(t.anterior.clientes))}
         ${kpi(num(d.nuevos),'Clientes nuevos','','',100,'')}
         ${kpi(num((d.dejaron_de_comprar||[]).length),'Dejaron de comprar','','',100,'')}
       </div></div></div>`;
+    if(d.fuente==='luci') h+=`<div class="aviso" style="background:var(--blue-s);border-color:#cfe0ef;color:#24496d">📊 <b>Datos del tablero de Luciana</b> (export CuboVentas, Diageo y Cinzano). Se usan mientras el sistema termina de cargar ${d.anterior.desde.slice(0,4)}${d.cobertura_sistema?' ('+d.cobertura_sistema.anterior+'% cargado)':''}. ${d.meses_usados&&d.meses_usados.length&&d.meses_usados[d.meses_usados.length-1]===9&&d.periodo_pedido_hasta>'2026-09-30'?'Octubre todavía no está en ese tablero. ':''}Período: ${fecha(d.periodo.desde)} – ${fecha(d.periodo.hasta)}.</div>`;
     if(cobP<90) h+=`<div class="aviso">⏳ Las ventas de ${d.anterior.desde.slice(0,4)} todavía se están cargando desde el sistema (${cobP}% del período). Se completan solas en las próximas horas; por ahora los termómetros quedan en gris.</div>`;
     if(cobA<95) h+=`<div class="aviso">El período actual está cargado al ${cobA}%: los números pueden quedar un poco cortos.</div>`;
 
@@ -260,7 +263,9 @@
     h+=`<div class="cols"><div><h2>👤 Quién compra más</h2><div class="card">`+(top.slice(0,8).map(c=>`<div class="rowb"><div class="nm" title="${esc(c.nombre)}">${esc(c.nombre)}${c.nuevo?' <span class="delta up">nuevo</span>':''}</div><div style="flex:1;font-size:12px;color:var(--muted)">${esc(c.vendedor||'')}</div><div class="val">${num(c.u)} bot.</div></div>`).join('')||'<div class="empty">—</div>')+`</div></div>`;
     h+=`<div><h2>🔻 Dejaron de comprar <span class="per">a recuperar</span></h2><div class="card">`+(cobP<90?'<div class="empty">Se completa cuando terminen de cargar las ventas del año anterior.</div>':(caidos.slice(0,8).map(c=>`<div class="rowb"><div class="nm" title="${esc(c.nombre)}">${esc(c.nombre)}</div><div style="flex:1;font-size:12px;color:var(--muted)">${esc(c.vendedor||'')}</div><div class="val down">compraba ${num(c.u)}</div></div>`).join('')||'<div class="empty">Ninguno 🎉</div>'))+`</div></div></div>`;
     h+=`<h2>🧑‍💼 Por vendedor</h2><div class="card">`+(pv.slice(0,10).map(v=>`<div class="rowb"><div class="nm">${esc(v.vendedor)}</div><div style="flex:1;font-size:12px;color:var(--muted)">${num(v.clientes)} clientes</div><div class="val">${num(v.botellas)} bot.</div>${delta(v.botellas,v.anterior,cobP)}</div>`).join('')||'<div class="empty">—</div>')+`</div>`;
-    h+=`<div class="nota">Fuente: ventas del sistema (empresas fiscal y no fiscal), actualizadas solas cada 20 min. Monto estimado = botellas × precio neto promedio del mes. Productos incluidos: ${lineas.map(esc).join(' · ')}.</div>`;
+    h+=d.fuente==='luci'
+      ? `<div class="nota">Fuente: ${esc(d.fuente_txt||'tablero de Luciana')} Venta neta sin IVA (incluye notas de crédito). Clientes con compra = venta neta positiva. Rubro y vendedor: los de la última compra.</div>`
+      : `<div class="nota">Fuente: ventas del sistema (empresas fiscal y no fiscal), actualizadas solas cada 20 min. Monto estimado = botellas × precio neto promedio del mes. Productos incluidos: ${lineas.map(esc).join(' · ')}.</div>`;
 
     h+=cuestionarioHtml();
     $('res').innerHTML=h;

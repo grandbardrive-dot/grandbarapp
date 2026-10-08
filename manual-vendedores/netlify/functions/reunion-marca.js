@@ -17,9 +17,14 @@
 //  Fuente de ventas: ventas_cliente (cliente×SKU×día, completas desde que
 //  sync-ventas lee las dos empresas del ERP; días "v2" en ventas_sync_log).
 //  El monto es ESTIMADO: unidades × precio neto promedio del SKU en el mes.
+//  Mientras el relleno de ventas no llega al año anterior (cobertura < 90%),
+//  si la marca y el período están en el tablero de Luciana (CuboVentas,
+//  Diageo y Cinzano, ene–sep 2025/2026) responde con ESOS datos
+//  (fuente: 'luci', monto = venta neta real). ?fuente=erp fuerza el sistema.
 //  Solo lectura, con claves públicas (Manual + Catálogo).
 // ============================================================
-const MAN = ['https://fzaxwuuodseyyinveknn.supabase.co/rest/v1/', process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk'];
+const LUCI = require('./_datos/luci');
+const MAN =['https://fzaxwuuodseyyinveknn.supabase.co/rest/v1/', process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk'];
 const CAT = ['https://zlwnoqdxendsgbfvfyue.supabase.co/rest/v1/', process.env.CATALOGO_ANON_KEY || 'sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4'];
 
 async function todo([base, key], path) {
@@ -99,7 +104,11 @@ exports.handler = async (event) => {
       .map((a) => ({ ...a, proveedor: a.catalogo_proveedores && a.catalogo_proveedores.nombre, catalogo_proveedores: undefined }));
     const props = propuestas.filter((p) => !rubro || !p.rubro || p.rubro === rubroPropuesta(rubro));
     const base = { ok: true, q: q.q, tokens: toks, rubro: rubro || 'todos', periodo: { desde, hasta }, anterior: { desde: pDesde, hasta: pHasta }, acciones, propuestas: props, materiales };
-    if (!prods.length) return out(200, { ...base, productos: [], nota: 'No encontré productos con ese nombre en el maestro del ERP.' });
+    const deLuci = () => (q.fuente === 'erp' ? null : LUCI.consultar({ claves, rubro, desde, hasta }));
+    if (!prods.length) {
+      const l = deLuci();
+      return out(200, l ? { ...base, ...l } : { ...base, productos: [], nota: 'No encontré productos con ese nombre en el maestro del ERP.' });
+    }
     const skus = prods.map((p) => p.codigo);
     const descDe = new Map(prods.map((p) => [p.codigo, p.descripcion]));
     const inSku = `sku=in.(${skus.join(',')})`;
@@ -162,9 +171,16 @@ exports.handler = async (event) => {
     const cob = (a, b) => { let n = 0, t = 0; for (let d = new Date(a + 'T12:00:00Z'); iso(d) <= b; d = new Date(d.getTime() + 864e5)) { t++; if (hechos.has(iso(d))) n++; } return t ? Math.round((n / t) * 100) : 0; };
     const par = (x, y) => ({ actual: { botellas: red(x?.u || 0), monto: red(x?.m || 0), clientes: x?.cli ? x.cli.size : 0 }, anterior: { botellas: red(y?.u || 0), monto: red(y?.m || 0), clientes: y?.cli ? y.cli.size : 0 } });
 
+    // El sistema todavía no tiene el año anterior: si la marca está en el tablero de Luci, se usa ese.
+    const cobertura = { actual: cob(desde, hasta), anterior: cob(pDesde, pHasta) };
+    if (cobertura.anterior < 90) {
+      const l = deLuci();
+      if (l) return out(200, { ...base, ...l, cobertura_sistema: cobertura });
+    }
     return out(200, {
       ...base,
-      cobertura_pct: { actual: cob(desde, hasta), anterior: cob(pDesde, pHasta) },
+      fuente: 'erp',
+      cobertura_pct: cobertura,
       productos: prods.map((p) => ({ sku: p.codigo, descripcion: p.descripcion, linea: linea(p.descripcion), stock: p.stock })),
       total: { actual: { botellas: red(A.u), monto: red(A.m), clientes: cA.length }, anterior: { botellas: red(P.u), monto: red(P.m), clientes: cP.length } },
       por_linea: [...new Set([...Object.keys(A.porLinea), ...Object.keys(P.porLinea)])].map((l) => ({ linea: l, ...par(A.porLinea[l], P.porLinea[l]) }))
