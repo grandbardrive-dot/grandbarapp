@@ -72,16 +72,16 @@ ${mats.length ? mats.map((m) => `- ${m.name} (${m.stock_actual} en stock)`).join
 
 ${R ? `Cómo funciona ${R.lugar}: para reactivar un producto conviene ${R.rotar}. Activaciones típicas: ${R.activar}.${R.off ? ' Es venta para llevar: nada de tragos, barra ni bartender.' : ''}` : ''}
 
-Tarea: proponé 3 ACCIONES distintas para presentarle al proveedor que ataquen el problema concreto del diagnóstico (la línea que cae, los clientes que dejaron de comprar, el rubro flojo) o que aprovechen lo que crece. Mecánicas habituales de GrandBar: producto sin cargo (5+1, 3+1, 8+1), % adicional sobre lista, combos, incorporación en carta, degustación, exhibición/puntera, torneo de vendedores. Siempre con tope (por PDV o cajas totales). Materiales: usá solo los de la lista; si hace falta otro, escribilo como "pedir al proveedor: …". No inventes cifras de ventas: la meta tiene que ser concreta pero razonable respecto del diagnóstico.
+Tarea: proponé 3 ACCIONES distintas para presentarle al proveedor que ataquen el problema concreto del diagnóstico (la línea que cae, los clientes que dejaron de comprar, el rubro flojo) o que aprovechen lo que crece. Mecánicas habituales de GrandBar: producto sin cargo (5+1, 3+1, 8+1), % adicional sobre lista, combos, incorporación en carta, degustación, exhibición/puntera, torneo de vendedores. Siempre con tope (por PDV o cajas totales). Materiales: usá solo los de la lista; si hace falta otro, escribilo como "pedir al proveedor: …". REGLAS DE NÚMEROS: usá EXACTAMENTE los números del diagnóstico y no inventes otros (ni cantidades de clientes, ni botellas, ni "bares grandes"). "dejaron_de_comprar.cantidad" son clientes que dejaron de comprar la MARCA (cualquier línea), no una línea en particular: no digas que dejaron de comprar una línea específica. Si una línea crece (variacion_pct positiva) no la llames "salvataje" ni "recuperación": es aprovechar el envión. La meta tiene que ser concreta pero razonable respecto del diagnóstico.
 
 Devolvé ÚNICAMENTE un JSON array de 3 objetos, en español rioplatense, cada uno con estas claves:
 "titulo" (corto), "para_que" (qué problema ataca, 1 oración con el dato), "a_quien" (qué clientes: ej. "los 18 bares que dejaron de comprar Black"), "mecanica" (ej. "5+1" o "20% adicional"), "sin_cargo" (true/false), "descuento" (texto o ""), "tope" (texto), "ejecucion" (cómo se ejecuta en el punto de venta y qué evidencia se pide, 1-2 oraciones), "materiales" (array de strings), "vigencia_dias" (número), "meta" (1 oración medible), "por_que" (1 oración: por qué esta y no otra).
 Cada valor de texto: máximo 25 palabras. Sin texto antes ni después, sin markdown.`;
 
     // Los dos a la vez: si el principal termina a tiempo se usa ese; si no, el rápido
-    // (que ya está listo). Así la reunión nunca espera más de ~20 s.
-    const pPrincipal = pedir(key, MODELO, prompt, 19000);
-    const pRapido = pedir(key, RAPIDO, prompt, 19000);
+    // (que ya está listo). Así la reunión nunca espera más de ~25 s.
+    const pPrincipal = pedir(key, MODELO, prompt, 24000);
+    const pRapido = pedir(key, RAPIDO, prompt, 24000);
     pRapido.catch(() => {});
     let texto, modelo = MODELO;
     try { texto = await pPrincipal; if (!parseArray(texto).length) throw new Error('vacío'); }
