@@ -75,6 +75,9 @@ exports.handler = async (event) => {
       clientes_distintos: { todos_los_tipos: clientesTodos.size, solo_FA_NC: clientesFaNc.size },
       tipos,
       campos_cabecera: Object.keys(comps[0] || {}),
+      // ¿Aparecen las sucursales no fiscales (9999 Mendoza / 1000 San Luis)?
+      por_sucursal: comps.reduce((m, c) => { const k = String(c.Sucursal ?? '?'); m[k] = (m[k] || 0) + 1; return m; }, {}),
+      por_fiscalizado: comps.reduce((m, c) => { const k = String(c.Fiscalizado ?? '?'); m[k] = (m[k] || 0) + 1; return m; }, {}),
     };
 
     // Opcional: mirar un comprobante de un tipo que hoy descartamos (¿trae renglones?).
