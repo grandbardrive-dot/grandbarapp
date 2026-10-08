@@ -49,6 +49,10 @@
   .termo{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 8px 10px;text-align:center}
   .termo .nm{font-size:12.5px;font-weight:800;line-height:1.25;min-height:32px;display:flex;align-items:center;justify-content:center}
   .termo .pc{font-size:15px;font-weight:900;margin-top:2px;font-variant-numeric:tabular-nums}
+  button.termo{font:inherit;color:inherit;cursor:pointer;width:100%}
+  button.termo:hover{border-color:var(--gold)}
+  .termo.sel{border:2px solid var(--navy);box-shadow:0 0 0 3px var(--gold-s)}
+  .termo.todo .nm{color:var(--blue)}
   .termo .det{font-size:11px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
   /* barras */
   .rowb{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line2);font-size:13.5px}
@@ -135,7 +139,7 @@
     <button class="out" onclick="salir()">Salir</button>
   </div>
   <div class="wrap">
-    <form class="ask" id="fAsk" onsubmit="event.preventDefault();consultar()">
+    <form class="ask" id="fAsk" onsubmit="event.preventDefault();consultar('')">
       <div class="t">¿De qué marca hablamos?</div>
       <div class="row">
         <input id="qMarca" type="text" placeholder="Ej: johnny, smirnoff, ramazzotti, chandon…" autocomplete="off" aria-label="Marca o producto">
@@ -145,6 +149,7 @@
           <option value="hotel">Hoteles</option><option value="evento">Eventos</option><option value="vinoteca">Vinotecas</option>
           <option value="tienda de bebidas">Tiendas de bebidas</option><option value="autoservicio">Autoservicios</option><option value="mayorista">Mayoristas</option>
         </select>
+        <select id="qReg" aria-label="Región"><option value="">Mendoza y San Luis</option><option value="mendoza">Mendoza</option><option value="sanluis">San Luis</option></select>
         <select id="qPer" aria-label="Período"></select>
         <button type="submit">Ver</button>
       </div>
@@ -164,8 +169,9 @@
   const money=n=>{n=Number(n||0);return Math.abs(n)>=1e6?'$ '+(n/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+' M':'$ '+Math.round(n).toLocaleString('es-AR');};
   const fecha=s=>s?new Date(s+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'';
   const RUBRO_LBL={bar:'Bares',restaurante:'Restaurantes',disco:'Disco',hotel:'Hoteles',evento:'Eventos',vinoteca:'Vinotecas','tienda de bebidas':'Tiendas de bebidas',autoservicio:'Autoservicios',mayorista:'Mayoristas',otros:'Otros (sin rubro)','sin dato':'Sin dato'};
+  const REG_LBL={mendoza:'Mendoza',sanluis:'San Luis'};
   const MES=['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  let hub=null, YO='', DATA=null, FICHA_LOCAL=false, PROV='';
+  let hub=null, YO='', DATA=null, FICHA_LOCAL=false, PROV='', LINEA='';
   function salir(){ try{ GBAuth.signOut(); }catch(e){} location.href='index.html'; }
   window.salir=salir;
 
@@ -189,28 +195,30 @@
     hub=GBAuth.client;
     pintarRecientes();
     const p=new URLSearchParams(location.search);
-    if(p.get('q')){ $('qMarca').value=p.get('q'); if(p.get('rubro')) $('qRubro').value=p.get('rubro'); consultar(); }
+    if(p.get('q')){ $('qMarca').value=p.get('q'); if(p.get('rubro')) $('qRubro').value=p.get('rubro'); if(p.get('region')) $('qReg').value=p.get('region'); consultar(p.get('linea')||''); }
     else $('qMarca').focus();
   })();
 
   // ── recientes (comodidad del navegador) ──
   function recientes(){ try{ return JSON.parse(localStorage.getItem('gb_reunion_marcas')||'[]'); }catch(e){ return []; } }
   function pintarRecientes(){ const r=recientes(); $('recent').innerHTML=r.map(x=>`<button type="button" onclick="usar('${esc(x).replace(/'/g,'')}')">${esc(x)}</button>`).join(''); }
-  function usar(m){ $('qMarca').value=m; consultar(); }
+  function usar(m){ $('qMarca').value=m; consultar(''); }
   window.usar=usar;
 
   // ── consulta ──
-  async function consultar(){
+  async function consultar(linea){
     const q=$('qMarca').value.trim(); if(!q) return;
+    LINEA=typeof linea==='string'?linea:'';
     try{ const r=recientes().filter(x=>x.toLowerCase()!==q.toLowerCase()); r.unshift(q); localStorage.setItem('gb_reunion_marcas',JSON.stringify(r.slice(0,8))); }catch(e){}
     pintarRecientes();
-    const [desde,hasta]=$('qPer').value.split('|'), rubro=$('qRubro').value;
-    history.replaceState(null,'',`?q=${encodeURIComponent(q)}${rubro?'&rubro='+encodeURIComponent(rubro):''}`);
+    const [desde,hasta]=$('qPer').value.split('|'), rubro=$('qRubro').value, region=$('qReg').value;
+    history.replaceState(null,'',`?q=${encodeURIComponent(q)}${rubro?'&rubro='+encodeURIComponent(rubro):''}${region?'&region='+region:''}${LINEA?'&linea='+encodeURIComponent(LINEA):''}`);
     $('res').innerHTML='<div class="empty">Buscando ventas, acciones y materiales de «'+esc(q)+'»…</div>';
     try{
-      const r=await fetch(`/.netlify/functions/reunion-marca?q=${encodeURIComponent(q)}&rubro=${encodeURIComponent(rubro)}&desde=${desde}&hasta=${hasta}`);
+      const r=await fetch(`/.netlify/functions/reunion-marca?q=${encodeURIComponent(q)}&rubro=${encodeURIComponent(rubro)}&region=${region}&desde=${desde}&hasta=${hasta}${LINEA?'&linea='+encodeURIComponent(LINEA):''}`);
       DATA=await r.json();
       PROV=DATA.proveedor||'';
+      LINEA=DATA.linea_elegida||(LINEA==='*'?'*':'');
       if(!r.ok||!DATA.ok) throw new Error(DATA.error||('http '+r.status));
       render();
       cargarHistorial();
@@ -244,7 +252,7 @@
 
   function render(){
     const d=DATA, cobA=d.cobertura_pct?d.cobertura_pct.actual:0, cobP=d.cobertura_pct?d.cobertura_pct.anterior:0;
-    const rubroTxt=d.rubro==='todos'?'Todos los rubros':(RUBRO_LBL[d.rubro]||d.rubro);
+    const rubroTxt=(d.rubro==='todos'?'Todos los rubros':(RUBRO_LBL[d.rubro]||d.rubro))+(REG_LBL[d.region]?' · '+REG_LBL[d.region]:'');
     let h='';
     if(!d.productos||!d.productos.length){
       h+='<div class="card"><div class="empty">No encontré productos «'+esc(d.q)+'» en el sistema. Probá con otra palabra (ej: «walker», «smirnoff»).</div></div>';
@@ -252,7 +260,15 @@
     }
     const t=d.total, v=variacion(t.actual.botellas,t.anterior.botellas,cobP);
     const lineas=[...new Set(d.productos.map(p=>p.linea))];
-    h+=`<div class="card head">
+    // ¿qué producto? (se analiza uno a la vez; los termómetros sirven para elegir)
+    const pl=(d.por_linea||[]), conVenta=pl.filter(l=>l.actual.botellas||l.anterior.botellas);
+    if((conVenta.length?conVenta:pl).length>1){
+      h+='<h2>🌡️ ¿Qué producto de '+esc(nombreMarca())+'? <span class="per">tocá uno para analizarlo</span></h2><div class="termos">';
+      h+=(conVenta.length?conVenta:pl).map(l=>{ const vv=variacion(l.actual.botellas,l.anterior.botellas,cobP), sel=d.linea_elegida===l.linea;
+        return '<button type="button" class="termo'+(sel?' sel':'')+'" aria-pressed="'+sel+'" onclick="elegirProducto(\''+esc(l.linea).replace(/'/g,"\\'")+'\')">'+termo(vv,'sm')+'<div class="nm">'+esc(l.linea)+'</div><div class="pc '+(vv.k==='bien'?'up':vv.k==='mal'?'down':vv.k==='parejo'?'flat':'')+'">'+(vv.pct!=null?(vv.pct>0?'+':'')+vv.pct+'%':esc(vv.txt))+'</div><div class="det">'+num(l.actual.botellas)+' vs '+num(l.anterior.botellas)+' bot.</div></button>'; }).join('');
+      h+='<button type="button" class="termo todo'+(!d.linea_elegida?' sel':'')+'" aria-pressed="'+(!d.linea_elegida)+'" onclick="elegirProducto(\'*\')"><div class="nm" style="min-height:118px">Toda la marca junta</div></button></div>';
+    }
+    h+=`<div class="card head" style="margin-top:14px">
       <div class="big">${termo(v,'big')}</div>
       <div><h1>${esc(tituloMarca())} · ${esc(rubroTxt)}</h1>
       <div class="sub">${fecha(d.periodo.desde)} – ${fecha(d.periodo.hasta)} contra el mismo período ${d.anterior.desde.slice(0,4)}</div>
@@ -269,15 +285,8 @@
     if(cobP<90) h+=`<div class="aviso">⏳ Las ventas de ${d.anterior.desde.slice(0,4)} todavía se están cargando desde el sistema (${cobP}% del período). Se completan solas en las próximas horas; por ahora los termómetros quedan en gris.</div>`;
     if(cobA<95) h+=`<div class="aviso">El período actual está cargado al ${cobA}%: los números pueden quedar un poco cortos.</div>`;
 
-    // termómetros por línea
-    h+=`<h2>🌡️ Todos los productos <span class="per">${lineas.length} líneas</span></h2><div class="termos">`;
-    const pl=(d.por_linea||[]);
-    const conVenta=pl.filter(l=>l.actual.botellas||l.anterior.botellas);
-    h+=(conVenta.length?conVenta:pl).map(l=>{ const vv=variacion(l.actual.botellas,l.anterior.botellas,cobP);
-      return `<div class="termo">${termo(vv,'sm')}<div class="nm">${esc(l.linea)}</div><div class="pc ${vv.k==='bien'?'up':vv.k==='mal'?'down':vv.k==='parejo'?'flat':''}">${vv.pct!=null?(vv.pct>0?'+':'')+vv.pct+'%':esc(vv.txt)}</div><div class="det">${num(l.actual.botellas)} vs ${num(l.anterior.botellas)} bot.</div></div>`; }).join('')||'<div class="empty">Sin ventas en el período.</div>';
-    h+='</div>';
     const sinVenta=lineas.filter(n=>!conVenta.some(l=>l.linea===n));
-    if(sinVenta.length) h+=`<div class="nota">Sin ventas en el período: ${sinVenta.map(esc).join(' · ')}.</div>`;
+    if(sinVenta.length&&!d.linea_elegida) h+=`<div class="nota">Sin ventas en el período: ${sinVenta.map(esc).join(' · ')}.</div>`;
 
     // detalle plegado: rubros, mes a mes, clientes, vendedores
     h+='<details class="det"><summary>Ver el detalle: rubros, mes a mes, clientes y vendedores</summary>';
@@ -307,20 +316,24 @@
   }
   function kpi(n,l,a,p,cob,ant){ return `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div>${ant!==''?`<div class="v ${(()=>{const v=variacion(a,p,cob);return v.k==='bien'?'up':v.k==='mal'?'down':v.k==='parejo'?'flat':'';})()}">vs ${ant} ${delta(a,p,cob).replace(/<[^>]+>/g,'')}</div>`:''}</div>`; }
   const NOMBRES={johnny:'Johnnie Walker',johnnie:'Johnnie Walker',jonny:'Johnnie Walker',jw:'Johnnie Walker',walker:'Johnnie Walker',gordon:"Gordon's",gordons:"Gordon's",smirnof:'Smirnoff',jb:'J&B'};
-  function tituloMarca(){ const q=(DATA.q||'').trim(); return NOMBRES[q.toLowerCase().replace(/[^a-z&]/g,'')]||q.charAt(0).toUpperCase()+q.slice(1); }
-  function filtrarRubro(r){ $('qRubro').value=(r==='otros'||r==='sin dato')?'':r; consultar(); }
+  function nombreMarca(){ const q=(DATA.q||'').trim(); return NOMBRES[q.toLowerCase().replace(/[^a-z&]/g,'')]||q.charAt(0).toUpperCase()+q.slice(1); }
+  function tituloMarca(){ return DATA&&DATA.linea_elegida?DATA.linea_elegida:nombreMarca()+' (toda la marca)'; }
+  function filtrarRubro(r){ $('qRubro').value=(r==='otros'||r==='sin dato')?'':r; consultar(LINEA); }
+  function elegirProducto(l){ consultar(l); }
+  document.getElementById('qReg').addEventListener('change',()=>{ if(DATA) consultar(LINEA); });
+  window.elegirProducto=elegirProducto;
   window.filtrarRubro=filtrarRubro;
 
   // ── la respuesta, en una frase ──
   function respuesta(d,v){
-    const rt=d.rubro==='todos'?'en todos los rubros':'en '+(RUBRO_LBL[d.rubro]||d.rubro);
+    const rt=(d.rubro==='todos'?'en todos los rubros':'en '+(RUBRO_LBL[d.rubro]||d.rubro))+(REG_LBL[d.region]?' de '+REG_LBL[d.region]:'');
     if(v.pct==null) return esc(tituloMarca()+' '+rt+': '+(v.txt==='2025 cargando'?'todavía no hay datos del año anterior para comparar.':v.txt.toLowerCase()+'.'));
     const ls=(d.por_linea||[]).filter(l=>l.anterior.botellas>=20).map(l=>({l:l.linea,p:Math.round((l.actual.botellas-l.anterior.botellas)/l.anterior.botellas*100)}));
     const peor=ls.slice().sort((a,b)=>a.p-b.p)[0], mejor=ls.slice().sort((a,b)=>b.p-a.p)[0];
     const n=d.dejaron_total!=null?d.dejaron_total:(d.dejaron_de_comprar||[]).length;
     let s='<b>'+esc(tituloMarca())+' '+esc(rt)+' viene '+esc(v.txt.toUpperCase())+'</b>: '+(v.pct>0?'+':'')+v.pct+'% en botellas ('+num(d.total.actual.botellas)+' vs '+num(d.total.anterior.botellas)+'); compraron '+num(d.total.actual.clientes)+' clientes contra '+num(d.total.anterior.clientes)+'.';
-    if(peor&&peor.p<-5) s+=' Lo que más cae: <b>'+esc(peor.l)+' '+peor.p+'%</b>.';
-    if(mejor&&mejor.p>5&&(!peor||mejor.l!==peor.l)) s+=' Lo que tira: '+esc(mejor.l)+' +'+mejor.p+'%.';
+    if(!d.linea_elegida&&peor&&peor.p<-5) s+=' Lo que más cae: <b>'+esc(peor.l)+' '+peor.p+'%</b>.';
+    if(!d.linea_elegida&&mejor&&mejor.p>5&&(!peor||mejor.l!==peor.l)) s+=' Lo que tira: '+esc(mejor.l)+' +'+mejor.p+'%.';
     if(n) s+=' <b>'+num(n)+' clientes dejaron de comprar.</b>';
     return s;
   }
@@ -348,7 +361,7 @@
     const d=DATA; if(!d.total) return {};
     const pct=(a,b)=>b?Math.round((a-b)/b*100):null;
     return {
-      marca:tituloMarca(), rubro:d.rubro==='todos'?'todos':(RUBRO_LBL[d.rubro]||d.rubro),
+      marca:tituloMarca(), rubro:d.rubro==='todos'?'todos':(RUBRO_LBL[d.rubro]||d.rubro), region:REG_LBL[d.region]||'Mendoza y San Luis',
       periodo:d.periodo.desde+' a '+d.periodo.hasta, comparado_con:d.anterior.desde+' a '+d.anterior.hasta,
       botellas:{actual:d.total.actual.botellas,anterior:d.total.anterior.botellas,variacion_pct:pct(d.total.actual.botellas,d.total.anterior.botellas)},
       clientes:{actual:d.total.actual.clientes,anterior:d.total.anterior.clientes},
@@ -408,7 +421,7 @@
     const M=esc(tituloMarca()), R=DATA.rubro==='todos'?'':(RUBRO_LBL[DATA.rubro]||DATA.rubro), enR=R?' en '+esc(R):'';
     const clientesR=R?esc(R.toLowerCase()):'clientes';
     return '<section id="cuest"><h2>📝 La acción que le proponemos <span class="per" id="estadoFicha">sin guardar</span></h2>'+
-    '<div class="ctx">Para <b>'+M+'</b>'+(R?' · <b>'+esc(R)+'</b>':' · todos los rubros')+' · proveedor <b id="ctxProv">'+esc(PROV||'sin definir')+'</b> <button type="button" class="mini" onclick="cambiarProv()">cambiar</button></div>'+
+    '<div class="ctx">Para <b>'+M+'</b>'+(R?' · <b>'+esc(R)+'</b>':' · todos los rubros')+' · <b>'+esc(REG_LBL[DATA.region]||'Mendoza y San Luis')+'</b> · proveedor <b id="ctxProv">'+esc(PROV||'sin definir')+'</b> <button type="button" class="mini" onclick="cambiarProv()">cambiar</button></div>'+
     '<div class="q">'+
       q(1,'¿Qué acción le proponemos a '+M+enR+'?','fAcc','<textarea id="fAcc" placeholder="Ej: incorporación en carta con 5+1"></textarea>')+
       q(2,'¿Para qué? ¿Qué meta tiene?','fMeta','<input type="text" id="fMeta" placeholder="Ej: recuperar 15 de los que dejaron de comprar"><div class="src" id="sMeta"></div>')+
@@ -456,10 +469,10 @@
       descuento:$('fDesc').value.trim(), tope:$('fTope').value.trim(), sin_cargo:getT('fSC')[0]||'', sin_cargo_detalle:$('fSCdet').value.trim(),
       ejecucion:$('fEje').value.trim(), suma_materiales:getT('fMat')[0]||'',
       materiales:[...document.querySelectorAll('#fMatLista input[data-mat]:checked')].map(x=>x.dataset.mat), materiales_otros:$('fMatOtros').value.trim(),
-      vigencia_hasta:$('fVig').value||'', rubros:d.rubro&&d.rubro!=='todos'?[d.rubro]:[], notas:$('fNotas').value.trim() };
+      vigencia_hasta:$('fVig').value||'', rubros:d.rubro&&d.rubro!=='todos'?[d.rubro]:[], region:d.region||'ambas', producto:d.linea_elegida||null, notas:$('fNotas').value.trim() };
   }
   function resumenTexto(r){
-    const d=DATA, rt=d.rubro==='todos'?'todos los rubros':(RUBRO_LBL[d.rubro]||d.rubro);
+    const d=DATA, rt=(d.rubro==='todos'?'todos los rubros':(RUBRO_LBL[d.rubro]||d.rubro))+' · '+(REG_LBL[d.region]||'Mendoza y San Luis');
     return ['*Reunión '+(r.proveedor||'')+' · '+tituloMarca()+' · '+rt+'* ('+new Date().toLocaleDateString('es-AR')+')',
       d.total?'Cómo venimos: '+r.lectura+(r.lectura_pct!=null?' ('+(r.lectura_pct>0?'+':'')+r.lectura_pct+'% en botellas vs '+d.anterior.desde.slice(0,4)+')':'')+' · '+num(d.total.actual.botellas)+' bot., '+num(d.total.actual.clientes)+' clientes':'',
       '','*Proponemos:* '+(r.accion||'—'),r.meta?'Meta: '+r.meta:'',r.a_quien?'A quién: '+r.a_quien:'',

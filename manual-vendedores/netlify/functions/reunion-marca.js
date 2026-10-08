@@ -61,6 +61,34 @@ function linea(desc) {
     .replace(/[^\s]+/g, (w) => (/^\d/.test(w) ? w : w[0].toUpperCase() + w.slice(1).toLowerCase()));   // "18 Años" = "18 años"
 }
 
+// Qué producto (línea) se analiza: ?linea=X si viene; '*' = toda la marca; si no, la línea
+// que se llama igual que lo buscado ("smirnoff" → Smirnoff) o, si no hay, la que más vende.
+const plano = (s) => norm(s).replace(/[^a-z0-9]/g, '');
+function elegirLinea(lineas, pedida, buscada) {
+  if (pedida === '*') return null;
+  if (pedida) { const x = lineas.find((l) => plano(l.l) === plano(pedida)); if (x) return x.l; }
+  const igual = lineas.find((l) => plano(l.l) === plano(buscada));
+  if (igual) return igual.l;
+  const top = lineas.slice().sort((a, b) => b.t - a.t)[0];
+  return top ? top.l : null;
+}
+// Acciones del producto elegido: las que nombran sus palabras propias ("flavors"), o si es la
+// línea base ("Smirnoff"), las que no nombran a otra línea. Si no queda ninguna, las de la marca.
+function accionesDeLinea(acciones, elegida, lineas) {
+  if (!elegida) return acciones;
+  const propias = (l) => norm(l).split(/[^a-z0-9]+/).filter((t) => t.length >= 3 && !STOP.has(t));
+  const comunes = new Set(lineas.map(propias).reduce((a, b) => a.filter((t) => b.includes(t))));
+  const mias = propias(elegida).filter((t) => !comunes.has(t));
+  const otras = [...new Set(lineas.filter((l) => l !== elegida).flatMap(propias).filter((t) => !comunes.has(t) && !mias.includes(t)))];
+  const txt = (a) => norm(a.nombre_producto);   // solo el nombre: el detalle dice cosas como "no combinable con Flavors"
+  const tiene = (s, t) => s.includes(t.slice(0, Math.max(4, t.length - 1)));
+  const f = acciones.filter((a) => (mias.length ? mias.every((t) => tiene(txt(a), t)) : !otras.some((t) => tiene(txt(a), t))));
+  return f.length ? f : acciones;
+}
+
+// Zona del vendedor mal cargada en el manual: Martín Juárez (010) es el supervisor de San Luis.
+const ZONA_FIX = { '010': 'sanluis' };
+
 // Rubro del cliente → canal de las acciones del catálogo / rubro de las propuestas.
 const ON = ['bar', 'restaurante', 'hotel', 'disco', 'evento'], OFF = ['vinoteca', 'tienda de bebidas', 'autoservicio'];
 const canalDe = (r) => (ON.includes(r) ? 'on' : OFF.includes(r) ? 'off' : r === 'mayorista' ? 'mayorista' : null);
@@ -73,6 +101,8 @@ exports.handler = async (event) => {
   const toks = tokens(q.q);
   if (!toks.length) return out(400, { error: 'Falta ?q= (marca o producto)' });
   const rubro = q.rubro ? norm(q.rubro) : '';
+  // Región: la del vendedor del cliente (mendoza | sanluis); vacío = ambas.
+  const region = ['mendoza', 'sanluis'].includes(q.region) ? q.region : '';
   const claves = [...new Set(toks.flatMap((t) => CLAVES_ACCION[t] || [t]))];
 
   const hoyART = new Date(Date.now() - 3 * 3600e3);
@@ -110,11 +140,11 @@ exports.handler = async (event) => {
     const provNombre = (propia && propia.proveedor) ? null
       : (await todo(CAT, `catalogo_proveedores?select=nombre&or=(${claves.map((c) => `nombre.ilike.${encodeURIComponent(pg(c))}`).join(',')})&limit=1`).catch(() => []))[0];
     const proveedor = (propia && propia.proveedor) || (provNombre && provNombre.nombre) || (props[0] && props[0].autor_empresa) || (acciones[0] && acciones[0].proveedor) || null;
-    const base = { ok: true, q: q.q, tokens: toks, rubro: rubro || 'todos', proveedor, periodo: { desde, hasta }, anterior: { desde: pDesde, hasta: pHasta }, acciones, propuestas: props, materiales };
-    const deLuci = () => (q.fuente === 'erp' ? null : LUCI.consultar({ claves, rubro, desde, hasta }));
+    const base = { ok: true, q: q.q, tokens: toks, rubro: rubro || 'todos', region: region || 'ambas', proveedor, periodo: { desde, hasta }, anterior: { desde: pDesde, hasta: pHasta }, acciones, propuestas: props, materiales };
+    const deLuci = () => (q.fuente === 'erp' ? null : LUCI.consultar({ claves, rubro, region, desde, hasta, linea: q.linea, q: q.q, elegirLinea }));
     if (!prods.length) {
       const l = deLuci();
-      return out(200, l ? { ...base, ...l } : { ...base, productos: [], nota: 'No encontré productos con ese nombre en el maestro del ERP.' });
+      return out(200, l ? { ...base, ...l, acciones: accionesDeLinea(acciones, l.linea_elegida, l.por_linea.map((x) => x.linea)) } : { ...base, productos: [], nota: 'No encontré productos con ese nombre en el maestro del ERP.' });
     }
     const skus = prods.map((p) => p.codigo);
     const descDe = new Map(prods.map((p) => [p.codigo, p.descripcion]));
@@ -144,13 +174,16 @@ exports.handler = async (event) => {
       for (const c of await todo(MAN, `clientes?select=codigo_cliente,nombre,tipo,vendedor_id&codigo_cliente=in.(${lote.map(encodeURIComponent).join(',')})`)) clientes.set(normCod(c.codigo_cliente), c);
     }
     const vids = [...new Set([...clientes.values()].map((c) => c.vendedor_id).filter(Boolean))];
-    const vend = new Map((vids.length ? await todo(MAN, `vendedores?select=id,nombre&id=in.(${vids.join(',')})`) : []).map((v) => [v.id, v.nombre]));
+    const vendRows = vids.length ? await todo(MAN, `vendedores?select=id,nombre,codigo,zona&id=in.(${vids.join(',')})`) : [];
+    const vend = new Map(vendRows.map((v) => [v.id, v.nombre]));
+    const zonaVend = new Map(vendRows.map((v) => [v.id, ZONA_FIX[v.codigo] || String(v.zona || '').replace('_', '')]));
 
     // ── 4) Agregar ──
     const agregar = (rows) => {
       const r = { u: 0, m: 0, porRubro: {}, porMes: {}, porLinea: {}, porCliente: new Map(), porVend: {} };
       for (const v of rows) {
         const c = clientes.get(normCod(v.cliente_codigo)) || { nombre: `Cliente ${v.cliente_codigo}`, tipo: 'sin dato' };
+        if (region && zonaVend.get(c.vendedor_id) !== region) continue;
         const tipo = norm(c.tipo || 'sin dato');
         const u = Number(v.unidades) || 0, m = u * precio(v.sku, v.fecha);
         const rb = r.porRubro[tipo] || (r.porRubro[tipo] = { u: 0, m: 0, cli: new Set() });
@@ -169,7 +202,13 @@ exports.handler = async (event) => {
       }
       return r;
     };
-    const A = agregar(act), P = agregar(ant);
+    // Se analiza UN producto (línea) a la vez: la lista completa queda para el selector.
+    const A0 = agregar(act), P0 = agregar(ant);
+    const lineasTodas = [...new Set([...Object.keys(A0.porLinea), ...Object.keys(P0.porLinea)])]
+      .map((l) => ({ l, t: (A0.porLinea[l]?.u || 0) + (P0.porLinea[l]?.u || 0) }));
+    const elegida = elegirLinea(lineasTodas, q.linea, q.q);
+    const enLinea = (v) => !elegida || linea(descDe.get(v.sku)) === elegida;
+    const A = elegida ? agregar(act.filter(enLinea)) : A0, P = elegida ? agregar(ant.filter(enLinea)) : P0;
     const red = Math.round;
     const compradores = (r) => [...r.porCliente.values()].filter((c) => c.u > 0);
     const cA = compradores(A), cP = compradores(P);
@@ -182,15 +221,17 @@ exports.handler = async (event) => {
     const cobertura = { actual: cob(desde, hasta), anterior: cob(pDesde, pHasta) };
     if (cobertura.anterior < 90) {
       const l = deLuci();
-      if (l) return out(200, { ...base, ...l, cobertura_sistema: cobertura });
+      if (l) return out(200, { ...base, ...l, acciones: accionesDeLinea(acciones, l.linea_elegida, l.por_linea.map((x) => x.linea)), cobertura_sistema: cobertura });
     }
     return out(200, {
       ...base,
+      acciones: accionesDeLinea(acciones, elegida, lineasTodas.map((x) => x.l)),
       fuente: 'erp',
+      linea_elegida: elegida,
       cobertura_pct: cobertura,
       productos: prods.map((p) => ({ sku: p.codigo, descripcion: p.descripcion, linea: linea(p.descripcion), stock: p.stock })),
       total: { actual: { botellas: red(A.u), monto: red(A.m), clientes: cA.length }, anterior: { botellas: red(P.u), monto: red(P.m), clientes: cP.length } },
-      por_linea: [...new Set([...Object.keys(A.porLinea), ...Object.keys(P.porLinea)])].map((l) => ({ linea: l, ...par(A.porLinea[l], P.porLinea[l]) }))
+      por_linea: [...new Set([...Object.keys(A0.porLinea), ...Object.keys(P0.porLinea)])].map((l) => ({ linea: l, ...par(A0.porLinea[l], P0.porLinea[l]) }))
         .sort((a, b) => (b.actual.botellas + b.anterior.botellas) - (a.actual.botellas + a.anterior.botellas)),
       por_rubro: [...new Set([...Object.keys(A.porRubro), ...Object.keys(P.porRubro)])].map((t) => ({ rubro: t, ...par(A.porRubro[t], P.porRubro[t]) }))
         .sort((a, b) => b.actual.botellas - a.actual.botellas),

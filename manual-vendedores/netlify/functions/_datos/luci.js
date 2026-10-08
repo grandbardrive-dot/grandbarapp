@@ -14,6 +14,9 @@ const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-
 // Tipo de cliente de CUBO → rubro del manual (el mismo filtro de la página).
 const TIPO_A_RUBRO = { bares: 'bar', restaurant: 'restaurante', cafeteria: 'restaurante', catering: 'evento', evento: 'evento', disco: 'disco', hotel: 'hotel', vinoteca: 'vinoteca', 'tienda de bebidas': 'tienda de bebidas', autoservicio: 'autoservicio', 'distribuidores y mayoristas': 'mayorista', 'empresas y particulares': 'otros' };
 const rubroDeTipo = (i) => TIPO_A_RUBRO[norm(L.tipo[i])] || 'otros';
+// Región por vendedor (el tablero no trae provincia por cliente). El resto es Mendoza.
+const VEND_SANLUIS = new Set(['daniel perez', 'franco fernandez', 'jonathan guigue', 'lucas juarez', 'martin juarez', 'san luis distribucion mayorista']);
+const regionDeVend = (i) => (VEND_SANLUIS.has(norm(L.vend[i])) ? 'sanluis' : 'mendoza');
 
 // ¿Qué marcas del tablero corresponden a la búsqueda? ("johnny" → JW Black, JW Red…)
 function marcasDe(claves) {
@@ -35,17 +38,29 @@ function mesesDe(desde, hasta) {
   return out;
 }
 
-function consultar({ claves, rubro, desde, hasta }) {
+function consultar({ claves, rubro, region, desde, hasta, linea, q, elegirLinea }) {
   const marcas = marcasDe(claves);
   const meses = mesesDe(desde, hasta);
   if (!marcas.length || !meses.length) return null;
-  const setM = new Set(marcas.map((x) => x.i)), setMes = new Set(meses);
+  const setMes = new Set(meses);
+  // Toda la marca (para el selector de productos) y el producto elegido (para el análisis).
+  const T = acumular(new Set(marcas.map((x) => x.i)), setMes, rubro, region);
+  const lineas = [...new Set([...Object.keys(T[1].porLinea), ...Object.keys(T[0].porLinea)])]
+    .map((l) => ({ l, t: (T[1].porLinea[l]?.u || 0) + (T[0].porLinea[l]?.u || 0) }));
+  const elegida = elegirLinea ? elegirLinea(lineas, linea, q) : null;
+  const setM = new Set(marcas.filter((x) => !elegida || x.m === elegida).map((x) => x.i));
+  const Y = elegida ? acumular(setM, setMes, rubro, region) : T;
+  return armar({ marcas, meses, setM, Y, T, elegida, hasta });
+}
+
+function acumular(setM, setMes, rubro, region) {
   const agg = () => ({ u: 0, n: 0, porRubro: {}, porMes: {}, porLinea: {}, porCli: new Map(), porVend: {} });
   const Y = [agg(), agg()];
   for (const r of L.rows) {
     const [y, mes, , mi, ci, , neto, uni] = r;
     if (!setM.has(mi) || !setMes.has(mes)) continue;
     const cli = L.cli[ci] || [];
+    if (region && regionDeVend(cli[2]) !== region) continue;
     const rb = rubroDeTipo(cli[3]);
     const A = Y[y];
     const pr = A.porRubro[rb] || (A.porRubro[rb] = { u: 0, n: 0, cli: new Map() });
@@ -61,6 +76,10 @@ function consultar({ claves, rubro, desde, hasta }) {
     const vn = L.vend[cli[2]] || 'Sin vendedor';
     const pv = A.porVend[vn] || (A.porVend[vn] = { u: 0, cli: new Map() }); pv.u += uni; pv.cli.set(ci, (pv.cli.get(ci) || 0) + neto);
   }
+  return Y;
+}
+
+function armar({ marcas, meses, setM, Y, T, elegida, hasta }) {
   const [P, A] = Y;
   const red = Math.round;
   const pos = (mp) => [...mp.values()].filter((v) => v > 0).length;   // clientes con compra = venta neta positiva (criterio de Luci)
@@ -82,7 +101,8 @@ function consultar({ claves, rubro, desde, hasta }) {
     monto_real: true,
     productos: marcas.map(({ m }) => ({ sku: null, descripcion: m, linea: m, stock: null })),
     total: { actual: { botellas: red(A.u), monto: red(A.n), clientes: setA.size }, anterior: { botellas: red(P.u), monto: red(P.n), clientes: setP.size } },
-    por_linea: [...new Set([...Object.keys(A.porLinea), ...Object.keys(P.porLinea)])].map((l) => ({ linea: l, ...par(A.porLinea[l], P.porLinea[l]) }))
+    linea_elegida: elegida,
+    por_linea: [...new Set([...Object.keys(T[1].porLinea), ...Object.keys(T[0].porLinea)])].map((l) => ({ linea: l, ...par(T[1].porLinea[l], T[0].porLinea[l]) }))
       .sort((a, b) => (b.actual.botellas + b.anterior.botellas) - (a.actual.botellas + a.anterior.botellas)),
     por_rubro: [...new Set([...Object.keys(A.porRubro), ...Object.keys(P.porRubro)])].map((t) => ({ rubro: t, ...par(A.porRubro[t], P.porRubro[t]) }))
       .sort((a, b) => b.actual.botellas - a.actual.botellas),
