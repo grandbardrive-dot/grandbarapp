@@ -39,6 +39,7 @@ const PANTALLAS = [
       { n:'Torneo Doña Paula',      r:'torneo-vendedor.html',                nota:'Puntos y ranking del torneo (pestaña del panel del vendedor).' },
       { n:'Registrar actividad',    r:'manual-vendedores/torneo-registro.html', nota:'Carga de actividad del torneo.' },
       { n:'Mi avatar',              r:'manual-vendedores/vestidor.html',    nota:'Personalización del avatar.' },
+      { n:'Guía del portal de vendedores', r:'guia-vendedores.html',        nota:'Manual del portal del vendedor, pantalla por pantalla (08/10/2026). En el menú del vendedor, no en el de la tienda.' },
     ],
   },
   {

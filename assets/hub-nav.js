@@ -20,6 +20,8 @@
     { t:'Pedidos',                h:'#', proximamente:true,                 svg:'<path d="M6 2 3 6v14h18V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/>' },
     { t:'Herramientas de venta',  h:'herramientas.html',                    svg:'<path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4"/>' },
     { t:'Reportes',               h:'mis-reportes.html',                    svg:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>' },
+    // La guía se abre en otra pestaña para no perder la pantalla en la que estaba (08/10/2026).
+    { t:'Guía del portal',        h:'guia-vendedores.html', nueva:true,     svg:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.5V14"/><path d="M12 17h.01"/>' },
   ];
   // Barra inferior del celular: los que tienen `m` (nombre corto) + "Más".
   // "Más" abre el menú completo (el cajón), en vez de no hacer nada.
@@ -32,7 +34,7 @@
   const link = (it, corto) => {
     const activo = it.h !== '#' && base(it.h) === actual;
     const txt = corto ? (it.m || it.t) : it.t;
-    const extra = it.proximamente ? ` data-proximamente="${it.t}"` : (it.abreMenu ? ' data-abre-menu' : '');
+    const extra = it.proximamente ? ` data-proximamente="${it.t}"` : (it.abreMenu ? ' data-abre-menu' : (it.nueva ? ' target="_blank" rel="noopener"' : ''));
     return `<a href="${it.h}"${activo ? ' class="active"' : ''}${extra}>`
       + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${it.svg}</svg>`
       + `${corto ? '' : ' '}${txt}</a>`;
@@ -88,7 +90,8 @@
   // herramientas de recorrido (Planificador de ruta IA y Agenda Eficiente, 07/10/2026) y,
   // a pedido del usuario el mismo día, sin Leads ni Torneo Doña Paula.
   const VENDE = ['ventas', 'mayorista'];
-  const FUERA_TIENDA = ['planificador-ia', 'agenda-eficiente', 'leads', 'torneo-vendedor'];
+  // La guía de vendedores tampoco: explica el recorrido y las visitas, que la tienda no hace.
+  const FUERA_TIENDA = ['planificador-ia', 'agenda-eficiente', 'leads', 'torneo-vendedor', 'guia-vendedores'];
   function itemsVende(rol) {
     return rol === 'mayorista' ? ITEMS.filter(it => !FUERA_TIENDA.includes(base(it.h))) : ITEMS;
   }
