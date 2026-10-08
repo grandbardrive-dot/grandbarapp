@@ -31,12 +31,12 @@ exports.handler = async (event) => {
       const gr = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gkey, 'X-Goog-FieldMask': 'places.displayName,places.primaryType,places.rating,places.userRatingCount,places.formattedAddress' },
-        body: JSON.stringify({ includedTypes: ['bar'], maxResultCount: 15, languageCode: 'es', locationRestriction: { circle: { center: { latitude: -32.8895, longitude: -68.8458 }, radius: 4000 } } }),
+        body: JSON.stringify({ includedTypes: ['bar'], maxResultCount: 4, languageCode: 'es', locationRestriction: { circle: { center: { latitude: -32.8895, longitude: -68.8458 }, radius: 4000 } } }),
       });
       const gj = await gr.json();
       const cands = (gj.places || []).map((p, i) => ({ i, fuente: 'google', nombre: (p.displayName || {}).text, tipo: p.primaryType, canal: 'on', zona: 'Mendoza', direccion: p.formattedAddress || null, rating: p.rating || null, reviews: p.userRatingCount || null, caption: null }));
       out.n_cands = cands.length;
-      const PROMPT = `Sos el analista comercial de GrandBar Distribuciones (distribuidora de bebidas, Mendoza y San Luis). Para cada negocio de la lista devolvé un objeto con: "i" (el índice), "descartar" (true si no es prospecto de bebidas), "nombre", "categoria", "score" (0-100), "motivo" (frase corta), "canal_contacto" ("whatsapp"/"instagram"/"ninguno"), "mensaje_wsp" (2-3 frases de primer contacto por WhatsApp, tono argentino) y "mensaje_ig" (igual, más breve).
+      const PROMPT = `Sos el analista comercial de GrandBar Distribuciones (distribuidora de bebidas, Mendoza y San Luis). Para cada negocio de la lista devolvé un objeto con: "i" (el índice), "descartar" (true si no es prospecto de bebidas), "categoria", "score" (0-100), "motivo" (frase corta).
 Devolvé ÚNICAMENTE un array JSON, sin texto antes ni después, sin markdown.
 
 Lista:
@@ -44,7 +44,7 @@ ${JSON.stringify(cands)}`;
       const cr = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': akey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: process.env.IA_MODEL_PROSPECTOS || 'claude-sonnet-5', max_tokens: 16000, messages: [{ role: 'user', content: PROMPT }] }),
+        body: JSON.stringify({ model: process.env.IA_MODEL_PROSPECTOS || 'claude-sonnet-5', max_tokens: 2000, messages: [{ role: 'user', content: PROMPT }] }),
       });
       const cj = await cr.json();
       out.claude_status = cr.status;
