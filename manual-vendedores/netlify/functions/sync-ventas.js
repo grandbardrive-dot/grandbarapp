@@ -16,7 +16,14 @@
 //    /sync-ventas                                  → AYER
 //    /sync-ventas?desde=01/08/2026&hasta=07/08/2026 → procesa lo que entre en ~20s
 //    (repetí con ?desde=<siguiente_desde>&hasta=... para continuar)
-//  Env: AIKON_* + opcional MANUAL_ANON_KEY, SYNC_SECRET.
+//  EMPRESAS: el ERP tiene DOS empresas y el WebApi lista los comprobantes
+//  de la empresa con la que se pidió el token. 9999 = series internas
+//  9999/1000 (no fiscal); 0001 = puntos de venta fiscales (0003, 0005…), la
+//  mayor parte de la venta. Se leen las dos (diagnóstico 8/10/2026).
+//  Cada día procesado deja su fila en ventas_sync_log con detalle "v2 …":
+//  así sync-ventas-cron sabe qué días ya están completos.
+//  Env: AIKON_* (+ AIKON_EMPRESAS opcional, default "<AIKON_EMPRESA>,0001"),
+//  opcional MANUAL_ANON_KEY, SYNC_SECRET.
 // ============================================================
 
 const SB_URL = 'https://fzaxwuuodseyyinveknn.supabase.co';
@@ -45,37 +52,49 @@ function netDateToISO(s) { const m = String(s || '').match(/\/Date\((\d+)/); if 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const val = (o, ...keys) => { for (const k of keys) { if (o && o[k] != null && String(o[k]).trim() !== '') return o[k]; } return null; };
 
-async function login() {
+const EMPRESAS = (process.env.AIKON_EMPRESAS || `${process.env.AIKON_EMPRESA || '9999'},0001`)
+  .split(',').map((e) => e.trim()).filter((e, i, a) => e && a.indexOf(e) === i);
+
+async function login(empresa) {
   const cuenta = process.env.AIKON_CUENTA;
-  if (!cuenta || !process.env.AIKON_EMPRESA) throw new Error('Faltan AIKON_CUENTA / AIKON_EMPRESA.');
+  if (!cuenta || !empresa) throw new Error('Faltan AIKON_CUENTA / empresa.');
   const managerUrl = process.env.AIKON_MANAGER_URL || 'http://aikonmanager.com/Manager/api/CuentaURL';
   const j1 = await aikon(managerUrl, { Cuenta: cuenta, CuentaPwd: process.env.AIKON_CUENTA_PWD });
   const urlCuenta = String(j1.retorno || '').replace(/\/+$/, '');
   if (!urlCuenta) throw new Error('CuentaURL no devolvió URL: ' + JSON.stringify(j1).slice(0, 160));
-  const j2 = await aikon(urlCuenta + '/IS3/ObtenerToken', { cuenta, usuario: process.env.AIKON_USUARIO || 'CS', 'contraseña': process.env.AIKON_PASS || '', empresa: process.env.AIKON_EMPRESA });
+  const j2 = await aikon(urlCuenta + '/IS3/ObtenerToken', { cuenta, usuario: process.env.AIKON_USUARIO || 'CS', 'contraseña': process.env.AIKON_PASS || '', empresa });
   const token = j2.token && j2.token.Codigo;
-  if (!token) throw new Error('ObtenerToken falló: ' + JSON.stringify(j2).slice(0, 160));
-  return { urlCuenta, cuenta, token };
+  if (!token) throw new Error(`ObtenerToken (empresa ${empresa}) falló: ` + JSON.stringify(j2).slice(0, 160));
+  return { urlCuenta, cuenta, token, empresa };
 }
+const loginTodas = () => Promise.all(EMPRESAS.map(login));
 
 async function enTandas(items, tam, fn) {
   for (let i = 0; i < items.length; i += tam) await Promise.all(items.slice(i, i + tam).map(fn));
 }
 
-async function sincronizarDia(ctx, fechaStr) {
-  const { urlCuenta, cuenta, token } = ctx;
-  const jc = await aikon(urlCuenta + '/IS3/ListarComprobantes', { cuenta, token, FechaDesde: fechaStr, FechaHasta: fechaStr }, 40000);
-  const comps = Array.isArray(jc.lista) ? jc.lista : (Array.isArray(jc) ? jc : []);
-  const utiles = comps.filter((c) => /^(FA|NC)/i.test(String(c.Codigo || '')) && !c.FechaAnulacion);
-
+async function sincronizarDia(ctxs, fechaStr) {
   const agg = new Map();
   const aggCli = new Map();   // cliente|sku|fecha -> unidades netas (para 11T / 6 meses)
-  let renglones = 0;
-  await enTandas(utiles, 10, async (c) => {
+  let renglones = 0, totalUtiles = 0;
+  const porEmpresa = {};
+  for (const ctx of ctxs) {
+  const { urlCuenta, cuenta, token } = ctx;
+  const jc = await aikon(urlCuenta + '/IS3/ListarComprobantes', { cuenta, token, FechaDesde: fechaStr, FechaHasta: fechaStr }, 40000);
+  // Sin lista = error del ERP (un día sin ventas devuelve lista: []). No seguir:
+  // si no, se borraría el día con datos buenos.
+  if (!Array.isArray(jc.lista) && !Array.isArray(jc)) throw new Error(`ListarComprobantes (empresa ${ctx.empresa}) ${fechaStr}: ` + JSON.stringify(jc).slice(0, 160));
+  const comps = Array.isArray(jc.lista) ? jc.lista : jc;
+  const utiles = comps.filter((c) => /^(FA|NC)/i.test(String(c.Codigo || '')) && !c.FechaAnulacion);
+  porEmpresa[ctx.empresa] = utiles.length;
+  totalUtiles += utiles.length;
+
+  let fallidos = 0;
+  await enTandas(utiles, 20, async (c) => {
     const j = await aikon(urlCuenta + '/IS3/ObtenerComprobante', { cuenta, token, Codigo: c.Codigo, Sucursal: c.Sucursal, Numero: c.Numero, Tipo: c.Tipo }, 15000);
     const comp = j.Comprobante || j.comprobante || {};
     const det = comp.Detalle || comp.detalle || [];
-    if (!Array.isArray(det) || !det.length) return;
+    if (!Array.isArray(det) || !det.length) { if (j._error || j._raw || j.estado === 'ERROR') fallidos++; return; }
     const fISO = netDateToISO(c.FechaEmision) || ddmmToISO(fechaStr);
     const signo = /^NC/i.test(String(c.Codigo || '')) ? -1 : 1;
     const clienteCod = String(c.ClienteCodigo == null ? '' : c.ClienteCodigo).trim();
@@ -116,6 +135,9 @@ async function sincronizarDia(ctx, fechaStr) {
       renglones++;
     }
   });
+  // Si se cayeron muchos ObtenerComprobante, el día quedaría incompleto: mejor fallar y reintentar.
+  if (fallidos > Math.max(2, utiles.length * 0.05)) throw new Error(`${fechaStr} empresa ${ctx.empresa}: ${fallidos}/${utiles.length} comprobantes sin leer`);
+  }
 
   const fISO = ddmmToISO(fechaStr);
   const del = await sb(`ventas_articulos?fecha=eq.${fISO}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
@@ -140,7 +162,15 @@ async function sincronizarDia(ctx, fechaStr) {
     const ins = await sb('ventas_cliente', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filasCli.slice(i, i + 500)) });
     if (!ins.ok) throw new Error('INSERT cliente día ' + fISO + ': ' + (await ins.text()).slice(0, 160));
   }
-  return { comprobantes: utiles.length, renglones, skus: filas.length, clientes: filasCli.length };
+  // Marca el día como completo (v2 = las dos empresas) para sync-ventas-cron.
+  const res = { comprobantes: totalUtiles, renglones, skus: filas.length, clientes: filasCli.length, por_empresa: porEmpresa };
+  try {
+    await sb('ventas_sync_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({
+      desde: fISO, hasta: fISO, comprobantes: totalUtiles, renglones, skus: filas.length, ok: true,
+      detalle: `v2 ${Object.entries(porEmpresa).map(([e, n]) => e + ':' + n).join(' ')}`,
+    }) });
+  } catch (e) { /* el log no frena la sync */ }
+  return res;
 }
 
 exports.handler = async (event) => {
@@ -155,14 +185,14 @@ exports.handler = async (event) => {
 
   const start = Date.now();
   const BUDGET = Number(process.env.VENTAS_BUDGET_MS || 20000);
-  let ctx, dias = [], comprTot = 0, renglTot = 0, skusTot = 0, ok = true, err = null;
+  let ctxs, dias = [], comprTot = 0, renglTot = 0, skusTot = 0, ok = true, err = null;
   try {
-    ctx = await login();
+    ctxs = await loginTodas();
     let cur = new Date(desde.getTime());
     while (cur.getTime() <= hasta.getTime()) {
       if (dias.length && Date.now() - start > BUDGET) break; // procesamos al menos 1 día
       const f = fmtFecha(cur);
-      const r = await sincronizarDia(ctx, f);
+      const r = await sincronizarDia(ctxs, f);
       dias.push({ fecha: f, ...r });
       comprTot += r.comprobantes; renglTot += r.renglones; skusTot += r.skus;
       cur = new Date(cur.getTime() + 24 * 3600 * 1000);
@@ -171,8 +201,8 @@ exports.handler = async (event) => {
     var siguiente = resto ? fmtFecha(cur) : null;
   } catch (e) { ok = false; err = (e && e.message) || String(e); }
 
-  // Log de la corrida.
-  try {
+  // Log de la corrida (solo errores: cada día completo ya dejó su fila "v2").
+  if (!ok) try {
     await sb('ventas_sync_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({
       desde: ddmmToISO(fmtFecha(desde)), hasta: ddmmToISO(fmtFecha(hasta)),
       comprobantes: comprTot, renglones: renglTot, skus: skusTot, ok,
@@ -188,3 +218,7 @@ exports.handler = async (event) => {
     dias,
   }, null, 2) };
 };
+
+module.exports.sincronizarDia = sincronizarDia;
+module.exports.loginTodas = loginTodas;
+module.exports.fmtFecha = fmtFecha;
