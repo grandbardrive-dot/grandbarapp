@@ -38,12 +38,18 @@ const COB_URL = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const MODELO = process.env.IA_MODEL_PROSPECTOS || 'claude-sonnet-5';
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 
-// Tipos de Places (New) por canal. OFF = SOLO liquor_store (sacamos
-// supermarket/grocery para que NO aparezcan Walmart/Carrefour/mayoristas).
+// Tipos de Places (New) por canal, según los canales reales de GrandBar:
+//   ON  = bares, discos, restaurantes, hoteles, salones/eventos/sunsets.
+//   OFF = vinotecas, tiendas de bebidas y autoservicios de barrio.
+// A propósito NO incluimos 'supermarket' (hipermercados/cadenas); los
+// autoservicios chicos entran por convenience_store/grocery_store y las
+// cadenas que se cuelen las frena la lista negra CADENAS + el filtro de la IA.
 const TIPOS = {
-  on:  ['bar', 'restaurant', 'cafe', 'night_club'],
-  off: ['liquor_store'],
+  on:  ['bar', 'night_club', 'restaurant', 'hotel', 'event_venue', 'banquet_hall', 'wedding_venue'],
+  off: ['liquor_store', 'convenience_store', 'grocery_store'],
 };
+// Para CLASIFICAR el canal de cada resultado (no para buscar): qué cuenta como OFF.
+const OFF_DETECT = new Set(['liquor_store', 'convenience_store', 'grocery_store', 'supermarket', 'market', 'food_store', 'wholesaler']);
 
 // Lista negra: cadenas / mayoristas que NO son prospectos de zona.
 const CADENAS = [
@@ -156,7 +162,7 @@ async function buscarGoogle(zonas, idx, yaRef) {
         if (yaRef.has('google:' + p.id)) continue;
         if (esCadena(nn)) continue;
         if (yaEsCliente(nombre, idx)) continue;
-        const off = TIPOS.off.includes(p.primaryType);
+        const off = OFF_DETECT.has(p.primaryType);
         cand.push({
           fuente: 'google', ref_id: p.id, nombre, direccion: p.formattedAddress || '',
           lat: p.location && p.location.latitude, lng: p.location && p.location.longitude,
@@ -202,13 +208,16 @@ async function puntuar(cands) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key || !cands.length) return cands.map(c => ({ ...c, score: null, descartar: !key }));
   const lista = cands.map((c, i) => ({ i, fuente: c.fuente, nombre: c.nombre || null, tipo: c.tipo || null, canal: c.canal, zona: c.zona, direccion: c.direccion || null, rating: c.rating || null, reviews: c.reviews || null, caption: c._caption || null }));
-  const PROMPT = `Sos el analista comercial de GrandBar Distribuciones, una distribuidora de bebidas en Mendoza y San Luis (Argentina). Su target son bares, restaurantes, cafés, cervecerías y vinotecas INDEPENDIENTES de zona. NO le interesan supermercados, cadenas, mayoristas, kioscos de barrio ni negocios que no vendan/sirvan bebidas.
+  const PROMPT = `Sos el analista comercial de GrandBar Distribuciones, una distribuidora de bebidas en Mendoza y San Luis (Argentina). Sus canales son:
+- ON (se consume en el local): bares, discos/boliches, restaurantes, hoteles, salones de eventos/fiestas, eventos y sunsets.
+- OFF (reventa): vinotecas, tiendas de bebidas y autoservicios/mini-mercados de barrio.
+Le interesan los negocios INDEPENDIENTES de zona. NO le interesan los hipermercados ni las grandes cadenas (Carrefour, Walmart, Jumbo, Vea, Disco, ChangoMás, Día, Coto, La Anónima, Átomo, Makro, Maxiconsumo, etc.), ni negocios que no vendan/sirvan bebidas (ferreterías, farmacias, kioscos mínimos, etc.).
 
 Te paso una lista de posibles clientes nuevos (de Google y de posts de Instagram). Para cada uno devolvé un objeto con:
 - "i": el índice que te di.
-- "descartar": true si NO es un prospecto válido (cadena, súper, mayorista, no es gastronómico/bebidas, o el post de Instagram no es claramente un local comercial). Si dudás y parece un bar/resto/vinoteca independiente, dejalo (descartar=false).
+- "descartar": true si NO es un prospecto válido (hipermercado o cadena grande, mayorista, un negocio que no vende/sirve bebidas, o un post de Instagram que no es claramente un local comercial). Un autoservicio o mini-mercado de barrio independiente SÍ es válido (OFF). Si dudás y parece un local independiente de alguno de los canales, dejalo (descartar=false).
 - "nombre": para los de Instagram, deducí del caption el nombre del local (ej. "Bar La Esquina"). Para los de Google, repetí el nombre que te di. Si no se puede saber, null.
-- "categoria": una de "bar","restaurante","cafe","cerveceria","vinoteca","otro".
+- "categoria": una de "bar","disco","restaurante","hotel","salon_eventos","cafe","cerveceria","vinoteca","autoservicio","tienda_bebidas","otro".
 - "score": 0 a 100. Más alto = mejor prospecto (local activo, buena reputación, encaja con el target). Usá rating/reviews y el tipo. Si descartar=true, score 0.
 - "motivo": una frase corta explicando el score (ej. "Resto activo, 4.6★ con 320 reseñas, zona céntrica").
 - "canal_contacto": "whatsapp" si es de Google y conviene WhatsApp, "instagram" si vino de Instagram o no hay teléfono, "ninguno" si descartado.
