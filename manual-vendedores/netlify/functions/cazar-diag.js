@@ -76,6 +76,26 @@ exports.handler = async (event) => {
     out.insert_status = ins.status;
     if (!ins.ok) out.insert_error = (await ins.text()).slice(0, 500);
     await hub('prospectos?fuente=eq.diag', { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+
+    // 4) ¿Claude responde? (la prueba decisiva — por qué los scores quedan en 50)
+    if (process.env.ANTHROPIC_API_KEY) {
+      try {
+        const modelo = process.env.IA_MODEL_PROSPECTOS || 'claude-sonnet-5';
+        out.claude_modelo = modelo;
+        const c2 = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model: modelo, max_tokens: 100, messages: [{ role: 'user', content: 'Respondé SOLO con este JSON: [{"i":0,"ok":true}]' }] }),
+        });
+        const cj = await c2.json().catch(() => ({}));
+        out.claude_status = c2.status;
+        out.claude = c2.ok ? ((cj.content && cj.content[0] && cj.content[0].text) || '(sin texto)').slice(0, 150) : JSON.stringify(cj).slice(0, 400);
+      } catch (e) { out.claude_error = (e && e.message) || String(e); }
+    }
+
+    // 5) últimos prospectos guardados (para ver sus scores reales)
+    const lr = await hub('prospectos?select=nombre,tipo,canal,score,estado&order=created_at.desc&limit=8');
+    out.ultimos = await lr.json().catch(() => null);
   } catch (e) { out.error = (e && e.message) || String(e); }
   return json(200, out);
 };

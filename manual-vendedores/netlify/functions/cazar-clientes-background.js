@@ -70,6 +70,8 @@ const CADENAS = [
   'diarco', 'atomo', 'oscar david', 'libertad', 'hipermercado', 'mega',
   'yaguar', 'nini', 'blow max', 'super a', 'supermercado', 'toledo', 'chango mas',
   'cordiez', 'quijote', 'super vea', 'gran libertad',
+  // Competencia (distribuidoras / cadenas de bebidas): nunca son prospecto.
+  'go bar', 'gobar',
   // gastronomía de cadena
   'mcdonald', 'mostaza', 'burger king', 'starbucks', 'havanna', 'grido',
   'bonafide', 'kentucky', 'el noble', 'rapanui', 'subway',
@@ -245,6 +247,7 @@ Le interesan los negocios INDEPENDIENTES de zona. NO le interesan, y hay que DES
 - Bodegas / wineries: GrandBar les COMPRA el vino, no les vende. Descartar.
 - Hipermercados y grandes cadenas de súper (Carrefour, Walmart, Jumbo, Vea, Disco, ChangoMás, Día, Coto, La Anónima, Átomo, Makro, Maxiconsumo, Toledo, etc.).
 - Lugares donde no se consume ni se revende alcohol de forma comercial: teatros, cines, museos, estadios y clubes deportivos, gimnasios, iglesias, escuelas, hospitales, plazas/parques, peloteros y salones de cumpleaños/fiestas INFANTILES.
+- La COMPETENCIA: otras distribuidoras de bebidas o cadenas de vinotecas/bebidas que revenden (ej. Go Bar). GrandBar NO le vende a su competencia.
 - Cualquier negocio que no venda ni sirva bebidas alcohólicas (ferreterías, farmacias, kioscos mínimos, etc.).
 Un salón de eventos/fiestas de ADULTOS sí sirve. Un autoservicio o mini-mercado de barrio independiente sí sirve (OFF).
 
