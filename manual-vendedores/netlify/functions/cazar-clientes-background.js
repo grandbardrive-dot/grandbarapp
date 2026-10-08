@@ -230,7 +230,7 @@ async function puntuar(cands) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return cands.map(c => ({ ...c, score: null, descartar: true }));
   if (!cands.length) return [];
-  const CHUNK = 25; const salida = [];
+  const CHUNK = 15; const salida = [];
   for (let b = 0; b < cands.length; b += CHUNK) {
     try { salida.push(...await scoreBatch(cands.slice(b, b + CHUNK), key)); }
     catch (e) { console.error('scoreBatch', e.message); salida.push(...cands.slice(b, b + CHUNK).map(c => ({ ...c, score: 40, descartar: false, canal_contacto: c.fuente === 'instagram' ? 'instagram' : (c.telefono ? 'whatsapp' : 'instagram') }))); }
@@ -270,11 +270,16 @@ ${JSON.stringify(lista)}`;
     const r = await fetch(ANTHROPIC_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODELO, max_tokens: 8000, messages: [{ role: 'user', content: PROMPT }] }),
+      body: JSON.stringify({ model: MODELO, max_tokens: 16000, messages: [{ role: 'user', content: PROMPT }] }),
     });
     const j = await r.json();
-    const txt = (j.content && j.content[0] && j.content[0].text) || '[]';
-    const arr = JSON.parse(txt.replace(/^```json\s*|\s*```$/g, '').trim());
+    if (!r.ok) throw new Error('Claude ' + r.status + ': ' + JSON.stringify(j).slice(0, 160));
+    const txt = (j.content && j.content[0] && j.content[0].text) || '';
+    // Claude suele devolver el JSON envuelto en ```json ... ``` (o con algún texto
+    // alrededor). Extraemos del primer "[" al último "]" → robusto a eso.
+    const a = txt.indexOf('['); const z = txt.lastIndexOf(']');
+    if (a < 0 || z < 0 || z < a) throw new Error('Claude no devolvió un array JSON: ' + txt.slice(0, 120));
+    const arr = JSON.parse(txt.slice(a, z + 1));
     const byI = {}; for (const o of arr) byI[o.i] = o;
     return cands.map((c, i) => {
       const o = byI[i] || {};
