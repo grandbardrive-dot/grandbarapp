@@ -37,21 +37,38 @@ exports.handler = async (event) => {
     out.zonas = Array.isArray(zonas) ? zonas.length : zonas;
     out.zonas_muestra = Array.isArray(zonas) ? zonas.slice(0, 6) : null;
 
-    // 2) ¿Google Places responde? (primera zona activa)
+    // 1.5) ¿cuántos prospectos hay guardados AHORA? (lo que dejó el agente)
+    const cr = await hub('prospectos?select=id', { headers: { Prefer: 'count=exact', Range: '0-0' } });
+    out.prospectos_guardados = cr.headers.get('content-range');
+
+    // 2) Discovery REAL POR TIPO (primera zona activa): status + cantidad por
+    // cada tipo, y cuántos sobreviven al filtro de tipos basura + cadenas.
+    const gkey = process.env.GOOGLE_GEOCODE_KEY;
     const z = (Array.isArray(zonas) ? zonas : []).find(x => x.activa) || (Array.isArray(zonas) ? zonas[0] : null);
-    if (z && process.env.GOOGLE_GEOCODE_KEY) {
+    if (z && gkey) {
+      const TIPO_BLOCK = new Set(['winery', 'stadium', 'performing_arts_theater', 'movie_theater', 'amusement_park', 'amusement_center', 'museum', 'tourist_attraction', 'shopping_mall', 'department_store', 'supermarket', 'hypermarket', 'convention_center', 'park', 'gym', 'church', 'cultural_center']);
+      const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      const CAD = ['carrefour', 'walmart', 'jumbo', 'vea', 'disco', 'changomas', 'chango mas', 'coto', 'la anonima', 'atomo', 'makro', 'maxiconsumo', 'toledo', 'hipermercado', 'supermercado'];
+      const esCad = nn => CAD.some(c => nn.includes(c));
       const canal = (z.canal || 'ambos').toLowerCase();
       const tipos = canal === 'on' ? TIPOS.on : canal === 'off' ? TIPOS.off : [...TIPOS.on, ...TIPOS.off];
-      const gr = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': process.env.GOOGLE_GEOCODE_KEY, 'X-Goog-FieldMask': 'places.id,places.displayName,places.primaryType' },
-        body: JSON.stringify({ includedTypes: tipos, maxResultCount: 10, languageCode: 'es', locationRestriction: { circle: { center: { latitude: +z.lat, longitude: +z.lng }, radius: Math.min(Math.max(+z.radio || 3000, 300), 20000) } } }),
-      });
-      const gj = await gr.json().catch(() => ({}));
-      out.google_status = gr.status;
-      out.google_places = (gj.places || []).length;
-      out.google_muestra = (gj.places || []).slice(0, 6).map(p => ((p.displayName || {}).text || '?') + ' [' + (p.primaryType || '?') + ']');
-      if (!gr.ok) out.google_error = JSON.stringify(gj).slice(0, 500);
+      out.google_zona = z.nombre;
+      out.google_por_tipo = {};
+      const surv = [];
+      for (const tipo of tipos) {
+        const gr = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': gkey, 'X-Goog-FieldMask': 'places.id,places.displayName,places.primaryType' },
+          body: JSON.stringify({ includedTypes: [tipo], maxResultCount: 20, languageCode: 'es', locationRestriction: { circle: { center: { latitude: +z.lat, longitude: +z.lng }, radius: Math.min(Math.max(+z.radio || 3000, 300), 20000) } } }),
+        });
+        const gj = await gr.json().catch(() => ({}));
+        const places = gj.places || [];
+        out.google_por_tipo[tipo] = { status: gr.status, places: places.length, error: gr.ok ? undefined : JSON.stringify(gj).slice(0, 150) };
+        for (const p of places) { const nn = norm((p.displayName || {}).text || ''); if (TIPO_BLOCK.has(p.primaryType) || esCad(nn)) continue; surv.push(((p.displayName || {}).text || '?') + ' [' + (p.primaryType || '?') + ']'); }
+      }
+      const uniq = [...new Set(surv)];
+      out.sobreviven_total = uniq.length;
+      out.sobreviven_muestra = uniq.slice(0, 15);
     } else { out.google = 'sin zona activa o sin GOOGLE_GEOCODE_KEY'; }
 
     // 3) ¿el INSERT funciona? (fila de prueba, se borra enseguida)
