@@ -617,7 +617,7 @@ function usRol(id, rol, sel) {
 }
 
 /* ── Portadas del catálogo público ──────────────────────────────────────────
-   catalogoon.com / catalogooff.com son un sitio aparte. Antes, cambiar la
+   catalogoon.com / catalogooff.com / catalogo-mayorista-gb.com son un sitio aparte. Antes, cambiar la
    portada era reemplazar el archivo y volver a subir la carpeta entera a
    Netlify. Ahora la imagen se sube acá, va al depósito del catálogo y su
    dirección queda guardada en catalogo_config (portada_on / portada_off /
@@ -628,7 +628,7 @@ const CAT_BUCKET = 'Activaciones';
 const PORTADAS = [
   { k:'on',        n:'Catálogo ON',        d:'Restaurantes, bares y hoteles', web:'https://catalogoon.com' },
   { k:'off',       n:'Catálogo OFF',       d:'Vinotecas y autoservicios',     web:'https://catalogooff.com' },
-  { k:'mayorista', n:'Catálogo Mayorista', d:'Puntos de venta al público',    web:'https://catalogoon.com/mayorista/' },
+  { k:'mayorista', n:'Catálogo Mayorista', d:'Puntos de venta al público',    web:'https://catalogo-mayorista-gb.com' },
 ];
 let PO = {}, _poSb = null;
 

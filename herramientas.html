@@ -142,7 +142,7 @@
         document.getElementById("avSb").textContent = p.nombre.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
       }
       const c = String(p&&p.canal||"").toLowerCase();
-      const url = c==="off" ? "https://catalogooff.com" : "https://catalogoon.com";
+      const url = c==="off" ? "https://catalogooff.com" : c==="mayorista" ? "https://catalogo-mayorista-gb.com" : "https://catalogoon.com";
       const card = document.getElementById("cardCatalogo"); if(card) card.href = url;
     }catch(e){}
   })();

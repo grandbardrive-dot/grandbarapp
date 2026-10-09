@@ -693,10 +693,10 @@
     try{
       const c = String(canal||"").toLowerCase();
       // Enlaces del catálogo del cliente según el canal (nuevos dominios)
-      const catUrl = c==="off" ? "https://catalogooff.com" : "https://catalogoon.com";
+      const catUrl = c==="off" ? "https://catalogooff.com" : c==="mayorista" ? "https://catalogo-mayorista-gb.com" : "https://catalogoon.com";
       const lc=document.getElementById("lnkCatalogo"); if(lc) lc.href=catUrl;
       const lv=document.getElementById("lnkVerTodas");  if(lv) lv.href=catUrl;
-      const canales = c==="off" ? ["off","ambos"] : c==="on" ? ["on","ambos"] : ["on","off","ambos"];
+      const canales = c==="off" ? ["off","ambos"] : c==="on" ? ["on","ambos"] : c==="mayorista" ? ["mayorista"] : ["on","off","ambos"];
       const cat = supabase.createClient(CATALOGO.url, CATALOGO.key, { auth:{ persistSession:false } });
       const { data } = await cat.from("catalogo_acciones")
         .select("nombre_producto,mecanica,placa_url,imagen_url")
