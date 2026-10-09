@@ -42,12 +42,26 @@
   .chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap}
   .chip.pend{background:#eef1f3;color:#6a7a82}.chip.ok{background:var(--green-s);color:var(--green-d)}.chip.no{background:var(--danger-s);color:var(--danger)}.chip.cam{background:var(--amber-s);color:#8a6a1e}
   .empty{text-align:center;color:var(--muted);font-size:13.5px;padding:26px 16px;background:#fff;border:1px dashed var(--line);border-radius:12px}
+  /* Evidencias de las acciones que piden evidencia (09/10/2026) */
+  .chip.evid{background:#e4ecf6;color:#1f447f}
+  .prop .pest{font-size:12.5px;color:#1f447f;margin-top:6px}
+  .evi{display:flex;gap:13px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+  .evi .ei{width:74px;flex:none;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:var(--cream);display:block}
+  .evi .ei img{width:100%;height:100%;object-fit:cover;display:block}
+  .evi .ex{flex:1;min-width:0}
+  .evi .et{font-weight:800;font-size:14px}
+  .evi .ec{font-size:13.5px;margin-top:5px}
+  .evi .em{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .evi .ef{display:inline-block;margin-top:7px;font-size:12px;font-weight:700;color:var(--green-d);background:var(--green-s);border-radius:20px;padding:3px 10px}
+  .evi-res{font-size:13px;color:var(--muted);margin:-4px 0 10px}
 </style>
 </head>
 <body>
   <div class="top">
     <div class="b"><span class="g">Grand</span>Bar · Proveedores</div>
     <div class="emp" id="emp">—</div>
+    <!-- Campanita: la maneja /assets/notif.js (avisos de evidencias, 09/10/2026) -->
+    <button class="out bell" type="button" data-gb-bell aria-label="Avisos" style="padding:5px 9px;line-height:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg></button>
     <a class="out" href="/guia-proveedores.html" target="_blank" rel="noopener" style="text-decoration:none">Guía</a>
     <button class="out" onclick="salir()">Salir</button>
   </div>
@@ -67,6 +81,9 @@
       <a class="tool soon" href="#"><div class="ti">📣</div><div><div class="tn">Novedades a vendedores</div><div class="ts">Próximamente</div></div></a>
       <a class="tool" href="proveedor-reportes.html"><div class="ti">📊</div><div><div class="tn">Mis reportes</div><div class="ts">Sellout mensual por canal, producto y cliente</div></div></a>
     </div>
+
+    <h2 id="evidencias">Evidencias de mis acciones</h2>
+    <div id="evid"><div class="empty">Cargando…</div></div>
 
     <h2>Mis acciones mensuales</h2>
     <div id="amList"><div class="empty">Cargando…</div></div>
@@ -116,6 +133,7 @@
     <textarea id="epDesc" class="ep-in" rows="5" placeholder="Detalle de la acción, con los cambios que te pidió Luci…" style="resize:vertical"></textarea>
     <label class="ep-field">Cajas disponibles para la acción</label>
     <input id="epCajas" class="ep-in" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej: 50">
+    <label id="epEvidWrap" style="display:flex;gap:9px;align-items:flex-start;margin-top:14px;font-size:13.5px;cursor:pointer"><input id="epEvid" type="checkbox" style="width:18px;height:18px;margin:1px 0 0;flex:none"><span><b>Pide evidencia</b><span style="display:block;font-size:12px;color:var(--muted)">El vendedor le manda al cliente una placa con su logo y te avisamos en qué cliente y qué día.</span></span></label>
     <div id="epMsg" style="font-size:13px;margin:12px 0 8px"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button type="button" onclick="cerrarEdit()" style="background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;color:var(--ink);cursor:pointer">Cancelar</button>
@@ -166,7 +184,40 @@ async function cargarBanner(){
   cargarAlertas();
   cargarAccionesMensuales();
   cargarPropuestas();
+  cargarEvidencias();
+  if(location.hash==='#evidencias') setTimeout(()=>{ const h=$('evidencias'); if(h) h.scrollIntoView({behavior:'smooth'}); },600);
 })();
+
+// ── Evidencias de mis acciones (09/10/2026) ──────────────────────────────────
+// Cada vez que un vendedor le manda a un cliente la placa de una acción tuya que
+// pide evidencia, queda acá: qué acción, qué cliente, cuándo y la placa que se mandó.
+// La lista sale de la función evidencias-acciones (la tabla no se lee desde el navegador).
+const fFecha=v=>new Date(v).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Argentina/Buenos_Aires'});
+const fHora=v=>new Date(v).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Argentina/Buenos_Aires'});
+const TIPO_CLI={restaurante:'Restaurante',bar:'Bar',vinoteca:'Vinoteca',autoservicio:'Autoservicio','tienda de bebidas':'Tienda de bebidas',tienda_bebidas:'Tienda de bebidas',hotel:'Hotel',disco:'Disco',evento:'Evento',mayorista:'Mayorista'};
+async function cargarEvidencias(){
+  const cont=$('evid');
+  try{
+    const { data:{ session } }=await hub.auth.getSession();
+    const r=await fetch('/.netlify/functions/evidencias-acciones',{headers:{Authorization:'Bearer '+(session&&session.access_token)}});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error||'error');
+    const rows=d.evidencias||[];
+    if(!rows.length){ cont.innerHTML='<div class="empty">Todavía no hay evidencias.<br>Cuando un vendedor cierre una acción tuya que pide evidencia y le mande la placa al cliente, aparece acá.</div>'; return; }
+    const clientes=new Set(rows.map(e=>e.cliente_codigo||e.cliente_nombre)).size;
+    cont.innerHTML=`<div class="evi-res">${rows.length} ${rows.length===1?'placa enviada':'placas enviadas'} · ${clientes} ${clientes===1?'cliente':'clientes'}</div>`+rows.map(e=>`<div class="evi">
+      ${e.placa_url?`<a class="ei" href="${esc(e.placa_url)}" target="_blank" rel="noopener" title="Ver la placa que se mandó"><img src="${esc(e.placa_url)}" alt="Placa enviada" loading="lazy"></a>`:''}
+      <div class="ex">
+        <div class="et">${esc(e.accion_titulo||'Acción')}${e.accion_condicion?' · '+esc(e.accion_condicion):''}</div>
+        <div class="ec">Cliente: <b>${esc(e.cliente_nombre||'—')}</b>${e.cliente_codigo?' · cód. '+esc(e.cliente_codigo):''}${e.cliente_tipo?' · '+esc(TIPO_CLI[e.cliente_tipo]||e.cliente_tipo):''}</div>
+        ${e.cliente_direccion?`<div class="em">${esc(e.cliente_direccion)}</div>`:''}
+        <div class="em">Accionada el <b>${fFecha(e.accionado_at)}</b> a las ${fHora(e.accionado_at)}${e.vendedor_nombre?' · vendedor: '+esc(e.vendedor_nombre):''}</div>
+        ${e.seccion?`<div class="em">${esc(rLbl(e.rubro))} › ${esc(e.seccion)}</div>`:''}
+        <span class="ef">✓ Placa enviada${e.con_logo?' con el logo del cliente':''}</span>
+      </div>
+    </div>`).join('');
+  }catch(e){ cont.innerHTML='<div class="empty">No se pudieron cargar las evidencias. Probá de nuevo en un rato.</div>'; }
+}
 
 // ── Cargar acciones mensuales (archivo general que revisa Luciana) ──────────
 function abrirAM(){ $('amFecha').textContent=new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'}); $('amMsg').textContent=''; $('amFile').value=''; $('amObs').value=''; $('amSend').disabled=false; $('amModal').style.display='flex'; }
@@ -253,10 +304,16 @@ async function cargarPropuestas(){
       const nota=(p.estado==='cambios'||p.estado==='descartada')&&p.nota_revision?`<div class="pnota">📝 ${esc(p.nota_revision)}</div>`:'';
       const btn=p.estado==='cambios'?`<button type="button" class="prop-edit" onclick="editarProp('${p.id}')">✎ Editar y reenviar</button>`:'';
       const cajas=cajasDe(p);
+      // Pide evidencia (09/10/2026): en qué va el pedido una vez aprobada.
+      const evid=p.pide_evidencia?' <span class="chip evid">📸 Pide evidencia</span>':'';
+      const pest=p.estado!=='aprobada'?''
+        : (p.requiere_placa&&!p.placa_url)?'<div class="pest">🎨 GrandBar está armando la placa. Cuando esté lista, la acción entra al manual.</div>'
+        : p.placa_url?'<div class="pest">✅ En el manual con su placa. Te avisamos cada vez que un vendedor se la mande a un cliente.</div>'
+        : p.accion_id?'<div class="pest">✅ En el manual de vendedores.</div>':'';
       return `<div class="prop"><div class="pi">
-        <div class="pt">${esc(p.titulo)}${p.condicion?' · '+esc(p.condicion):''}</div>
+        <div class="pt">${esc(p.titulo)}${p.condicion?' · '+esc(p.condicion):''}${evid}</div>
         <div class="pm">${esc(rLbl(p.rubro))} › ${esc(p.seccion)}${p.subseccion?' › '+esc(p.subseccion):''}${cajas?' · 📦 '+esc(cajas)+' cajas disponibles':''}</div>
-        ${nota}${btn}
+        ${nota}${pest}${btn}
       </div><span class="chip ${cls}">${txt}</span></div>`;
     }).join('');
   }catch(e){ $('props').innerHTML='<div class="empty">No se pudieron cargar tus propuestas.</div>'; }
@@ -272,6 +329,9 @@ function editarProp(id){
   $('epCond').value=p.condicion||'';
   $('epDesc').value=p.descripcion||'';
   $('epCajas').value=cajasDe(p)||'';
+  const esAcc=!p.tipo||p.tipo==='accion';
+  $('epEvidWrap').style.display=esAcc?'flex':'none';
+  $('epEvid').checked=!!p.pide_evidencia;
   $('epMsg').textContent='';
   $('epSend').disabled=false;
   $('epModal').style.display='flex';
@@ -297,9 +357,12 @@ async function guardarEditProp(){
       estado:'pendiente',
       nota_revision:null
     };
+    // Pide evidencia (09/10/2026): solo en acciones; se manda si cambió o si está marcada.
+    if((!p.tipo||p.tipo==='accion') && ($('epEvid').checked||p.pide_evidencia)) cambios.pide_evidencia=$('epEvid').checked;
     let { error }=await sb.from('propuestas_acciones').update(cambios).eq('id',id);
     // Sin la columna cajas_disponibles (falta propuestas-cajas.sql) se guarda igual, en payload.
-    if(error && /cajas_disponibles/.test(error.message||'')){ const { cajas_disponibles, ...sin }=cambios; ({ error }=await sb.from('propuestas_acciones').update(sin).eq('id',id)); }
+    if(error && /cajas_disponibles/.test(error.message||'')){ delete cambios.cajas_disponibles; ({ error }=await sb.from('propuestas_acciones').update(cambios).eq('id',id)); }
+    if(error && /pide_evidencia/.test(error.message||'')) throw new Error('todavía no se puede pedir evidencia. Desmarcá la casilla o probá más tarde.');
     if(error) throw error;
     msg('✅ Reenviada. Luci la va a revisar de nuevo.','var(--green-d)');
     setTimeout(()=>{ cerrarEdit(); cargarPropuestas(); },1100);
@@ -308,5 +371,6 @@ async function guardarEditProp(){
 window.guardarEditProp=guardarEditProp;
 </script>
 <script src="/assets/minuta-fab.js?v=2"></script>
+<script src="/assets/notif.js?v=3"></script>
 </body>
 </html>

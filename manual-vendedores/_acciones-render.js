@@ -85,6 +85,21 @@
     .am-precio-val   { font-family:'DM Mono',monospace; font-size:18px; font-weight:700; color:#1F447F; line-height:1; }
     .am-precio-regular { font-family:'DM Mono',monospace; font-size:11px; color:#b5b0a8; text-decoration:line-through; }
 
+    /* ── Acción de proveedor que pide evidencia (09/10/2026) ── */
+    .am-evid {
+      display: flex; align-items: center; gap: 9px; margin-top: 4px;
+      background: #eef3fa; border: 1px solid #d3e0f0; border-radius: 10px; padding: 7px 8px;
+    }
+    .am-evid img { width: 34px; height: 48px; object-fit: cover; border-radius: 5px; flex: none; cursor: pointer; }
+    .am-evid-tx { flex: 1; min-width: 0; font-size: 10.5px; color: #3c5373; line-height: 1.3; }
+    .am-evid-tx b { display: block; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #1F447F; }
+    .am-evid button {
+      flex: none; border: 0; border-radius: 16px; background: #1F447F; color: #fff;
+      font-family: system-ui,sans-serif; font-size: 11px; font-weight: 700; padding: 6px 11px; cursor: pointer;
+    }
+    .am-evid.hecha { background: #e8f3ee; border-color: #c4e2d3; }
+    .am-evid.hecha button { background: #2f6f5e; }
+
     /* ── Botón Agregar ── */
     .am-btn-agregar {
       display: inline-flex; align-items: center; gap: 5px;
@@ -497,9 +512,27 @@ function renderAccionCard(a, opts = {}) {
                  value="${_selCantidad(a.id)}"
                  oninput="amSetCantidad('${_amEsc(a.id)}',this.value)">
         </div>` : ''}
+        ${_amEvidenciaHtml(a)}
         ${_amEntregaHtml(a)}
       </div>
     </div>`;
+}
+
+// ── Acción de proveedor que pide evidencia (09/10/2026) ──────────────────────
+// Diseño subió la placa: el vendedor la abre, le pone el logo del cliente y se la
+// manda; eso cierra la acción y le avisa al proveedor (visita.html, modal de placa).
+// Solo en la visita (ahí existe el modal).
+function _amEvidenciaHtml(a) {
+  if (!a.requiere_evidencia || !a.placa_url || !a.propuesta_id || typeof abrirPlacaDesde !== 'function') return '';
+  if (a._grupoId && !String(a.id).endsWith('__p0')) return '';
+  const evid = JSON.stringify({ p: a.propuesta_id, prov: a.proveedor || '', am: a.id,
+    acc: [a.producto, a.accion].filter(Boolean).join(' — ') });
+  const datos = `data-url="${_amEsc(a.placa_url)}" data-titulo="${_amEsc(a.producto)}" data-ctx="${_amEsc(a.accion)}" data-evid="${_amEsc(evid)}"`;
+  return `<div class="am-evid" id="am-evid-${_amEsc(a.id)}">
+    <img src="${_amEsc(a.placa_url)}" alt="Placa" loading="lazy" ${datos} onclick="abrirPlacaDesde(this)">
+    <div class="am-evid-tx"><b>Pide evidencia</b>Mandale al cliente la placa con su logo.</div>
+    <button type="button" ${datos} onclick="abrirPlacaDesde(this)">Ver placa</button>
+  </div>`;
 }
 
 // ── Entrega de materiales vinculados a la campaña (solo contexto visita) ───────

@@ -43,6 +43,7 @@ function montarPanel(cfg) {
     });
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  window._pdPersona = cfg.persona;   // quién subió la placa de un pedido de proveedor
   // Los dos paneles son el mismo: uno es el de Josefina y el otro el de Nahuel.
   const otro = /josefina/i.test(cfg.persona)
     ? { n:'Panel de Nahuel',   r:'panel-desarrollo.html', i:'🧑‍💻' }
@@ -214,13 +215,14 @@ function pdRender() {
   const cont = document.getElementById('pd-lista');
   if (!lista.length) {
     cont.innerHTML = `<div class="pv-vacio">${_pdFiltro === 'nuevo'
-      ? 'No hay pedidos nuevos. Cuando un vendedor pida diseño desde el manual, aparece acá.'
+      ? 'No hay pedidos nuevos. Cuando un vendedor pida diseño desde el manual, o Luciana pida la placa de una acción de proveedor, aparece acá.'
       : 'No hay pedidos en este estado.'}</div>`;
     return;
   }
 
   cont.innerHTML = lista.map(p => {
     const est = PD_ESTADOS.find(e => e.k === (p.estado || 'nuevo')) || PD_ESTADOS[0];
+    if (p.propuesta_id) return pdCardProveedor(p, est);
     const wa = p.cliente_whatsapp
       ? `<a class="pd-b" href="https://wa.me/${pdEsc(String(p.cliente_whatsapp).replace(/\D/g,''))}" target="_blank" rel="noopener">💬 WhatsApp del cliente</a>` : '';
     const pieza = p.pieza_url
@@ -250,6 +252,83 @@ function pdRender() {
 }
 
 function pdFiltrar(k) { _pdFiltro = k; pdRender(); }
+
+/* ── Placas de acciones de proveedores (09/10/2026) ─────────────────────────
+   El proveedor marcó "Pide evidencia" y Luciana tocó "Requiere placa": el pedido
+   llega acá con la acción. Al subir la placa, la acción entra al manual en la
+   sección que eligió el proveedor (_propuesta-al-manual.js, igual que cuando la
+   aprueba Luciana) y el vendedor la ve con el botón para ponerle el logo del cliente. */
+function pdCardProveedor(p, est) {
+  return `<article class="pd-card">
+    <div class="pd-top">
+      <span class="pd-est" style="background:${est.color}1a;color:${est.color}">${est.n.replace(/s$/,'')}</span>
+      <span class="pd-tipo">Placa · acción de proveedor</span>
+      <span class="pd-cuando">${pdEsc(pdHace(p.created_at))} · ${pdEsc(pdFecha(p.created_at))}</span>
+    </div>
+    <div class="pd-cliente">${pdEsc(p.proveedor || 'Proveedor')}</div>
+    <div class="pd-quien">${p.pieza_url
+      ? 'Placa subida' + (p.atendido_por ? ' por ' + pdEsc(p.atendido_por) : '') + (p.entregado_en ? ' el ' + pdEsc(pdFecha(p.entregado_en)) : '') + ': la acción ya está en el manual.'
+      : 'Lo mandó Luciana: la acción pide evidencia. Entra al manual cuando subas la placa.'}</div>
+    ${p.detalle ? `<div class="pd-detalle" style="white-space:pre-line">${pdEsc(p.detalle)}</div>` : ''}
+    ${p.nota ? `<div class="pd-detalle" style="color:var(--muted)">Dónde sale: ${pdEsc(p.nota)}</div>` : ''}
+    ${p.pieza_url ? `<a href="${pdEsc(p.pieza_url)}" target="_blank" rel="noopener"><img src="${pdEsc(p.pieza_url)}" alt="Placa" style="display:block;max-width:150px;max-height:220px;border-radius:8px;margin-top:10px;border:1px solid rgba(0,0,0,.1)"></a>` : ''}
+    <div class="pd-acts">
+      ${!p.pieza_url && p.estado !== 'en_curso' && p.estado !== 'cancelado' ? `<button class="pd-b" onclick="pdEstado('${p.id}','en_curso')">▶️ Tomarlo</button>` : ''}
+      ${p.estado !== 'cancelado' ? `<label class="pd-b ok" id="pdsub-${p.id}" style="cursor:pointer">⬆️ ${p.pieza_url ? 'Cambiar placa' : 'Subir placa'}<input type="file" accept="image/png,image/jpeg,image/webp" hidden onchange="pdSubirPlaca('${p.id}', this)"></label>` : ''}
+      ${!p.pieza_url && p.estado !== 'cancelado' ? `<button class="pd-b danger" onclick="pdCancelarPlaca('${p.id}')">✕ Cancelar</button>` : ''}
+      ${p.estado === 'cancelado' ? `<button class="pd-b" onclick="pdEstado('${p.id}','nuevo')">↩️ Reabrir</button>` : ''}
+    </div>
+  </article>`;
+}
+
+async function pdSubirPlaca(id, input) {
+  const f = input.files && input.files[0];
+  input.value = '';
+  if (!f) return;
+  if (!/^image\/(png|jpe?g|webp)$/i.test(f.type)) { alert('La placa tiene que ser una imagen (JPG o PNG).'); return; }
+  if (f.size > 10 * 1024 * 1024) { alert('La imagen pesa más de 10 MB: achicala y probá de nuevo.'); return; }
+  const ped = PD.find(x => x.id === id);
+  const PAM = window.PropuestaAlManual;
+  if (!ped) return;
+  if (!PAM) { alert('No se pudo cargar el armado del manual. Recargá la pantalla y probá de nuevo.'); return; }
+  const btn = document.getElementById('pdsub-' + id);
+  const txt = btn ? btn.firstChild.textContent : '';
+  if (btn) btn.firstChild.textContent = 'Subiendo… ';
+  const sb = pdSb();
+  try {
+    const { data: p, error: e1 } = await sb.from('propuestas_acciones').select('*').eq('id', ped.propuesta_id).maybeSingle();
+    if (e1) throw e1;
+    if (!p) throw new Error('No encontré la acción del proveedor (¿la borraron?).');
+    // Antes de subir nada: ¿se puede ubicar en el manual?
+    let u = null;
+    if (!(p.accion_id && p.accion_tabla)) {
+      u = await PAM.ubicar(sb, p);
+      const prob = PAM.problema(p, u);
+      if (prob) throw new Error(prob + ' (avisale a Luciana).');
+    }
+    const ext = f.type === 'image/png' ? 'png' : f.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = 'placas-evidencia/' + p.id + '-' + Date.now() + '.' + ext;
+    const up = await sb.storage.from('Activaciones').upload(path, f, { upsert: false, contentType: f.type });
+    if (up.error) throw up.error;
+    const url = sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+    if (u) await PAM.publicar(sb, p, u, { placa_url: url });
+    else await PAM.cambiarPlaca(sb, p, url);
+    const ok = await pdGuardar(id, { estado: 'listo', pieza_url: url, entregado_en: new Date().toISOString(), atendido_por: window._pdPersona || null });
+    if (ok) alert(u
+      ? 'Listo: la acción ya está en el manual con la placa (' + [p.seccion, p.subseccion].filter(Boolean).join(' › ') + ').'
+      : 'Listo: la acción del manual ya tiene la placa nueva.');
+  } catch (e) {
+    const m = (e && e.message) || String(e);
+    alert('No se pudo: ' + (/the '(propuesta_id|placa_url|requiere_evidencia|accion_tabla|accion_id|placa_subida_at)' column/.test(m)
+      ? 'falta correr evidencia-placas-setup.sql en Supabase (proyecto del manual).' : m));
+  } finally {
+    if (btn && btn.isConnected) btn.firstChild.textContent = txt;
+  }
+}
+function pdCancelarPlaca(id) {
+  if (!confirm('¿Cancelar este pedido? La acción del proveedor no va a entrar al manual (quedó aprobada, esperando la placa).')) return;
+  pdEstado(id, 'cancelado');
+}
 
 // Mismo cuidado que en las herramientas: si no vuelve la fila, no se guardó.
 async function pdGuardar(id, campos) {

@@ -85,10 +85,29 @@
   .ab{border:1.5px solid var(--line-2);background:var(--surface);border-radius:10px;padding:9px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink2)}
   .ab.ok{border-color:#bfe0d0;color:var(--green);background:var(--green-bg)}
   .ab.cam{border-color:#ecdcb2;color:var(--amber);background:var(--amber-bg)}
+  .ab.placa{border-color:#cfc2e6;color:#5b3a8a;background:#f3eefa}
+  .pc-tipochip.pc-evid{background:#e4ecf6;color:#1f447f}
   .ab.no{border-color:#e7cfc6;color:var(--red);background:var(--red-bg)}
   .empty{text-align:center;color:var(--ink3);padding:44px 16px;background:var(--surface);border:1px dashed var(--line-2);border-radius:14px}
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--navy-dd);color:#fff;padding:12px 20px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:90}
   .toast.show{opacity:1}
+  /* Aprobar y agregar al manual (05/10/2026) */
+  .ag-ov{position:fixed;inset:0;background:rgba(15,35,64,.5);display:none;align-items:center;justify-content:center;padding:18px;z-index:95}
+  .ag-ov.open{display:flex}
+  .ag-card{background:var(--surface);border-radius:18px;width:100%;max-width:520px;max-height:92vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+  .ag-head{background:var(--navy);color:#fff;padding:16px 20px;font-size:16px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+  .ag-head button{background:rgba(255,255,255,.15);border:0;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:15px}
+  .ag-body{padding:18px 20px}
+  .ag-fila{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .ag-fila:last-of-type{border-bottom:0}
+  .ag-k{color:var(--ink3);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding-top:2px}
+  .ag-aviso{margin-top:12px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.45}
+  .ag-aviso.bien{background:var(--green-bg);color:var(--green)} .ag-aviso.mal{background:var(--red-bg);color:var(--red)} .ag-aviso.ojo{background:var(--amber-bg);color:var(--amber)}
+  .ag-acts{display:flex;gap:10px;margin-top:16px}
+  .ag-acts button{flex:1;border:0;border-radius:11px;padding:13px;font:inherit;font-size:14px;font-weight:800;cursor:pointer}
+  .ag-acts .no{background:var(--surface);border:1.5px solid var(--line-2);color:var(--navy);flex:0 0 auto;padding:13px 18px}
+  .ag-acts .si{background:var(--green);color:#fff}
+  .ag-acts .si:disabled{opacity:.55;cursor:default}
 </style>
 </head>
 <style>
@@ -162,8 +181,20 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<!-- Aprobar y agregar al manual: muestra dónde va a quedar antes de cargarla. -->
+<div class="ag-ov" id="agOv" onclick="if(event.target===this)cerrarAgregar()">
+  <div class="ag-card">
+    <div class="ag-head"><span id="agTit">Aprobar y agregar al manual</span><button type="button" onclick="cerrarAgregar()">✕</button></div>
+    <div class="ag-body">
+      <div id="agDet"><div style="color:var(--ink3)">Buscando la sección…</div></div>
+      <div class="ag-acts"><button type="button" class="no" onclick="cerrarAgregar()">Cancelar</button><button type="button" class="si" id="agOk" onclick="confirmarAgregar()" disabled>✓ Aprobar y agregar</button></div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="_propuesta-al-manual.js?v=1"></script>
 <script>
   sessionStorage.setItem('admin_auth','1');
   sessionStorage.setItem('admin_perfil','comercial');
@@ -196,6 +227,97 @@
     await setEstado(id,'aprobada');
   }
   window.aprobar=aprobar;
+
+  // ── Aprobar y agregar al manual / Requiere placa (acciones del proveedor) ──
+  // 05/10/2026: "Aprobar y agregar al manual" (estuvo en pausa hasta el 09/10).
+  // 09/10/2026: si el proveedor pidió evidencia, Luciana decide si de verdad hace
+  // falta: "Requiere placa" la aprueba y la manda a Diseño y Desarrollo (pedidos_diseno);
+  // la acción entra al manual recién cuando ellos suben la placa (panel-admin.js).
+  // Dónde va y cómo se carga lo resuelve _propuesta-al-manual.js (lo mismo para los dos).
+  const esAccion = p => !p.tipo || p.tipo === 'accion';
+  const PAM = window.PropuestaAlManual;
+  const AVISO_SQL_EVID = 'Falta correr evidencia-placas-setup.sql en Supabase (proyecto del manual).';
+  const faltaSqlEvid = m => /the '(pide_evidencia|requiere_placa|placa_url|placa_subida_at|accion_tabla|accion_id|propuesta_id|requiere_evidencia|proveedor)' column/.test(String(m||''));
+  let AG = null;   // { p, ubic, modo: 'manual' | 'placa' }
+
+  async function abrirAgregar(id, modo){
+    const p = TODAS.find(x => x.id === id); if(!p) return;
+    modo = modo === 'placa' ? 'placa' : 'manual';
+    AG = { p, ubic: null, modo };
+    $('agTit').textContent = modo === 'placa' ? 'Requiere placa' : 'Aprobar y agregar al manual';
+    $('agOk').textContent = modo === 'placa' ? '✓ Aprobar y pedir la placa' : '✓ Aprobar y agregar';
+    $('agOk').disabled = true;
+    $('agDet').innerHTML = '<div style="color:var(--ink3)">Buscando la sección…</div>';
+    $('agOv').classList.add('open');
+    let u;
+    try{ u = await PAM.ubicar(sb, p); }catch(e){ $('agDet').innerHTML = `<div class="ag-aviso mal">No se pudo leer el manual: ${esc(e.message||e)}</div>`; return; }
+    AG.ubic = u;
+    const donde = `${esc(rLbl(p.rubro))} › ${esc(p.seccion||'—')}${p.subseccion ? ' › ' + esc(p.subseccion) : ''}`;
+    const zonas = !u.zonas.length ? '—'
+      : (u.zonas.length === 1 && u.zonas[0] === 'mendoza' && !u.slPropio) ? 'Mendoza (San Luis usa el mismo manual)'
+      : u.zonas.map(z => z === 'sanluis' ? 'San Luis' : 'Mendoza').join(' y ');
+    const vig = (p.vigencia_desde || p.vigencia_hasta) ? `${fmtV(p.vigencia_desde) || '…'} → ${fmtV(p.vigencia_hasta) || '…'}` : 'Sin fechas (vale siempre)';
+    const prob = PAM.problema(p, u);
+    let aviso;
+    if(prob) aviso = `<div class="ag-aviso mal">${esc(prob)}</div>`;
+    else {
+      const como = u.calendario ? 'como <b>fecha especial</b> (el vendedor la ve en el calendario de esa sección)'
+                                : 'como <b>campaña</b> (el vendedor la ve en esa sección durante la visita)';
+      aviso = (u.subFaltante ? `<div class="ag-aviso ojo">No encontré la subsección "${esc(p.subseccion)}": queda en la sección "${esc(p.seccion)}".</div>` : '')
+        + (modo === 'placa'
+          ? `<div class="ag-aviso ojo">Le llega a <b>Diseño y Desarrollo</b> para que armen la placa. La acción entra al manual recién cuando suban la placa, ${como}. El vendedor le pone el logo del cliente, se la manda y al proveedor le llega el aviso.</div>`
+          : `<div class="ag-aviso bien">Se carga ${como}. Después la podés editar en ${u.calendario ? 'Fechas especiales' : 'Campañas y planes'}.</div>`);
+    }
+    $('agDet').innerHTML = `
+      <div class="ag-fila"><div class="ag-k">Acción</div><div><b>${esc(p.titulo)}</b>${p.condicion ? ' · ' + esc(p.condicion) : ''}</div></div>
+      <div class="ag-fila"><div class="ag-k">Proveedor</div><div>${esc(p.autor_empresa || p.autor_nombre || '—')}</div></div>
+      <div class="ag-fila"><div class="ag-k">Dónde</div><div>${donde}<div style="font-size:12px;color:var(--ink3);margin-top:2px">Manual de ${zonas}</div></div></div>
+      <div class="ag-fila"><div class="ag-k">Vigencia</div><div>${vig}</div></div>
+      ${aviso}`;
+    $('agOk').disabled = !!prob;
+  }
+  function cerrarAgregar(){ $('agOv').classList.remove('open'); AG = null; }
+
+  async function confirmarAgregar(){
+    if(!AG || !AG.ubic) return;
+    const { p, ubic, modo } = AG, btn = $('agOk'), txt = btn.textContent;
+    btn.disabled = true; btn.textContent = modo === 'placa' ? 'Enviando…' : 'Agregando…';
+    try{
+      if(modo === 'placa'){
+        // Primero el pedido (si falla no queda la propuesta aprobada sin pedido).
+        const det = [p.titulo + (p.condicion ? ' · ' + p.condicion : ''), p.descripcion].filter(Boolean).join('\n');
+        const vig = (p.vigencia_desde || p.vigencia_hasta) ? ` · Vigencia ${fmtV(p.vigencia_desde) || '…'} → ${fmtV(p.vigencia_hasta) || '…'}` : '';
+        const r = await sb.from('pedidos_diseno').insert({
+          tipo: 'placa', estado: 'nuevo', propuesta_id: p.id, proveedor: p.autor_empresa || p.autor_nombre || null,
+          detalle: det, nota: `${rLbl(p.rubro)} › ${p.seccion || '—'}${p.subseccion ? ' › ' + p.subseccion : ''}${vig}`,
+          vendedor_nombre: 'Luciana (acción de proveedor)', fecha_necesita: p.vigencia_desde || null }).select('id');
+        if(r.error) throw r.error;
+        const { error } = await sb.from('propuestas_acciones').update({ estado: 'aprobada', requiere_placa: true }).eq('id', p.id);
+        if(error) throw error;
+        p.estado = 'aprobada'; p.requiere_placa = true;
+        cerrarAgregar(); render();
+        toast('✓ Aprobada: le llegó a Diseño para armar la placa');
+      } else {
+        const res = await PAM.publicar(sb, p, ubic);
+        p.estado = 'aprobada'; p.accion_tabla = res.tabla; p.accion_id = res.id;
+        cerrarAgregar(); render();
+        toast(ubic.calendario ? '✓ Aprobada y agregada al calendario de fechas' : '✓ Aprobada y agregada como campaña');
+      }
+    }catch(e){
+      btn.disabled = false; btn.textContent = txt;
+      const m = e.message || String(e);
+      $('agDet').insertAdjacentHTML('beforeend', `<div class="ag-aviso mal">No se pudo: ${esc(faltaSqlEvid(m) ? AVISO_SQL_EVID : m)}</div>`);
+    }
+  }
+  window.abrirAgregar = abrirAgregar; window.cerrarAgregar = cerrarAgregar; window.confirmarAgregar = confirmarAgregar;
+  // En qué quedó una propuesta aprobada (lo ve Luciana en la tarjeta).
+  function estadoManual(p){
+    if(p.estado !== 'aprobada' || !esAccion(p)) return '';
+    if(p.requiere_placa && !p.placa_url) return '<div class="pc-cajas" style="display:table">🎨 Esperando la placa de Diseño y Desarrollo: entra al manual cuando la suban.</div>';
+    if(p.placa_url) return `<div class="pc-cajas" style="display:table">✅ En el manual con su placa · <a href="${esc(p.placa_url)}" target="_blank" rel="noopener">ver placa</a></div>`;
+    if(p.accion_id) return '<div class="pc-cajas" style="display:table">✅ En el manual</div>';
+    return '';
+  }
   const fmtV=d=>{ if(!d) return ''; const [a,m,dd]=String(d).split('-'); return dd+'/'+m+'/'+a.slice(2); };
 
   // ── Imagen del portal de proveedores ───────────────────────────────────────
@@ -263,18 +385,19 @@
         <div class="pc-top">
           <div class="pc-emp">${esc(ini(p.autor_empresa||p.autor_nombre))}</div>
           <div class="pc-info">
-            <div class="pc-tit">${esc(p.titulo)} ${p.condicion?`<span class="pc-cond">· ${esc(p.condicion)}</span>`:''}${TIPO_CHIP[p.tipo]?`<span class="pc-tipochip">${TIPO_CHIP[p.tipo]}</span>`:''}</div>
+            <div class="pc-tit">${esc(p.titulo)} ${p.condicion?`<span class="pc-cond">· ${esc(p.condicion)}</span>`:''}${TIPO_CHIP[p.tipo]?`<span class="pc-tipochip">${TIPO_CHIP[p.tipo]}</span>`:''}${p.pide_evidencia?'<span class="pc-tipochip pc-evid">📸 Pide evidencia</span>':''}</div>
             <div class="pc-meta">${esc(p.autor_empresa||p.autor_nombre||'')} · ${esc(rLbl(p.rubro))} › ${esc(p.seccion)}${p.subseccion?' › '+esc(p.subseccion):''}</div>
             ${(!p.tipo||p.tipo==='accion')&&p.descripcion?`<div class="pc-desc">${esc(p.descripcion)}</div>`:''}
-            ${payloadHtml(p)}${cajasH}${vig}${nota}
+            ${payloadHtml(p)}${cajasH}${vig}${nota}${estadoManual(p)}
           </div>
           <span class="est ${p.estado}">${p.estado}</span>
         </div>
-        <div class="pc-acc">
-          <button class="ab ok" onclick="aprobar('${p.id}')">✓ Aprobar${TIPO_CHIP[p.tipo]?' y cargar':''}</button>
+        ${p.estado==='aprobada' ? '' : `<div class="pc-acc">
+          ${esAccion(p) ? `<button class="ab ok" onclick="abrirAgregar('${p.id}')">✓ Aprobar y agregar al manual</button>${p.pide_evidencia?`<button class="ab placa" onclick="abrirAgregar('${p.id}','placa')" title="Le llega a Diseño y Desarrollo; entra al manual cuando suban la placa">🎨 Requiere placa</button>`:''}<button class="ab" onclick="setEstado('${p.id}','aprobada')" title="Aprobarla sin cargarla al manual (la cargás vos después)">Solo aprobar</button>`
+            : `<button class="ab ok" onclick="aprobar('${p.id}')">✓ Aprobar${TIPO_CHIP[p.tipo]?' y cargar':''}</button>`}
           <button class="ab cam" onclick="pedirCambios('${p.id}')">✎ Pedir cambios</button>
           <button class="ab no" onclick="setEstado('${p.id}','descartada')">✕ Descartar</button>
-        </div>
+        </div>`}
       </div>`;
     }).join('');
   }
@@ -366,6 +489,6 @@
 </script>
 <script src="_admin-sidebar.js"></script>
 <script src="/assets/minuta-fab.js?v=2"></script>
-<script src="_comercial-nav.js?v=6"></script>
+<script src="_comercial-nav.js?v=7"></script>
 </body>
 </html>

@@ -441,6 +441,9 @@
   /* Aperitivos: párrafo opcional + botón "Ver material" */
   .oferta-desc { font-size: 10.5px; color: var(--text2); line-height: 1.35; margin: 4px 0 6px; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .oferta-desc.expanded { -webkit-line-clamp: unset; }
+  .placa-evid { width: 100%; background: #eef3fa; border: 1px solid #d3e0f0; color: #3c5373; border-radius: 10px; padding: 9px 11px; font-size: 12.5px; line-height: 1.4; text-align: left; }
+  .placa-evid b { display: block; color: #1f447f; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
+  .placa-evid.hecha { background: #e8f3ee; border-color: #c4e2d3; color: #245647; }
   .oferta-evid { align-self: flex-start; font-size: 9.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #fff; background: #1f447f; border-radius: 5px; padding: 2px 7px; margin: 2px 0 4px; }
   .oferta-material { align-self: flex-start; margin-bottom: 7px; background: #fff; border: 1px solid var(--azul); color: var(--azul); font-family: inherit; font-size: 10.5px; font-weight: 700; padding: 4px 9px; border-radius: 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .oferta-material:active { background: var(--blue-lt); }
@@ -1722,6 +1725,7 @@ body { background:transparent !important; }
     <button class="placa-modal-close" onclick="cerrarPlacaModal()" aria-label="Cerrar">✕</button>
     <img class="placa-modal-img" id="placa-modal-img" src="" alt="Placa">
     <div class="placa-modal-titulo" id="placa-modal-titulo"></div>
+    <div class="placa-evid" id="placa-evid" style="display:none"></div>
     <button class="placa-btn perso" id="placa-perso-btn" onclick="personalizarPlacaClick()">🎨 Personalizar con logo del cliente</button>
     <div class="placa-perso-aviso" id="placa-perso-aviso" style="display:none">
       Este cliente no tiene logo cargado.
@@ -1731,9 +1735,9 @@ body { background:transparent !important; }
     </div>
     <div class="placa-modal-btns">
       <button class="placa-btn dl" onclick="descargarPlacaActual()">⬇ Descargar</button>
-      <button class="placa-btn wa" onclick="enviarPlacaActual()">📲 Enviar al cliente</button>
+      <button class="placa-btn wa" id="placa-wa-btn" onclick="enviarPlacaActual()">📲 Enviar al cliente</button>
     </div>
-    <div class="placa-modal-nota">Adjuntá la placa descargada en el chat (WhatsApp no la adjunta solo).</div>
+    <div class="placa-modal-nota" id="placa-modal-nota">Adjuntá la placa descargada en el chat (WhatsApp no la adjunta solo).</div>
   </div>
 </div>
 
@@ -6344,7 +6348,7 @@ body { background:transparent !important; }
     if (!conImg.length){ el.innerHTML = ''; return; }
     el.innerHTML = `<div class="fb-label" style="margin-top:2px">Placas de fechas — personalizá con el logo del cliente</div>
       <div class="fb-placas-grid">` + conImg.map(e => `
-        <button class="fb-placa" data-url="${esc(e.imagen_url)}" data-titulo="${esc(e.nombre||'')}" data-ctx="${esc(cliente.nombre||'')}" onclick="abrirPlacaDesde(this)">
+        <button class="fb-placa" data-url="${esc(e.imagen_url)}" data-titulo="${esc(e.nombre||'')}" data-ctx="${esc(cliente.nombre||'')}"${_evidAttr(e)} onclick="abrirPlacaDesde(this)">
           <img src="${esc(e.imagen_url)}" loading="lazy" alt=""><span>${esc(e.nombre||'')}</span>
         </button>`).join('') + `</div>`;
   }
@@ -7269,17 +7273,18 @@ body { background:transparent !important; }
 
     // Cabecera con los datos de la fecha misma (imagen/placa + mecánica + rubros).
     const ev = _calEvById[fechaId] || {};
+    const evAttr = _evidAttr(ev);   // fecha de un proveedor que pide evidencia (09/10/2026)
     const rubrosTxt = (Array.isArray(ev.rubros) && ev.rubros.length && !ev.rubros.includes('todos'))
       ? `<div class="cal-fecha-rubros">${ev.rubros.map(r => `<span class="cal-fecha-rubro">${esc(rubroLbl(r))}</span>`).join('')}</div>` : '';
     const cab = (ev.imagen_url || ev.descripcion || ev.condicion || rubrosTxt) ? `
       <div class="cal-fecha-cab">
         ${ev.imagen_url ? `<img class="cal-fecha-img" src="${esc(ev.imagen_url)}" alt="${esc(ev.nombre || '')}" loading="lazy"
-          data-url="${esc(ev.imagen_url)}" data-titulo="${esc(ev.nombre || '')}" data-ctx="${esc(evNombre)}" onclick="abrirPlacaDesde(this)">` : ''}
+          data-url="${esc(ev.imagen_url)}" data-titulo="${esc(ev.nombre || '')}" data-ctx="${esc(evNombre)}"${evAttr} onclick="abrirPlacaDesde(this)">` : ''}
         <div class="cal-fecha-cab-info">
           ${ev.descripcion ? `<div class="cal-fecha-desc">${esc(ev.descripcion)}</div>` : ''}
           ${ev.condicion ? `<div class="cal-fecha-cond"><b>Mecánica:</b> ${esc(ev.condicion)}</div>` : ''}
           ${rubrosTxt}
-          ${ev.imagen_url ? `<button class="cal-acc-ver" data-url="${esc(ev.imagen_url)}" data-titulo="${esc(ev.nombre || '')}" data-ctx="${esc(evNombre)}" onclick="abrirPlacaDesde(this)">Ver / descargar placa →</button>` : ''}
+          ${ev.imagen_url ? `<button class="cal-acc-ver" data-url="${esc(ev.imagen_url)}" data-titulo="${esc(ev.nombre || '')}" data-ctx="${esc(evNombre)}"${evAttr} onclick="abrirPlacaDesde(this)">Ver / descargar placa →</button>` : ''}
         </div>
       </div>` : '';
 
@@ -7309,8 +7314,24 @@ body { background:transparent !important; }
   let _placaComposed = null;          // dataURL de la placa con logo (si se compuso)
   let _placaViendoPerso = false;      // ¿el modal muestra la versión personalizada?
 
-  function abrirPlacaDesde(el) { abrirPlacaModal(el.dataset.url, el.dataset.titulo, el.dataset.ctx); }
-  function abrirPlacaModal(url, titulo, ctx) {
+  // Acción de proveedor que pide evidencia (09/10/2026): data-evid = { p: propuesta,
+  // prov, am: id de la tarjeta de campaña (si es campaña), acc: texto de la acción }.
+  let _placaEvid = null;
+  let _evidPrep = null;               // promesa con { token, file, blob, conLogo } lista para mandar
+  let _evidSinLogoOk = false;         // el vendedor eligió mandarla sin logo
+  const _evidEnviadas = new Set();    // propuesta|cliente ya registradas en esta visita
+
+  // data-evid para una fecha especial (acciones_fechas) que viene de un proveedor y pide evidencia.
+  function _evidAttr(f) {
+    if (!f || !f.requiere_evidencia || !f.propuesta_id || !f.imagen_url) return '';
+    return ` data-evid="${esc(JSON.stringify({ p: f.propuesta_id, acc: f.nombre || '' }))}"`;
+  }
+  function abrirPlacaDesde(el) {
+    let evid = null;
+    try { evid = el.dataset.evid ? JSON.parse(el.dataset.evid) : null; } catch (e) {}
+    abrirPlacaModal(el.dataset.url, el.dataset.titulo, el.dataset.ctx, evid);
+  }
+  function abrirPlacaModal(url, titulo, ctx, evid) {
     _placaActual = { url, titulo, ctx };
     _placaComposed = null;
     _placaViendoPerso = false;
@@ -7318,9 +7339,138 @@ body { background:transparent !important; }
     document.getElementById('placa-modal-titulo').textContent = titulo || '';
     document.getElementById('placa-perso-aviso').style.display = 'none';
     document.getElementById('placa-perso-btn').textContent = '🎨 Personalizar con logo del cliente';
+    _placaEvid = evid && evid.p ? evid : null;
+    _evidSinLogoOk = false;
+    _evidPintar();
     document.getElementById('placa-modal').classList.add('open');
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', _placaEscHandler);
+  }
+  // Textos del modal según sea una placa común o una evidencia para el proveedor.
+  function _evidPintar() {
+    const box = document.getElementById('placa-evid');
+    const nota = document.getElementById('placa-modal-nota');
+    const btn = document.getElementById('placa-wa-btn');
+    if (!_placaEvid) {
+      box.style.display = 'none'; box.className = 'placa-evid';
+      nota.textContent = 'Adjuntá la placa descargada en el chat (WhatsApp no la adjunta solo).';
+      btn.textContent = '📲 Enviar al cliente';
+      _evidPrep = null;
+      return;
+    }
+    const prov = _placaEvid.prov ? ' · ' + esc(_placaEvid.prov) : '';
+    const ya = _evidEnviadas.has(_placaEvid.p + '|' + cliente.id);
+    box.className = 'placa-evid' + (ya ? ' hecha' : '');
+    box.innerHTML = ya
+      ? `<b>Evidencia enviada${prov}</b>Ya le mandaste esta placa a ${esc(cliente.nombre)} y le avisamos al proveedor.`
+      : `<b>Pide evidencia${prov}</b>Ponele el logo del cliente y mandásela. Al mandarla, la acción queda cerrada y le avisamos al proveedor.`;
+    box.style.display = 'block';
+    nota.textContent = 'En el celular se abre para elegir WhatsApp y el chat del cliente, con la placa ya adjunta.';
+    btn.textContent = '📲 Enviar al cliente y cerrar la acción';
+    _evidPrep = _evidPreparar();      // la sesión y la imagen quedan listas antes del toque
+  }
+  // Sesión del Portal: la función que avisa al proveedor necesita saber quién la manda.
+  let _hubAuthCli = null;
+  async function _hubToken() {
+    try {
+      _hubAuthCli = _hubAuthCli || supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc');
+      const { data } = await _hubAuthCli.auth.getSession();
+      return (data && data.session && data.session.access_token) || null;
+    } catch (e) { return null; }
+  }
+  // Arma el archivo a mandar: la placa con el logo si ya se compuso, si no la original.
+  async function _evidPreparar() {
+    try {
+      const conLogo = !!_placaComposed;
+      const [token, blob] = await Promise.all([_hubToken(), fetch(conLogo ? _placaComposed : _placaActual.url).then(r => r.blob())]);
+      const file = new File([blob], _nombrePlaca(), { type: blob.type || 'image/jpeg' });
+      return { token, blob, file, conLogo };
+    } catch (e) { return { error: e }; }
+  }
+
+  // Mandar la placa de una acción que pide evidencia: se comparte la imagen (en el
+  // celular va adjunta a WhatsApp), se guarda la que se mandó y se registra la evidencia;
+  // al proveedor le llega el aviso con el cliente y el día (función evidencias-acciones).
+  async function enviarPlacaEvidencia() {
+    const ev = _placaEvid, clave = ev.p + '|' + cliente.id;
+    const btn = document.getElementById('placa-wa-btn');
+    // 1) Con logo: si el cliente lo tiene y todavía no se puso, se pone primero.
+    if (cliente.logo_url && !_placaComposed) {
+      await componerPlacaConLogo();
+      if (!_placaComposed) return;                       // no se pudo componer: ya avisó
+      btn.textContent = '📲 Listo, tocá para enviar';    // el celular pide un toque nuevo para compartir
+      return;
+    }
+    if (!cliente.logo_url && !_evidSinLogoOk) {
+      document.getElementById('placa-perso-aviso').style.display = 'block';
+      showToast('Este cliente no tiene logo: subilo o tocá de nuevo para mandarla sin logo', 'error');
+      btn.textContent = '📲 Enviar sin logo';
+      _evidSinLogoOk = true;
+      return;
+    }
+    if (_evidEnviadas.has(clave) && !confirm('Ya le mandaste esta placa a este cliente. ¿Mandarla de nuevo?')) return;
+    const prep = await (_evidPrep || (_evidPrep = _evidPreparar()));
+    if (prep.error) { _evidPrep = null; showToast('No se pudo preparar la placa. Probá de nuevo.', 'error'); return; }
+    if (!prep.token) { showToast('Para avisarle al proveedor, entrá al manual desde el Portal con tu cuenta', 'error'); return; }
+    const txt = btn.textContent;
+    const msg = `¡Hola ${cliente.nombre}! Te comparto la placa de ${_placaActual.titulo || 'la acción'} 🎉`;
+    // 2) Mandarla.
+    let medio = null;
+    if (navigator.canShare && navigator.canShare({ files: [prep.file] })) {
+      try { await navigator.share({ files: [prep.file], text: msg }); medio = 'compartir'; }
+      catch (e) {
+        if (e && e.name === 'AbortError') return;          // la cerró sin mandar: no se registra
+        if (e && e.name === 'NotAllowedError') { btn.textContent = '📲 Tocá de nuevo para enviar'; return; }
+      }
+    }
+    if (!medio) {
+      if (!cliente.whatsapp) {
+        showToast('Agregá primero el WhatsApp del cliente', 'error');
+        cerrarPlacaModal();
+        document.getElementById('ficha-cliente')?.scrollIntoView({ behavior:'smooth' });
+        agregarWhatsappPrompt();
+        return;
+      }
+      await descargarPlaca(URL.createObjectURL(prep.blob), _nombrePlaca());
+      window.open(waLinkCliente(msg), '_blank');
+      medio = 'whatsapp';
+    }
+    // 3) Registrar la evidencia y avisarle al proveedor.
+    btn.disabled = true; btn.textContent = 'Avisando al proveedor…';
+    try {
+      const ext = prep.blob.type === 'image/png' ? 'png' : 'jpg';
+      const carpeta = String(cliente.codigo_cliente || cliente.id).replace(/[^\w-]/g, '_');
+      const path = `evidencias-placas/${carpeta}/${ev.p}-${Date.now()}.${ext}`;
+      let placaUrl = null;
+      const up = await sb.storage.from('Activaciones').upload(path, prep.blob, { upsert: false, contentType: prep.blob.type || 'image/jpeg' });
+      if (!up.error) placaUrl = sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+      const r = await fetch('/.netlify/functions/evidencias-acciones', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + prep.token },
+        body: JSON.stringify({ propuesta_id: ev.p, cliente: { id: cliente.id }, vendedor: { codigo: vendedor.codigo, nombre: vendedor.nombre },
+                               placa_url: placaUrl, con_logo: prep.conLogo, medio }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || 'no respondió');
+      _evidEnviadas.add(clave);
+      _evidCerrarAccion(ev);
+      showToast(`✓ Placa enviada: le avisamos a ${d.proveedor || 'el proveedor'}`, 'success');
+      cerrarPlacaModal();
+    } catch (e) {
+      showToast('La placa se mandó, pero no se pudo avisar al proveedor: ' + e.message + '. Probá enviarla de nuevo.', 'error');
+    } finally { btn.disabled = false; btn.textContent = txt; }
+  }
+  // La acción queda cerrada: en los acuerdos de la visita como aceptada.
+  function _evidCerrarAccion(ev) {
+    if (ev.am) {
+      if (typeof _amSeleccionadas !== 'undefined' && !_amSeleccionadas.has(ev.am)) document.getElementById('am-btn-' + ev.am)?.click();
+      const box = document.getElementById('am-evid-' + ev.am);
+      if (box) {
+        box.classList.add('hecha');
+        const tx = box.querySelector('.am-evid-tx');
+        if (tx) tx.innerHTML = '<b>Evidencia enviada</b>Le avisamos al proveedor.';
+      }
+    } else if (!cartFind('Fechas especiales', ev.acc || _placaActual.titulo)) {
+      cartAdd('Fechas especiales', ev.acc || _placaActual.titulo, 'Aceptada');
+    }
   }
 
   // Carga una imagen vía fetch→blob→objectURL (blob = same-origin → canvas nunca tainted)
@@ -7376,6 +7526,7 @@ body { background:transparent !important; }
       _placaViendoPerso = true;
       document.getElementById('placa-modal-img').src = _placaComposed;
       btn.textContent = '↩ Ver placa original';
+      if (_placaEvid) _evidPrep = _evidPreparar();   // la evidencia se manda con el logo
       showToast('✓ Placa personalizada con el logo', 'success');
     } catch (e) {
       btn.textContent = prev;
@@ -7437,6 +7588,7 @@ body { background:transparent !important; }
   }
   async function enviarPlacaActual() {
     if (!_placaActual) return;
+    if (_placaEvid) return enviarPlacaEvidencia();
     // Si el cliente no tiene WhatsApp → pedir que lo cargue (igual que el resumen de cierre)
     if (!cliente.whatsapp) {
       showToast('Agregá primero el WhatsApp del cliente', 'error');
