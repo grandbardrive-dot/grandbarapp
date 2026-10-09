@@ -222,6 +222,9 @@
     if (String(currentRole).toLowerCase() === "mayorista") { location.replace("inicio.html"); return; }
     // Brenda (administración) y Mónica (tesorería): todo en su panel de Cobranzas, con un solo menú (06/10/2026).
     if (["administracion", "tesoreria"].includes(String(currentRole).toLowerCase())) { location.replace("panel-cobranzas.html"); return; }
+    // Proveedores (Peñaflor, Pernod, Renacer…): su panel de proveedor. Si caen acá por sesión vieja
+    // o URL directa, el Hub no tiene herramientas para su rol → se los rebota a su panel (09/10/2026).
+    if (String(currentRole).toLowerCase() === "proveedor") { location.replace("manual-vendedores/proveedor.html"); return; }
     currentUser = s.nombre || "Equipo GrandBar";
     document.getElementById("uName").textContent = currentUser;
     document.getElementById("uRole").textContent = ROLE_LABEL[currentRole] || currentRole;
