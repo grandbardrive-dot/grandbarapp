@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2238">
+<title>CRM — Calendario de acciones</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e4e8ec;--line2:#eef1f3;
+    --gold:#c9a13b;--gold-d:#a9852a;--navy:#0d2238;--blue:#3f6f9c;--danger:#c0603e;--danger-s:#fbe9e4;
+    --green:#2f8f6e;--green-d:#256f54;--today:#e9f1fb;--todayn:#1a73e8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',system-ui,sans-serif;background:#f6f7f9;color:var(--ink);-webkit-font-smoothing:antialiased}
+  .top{background:var(--navy);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:30}
+  .top .b{font-weight:800;font-size:15px}.top .b .g{color:#e7c778}
+  .top a.back{color:#cdd9e0;text-decoration:none;font-size:13px}
+  .top .me{margin-left:auto;font-size:12.5px;color:#b9c6cd}
+  .wrap{max-width:1180px;margin:0 auto;padding:16px 14px 70px}
+
+  /* Barra de control */
+  .bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .bar h1{font-size:20px;margin:0;font-weight:800}
+  .nav{display:flex;align-items:center;gap:4px}
+  .nav button{width:34px;height:34px;border:1px solid var(--line);background:#fff;border-radius:9px;font-size:17px;cursor:pointer;color:var(--ink);display:grid;place-items:center}
+  .nav button:hover{background:var(--line2)}
+  .mes{font-size:17px;font-weight:800;min-width:168px;text-align:center;text-transform:capitalize}
+  .hoy{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 14px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
+  .hoy:hover{background:var(--line2)}
+  .add{margin-left:auto;border:0;background:var(--navy);color:#fff;border-radius:10px;padding:10px 16px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(13,34,56,.18)}
+  .add:hover{background:#13304d}
+
+  /* Filtro de rubros */
+  .rubros{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+  .rubros .lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:3px}
+  .rchip{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:20px;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .rchip .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .rchip.on{color:#fff;border-color:transparent}
+  .rchip.todos.on{background:var(--navy)}
+
+  /* Calendario */
+  .cal{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(13,34,56,.05)}
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);background:#fafbfc;border-bottom:1px solid var(--line)}
+  .dow div{padding:9px 8px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr)}
+  .cell{min-height:118px;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:5px 5px 6px;position:relative;cursor:pointer;transition:background .1s}
+  .cell:nth-child(7n){border-right:0}
+  .cell:hover{background:#fafcff}
+  .cell.off{background:#fafafa;color:#b8c0c6;cursor:default}
+  .cell.off:hover{background:#fafafa}
+  .dn{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:50%;font-size:12.5px;font-weight:700;margin:1px 0 3px}
+  .cell.today .dn{background:var(--todayn);color:#fff}
+  .evs{display:flex;flex-direction:column;gap:3px}
+  .ev{font-size:11.5px;font-weight:700;color:#fff;border-radius:6px;padding:3px 7px;line-height:1.25;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid rgba(0,0,0,.18)}
+  .more{font-size:11px;font-weight:700;color:var(--muted);padding:1px 5px;cursor:pointer}
+  .addmini{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:6px;border:0;background:var(--line2);color:var(--muted);font-size:14px;line-height:1;cursor:pointer;opacity:0;transition:opacity .1s}
+  .cell:hover .addmini{opacity:1}
+  .addmini:hover{background:var(--navy);color:#fff}
+
+  /* Modal */
+  .ov{position:fixed;inset:0;background:rgba(15,25,35,.5);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:26px 14px;overflow:auto}
+  .ov.show{display:flex}
+  .md{background:#fff;border-radius:16px;width:100%;max-width:460px;padding:20px 20px 22px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .md h3{margin:0 0 2px;font-size:17px;font-weight:800;display:flex;align-items:center;gap:9px}
+  .md .fechatag{margin-left:auto;font-size:12.5px;font-weight:800;background:var(--navy);color:#fff;border-radius:20px;padding:5px 12px}
+  .lab{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:12px 0 5px}
+  .in{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;color:var(--ink);background:#fff;outline:none}
+  .in:focus{border-color:var(--gold)}
+  textarea.in{resize:vertical;min-height:62px}
+  .drop{border:2px dashed var(--line);border-radius:12px;padding:16px;text-align:center;color:var(--muted);font-size:13px;cursor:pointer;background:#fafbfc}
+  .drop img{max-height:120px;max-width:100%;border-radius:8px;margin-bottom:6px;display:block;margin-inline:auto}
+  .mbtns{display:flex;gap:9px;margin-top:18px}
+  .mbtns .btn{flex:1;border:0;border-radius:11px;background:var(--navy);color:#fff;font:inherit;font-weight:800;font-size:14.5px;padding:12px;cursor:pointer}
+  .mbtns .btn:disabled{opacity:.5}
+  .mbtns .ghost{flex:none;background:#fff;border:1px solid var(--line);color:var(--muted);font-weight:700;padding:12px 16px;border-radius:11px;cursor:pointer}
+  .msg{font-size:13px;margin-top:10px;min-height:17px}
+
+  /* Detalle */
+  .dt .row{display:flex;gap:9px;font-size:13.5px;padding:7px 0;border-bottom:1px solid var(--line2)}
+  .dt .row .k{font-weight:800;color:var(--muted);min-width:92px;text-transform:uppercase;font-size:10.5px;letter-spacing:.04em;padding-top:2px}
+  .dt .row .v{flex:1;white-space:pre-wrap}
+  .dt img.placa{max-width:100%;border-radius:10px;margin-top:10px;border:1px solid var(--line)}
+  .dt .rub{display:inline-flex;align-items:center;gap:7px;font-weight:800;color:#fff;border-radius:20px;padding:4px 11px;font-size:12px}
+
+  @media (max-width:720px){
+    .cell{min-height:92px}
+    .ev{font-size:10.5px;padding:2px 5px}
+    .dn{min-width:21px;height:21px;font-size:11.5px}
+    .mes{min-width:120px;font-size:15px}
+    .bar h1{font-size:17px;width:100%}
+    .add{margin-left:0}
+    .dow div{font-size:9.5px;padding:7px 2px}
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="b"><span class="g">Grand</span>Bar · CRM</div>
+    <a class="back" href="mi-panel.html">← Mi panel</a>
+    <div class="me" id="me">—</div>
+  </div>
+
+  <div class="wrap">
+    <div class="bar">
+      <h1>Calendario de acciones</h1>
+      <div class="nav">
+        <button onclick="mover(-1)" title="Mes anterior">‹</button>
+        <div class="mes" id="mesLbl">—</div>
+        <button onclick="mover(1)" title="Mes siguiente">›</button>
+      </div>
+      <button class="hoy" onclick="irHoy()">Hoy</button>
+      <button class="add" onclick="abrirNueva()">＋ Nueva acción</button>
+    </div>
+
+    <div class="rubros" id="rubros"></div>
+
+    <div class="cal">
+      <div class="dow"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+  <!-- Modal: nueva / editar -->
+  <div class="ov" id="ovForm">
+    <div class="md">
+      <h3><span id="fTitulo">Nueva acción</span><span class="fechatag" id="fFechaTag">—</span></h3>
+      <input type="hidden" id="f-id">
+      <input type="date" id="f-fecha" class="in" style="margin-top:12px">
+      <span class="lab">Rubro</span>
+      <select id="f-rubro" class="in"></select>
+      <span class="lab">Nombre acción</span>
+      <input id="f-nombre" class="in" type="text" placeholder="Ej: 2x1 en Chandon Extra Brut">
+      <span class="lab">Proveedor</span>
+      <input id="f-prov" class="in" type="text" placeholder="Ej: Peñaflor">
+      <span class="lab">Producto</span>
+      <input id="f-prod" class="in" type="text" placeholder="Ej: Chandon Extra Brut 750">
+      <span class="lab">Acción</span>
+      <input id="f-accion" class="in" type="text" placeholder="Ej: Descuento 20% / combo / regalo">
+      <span class="lab">Descripción</span>
+      <textarea id="f-desc" class="in" placeholder="Detalle del envío, condiciones, mensaje…"></textarea>
+      <span class="lab">Placa</span>
+      <div class="drop" id="drop" onclick="document.getElementById('f-file').click()">
+        <div id="dropTxt">⬆️ Subir imagen de la placa</div>
+      </div>
+      <input type="file" id="f-file" accept="image/*" style="display:none" onchange="preview(this)">
+      <div class="msg" id="fMsg"></div>
+      <div class="mbtns">
+        <button class="ghost" onclick="cerrar('ovForm')">Cancelar</button>
+        <button class="btn" id="fGuardar" onclick="guardar()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: detalle -->
+  <div class="ov" id="ovDet">
+    <div class="md dt">
+      <h3><span id="dRub" class="rub"></span><span class="fechatag" id="dFecha">—</span></h3>
+      <div style="font-size:18px;font-weight:800;margin:12px 0 8px" id="dNombre"></div>
+      <div id="dRows"></div>
+      <div id="dPlaca"></div>
+      <div class="mbtns">
+        <button class="ghost" onclick="cerrar('ovDet')">Cerrar</button>
+        <button class="btn" style="background:#fff;color:var(--danger);border:1px solid var(--danger);box-shadow:none" onclick="borrar()">🗑 Borrar</button>
+        <button class="btn" onclick="editarActual()">✎ Editar</button>
+      </div>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script>
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  // Rubros (mismos que usa el manual/acciones) + color estilo Google
+  const RUBROS=[
+    ['restaurante','Restaurantes','#d93025'],
+    ['bar','Bares','#e8710a'],
+    ['hotel','Hoteles','#8e24aa'],
+    ['disco','Discos','#3949ab'],
+    ['evento','Eventos','#0b8043'],
+    ['vinoteca','Vinotecas','#7b1e22'],
+    ['tienda_bebidas','Tiendas de bebidas','#039be5'],
+    ['autoservicio','Autoservicios','#f09300'],
+    ['kiosco','Kioscos','#689f38'],
+    ['mayorista','Mayoristas','#546e7a'],
+  ];
+  const RCOL=Object.fromEntries(RUBROS.map(r=>[r[0],r[2]]));
+  const RLBL=Object.fromEntries(RUBROS.map(r=>[r[0],r[1]]));
+  const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  let sb=null, man=null, YO='', ACC=[], FILTRO='todos', CUR=new Date(), _file=null, DETID=null;
+
+  // Cliente para subir la placa al bucket de imágenes (proyecto Manual)
+  function manClient(){
+    if(man) return man;
+    man = window.supabase.createClient('https://fzaxwuuodseyyinveknn.supabase.co','sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk');
+    return man;
+  }
+
+  (async()=>{
+    const s = await GBAuth.requireAuth(); if(!s) return;
+    sb = GBAuth.client;
+    YO = s.nombre || (s.user && s.user.email) || 'GrandBar';
+    $('me').textContent = YO;
+    // select de rubro en el form
+    $('f-rubro').innerHTML = RUBROS.map(r=>`<option value="${r[0]}">${r[1]}</option>`).join('');
+    renderRubros();
+    await cargar();
+  })();
+
+  function renderRubros(){
+    let h=`<span class="lbl">Rubro</span>`;
+    h+=`<button class="rchip todos ${FILTRO==='todos'?'on':''}" onclick="setFiltro('todos')">Todos</button>`;
+    h+=RUBROS.map(r=>`<button class="rchip ${FILTRO===r[0]?'on':''}" style="${FILTRO===r[0]?`background:${r[2]}`:''}" onclick="setFiltro('${r[0]}')"><span class="dot" style="background:${r[2]}"></span>${r[1]}</button>`).join('');
+    $('rubros').innerHTML=h;
+  }
+  function setFiltro(k){ FILTRO=k; renderRubros(); render(); }
+  window.setFiltro=setFiltro;
+
+  async function cargar(){
+    try{
+      const { data, error } = await sb.from('crm_acciones').select('*').order('fecha',{ascending:true});
+      if(error) throw error;
+      ACC = data||[];
+    }catch(e){ ACC=[]; console.warn(e); alert('No se pudieron cargar las acciones.\n'+(e.message||e)+'\n\n¿Corriste crm-acciones-setup.sql en el Hub?'); }
+    render();
+  }
+
+  const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  function mover(n){ CUR=new Date(CUR.getFullYear(),CUR.getMonth()+n,1); render(); }
+  function irHoy(){ CUR=new Date(); render(); }
+  window.mover=mover; window.irHoy=irHoy;
+
+  function render(){
+    const y=CUR.getFullYear(), m=CUR.getMonth();
+    $('mesLbl').textContent = MESES[m]+' '+y;
+    const first=new Date(y,m,1);
+    let start=(first.getDay()+6)%7;             // lunes=0
+    const diasMes=new Date(y,m+1,0).getDate();
+    const prevDias=new Date(y,m,0).getDate();
+    const hoy=ymd(new Date());
+    const vis = FILTRO==='todos' ? ACC : ACC.filter(a=>a.rubro===FILTRO);
+    const porDia={}; vis.forEach(a=>{ (porDia[a.fecha]=porDia[a.fecha]||[]).push(a); });
+
+    let cells=[];
+    for(let i=0;i<start;i++){ const d=prevDias-start+1+i; cells.push(cellHtml(new Date(y,m-1,d),true,porDia,hoy)); }
+    for(let d=1;d<=diasMes;d++){ cells.push(cellHtml(new Date(y,m,d),false,porDia,hoy)); }
+    while(cells.length%7!==0){ const d=cells.length-(start+diasMes)+1; cells.push(cellHtml(new Date(y,m+1,d),true,porDia,hoy)); }
+    $('grid').innerHTML=cells.join('');
+  }
+
+  function cellHtml(date,off,porDia,hoy){
+    const key=ymd(date);
+    const evs=(porDia[key]||[]);
+    const today=key===hoy;
+    let ev='';
+    const MAX=3;
+    evs.slice(0,MAX).forEach(a=>{
+      const c=RCOL[a.rubro]||'#546e7a';
+      ev+=`<div class="ev" style="background:${c}" onclick="event.stopPropagation();verDet('${a.id}')" title="${esc(a.nombre)}">${esc(a.nombre)}</div>`;
+    });
+    if(evs.length>MAX) ev+=`<div class="more" onclick="event.stopPropagation();verDia('${key}')">+${evs.length-MAX} más</div>`;
+    const clickable = off? '' : `onclick="abrirNueva('${key}')"`;
+    const plus = off? '' : `<button class="addmini" onclick="event.stopPropagation();abrirNueva('${key}')" title="Agregar">＋</button>`;
+    return `<div class="cell ${off?'off':''} ${today?'today':''}" ${clickable}>
+      <span class="dn">${date.getDate()}</span>${plus}
+      <div class="evs">${ev}</div>
+    </div>`;
+  }
+
+  function verDia(key){
+    // al tocar "+N más": filtra al primer rubro no es útil; mostramos todos los de ese día en detalle rápido
+    const evs=ACC.filter(a=>a.fecha===key && (FILTRO==='todos'||a.rubro===FILTRO));
+    if(evs.length) verDet(evs[0].id);
+  }
+  window.verDia=verDia;
+
+  // ---- Nueva / editar ----
+  function fechaBonita(key){ if(!key) return '—'; const [a,m,d]=key.split('-'); return `${d}/${m}`; }
+  function abrirNueva(key){
+    $('f-id').value=''; $('fTitulo').textContent='Nueva acción';
+    const f = key || ymd(new Date());
+    $('f-fecha').value=f; $('fFechaTag').textContent=fechaBonita(f);
+    $('f-rubro').value = FILTRO==='todos' ? 'restaurante' : FILTRO;
+    ['f-nombre','f-prov','f-prod','f-accion','f-desc'].forEach(id=>$(id).value='');
+    _file=null; $('dropTxt').textContent='⬆️ Subir imagen de la placa'; $('drop').innerHTML='<div id="dropTxt">⬆️ Subir imagen de la placa</div>'; $('f-file').value='';
+    $('fMsg').textContent='';
+    $('f-fecha').oninput=()=>$('fFechaTag').textContent=fechaBonita($('f-fecha').value);
+    abrir('ovForm');
+  }
+  window.abrirNueva=abrirNueva;
+
+  function editarActual(){
+    const a=ACC.find(x=>x.id===DETID); if(!a) return;
+    cerrar('ovDet');
+    $('f-id').value=a.id; $('fTitulo').textContent='Editar acción';
+    $('f-fecha').value=a.fecha; $('fFechaTag').textContent=fechaBonita(a.fecha);
+    $('f-rubro').value=a.rubro||'restaurante';
+    $('f-nombre').value=a.nombre||''; $('f-prov').value=a.proveedor||''; $('f-prod').value=a.producto||'';
+    $('f-accion').value=a.accion||''; $('f-desc').value=a.descripcion||'';
+    _file=null; $('f-file').value='';
+    $('drop').innerHTML = a.placa_url ? `<img src="${esc(a.placa_url)}"><div id="dropTxt">Cambiar imagen</div>` : '<div id="dropTxt">⬆️ Subir imagen de la placa</div>';
+    $('fMsg').textContent=''; $('f-fecha').oninput=()=>$('fFechaTag').textContent=fechaBonita($('f-fecha').value);
+    abrir('ovForm');
+  }
+  window.editarActual=editarActual;
+
+  function preview(inp){
+    const f=inp.files&&inp.files[0]; if(!f) return; _file=f;
+    const r=new FileReader(); r.onload=e=>{ $('drop').innerHTML=`<img src="${e.target.result}"><div id="dropTxt">${esc(f.name)}</div>`; }; r.readAsDataURL(f);
+  }
+  window.preview=preview;
+
+  async function subirPlaca(){
+    if(!_file) return null;
+    const ext=(_file.name.split('.').pop()||'jpg').toLowerCase();
+    const path=`crm/${Date.now()}-${Math.round(Math.random()*1e5)}.${ext}`;
+    const c=manClient();
+    const { error } = await c.storage.from('Activaciones').upload(path,_file,{upsert:false,contentType:_file.type});
+    if(error) throw error;
+    return c.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+  }
+
+  async function guardar(){
+    const nombre=$('f-nombre').value.trim();
+    const msg=(t,c)=>{ $('fMsg').textContent=t; $('fMsg').style.color=c||'var(--muted)'; };
+    if(!$('f-fecha').value){ msg('Elegí una fecha.','var(--danger)'); return; }
+    if(!nombre){ msg('Poné el nombre de la acción.','var(--danger)'); return; }
+    $('fGuardar').disabled=true; msg('Guardando…');
+    try{
+      let placa=null;
+      if(_file){ msg('Subiendo placa…'); placa=await subirPlaca(); }
+      const fila={
+        fecha:$('f-fecha').value, rubro:$('f-rubro').value, nombre,
+        proveedor:$('f-prov').value.trim()||null, producto:$('f-prod').value.trim()||null,
+        accion:$('f-accion').value.trim()||null, descripcion:$('f-desc').value.trim()||null,
+        updated_at:new Date().toISOString()
+      };
+      const id=$('f-id').value;
+      if(id){
+        if(placa) fila.placa_url=placa;
+        const { error }=await sb.from('crm_acciones').update(fila).eq('id',id); if(error) throw error;
+      }else{
+        fila.placa_url=placa; fila.creado_por=YO;
+        const { error }=await sb.from('crm_acciones').insert(fila); if(error) throw error;
+      }
+      cerrar('ovForm'); await cargar();
+    }catch(e){ msg('No se pudo: '+(e.message||e),'var(--danger)'); }
+    finally{ $('fGuardar').disabled=false; }
+  }
+  window.guardar=guardar;
+
+  // ---- Detalle ----
+  function verDet(id){
+    const a=ACC.find(x=>x.id===id); if(!a) return; DETID=id;
+    const c=RCOL[a.rubro]||'#546e7a';
+    $('dRub').style.background=c; $('dRub').innerHTML=`<span class="dot" style="width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.75)"></span>${esc(RLBL[a.rubro]||a.rubro)}`;
+    $('dFecha').textContent=fechaBonita(a.fecha);
+    $('dNombre').textContent=a.nombre;
+    const rows=[['Proveedor',a.proveedor],['Producto',a.producto],['Acción',a.accion],['Descripción',a.descripcion]];
+    $('dRows').innerHTML=rows.filter(r=>r[1]).map(r=>`<div class="row"><div class="k">${r[0]}</div><div class="v">${esc(r[1])}</div></div>`).join('')
+      + `<div class="row"><div class="k">Cargó</div><div class="v">${esc(a.creado_por||'—')}</div></div>`;
+    $('dPlaca').innerHTML = a.placa_url ? `<img class="placa" src="${esc(a.placa_url)}">` : '';
+    abrir('ovDet');
+  }
+  window.verDet=verDet;
+
+  async function borrar(){
+    if(!DETID) return;
+    if(!confirm('¿Borrar esta acción del calendario?')) return;
+    const { error }=await sb.from('crm_acciones').delete().eq('id',DETID);
+    if(error){ alert('No se pudo: '+error.message); return; }
+    cerrar('ovDet'); await cargar();
+  }
+  window.borrar=borrar;
+
+  function abrir(id){ $(id).classList.add('show'); }
+  function cerrar(id){ $(id).classList.remove('show'); }
+  window.cerrar=cerrar;
+  document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('show'); }));
+</script>
+</body>
+</html>
