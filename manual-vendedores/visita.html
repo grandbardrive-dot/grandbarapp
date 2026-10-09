@@ -1410,6 +1410,10 @@
   .placa-perso-aviso { width:100%; margin-top:8px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:9px 11px; font-size:11.5px; color:var(--text2); text-align:center; }
   .placa-subir-logo { display:inline-block; margin-top:7px; background:var(--azul); color:#fff; font-size:12px; font-weight:700; padding:7px 14px; border-radius:20px; cursor:pointer; }
   .placa-modal-nota { font-size:10.5px; color:var(--text3); text-align:center; margin-top:9px; line-height:1.35; }
+  /* Desplegada adentro de la tarjeta de la acción (09/10/2026): sin fondo oscuro ni ventana */
+  .placa-modal-card.inline { max-width:none; max-height:none; overflow:visible; border-top:0; border-radius:0; background:transparent; padding:10px 0 0; }
+  .placa-modal-card.inline .placa-modal-close { display:none; }
+  .placa-modal-card.inline .placa-modal-img { max-height:340px; max-width:100%; }
 
   /* ── Minuta visita anterior ── */
   .minuta { background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--azul); border-radius:var(--radius-sm); padding:12px; margin-top:8px; }
@@ -1846,7 +1850,7 @@ body { background:transparent !important; }
 <script src="_torneo-oficial.js"></script>
 <script src="_checklist-data.js?v=3"></script>
 <script src="_torneo.js"></script>
-<script src="_acciones-render.js?v=2"></script>
+<script src="_acciones-render.js?v=3"></script>
 <script src="_celebracion.js"></script>
 <script src="_disco-tools.js"></script>
 <script>
@@ -7274,17 +7278,21 @@ body { background:transparent !important; }
     // Cabecera con los datos de la fecha misma (imagen/placa + mecánica + rubros).
     const ev = _calEvById[fechaId] || {};
     const evAttr = _evidAttr(ev);   // fecha de un proveedor que pide evidencia (09/10/2026)
+    // Si pide evidencia, la placa no va grande arriba: se despliega adentro, como en las campañas.
+    const evSlot = 'fe-evid-slot-' + ev.id;
+    const evidBloque = evAttr ? `<div class="am-evid" id="fe-evid-${esc(ev.id)}"><button type="button" class="am-evid-head" data-url="${esc(ev.imagen_url)}" data-titulo="${esc(ev.nombre || '')}" data-ctx="${esc(evNombre)}"${evAttr} data-slot="${esc(evSlot)}" onclick="abrirPlacaDesde(this)"><span class="am-evid-tx"><b>Pide evidencia</b>Tocá para ver la placa, ponerle el logo del cliente y mandársela.</span><span class="am-evid-ver">Ver placa</span></button><div class="am-evid-slot" id="${esc(evSlot)}"></div></div>` : '';
     const rubrosTxt = (Array.isArray(ev.rubros) && ev.rubros.length && !ev.rubros.includes('todos'))
       ? `<div class="cal-fecha-rubros">${ev.rubros.map(r => `<span class="cal-fecha-rubro">${esc(rubroLbl(r))}</span>`).join('')}</div>` : '';
     const cab = (ev.imagen_url || ev.descripcion || ev.condicion || rubrosTxt) ? `
       <div class="cal-fecha-cab">
-        ${ev.imagen_url ? `<img class="cal-fecha-img" src="${esc(ev.imagen_url)}" alt="${esc(ev.nombre || '')}" loading="lazy"
+        ${ev.imagen_url && !evAttr ? `<img class="cal-fecha-img" src="${esc(ev.imagen_url)}" alt="${esc(ev.nombre || '')}" loading="lazy"
           data-url="${esc(ev.imagen_url)}" data-titulo="${esc(ev.nombre || '')}" data-ctx="${esc(evNombre)}"${evAttr} onclick="abrirPlacaDesde(this)">` : ''}
         <div class="cal-fecha-cab-info">
           ${ev.descripcion ? `<div class="cal-fecha-desc">${esc(ev.descripcion)}</div>` : ''}
           ${ev.condicion ? `<div class="cal-fecha-cond"><b>Mecánica:</b> ${esc(ev.condicion)}</div>` : ''}
           ${rubrosTxt}
-          ${ev.imagen_url ? `<button class="cal-acc-ver" data-url="${esc(ev.imagen_url)}" data-titulo="${esc(ev.nombre || '')}" data-ctx="${esc(evNombre)}"${evAttr} onclick="abrirPlacaDesde(this)">Ver / descargar placa →</button>` : ''}
+          ${ev.imagen_url && !evAttr ? `<button class="cal-acc-ver" data-url="${esc(ev.imagen_url)}" data-titulo="${esc(ev.nombre || '')}" data-ctx="${esc(evNombre)}"${evAttr} onclick="abrirPlacaDesde(this)">Ver / descargar placa →</button>` : ''}
+          ${evidBloque}
         </div>
       </div>` : '';
 
@@ -7329,9 +7337,20 @@ body { background:transparent !important; }
   function abrirPlacaDesde(el) {
     let evid = null;
     try { evid = el.dataset.evid ? JSON.parse(el.dataset.evid) : null; } catch (e) {}
-    abrirPlacaModal(el.dataset.url, el.dataset.titulo, el.dataset.ctx, evid);
+    abrirPlacaModal(el.dataset.url, el.dataset.titulo, el.dataset.ctx, evid, el.dataset.slot);
   }
-  function abrirPlacaModal(url, titulo, ctx, evid) {
+  // slotId (09/10/2026): la placa se despliega adentro de la tarjeta de la acción en vez
+  // de taparlo todo. Es la misma tarjeta del modal, movida a ese lugar; tocar de nuevo la
+  // franja la pliega. Sin slotId se abre como siempre, en el modal.
+  // La tarjeta de la placa se guarda una vez: si la sección se vuelve a dibujar con la
+  // placa desplegada adentro, sigue existiendo y vuelve al modal al cerrarla.
+  let _placaCardRef = null;
+  function _placaCard() { return _placaCardRef || (_placaCardRef = document.querySelector('.placa-modal-card')); }
+  function abrirPlacaModal(url, titulo, ctx, evid, slotId) {
+    const card = _placaCard();
+    const slot = slotId ? document.getElementById(slotId) : null;
+    if (slot && card.parentElement === slot) { cerrarPlacaModal(); return; }   // ya abierta acá: plegar
+    if (card.classList.contains('inline') || document.getElementById('placa-modal').classList.contains('open')) cerrarPlacaModal();
     _placaActual = { url, titulo, ctx };
     _placaComposed = null;
     _placaViendoPerso = false;
@@ -7342,6 +7361,14 @@ body { background:transparent !important; }
     _placaEvid = evid && evid.p ? evid : null;
     _evidSinLogoOk = false;
     _evidPintar();
+    if (slot) {
+      card.classList.add('inline');
+      slot.appendChild(card);
+      const box = slot.closest('.am-evid');
+      if (box) box.classList.add('abierto');
+      setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+      return;
+    }
     document.getElementById('placa-modal').classList.add('open');
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', _placaEscHandler);
@@ -7462,12 +7489,12 @@ body { background:transparent !important; }
   function _evidCerrarAccion(ev) {
     if (ev.am) {
       if (typeof _amSeleccionadas !== 'undefined' && !_amSeleccionadas.has(ev.am)) document.getElementById('am-btn-' + ev.am)?.click();
-      const box = document.getElementById('am-evid-' + ev.am);
-      if (box) {
+      // Todas las tarjetas de esa acción (por si sale en más de un lugar de la visita).
+      document.querySelectorAll('[id="am-evid-' + ev.am + '"]').forEach(box => {
         box.classList.add('hecha');
         const tx = box.querySelector('.am-evid-tx');
         if (tx) tx.innerHTML = '<b>Evidencia enviada</b>Le avisamos al proveedor.';
-      }
+      });
     } else if (!cartFind('Fechas especiales', ev.acc || _placaActual.titulo)) {
       cartAdd('Fechas especiales', ev.acc || _placaActual.titulo, 'Aceptada');
     }
@@ -7552,6 +7579,13 @@ body { background:transparent !important; }
     componerPlacaConLogo();
   }
   function cerrarPlacaModal() {
+    // Si estaba desplegada en una tarjeta, vuelve a su lugar (el modal, oculto) y se pliega.
+    const card = _placaCard();
+    if (card && card.classList.contains('inline')) {
+      card.classList.remove('inline');
+      document.querySelectorAll('.am-evid.abierto').forEach(b => b.classList.remove('abierto'));
+      document.getElementById('placa-modal').appendChild(card);
+    }
     document.getElementById('placa-modal').classList.remove('open');
     document.body.style.overflow = '';
     document.removeEventListener('keydown', _placaEscHandler);

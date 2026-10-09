@@ -27,7 +27,7 @@
 
     /* ── Card base ── */
     .am-card {
-      display: flex; gap: 0; align-items: stretch;
+      display: flex; gap: 0; align-items: stretch; flex-wrap: wrap;
       background: #fff;
       border: 1px solid rgba(203,184,106,.35);
       border-left: 4px solid #CBB86A;
@@ -86,19 +86,26 @@
     .am-precio-regular { font-family:'DM Mono',monospace; font-size:11px; color:#b5b0a8; text-decoration:line-through; }
 
     /* ── Acción de proveedor que pide evidencia (09/10/2026) ── */
-    .am-evid {
-      display: flex; align-items: center; gap: 9px; margin-top: 4px;
-      background: #eef3fa; border: 1px solid #d3e0f0; border-radius: 10px; padding: 7px 8px;
+    /* Desplegable: tocar la franja abre la placa y sus botones adentro de la tarjeta */
+    .am-evid { margin-top: 4px; background: #eef3fa; border: 1px solid #d3e0f0; border-radius: 10px; overflow: hidden; }
+    .am-card > .am-evid { flex: 0 0 calc(100% - 20px); margin: 0 10px 10px; }   /* debajo de la tarjeta, a todo el ancho */
+    .am-evid-head {
+      display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+      background: none; border: 0; padding: 8px 10px; font-family: inherit; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
-    .am-evid img { width: 34px; height: 48px; object-fit: cover; border-radius: 5px; flex: none; cursor: pointer; }
     .am-evid-tx { flex: 1; min-width: 0; font-size: 10.5px; color: #3c5373; line-height: 1.3; }
     .am-evid-tx b { display: block; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #1F447F; }
-    .am-evid button {
-      flex: none; border: 0; border-radius: 16px; background: #1F447F; color: #fff;
-      font-family: system-ui,sans-serif; font-size: 11px; font-weight: 700; padding: 6px 11px; cursor: pointer;
+    .am-evid-ver {
+      flex: none; border-radius: 16px; background: #1F447F; color: #fff;
+      font-size: 11px; font-weight: 700; padding: 6px 11px; white-space: nowrap;
     }
+    .am-evid-ver::after { content: ' ▾'; }
+    .am-evid.abierto .am-evid-ver::after { content: ' ▴'; }
+    .am-evid-slot { padding: 0 10px; }
+    .am-evid.abierto .am-evid-slot { padding: 0 10px 10px; border-top: 1px solid #d3e0f0; }
     .am-evid.hecha { background: #e8f3ee; border-color: #c4e2d3; }
-    .am-evid.hecha button { background: #2f6f5e; }
+    .am-evid.hecha .am-evid-ver { background: #2f6f5e; }
 
     /* ── Botón Agregar ── */
     .am-btn-agregar {
@@ -512,9 +519,9 @@ function renderAccionCard(a, opts = {}) {
                  value="${_selCantidad(a.id)}"
                  oninput="amSetCantidad('${_amEsc(a.id)}',this.value)">
         </div>` : ''}
-        ${_amEvidenciaHtml(a)}
         ${_amEntregaHtml(a)}
       </div>
+      ${_amEvidenciaHtml(a)}
     </div>`;
 }
 
@@ -522,17 +529,22 @@ function renderAccionCard(a, opts = {}) {
 // Diseño subió la placa: el vendedor la abre, le pone el logo del cliente y se la
 // manda; eso cierra la acción y le avisa al proveedor (visita.html, modal de placa).
 // Solo en la visita (ahí existe el modal).
+let _amEvidN = 0;
 function _amEvidenciaHtml(a) {
   if (!a.requiere_evidencia || !a.placa_url || !a.propuesta_id || typeof abrirPlacaDesde !== 'function') return '';
   if (a._grupoId && !String(a.id).endsWith('__p0')) return '';
   const evid = JSON.stringify({ p: a.propuesta_id, prov: a.proveedor || '', am: a.id,
     acc: [a.producto, a.accion].filter(Boolean).join(' — ') });
   const datos = `data-url="${_amEsc(a.placa_url)}" data-titulo="${_amEsc(a.producto)}" data-ctx="${_amEsc(a.accion)}" data-evid="${_amEsc(evid)}"`;
-  // La placa no se muestra en la tarjeta: se abre con "Ver placa", y ahí están el
-  // logo del cliente y el envío (pedido del usuario, 09/10/2026).
+  // Desplegable (pedido del usuario, 09/10/2026): la placa no se ve hasta tocar la
+  // franja; ahí se abre adentro de la tarjeta, con el logo del cliente y el envío.
+  const slot = 'am-evid-slot-' + a.id + '-' + (++_amEvidN);   // único aunque la acción salga dos veces
   return `<div class="am-evid" id="am-evid-${_amEsc(a.id)}">
-    <div class="am-evid-tx"><b>Pide evidencia</b>Tocá Ver placa para ponerle el logo del cliente y mandársela.</div>
-    <button type="button" ${datos} onclick="abrirPlacaDesde(this)">Ver placa</button>
+    <button type="button" class="am-evid-head" ${datos} data-slot="${_amEsc(slot)}" onclick="abrirPlacaDesde(this)">
+      <span class="am-evid-tx"><b>Pide evidencia</b>Tocá para ver la placa, ponerle el logo del cliente y mandársela.</span>
+      <span class="am-evid-ver">Ver placa</span>
+    </button>
+    <div class="am-evid-slot" id="${_amEsc(slot)}"></div>
   </div>`;
 }
 
