@@ -288,7 +288,7 @@
     const hubLect = supabase.createClient(HUB.url, HUB.key, { auth:{ persistSession:false } });
     try{ MAPA = await Segmentacion.mapa(); }catch(e){ MAPA = null; }
     const [camps, planes, fechas, catal, provs, vinosMesa, herr] = await Promise.all([
-      todas(man, 'acciones_mensuales', q => q.eq('activa', true)),
+      todas(man, 'acciones_mensuales', q => q.eq('activa', true).or('aplica_a.is.null,aplica_a.not.cs.{prueba_zzz}')),   // sin las de prueba (canal prueba_zzz)
       todas(man, 'checklist_planes', q => q),
       todas(man, 'acciones_fechas', q => q.eq('activa', true)),
       todas(cat, 'catalogo_acciones', q => q.eq('activo', true)),

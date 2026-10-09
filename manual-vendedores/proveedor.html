@@ -266,7 +266,7 @@ async function cargarAlertas(){
   try{
     const { data } = await sb.from('propuestas_acciones')
       .select('rubro,seccion,autor_empresa,estado')
-      .in('estado',['pendiente','aprobada']);
+      .in('estado',['pendiente','aprobada']).neq('rubro','prueba_zzz');   // las de prueba no son oportunidades
     const rows=data||[];
     const g={};   // rubro|seccion -> { otras:Set, mia:bool }
     rows.forEach(p=>{
