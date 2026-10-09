@@ -557,6 +557,7 @@ const MANUAL_POR_TIPO = {
   mayorista: 'mayorista',         // manual propio
   evento: 'evento',               // Eventos: tipo de cliente con manual propio (15/09/2026)
   eventos: 'evento',
+  prueba_zzz: 'prueba_zzz',       // solo pruebas: un cliente de prueba abre el manual de prueba (09/10/2026)
 };
 // Nombre lindo de cada rubro (para el manual vacío recién creado).
 const RUBRO_LABELS = { restaurante: 'Restaurantes', vinoteca: 'Vinotecas', tienda_bebidas: 'Tienda de Bebidas', autoservicio: 'Autoservicios', hotel: 'Hoteles', bar: 'Bares', disco: 'Discos', mayorista: 'Mayoristas', evento: 'Eventos' };

@@ -17,7 +17,8 @@ const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const MAN_URL = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_KEY = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 const PLACAS = MAN_URL + '/storage/v1/object/public/Activaciones/evidencias-placas/';
-const VENDEN = ['ventas', 'mayorista'];
+// Los vendedores, y Diseño y Desarrollo para poder probar el circuito.
+const VENDEN = ['ventas', 'mayorista', 'desarrollo', 'diseno'];
 const VEN_TODO = ['compras', 'marketing', 'desarrollo', 'diseno', 'direccion', 'admin', 'duenio'];
 
 const { pushA } = require('./_notificar');
