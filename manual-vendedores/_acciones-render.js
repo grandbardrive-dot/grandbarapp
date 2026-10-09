@@ -528,9 +528,10 @@ function _amEvidenciaHtml(a) {
   const evid = JSON.stringify({ p: a.propuesta_id, prov: a.proveedor || '', am: a.id,
     acc: [a.producto, a.accion].filter(Boolean).join(' — ') });
   const datos = `data-url="${_amEsc(a.placa_url)}" data-titulo="${_amEsc(a.producto)}" data-ctx="${_amEsc(a.accion)}" data-evid="${_amEsc(evid)}"`;
+  // La placa no se muestra en la tarjeta: se abre con "Ver placa", y ahí están el
+  // logo del cliente y el envío (pedido del usuario, 09/10/2026).
   return `<div class="am-evid" id="am-evid-${_amEsc(a.id)}">
-    <img src="${_amEsc(a.placa_url)}" alt="Placa" loading="lazy" ${datos} onclick="abrirPlacaDesde(this)">
-    <div class="am-evid-tx"><b>Pide evidencia</b>Mandale al cliente la placa con su logo.</div>
+    <div class="am-evid-tx"><b>Pide evidencia</b>Tocá Ver placa para ponerle el logo del cliente y mandársela.</div>
     <button type="button" ${datos} onclick="abrirPlacaDesde(this)">Ver placa</button>
   </div>`;
 }
