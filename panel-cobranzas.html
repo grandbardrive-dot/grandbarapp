@@ -56,6 +56,8 @@
     { id:'agenda-equipo', ico:'📅', n:'Agenda del equipo', abrir: () => eqAgenda() },
     { id:'mi-agenda',     ico:'🗓️', n:'Mi agenda',         abrir: () => cobMarco('/mi-agenda.html?embed=1', 'Mi agenda') },
     { id:'reportes',      ico:'📊', n:'Mis reportes', roles:['administracion'], abrir: () => cobMarco('/mis-reportes.html?embed=1', 'Mis reportes') },
+    // Mi asistente (10/10/2026): Brenda lo va educando mientras trabaja. Ver asistente.html.
+    { id:'asistente',     ico:'📝', n:'Mi asistente', roles:['administracion'], abrir: () => cobMarco('/asistente.html?embed=1', 'Mi asistente') },
   ];
   // Mónica arranca en la Revisión de cobranzas, que es su trabajo de todos los días.
   window.COB_INICIO = { tesoreria: 'revision' };

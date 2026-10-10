@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="theme-color" content="#0d2238">
+<!-- Mi asistente (10/10/2026). Brenda lo abre desde su panel de Cobranzas (?embed=1,
+     adentro del marco). Desarrollo y Diseño lo abren suelto para probarlo y para ver
+     lo que aprendió cada asistente y lo que todavía no puede hacer. -->
+<script>if(/[?&]embed=1\b/.test(location.search))document.documentElement.classList.add('gb-embed')</script>
+<title>GrandBar — Mi asistente</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{--navy:#0d2238;--navy-2:#14304c;--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6f7f88;--line:#e9e3d6;--line-2:#efe9dc;
+    --gold:#c9a13b;--gold-d:#a9852a;--gold-soft:#f7efda;--green:#2f6f5e;--green-soft:#e7f1ea;--red:#c0392b;--red-soft:#fbeae7;
+    --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:var(--font);background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14.5px}
+  button{font:inherit;cursor:pointer}
+  textarea,input,select{font:inherit;color:var(--ink)}
+
+  .pagina{display:flex;flex-direction:column;height:100vh}
+  .arriba{padding:22px 28px 0;flex:none}
+  .gb-embed .arriba{padding-top:18px}
+  .volver{display:inline-block;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;margin-bottom:10px}
+  .gb-embed .volver{display:none}
+  h1{font-size:23px;font-weight:800;margin:0 0 3px;color:var(--navy)}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 14px;max-width:720px;line-height:1.45}
+  .solapas{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+  .solapa{background:none;border:0;border-bottom:2.5px solid transparent;padding:10px 14px 9px;font-weight:700;font-size:13.5px;color:var(--muted);white-space:nowrap}
+  .solapa.on{color:var(--navy);border-bottom-color:var(--gold)}
+  .solapa .n{display:inline-block;min-width:19px;padding:1px 6px;margin-left:5px;border-radius:10px;background:var(--line-2);font-size:11px;color:var(--muted)}
+  .cuerpo{flex:1;min-height:0;display:flex;flex-direction:column}
+  .hoja{flex:1;overflow-y:auto;padding:20px 28px 40px}
+  .hoja-in{max-width:760px}
+
+  /* ── Conversar ── */
+  .conv{flex:1;min-height:0;display:flex}
+  .charlas{width:250px;flex:none;border-right:1px solid var(--line);overflow-y:auto;padding:14px 12px}
+  .b-nueva{width:100%;background:var(--navy);color:#fff;border:0;border-radius:10px;padding:10px 12px;font-weight:700;font-size:13.5px;margin-bottom:10px}
+  .ch{display:block;width:100%;text-align:left;background:none;border:0;border-radius:9px;padding:9px 10px;margin-bottom:2px;color:var(--ink)}
+  .ch:hover{background:var(--line-2)}
+  .ch.on{background:var(--gold-soft)}
+  .ch b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ch small{font-size:11.5px;color:var(--muted)}
+  .sel-charla{display:none}
+  .chat{flex:1;min-width:0;display:flex;flex-direction:column}
+  .msgs{flex:1;overflow-y:auto;padding:22px 28px 10px}
+  .msgs-in{max-width:720px;margin:0 auto}
+  .m{margin:0 0 14px;display:flex}
+  .m .glob{max-width:85%;padding:11px 14px;border-radius:14px;line-height:1.5;word-wrap:break-word}
+  .m.yo{justify-content:flex-end}
+  .m.yo .glob{background:var(--navy);color:#fff;border-bottom-right-radius:4px;white-space:pre-wrap}
+  .m.as .glob{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .m.as .glob p{margin:0 0 8px}.m.as .glob p:last-child{margin:0}
+  .m.as .glob ul{margin:4px 0 8px;padding-left:20px}.m.as .glob li{margin:2px 0}
+  .linea{font-size:12px;color:var(--muted);margin:-6px 0 12px 4px}
+  .prop{background:var(--gold-soft);border:1px solid #ecdcae;border-radius:14px;padding:12px 14px;margin:0 0 14px;max-width:85%}
+  .prop .t{font-size:12px;font-weight:800;color:var(--gold-d);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+  .prop textarea{width:100%;border:1px solid #e3d29f;border-radius:9px;padding:8px 10px;background:#fff;resize:vertical;min-height:58px;font-size:14px;line-height:1.4}
+  .prop .acc{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .prop .txt{font-size:14px;line-height:1.45}
+  .prop .ok{font-size:12.5px;color:var(--green);font-weight:700;margin-top:6px}
+  .prop.no{background:var(--line-2);border-color:var(--line)}
+  .prop.no .txt{color:var(--muted);text-decoration:line-through}
+  .b{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 13px;font-weight:700;font-size:13px;color:var(--ink)}
+  .b.si{background:var(--green);border-color:var(--green);color:#fff}
+  .b.oro{background:var(--gold);border-color:var(--gold);color:#241a06}
+  .b:disabled{opacity:.55;cursor:default}
+  .pensando{font-size:13px;color:var(--muted);margin:0 0 14px 4px;display:flex;align-items:center;gap:9px}
+  .puntos{display:inline-flex;gap:4px}
+  .puntos i{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pt 1.2s infinite ease-in-out}
+  .puntos i:nth-child(2){animation-delay:.15s}.puntos i:nth-child(3){animation-delay:.3s}
+  @keyframes pt{0%,80%,100%{opacity:.25}40%{opacity:1}}
+  .aviso{background:var(--red-soft);border:1px solid #f1cdc6;color:#7c2a20;border-radius:12px;padding:11px 14px;margin:0 0 14px;font-size:13.5px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .vacio{text-align:center;color:var(--muted);padding:34px 10px 10px;max-width:520px;margin:0 auto;line-height:1.55}
+  .vacio b{display:block;color:var(--navy);font-size:16px;margin-bottom:6px}
+  .arranques{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}
+  .arranques button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--navy)}
+  .escribir{flex:none;border-top:1px solid var(--line);background:var(--cream);padding:12px 28px 16px}
+  .escribir-in{max-width:720px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
+  .escribir textarea{flex:1;border:1px solid var(--line);border-radius:12px;padding:11px 13px;resize:none;min-height:46px;max-height:180px;background:#fff;line-height:1.4;font-size:14.5px}
+  .escribir .b{padding:12px 18px;background:var(--navy);border-color:var(--navy);color:#fff}
+  .pie{max-width:720px;margin:6px auto 0;font-size:11.5px;color:var(--muted)}
+
+  /* ── Listas ── */
+  .item{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-bottom:10px}
+  .item .tx{line-height:1.45;white-space:pre-wrap}
+  .item .me{font-size:11.5px;color:var(--muted);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .item .me button{background:none;border:0;padding:0;color:var(--muted);font-weight:700;font-size:12px;text-decoration:underline}
+  .item textarea,.agregar textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;min-height:70px;resize:vertical;line-height:1.4}
+  .agregar{background:var(--card);border:1px dashed #dccfb0;border-radius:13px;padding:12px 14px;margin:0 0 18px}
+  .agregar label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:6px}
+  .estado{font-size:11px;font-weight:800;padding:2px 9px;border-radius:20px;background:var(--line-2);color:var(--muted)}
+  .estado.visto{background:var(--gold-soft);color:var(--gold-d)}
+  .estado.hecho{background:var(--green-soft);color:var(--green)}
+  .falta{font-size:13px;color:#46575f;margin-top:5px}
+  .devo{font-size:13px;border-left:3px solid var(--gold);padding:4px 0 4px 10px;margin-top:8px}
+  .grupo{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px}
+  .rev-ctl{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .rev-ctl select,.rev-ctl input{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px;background:#fff}
+  .rev-ctl input{flex:1;min-width:160px}
+  .cargando{color:var(--muted);padding:20px 0}
+
+  @media (max-width:820px){
+    .arriba{padding:16px 16px 0}
+    .hoja{padding:16px 16px 40px}
+    .charlas{display:none}
+    .sel-charla{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line)}
+    .sel-charla select{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:8px;background:#fff}
+    .msgs{padding:16px 16px 8px}
+    .escribir{padding:10px 16px 14px}
+    .m .glob,.prop{max-width:94%}
+  }
+</style>
+</head>
+<body>
+<div class="pagina">
+  <div class="arriba">
+    <a class="volver" id="volver" href="hub.html">‹ Volver a mi panel</a>
+    <h1>Mi asistente</h1>
+    <p class="sub">Contale cómo es tu trabajo y preguntale lo que necesites. Cuando le expliques o le corrijas algo, te va a ofrecer recordarlo: solo se guarda si vos tocás "Guardar".</p>
+    <div class="solapas" id="solapas">
+      <button class="solapa on" data-s="conversar">Conversar</button>
+      <button class="solapa" data-s="aprendio">Lo que aprendió <span class="n" id="n-apr">0</span></button>
+      <button class="solapa" data-s="nopuede">Lo que todavía no puede hacer <span class="n" id="n-pen">0</span></button>
+      <button class="solapa" data-s="revision" id="sol-rev" hidden>Revisión</button>
+    </div>
+  </div>
+  <div class="cuerpo" id="cuerpo"><div class="hoja"><div class="cargando">Cargando…</div></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script>
+const HUB = { url: 'https://xqhyemccbwmzxqzkrtwa.supabase.co', key: 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
+const FN = '/.netlify/functions/asistente';
+const PANEL = { administracion: 'panel-cobranzas.html#asistente', desarrollo: 'panel-desarrollo.html', diseno: 'panel-diseno.html' };
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let hub, INICIO = null, SOLAPA = 'conversar', ACTUAL = null, VISTA = null, SONDEO = null, SONDEO_DESDE = 0;
+
+// ── Sesión y llamadas ──────────────────────────────────────
+async function token(fresco) {
+  let { data: { session } } = await hub.auth.getSession();
+  if (!session) { location.href = 'index.html'; throw new Error('Sin sesión'); }
+  // Lo que se le pasa al asistente tiene que durar mientras piensa.
+  if (fresco && session.expires_at && session.expires_at * 1000 - Date.now() < 10 * 60 * 1000) {
+    const r = await hub.auth.refreshSession();
+    if (r.data && r.data.session) session = r.data.session;
+  }
+  return session.access_token;
+}
+async function api(qs, cuerpo, fresco) {
+  const opts = { headers: { Authorization: 'Bearer ' + await token(fresco) } };
+  if (cuerpo) { opts.method = 'POST'; opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(cuerpo); }
+  const r = await fetch(FN + (qs ? '?' + qs : ''), opts);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'No se pudo conectar.');
+  return d;
+}
+
+// ── Texto del asistente: párrafos, listas con guiones y **negrita** ──
+function md(t) {
+  const neg = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  const out = []; let lista = null, parr = [];
+  const cerrarP = () => { if (parr.length) { out.push('<p>' + parr.map(neg).join('<br>') + '</p>'); parr = []; } };
+  const cerrarL = () => { if (lista) { out.push('<ul>' + lista.map(x => '<li>' + neg(x) + '</li>').join('') + '</ul>'); lista = null; } };
+  String(t || '').split('\n').forEach(l => {
+    const li = l.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)$/);
+    if (li) { cerrarP(); (lista = lista || []).push(li[1]); }
+    else if (!l.trim()) { cerrarP(); cerrarL(); }
+    else { cerrarL(); parr.push(l.replace(/^#+\s*/, '')); }
+  });
+  cerrarP(); cerrarL();
+  return out.join('');
+}
+const fechaCorta = s => { try { return new Date(s).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
+
+// ── Solapas ────────────────────────────────────────────────
+function contar() {
+  $('n-apr').textContent = (INICIO.lecciones || []).length;
+  $('n-pen').textContent = (INICIO.pendientes || []).length;
+}
+document.querySelectorAll('.solapa').forEach(b => b.addEventListener('click', () => ir(b.dataset.s)));
+function ir(s) {
+  SOLAPA = s;
+  document.querySelectorAll('.solapa').forEach(b => b.classList.toggle('on', b.dataset.s === s));
+  if (s !== 'conversar') pararSondeo();
+  if (s === 'aprendio') verAprendio();
+  else if (s === 'nopuede') verNoPuede();
+  else if (s === 'revision') verRevision();
+  else verConversar();
+}
+
+// ══════════ Conversar ══════════
+function verConversar() {
+  $('cuerpo').innerHTML = `
+    <div class="sel-charla"><select id="sel-charla" aria-label="Conversación"></select></div>
+    <div class="conv">
+      <aside class="charlas" id="charlas"></aside>
+      <section class="chat">
+        <div class="msgs" id="msgs"><div class="msgs-in" id="msgs-in"></div></div>
+        <div class="escribir">
+          <div class="escribir-in">
+            <textarea id="texto" rows="1" placeholder="Escribile acá…" maxlength="4000"></textarea>
+            <button class="b" id="enviar">Enviar</button>
+          </div>
+          <div class="pie">Solo mira la información de tu panel: no cambia ni manda nada.</div>
+        </div>
+      </section>
+    </div>`;
+  pintarLista();
+  const ta = $('texto');
+  ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = Math.min(180, ta.scrollHeight) + 'px'; });
+  ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); enviar(); } });
+  $('enviar').onclick = () => enviar();
+  if (ACTUAL) cargarCharla(); else pintar();
+}
+
+// La lista de conversaciones (al costado en la compu, desplegable en el celular).
+function pintarLista() {
+  const charlas = INICIO.charlas || [];
+  const nom = c => esc(c.titulo || 'Sin título');
+  const sel = $('sel-charla'), lado = $('charlas');
+  if (!sel || !lado) return;
+  sel.innerHTML = `<option value="">Conversación nueva</option>` +
+    charlas.map(c => `<option value="${esc(c.id)}" ${ACTUAL === c.id ? 'selected' : ''}>${nom(c)} · ${esc(fechaCorta(c.updated_at))}</option>`).join('');
+  lado.innerHTML = `<button class="b-nueva" id="b-nueva">Conversación nueva</button>` +
+    charlas.map(c => `<button class="ch ${ACTUAL === c.id ? 'on' : ''}" data-id="${esc(c.id)}"><b>${nom(c)}</b><small>${esc(fechaCorta(c.updated_at))}</small></button>`).join('');
+  $('b-nueva').onclick = () => abrir(null);
+  sel.onchange = e => abrir(e.target.value || null);
+  lado.querySelectorAll('.ch').forEach(b => b.onclick = () => abrir(b.dataset.id));
+}
+
+async function abrir(id) {
+  pararSondeo();
+  ACTUAL = id; VISTA = null;
+  verConversar();
+}
+
+async function cargarCharla() {
+  try {
+    const d = await api('que=charla&id=' + encodeURIComponent(ACTUAL));
+    VISTA = d.charla;
+    pintar();
+    if (['pensando', 'trabajando'].includes(VISTA.estado) && !VISTA.trabada) sondear();
+  } catch (e) {
+    ACTUAL = null; VISTA = null; pintar(e.message);
+  }
+}
+
+function pintar(errorCarga) {
+  const cont = $('msgs-in'); if (!cont) return;
+  const v = VISTA;
+  const items = v ? v.vista : [];
+  let h = '';
+  if (errorCarga) h += `<div class="aviso">${esc(errorCarga)}</div>`;
+  if (!items.length && !(v && ['pensando', 'trabajando'].includes(v.estado))) {
+    h += `<div class="vacio"><b>¿Por dónde empezamos?</b>
+      Podés contarle qué hacés en un día común, preguntarle algo de tu equipo o de los clientes, o pedirle que te ayude a escribir algo.
+      <div class="arranques">
+        <button data-arr="Te cuento cómo es mi trabajo.">Te cuento cómo es mi trabajo</button>
+        <button data-arr="¿En qué me podés ayudar?">¿En qué me podés ayudar?</button>
+        <button data-arr="¿Cómo viene el equipo con las tareas esta semana?">¿Cómo viene el equipo esta semana?</button>
+      </div></div>`;
+  }
+  items.forEach(it => {
+    if (it.de === 'yo') h += `<div class="m yo"><div class="glob">${esc(it.texto)}</div></div>`;
+    else if (it.de === 'asistente') h += `<div class="m as"><div class="glob">${md(it.texto)}</div></div>`;
+    else if (it.de === 'consulta' || it.de === 'nota') h += `<div class="linea">${esc(it.texto)}</div>`;
+    else if (it.de === 'propuesta') {
+      if (it.estado === 'guardada') h += `<div class="prop"><div class="t">Lo va a recordar</div><div class="txt">${esc(it.texto)}</div><div class="ok">Guardado en "Lo que aprendió".</div></div>`;
+      else if (it.estado === 'descartada') h += `<div class="prop no"><div class="t">No lo guardaste</div><div class="txt">${esc(it.texto)}</div></div>`;
+      else h += `<div class="prop" data-prop="${esc(it.id)}"><div class="t">¿Querés que me acuerde de esto?</div>
+        <textarea maxlength="2000">${esc(it.texto)}</textarea>
+        <div class="acc"><button class="b si" data-guardar>Guardar</button><button class="b" data-descartar>No hace falta</button></div></div>`;
+    }
+  });
+  if (v && ['pensando', 'trabajando'].includes(v.estado) && !v.trabada) {
+    h += `<div class="pensando"><span class="puntos"><i></i><i></i><i></i></span> Pensando…</div>`;
+  } else if (v && (v.estado === 'error' || v.trabada)) {
+    h += `<div class="aviso"><span style="flex:1">${esc(v.trabada ? 'Parece que se quedó trabado pensando.' : (v.error || 'Algo salió mal.'))}</span><button class="b" id="reintentar">Reintentar</button></div>`;
+  }
+  cont.innerHTML = h;
+  cont.querySelectorAll('[data-arr]').forEach(b => b.onclick = () => { $('texto').value = b.dataset.arr; enviar(); });
+  cont.querySelectorAll('[data-prop]').forEach(p => {
+    const id = p.dataset.prop;
+    p.querySelector('[data-guardar]').onclick = () => decidir(id, true, p.querySelector('textarea').value, p);
+    p.querySelector('[data-descartar]').onclick = () => decidir(id, false, null, p);
+  });
+  const re = $('reintentar'); if (re) re.onclick = reintentar;
+  const ocupado = !!(v && ['pensando', 'trabajando'].includes(v.estado) && !v.trabada);
+  const bEnv = $('enviar'); if (bEnv) bEnv.disabled = ocupado;
+  const caja = $('msgs'); if (caja) caja.scrollTop = caja.scrollHeight;
+}
+
+async function enviar() {
+  const ta = $('texto'); const texto = ta.value.trim();
+  if (!texto || $('enviar').disabled) return;
+  $('enviar').disabled = true;
+  try {
+    if (!ACTUAL) {
+      const d = await api(null, { accion: 'nueva' });
+      ACTUAL = d.charla.id;
+      INICIO.charlas = [{ ...d.charla, titulo: texto.split('\n')[0].slice(0, 70) }, ...(INICIO.charlas || [])];
+      pintarLista();
+    }
+    // Se muestra enseguida lo que escribió, sin esperar al servidor.
+    VISTA = VISTA || { vista: [] };
+    VISTA.vista = [...(VISTA.vista || []), { de: 'yo', texto }];
+    VISTA.estado = 'pensando'; VISTA.trabada = false; VISTA.error = null;
+    ta.value = ''; ta.style.height = 'auto';
+    pintar();
+    await api(null, { accion: 'enviar', charla_id: ACTUAL, texto }, true);
+    sondear();
+  } catch (e) {
+    ta.value = texto;
+    if (VISTA) { VISTA.vista = VISTA.vista.slice(0, -1); VISTA.estado = 'listo'; }
+    pintar(e.message);
+  }
+}
+
+async function reintentar() {
+  try { await api(null, { accion: 'reintentar', charla_id: ACTUAL }, true); VISTA.estado = 'pensando'; VISTA.trabada = false; pintar(); sondear(); }
+  catch (e) { pintar(e.message); }
+}
+
+// Mientras piensa, se pregunta cada 2 segundos cómo va.
+function sondear() {
+  pararSondeo();
+  SONDEO_DESDE = Date.now();
+  const id = ACTUAL;
+  const paso = async () => {
+    if (ACTUAL !== id || SOLAPA !== 'conversar') return;
+    try {
+      const d = await api('que=charla&id=' + encodeURIComponent(id));
+      if (ACTUAL !== id) return;
+      VISTA = d.charla;
+      pintar();
+      if (['pensando', 'trabajando'].includes(VISTA.estado) && !VISTA.trabada && Date.now() - SONDEO_DESDE < 6 * 60 * 1000) {
+        SONDEO = setTimeout(paso, 2000);
+      } else {
+        // La conversación sube primera en la lista, con su título y fecha.
+        const c = (INICIO.charlas || []).find(x => x.id === id);
+        if (c) {
+          c.titulo = VISTA.titulo || c.titulo; c.updated_at = VISTA.updated_at;
+          INICIO.charlas = [c, ...INICIO.charlas.filter(x => x !== c)];
+        }
+        pintarLista();
+        refrescarContadores();
+      }
+    } catch (e) { SONDEO = setTimeout(paso, 4000); }
+  };
+  SONDEO = setTimeout(paso, 1500);
+}
+function pararSondeo() { if (SONDEO) clearTimeout(SONDEO); SONDEO = null; }
+
+async function decidir(propuestaId, guardar, texto, el) {
+  el.querySelectorAll('button').forEach(b => b.disabled = true);
+  try {
+    await api(null, guardar
+      ? { accion: 'guardar_leccion', charla_id: ACTUAL, propuesta_id: propuestaId, texto }
+      : { accion: 'descartar_propuesta', charla_id: ACTUAL, propuesta_id: propuestaId });
+    const it = (VISTA.vista || []).find(x => x.de === 'propuesta' && x.id === propuestaId);
+    if (it) { it.estado = guardar ? 'guardada' : 'descartada'; if (guardar) it.texto = texto; }
+    pintar();
+    refrescarContadores();
+  } catch (e) { alert(e.message); el.querySelectorAll('button').forEach(b => b.disabled = false); }
+}
+
+async function refrescarContadores() {
+  try { const d = await api('que=inicio'); INICIO.lecciones = d.lecciones; INICIO.pendientes = d.pendientes; contar(); } catch (e) {}
+}
+
+// ══════════ Lo que aprendió ══════════
+function verAprendio() {
+  const ls = INICIO.lecciones || [];
+  $('cuerpo').innerHTML = `<div class="hoja"><div class="hoja-in">
+    <p class="sub">Esto es lo que tu asistente sabe de tu trabajo. Lo lee cada vez que conversan. Podés corregirlo o borrarlo cuando quieras: el cambio lo toma en el próximo mensaje.</p>
+    <div class="agregar"><label for="nueva">Enseñale algo directamente</label>
+      <textarea id="nueva" maxlength="2000" placeholder="Por ejemplo, quién se ocupa de qué en el equipo o cómo te gusta que te muestre los números."></textarea>
+      <div style="margin-top:8px"><button class="b oro" id="agregar">Agregar</button></div></div>
+    ${ls.length ? ls.map(l => `<div class="item" data-l="${esc(l.id)}"><div class="tx">${esc(l.texto)}</div>
+        <div class="me"><span>${l.origen === 'manual' ? 'Lo cargaste vos' : 'Lo aprendió conversando'} · ${esc(fechaCorta(l.updated_at || l.created_at))}</span>
+          <button data-editar>Corregir</button><button data-borrar>Borrar</button></div></div>`).join('')
+      : `<div class="vacio">Todavía no aprendió nada. Cuando le expliques algo en la conversación, te va a ofrecer recordarlo.</div>`}
+  </div></div>`;
+  $('agregar').onclick = async () => {
+    const t = $('nueva').value.trim(); if (!t) return;
+    $('agregar').disabled = true;
+    try { const d = await api(null, { accion: 'nueva_leccion', texto: t }); INICIO.lecciones = d.lecciones; contar(); verAprendio(); }
+    catch (e) { alert(e.message); $('agregar').disabled = false; }
+  };
+  document.querySelectorAll('[data-l]').forEach(el => {
+    const id = el.dataset.l, l = ls.find(x => x.id === id);
+    el.querySelector('[data-borrar]').onclick = async () => {
+      if (!confirm('¿Borrar esto de lo que aprendió?')) return;
+      try { const d = await api(null, { accion: 'borrar_leccion', id }); INICIO.lecciones = d.lecciones; contar(); verAprendio(); } catch (e) { alert(e.message); }
+    };
+    el.querySelector('[data-editar]').onclick = () => {
+      el.innerHTML = `<textarea maxlength="2000">${esc(l.texto)}</textarea>
+        <div class="me"><button class="b si" data-ok style="text-decoration:none;color:#fff;padding:6px 12px">Guardar</button><button data-cancelar>Cancelar</button></div>`;
+      el.querySelector('[data-cancelar]').onclick = verAprendio;
+      el.querySelector('[data-ok]').onclick = async () => {
+        const t = el.querySelector('textarea').value.trim(); if (!t) return;
+        try { const d = await api(null, { accion: 'editar_leccion', id, texto: t }); INICIO.lecciones = d.lecciones; verAprendio(); } catch (e) { alert(e.message); }
+      };
+    };
+  });
+}
+
+// ══════════ Lo que todavía no puede hacer ══════════
+const ESTADO_PEN = { nuevo: ['', 'Sin revisar'], visto: ['visto', 'Desarrollo lo vio'], hecho: ['hecho', 'Ya lo puede hacer'], descartado: ['', 'Por ahora no se va a hacer'] };
+function verNoPuede() {
+  const ps = INICIO.pendientes || [];
+  $('cuerpo').innerHTML = `<div class="hoja"><div class="hoja-in">
+    <p class="sub">Cosas que le pediste y todavía no sabe hacer. El asistente las anota solo; Desarrollo las revisa para ver qué enseñarle después.</p>
+    ${ps.length ? ps.map(p => { const e = ESTADO_PEN[p.estado] || ESTADO_PEN.nuevo; return `<div class="item">
+        <div class="tx">${esc(p.pedido)}</div>
+        ${p.que_haria_falta ? `<div class="falta">Le haría falta: ${esc(p.que_haria_falta)}</div>` : ''}
+        ${p.nota ? `<div class="devo">Desarrollo: ${esc(p.nota)}</div>` : ''}
+        <div class="me"><span class="estado ${e[0]}">${e[1]}</span><span>${esc(fechaCorta(p.created_at))}</span></div></div>`; }).join('')
+      : `<div class="vacio">Por ahora no te dijo que no a nada.</div>`}
+  </div></div>`;
+}
+
+// ══════════ Revisión (Desarrollo y Diseño) ══════════
+async function verRevision() {
+  $('cuerpo').innerHTML = `<div class="hoja"><div class="hoja-in"><div class="cargando">Cargando…</div></div></div>`;
+  let d;
+  try { d = await api('que=revision'); } catch (e) { $('cuerpo').innerHTML = `<div class="hoja"><div class="aviso">${esc(e.message)}</div></div>`; return; }
+  const porPersona = arr => arr.reduce((m, x) => { (m[x.de] = m[x.de] || []).push(x); return m; }, {});
+  const pen = porPersona(d.pendientes), lec = porPersona(d.lecciones);
+  $('cuerpo').innerHTML = `<div class="hoja"><div class="hoja-in">
+    <p class="sub">Lo que cada persona le pidió a su asistente y todavía no puede hacer, y lo que le fue enseñando. Las conversaciones no se ven: son de cada uno.</p>
+    <h2 style="font-size:16px;margin:10px 0 0">Lo que todavía no puede hacer</h2>
+    ${d.pendientes.length ? Object.keys(pen).map(n => `<div class="grupo">${esc(n)}</div>` + pen[n].map(p => `<div class="item" data-p="${esc(p.id)}">
+        <div class="tx">${esc(p.pedido)}</div>
+        ${p.que_haria_falta ? `<div class="falta">Le haría falta: ${esc(p.que_haria_falta)}</div>` : ''}
+        <div class="me"><span>${esc(fechaCorta(p.created_at))}</span></div>
+        <div class="rev-ctl">
+          <select>${Object.keys(ESTADO_PEN).map(k => `<option value="${k}" ${p.estado === k ? 'selected' : ''}>${ESTADO_PEN[k][1]}</option>`).join('')}</select>
+          <input placeholder="Nota para quien lo pidió (opcional)" value="${esc(p.nota || '')}" maxlength="1000">
+          <button class="b">Guardar</button>
+        </div></div>`).join('')).join('')
+      : `<div class="vacio">Todavía no hay pedidos anotados.</div>`}
+    <h2 style="font-size:16px;margin:28px 0 0">Lo que aprendió cada asistente</h2>
+    ${d.lecciones.length ? Object.keys(lec).map(n => `<div class="grupo">${esc(n)}</div>` + lec[n].map(l => `<div class="item"><div class="tx">${esc(l.texto)}</div>
+        <div class="me"><span>${l.origen === 'manual' ? 'Cargado a mano' : 'Aprendido conversando'} · ${esc(fechaCorta(l.created_at))}</span></div></div>`).join('')).join('')
+      : `<div class="vacio">Todavía no aprendieron nada.</div>`}
+  </div></div>`;
+  document.querySelectorAll('[data-p]').forEach(el => {
+    const b = el.querySelector('button');
+    b.onclick = async () => {
+      b.disabled = true;
+      try { await api(null, { accion: 'pendiente_estado', id: el.dataset.p, estado: el.querySelector('select').value, nota: el.querySelector('input').value }); b.textContent = 'Guardado'; }
+      catch (e) { alert(e.message); }
+      setTimeout(() => { b.disabled = false; b.textContent = 'Guardar'; }, 1500);
+    };
+  });
+}
+
+// ── Arranque ───────────────────────────────────────────────
+(async () => {
+  hub = supabase.createClient(HUB.url, HUB.key);
+  const { data: { session } } = await hub.auth.getSession();
+  if (!session) { location.href = 'index.html'; return; }
+  try { INICIO = await api('que=inicio'); }
+  catch (e) { $('cuerpo').innerHTML = `<div class="hoja"><div class="aviso">${esc(e.message)}</div></div>`; return; }
+  const rol = INICIO.yo.rol;
+  // Brenda lo usa adentro de su panel, con su menú.
+  if (rol === 'administracion' && !document.documentElement.classList.contains('gb-embed')) { location.replace(PANEL.administracion); return; }
+  $('volver').href = PANEL[rol] || 'hub.html';
+  if (INICIO.puedeRevisar) $('sol-rev').hidden = false;
+  contar();
+  ACTUAL = (INICIO.charlas && INICIO.charlas[0] && INICIO.charlas[0].id) || null;
+  if (!INICIO.puedeChat) ir('revision'); else ir('conversar');
+})();
+</script>
+</body>
+</html>
