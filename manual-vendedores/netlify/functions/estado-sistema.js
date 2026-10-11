@@ -70,6 +70,10 @@ exports.handler = async (event) => {
     const h = event.headers || {};
     const clave = h['x-monitor-key'] || h['X-Monitor-Key'] || '';
     let autorizado = !!(process.env.MONITOR_KEY && clave && clave === process.env.MONITOR_KEY);
+    // Si vino una clave (n8n) y no sirve, se dice por qué, sin mostrar nada de la clave.
+    if (!autorizado && clave) {
+      return json(401, { error: process.env.MONITOR_KEY ? 'Clave incorrecta (x-monitor-key no coincide con MONITOR_KEY).' : 'El Portal todavía no tiene MONITOR_KEY cargada.' });
+    }
     if (!autorizado) {
       const token = (h.authorization || h.Authorization || '').replace(/^Bearer\s+/i, '').trim();
       if (!token) return json(401, { error: 'Sin acceso' });
