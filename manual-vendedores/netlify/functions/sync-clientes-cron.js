@@ -32,3 +32,6 @@ exports.handler = async () => {
     return { statusCode: 500 };
   }
 };
+
+// Estado del sistema (10/10/2026): cada corrida queda en sistema_corridas (ver _corrida.js).
+exports.handler = require('./_corrida').conRegistro('sync-clientes', exports.handler);

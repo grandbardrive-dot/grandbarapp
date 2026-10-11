@@ -380,3 +380,7 @@ exports.handler = async (event) => {
     return json(500, { error: e.message });
   }
 };
+
+// Estado del sistema (10/10/2026): cada corrida queda en sistema_corridas (ver _corrida.js).
+// Las llamadas sin la clave del disparo no cuentan.
+exports.handler = require('./_corrida').conRegistro('cazar-clientes', exports.handler, { siCorre: (e) => !process.env.SYNC_SECRET || ((e && e.queryStringParameters && e.queryStringParameters.key) || '') === process.env.SYNC_SECRET });

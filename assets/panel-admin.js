@@ -120,16 +120,9 @@ function montarPanel(cfg) {
       </div>
 
       <div class="vista" id="v-estado">
-        <div class="en-obra">
-          <h3>Estado del sistema</h3>
-          <p>Qué se está usando de verdad y qué está fallando, sin abrir cada pantalla a mano.</p>
-          <ul>
-            <li>Visitas cargadas por día y por vendedor.</li>
-            <li>Quién no entra hace más de una semana.</li>
-            <li>Campañas vencidas que siguen publicadas.</li>
-            <li>Secciones del manual sin ítems y clientes sin vendedor asignado.</li>
-          </ul>
-        </div>
+        <div id="es-cab" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px"></div>
+        <div id="es-lista"><div class="pv-vacio">Revisando el sistema…</div></div>
+        <div class="aviso" style="margin-top:18px"><span>📡</span><div>Lo mismo lo revisa n8n cada 15 minutos y avisa por WhatsApp cuando algo se rompe y cuando se arregla. Las tareas automáticas anotan cada corrida; si una deja de correr o falla, aparece acá en rojo.</div></div>
       </div>
     </main>
   </div>`;
@@ -141,6 +134,7 @@ function montarPanel(cfg) {
       document.querySelectorAll('.vista').forEach(x => x.classList.remove('on'));
       b.classList.add('on');
       document.getElementById('v-' + b.dataset.v).classList.add('on');
+      if (b.dataset.v === 'estado') esCargar();
     });
   });
 
@@ -356,6 +350,49 @@ function pdResponder(id) {
   const txt = prompt('Respuesta para el vendedor:', p.respuesta || '');
   if (txt === null) return;
   pdGuardar(id, { respuesta: txt.trim() || null });
+}
+
+/* ── Estado del sistema (10/10/2026) ─────────────────────────────────────────
+   Lo arma la función estado-sistema: tareas automáticas (sistema_corridas),
+   sitios, bases, planillas de Drive y ventas al día. n8n consulta lo mismo
+   cada 15 minutos y avisa por WhatsApp.                                       */
+const ES_COLOR = { ok: '#2f6f5e', falla: '#c0392b', sin_datos: '#9aa5ab' };
+const ES_TXT = { ok: 'Anda bien', falla: 'Falla', sin_datos: 'Sin datos' };
+let _esCargando = false;
+async function esCargar() {
+  const lista = document.getElementById('es-lista'), cab = document.getElementById('es-cab');
+  if (!lista || _esCargando) return;
+  _esCargando = true;
+  cab.innerHTML = '<span style="color:var(--muted);font-size:13px">Revisando…</span>';
+  try {
+    const cli = window.GBAuth && GBAuth.client;
+    const ses = cli ? (await cli.auth.getSession()).data.session : null;
+    const r = await fetch('/.netlify/functions/estado-sistema', { headers: { Authorization: 'Bearer ' + (ses ? ses.access_token : '') } });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || ('error ' + r.status));
+    const hora = new Date(d.revisado_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const nF = (d.fallas || []).length;
+    cab.innerHTML = `<span style="font-weight:800;font-size:15px;color:${nF ? ES_COLOR.falla : ES_COLOR.ok}">${nF ? '● ' + nF + (nF === 1 ? ' cosa fallando' : ' cosas fallando') : '● Todo anda bien'}</span>
+      <span style="color:var(--muted);font-size:13px">Revisado a las ${pdEsc(hora)}</span>
+      <button class="pd-b" style="margin-left:auto" onclick="esCargar()">↻ Revisar ahora</button>`;
+    const grupos = [];
+    (d.checks || []).forEach(c => { let g = grupos.find(x => x.n === c.grupo); if (!g) grupos.push(g = { n: c.grupo, items: [] }); g.items.push(c); });
+    // Lo que falla primero dentro de cada grupo.
+    const orden = { falla: 0, sin_datos: 1, ok: 2 };
+    lista.innerHTML = grupos.map(g => `<div class="pd-card">
+      <div style="font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">${pdEsc(g.n)}</div>
+      ${g.items.sort((a, b) => orden[a.estado] - orden[b.estado]).map(c => `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line-2)">
+        <span style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:5px;background:${ES_COLOR[c.estado] || ES_COLOR.sin_datos}" title="${pdEsc(ES_TXT[c.estado] || '')}"></span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px">${pdEsc(c.nombre)}${c.cada ? ` <span style="font-weight:400;color:var(--muted);font-size:12px">· ${pdEsc(c.cada)}</span>` : ''}</div>
+          <div style="font-size:12.5px;color:${c.estado === 'falla' ? ES_COLOR.falla : 'var(--muted)'};margin-top:2px;overflow-wrap:anywhere">${pdEsc(c.detalle || '')}</div>
+        </div>
+      </div>`).join('')}
+    </div>`).join('');
+  } catch (e) {
+    cab.innerHTML = `<button class="pd-b" onclick="esCargar()">↻ Reintentar</button>`;
+    lista.innerHTML = `<div class="aviso"><span>⚠️</span><div>No pude revisar el sistema: ${pdEsc(e.message || e)}</div></div>`;
+  } finally { _esCargando = false; }
 }
 
 /* ── Herramientas del Hub ───────────────────────────────────────────────────

@@ -67,13 +67,16 @@ exports.handler = async (event) => {
         hechos.push(`${isoDe(d)} ${JSON.stringify(res.por_empresa)}`);
       } catch (e) {
         // Un día que falla no frena el resto; queda pendiente para la próxima corrida.
-        console.log('sync-ventas-background:', isoDe(d), (e && e.message) || e);
+        console.error('sync-ventas-background:', isoDe(d), (e && e.message) || e);
         await fetch(`${SB_URL}/rest/v1/ventas_sync_log`, { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
           body: JSON.stringify({ desde: isoDe(d), hasta: isoDe(d), comprobantes: 0, renglones: 0, skus: 0, ok: false, detalle: ('ERROR bg: ' + ((e && e.message) || e)).slice(0, 900) }) }).catch(() => {});
       }
     }
   } catch (e) {
-    console.log('sync-ventas-background login:', (e && e.message) || e);
+    console.error('sync-ventas-background login:', (e && e.message) || e);
   }
   console.log(`sync-ventas-background: ${hechos.length}/${dias.length} días ·`, hechos.join(' | '));
 };
+
+// Estado del sistema (10/10/2026): cada corrida queda en sistema_corridas (ver _corrida.js).
+exports.handler = require('./_corrida').conRegistro('sync-ventas', exports.handler);

@@ -98,3 +98,6 @@ exports.handler = async (event) => {
     return json(500, { error: (e && e.message) || String(e) });
   }
 };
+
+// Estado del sistema (10/10/2026): cada corrida queda en sistema_corridas (ver _corrida.js).
+exports.handler = require('./_corrida').conRegistro('push-cron', exports.handler);
