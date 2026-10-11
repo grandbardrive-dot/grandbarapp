@@ -25,3 +25,6 @@ exports.handler = async () => {
   const muestra = await mr.json().catch(() => []);
   return json(200, { total, geocodificados, pendientes, sin_resultado, muestra });
 };
+
+// Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
+module.exports.handler = require('./_errores').conErrores('geocode-progress', module.exports.handler);

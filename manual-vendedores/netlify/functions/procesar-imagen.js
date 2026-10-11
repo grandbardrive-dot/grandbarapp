@@ -88,3 +88,6 @@ function json(statusCode, obj) {
   return { statusCode, headers: { ...CORS, 'Content-Type': 'application/json' }, body: JSON.stringify(obj) };
 }
 async function safeText(resp) { try { return await resp.text(); } catch { return ''; } }
+
+// Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
+module.exports.handler = require('./_errores').conErrores('procesar-imagen', module.exports.handler);

@@ -171,10 +171,53 @@ exports.handler = async (event) => {
       } catch (e) { return { ...base, estado: 'falla', detalle: 'No se pudo revisar: ' + motivo(e) + '.' }; }
     })();
 
-    checks.push(...await Promise.all([...tareas, ...sitios, ...bases, ...planillas, datos]));
+    // ---------- errores de funciones y pantallas (última hora) ----------
+    // Las funciones que usa la gente anotan sus errores (_errores.js) y las pantallas
+    // lo que se rompe en el navegador (reportar-error). Uno suelto puede ser casualidad:
+    // se avisa cuando una misma función o pantalla junta varios en la última hora.
+    const errores = (async () => {
+      const salida = [];
+      try {
+        const r = await hub('sistema_errores?select=origen,lugar,detalle,momento,usuario_id&momento=gte.' + new Date(ahora - 3600000).toISOString() + '&order=momento.desc&limit=1000');
+        if (!r.ok) return [{ id: 'errores', grupo: 'Errores', nombre: 'Errores de funciones y pantallas', estado: 'falla', detalle: 'No se pudo leer el registro de errores (¿falta correr sistema-errores-setup.sql?)' }];
+        const filas = await r.json();
+        const por = {};
+        for (const f of filas) {
+          const k = f.origen + '|' + f.lugar;
+          const g = por[k] || (por[k] = { origen: f.origen, lugar: f.lugar, n: 0, ultimo: f.detalle, personas: new Set() });
+          g.n++;
+          if (f.usuario_id) g.personas.add(f.usuario_id);
+        }
+        const malas = Object.values(por).filter(g => g.origen === 'funcion' ? g.n >= 3 : (g.n >= 3 || g.personas.size >= 2));
+        for (const g of malas) {
+          const quien = g.origen === 'pantalla' && g.personas.size ? ' (' + g.personas.size + (g.personas.size === 1 ? ' persona' : ' personas') + ')' : '';
+          salida.push({
+            id: 'error-' + g.origen + '-' + g.lugar, grupo: 'Errores',
+            nombre: (g.origen === 'funcion' ? 'Función ' : 'Pantalla ') + g.lugar,
+            estado: 'falla',
+            detalle: g.n + (g.n === 1 ? ' error' : ' errores') + ' en la última hora' + quien + '. El último: ' + (g.ultimo || 'sin detalle'),
+          });
+        }
+        const sueltos = filas.length - malas.reduce((s, g) => s + g.n, 0);
+        salida.push({ id: 'errores-resumen', grupo: 'Errores', nombre: 'Funciones y pantallas del Portal', estado: 'ok',
+          detalle: !filas.length ? 'Sin errores en la última hora.'
+            : malas.length ? (malas.length + ' con errores repetidos (arriba)' + (sueltos ? '; además ' + sueltos + (sueltos === 1 ? ' suelto.' : ' sueltos.') : '.'))
+            : sueltos + (sueltos === 1 ? ' error suelto' : ' errores sueltos') + ' en la última hora, ninguno repetido.' });
+      } catch (e) { salida.push({ id: 'errores', grupo: 'Errores', nombre: 'Errores de funciones y pantallas', estado: 'falla', detalle: 'No se pudo revisar: ' + motivo(e) }); }
+      return salida;
+    })();
 
-    // Limpieza: corridas de más de 30 días (no frena la respuesta si falla).
-    try { await hub('sistema_corridas?inicio=lt.' + new Date(ahora - 30 * 86400000).toISOString(), { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
+    const [base, listaErrores] = await Promise.all([Promise.all([...tareas, ...sitios, ...bases, ...planillas, datos]), errores]);
+    checks.push(...base, ...listaErrores);
+
+    // Limpieza: corridas y errores de más de 30 días (no frena la respuesta si falla).
+    const viejo = new Date(ahora - 30 * 86400000).toISOString();
+    try {
+      await Promise.all([
+        hub('sistema_corridas?inicio=lt.' + viejo, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }),
+        hub('sistema_errores?momento=lt.' + viejo, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }),
+      ]);
+    } catch (e) {}
 
     const fallas = checks.filter(c => c.estado === 'falla');
     return json(200, {
@@ -187,3 +230,6 @@ exports.handler = async (event) => {
     return json(500, { error: motivo(e) });
   }
 };
+
+// Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
+module.exports.handler = require('./_errores').conErrores('estado-sistema', module.exports.handler);

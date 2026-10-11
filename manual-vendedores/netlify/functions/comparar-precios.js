@@ -132,3 +132,6 @@ exports.handler = async (event) => {
 
   return { statusCode: 200, headers, body: JSON.stringify({ ok: true, q, auto, manual: MANUAL }) };
 };
+
+// Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
+module.exports.handler = require('./_errores').conErrores('comparar-precios', module.exports.handler);

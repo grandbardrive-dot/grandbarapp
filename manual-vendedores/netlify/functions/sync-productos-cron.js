@@ -21,3 +21,6 @@ exports.handler = async () => {
     return { statusCode: 500 };
   }
 };
+
+// Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
+module.exports.handler = require('./_errores').conErrores('sync-productos-cron', module.exports.handler);

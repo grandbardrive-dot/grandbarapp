@@ -97,3 +97,11 @@
     }
   });
 })();
+
+// Estado del sistema (11/10/2026): avisa al Portal si algo se rompe en esta pantalla
+// (assets/reporte-errores.js → reportar-error → "Estado del sistema" y n8n).
+(function () {
+  if (window.GBReportarError || document.querySelector('script[src*="reporte-errores.js"]')) return;
+  var s = document.createElement('script'); s.src = '/assets/reporte-errores.js?v=1'; s.async = true;
+  (document.head || document.documentElement).appendChild(s);
+})();

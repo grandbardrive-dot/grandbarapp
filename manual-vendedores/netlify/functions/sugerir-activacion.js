@@ -67,3 +67,6 @@ Devolvé ÚNICAMENTE un JSON array de 1 o 2 strings (cada string una idea de 1-2
     return json(500, { error: (e && e.message) || String(e) });
   }
 };
+
+// Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
+module.exports.handler = require('./_errores').conErrores('sugerir-activacion', module.exports.handler);

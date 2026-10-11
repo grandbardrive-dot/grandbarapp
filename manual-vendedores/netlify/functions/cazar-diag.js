@@ -137,3 +137,6 @@ ${JSON.stringify(cands)}`;
   } catch (e) { out.error = (e && e.message) || String(e); }
   return json(200, out);
 };
+
+// Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
+module.exports.handler = require('./_errores').conErrores('cazar-diag', module.exports.handler);

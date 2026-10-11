@@ -104,3 +104,6 @@ Cada valor de texto: máximo 25 palabras. Sin texto antes ni después, sin markd
     return json(500, { error: msg });
   }
 };
+
+// Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
+module.exports.handler = require('./_errores').conErrores('reunion-propuesta', module.exports.handler);

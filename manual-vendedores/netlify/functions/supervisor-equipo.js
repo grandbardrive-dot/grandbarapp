@@ -158,3 +158,6 @@ async function enriquecerGeo(lista, hubService) {
   }
   return lista.map(c => { const g = geoMap[parseInt(c.codigo, 10)]; return g ? { ...c, direccion: g.direccion, localidad: g.localidad, lat: g.lat, lng: g.lng } : c; });
 }
+
+// Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
+module.exports.handler = require('./_errores').conErrores('supervisor-equipo', module.exports.handler);

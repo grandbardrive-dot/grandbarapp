@@ -1844,6 +1844,7 @@ body { background:transparent !important; }
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/reporte-errores.js?v=1"></script>
 <script src="_config.js"></script>
 <script src="_avatar.js"></script>
 <script src="_sucursales.js"></script>
@@ -3743,7 +3744,10 @@ body { background:transparent !important; }
       ins = r2.data; error = r2.error;
     }
 
-    if(error){ setLoading(false); _visitaGuardando = false; showToast('Error al guardar. Intentá de nuevo.','error'); return; }
+    if(error){ setLoading(false); _visitaGuardando = false; showToast('Error al guardar. Intentá de nuevo.','error');
+      // Estado del sistema (11/10/2026): que se sepa si no se pueden guardar visitas.
+      if (window.GBReportarError) GBReportarError('No se pudo guardar la visita: ' + (error.message || error.code || 'sin detalle'), 'cliente ' + (cliente.codigo_cliente || cliente.id) + ' · vendedor ' + (vendedor.codigo || ''));
+      return; }
     // Guardada: el botón queda deshabilitado hasta salir, así no se duplica
     detenerCronometro();
     localStorage.removeItem(CRONO_KEY);

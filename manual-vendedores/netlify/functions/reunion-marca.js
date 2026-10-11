@@ -246,3 +246,6 @@ exports.handler = async (event) => {
     return out(500, { error: (e && e.message) || String(e) });
   }
 };
+
+// Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
+module.exports.handler = require('./_errores').conErrores('reunion-marca', module.exports.handler);

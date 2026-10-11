@@ -222,3 +222,6 @@ exports.handler = async (event) => {
 module.exports.sincronizarDia = sincronizarDia;
 module.exports.loginTodas = loginTodas;
 module.exports.fmtFecha = fmtFecha;
+
+// Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
+module.exports.handler = require('./_errores').conErrores('sync-ventas', module.exports.handler);
