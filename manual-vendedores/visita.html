@@ -2754,12 +2754,15 @@ body { background:transparent !important; }
   // El bloque vive DENTRO de la sección de cierre. La selección se guarda en un
   // estado (acompSel), no en el DOM, para no perderse al navegar entre estaciones
   // del camino (donde el cierre puede no estar renderizado). Se guarda igual que antes.
+  // Lucía Kaf y Facu Kaf acompañan solo a los vendedores de ON: canal 'on' (o 'ambos')
+  // del usuario del Portal (pedido del usuario, 13/10/2026). Ver cargarCanalVendedor().
   const ACOMP_OPCIONES = [
     { value: 'supervisor',  label: '👤 Mi Supervisor' },
-    { value: 'lucia_caff',  label: '👤 Lucía Kaf' },
-    { value: 'facu_caff',   label: '👤 Facu Kaf' },
+    { value: 'lucia_caff',  label: '👤 Lucía Kaf', soloOn: true },
+    { value: 'facu_caff',   label: '👤 Facu Kaf',  soloOn: true },
   ];
   const acompSel = new Set();
+  let _acompEsOn = false;
 
   function toggleAcomp(el) {
     const inp = el.querySelector('input');
@@ -2777,7 +2780,7 @@ body { background:transparent !important; }
       <div class="acomp-card">
         <div class="acomp-label">👥 ¿Te acompañaron en esta visita?<span class="acomp-opcional">Opcional</span></div>
         <div class="acomp-options">
-          ${ACOMP_OPCIONES.map(o => `
+          ${ACOMP_OPCIONES.filter(o => !o.soloOn || _acompEsOn || acompSel.has(o.value)).map(o => `
             <label class="acomp-chk${acompSel.has(o.value) ? ' checked' : ''}" onclick="toggleAcomp(this)">
               <input type="checkbox" value="${o.value}"${acompSel.has(o.value) ? ' checked' : ''}>
               <div class="acomp-box">${chk}</div>
@@ -2926,6 +2929,7 @@ body { background:transparent !important; }
       cargarOportunidades();
     }
     renderCartBar();
+    cargarCanalVendedor();   // acompañantes de ON en el cierre
     // Camino/juego (avatar al centro + secciones alrededor): para TODOS los rubros que
     // tengan secciones cargadas. Los manuales vacíos quedan con la lista de siempre.
     // Si VISTA_CAMINO=false → vuelve a los acordeones en todos lados.
@@ -3832,7 +3836,7 @@ body { background:transparent !important; }
     },
   };
   const EV_TAMANIOS = [50, 100, 150, 200];
-  const WA_MARKETING = '5492612123696';   // mismo número que usa la solicitud de materiales
+  const WA_MARKETING = '5492612123696';   // WhatsApp de Josefina (Diseño), confirmado 13/10/2026; el mismo de la solicitud de materiales
   // total arranca vacío: hasta el 13/10/2026 venía en 100 y Combos y Materiales decían
   // "para 100 personas" aunque el vendedor no hubiera elegido nada.
   let evEstado = { total:null, menores:0, clima:'templado', barra:false, hielo:false, bartender:false };
@@ -4558,6 +4562,7 @@ body { background:transparent !important; }
     }).filter(Boolean);
     if (!items.length) { showToast('Agregá al menos un material', 'error'); return; }
     const msg = `📦 Solicitud de materiales — GrandBar\nVendedor: ${vendedor.nombre}\nCliente: ${cliente.nombre}\nFecha requerida: ${fecha || 'A confirmar'}\nMateriales:\n${items.join('\n')}\n¿Podés confirmar envío?`;
+    // WhatsApp de Josefina (Diseño): recibe los pedidos de materiales (confirmado 13/10/2026).
     window.open(`https://wa.me/5492612123696?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
@@ -5577,7 +5582,7 @@ body { background:transparent !important; }
       });
       // El "Todavía no hay…" va solo si la sección no muestra nada más: con un plan
       // cargado al lado se leía como que no había nada (auditoría 13/10/2026).
-      const conPlanes = ((buscarSec(sec.id) || sec).planes || []).length > 0;
+      const conPlanes = _secConPlanes(sec.id);
       el.innerHTML = (tarjetas.length ? `<div class="vc-list">${tarjetas.join('')}</div>` : '')
         + (tarjetas.length || conPlanes ? '' : vacios.join(''));
     });
@@ -6898,6 +6903,20 @@ body { background:transparent !important; }
   }
   // Sesión del Portal: la función que avisa al proveedor necesita saber quién la manda.
   let _hubAuthCli = null;
+  // Canal del vendedor (on / off / ambos / mayorista) desde su usuario del Portal.
+  // Solo se usa para mostrar a los acompañantes de ON en el cierre.
+  async function cargarCanalVendedor() {
+    try {
+      _hubAuthCli = _hubAuthCli || supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc');
+      const { data: ses } = await _hubAuthCli.auth.getSession();
+      const uid = ses && ses.session && ses.session.user && ses.session.user.id;
+      if (!uid) return;
+      const { data } = await _hubAuthCli.from('usuarios').select('canal').eq('id', uid).maybeSingle();
+      const c = String((data && data.canal) || '').toLowerCase();
+      _acompEsOn = c === 'on' || c === 'ambos';
+      if (_acompEsOn) document.querySelectorAll('.acomp-card').forEach(el => { el.outerHTML = renderAcompCard(); });
+    } catch (e) {}
+  }
   async function _hubToken() {
     try {
       _hubAuthCli = _hubAuthCli || supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc');
@@ -7257,7 +7276,8 @@ body { background:transparent !important; }
       const canalesOk = checklist.id === 'tienda_bebidas' ? ['vinoteca', 'tienda_bebidas', 'tienda de bebidas'] : [checklist.id];
       items = (data || []).filter(p => !p.canal || !p.canal.length || p.canal.some(c => canalesOk.includes(c)));
     } catch {}
-    if (!items.length) { el.innerHTML = `<div class="esp-loading">Todavía no hay beneficios de bodegas partner cargados.</div>`; return; }
+    // Con un plan cargado en la sección (Planes), el "no hay" se leía como que no había nada.
+    if (!items.length) { el.innerHTML = _secConPlanes(secId) ? '' : `<div class="esp-loading">Todavía no hay beneficios de bodegas partner cargados.</div>`; return; }
     const TIPO_LABEL = { degustacion:'Degustación', capacitacion:'Capacitación', visita:'Visita a bodega', evento:'Evento' };
     el.innerHTML = items.map(p => espAccionCard(`Partner ${p.bodega}`, {
       marca: p.bodega + ' · ' + (TIPO_LABEL[p.tipo] || p.tipo), nombre: p.nombre, desc: p.descripcion,
@@ -7354,8 +7374,15 @@ body { background:transparent !important; }
               <button class="esp-ac-btn" onclick="abrirCompModal('Vidriera','Acuerdo vidriera ${escJs(op.bodega)}')">Programar</button>
             </div>
           </div>`).join('');
+      } else if (_secConPlanes(secId)) {
+        opEl.innerHTML = '';   // hay un plan cargado en la sección (Planes): no decir "no hay"
       }
     } catch {}
+  }
+  // ¿La sección tiene planes cargados (Planes de Luciana)? Para no mostrar un
+  // "Todavía no hay…" al lado de un plan (auditoría 13/10/2026).
+  function _secConPlanes(secId) {
+    return ((buscarSec(secId) || {}).planes || []).length > 0;
   }
 
   // ── GENERADOR DE RESUMEN PDF ───────────────────────────────────────────────
