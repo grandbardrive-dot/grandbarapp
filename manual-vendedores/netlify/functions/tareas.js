@@ -1,8 +1,9 @@
 // ============================================================
 //  GrandBar Hub · Function · tareas
-//   Supervisor: crea tareas (diarias o puntuales) para su canal
-//   o para vendedores puntuales; ve el cumplimiento.
-//   Vendedor: ve sus tareas del día y las marca completadas.
+//   Supervisor: asigna tareas (diarias o puntuales) a todo su equipo
+//   o a vendedores puntuales de su equipo; ve el cumplimiento.
+//   Vendedor: ve las tareas que le asignaron y las marca completadas.
+//   Todos: tareas personales (alcance 'personal'), que ve solo quien las crea.
 //  Todo en la base del Hub, con service role. Valida el token del Hub.
 //  Env: HUB_SERVICE_ROLE
 // ============================================================
@@ -27,18 +28,36 @@ exports.handler = async (event) => {
     const perfil = (await pRes.json())[0] || {};
 
     const sb = (path, opts = {}) => fetch(HUB_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: srole, Authorization: 'Bearer ' + srole, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
-    // La tienda mayorista (rol "mayorista", Mza Distribución) carga sus propias tareas,
-    // igual que las tareas personales de los supervisores (07/10/2026).
     const esTienda = String(perfil.rol || '').toLowerCase() === 'mayorista';
-    const cargaPropias = !!perfil.es_supervisor || esTienda;
+    // Tareas personales: desde el 13/10/2026 las carga cualquiera (antes solo supervisores
+    // y la tienda). Son de quien las crea y nadie más las ve.
+
+    // Equipo del supervisor: vendedores de su misma región + canal (o 'ambos'). Los otros
+    // supervisores no entran: las tareas se asignan solo de supervisor a vendedor.
+    async function equipo() {
+      const eq = await sb('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region,es_supervisor,activo');
+      const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
+      return (await eq.json() || []).filter(u => {
+        if (u.es_supervisor || u.activo === false || !u.codigo_vendedor) return false;
+        if (preg && regionDe(u) !== preg) return false;
+        const uc = String(u.canal || '').toLowerCase();
+        return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
+      }).map(u => ({ codigo: u.codigo_vendedor, nombre: u.nombre }));
+    }
 
     // ---------- POST (acciones) ----------
     if (event.httpMethod === 'POST') {
       let b = {}; try { b = JSON.parse(event.body || '{}'); } catch (e) {}
 
       if (b.accion === 'crear') {
-        if (!perfil.es_supervisor) return json(403, { error: 'Solo los supervisores pueden crear tareas.' });
+        if (!perfil.es_supervisor) return json(403, { error: 'Solo los supervisores pueden asignar tareas.' });
         if (!b.titulo) return json(400, { error: 'Falta el título.' });
+        // A vendedores puntuales: solo los de su equipo (13/10/2026).
+        if (b.alcance === 'vendedores') {
+          const mios = new Set((await equipo()).map(v => String(v.codigo)));
+          b.asignados = (Array.isArray(b.asignados) ? b.asignados : []).map(String).filter(c => mios.has(c));
+          if (!b.asignados.length) return json(400, { error: 'Elegí al menos un vendedor de tu equipo.' });
+        }
         const fila = {
           titulo: b.titulo, descripcion: b.descripcion || null,
           frecuencia: b.frecuencia === 'puntual' ? 'puntual' : 'diaria',
@@ -73,10 +92,9 @@ exports.handler = async (event) => {
         return json(200, { ok: true });
       }
 
-      // --- Tareas PERSONALES del supervisor (sus propias responsabilidades) ---
+      // --- Tareas PERSONALES (de quien las crea; cualquiera puede cargarlas) ---
       // Se identifican por creado_por_id y la finalización se registra con vendedor = user.id.
       if (b.accion === 'crear-personal') {
-        if (!cargaPropias) return json(403, { error: 'Solo supervisores y la tienda.' });
         if (!b.titulo) return json(400, { error: 'Falta el título.' });
         const fila = {
           titulo: b.titulo, descripcion: b.descripcion || null,
@@ -90,6 +108,9 @@ exports.handler = async (event) => {
         return json(200, { ok: true, tarea: (await r.json())[0] });
       }
       if (b.accion === 'completar-personal' && b.id) {
+        // Solo las propias.
+        const t = (await (await sb('tareas?id=eq.' + encodeURIComponent(b.id) + '&select=creado_por_id,alcance')).json())[0];
+        if (!t || t.alcance !== 'personal' || t.creado_por_id !== user.id) return json(403, { error: 'No es tu tarea.' });
         const r = await sb('tareas_completadas?on_conflict=tarea_id,vendedor,fecha', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify({ tarea_id: b.id, vendedor: user.id }) });
         if (!r.ok) return json(502, { error: 'No pude marcar' });
         return json(200, { ok: true });
@@ -111,7 +132,8 @@ exports.handler = async (event) => {
 
     if (vista === 'supervisor') {
       if (!perfil.es_supervisor) return json(403, { error: 'No autorizado.' });
-      const r = await sb('tareas?creado_por_id=eq.' + encodeURIComponent(user.id) + '&activa=eq.true&select=*&order=created_at.desc');
+      // Solo las que asignó al equipo: sus tareas personales no van acá (13/10/2026).
+      const r = await sb('tareas?creado_por_id=eq.' + encodeURIComponent(user.id) + '&or=(alcance.is.null,alcance.neq.personal)&activa=eq.true&select=*&order=created_at.desc');
       const tareas = await r.json();
       const hoy = new Date().toISOString().slice(0, 10);
       const ids = (Array.isArray(tareas) ? tareas : []).map(t => t.id);
@@ -121,18 +143,10 @@ exports.handler = async (event) => {
         (await c.json() || []).forEach(x => { (compMap[x.tarea_id] = compMap[x.tarea_id] || []).push(x.vendedor); });
       }
       const out = (Array.isArray(tareas) ? tareas : []).map(t => ({ ...t, completadas_hoy: (compMap[t.id] || []).length }));
-      // Equipo del supervisor: vendedores de su misma región + canal (o 'ambos')
-      const eq = await sb('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region');
-      const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
-      const equipo = (await eq.json() || []).filter(u => {
-        if (preg && regionDe(u) !== preg) return false;
-        const uc = String(u.canal || '').toLowerCase();
-        return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
-      }).filter(u => u.codigo_vendedor).map(u => ({ codigo: u.codigo_vendedor, nombre: u.nombre }));
-      return json(200, { rol: 'supervisor', canal: perfil.canal, region: perfil.region, nombre: perfil.nombre, equipo, tareas: out });
+      return json(200, { rol: 'supervisor', canal: perfil.canal, region: perfil.region, nombre: perfil.nombre, equipo: await equipo(), tareas: out });
     }
 
-    // Tareas PERSONALES del supervisor (sus propias responsabilidades)
+    // Tareas PERSONALES de quien las pide (vendedor, supervisor o tienda)
     if (vista === 'personales') {
       const hoyP = new Date().toISOString().slice(0, 10);
       const r = await sb('tareas?alcance=eq.personal&creado_por_id=eq.' + encodeURIComponent(user.id) + '&activa=eq.true&select=*&order=created_at.desc');
@@ -144,14 +158,18 @@ exports.handler = async (event) => {
       return json(200, { rol: 'personal', tareas: out });
     }
 
-    // Vendedor: tareas del día que le aplican
+    // Vendedor: tareas del día que le aplican. A un supervisor no le asignan tareas.
+    if (perfil.es_supervisor) return json(200, { rol: 'vendedor', tareas: [] });
     const cod = perfil.codigo_vendedor, canal = perfil.canal, hoy = new Date().toISOString().slice(0, 10);
     // La tienda (esTienda, más arriba) no es parte del equipo de ningún supervisor: sin
     // canal cargado le llegaban todas las tareas de equipo de su región, que no le
     // corresponden. Acá (vista=vendedor) recibe solo las que le asignan a ella (07/10/2026).
-    const r = await sb('tareas?activa=eq.true&select=*&order=created_at.desc');
+    // Las personales (de un supervisor, de la tienda o de otro vendedor) no son para nadie
+    // más: antes no tenían canal ni región y les aparecían a todos (13/10/2026).
+    const r = await sb('tareas?activa=eq.true&or=(alcance.is.null,alcance.neq.personal)&select=*&order=created_at.desc');
     const todas = await r.json();
     const aplica = (Array.isArray(todas) ? todas : []).filter(t => {
+      if (t.alcance === 'personal') return false;
       if (t.frecuencia === 'puntual' && t.fecha !== hoy) return false;
       if (t.alcance === 'vendedores') return Array.isArray(t.asignados) && t.asignados.map(String).includes(String(cod));
       if (esTienda) return false;

@@ -138,7 +138,14 @@
       .botnav a{display:flex;flex-direction:column;align-items:center;gap:3px;color:#9db0ba;font-size:10px;font-weight:600;flex:1}
       .botnav a.active{color:var(--gold)} .botnav svg{width:21px;height:21px}
     }
-  </style>
+      /* Agenda personal / compartida (13/10/2026) */
+    .agf{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px;margin:0 0 6px}
+    .agf button{border:0;background:none;font:inherit;font-weight:700;font-size:13px;color:var(--muted);padding:7px 14px;border-radius:8px;cursor:pointer}
+    .agf button.on{background:var(--navy);color:#fff}
+    .agf-nota{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+    .cat{font-size:10.5px;font-weight:800;letter-spacing:.02em;padding:2px 8px;border-radius:6px;background:#eef0f2;color:#5b6670}
+    .cat.comp{background:#f0e6c9;color:#8a6d15}
+</style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 <script>try{var v=localStorage.getItem('gb_es_sup'),t=JSON.parse(localStorage.getItem('sb-xqhyemccbwmzxqzkrtwa-auth-token')||'null'),u=t&&(t.user||(t.currentSession||{}).user);if(v&&u&&v===u.id)document.documentElement.classList.add('gb-sup')}catch(e){}</script>
 <style>.gb-sup .sb-nav{visibility:hidden}</style>
@@ -162,10 +169,17 @@
           <p id="sub">Tus visitas y compromisos del día.</p>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn-new" id="btnReu" title="Reunión o evento con otras personas del Portal (les llega el aviso)" style="background:#fff;color:var(--navy);border:1.5px solid var(--line)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 11h6M19 8v6"/></svg> Reunión</button>
-          <button class="btn-new" id="btnNew"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Nuevo</button>
+          <button class="btn-new" id="btnReu" title="Agenda compartida: reunión o evento con otras personas del Portal (les llega el aviso)" style="background:#fff;color:var(--navy);border:1.5px solid var(--line)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 11h6M19 8v6"/></svg> Compartida</button>
+          <button class="btn-new" id="btnNew" title="Agenda personal: una visita, llamada o pendiente tuyo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Personal</button>
         </div>
       </div>
+
+      <div class="agf" id="agf" role="group" aria-label="Qué agenda ver">
+        <button type="button" data-f="todo" class="on">Todo</button>
+        <button type="button" data-f="personal">Personal</button>
+        <button type="button" data-f="compartida">Compartida</button>
+      </div>
+      <p class="agf-nota" id="agfNota"></p>
 
       <div id="pushBanner" style="display:none;align-items:center;gap:12px;background:var(--purple-soft);border:1px solid #d4cdf0;border-radius:13px;padding:12px 15px;margin-bottom:14px">
         <span style="font-size:22px">🔔</span>
@@ -276,6 +290,23 @@
   const VEND_PARAM = params.get('vendedor'); // supervisor viendo a un vendedor
   let hub, TOKEN=null, PERFIL=null, PUEDE_EDITAR=true, ES_PROPIA=true;
   let COMP=[], REUN=[], MISUP=[], selDate=new Date(), weekStart=null, tipoSel='visita', editId=null;
+  // Agenda personal (lo que cargás vos y tus eventos sin invitados) y compartida (reuniones
+  // con otras personas del Portal y lo que te agenda tu supervisor). 13/10/2026.
+  let AGF='todo';
+  const catComp = c => c.creado_por_rol==='supervisor' ? 'compartida' : 'personal';
+  const catReu = r => r.personal ? 'personal' : 'compartida';
+  const ve = cat => AGF==='todo' || AGF===cat;
+  const NOTA_AGF = {
+    todo: 'Tu agenda personal y la compartida, juntas.',
+    personal: 'Agenda personal: las visitas, llamadas y pendientes que cargás vos, y tus eventos sin invitados.',
+    compartida: 'Agenda compartida: reuniones con otras personas del Portal y lo que te agenda tu supervisor.',
+  };
+  function setAgf(f){
+    AGF = f;
+    document.querySelectorAll('#agf button').forEach(b=>b.classList.toggle('on', b.dataset.f===f));
+    document.getElementById('agfNota').textContent = NOTA_AGF[f];
+    renderMisReu(); renderWeek(); renderDay();
+  }
 
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const iso = d => { const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); };
@@ -288,9 +319,9 @@
     const end = new Date(weekStart); end.setDate(end.getDate()+6);
     document.getElementById('weeklbl').textContent = `${weekStart.getDate()} ${MESES[weekStart.getMonth()]} – ${end.getDate()} ${MESES[end.getMonth()]}`;
     const hoyIso = iso(new Date()), selIso = iso(selDate);
-    const cnt = {}; COMP.forEach(c=>{ cnt[c.fecha]=(cnt[c.fecha]||0)+1; });
-    REUN.forEach(r=>{ const e=estadoReu(r); if(e!=='cancelada'&&e!=='rechazada') cnt[r.fecha]=(cnt[r.fecha]||0)+1; });
-    MISUP.forEach(m=>{ cnt[m.fecha]=(cnt[m.fecha]||0)+1; });
+    const cnt = {}; COMP.forEach(c=>{ if(ve(catComp(c))) cnt[c.fecha]=(cnt[c.fecha]||0)+1; });
+    REUN.forEach(r=>{ const e=estadoReu(r); if(e!=='cancelada'&&e!=='rechazada'&&ve(catReu(r))) cnt[r.fecha]=(cnt[r.fecha]||0)+1; });
+    if(ve('personal')) MISUP.forEach(m=>{ cnt[m.fecha]=(cnt[m.fecha]||0)+1; });
     let html='';
     for(let i=0;i<7;i++){
       const d=new Date(weekStart); d.setDate(d.getDate()+i); const di=iso(d);
@@ -304,11 +335,15 @@
   function renderDay(){
     const selIso = iso(selDate);
     document.getElementById('daytitle').textContent = `${DIAS[selDate.getDay()]} ${selDate.getDate()} de ${['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][selDate.getMonth()]}`;
-    const list = COMP.filter(c=>c.fecha===selIso).sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
-    const reunDia = REUN.filter(r=>r.fecha===selIso && estadoReu(r)!=='cancelada').sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
+    const list = COMP.filter(c=>c.fecha===selIso && ve(catComp(c))).sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
+    const reunDia = REUN.filter(r=>r.fecha===selIso && estadoReu(r)!=='cancelada' && ve(catReu(r))).sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
     const cont=document.getElementById('clist');
-    const misupDia = MISUP.filter(m=>m.fecha===selIso).sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
-    if(!list.length && !reunDia.length && !misupDia.length){ cont.innerHTML=`<div class="empty">No hay nada agendado para este día.${PUEDE_EDITAR?'<br>Tocá <b>+ Nuevo</b> para agregar.':''}</div>`; return; }
+    const misupDia = ve('personal') ? MISUP.filter(m=>m.fecha===selIso).sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99'))) : [];
+    if(!list.length && !reunDia.length && !misupDia.length){
+      const cual = AGF==='personal' ? ' en tu agenda personal' : AGF==='compartida' ? ' en la agenda compartida' : '';
+      const como = AGF==='compartida' ? '<b>+ Compartida</b>' : '<b>+ Personal</b>';
+      cont.innerHTML=`<div class="empty">No hay nada${cual} para este día.${PUEDE_EDITAR?'<br>Tocá '+como+' para agregar.':''}</div>`; return;
+    }
     const reunHTML = reunDia.map(reunItemHTML).join('');
     const misupHTML = misupDia.map(misupItemHTML).join('');
     cont.innerHTML = reunHTML + misupHTML + list.map(c=>{
@@ -317,7 +352,7 @@
       return `<div class="citem ${c.tipo} ${c.estado==='completado'?'done':''}">
         <div class="ccheck" onclick="toggle('${c.id}',event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></div>
         <div class="cbody" onclick="abrirEditar('${c.id}')">
-          <div class="ctop"><span class="chora">${hora}</span><span class="ctipo ${c.tipo}">${TIPO_LBL[c.tipo]||c.tipo}</span></div>
+          <div class="ctop"><span class="chora">${hora}</span><span class="ctipo ${c.tipo}">${TIPO_LBL[c.tipo]||c.tipo}</span>${catComp(c)==='compartida'?'<span class="cat comp">Compartida</span>':'<span class="cat">Personal</span>'}</div>
           <div class="cname">${esc(c.cliente_nombre||'(sin nombre)')}</div>
           ${c.objetivo?`<div class="cobj">${esc(c.objetivo)}</div>`:''}
           ${by}
@@ -418,6 +453,8 @@
   document.getElementById('next').onclick=()=>{ selDate.setDate(selDate.getDate()+7); renderWeek(); renderDay(); };
   document.getElementById('hoy').onclick=()=>{ selDate=new Date(); renderWeek(); renderDay(); };
   document.getElementById('btnNew').onclick=abrirNuevo;
+  document.querySelectorAll('#agf button').forEach(b=>b.onclick=()=>setAgf(b.dataset.f));
+  document.getElementById('agfNota').textContent = NOTA_AGF.todo;
   document.getElementById('btnReu').onclick=()=>nuevaReu();
   // Red de seguridad: si la carga de compromisos no llegó a correr, igual abrimos el
   // formulario cuando se entra con ?nuevo=1 desde la ficha del cliente.
@@ -474,8 +511,15 @@
       const r=await fetch('/.netlify/functions/reuniones?desde='+hoy,{headers:{Authorization:'Bearer '+TOKEN}});
       if(!r.ok) return; const d=await r.json();
       REUN=(d.reuniones||[]);
+      renderMisReu();
+      renderWeek(); renderDay(); renderRecordatorios();
+    }catch(e){}
+  }
+  // "Mis reuniones": las próximas, según el filtro (personal / compartida / todo).
+  function renderMisReu(){
+      const hoy=new Date().toLocaleDateString('en-CA');
       const box=document.getElementById('dirReuniones');
-      const up=REUN.filter(x=>x.fecha>=hoy && estadoReu(x)!=='cancelada' && estadoReu(x)!=='rechazada')
+      const up=REUN.filter(x=>x.fecha>=hoy && estadoReu(x)!=='cancelada' && estadoReu(x)!=='rechazada' && ve(catReu(x)))
         .sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))||String(a.hora||'99').localeCompare(String(b.hora||'99')));
       if(box){
         if(!up.length){ box.style.display='none'; box.innerHTML=''; }
@@ -495,8 +539,6 @@
             }).join('')+'</div>';
         }
       }
-      renderWeek(); renderDay(); renderRecordatorios();
-    }catch(e){}
   }
 
   // ── Recordatorios en el panel (mañana / hoy / en 1 hora) ──
@@ -660,7 +702,7 @@
     return `<div class="citem" style="border-left:4px solid #c0912f;background:#fbf7ee">
       <div class="ccheck" style="visibility:hidden"></div>
       <div class="cbody">
-        <div class="ctop"><span class="chora">${hora}</span><span class="ctipo" style="background:#f0e6c9;color:#8a6d15">${etiqueta}</span>${badge}</div>
+        <div class="ctop"><span class="chora">${hora}</span><span class="ctipo" style="background:#f0e6c9;color:#8a6d15">${etiqueta}</span>${x.personal?'':'<span class="cat comp">Compartida</span>'}${badge}</div>
         <div class="cname">${esc(x.titulo)}</div>
         ${x.personal ? '' : `<div class="cobj">${conQuienReu(x)}</div>`}
         ${(x.lugar||x.detalle)?`<div class="cobj">${[x.lugar,x.detalle].filter(Boolean).map(esc).join(' · ')}</div>`:''}

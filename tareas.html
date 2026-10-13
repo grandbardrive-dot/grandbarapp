@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GrandBar Hub — Tareas</title>
+  <title>GrandBar Hub — Mis tareas</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
@@ -75,6 +75,12 @@
     .t-chip.hoy{background:#fdeae2;color:var(--danger)}
     .t-del{margin-left:auto;flex:none;background:none;border:0;color:var(--muted);font-size:16px;line-height:1;cursor:pointer;padding:4px 6px;border-radius:7px}
     .t-del:hover{background:#fdeae2;color:var(--danger)}
+    .sec{margin-bottom:26px}
+    .sec-t{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+    .sec-t h2{font-size:16px;font-weight:800;margin:0}
+    .sec-t span{font-size:12.5px;color:var(--muted)}
+    .sec .empty{padding:22px 18px;background:var(--card);border:1px dashed var(--line);border-radius:13px;font-size:13.5px}
+    .sec-btn{background:var(--green);color:#fff;border:0;border-radius:10px;padding:9px 14px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
     .empty{text-align:center;color:var(--muted);padding:50px 20px}
     .empty .big{font-size:40px;margin-bottom:8px}
     .msg{background:#fdeae2;color:#8a3b22;border-radius:12px;padding:14px 16px;font-size:13.5px;display:none}
@@ -108,20 +114,35 @@
     <div class="content">
       <div class="head">
         <div>
-          <h1 id="h1t">Tareas del día ✅</h1>
-          <p id="sub">Estas son tus tareas de hoy. Tildá cada una cuando la termines.</p>
+          <h1 id="h1t">Mis tareas ✅</h1>
+          <p id="sub">Las tareas de hoy. Tildá cada una cuando la termines.</p>
         </div>
-        <button id="btnNueva" onclick="abrirNueva()" style="display:none;background:var(--green);color:#fff;border:0;border-radius:11px;padding:11px 17px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap">+ Nueva tarea</button>
       </div>
 
       <div class="msg" id="msg"></div>
+
+      <!-- Supervisor: las tareas para el equipo se asignan en su pantalla -->
+      <a class="sup-cta" id="supCta" href="supervisor-tareas.html">
+        <div class="ci"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 11h6M19 8v6"/></svg></div>
+        <div><div class="t">Asignar tareas a tu equipo</div><div class="s">Para todo el equipo o para vendedores puntuales. Ves quién las cumplió.</div></div>
+        <span class="go">→</span>
+      </a>
 
       <div class="prog" id="prog" style="display:none">
         <div><div class="num"><span id="pgDone">0</span>/<span id="pgTot">0</span></div><div class="lbl">completadas hoy</div></div>
         <div class="bar"><i id="pgBar"></i></div>
       </div>
 
-      <div class="tlist" id="tlist"></div>
+      <section class="sec" id="secAsig" hidden>
+        <div class="sec-t"><h2>Asignadas por tu supervisor</h2><span>Las ve también tu supervisor</span></div>
+        <div class="tlist" id="listA"></div>
+      </section>
+
+      <section class="sec" id="secPers">
+        <div class="sec-t"><h2>Mis tareas personales</h2><button class="sec-btn" onclick="abrirNueva()">+ Tarea personal</button></div>
+        <div class="tlist" id="listP"></div>
+        <p style="font-size:12.5px;color:var(--muted);margin:10px 2px 0">Las tareas personales las ves solo vos.</p>
+      </section>
     </div>
   </div>
 </div>
@@ -137,7 +158,7 @@
 <div id="ovN" style="position:fixed;inset:0;background:rgba(13,34,48,.45);display:none;align-items:center;justify-content:center;z-index:60;padding:16px">
   <div style="background:#fff;border-radius:18px;width:100%;max-width:440px;max-height:92vh;overflow:auto;box-shadow:0 30px 80px -30px rgba(0,0,0,.6)">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px">
-      <h3 style="margin:0;font-size:18px;font-weight:800">Nueva tarea propia</h3>
+      <h3 style="margin:0;font-size:18px;font-weight:800">Nueva tarea personal</h3>
       <button onclick="cerrarNueva()" style="background:none;border:0;cursor:pointer;color:var(--muted);font-size:20px">✕</button>
     </div>
     <div style="padding:0 20px 8px">
@@ -163,39 +184,41 @@
 <script src="assets/supervisor-nav.js"></script>
 <script>
   const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
-  let hub, TOKEN=null, TAREAS=[], ES_SUP=false, frecN='diaria';
+  // ASIG: las que asigna el supervisor (vendedores y la tienda). PERS: las personales de
+  // cada uno, que ve solo quien las crea (13/10/2026: antes las de un supervisor les
+  // aparecían a todos los vendedores).
+  let hub, TOKEN=null, ASIG=[], PERS=[], ES_SUP=false, frecN='diaria';
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-  function render(){
-    const cont = document.getElementById('tlist');
-    if(!TAREAS.length){
-      document.getElementById('prog').style.display='none';
-      cont.innerHTML = ES_SUP
-        ? '<div class="empty"><div class="big">📝</div><b>Todavía no cargaste ninguna tarea propia</b><div style="font-size:13px;margin-top:4px">Tocá <b>+ Nueva tarea</b> para agregar tus responsabilidades del día.</div></div>'
-        : '<div class="empty"><div class="big">🎉</div><b>No tenés tareas para hoy</b><div style="font-size:13px;margin-top:4px">Cuando tu supervisor cargue tareas, van a aparecer acá.</div></div>';
-      return;
-    }
-    const done = TAREAS.filter(t=>t.completada).length;
-    document.getElementById('prog').style.display='flex';
-    document.getElementById('pgDone').textContent = done;
-    document.getElementById('pgTot').textContent = TAREAS.length;
-    document.getElementById('pgBar').style.width = Math.round(done/TAREAS.length*100)+'%';
-    cont.innerHTML = TAREAS.map(t=>`
-      <div class="t-item ${t.completada?'done':''}" onclick="toggle('${t.id}')">
+  function itemHTML(t, tipo){
+    return `
+      <div class="t-item ${t.completada?'done':''}" onclick="toggle('${t.id}','${tipo}')">
         <div class="t-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg></div>
         <div class="t-body">
           <div class="t-title">${esc(t.titulo)}</div>
           ${t.descripcion?`<div class="t-desc">${esc(t.descripcion)}</div>`:''}
           <span class="t-chip ${t.frecuencia==='puntual'?'hoy':''}">${t.frecuencia==='puntual'?'Solo hoy':'Todos los días'}</span>
         </div>
-        ${ES_SUP?`<button type="button" class="t-del" title="Quitar esta tarea" onclick="event.stopPropagation();quitar('${t.id}')">✕</button>`:''}
-      </div>`).join('');
+        ${tipo==='p'?`<button type="button" class="t-del" title="Quitar esta tarea" onclick="event.stopPropagation();quitar('${t.id}')">✕</button>`:''}
+      </div>`;
   }
 
-  // Quitar una tarea propia (la desactiva; deja de aparecer desde hoy).
+  function render(){
+    const todas = ASIG.concat(PERS), done = todas.filter(t=>t.completada).length;
+    document.getElementById('prog').style.display = todas.length ? 'flex' : 'none';
+    document.getElementById('pgDone').textContent = done;
+    document.getElementById('pgTot').textContent = todas.length;
+    document.getElementById('pgBar').style.width = (todas.length ? Math.round(done/todas.length*100) : 0)+'%';
+    document.getElementById('listA').innerHTML = ASIG.length ? ASIG.map(t=>itemHTML(t,'a')).join('')
+      : '<div class="empty">No tenés tareas asignadas para hoy. Cuando tu supervisor te cargue una, aparece acá.</div>';
+    document.getElementById('listP').innerHTML = PERS.length ? PERS.map(t=>itemHTML(t,'p')).join('')
+      : '<div class="empty">Todavía no cargaste tareas personales. Tocá <b>+ Tarea personal</b> para agregar las tuyas.</div>';
+  }
+
+  // Quitar una tarea personal (la desactiva; deja de aparecer desde hoy).
   async function quitar(id){
-    const t = TAREAS.find(x=>x.id===id); if(!t) return;
+    const t = PERS.find(x=>x.id===id); if(!t) return;
     if(!confirm('¿Quitar la tarea "'+t.titulo+'"?')) return;
     try{
       const r = await fetch('/.netlify/functions/tareas', { method:'POST', headers:{ Authorization:'Bearer '+TOKEN, 'Content-Type':'application/json' }, body: JSON.stringify({ accion:'borrar-personal', id }) });
@@ -204,17 +227,17 @@
     }catch(e){ alert('Error de conexión'); }
   }
 
-  async function toggle(id){
-    const t = TAREAS.find(x=>x.id===id); if(!t) return;
+  async function toggle(id, tipo){
+    const t = (tipo==='p'?PERS:ASIG).find(x=>x.id===id); if(!t) return;
     const nuevo = !t.completada; t.completada = nuevo; render(); // optimista
-    const accion = ES_SUP ? (nuevo?'completar-personal':'descompletar-personal') : (nuevo?'completar':'descompletar');
+    const accion = tipo==='p' ? (nuevo?'completar-personal':'descompletar-personal') : (nuevo?'completar':'descompletar');
     try{
       const r = await fetch('/.netlify/functions/tareas', { method:'POST', headers:{ Authorization:'Bearer '+TOKEN, 'Content-Type':'application/json' }, body: JSON.stringify({ accion, id }) });
       if(!r.ok){ t.completada = !nuevo; render(); }
     }catch(e){ t.completada = !nuevo; render(); }
   }
 
-  // --- Crear tarea propia (supervisor) ---
+  // --- Tarea personal (cualquiera) ---
   function abrirNueva(){ document.getElementById('nTit').value=''; document.getElementById('nDesc').value=''; document.getElementById('nFecha').value=''; setFrecN('diaria'); valN(); document.getElementById('ovN').style.display='flex'; }
   function cerrarNueva(){ document.getElementById('ovN').style.display='none'; }
   function setFrecN(f){ frecN=f;
@@ -233,13 +256,17 @@
     }catch(e){ alert('Error de conexión'); btn.disabled=false; }
   }
 
+  async function traer(vista){
+    const r = await fetch('/.netlify/functions/tareas?vista='+vista, { headers:{ Authorization:'Bearer '+TOKEN } });
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error||'No pude cargar las tareas.');
+    return d.tareas||[];
+  }
   async function cargar(){
     try{
-      const r = await fetch('/.netlify/functions/tareas' + (ES_SUP?'?vista=personales':''), { headers:{ Authorization:'Bearer '+TOKEN } });
-      const d = await r.json();
-      if(!r.ok){ document.getElementById('msg').style.display='block'; document.getElementById('msg').textContent = d.error||'No pude cargar las tareas.'; return; }
-      TAREAS = d.tareas||[]; render();
-    }catch(e){ document.getElementById('msg').style.display='block'; document.getElementById('msg').textContent='Error de conexión.'; }
+      const [a, p] = await Promise.all([ ES_SUP ? Promise.resolve([]) : traer('vendedor'), traer('personales') ]);
+      ASIG = a; PERS = p; render();
+    }catch(e){ const m=document.getElementById('msg'); m.style.display='block'; m.textContent = e.message || 'Error de conexión.'; }
   }
 
   (async ()=>{
@@ -247,22 +274,13 @@
     const { data:{ session } } = await hub.auth.getSession();
     if(!session){ location.href='index.html'; return; }
     TOKEN = session.access_token;
-    // Perfil (nombre + supervisor)
     const { data:u } = await hub.from('usuarios').select('nombre,es_supervisor,rol').eq('id', session.user.id).maybeSingle();
     if(u){
       if(u.nombre){ document.getElementById('uName').textContent=u.nombre; const in0=u.nombre.trim()[0]||'V'; document.getElementById('avSb').textContent=in0.toUpperCase(); }
-      // Tareas propias: las de los supervisores y, desde el 07/10/2026, las de la tienda
-      // mayorista (Mza Distribución), que no tiene supervisor que le cargue tareas.
-      const tienda = String(u.rol||'').toLowerCase() === 'mayorista';
-      if(u.es_supervisor || tienda){
-        ES_SUP = true;
-        document.getElementById('h1t').textContent = 'Mis tareas ✅';
-        document.getElementById('sub').textContent = tienda
-          ? 'Las tareas del local. Cargalas y tildá cada una cuando la cumplas.'
-          : 'Tus tareas y responsabilidades del día. Cargalas y tildá cuando las cumplas.';
-        document.getElementById('btnNueva').style.display = 'inline-flex';
-      }
+      // Al supervisor no le asignan tareas: ve las suyas y el acceso para asignarle al equipo.
+      if(u.es_supervisor){ ES_SUP = true; document.getElementById('supCta').style.display='flex'; }
     }
+    if(!ES_SUP) document.getElementById('secAsig').hidden = false;
     // Cerrar sesión: lo maneja assets/hub-nav.js (menú del usuario, igual en todas las páginas).
     cargar();
   })();
