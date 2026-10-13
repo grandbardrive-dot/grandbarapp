@@ -5331,11 +5331,24 @@ body { background:transparent !important; }
     // Si Luciana segmentó la oferta (secciones marcadas), va SOLO a esas secciones, sin
     // mirar canal ni categoría. Si no, se ubica sola como siempre. La zona vale siempre.
     const uuidSec = (buscarSec(secId) || {})._uuid;
+    // Una sección con nombre de proveedor (ZUELO, GRUPO PEÑAFLOR…) muestra solo las
+    // ofertas de ese proveedor, del canal del cliente (13/10/2026).
+    const prov = _proveedorDeSeccion(secId, cat);
     return cat.filter(o => segVa(o, uuidSec) && (segMarcado(o) || (
       (o.canal === canal || o.canal === 'ambos') &&
-      (!quiere || o.categoria === quiere) &&
+      (prov ? _nomProv(o.bodega) === prov : (!quiere || o.categoria === quiere)) &&
       (!soloEspumantes || ES_ESPUMANTE.test(o.producto + ' ' + (o.descripcion_larga || '')))
     )));
+  }
+  const _nomProv = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  // Si la sección (o su madre) se llama igual que un proveedor del catálogo, ese proveedor.
+  function _proveedorDeSeccion(secId, cat) {
+    const provs = new Set(cat.map(o => _nomProv(o.bodega)));
+    for (const s of [buscarSec(secId), madreDe(secId)]) {
+      const t = _nomProv(s && s.titulo);
+      if (t && provs.has(t)) return t;
+    }
+    return null;
   }
 
   const fmtPesos = n => '$' + Number(n || 0).toLocaleString('es-AR');
