@@ -444,7 +444,10 @@ exports.handler = async (event) => {
         } else if (e.tipo === 'saliente') {
           // Respuesta que mandamos nosotros desde la bandeja (o plantilla registrada).
           const fecha = e.created_at;
-          c.mensajes.push({ dir: 'out', texto: textoDe(e.crudo), fecha });
+          // Si fue una foto/archivo que mandamos, lo guardamos con _media_url para mostrarlo.
+          const cr = e.crudo || {};
+          const mediaOut = cr._media_url ? { url: cr._media_url, tipo: cr._media_tipo || 'document', mime: cr._media_mime || null, filename: cr._media_filename || 'archivo', id: null } : null;
+          c.mensajes.push({ dir: 'out', texto: textoDe(e.crudo), fecha, media: mediaOut });
           if (!c.ultimaFecha || fecha > c.ultimaFecha) { c.ultimaFecha = fecha; }
           // Nombre/código de respaldo: si el teléfono no está vinculado en la base,
           // usamos el que guardó el envío de la plantilla.

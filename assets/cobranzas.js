@@ -644,7 +644,9 @@ function waChatPane() {
     <div id="wa-err" class="wa-vent cerr" style="display:none"></div>
     <div class="wa-compose">
       ${puede
-        ? `<textarea class="wa-ta" id="wa-resp" rows="1" placeholder="Escribí tu respuesta…" oninput="waAutoGrow(this)"></textarea>
+        ? `<input type="file" id="wa-file" accept="image/*,application/pdf" style="display:none" onchange="cobWaEnviarArchivo(${_waSel}, this)">
+           <button class="wa-send" id="wa-adj" title="Enviar una foto o un archivo" style="background:#eceff3;color:#334" onclick="document.getElementById('wa-file').click()">📎</button>
+           <textarea class="wa-ta" id="wa-resp" rows="1" placeholder="Escribí tu respuesta…" oninput="waAutoGrow(this)"></textarea>
            <button class="wa-send" id="wa-send" title="Enviar" onclick="cobWaResponder(${_waSel})">➤</button>`
         : `<button id="wa-reabrir" type="button" style="flex:1;background:var(--blue,#1f447f);color:#fff;border:none;border-radius:10px;padding:12px 14px;font-size:14px;font-weight:700;cursor:pointer" onclick="cobWaReabrir(${_waSel})">${v.sinEntrantes ? '📨 Iniciar conversación' : '📨 Reabrir conversación'}</button>`}
     </div>`;
@@ -685,6 +687,41 @@ async function cobWaResponder(i) {
     if (ta) ta.value = ''; // ya se mandó: que el repintado no lo recupere como borrador
     waChatPane(); waLista();
   } catch (e) { aviso('Error de conexión: ' + (e.message || e)); if (send) send.disabled = false; }
+}
+
+// Enviar una FOTO o un ARCHIVO (PDF) al cliente. Solo dentro de la ventana de 24 hs,
+// igual que el texto. Se sube al servidor y de ahí sale por WhatsApp.
+async function cobWaEnviarArchivo(i, input) {
+  const c = _waConvs[i]; const file = input && input.files && input.files[0];
+  if (!c || !file) return;
+  const err = document.getElementById('wa-err'), adj = document.getElementById('wa-adj');
+  const aviso = (t, ok) => { if (err) { err.textContent = t; err.style.display = t ? 'block' : 'none'; err.className = 'wa-vent ' + (ok ? 'abi' : 'cerr'); } };
+  aviso('');
+  if (file.size > 5 * 1024 * 1024) { aviso('El archivo es muy grande (máx 5 MB). Mandá una versión más liviana.'); input.value = ''; return; }
+  const esImg = /^image\//.test(file.type);
+  if (!esImg && file.type !== 'application/pdf') { aviso('Por ahora solo se pueden enviar fotos (JPG/PNG) o PDF.'); input.value = ''; return; }
+  const caption = (() => { const ta = document.getElementById('wa-resp'); return ta ? (ta.value || '').trim() : ''; })();
+  if (!confirm('Enviar ' + (esImg ? 'la foto' : 'el archivo') + ' "' + file.name + '" a ' + (c.cliente || c.telefono) + (caption ? '\n\nCon el texto: "' + caption + '"' : '') + '?')) { input.value = ''; return; }
+  if (adj) { adj.disabled = true; adj.textContent = '⏳'; }
+  try {
+    const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).replace(/^data:[^,]*,/, '')); fr.onerror = rej; fr.readAsDataURL(file); });
+    const r = await fetch('https://grandbar-gestioncuenta.netlify.app/.netlify/functions/wa-responder-media', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + COB_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: c.telefono, file_base64: b64, mime: file.type, filename: file.name, caption }),
+    });
+    const j = await r.json();
+    if (!j.ok) {
+      const fuera = /24|reengag|window|outside/i.test(j.error || '');
+      aviso('No se pudo enviar: ' + (j.error || 'error') + (fuera ? ' — pasaron más de 24 hs; ahí solo se puede con una plantilla aprobada.' : ''));
+      if (adj) { adj.disabled = false; adj.textContent = '📎'; }
+      input.value = ''; return;
+    }
+    c.mensajes.push({ dir: 'out', texto: caption || (esImg ? '📷 Foto enviada' : '📎 ' + file.name), fecha: new Date().toISOString(), media: { tipo: esImg ? 'image' : 'document', url: j.url, mime: file.type, filename: file.name } });
+    c.ultimaFecha = new Date().toISOString(); c.ultimoEstado = 'sent';
+    const ta = document.getElementById('wa-resp'); if (ta) ta.value = '';
+    waChatPane(); waLista();
+  } catch (e) { aviso('Error de conexión: ' + (e.message || e)); if (adj) { adj.disabled = false; adj.textContent = '📎'; } }
+  input.value = '';
 }
 
 // Reabrir una conversación cerrada (+24 hs): manda una PLANTILLA aprobada. Cuando el
