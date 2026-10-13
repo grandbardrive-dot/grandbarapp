@@ -2754,8 +2754,8 @@ body { background:transparent !important; }
   // El bloque vive DENTRO de la sección de cierre. La selección se guarda en un
   // estado (acompSel), no en el DOM, para no perderse al navegar entre estaciones
   // del camino (donde el cierre puede no estar renderizado). Se guarda igual que antes.
-  // Lucía Kaf y Facu Kaf acompañan solo a los vendedores de ON: canal 'on' (o 'ambos')
-  // del usuario del Portal (pedido del usuario, 13/10/2026). Ver cargarCanalVendedor().
+  // Lucía Kaf y Facu Kaf acompañan solo a los vendedores de ON Mendoza: canal 'on' del
+  // usuario del Portal y zona Mendoza (pedido del usuario, 13/10/2026). Ver cargarCanalVendedor().
   const ACOMP_OPCIONES = [
     { value: 'supervisor',  label: '👤 Mi Supervisor' },
     { value: 'lucia_caff',  label: '👤 Lucía Kaf', soloOn: true },
@@ -6904,7 +6904,7 @@ body { background:transparent !important; }
   // Sesión del Portal: la función que avisa al proveedor necesita saber quién la manda.
   let _hubAuthCli = null;
   // Canal del vendedor (on / off / ambos / mayorista) desde su usuario del Portal.
-  // Solo se usa para mostrar a los acompañantes de ON en el cierre.
+  // Solo se usa para mostrar a los acompañantes de ON Mendoza en el cierre.
   async function cargarCanalVendedor() {
     try {
       _hubAuthCli = _hubAuthCli || supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc');
@@ -6913,7 +6913,7 @@ body { background:transparent !important; }
       if (!uid) return;
       const { data } = await _hubAuthCli.from('usuarios').select('canal').eq('id', uid).maybeSingle();
       const c = String((data && data.canal) || '').toLowerCase();
-      _acompEsOn = c === 'on' || c === 'ambos';
+      _acompEsOn = c === 'on' && zonaActual() === 'mendoza';
       if (_acompEsOn) document.querySelectorAll('.acomp-card').forEach(el => { el.outerHTML = renderAcompCard(); });
     } catch (e) {}
   }
