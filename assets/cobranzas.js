@@ -643,8 +643,10 @@ function waChatPane() {
     <div class="wa-body" id="wa-body">${waBurbujas(c.mensajes || [])}</div>
     <div id="wa-err" class="wa-vent cerr" style="display:none"></div>
     <div class="wa-compose">
-      <textarea class="wa-ta" id="wa-resp" rows="1" placeholder="${puede ? 'Escribí tu respuesta…' : 'Ventana cerrada — solo con plantilla aprobada'}" ${puede ? '' : 'disabled'} oninput="waAutoGrow(this)"></textarea>
-      <button class="wa-send" id="wa-send" ${puede ? '' : 'disabled'} title="Enviar" onclick="cobWaResponder(${_waSel})">➤</button>
+      ${puede
+        ? `<textarea class="wa-ta" id="wa-resp" rows="1" placeholder="Escribí tu respuesta…" oninput="waAutoGrow(this)"></textarea>
+           <button class="wa-send" id="wa-send" title="Enviar" onclick="cobWaResponder(${_waSel})">➤</button>`
+        : `<button id="wa-reabrir" type="button" style="flex:1;background:var(--blue,#1f447f);color:#fff;border:none;border-radius:10px;padding:12px 14px;font-size:14px;font-weight:700;cursor:pointer" onclick="cobWaReabrir(${_waSel})">${v.sinEntrantes ? '📨 Iniciar conversación' : '📨 Reabrir conversación'}</button>`}
     </div>`;
   const body = document.getElementById('wa-body'); if (body) body.scrollTop = body.scrollHeight;
   const ta = document.getElementById('wa-resp');
@@ -683,6 +685,34 @@ async function cobWaResponder(i) {
     if (ta) ta.value = ''; // ya se mandó: que el repintado no lo recupere como borrador
     waChatPane(); waLista();
   } catch (e) { aviso('Error de conexión: ' + (e.message || e)); if (send) send.disabled = false; }
+}
+
+// Reabrir una conversación cerrada (+24 hs): manda una PLANTILLA aprobada. Cuando el
+// cliente responde, la ventana se reabre y se puede escribir libremente.
+async function cobWaReabrir(i) {
+  const c = _waConvs[i]; if (!c) return;
+  const nom = c.cliente || c.telefono;
+  if (!confirm('Le vamos a mandar a ' + nom + ' un mensaje de contacto (plantilla aprobada) para reabrir la conversación.\n\nCuando el cliente responda, vas a poder escribirle libremente.\n\n¿Enviar?')) return;
+  const err = document.getElementById('wa-err'), btn = document.getElementById('wa-reabrir');
+  const aviso = (t, ok) => { if (err) { err.textContent = t; err.style.display = t ? 'block' : 'none'; err.className = 'wa-vent ' + (ok ? 'abi' : 'cerr'); } };
+  aviso(''); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  try {
+    const r = await fetch('https://grandbar-gestioncuenta.netlify.app/.netlify/functions/wa-responder-plantilla', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + COB_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: c.telefono, nombre: c.cliente || 'Cliente' }),
+    });
+    const j = await r.json();
+    if (!j.ok) {
+      const noAprob = /template|plantilla|does not exist|not approved|param/i.test(j.error || '');
+      aviso('No se pudo enviar: ' + (j.error || 'error') + (noAprob ? ' — puede ser que la plantilla "reabrir_cuenta" todavía no esté aprobada por Meta.' : ''));
+      if (btn) { btn.disabled = false; btn.textContent = '📨 Reabrir conversación'; }
+      return;
+    }
+    c.mensajes.push({ dir: 'out', texto: '📨 Mensaje de contacto enviado para reabrir la conversación', fecha: new Date().toISOString() });
+    c.ultimaFecha = new Date().toISOString(); c.ultimoEstado = 'sent';
+    waChatPane(); waLista();
+    aviso('✓ Mensaje enviado. Cuando el cliente responda, vas a poder escribirle libremente.', true);
+  } catch (e) { aviso('Error de conexión: ' + (e.message || e)); if (btn) { btn.disabled = false; btn.textContent = '📨 Reabrir conversación'; } }
 }
 
 // ── 4 · Estadísticas ───────────────────────────────────────
