@@ -167,6 +167,9 @@ function pdSb() {
   return _pdSb;
 }
 const pdEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+// wa.me pide el número con país: los WhatsApp de clientes están como 2614663444 (13/10/2026).
+const pdWaAR = n => { let d = String(n || '').replace(/\D/g, '').replace(/^00/, ''); if (/^549\d{10}$/.test(d)) return d;
+  if (/^54\d{10}$/.test(d)) return '549' + d.slice(2); d = d.replace(/^0/, ''); return d.length === 10 ? '549' + d : d; };
 const pdFecha = d => { if (!d) return '—'; const x = new Date(d);
   return String(x.getDate()).padStart(2,'0') + '/' + String(x.getMonth()+1).padStart(2,'0') + '/' + x.getFullYear(); };
 // "hace 3 días" dice más que una fecha cuando lo que importa es cuánto lleva esperando.
@@ -218,7 +221,7 @@ function pdRender() {
     const est = PD_ESTADOS.find(e => e.k === (p.estado || 'nuevo')) || PD_ESTADOS[0];
     if (p.propuesta_id) return pdCardProveedor(p, est);
     const wa = p.cliente_whatsapp
-      ? `<a class="pd-b" href="https://wa.me/${pdEsc(String(p.cliente_whatsapp).replace(/\D/g,''))}" target="_blank" rel="noopener">💬 WhatsApp del cliente</a>` : '';
+      ? `<a class="pd-b" href="https://wa.me/${pdEsc(pdWaAR(p.cliente_whatsapp))}" target="_blank" rel="noopener">💬 WhatsApp del cliente</a>` : '';
     const pieza = p.pieza_url
       ? `<a class="pd-b" href="${pdEsc(p.pieza_url)}" target="_blank" rel="noopener">🖼️ Ver pieza</a>` : '';
     return `<article class="pd-card">

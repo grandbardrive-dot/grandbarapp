@@ -79,12 +79,12 @@ async function pintarAvatarVendedor(containerEl, codigo, nombre) {
   st.id = '_avatar-css';
   st.textContent = `
     /* ─── Tipografía oficial GrandBar: "Parginer" (solo títulos/encabezados) ───
-       Archivo: vendedores-app/fonts/Parginer_Regular.otf  (ruta absoluta /fonts/…
-       para que resuelva igual en dev y en Netlify, donde la raíz es vendedores-app).
+       Archivo: manual-vendedores/fonts/Parginer_Regular.otf. En el Portal la raíz es
+       el Hub: /fonts/… daba 404 y los títulos salían con la letra de respaldo (13/10/2026).
        Fallback sans-serif: si no carga, todo sigue legible. */
     @font-face {
       font-family: 'Parginer';
-      src: url('/fonts/Parginer_Regular.otf') format('opentype');
+      src: url('/manual-vendedores/fonts/Parginer_Regular.otf') format('opentype');
       font-weight: normal;
       font-style: normal;
       font-display: swap;   /* muestra el fallback al instante en mobile y cambia al cargar */

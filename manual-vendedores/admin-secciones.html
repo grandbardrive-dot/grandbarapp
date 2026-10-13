@@ -727,13 +727,18 @@
         <span>${esc(s.nombre)}${tareas(s)}</span></label>`;
     // Para cada sección del origen: ¿se crea nueva acá, o sus subsecciones se agregan a
     // una sección que ya tengo? Así no quedan dos "FECHAS ESPECIALES", una vacía.
+    // Si acá ya hay una sección con el mismo nombre, viene elegida (13/10/2026: en
+    // Vinotecas de San Luis quedó una "VINOS" repetida y vacía por crear una nueva).
     const destinos = madres();
-    const selDestino = m => `<div style="display:flex;align-items:center;gap:7px;padding:2px 0 6px 24px;font-size:12px;color:var(--ink2)">
+    const selDestino = m => {
+      const igual = destinos.find(d => d.activa !== false && nrm(d.nombre) === nrm(m.nombre));
+      return `<div style="display:flex;align-items:center;gap:7px;padding:2px 0 6px 24px;font-size:12px;color:var(--ink2)">
         <span>va a</span>
         <select class="cp-dest" data-madre="${m.id}" onchange="cpContar()" style="flex:1;min-width:0;padding:5px 7px;border:1px solid var(--line-2);border-radius:8px;font:inherit;font-size:12px;background:#fff">
           <option value="">➕ una sección nueva</option>
-          ${destinos.map(d=>`<option value="${d.id}">${esc(d.nombre)} (la que ya tengo)</option>`).join('')}
+          ${destinos.map(d=>`<option value="${d.id}"${igual && igual.id===d.id ? ' selected' : ''}>${esc(d.nombre)} (la que ya tengo)</option>`).join('')}
         </select></div>`;
+    };
     arbol.innerHTML = _cpSecs.filter(s=>!s.parent_id).map(m =>
       fila(m, false) + selDestino(m) + _cpSecs.filter(h=>h.parent_id===m.id).map(h=>fila(h, true)).join('')
     ).join('') || '<div style="color:var(--ink3);padding:6px 2px">—</div>';
@@ -892,6 +897,10 @@
       for(const h of hijasO){
         const nuevoPadre = mapa[h.parent_id];
         if(!nuevoPadre) continue;      // hija cuya madre no vino
+        // Sumando a una sección que ya existe: la subsección que ya está (mismo nombre)
+        // no se repite, como en "Replicar en…".
+        const yaEsta = modo === 'agregar' && hijas({ id: nuevoPadre }).find(x => x.activa !== false && nrm(x.nombre) === nrm(h.nombre));
+        if(yaEsta){ mapa[h.id] = yaEsta.id; continue; }
         const fila = armar(h); fila.parent_id = nuevoPadre;
         fila.orden = ordenHija[nuevoPadre] || 0;
         ordenHija[nuevoPadre] = fila.orden + 1;

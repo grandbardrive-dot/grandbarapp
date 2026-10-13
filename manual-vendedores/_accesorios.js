@@ -14,7 +14,7 @@
 //    true  = todo desbloqueado/equipable (modo prueba).
 //    false = funcionamiento normal (cada look según visitas y su nivel).
 //    👉 Para volver a la normalidad cuando termines de probar: poné esta línea en false y redeploy.
-const DESBLOQUEAR_TODO_TESTING = true;
+const DESBLOQUEAR_TODO_TESTING = false;   // apagado el 13/10/2026 (auditoría de manuales)
 
 const VISITA_FINALIZADA_MIN = 80;   // % mínimo para contar una visita como "finalizada"
 

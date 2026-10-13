@@ -1660,7 +1660,6 @@ body { background:transparent !important; }
     <div class="camino-trofeo">
       <span class="camino-trofeo-ico">🏆</span>
       <span class="camino-trofeo-txt">Completá todos los módulos de la visita.</span>
-      <span class="camino-trofeo-chev">›</span>
     </div>
   </div>
 
@@ -1779,7 +1778,7 @@ body { background:transparent !important; }
     <div class="sega-pdf-spinner" id="sega-pdf-spinner">Cargando catálogo…</div>
   </div>
   <div class="sega-pdf-fallback">
-    <a href="/pdf/segafredo-catalogo.pdf" target="_blank" rel="noopener">
+    <a href="/manual-vendedores/pdf/segafredo-catalogo.pdf" target="_blank" rel="noopener">
       📥 Abrir en pantalla completa / descargar
     </a>
   </div>
@@ -1846,12 +1845,12 @@ body { background:transparent !important; }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/reporte-errores.js?v=1"></script>
 <script src="_config.js"></script>
-<script src="_avatar.js"></script>
+<script src="_avatar.js?v=2"></script>
 <script src="_sucursales.js"></script>
 <script src="_torneo-oficial.js"></script>
-<script src="_checklist-data.js?v=3"></script>
+<script src="_checklist-data.js?v=4"></script>
 <script src="_torneo.js"></script>
-<script src="_acciones-render.js?v=3"></script>
+<script src="_acciones-render.js?v=4"></script>
 <script src="_celebracion.js"></script>
 <script src="_disco-tools.js"></script>
 <script>
@@ -2039,7 +2038,7 @@ body { background:transparent !important; }
   }
   // Segafreddo: ahora delega en el visor genérico
   function abrirCatalogoPDF() {
-    abrirCatalogoPdf('/pdf/segafredo-catalogo.pdf', '☕ Catálogo Segafreddo');
+    abrirCatalogoPdf('/manual-vendedores/pdf/segafredo-catalogo.pdf', '☕ Catálogo Segafreddo');
   }
 
   function cerrarCatalogoPDF() {
@@ -2849,7 +2848,9 @@ body { background:transparent !important; }
   // Se llama después de que _acciones-render.js ya esté disponible (init)
   function initAccionesCallbacks() {
     amRegistrarCallbacks({
-      cliente: { nombre: cliente.nombre, telefono: cliente.telefono || null },
+      // El número es el WhatsApp del cliente (clientes no tiene `telefono`). Se lee al
+      // compartir, así toma también el que el vendedor agregue durante la visita.
+      cliente: { nombre: cliente.nombre, get telefono() { return waNumeroAR(cliente.whatsapp) || null; } },
       // Contexto de entrega: habilita el botón "Entregué" en las campañas con
       // materiales vinculados → descuenta stock (movimiento en material_stock_movements).
       entrega: (vendedor && cliente) ? { sellerId: vendedor.id, customerId: cliente.id, clienteNombre: cliente.nombre } : null,
@@ -3049,15 +3050,12 @@ body { background:transparent !important; }
     </div>` : '';
 
     // Contenido especial
-    const AS_ESPECIALES = ['as_satelites','as_frente','as_heladera','as_gondola_vinos','as_gondola_spirits','as_materiales'];
     const especialHtml = sec.especial
       ? (sec.especial === 'acciones_mensuales'
           ? renderEspAccionesMensuales(sec)
           : sec.especial === 'segafreddo'
             ? renderEspSegaHeader(sec)
-            : AS_ESPECIALES.includes(sec.especial)
-              ? renderEspAutoservicio(sec)
-              : renderEspecialVinoteca(sec))
+            : renderEspecialVinoteca(sec))
       : '';
 
     // Calculadora de copa — solo para sección s7, y solo si la sección no tiene ya la
@@ -3703,6 +3701,10 @@ body { background:transparent !important; }
     if (typeof _ofrecidos !== 'undefined' && _ofrecidos.size) {
       progreso['_ofrecido'] = [..._ofrecidos.values()];
     }
+    // Lo que el vendedor marcó en "Oportunidades" (trabajada / cerrada / rechazada).
+    if (typeof _oportEstados !== 'undefined' && _oportEstados.size) {
+      progreso['_oportunidades'] = [..._oportEstados.values()];
+    }
 
     const proximaAccion    = document.getElementById('cierre-proxima-accion')?.value?.trim() || '';
     const fechaSeguimiento = document.getElementById('cierre-fecha-seguimiento')?.value || null;
@@ -3806,12 +3808,6 @@ body { background:transparent !important; }
       case 'ev_materiales':       return renderEvMateriales(sec);
       // ── Compatibilidad estructura anterior ──
       case 'vidriera':       return renderEspVidriera(sec);
-      case 'heladera':       return renderEspHeladera(sec);
-      case 'gondola_vinos':  return renderEspGondola(sec, 'vinos');
-      case 'incorporaciones':return renderEspIncorporaciones(sec);
-      case 'gondola_spirits':return renderEspGondola(sec, 'spirits');
-      case 'materiales':     return renderEspMateriales(sec);
-      case 'fechas':         return renderEspFechas(sec);
       default: return '';
     }
   }
@@ -3837,7 +3833,9 @@ body { background:transparent !important; }
   };
   const EV_TAMANIOS = [50, 100, 150, 200];
   const WA_MARKETING = '5492612123696';   // mismo número que usa la solicitud de materiales
-  let evEstado = { total:100, menores:0, clima:'templado', barra:false, hielo:false, bartender:false };
+  // total arranca vacío: hasta el 13/10/2026 venía en 100 y Combos y Materiales decían
+  // "para 100 personas" aunque el vendedor no hubiera elegido nada.
+  let evEstado = { total:null, menores:0, clima:'templado', barra:false, hielo:false, bartender:false };
 
   function renderEvPaquetes(sec) {
     return `<div class="esp-block" id="ev-paq-${sec.id}">${evPaquetesHTML(sec.id)}</div>`;
@@ -3845,21 +3843,28 @@ body { background:transparent !important; }
 
   function evPaquetesHTML(secId) {
     const e = evEstado;
-    const adultos = Math.max(0, e.total - e.menores);
+    const adultos = e.total ? Math.max(0, e.total - e.menores) : 0;
     const chip = (activo, txt, onclick) =>
       `<button type="button" class="ev-chip ${activo?'on':''}" onclick="${onclick}">${txt}</button>`;
+    const otra = (e.total && !EV_TAMANIOS.includes(e.total)) ? e.total : '';
 
     return `
       <div class="ev-paso">1 · ¿Para cuánta gente es el evento?</div>
       <div class="ev-chips">
         ${EV_TAMANIOS.map(t=>chip(e.total===t, t+' personas', `evSet('total',${t},'${secId}')`)).join('')}
       </div>
+      <div class="ev-row">
+        <input class="ev-num" type="number" min="1" inputmode="numeric" placeholder="Otra" value="${otra}"
+               onchange="evSet('total', Math.max(0, Math.round(+this.value||0)) || null, '${secId}')">
+        <span class="ev-hint">${e.total ? `Evento para ${e.total} personas` : 'Elegí una opción o escribí la cantidad'}</span>
+      </div>
 
       <div class="ev-paso">2 · ¿Cuántos son menores?</div>
       <div class="ev-row">
-        <input class="ev-num" type="number" min="0" max="${e.total}" value="${e.menores}"
+        ${e.total ? `<input class="ev-num" type="number" min="0" max="${e.total}" value="${e.menores}"
                oninput="evSet('menores', Math.min(${e.total}, Math.max(0, +this.value||0)), '${secId}')">
-        <span class="ev-hint">de ${e.total} · quedan ${adultos} adultos</span>
+        <span class="ev-hint">de ${e.total} · quedan ${adultos} adultos</span>`
+        : `<span class="ev-hint">Primero elegí para cuánta gente es.</span>`}
       </div>
 
       <div class="ev-paso">3 · ¿Dónde y con qué clima?</div>
@@ -3919,6 +3924,7 @@ body { background:transparent !important; }
   function evGuardar(secId) {
     const obs = document.getElementById('obs-' + secId);
     if (!obs) { showToast('No pude guardar la propuesta', 'error'); return; }
+    if (!evEstado.total) { showToast('Elegí para cuánta gente es el evento', 'error'); return; }
     obs.value = (obs.value ? obs.value.replace(/PAQUETE PARA[\s\S]*?(?=\n\n|$)/, '').trim() + '\n\n' : '') + evResumen();
     {
       const e = evEstado, c = EV_REGLAS.clima[e.clima] || EV_REGLAS.clima.templado;
@@ -3935,7 +3941,8 @@ body { background:transparent !important; }
   // nunca se queda sin poder pedir.
   async function evPedirDiseno() {
     const e = evEstado;
-    const detalle = `Evento para ${e.total} personas (${e.menores} menores). Flyers y piezas para el evento.`;
+    const detalle = (e.total ? `Evento para ${e.total} personas (${e.menores} menores). ` : 'Evento (cantidad de gente a definir). ')
+      + 'Flyers y piezas para el evento.';
     let guardado = false;
     try {
       const { error } = await sb.from('pedidos_diseno').insert({
@@ -4151,13 +4158,15 @@ body { background:transparent !important; }
     // Sin planes escritos en el código: los planes de vidriera salen de la tabla
     // planes_vidriera (cargarPlanesVidriera). Si no hay, se dice que no hay.
     const OPCIONES_VIDRIERA = [];
+    // Sin PDF cargado en la sección no hay botón (antes había uno que solo decía
+    // "Sin propuestas cargadas": auditoría 13/10/2026).
     const pdfBtn = sec.pdf_url
-      ? `<button class="esp-ac-btn pdf" onclick="abrirCatalogoPdf('${escJs(sec.pdf_url)}','🪟 Propuestas de vidriera')">📄 Ver propuestas</button>`
-      : `<button class="esp-ac-btn pdf" onclick="showToast('Sin propuestas cargadas','info')" style="opacity:.6">📄 Ver propuestas</button>`;
+      ? `<div style="margin-bottom:11px"><button class="esp-ac-btn pdf" onclick="abrirCatalogoPdf('${escJs(sec.pdf_url)}','🪟 Propuestas de vidriera')">📄 Ver propuestas</button></div>`
+      : '';
     return `
       <div class="esp-block">
         <div class="esp-block-title">Acuerdos de vidriera</div>
-        <div style="margin-bottom:11px">${pdfBtn}</div>
+        ${pdfBtn}
         <div id="vidriera-estado-${sec.id}">
           <div style="font-size:11px;color:rgba(255,255,255,.5);font-style:italic">Verificando acuerdo activo…</div>
         </div>
@@ -4177,454 +4186,19 @@ body { background:transparent !important; }
       </div>`;
   }
 
-  // S2 — Heladera
-  function renderEspHeladera(sec) {
-    const grupos = [
-      { label:'11T Peñaflor (1+2)', cond:'1+2', productos:['Alma Mora','Don David','Fond de Cave','Cazador','Mascota','NC Espumantes','Trapiche Medalla','Trapiche Reserva'] },
-      { label:"RTD Gordon's",        cond:'1+1', productos:["Gordon's Pink","Gordon's Lemon"] },
-      { label:'Innovaciones Peñaflor',cond:'1+1', productos:['Nuevas líneas RTD','Espumantes innovación'] },
-    ];
-    return `
-      <div class="esp-block">
-        <div class="esp-block-title">Oportunidades de incorporación</div>
-        ${grupos.map(g => `
-          <div style="margin-bottom:10px">
-            <div style="font-size:10px;color:rgba(255,255,255,.55);margin-bottom:5px">${esc(g.label)}</div>
-            <div class="incorp-list">
-              ${g.productos.map(p => `
-                <div class="incorp-item">
-                  <span class="incorp-nombre">${esc(p)}</span>
-                  <span class="incorp-cond">${esc(g.cond)}</span>
-                  <button class="btn-incorp"
-                    onclick="abrirCompModal('Heladera','Incorporación ${escJs(p)} — condición ${escJs(g.cond)}')">
-                    + Incorporar
-                  </button>
-                </div>`).join('')}
-            </div>
-          </div>`).join('')}
-      </div>`;
-  }
+  // (13/10/2026) Se sacaron renderEspHeladera, renderEspGondola, renderEspIncorporaciones,
+  // renderEspMateriales y renderEspFechas: ninguna sección las usa y tenían productos,
+  // condiciones y precios escritos en el código.
 
-  // S3 / S5 — Góndola (vinos y spirits)
-  function renderEspGondola(sec, tipo) {
-    const promosVinos = [
-      { bodega:'Doña Paula',  nombre:'Argentine Edition Mundial', cond:'5+1 en caja + exhibidor de regalo' },
-      { bodega:'Catena',      nombre:'Adrianna Vineyard',         cond:'Precio especial temporada' },
-      { bodega:'Zuccardi',    nombre:'Valle de Uco',              cond:'3+1 en blend Malbec' },
-    ];
-    const promosSpirits = [
-      { bodega:'Campari',  nombre:'Campari Tonic Bundle',   cond:'Pack 6 botellas + tónica de regalo' },
-      { bodega:'SKYY',     nombre:'SKYY Vodka Sabores',     cond:'1+1 en introducción de línea' },
-      { bodega:"Gordon's", nombre:"Gordon's Pink 750ml",    cond:'Precio especial canal OFF' },
-    ];
-    const promos = tipo === 'vinos' ? promosVinos : promosSpirits;
-
-    const mundialHtml = tipo === 'vinos' ? `
-      <div style="background:rgba(203,184,106,.15);border:1px solid rgba(203,184,106,.3);border-radius:var(--radius-sm);padding:11px 12px;margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--dorado);margin-bottom:3px">⭐ EXCLUSIVO VINOTECAS — Doña Paula</div>
-        <div style="font-size:12px;color:#fff;font-weight:600;margin-bottom:2px">Sleeve Argentine Edition Mundial</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.65);margin-bottom:8px">Condición 5+1 en caja · Exhibidor de regalo + tabla para sortear</div>
-        <button class="btn-cerrar-acuerdo" onclick="abrirCompModal('Góndola vinos','Acuerdo Doña Paula Sleeve Mundial — 5+1 en caja + exhibidor')">
-          Cerrar acuerdo →
-        </button>
-      </div>` : '';
-
-    return `
-      <div class="esp-block">
-        <div class="esp-block-title">Promos base — ${tipo === 'vinos' ? 'Vinos' : 'Spirits'}</div>
-        ${mundialHtml}
-        ${promos.map(p => `
-          <div class="promo-card">
-            <div class="promo-info">
-              <div class="promo-bodega">${esc(p.bodega)}</div>
-              <div class="promo-nombre">${esc(p.nombre)}</div>
-              <div class="promo-cond">${esc(p.cond)}</div>
-            </div>
-            <button class="btn-promo-comp"
-              onclick="abrirCompModal('${tipo==='vinos'?'Góndola vinos':'Góndola spirits'}','${escJs(p.bodega)} — ${escJs(p.nombre)}')">
-              + Comprometer
-            </button>
-          </div>`).join('')}
-      </div>`;
-  }
-
-  // S4 — Incorporaciones
-  function renderEspIncorporaciones(sec) {
-    return `
-      <div class="esp-block">
-        <div class="esp-block-title">Condiciones de incorporación</div>
-        <div class="promo-card" style="margin-bottom:6px">
-          <div class="promo-info">
-            <div class="promo-bodega">Condición general</div>
-            <div class="promo-nombre">Todos los vinos del portafolio</div>
-            <div class="promo-cond">1+1 — primera compra de línea no activa</div>
-          </div>
-          <button class="btn-promo-comp" onclick="abrirCompModal('Incorporaciones','Incorporación general 1+1')">+ Comprometer</button>
-        </div>
-        <div class="promo-card">
-          <div class="promo-info">
-            <div class="promo-bodega">Peñaflor 11T</div>
-            <div class="promo-nombre">Alma Mora, Don David, Fond de Cave, Cazador, Mascota, NC Espumantes, Trapiche</div>
-            <div class="promo-cond">1+2 — condición especial 11 tintos</div>
-          </div>
-          <button class="btn-promo-comp" onclick="abrirCompModal('Incorporaciones','Peñaflor 11T — 1+2')">+ Comprometer</button>
-        </div>
-      </div>`;
-  }
-
-  // S6 — Materiales
-  function renderEspMateriales(sec) {
-    return `
-      <div class="esp-block">
-        <div class="esp-block-title">Solicitud de materiales</div>
-        <a class="btn-catalogo" href="https://catalogooff.com" target="_blank" rel="noopener">
-          📗 Ver catálogo de materiales →
-        </a>
-        <div class="mat-form">
-          <span class="mat-label">Materiales a solicitar</span>
-          <div class="mat-items-list" id="mat-items-${sec.id}">
-            <div class="mat-item">
-              <input class="mat-item-nombre" placeholder="Nombre del material" type="text">
-              <input class="mat-item-cant"   placeholder="Cant." type="number" min="1">
-              <button class="mat-item-rm" onclick="rmMatItem(this)">✕</button>
-            </div>
-          </div>
-          <button class="btn-add-mat" onclick="addMatItem('${sec.id}')">+ Agregar material</button>
-          <span class="mat-label">Fecha requerida</span>
-          <input class="mat-input" type="date" id="mat-fecha-${sec.id}" style="margin-bottom:10px">
-          <button class="btn-wa" onclick="solicitarMateriales('${sec.id}')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            Solicitar vía WhatsApp
-          </button>
-        </div>
-      </div>`;
-  }
-
-  // S7 — Fechas especiales
-  function renderEspFechas(sec) {
-    return `
-      <div class="esp-block">
-        <div class="esp-block-title">Acciones vigentes</div>
-        <div id="fechas-container-${sec.id}">
-          <div class="fecha-loading">Cargando acciones…</div>
-        </div>
-      </div>`;
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════════
-  // AUTOSERVICIOS — render de secciones especiales
-  // ══════════════════════════════════════════════════════════════════════════════
-
-  function renderEspAutoservicio(sec) {
-    switch (sec.especial) {
-      case 'as_satelites':     return renderEspAsSatelites(sec);
-      case 'as_frente':        return renderEspAsFrente(sec);
-      case 'as_heladera':      return renderEspAsHeladera(sec);
-      case 'as_gondola_vinos': return renderEspAsGondolaVinos(sec);
-      case 'as_gondola_spirits':return renderEspAsGondolaSpirits(sec);
-      case 'as_materiales':    return renderEspAsMateriales(sec);
-      default: return '';
-    }
-  }
-
-  // Helper: acordeón genérico dentro de secciones especiales
-  function asAcord(id, titulo, bodyHtml, emptyMsg) {
-    const body = bodyHtml || `<div class="as-empty-msg">${emptyMsg || 'Próximamente'}</div>`;
-    return `
-      <div class="as-acord">
-        <button class="as-acord-btn" onclick="toggleAsAcord('${id}','${id}-chev')">
-          <span>${titulo}</span>
-          <span class="as-acord-chev" id="${id}-chev">▼</span>
-        </button>
-        <div class="as-acord-body" id="${id}">${body}</div>
-      </div>`;
-  }
-
+  // (13/10/2026) Se sacaron las herramientas viejas de autoservicios (as_*): ninguna
+  // sección las usa y tenían vinos, spirits, precios y descuentos escritos en el código.
+  // Queda el acordeón que usan las propuestas de incorporación.
   function toggleAsAcord(bodyId, chevId) {
     const b = document.getElementById(bodyId);
     const c = document.getElementById(chevId);
     if (!b) return;
     const open = b.classList.toggle('open');
     if (c) c.classList.toggle('open', open);
-  }
-
-  // ── as0: Programas Satélites ──────────────────────────────────────────────
-  function renderEspAsSatelites(sec) {
-    return `
-      <div class="esp-block">
-        <div class="esp-block-title">Programas activos</div>
-        <div class="as-satelite-sub" style="padding:6px 2px">Todavía no hay programas activos cargados.</div>
-      </div>`;
-  }
-
-  // Abre el acordeón de Torneo en la ficha
-  function abrirAcordeonTorneo() {
-    const card = document.getElementById('torneo-ficha');
-    const body = document.getElementById('torneo-acord');
-    const chev = document.getElementById('torneo-chev');
-    if (!card || card.style.display === 'none') return;
-    if (body && !body.classList.contains('open')) {
-      body.classList.add('open');
-      if (chev) chev.classList.add('open');
-    }
-    card.scrollIntoView({ behavior:'smooth', block:'start' });
-  }
-
-  // ── as1: Frente del local ─────────────────────────────────────────────────
-  function renderEspAsFrente(sec) {
-    return `
-      <div class="esp-block">
-        <div class="esp-block-title">Vidriera</div>
-        <div id="vidriera-estado-${sec.id}">
-          <div style="font-size:11px;color:rgba(255,255,255,.5);font-style:italic">Verificando acuerdo activo…</div>
-        </div>
-        <div id="vidriera-opciones-${sec.id}" style="display:none">
-          ${[
-            { id:'dona_paula', bodega:'Doña Paula', tipo:'Exclusiva 3 meses', detalle:'Mínimo 12 cajas/mes', regalo:'🎁 1 caja + material POP' },
-            { id:'salentein',  bodega:'Salentein',  tipo:'Compartida',        detalle:'Mínimo 6 cajas/mes Killka o Numina', regalo:'🎁 Cenefa + display' },
-          ].map(op => `
-            <div class="acuerdo-opcion">
-              <div class="acuerdo-opcion-bodega">${esc(op.bodega)} — ${esc(op.tipo)}</div>
-              <div class="acuerdo-opcion-desc">${esc(op.detalle)}</div>
-              <div class="acuerdo-opcion-regalo">${op.regalo}</div>
-              <button class="btn-cerrar-acuerdo"
-                onclick="abrirCompModal('Vidriera','Acuerdo vidriera ${escJs(op.bodega)} — ${escJs(op.tipo)}')">
-                Cerrar acuerdo →
-              </button>
-            </div>`).join('')}
-        </div>
-
-        <div class="esp-block-title" style="margin-top:14px">Cartelería</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.55);margin-bottom:8px">
-          Los ítems de cartelería están en el checklist de esta sección.
-        </div>
-      </div>`;
-  }
-
-  // ── as2: Heladera ─────────────────────────────────────────────────────────
-  function renderEspAsHeladera(sec) {
-    const incorps = [
-      { label:'11T Peñaflor (1+2)', cond:'1+2', prods:['Alma Mora RTD','NC Espumante RTD','Trapiche RTD','Mascota Tinto RTD'] },
-      { label:"RTD Gordon's (1+1)", cond:'1+1', prods:["Gordon's Pink Tonic","Gordon's Lemon Tonic","Gordon's Elderflower"] },
-      { label:'Innovaciones Peñaflor (1+1)', cond:'1+1', prods:['RTD Cepas del Sur','Espumante Pop Art','Mix Varietales'] },
-    ];
-    return `
-      <div class="esp-block">
-        <div class="esp-block-title">Acciones activas — Heladera</div>
-        <div id="acm-as2-heladera-${sec.id}">
-          <div style="font-size:11px;color:rgba(255,255,255,.45);font-style:italic">Cargando acciones del mes…</div>
-        </div>
-
-        <div class="esp-block-title" style="margin-top:14px">Incorporaciones de heladera</div>
-        ${incorps.map((g,i) => asAcord(
-          'as-hel-incorp-'+i+'-'+sec.id,
-          `${g.label} <span style="background:var(--dorado);color:#1F447F;font-size:10px;padding:1px 7px;border-radius:20px;margin-left:5px;font-weight:700">${g.cond}</span>`,
-          g.prods.map(p => `
-            <div class="incorp-item">
-              <span class="incorp-nombre">${esc(p)}</span>
-              <span class="incorp-cond">${esc(g.cond)}</span>
-              <button class="btn-incorp"
-                onclick="abrirCompModal('Heladera','Incorporación ${escJs(p)} — ${escJs(g.cond)}')">
-                + Agregar
-              </button>
-            </div>`).join('')
-        )).join('')}
-      </div>`;
-  }
-
-  // ── as3: Góndola de Vinos ─────────────────────────────────────────────────
-  function renderEspAsGondolaVinos(sec) {
-    const rangos = [
-      {
-        label: '🍷 Vinos $3.000 a $8.000',
-        prods: [
-          { nombre:'Cazador Malbec',  precio:4200 },
-          { nombre:'Mascota Malbec',  precio:5800 },
-          { nombre:'Alma Mora Malbec',precio:6500 },
-          { nombre:'NC Espumante',    precio:7200 },
-        ]
-      },
-      {
-        label: '🍷 Vinos $9.000 a $15.000',
-        prods: [
-          { nombre:'Fond de Cave Malbec', precio:10500 },
-          { nombre:'Trapiche Medalla',    precio:12000 },
-          { nombre:'Don David Malbec',    precio:14500 },
-        ]
-      },
-      {
-        label: '🍷 Vinos desde $16.000',
-        prods: [
-          { nombre:'Fond de Cave RVA',     precio:18000 },
-          { nombre:'Trapiche Reserva',     precio:22000 },
-          { nombre:'Doña Paula Estate',    precio:28000 },
-        ]
-      },
-    ];
-
-    const incorpHtml = `
-      <div class="promo-card" style="margin-bottom:6px">
-        <div class="promo-info">
-          <div class="promo-bodega">Condición general</div>
-          <div class="promo-nombre">Todos los vinos del portafolio</div>
-          <div class="promo-cond">1+1 — primera compra de línea no activa</div>
-        </div>
-        <button class="btn-promo-comp" onclick="abrirCompModal('Góndola vinos','Incorporación general 1+1')">+ Comprometer</button>
-      </div>
-      <div class="promo-card">
-        <div class="promo-info">
-          <div class="promo-bodega">Peñaflor 11T</div>
-          <div class="promo-nombre">Alma Mora, Don David, Fond de Cave, Cazador, Mascota, NC Espumantes, Trapiche</div>
-          <div class="promo-cond">1+2 — condición especial 11 tintos</div>
-        </div>
-        <button class="btn-promo-comp" onclick="abrirCompModal('Góndola vinos','Peñaflor 11T — 1+2')">+ Comprometer</button>
-      </div>`;
-
-    return `
-      <div class="esp-block">
-        <div class="esp-block-title">Incorporaciones</div>
-        ${incorpHtml}
-
-        <div class="esp-block-title" style="margin-top:14px">Líneas de precio</div>
-        ${rangos.map((r, ri) => `
-          <div class="as-price-range">
-            <button class="as-price-range-btn" onclick="toggleAsAcord('as-vino-rango-${ri}-${sec.id}','as-vino-chev-${ri}-${sec.id}')">
-              <span>${r.label}</span>
-              <span class="as-acord-chev" id="as-vino-chev-${ri}-${sec.id}">▼</span>
-            </button>
-            <div class="as-price-range-body" id="as-vino-rango-${ri}-${sec.id}">
-              ${r.prods.map(p => `
-                <div class="as-product-item">
-                  <span class="as-product-nombre">${esc(p.nombre)}</span>
-                  <span class="as-product-precio">$${p.precio.toLocaleString('es-AR')}</span>
-                  <button class="as-product-btn" id="as-vp-${ri}-${esc(p.nombre.replace(/\s/g,''))}-${sec.id}"
-                    onclick="asAgregarProducto(this,'${escJs(p.nombre)}',${p.precio},'Vinos')">
-                    + Agregar
-                  </button>
-                </div>`).join('')}
-            </div>
-          </div>`).join('')}
-      </div>`;
-  }
-
-  // ── as4: Góndola de Spirits ───────────────────────────────────────────────
-  function renderEspAsGondolaSpirits(sec) {
-    const incorpGenerales = [
-      { nombre:'Smirnoff Vodka 750ml',   cond:'5+1', precio:7163 },
-      { nombre:"Gordon's London Dry",    cond:'5+1', precio:11167 },
-      { nombre:'Campari 750ml',          cond:'10% OFF', precio:11984 },
-      { nombre:'Aperol 750ml',           cond:'10% OFF', precio:9108 },
-      { nombre:'Fernet Branca 750ml',    cond:'Precio lista', precio:null },
-    ];
-    const incorpBajas = [
-      { nombre:'Fernet Buhero Negro',       cond:'30% OFF', precio:6634 },
-      { nombre:'Cusenier Blue Curaçao',     cond:'45% OFF', precio:6375 },
-      { nombre:'Cusenier Dulce de Leche',   cond:'45% OFF', precio:6375 },
-      { nombre:'Blenders Pride 750ml',      cond:'45% OFF', precio:10588 },
-      { nombre:'Blenders Americano 750ml',  cond:'45% OFF', precio:9620 },
-    ];
-
-    const renderSpirits = prods => prods.map(p => `
-      <div class="as-product-item">
-        <span class="as-product-nombre">${esc(p.nombre)}</span>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          ${p.precio ? `<span class="as-product-precio">$${p.precio.toLocaleString('es-AR')}</span>` : ''}
-          <span style="background:var(--dorado);color:#1F447F;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px">${esc(p.cond)}</span>
-          <button class="as-product-btn" onclick="asAgregarProducto(this,'${escJs(p.nombre)}',${p.precio||0},'Spirits')">
-            + Agregar
-          </button>
-        </div>
-      </div>`).join('');
-
-    const combos = ['Campari','Diageo','Pernod'];
-
-    return `
-      <div class="esp-block">
-        <div class="esp-block-title">Incorporaciones</div>
-        ${asAcord('as-sp-gen-'+sec.id,  '🥃 Generales',     renderSpirits(incorpGenerales))}
-        ${asAcord('as-sp-baj-'+sec.id,  '💰 Líneas Bajas',  renderSpirits(incorpBajas))}
-
-        <div class="esp-block-title" style="margin-top:14px">Acciones con Valor Agregado</div>
-        <div id="acm-as4-spirits-${sec.id}">
-          <div style="font-size:11px;color:rgba(255,255,255,.45);font-style:italic">Cargando acciones del mes…</div>
-        </div>
-
-        <div class="esp-block-title" style="margin-top:14px">Combos Mixer</div>
-        ${combos.map((c,i) => asAcord('as-combo-'+i+'-'+sec.id, `🍹 ${c}`, '', 'Próximamente')).join('')}
-      </div>`;
-  }
-
-  // ── as5: Materiales ───────────────────────────────────────────────────────
-  function renderEspAsMateriales(sec) {
-    const mochila = [
-      { nombre:'Collarines de precio',      desc:'Pack x 50 unidades' },
-      { nombre:'Table tent doble cara',     desc:'Sobremesa imprimible' },
-      { nombre:'Material POP de góndola',   desc:'Carteles y habladores' },
-      { nombre:'Cenefas de heladera',       desc:'Tira adhesiva de precio' },
-      { nombre:'Stickers de precio promo',  desc:'Circular y rectangular' },
-    ];
-    return `
-      <div class="esp-block">
-        <a class="btn-catalogo" href="https://catalogooff.com" target="_blank" rel="noopener">
-          📗 Ver catálogo de materiales →
-        </a>
-
-        <div class="esp-block-title">Solicitar materiales</div>
-        <div class="mat-form">
-          <span class="mat-label">Materiales a solicitar</span>
-          <div class="mat-items-list" id="mat-items-${sec.id}">
-            <div class="mat-item">
-              <input class="mat-item-nombre" placeholder="Nombre del material" type="text">
-              <input class="mat-item-cant"   placeholder="Cant." type="number" min="1">
-              <button class="mat-item-rm" onclick="rmMatItem(this)">✕</button>
-            </div>
-          </div>
-          <button class="btn-add-mat" onclick="addMatItem('${sec.id}')">+ Agregar material</button>
-          <span class="mat-label" style="margin-top:10px">Fecha requerida</span>
-          <input class="mat-input" type="date" id="mat-fecha-${sec.id}" style="margin-bottom:10px">
-          <button class="btn-wa" onclick="solicitarMateriales('${sec.id}')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            Solicitar vía WhatsApp
-          </button>
-        </div>
-
-        <div class="esp-block-title" style="margin-top:14px">Materiales en mochila</div>
-        ${asAcord('as-mochila-'+sec.id, '🎒 Verificar stock de mochila',
-          `<div style="padding:4px 0">
-            ${mochila.map((m,i) => `
-              <div class="as-mochila-item">
-                <div class="as-mochila-chk" id="as-moch-${i}-${sec.id}"
-                     onclick="toggleAsMochila(this)"></div>
-                <div class="as-mochila-info">
-                  <div class="as-mochila-nombre">${esc(m.nombre)}</div>
-                  <div class="as-mochila-desc">${esc(m.desc)}</div>
-                </div>
-              </div>`).join('')}
-          </div>`
-        )}
-      </div>`;
-  }
-
-  function toggleAsMochila(el) {
-    el.classList.toggle('on');
-  }
-
-  // Agregar producto de gondola al resumen de acciones seleccionadas
-  function asAgregarProducto(btn, nombre, precio, categoria) {
-    const yaAgregado = btn.classList.contains('agregado');
-    const id = 'as-prod-' + nombre.replace(/\s/g,'_');
-    if (yaAgregado) {
-      btn.textContent = '+ Agregar';
-      btn.classList.remove('agregado');
-      if (typeof _amSeleccionadas !== 'undefined') _amSeleccionadas.delete(id);
-    } else {
-      btn.textContent = '✓ Agregado';
-      btn.classList.add('agregado');
-      if (typeof _amSeleccionadas !== 'undefined') {
-        _amSeleccionadas.set(id, { id, producto: nombre, accion: categoria, precio_accionado: precio || null, categoria: 'autoservicio' });
-      }
-    }
-    if (typeof _amActualizarResumen === 'function') _amActualizarResumen();
   }
 
   // ── Carga async de datos especiales ──────────────────────────────────────────
@@ -4642,9 +4216,7 @@ body { background:transparent !important; }
         case 'ev_materiales':       cargarEvMateriales(sec.id);       break;
         // Vidrieras y fechas (nombres nuevos y los viejos, que siguen en manuales armados antes)
         case 'vt_vidrieras':        cargarVidriera(sec.id); cargarPlanesVidriera(sec.id); break;
-        case 'vidriera':
-        case 'as_frente':           cargarVidriera(sec.id);           break;
-        case 'fechas':              cargarFechasVinoteca(sec.id);     break;
+        case 'vidriera':            cargarVidriera(sec.id);           break;
         case 'vt_fechas_cal':       renderCalendarioMes(sec.id, calRefMes, checklist.id); break;
         // Góndolas, incorporaciones y demás del recorrido físico
         case 'vt_gondola_vinos':    cargarGondola(sec.id, 'vinos');   break;
@@ -4655,12 +4227,8 @@ body { background:transparent !important; }
         case 'vt_nuevos_productos': cargarNuevosProductos(sec.id);    break;
         case 'vt_materiales':       cargarMaterialesPOP(sec.id);      break;
         case 'vt_partners':         cargarPartners(sec.id);           break;
-        // Autoservicio
-        case 'as_heladera':         cargarAccionesAutoservicioSeccion(`acm-as2-heladera-${sec.id}`, 'heladera'); break;
-        case 'as_gondola_spirits':  cargarAccionesAutoservicioSeccion(`acm-as4-spirits-${sec.id}`, 'spirits');   break;
       }
     });
-    if (checklist.id === 'autoservicio') sincronizarLabelTorneoAS();
     // Cargar acciones/campañas en TODAS las hojas: la general muestra las 'general',
     // y cada sección específica muestra las campañas que el admin le asignó.
     seccionesHoja(checklist).forEach(sec => { cargarAccionesMensualesSeccion(sec.id); });
@@ -4682,7 +4250,7 @@ body { background:transparent !important; }
       else if (w.tipo === 'calendario') renderCalendarioMes(sec.id, calRefMes, w.rubro);
       else if (w.tipo === 'materiales_pop') cargarMaterialesPOP(sec.id);
       else if (w.tipo === 'cafe_preguntas') cargarPropuestasIncorp('cafe_preguntas', 'cafe', 'Café');
-      // catalogo_cafe / materiales_fechas: botones estáticos, no requieren carga async
+      // catalogo_cafe: botón estático, no requiere carga async
     });
 
     // Calendario de fechas especiales — UNIVERSAL: cualquier sección (de cualquier rubro)
@@ -4693,33 +4261,6 @@ body { background:transparent !important; }
         renderCalendarioMes(sec.id, calRefMes, checklist.id);
       }
     });
-  }
-
-  // Cargar acciones mensuales filtradas por seccion_checklist para autoservicio
-  async function cargarAccionesAutoservicioSeccion(elId, tipoFiltro) {
-    const el = document.getElementById(elId);
-    if (!el) return;
-    const todas  = await _getAccionesMensuales();
-    const canal  = 'autoservicios';
-    const filtradas = todas.filter(a =>
-      (a.aplica_a || []).some(v => v === canal || v === 'todos') &&
-      (a.seccion_checklist === tipoFiltro || a.seccion_checklist === tipoFiltro.replace('_','-'))
-    );
-    if (!filtradas.length) {
-      el.innerHTML = `<div style="font-size:11px;color:rgba(255,255,255,.4);font-style:italic;padding:4px 0">Sin acciones activas para este segmento este mes.</div>`;
-      return;
-    }
-    el.innerHTML = renderAccionesGrupo(filtradas, { seleccionable: true });
-  }
-
-  // Mostrar pts del torneo en el card de programas satélites
-  function sincronizarLabelTorneoAS() {
-    const el = document.getElementById('as-torneo-pts-label');
-    if (!el) return;
-    const ptsEl = document.getElementById('tf-pts');
-    if (ptsEl && ptsEl.textContent && ptsEl.textContent !== '0 pts') {
-      el.textContent = ptsEl.textContent + ' acumulados — Ver detalles →';
-    }
   }
 
   // Cache de acciones mensuales (se fetcha una sola vez por visita)
@@ -4984,39 +4525,6 @@ body { background:transparent !important; }
     const { data: url } = sb.storage.from('Activaciones').getPublicUrl(path);
     await sb.from('acuerdos_vidriera').update({ foto_url: url.publicUrl }).eq('id', acuerdoId);
     showToast('✓ Evidencia registrada', 'success');
-  }
-
-  async function cargarFechasVinoteca(secId) {
-    const el = document.getElementById(`fechas-container-${secId}`);
-    if (!el) return;
-    const hoy = new Date().toISOString().slice(0, 10);
-    const { data } = await sb
-      .from('acciones_fechas')
-      .select('*')
-      .lte('fecha_inicio', hoy)
-      .gte('fecha_fin', hoy)
-      .eq('activa', true)
-      .in('canal', ['vinotecas', 'todos']);
-
-    if (!data?.length) {
-      el.innerHTML = `<div class="fecha-loading">Sin acciones vigentes en este momento.</div>`;
-      return;
-    }
-
-    el.innerHTML = data.map(a => `
-      <div class="fecha-card">
-        ${a.imagen_url ? `<img class="fecha-card-img" src="${esc(a.imagen_url)}" alt="${esc(a.nombre)}">` : ''}
-        <div class="fecha-card-body">
-          <div class="fecha-card-nombre">${esc(a.nombre)}</div>
-          <div class="fecha-card-cond">${esc(a.condicion || a.descripcion)}</div>
-          <div class="fecha-card-btns">
-            ${a.imagen_url ? `<button class="btn-fecha-dl" onclick="descargarImagen('${escJs(a.imagen_url)}','${escJs(a.nombre)}')">⬇ Descargar placa</button>` : ''}
-            <button class="btn-fecha-sum" onclick="abrirCompModal('Fechas especiales','${escJs(a.nombre)} — ${escJs(a.condicion||'')}')">
-              Cliente se suma →
-            </button>
-          </div>
-        </div>
-      </div>`).join('');
   }
 
   function descargarImagen(url, nombre) {
@@ -5439,7 +4947,6 @@ body { background:transparent !important; }
     if (w.tipo === 'campari')           return renderEspCampari(sec);
     if (w.tipo === 'calendario')        return renderVtCalendario(sec);
     if (w.tipo === 'materiales_pop')    return renderVtMateriales(sec);   // ← catálogo POP + form de pedido (Vinotecas)
-    if (w.tipo === 'materiales_fechas') return renderFechasMateriales(sec);
     if (w.tipo === 'catalogo_cafe')     return renderCafeCatalogo(sec);
     if (w.tipo === 'cafe_preguntas')    return renderCafePreguntas(sec);
     if (String(w.tipo).startsWith('dc_') && typeof dcRender === 'function') return dcRender(w.tipo, sec);
@@ -5449,7 +4956,7 @@ body { background:transparent !important; }
   // ── CAFÉ SEGAFREDDO ─────────────────────────────────────────────────────────
   function renderCafeCatalogo(sec) {
     return `<div class="esp-block" style="background:var(--crema);border:1px solid rgba(31,68,127,.12)">
-      <button class="fe-mat-btn" onclick="abrirCatalogoPdf('/pdf/segafredo-catalogo.pdf','☕ Catálogo Segafreddo')">📖 Ver catálogo Segafreddo</button>
+      <button class="fe-mat-btn" onclick="abrirCatalogoPdf('/manual-vendedores/pdf/segafredo-catalogo.pdf','☕ Catálogo Segafreddo')">📖 Ver catálogo Segafreddo</button>
     </div>`;
   }
 
@@ -5506,28 +5013,6 @@ body { background:transparent !important; }
     const elKilo = document.getElementById('cafe-r-kilo');   if (elKilo)  elKilo.textContent  = fmt(porKilo);
     const elTaz  = document.getElementById('cafe-r-tazas');  if (elTaz)   elTaz.textContent   = tazas > 0 ? Math.round(tazas) + ' tazas' : '—';
     const elCos  = document.getElementById('cafe-r-taza');   if (elCos)   elCos.textContent   = fmt(costoTaza);
-  }
-
-  // Subsección Materiales de Fechas Especiales: botón catálogo PDF + pedido por WhatsApp
-  const WA_MATERIALES = '5492612123696';
-  const PDF_CATALOGO_FECHAS = '/pdf/fechas-especiales-catalogo.pdf';
-  function renderFechasMateriales(sec) {
-    return `
-      <div class="esp-block" style="background:var(--crema);border:1px solid rgba(31,68,127,.12)">
-        <div class="fe-mat-btns">
-          <button class="fe-mat-btn" onclick="abrirCatalogoPdf('${PDF_CATALOGO_FECHAS}','📅 Catálogo Fechas Especiales')">
-            📖 Ver catálogo
-          </button>
-          <button class="fe-mat-btn wa" onclick="pedirMaterialesFechasWA()">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.4-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.44-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.22 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35M12.05 21.8h-.01a9.87 9.87 0 01-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 01-1.51-5.26C2.16 6.46 6.6 2.02 12.05 2.02c2.64 0 5.12 1.03 6.99 2.9a9.82 9.82 0 012.89 6.99c0 5.45-4.43 9.89-9.88 9.89M20.46 3.49A11.81 11.81 0 0012.05 0C5.5 0 .16 5.33.16 11.89c0 2.1.55 4.14 1.59 5.95L0 24l6.3-1.65a11.88 11.88 0 005.69 1.45h.01c6.55 0 11.89-5.33 11.89-11.89 0-3.18-1.24-6.16-3.49-8.42"/></svg>
-            Pedir por WhatsApp
-          </button>
-        </div>
-      </div>`;
-  }
-  function pedirMaterialesFechasWA() {
-    const msg = `Hola, quiero pedir materiales de fechas especiales para el cliente ${cliente.nombre}.\nVendedor: ${vendedor.nombre || vendedor.codigo || ''}`;
-    window.open(`https://wa.me/${WA_MATERIALES}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
   // Bloques Campari (Acuerdos + Plan 5T) — mismos ids que tenían en la ficha,
@@ -6090,7 +5575,11 @@ body { background:transparent !important; }
         if (items.length) items.forEach(a => tarjetas.push(tarjetaAccionHerr(a, propia ? '' : h.etiqueta)));
         else if (propia) vacios.push(`<div class="vc-empty">${h.vacio}</div>`);
       });
-      el.innerHTML = (tarjetas.length ? `<div class="vc-list">${tarjetas.join('')}</div>` : '') + vacios.join('');
+      // El "Todavía no hay…" va solo si la sección no muestra nada más: con un plan
+      // cargado al lado se leía como que no había nada (auditoría 13/10/2026).
+      const conPlanes = ((buscarSec(sec.id) || sec).planes || []).length > 0;
+      el.innerHTML = (tarjetas.length ? `<div class="vc-list">${tarjetas.join('')}</div>` : '')
+        + (tarjetas.length || conPlanes ? '' : vacios.join(''));
     });
   }
 
@@ -6920,17 +6409,17 @@ body { background:transparent !important; }
       if (data && data.length) alertas.push({ tipo:'amarillo', ico:'📌', titulo:`${data.length} acción${data.length===1?'':'es'} programada${data.length===1?'':'s'} pendiente${data.length===1?'':'s'}`, sub:'Ejecutá lo acordado', target:'__acciones_programadas' });
     } catch {}
 
-    // 5) No incorporó nuevos vinos en los últimos 2 meses
+    // 5) Sin incorporaciones en los últimos 2 meses: se mira lo que quedó en el carrito
+    //    de esas visitas (estado 'Incorporación'). Antes se miraban las tareas tildadas,
+    //    que ya no existen, y la alerta salía siempre (auditoría 13/10/2026).
     try {
       const limite = new Date(); limite.setMonth(limite.getMonth() - 2);
-      const { data } = await sb.from('visitas').select('fecha,progreso')
+      const { data } = await sb.from('visitas').select('fecha,carrito,progreso')
         .eq('cliente_id', cliente.id).gte('fecha', limite.toISOString());
-      const incorporo = (data || []).some(v => {
-        const p = v.progreso?.['vt_incorporaciones'] || v.progreso?.['vt4'];
-        return p?.checks?.some(Boolean);
-      });
+      const carritoDe = v => Array.isArray(v.carrito) ? v.carrito : (v.progreso?._carrito || []);
+      const incorporo = (data || []).some(v => carritoDe(v).some(c => c && c.estado === 'Incorporación'));
       if (data && data.length && !incorporo)
-        alertas.push({ tipo:'amarillo', ico:'🍷', titulo:'No incorporó vinos nuevos en 2 meses', sub:'Presentá nuevas etiquetas', target:'vt_incorporaciones' });
+        alertas.push({ tipo:'amarillo', ico:'🍷', titulo:'Sin incorporaciones en las visitas de los últimos 2 meses', sub:'Presentá nuevas etiquetas', target:'vt_incorporaciones' });
     } catch {}
 
     const wrap = document.getElementById('alertas-wrap');
@@ -7001,11 +6490,18 @@ body { background:transparent !important; }
     const open = body.classList.toggle('open');
     chev.classList.toggle('open', open);
   }
+  // Antes solo pintaba el botón y no quedaba registrado. Ahora se guarda con la visita
+  // (progreso._oportunidades). Tocar de nuevo el mismo botón lo desmarca.
+  const _oportEstados = new Map();
   function oportEstado(id, estado, btn) {
     const card = document.getElementById(id);
+    const yaEstaba = btn.classList.contains('sel');
     card.querySelectorAll('.oport-btn.trabajada,.oport-btn.cerrada,.oport-btn.rechazada').forEach(b => b.classList.remove('sel'));
+    if (yaEstaba) { _oportEstados.delete(id); showToast('Oportunidad sin marcar', ''); return; }
     btn.classList.add('sel');
-    showToast(`Oportunidad ${estado}`, estado==='rechazada'?'':'success');
+    const o = _oportData.find(x => x.id === id);
+    _oportEstados.set(id, { id, txt: o ? o.txt : '', estado });
+    showToast(`Oportunidad ${estado}: queda guardada con la visita`, estado==='rechazada'?'':'success');
   }
   function oportAlCarrito(id) {
     const o = _oportData.find(x => x.id === id);
@@ -8147,8 +7643,19 @@ Cualquier consulta estoy a disposición. ${vend} - GrandBar Distribuciones`;
 
   // Construye el link de WhatsApp al número del cliente con un texto opcional
   function waLinkCliente(texto) {
-    const num = String(cliente.whatsapp || '').replace(/\D/g, '');
+    const num = waNumeroAR(cliente.whatsapp);
     return `https://wa.me/${num}${texto ? `?text=${encodeURIComponent(texto)}` : ''}`;
+  }
+  // wa.me pide el número completo con país. Los WhatsApp de los clientes están
+  // cargados como 2614663444 y así el link iba a otro país (13/10/2026).
+  // 261 466-3444 / 0261… / +54 261… / +54 9 261… → 5492614663444
+  function waNumeroAR(n) {
+    let d = String(n || '').replace(/\D/g, '').replace(/^00/, '');
+    if (!d) return '';
+    if (/^549\d{10}$/.test(d)) return d;
+    if (/^54\d{10}$/.test(d)) return '549' + d.slice(2);
+    d = d.replace(/^0/, '');
+    return d.length === 10 ? '549' + d : d;
   }
 
   // Descarga el logo del cliente y lo convierte a dataURL para el PDF (cacheado)

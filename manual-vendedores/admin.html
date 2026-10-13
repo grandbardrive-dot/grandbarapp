@@ -1051,8 +1051,8 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
 <script src="_sucursales.js"></script>
-<script src="_checklist-data.js?v=3"></script>
-<script src="_acciones-render.js?v=3"></script>
+<script src="_checklist-data.js?v=4"></script>
+<script src="_acciones-render.js?v=4"></script>
 <script>
   // Entrada por perfil (sin contraseña). Guarda el perfil elegido.
   function entrarPanel(perfil) {
@@ -1193,7 +1193,9 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
     // Usar IDs del join — vendedor_id/cliente_id no están en el select explícito
     const clienteId  = v.clientes?.id;
     const vendedorId = v.vendedores?.id;
-    const cl=getChecklist(v.clientes?.tipo), prog=v.progreso||{};
+    const prog=v.progreso||{};
+    // Secciones del manual real (base), no el checklist viejo del código (13/10/2026).
+    const secsVisita = await seccionesDeVisita(v.clientes?.tipo, v.vendedores?.zona, prog);
 
     // Cargar fotos + historial en paralelo
     const [torneoRes, vidRes, compFotosRes, histRes] = await Promise.all([
@@ -1257,14 +1259,11 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
         </div>
       </div>` : '';
 
-    const seccionesHtml=cl.secciones.map(sec=>{
-      const sp=prog[sec.id]||{}, checks=sp.checks||[], done=checks.filter(Boolean).length;
-      return `<div class="modal-sec">
-        <div class="modal-sec-header"><span class="modal-sec-name">${sec.icono} ${esc(sec.titulo)}</span><span class="modal-sec-pct">${done}/${sec.items.length}</span></div>
-        ${sec.items.map((item,j)=>`<div class="modal-check"><div class="modal-check-dot ${checks[j]?'dot-ok':'dot-no'}"></div><span style="${checks[j]?'':'opacity:.55'}">${esc(item.texto)}</span></div>`).join('')}
-        ${sp.obs?`<div class="modal-obs">"${esc(sp.obs)}"</div>`:''}
-      </div>`;
-    }).join('');
+    const seccionesHtml = secsVisita.length ? `<div class="modal-sec">
+        <div class="modal-sec-header"><span class="modal-sec-name">🧭 Recorrido</span><span class="modal-sec-pct">${secsVisita.filter(s=>s.trabajada).length}/${secsVisita.length} trabajadas</span></div>
+        ${secsVisita.map(s=>`<div class="modal-check"><div class="modal-check-dot ${s.trabajada?'dot-ok':'dot-no'}"></div><span style="${s.trabajada?'':'opacity:.55'}">${s.icono} ${esc(s.nombre)}</span></div>
+        ${s.obs?`<div class="modal-obs">"${esc(s.obs)}"</div>`:''}`).join('')}
+      </div>` : '';
     const hist=histRes.data||[];
     const histHtml=hist.length?`<div class="hist-client-section"><div class="hist-client-label">Historial completo — ${esc(v.clientes?.nombre||'')}</div>${hist.map(h=>`<div class="hist-row"><span class="hist-row-fecha">${fmtFechaLarga(h.fecha)}</span><span class="hist-row-vend">${esc(h.vendedores?.nombre||'')}</span><span class="hist-row-pct">${h.porcentaje_total||0}%</span></div>`).join('')}</div>`:'';
 

@@ -717,9 +717,9 @@ function amAbrirModal() {
   if (!items.length) {
     bodyEl.innerHTML = `<div style="padding:20px;text-align:center;color:#9E9B96;font-style:italic">No hay acciones seleccionadas todavía.</div>`;
   } else {
-    let subtotal = 0;
+    // Sin "Inversión estimada": precio_accionado es el precio promo de UN producto y la
+    // cantidad va en cajas o unidades, así que la suma daba un total que no existe (13/10/2026).
     const itemsHtml = items.map(a => {
-      if (a.precio_accionado) subtotal += Number(a.precio_accionado);
       return `
         <div class="am-modal-item">
           <div class="am-modal-item-img">
@@ -731,19 +731,13 @@ function amAbrirModal() {
             <div class="am-modal-item-nombre">${_amEsc(a.producto)}</div>
             <span class="am-modal-item-accion">${_amEsc(a.accion)}</span>
             ${a.cantidad ? `<div class="am-modal-item-precio" style="color:#2D6A4F">📦 ${a.cantidad} ${_amEsc(a.unidad || 'cajas')}</div>` : ''}
-            ${a.precio_accionado ? `<div class="am-modal-item-precio">$ ${Number(a.precio_accionado).toLocaleString('es-AR')}</div>` : ''}
+            ${a.precio_accionado ? `<div class="am-modal-item-precio">Precio accionado: $ ${Number(a.precio_accionado).toLocaleString('es-AR')}</div>` : ''}
           </div>
           <button class="am-modal-item-rm" onclick="amQuitarDelModal('${_amEsc(a.id)}')" title="Quitar">✕</button>
         </div>`;
     }).join('');
 
-    const subtotalHtml = subtotal > 0 ? `
-      <div class="am-modal-subtotal">
-        <span class="am-modal-subtotal-lbl">Inversión estimada</span>
-        <span class="am-modal-subtotal-val">$ ${subtotal.toLocaleString('es-AR')}</span>
-      </div>` : '';
-
-    bodyEl.innerHTML = itemsHtml + subtotalHtml;
+    bodyEl.innerHTML = itemsHtml;
   }
 
   document.getElementById('am-modal-resumen').classList.add('open');
@@ -788,14 +782,16 @@ function amCompartirWA() {
   if (!items.length) return;
 
   const cliente = _amClienteCtx?.nombre ? `para *${_amClienteCtx.nombre}*` : '';
-  const tel     = _amClienteCtx?.telefono || '5492612123696';
+  // Al WhatsApp del cliente. Si no tiene cargado, WhatsApp abre con el mensaje listo
+  // para que el vendedor elija el contacto (antes iba siempre a un número fijo).
+  const tel     = String(_amClienteCtx?.telefono || '').replace(/\D/g, '');
 
   const lineas  = items.map((a, i) =>
-    `${i+1}. *${a.producto}* — ${a.accion}${a.cantidad ? ' · ' + a.cantidad + ' ' + (a.unidad || 'cajas') : ''}${a.precio_accionado ? ' ($' + Number(a.precio_accionado).toLocaleString('es-AR') + ')' : ''}`
+    `${i+1}. *${a.producto}* — ${a.accion}${a.cantidad ? ' · ' + a.cantidad + ' ' + (a.unidad || 'cajas') : ''}${a.precio_accionado ? ' (precio accionado $' + Number(a.precio_accionado).toLocaleString('es-AR') + ')' : ''}`
   ).join('\n');
 
   const msg = `Hola! Te comparto las acciones del mes ${cliente}:\n\n${lineas}\n\n_GrandBar Distribuciones_`;
-  window.open(`https://wa.me/${tel.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
+  window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 // ── API pública para visita.html ──────────────────────────────────────────────

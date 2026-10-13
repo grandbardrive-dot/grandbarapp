@@ -3,10 +3,10 @@
    ============================================================ */
 
 /* ---- Fuente Parginer ----
-   Dejá el archivo en /assets/fonts/Parginer_Regular.otf */
+   El archivo está en manual-vendedores/fonts/ (/assets/fonts/ no existe: daba 404). */
 @font-face {
   font-family: 'Parginer';
-  src: url('/assets/fonts/Parginer_Regular.otf') format('opentype');
+  src: url('/manual-vendedores/fonts/Parginer_Regular.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

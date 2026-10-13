@@ -308,12 +308,12 @@ body { background:transparent !important; }
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
-<script src="_avatar.js"></script>
+<script src="_avatar.js?v=2"></script>
 <script src="_sucursales.js"></script>
 <script src="_torneo.js"></script>
 <script src="_torneo-oficial.js"></script>
-<script src="_checklist-data.js?v=3"></script>
-<script src="_acciones-render.js?v=3"></script>
+<script src="_checklist-data.js?v=4"></script>
+<script src="_acciones-render.js?v=4"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 // ── State ───────────────────────────────────────────────────────────────────
@@ -1230,7 +1230,7 @@ async function abrirVisitaDetalle(visitaId) {
   // Cargar visita completa (con progreso)
   const { data: visita } = await sb
     .from('visitas')
-    .select('*, clientes(id, nombre, tipo, codigo_cliente), vendedores(nombre)')
+    .select('*, clientes(id, nombre, tipo, codigo_cliente), vendedores(nombre, zona)')
     .eq('id', visitaId)
     .single();
 
@@ -1309,8 +1309,10 @@ function cerrarVisitaDetalle() {
 async function renderVisitaDetalle(visita, compromisos, torneoRegs, evidencias) {
   const mainEl  = document.getElementById('vd-main');
   const pct     = visita.porcentaje_total || 0;
-  const checklist = typeof getChecklist === 'function' ? getChecklist(visita.clientes?.tipo) : null;
   const progreso  = visita.progreso || {};
+  // Secciones del manual real (base), no el checklist viejo del código (13/10/2026).
+  const secsVisita = typeof seccionesDeVisita === 'function'
+    ? await seccionesDeVisita(visita.clientes?.tipo, visita.vendedores?.zona, progreso) : [];
   const mesPts    = torneoRegs.reduce((s, r) => s + (r.puntos || 0), 0);
 
   // ── 1. Hero con % y barra ──────────────────────────────────────────────────
@@ -1355,7 +1357,7 @@ async function renderVisitaDetalle(visita, compromisos, torneoRegs, evidencias) 
     </div>` : '';
 
   // ── 3. Checklist completo ──────────────────────────────────────────────────
-  const checklistHtml = checklist ? renderChecklistDetalle(checklist, progreso) : '';
+  const checklistHtml = renderChecklistDetalle(secsVisita);
 
   // ── 4. Compromisos generados ───────────────────────────────────────────────
   const ESTADO_STYLE = {
@@ -1438,57 +1440,23 @@ async function renderVisitaDetalle(visita, compromisos, torneoRegs, evidencias) 
   mainEl.innerHTML = heroHtml + durHtml + evidenciasHtml + accionesSupHtml + obsHtml + acompHtml + checklistHtml + compHtml + torneoHtml;
 }
 
-function renderChecklistDetalle(checklist, progreso) {
-  if (!checklist?.secciones?.length) return '';
-
-  let totalItems = 0, doneItems = 0;
-  checklist.secciones.forEach(sec => {
-    const checks = progreso[sec.id]?.checks || [];
-    sec.items.forEach((_, i) => { totalItems++; if (checks[i]) doneItems++; });
-  });
-
-  const seccionesHtml = checklist.secciones.map(sec => {
-    const secProg = progreso[sec.id] || {};
-    const checks  = secProg.checks || [];
-    const secDone = sec.items.filter((_, i) => checks[i] === true).length;
-    const allDone = secDone === sec.items.length && sec.items.length > 0;
-
-    const itemsHtml = sec.items.map((item, i) => {
-      const ok = checks[i] === true;
-      return `<div class="cl-item">
-        <div class="cl-check ${ok ? 'done' : 'todo'}">
-          ${ok ? `<svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+// Recorrido de la visita: cada sección del manual real, si el vendedor la trabajó y
+// lo que anotó. Antes se armaba con el checklist viejo del código y mostraba tareas
+// de ejemplo que los manuales ya no tienen, todas en 0 (13/10/2026).
+function renderChecklistDetalle(secs) {
+  if (!secs || !secs.length) return '';
+  const hechas = secs.filter(s => s.trabajada).length;
+  const tilde = `<svg width="10" height="8" viewBox="0 0 10 8" fill="none">
             <path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>` : ''}
-        </div>
-        <div class="cl-item-text ${ok ? 'done' : 'todo'}">${esc(item.texto)}</div>
-      </div>`;
-    }).join('');
-
-    const obsHtml = secProg.obs
-      ? `<div class="cl-obs">💬 ${esc(secProg.obs)}</div>`
-      : '';
-
-    // Por defecto: las secciones completas se pliegan (para acortar la lista) y las que
-    // tienen pendientes quedan abiertas. Tocar el título abre/cierra.
-    const abierta = !allDone;
-    return `<div class="cl-section">
-      <div class="cl-sec-header${abierta ? ' open' : ''}" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
-        <div class="cl-sec-icon" style="background:${sec.iconoBg};color:${sec.iconoColor}">${sec.icono}</div>
-        <div class="cl-sec-name">${esc(sec.titulo)}</div>
-        <span class="cl-sec-counter ${allDone ? 'all-done' : 'partial'}">${secDone}/${sec.items.length}</span>
-        <span class="cl-sec-chevron">▾</span>
-      </div>
-      <div class="cl-sec-body${abierta ? ' open' : ''}">
-        ${itemsHtml}
-        ${obsHtml}
-      </div>
-    </div>`;
-  }).join('');
-
+          </svg>`;
+  const filas = secs.map(s => `<div class="cl-item">
+        <div class="cl-check ${s.trabajada ? 'done' : 'todo'}">${s.trabajada ? tilde : ''}</div>
+        <div class="cl-item-text ${s.trabajada ? 'done' : 'todo'}">${esc(s.nombre)}
+          ${s.obs ? `<div class="cl-obs">💬 ${esc(s.obs)}</div>` : ''}</div>
+      </div>`).join('');
   return `<div class="det-section" style="margin-bottom:10px">
-    <div class="det-section-title">✅ Checklist completo — ${doneItems}/${totalItems} acciones</div>
-    ${seccionesHtml}
+    <div class="det-section-title">🧭 Recorrido — ${hechas} de ${secs.length} secciones trabajadas</div>
+    <div style="padding:6px 14px 10px">${filas}</div>
   </div>`;
 }
 
