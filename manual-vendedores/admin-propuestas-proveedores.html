@@ -88,6 +88,8 @@
   .ab.placa{border-color:#cfc2e6;color:#5b3a8a;background:#f3eefa}
   .pc-tipochip.pc-evid{background:#e4ecf6;color:#1f447f}
   .ab.no{border-color:#e7cfc6;color:var(--red);background:var(--red-bg)}
+  .ab.carga{border-color:var(--navy);color:#fff;background:var(--navy)}
+  .pc-pend{display:table;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--amber);background:var(--amber-bg);border:1px solid #ecdcb2;border-radius:8px;padding:5px 10px}
   .empty{text-align:center;color:var(--ink3);padding:44px 16px;background:var(--surface);border:1px dashed var(--line-2);border-radius:14px}
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--navy-dd);color:#fff;padding:12px 20px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:90}
   .toast.show{opacity:1}
@@ -194,7 +196,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
-<script src="_propuesta-al-manual.js?v=1"></script>
+<script src="_propuesta-al-manual.js?v=2"></script>
 <script>
   sessionStorage.setItem('admin_auth','1');
   sessionStorage.setItem('admin_perfil','comercial');
@@ -203,7 +205,8 @@
   const RUBRO={restaurante:'Restaurante',bar:'Bar',vinoteca:'Vinoteca',autoservicio:'Autoservicio',tienda_bebidas:'Tienda de Bebidas',hotel:'Hotel',disco:'Disco',evento:'Evento',mayorista:'Mayorista'};
   const rLbl=r=>RUBRO[r]||r;
   const ini=e=>(e||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
-  const ESTADOS=[['pendiente','Pendientes'],['cambios','Con cambios'],['aprobada','Aprobadas'],['descartada','Descartadas'],['','Todas']];
+  // 'sincargar' no es un estado de la base: son las aprobadas que todavía no están en el manual (13/10/2026).
+  const ESTADOS=[['pendiente','Pendientes'],['cambios','Con cambios'],['aprobada','Aprobadas'],['sincargar','Sin cargar al manual'],['descartada','Descartadas'],['','Todas']];
   let TODAS=[], FILTRO='pendiente';
   const TIPO_CHIP={mix_ideal:'✨ Mix Ideal',vino_copa:'🍷 Vino por Copa'};
   function toast(m){const t=$('toast');t.textContent=m;t.className='toast show';setTimeout(()=>t.className='toast',2400);}
@@ -213,16 +216,28 @@
     if(p.tipo==='vino_copa') return `<div class="pc-pay"><b>Condición especial</b><div style="margin-top:5px">${esc(d.condicion||'')}</div>${d.precio?'<div style="margin-top:6px">Botella: <b>$ '+esc(d.precio)+'</b></div>':''}${d.nota?'<div style="margin-top:4px;color:var(--ink3)">'+esc(d.nota)+'</div>':''}</div>`;
     return '';
   }
+  // Mix Ideal y Vino por copa: los carga en su tabla y anota dónde quedaron (accion_tabla /
+  // accion_id), así la tarjeta sabe que ya están en el manual. Sirve para aprobar y cargar
+  // de una vez, o para cargar uno que ya estaba aprobado (13/10/2026).
   async function aprobar(id){
     const p=TODAS.find(x=>x.id===id); if(!p) return;
     const d=p.payload||{};
     if(p.tipo==='mix_ideal' || p.tipo==='vino_copa'){
-      if(!confirm('¿Aprobar y cargar '+(p.tipo==='mix_ideal'?'este Mix Ideal':'este Vino por Copa')+' al manual? Después lo podés ajustar en su panel.')) return;
-      let ins;
-      if(p.tipo==='mix_ideal') ins=await sb.from('mixes_ideales').insert({nombre:d.nombre||p.titulo,nivel:d.nivel||null,contenido:d.contenido||null,descripcion:d.nota||null,precio:d.precio?Number(d.precio):null,canal:p.rubro||null,activo:true});
-      else ins=await sb.from('vinos_por_copa').insert({nombre:d.nombre||p.titulo,proveedor:d.proveedor||p.autor_empresa||null,condicion:d.condicion||null,descripcion:d.nota||null,precio_botella:d.precio?Number(d.precio):null,activo:true});
-      if(ins.error){ toast('No se pudo cargar al manual: '+ins.error.message); return; }
-      toast('✓ Cargado al manual');
+      const ya = p.estado==='aprobada';
+      if(!confirm('¿'+(ya?'Cargar':'Aprobar y cargar')+' '+(p.tipo==='mix_ideal'?'este Mix Ideal':'este Vino por Copa')+' en el manual? Después lo podés ajustar en su panel.')) return;
+      const tabla = p.tipo==='mix_ideal' ? 'mixes_ideales' : 'vinos_por_copa';
+      const fila = p.tipo==='mix_ideal'
+        ? {nombre:d.nombre||p.titulo,nivel:d.nivel||null,contenido:d.contenido||null,descripcion:d.nota||null,precio:d.precio?Number(d.precio):null,canal:p.rubro||null,activo:true}
+        : {nombre:d.nombre||p.titulo,proveedor:d.proveedor||p.autor_empresa||null,condicion:d.condicion||null,descripcion:d.nota||null,precio_botella:d.precio?Number(d.precio):null,activo:true};
+      const ins=await sb.from(tabla).insert(fila).select('id');
+      if(ins.error){ toast('No se pudo cargar en el manual: '+ins.error.message); return; }
+      const nuevo = ins.data && ins.data[0] && ins.data[0].id;
+      let w = await sb.from('propuestas_acciones').update({estado:'aprobada',accion_tabla:tabla,accion_id:nuevo||null}).eq('id',id);
+      if(w.error && faltaSqlEvid(w.error.message)) w = await sb.from('propuestas_acciones').update({estado:'aprobada'}).eq('id',id);
+      if(w.error){ toast('Se cargó, pero no se pudo marcar la propuesta: '+w.error.message); return; }
+      p.estado='aprobada'; p.accion_tabla=tabla; p.accion_id=nuevo||p.accion_id;
+      render(); toast(ya ? '✓ Cargado en el manual' : '✓ Aprobado y cargado en el manual');
+      return;
     }
     await setEstado(id,'aprobada');
   }
@@ -243,9 +258,10 @@
   async function abrirAgregar(id, modo){
     const p = TODAS.find(x => x.id === id); if(!p) return;
     modo = modo === 'placa' ? 'placa' : 'manual';
-    AG = { p, ubic: null, modo };
-    $('agTit').textContent = modo === 'placa' ? 'Requiere placa' : 'Aprobar y agregar al manual';
-    $('agOk').textContent = modo === 'placa' ? '✓ Aprobar y pedir la placa' : '✓ Aprobar y agregar';
+    const ya = p.estado === 'aprobada';   // ya aprobada: solo falta cargarla (13/10/2026)
+    AG = { p, ubic: null, modo, ya };
+    $('agTit').textContent = modo === 'placa' ? 'Requiere placa' : (ya ? 'Cargar en el manual' : 'Aprobar y cargar en el manual');
+    $('agOk').textContent = modo === 'placa' ? (ya ? '✓ Pedir la placa' : '✓ Aprobar y pedir la placa') : (ya ? '✓ Cargar en el manual' : '✓ Aprobar y cargar');
     $('agOk').disabled = true;
     $('agDet').innerHTML = '<div style="color:var(--ink3)">Buscando la sección…</div>';
     $('agOv').classList.add('open');
@@ -280,8 +296,8 @@
 
   async function confirmarAgregar(){
     if(!AG || !AG.ubic) return;
-    const { p, ubic, modo } = AG, btn = $('agOk'), txt = btn.textContent;
-    btn.disabled = true; btn.textContent = modo === 'placa' ? 'Enviando…' : 'Agregando…';
+    const { p, ubic, modo, ya } = AG, btn = $('agOk'), txt = btn.textContent;
+    btn.disabled = true; btn.textContent = modo === 'placa' ? 'Enviando…' : 'Cargando…';
     try{
       if(modo === 'placa'){
         // Primero el pedido (si falla no queda la propuesta aprobada sin pedido).
@@ -296,12 +312,12 @@
         if(error) throw error;
         p.estado = 'aprobada'; p.requiere_placa = true;
         cerrarAgregar(); render();
-        toast('✓ Aprobada: le llegó a Diseño para armar la placa');
+        toast(ya ? '✓ Le llegó a Diseño para armar la placa' : '✓ Aprobada: le llegó a Diseño para armar la placa');
       } else {
         const res = await PAM.publicar(sb, p, ubic);
         p.estado = 'aprobada'; p.accion_tabla = res.tabla; p.accion_id = res.id;
         cerrarAgregar(); render();
-        toast(ubic.calendario ? '✓ Aprobada y agregada al calendario de fechas' : '✓ Aprobada y agregada como campaña');
+        toast((ya ? '✓ Cargada' : '✓ Aprobada y cargada') + (ubic.calendario ? ' en el calendario de fechas' : ' como campaña'));
       }
     }catch(e){
       btn.disabled = false; btn.textContent = txt;
@@ -311,7 +327,11 @@
   }
   window.abrirAgregar = abrirAgregar; window.cerrarAgregar = cerrarAgregar; window.confirmarAgregar = confirmarAgregar;
   // En qué quedó una propuesta aprobada (lo ve Luciana en la tarjeta).
+  // ¿Está en el manual? (acción cargada, placa pedida o Mix / Vino por copa cargado)
+  const enManual = p => !!(p.accion_id || p.requiere_placa || p.placa_url);
+  const sinCargar = p => p.estado === 'aprobada' && !enManual(p);
   function estadoManual(p){
+    if(sinCargar(p)) return '<div class="pc-pend">⏳ Aprobada, todavía no está en el manual</div>';
     if(p.estado !== 'aprobada' || !esAccion(p)) return '';
     if(p.requiere_placa && !p.placa_url) return '<div class="pc-cajas" style="display:table">🎨 Esperando la placa de Diseño y Desarrollo: entra al manual cuando la suban.</div>';
     if(p.placa_url) return `<div class="pc-cajas" style="display:table">✅ En el manual con su placa · <a href="${esc(p.placa_url)}" target="_blank" rel="noopener">ver placa</a></div>`;
@@ -370,10 +390,11 @@
     TODAS = data||[];
     render();
   }
-  function cuenta(e){ return e ? TODAS.filter(p=>p.estado===e).length : TODAS.length; }
+  const deFiltro = e => e === 'sincargar' ? TODAS.filter(sinCargar) : e ? TODAS.filter(p=>p.estado===e) : TODAS;
+  function cuenta(e){ return deFiltro(e).length; }
   function render(){
     $('filtros').innerHTML=ESTADOS.map(([k,l])=>`<button class="fbtn ${FILTRO===k?'on':''}" onclick="setFiltro('${k}')">${l}<span class="n">${cuenta(k)}</span></button>`).join('');
-    const lista = FILTRO ? TODAS.filter(p=>p.estado===FILTRO) : TODAS;
+    const lista = deFiltro(FILTRO);
     if(!lista.length){ $('lista').innerHTML='<div class="empty">No hay propuestas '+(FILTRO?('en “'+ESTADOS.find(e=>e[0]===FILTRO)[1].toLowerCase()+'”'):'')+'.</div>'; return; }
     $('lista').innerHTML=lista.map(p=>{
       const vig=(p.vigencia_desde||p.vigencia_hasta)?`<div class="pc-vig">🗓️ ${fmtV(p.vigencia_desde)||'…'} → ${fmtV(p.vigencia_hasta)||'…'}</div>`:'';
@@ -392,9 +413,13 @@
           </div>
           <span class="est ${p.estado}">${p.estado}</span>
         </div>
-        ${p.estado==='aprobada' ? '' : `<div class="pc-acc">
-          ${esAccion(p) ? `<button class="ab ok" onclick="abrirAgregar('${p.id}')">✓ Aprobar y agregar al manual</button>${p.pide_evidencia?`<button class="ab placa" onclick="abrirAgregar('${p.id}','placa')" title="Le llega a Diseño y Desarrollo; entra al manual cuando suban la placa">🎨 Requiere placa</button>`:''}<button class="ab" onclick="setEstado('${p.id}','aprobada')" title="Aprobarla sin cargarla al manual (la cargás vos después)">Solo aprobar</button>`
-            : `<button class="ab ok" onclick="aprobar('${p.id}')">✓ Aprobar${TIPO_CHIP[p.tipo]?' y cargar':''}</button>`}
+        ${p.estado==='aprobada' ? (sinCargar(p) ? `<div class="pc-acc">
+          ${esAccion(p) ? `<button class="ab carga" onclick="abrirAgregar('${p.id}')">📥 Cargar en el manual</button>${p.pide_evidencia?`<button class="ab placa" onclick="abrirAgregar('${p.id}','placa')" title="Le llega a Diseño y Desarrollo; entra al manual cuando suban la placa">🎨 Requiere placa</button>`:''}`
+            : `<button class="ab carga" onclick="aprobar('${p.id}')">📥 Cargar en el manual</button>`}
+        </div>` : '') : `<div class="pc-acc">
+          <button class="ab ok" onclick="setEstado('${p.id}','aprobada')" title="Queda aprobada; la cargás en el manual cuando quieras">✓ Aprobar</button>
+          ${esAccion(p) ? `<button class="ab carga" onclick="abrirAgregar('${p.id}')">📥 Aprobar y cargar en el manual</button>${p.pide_evidencia?`<button class="ab placa" onclick="abrirAgregar('${p.id}','placa')" title="Le llega a Diseño y Desarrollo; entra al manual cuando suban la placa">🎨 Requiere placa</button>`:''}`
+            : `<button class="ab carga" onclick="aprobar('${p.id}')">📥 Aprobar y cargar en el manual</button>`}
           <button class="ab cam" onclick="pedirCambios('${p.id}')">✎ Pedir cambios</button>
           <button class="ab no" onclick="setEstado('${p.id}','descartada')">✕ Descartar</button>
         </div>`}
@@ -406,7 +431,7 @@
     const { error } = await sb.from('propuestas_acciones').update({estado}).eq('id',id);
     if(error){ toast('Error: '+error.message); return; }
     const p=TODAS.find(x=>x.id===id); if(p) p.estado=estado;
-    render(); toast(estado==='aprobada'?'✓ Aprobada':estado==='descartada'?'Descartada':'Guardado');
+    render(); toast(estado==='aprobada'?'✓ Aprobada. Queda en "Sin cargar al manual" hasta que la cargues.':estado==='descartada'?'Descartada':'Guardado');
   }
   async function pedirCambios(id){
     const p=TODAS.find(x=>x.id===id);

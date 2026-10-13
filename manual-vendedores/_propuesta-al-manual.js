@@ -14,11 +14,12 @@
   // El proveedor eligió rubro › sección › subsección por NOMBRE. Se buscan esas
   // secciones en el manual del rubro (Mendoza y San Luis) y la acción se carga:
   //  · como FECHA ESPECIAL (acciones_fechas) si esa sección muestra el calendario
-  //    de fechas (herramienta calendario_fechas, en ella o en su sección madre);
+  //    de fechas (herramienta calendario_fechas o "Calendario" — en restaurantes es la
+  //    subsección fe_fechas —, en ella o en su sección madre);
   //  · si no, como CAMPAÑA (acciones_mensuales), que la visita muestra en la sección marcada.
   // Queda segmentada a esas secciones (secciones uuid[]), sin limitar la zona.
   async function ubicar(sb, p) {
-    const { data, error } = await sb.from('checklist_secciones').select('id,zona,nombre,parent_id,especial,activa').eq('canal', p.rubro);
+    const { data, error } = await sb.from('checklist_secciones').select('id,zona,nombre,codigo,parent_id,especial,activa').eq('canal', p.rubro);
     if (error) throw error;
     const S = (data || []).filter(s => s.activa !== false);
     const madres = S.filter(s => !s.parent_id && nrm(s.nombre) === nrm(p.seccion));
@@ -26,8 +27,12 @@
     const destino = hojas.length ? hojas : madres;
     // ¿Dónde está el calendario de fechas? En la sección elegida; si no lo tiene, en su
     // madre (así no queda repetida en dos calendarios cuando las dos lo tienen).
-    let cal = destino.filter(s => s.especial === 'calendario_fechas');
-    if (!cal.length) cal = madres.filter(m => m.especial === 'calendario_fechas' && destino.some(d => d.parent_id === m.id));
+    // (13/10/2026) También el calendario de restaurantes: subsección fe_fechas o herramienta
+    // w:calendario. Antes la de Día de la Madre de restaurantes entraba como campaña y el
+    // calendario de abajo seguía diciendo "Sin fechas especiales".
+    const esCal = s => s.especial === 'calendario_fechas' || s.especial === 'w:calendario' || s.codigo === 'fe_fechas';
+    let cal = destino.filter(esCal);
+    if (!cal.length) cal = madres.filter(m => esCal(m) && destino.some(d => d.parent_id === m.id));
     return { destino, calendario: cal.length > 0, ids: [...new Set(destino.concat(cal).map(s => s.id))],
              zonas: [...new Set(destino.map(s => s.zona))], slPropio: S.some(s => s.zona === 'sanluis'),
              subFaltante: !!(p.subseccion && !hojas.length && madres.length) };
