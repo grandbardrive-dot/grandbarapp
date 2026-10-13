@@ -120,6 +120,36 @@ exports.handler = async (event) => {
         return patch('reclamos', 'id=eq.' + encodeURIComponent(b.id),
           { estado: b.estado, updated_at: new Date().toISOString() }, 'Ese reclamo');
       }
+      // Responderle al cliente en su reclamo: se guarda como mensaje nuestro
+      // (autor='admin') y el cliente lo ve en su portal, en el mismo chat.
+      if (b.accion === 'reclamo-responder') {
+        const texto = String(b.texto || '').trim();
+        if (!b.id) return json(400, { error: 'Falta el reclamo.' });
+        if (!texto && !b.archivo_base64) return json(400, { error: 'Escribí un mensaje o adjuntá un archivo.' });
+        // Adjunto opcional: lo subimos al bucket público con la llave del servidor.
+        let archivo_url = null;
+        if (b.archivo_base64) {
+          let bytes; try { bytes = Buffer.from(String(b.archivo_base64).replace(/^data:[^,]*,/, ''), 'base64'); } catch (_) { bytes = null; }
+          if (!bytes || !bytes.length) return json(400, { error: 'El archivo adjunto es inválido.' });
+          if (bytes.length > 5 * 1024 * 1024) return json(413, { error: 'El adjunto es muy grande (máx 5 MB).' });
+          const mime = String(b.archivo_mime || 'application/octet-stream').split(';')[0];
+          const m = String(b.archivo_nombre || '').match(/\.([a-z0-9]{1,5})$/i);
+          const ext = m ? m[1].toLowerCase() : ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' }[mime] || 'bin');
+          const path = 'reclamos/' + encodeURIComponent(b.id) + '/' + Date.now() + '.' + ext;
+          const up = await fetch(COB_URL + '/storage/v1/object/comprobantes/' + path, {
+            method: 'POST', headers: { apikey: service, Authorization: 'Bearer ' + service, 'Content-Type': mime, 'x-upsert': 'true' }, body: bytes });
+          if (!up.ok) return json(502, { error: 'No se pudo subir el adjunto: ' + (await up.text()).slice(0, 150) });
+          archivo_url = COB_URL + '/storage/v1/object/public/comprobantes/' + path;
+        }
+        const ins = await cob('reclamos_mensajes', { method: 'POST', headers: { Prefer: 'return=representation' },
+          body: JSON.stringify({ reclamo_id: b.id, autor: 'admin', texto: texto || null, archivo_url }) });
+        const filas = await ins.json();
+        if (!ins.ok) return json(400, { error: (filas && filas.message) || 'No se pudo enviar la respuesta.' });
+        // Bump de updated_at (para que suba en la lista) y, si estaba 'abierto', pasa a 'en_curso'.
+        await cob('reclamos?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', body: JSON.stringify({ updated_at: new Date().toISOString() }) });
+        await cob('reclamos?id=eq.' + encodeURIComponent(b.id) + '&estado=eq.abierto', { method: 'PATCH', body: JSON.stringify({ estado: 'en_curso' }) });
+        return json(200, { ok: true, mensaje: filas[0] || null });
+      }
       return json(400, { error: 'Acción desconocida: ' + b.accion });
     }
 

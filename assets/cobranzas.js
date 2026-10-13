@@ -883,10 +883,14 @@ function recPintarDetalle(d) {
   const firma = JSON.stringify([r.estado, r.updated_at, (d.mensajes || []).map(m => m.id || m.created_at)]);
   if (box.dataset.firma === firma) return; // nada nuevo: no repintar
   const primera = !box.dataset.firma;
+  // Si Brenda estaba escribiendo una respuesta y llega un mensaje nuevo, no perderla.
+  const taPrev = document.getElementById('r-resp');
+  const borrador = taPrev ? taPrev.value : '';
   box.dataset.firma = firma;
+  const est = r.estado || 'abierto';
   box.innerHTML = `
       <div class="head"><div><h1>${cesc(r.asunto || 'Reclamo')}</h1>
-        <div class="head-sub">${cesc((r.cliente && (r.cliente.comercio || r.cliente.nombre)) || '')}${r.factura ? ' · factura ' + cesc(r.factura) : ''}</div></div></div>
+        <div class="head-sub">${cesc((r.cliente && (r.cliente.comercio || r.cliente.nombre)) || '')}${r.factura ? ' · factura ' + cesc(r.factura) : ''} · <b>${cesc(COB_REC_LBL[est] || est)}</b></div></div></div>
       ${(d.mensajes || []).length ? d.mensajes.map(m => `
         <article class="hh" style="margin-left:${m.autor === 'admin' ? '40px' : '0'}">
           <div class="hh-top"><span class="hh-ico">${m.autor === 'admin' ? '🏢' : '👤'}</span>
@@ -894,11 +898,55 @@ function recPintarDetalle(d) {
             <span class="pd-cuando">${cfec(m.created_at)}</span></div>
           ${m.texto ? `<div class="pd-detalle">${cesc(m.texto)}</div>` : ''}
           ${m.archivo_url ? `<div class="pd-acts"><a class="cb-b" href="${cesc(m.archivo_url)}" target="_blank" rel="noopener">📎 Ver adjunto</a></div>` : ''}
-        </article>`).join('') : `<div class="pv-vacio">Sin mensajes.</div>`}
-      <div class="aviso"><span>✍️</span><div>Para <b>responderle al cliente</b> hay que entrar al sistema de cobranzas: la respuesta le
-        dispara un aviso por WhatsApp, y esa parte todavía no está en el Portal.</div></div>`;
-  // Si llegó un mensaje nuevo mientras se leía, bajar hasta el final para verlo.
-  if (!primera) box.lastElementChild && box.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        </article>`).join('') : `<div class="pv-vacio">Todavía no hay mensajes en este reclamo. Podés escribirle al cliente acá abajo.</div>`}
+      <div id="r-err" class="aviso" style="display:none;background:#fde8e8;border-color:#f3b4b4"></div>
+      <div class="rec-resp" style="margin-top:16px;border-top:1px solid var(--line,#e6e6e6);padding-top:14px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px">✍️ Responderle al cliente</div>
+        <textarea id="r-resp" rows="3" placeholder="Escribí tu respuesta… la va a ver en su portal, en este mismo reclamo." style="width:100%;box-sizing:border-box;border:1px solid var(--line,#ccc);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;resize:vertical"></textarea>
+        <input type="file" id="r-file" accept="image/*,application/pdf" style="display:none" onchange="recAdjNombre(this)">
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">
+          <button class="cb-b" type="button" onclick="document.getElementById('r-file').click()">📎 Adjuntar</button>
+          <span id="r-adj-nom" style="font-size:12px;color:var(--muted,#777)"></span>
+          <span style="flex:1"></span>
+          <button class="btn-gold" id="r-send" type="button" onclick="recResponder('${r.id}')" style="padding:9px 18px">Enviar respuesta</button>
+        </div>
+      </div>
+      <div class="pd-acts" style="margin-top:14px">
+        ${est !== 'resuelto' ? `<button class="cb-b ok" onclick="cobEstadoReclamo('${r.id}','resuelto',this)">✅ Marcar resuelto</button>` : ''}
+        ${est === 'abierto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','en_curso',this)">▶️ Marcar en curso</button>` : ''}
+        ${est === 'resuelto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','abierto',this)">↩️ Reabrir</button>` : ''}
+      </div>`;
+  const ta = document.getElementById('r-resp'); if (ta && borrador) ta.value = borrador;
+}
+
+// Muestra el nombre del archivo elegido para adjuntar en la respuesta del reclamo.
+function recAdjNombre(input) {
+  const n = document.getElementById('r-adj-nom'); if (!n) return;
+  n.textContent = input.files && input.files[0] ? ('📎 ' + input.files[0].name) : '';
+}
+
+// Enviar la respuesta al cliente: se guarda en el reclamo (lo ve en su portal).
+async function recResponder(id) {
+  const ta = document.getElementById('r-resp'), file = document.getElementById('r-file'), send = document.getElementById('r-send'), err = document.getElementById('r-err');
+  const texto = (ta && ta.value || '').trim();
+  const f = file && file.files && file.files[0];
+  const aviso = (t) => { if (err) { err.textContent = t; err.style.display = t ? 'block' : 'none'; } };
+  if (!texto && !f) { if (ta) ta.focus(); return; }
+  if (f && f.size > 5 * 1024 * 1024) { aviso('El adjunto es muy grande (máx 5 MB).'); return; }
+  aviso(''); if (send) { send.disabled = true; send.textContent = 'Enviando…'; }
+  try {
+    const payload = { accion: 'reclamo-responder', id, texto };
+    if (f) {
+      payload.archivo_base64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).replace(/^data:[^,]*,/, '')); fr.onerror = rej; fr.readAsDataURL(f); });
+      payload.archivo_mime = f.type; payload.archivo_nombre = f.name;
+    }
+    await cobApi('', { method: 'POST', body: JSON.stringify(payload) });
+    const det = cq('r-det'); if (det) det.dataset.firma = ''; // forzar repintado con el mensaje nuevo
+    recPintarDetalle(await cobApi('?que=reclamos&id=' + encodeURIComponent(id)));
+  } catch (e) {
+    aviso('No se pudo enviar: ' + (e.message || e));
+    if (send) { send.disabled = false; send.textContent = 'Enviar respuesta'; }
+  }
 }
 
 function cobEstadoReclamo(id, estado, btn) {
