@@ -10,6 +10,13 @@
 --
 -- El 14/10 se aplicó por primera vez: 225 clientes volvieron a verse (6 de Ángeles
 -- Laurito). Respaldo de cómo estaban antes: tabla _backup_reactivados_1410 (cerrada).
+--
+-- ACTUALIZACIÓN 14/10/2026 (tarde), pedido del dueño: esos 225 se volvieron a ocultar
+-- (migración "clientes_revertir_reactivados_y_corte") y la regla ahora tiene un CORTE:
+-- solo cuenta una compra posterior al 14/10/2026 (c_corte). Las compras de antes no
+-- reactivan a nadie; desde el 15/10, el que compra vuelve a aparecer en la próxima hora
+-- (las ventas del día entran cada 20 min). Lo de abajo es la versión SIN corte: la vigente
+-- es la de la migración nueva (pg_get_functiondef('public.reactivar_clientes_que_compraron'::regproc)).
 
 -- 1. Desde cuándo está oculto cada cliente.
 alter table public.clientes add column if not exists oculto_desde date;
