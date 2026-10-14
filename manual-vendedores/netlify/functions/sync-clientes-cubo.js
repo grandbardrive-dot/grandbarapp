@@ -285,8 +285,19 @@ async function sincronizar(modo, t0 = Date.now()) {
     return informe;
 }
 
+// Clientes ocultos que volvieron a comprar → vuelven a verse en el manual (14/10/2026).
+// Cuenta la compra posterior al día en que se ocultó (también si lo ocultó el vendedor
+// con el botón). La regla vive en la base: reactivar_clientes_que_compraron().
+async function reactivarCompradores() {
+  const r = await man('rpc/reactivar_clientes_que_compraron', { method: 'POST', body: '{}' });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('reactivar_clientes_que_compraron ' + r.status + ' ' + JSON.stringify(d).slice(0, 200));
+  return d;
+}
+
 exports.calcular = calcular;         // para probar el cálculo sin conectarse a CUBO
 exports.sincronizar = sincronizar;   // la usa sync-clientes-cron
+exports.reactivarCompradores = reactivarCompradores;   // la usa sync-clientes-cron
 
 // Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
 module.exports.handler = require('./_errores').conErrores('sync-clientes-cubo', module.exports.handler);

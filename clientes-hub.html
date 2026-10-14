@@ -287,7 +287,7 @@
     const nuevo = !esActivo(c);
     // Sacar de la cartera hace desaparecer al cliente de la lista, así que se
     // confirma. Desde el 25/09/2026 se puede volver atrás en la pestaña Quitados.
-    if(!nuevo && !confirm('¿Sacar a "'+(c.nombre||'este cliente')+'" de la cartera?\n\nDeja de aparecer en tu lista de clientes. Lo podés volver a sumar desde la pestaña Quitados.')) return;
+    if(!nuevo && !confirm('¿Sacar a "'+(c.nombre||'este cliente')+'" de la cartera?\n\nDeja de aparecer en tu lista de clientes. Lo podés volver a sumar desde la pestaña Quitados. Si vuelve a comprar, aparece solo.')) return;
     c.activo = nuevo;
     sel=-1; renderList();
     const revertir = msg => { c.activo = !nuevo; renderList(); avisoFicha(msg||'No se pudo guardar el cambio. Reintentá.'); };
