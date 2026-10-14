@@ -59,6 +59,16 @@
   .evi .efs a{width:68px;height:68px;border-radius:8px;overflow:hidden;background:var(--cream);display:block}
   .evi .efs img{width:100%;height:100%;object-fit:cover;display:block}
   .evi .eco{font-size:13px;margin-top:6px;background:var(--cream);border-radius:8px;padding:6px 9px;white-space:pre-wrap}
+  /* Materiales en GrandBar (14/10/2026) */
+  .mat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .mat{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .mat .mf{display:block;aspect-ratio:1/1;background:#fbf9f4;border-bottom:1px solid var(--line2)}
+  .mat .mf img{width:100%;height:100%;object-fit:contain;display:block}
+  .mat .mf.sin{display:grid;place-items:center;color:var(--muted);font-size:12px}
+  .mat .mx{padding:9px 10px 11px;display:flex;flex-direction:column;gap:5px;flex:1}
+  .mat .mn{font-weight:700;font-size:13.5px;line-height:1.3}
+  .mat .ms{align-self:flex-start;font-size:12px;font-weight:800;color:var(--green-d);background:var(--green-s);border-radius:20px;padding:3px 9px}
+  .mat .mi{font-size:11.5px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -89,6 +99,9 @@
 
     <h2 id="evidencias">Evidencias de mis acciones</h2>
     <div id="evid"><div class="empty">Cargando…</div></div>
+
+    <h2 id="materiales">Materiales en GrandBar</h2>
+    <div id="mats"><div class="empty">Cargando…</div></div>
 
     <h2>Mis acciones mensuales</h2>
     <div id="amList"><div class="empty">Cargando…</div></div>
@@ -190,6 +203,8 @@ async function cargarBanner(){
   cargarAccionesMensuales();
   cargarPropuestas();
   cargarEvidencias();
+  cargarMateriales();
+  if(location.hash==='#materiales') setTimeout(()=>{ const h=$('materiales'); if(h) h.scrollIntoView({behavior:'smooth'}); },600);
   if(location.hash==='#evidencias') setTimeout(()=>{ const h=$('evidencias'); if(h) h.scrollIntoView({behavior:'smooth'}); },600);
 })();
 
@@ -268,6 +283,40 @@ async function subirAM(){
   }catch(e){ msg('No se pudo enviar: '+(e.message||e),'var(--danger)'); btn.disabled=false; }
 }
 window.subirAM=subirAM;
+// ── Materiales en GrandBar (14/10/2026) ──────────────────────────────────────
+// El material POP de la marca que hay en el depósito, con el stock de hoy. Lo carga
+// Marketing en Materiales; la función proveedor-materiales devuelve solo lo de esta
+// empresa (activo, con stock y visible).
+const UNIDAD_PL={unidad:'unidades',kit:'kits',caja:'cajas',pack:'packs',par:'pares',juego:'juegos'};
+const cantidad=(n,u)=>{ u=String(u||'unidad').toLowerCase(); return n.toLocaleString('es-AR')+' '+(n===1?u:(UNIDAD_PL[u]||u+'s')); };
+async function cargarMateriales(){
+  const cont=$('mats');
+  try{
+    const { data:{ session } }=await hub.auth.getSession();
+    const r=await fetch('/.netlify/functions/proveedor-materiales',{headers:{Authorization:'Bearer '+(session&&session.access_token)}});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error||'error');
+    const mats=d.materiales||[];
+    if(!mats.length){ cont.innerHTML='<div class="empty">Todavía no hay materiales de '+esc(PROV.empresa)+' cargados en GrandBar.<br>Cuando llegue material POP de tu marca y lo carguemos en el depósito, aparece acá con su stock.</div>'; return; }
+    // Agrupados por línea cuando hay más de una
+    const grupos=new Map();
+    mats.forEach(m=>{ const k=m.linea||''; if(!grupos.has(k)) grupos.set(k,[]); grupos.get(k).push(m); });
+    const claves=[...grupos.keys()].sort((a,b)=>(a===''?1:b===''?-1:a.localeCompare(b,'es')));
+    const conTitulos=claves.length>1;
+    const tarjeta=m=>`<div class="mat">
+      ${m.foto?`<a class="mf" href="${esc(m.foto)}" target="_blank" rel="noopener" title="Ver la foto"><img src="${esc(m.foto)}" alt="${esc(m.nombre)}" loading="lazy"></a>`:'<div class="mf sin">Sin foto</div>'}
+      <div class="mx">
+        <div class="mn">${esc(m.nombre)}</div>
+        <span class="ms">${esc(cantidad(m.stock,m.unidad))}</span>
+        ${m.usado?`<div class="mi">Estado: ${esc(m.usado)}</div>`:''}
+        ${m.ingreso?`<div class="mi">Ingresó el ${fFecha(m.ingreso+'T12:00:00')}</div>`:''}
+      </div>
+    </div>`;
+    cont.innerHTML=`<div class="evi-res">${mats.length} ${mats.length===1?'material':'materiales'} con stock en el depósito de GrandBar, al día de hoy.</div>`
+      +claves.map(k=>(conTitulos?`<div class="evi-sub">${esc(k||'Otros materiales')} · ${grupos.get(k).length}</div>`:'')+`<div class="mat-grid">${grupos.get(k).map(tarjeta).join('')}</div>`).join('');
+  }catch(e){ cont.innerHTML='<div class="empty">No se pudieron cargar los materiales. Probá de nuevo en un rato.</div>'; }
+}
+
 async function cargarAccionesMensuales(){
   try{
     const { data }=await sb.from('acciones_prov_mensuales').select('*').eq('proveedor_empresa',PROV.empresa).order('created_at',{ascending:false}).limit(40);
