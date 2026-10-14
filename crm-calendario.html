@@ -99,7 +99,7 @@
 <body>
   <div class="top">
     <div class="b"><span class="g">Grand</span>Bar · CRM</div>
-    <a class="back" href="mi-panel.html">← Mi panel</a>
+    <a class="back" id="volver" href="mi-panel.html">← Mi panel</a>
     <div class="me" id="me">—</div>
   </div>
 
@@ -205,6 +205,16 @@
 
   (async()=>{
     const s = await GBAuth.requireAuth(); if(!s) return;
+    // Solo Diseño (Josefina), Desarrollo (Nahuel), Compras (Luciana) y Trade Marketing
+    // (Juan Pablo Sepúlveda). La base tiene la misma regla (14/10/2026).
+    const PANEL = { diseno: 'mi-panel.html', desarrollo: 'panel-desarrollo.html',
+                    compras: 'manual-vendedores/admin-comercial.html', torneo: 'trade-acciones.html' };
+    const rol = String(s.role || '').toLowerCase();
+    if(!s.demo && !PANEL[rol]){
+      document.querySelector('.wrap').innerHTML = '<div style="text-align:center;color:var(--muted);padding:60px 16px">Este calendario es del equipo de Diseño, Desarrollo, Compras y Trade Marketing.<br><a href="hub.html" style="color:var(--gold-d);font-weight:700">Volver al Hub</a></div>';
+      return;
+    }
+    if(PANEL[rol]) $('volver').href = PANEL[rol];
     sb = GBAuth.client;
     YO = s.nombre || (s.user && s.user.email) || 'GrandBar';
     $('me').textContent = YO;

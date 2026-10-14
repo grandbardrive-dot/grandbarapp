@@ -94,6 +94,8 @@
     ]},
     { titulo: 'Lo mío', items: [
       { h: 'admin-agenda.html', t: 'Mi agenda', i: 'agenda' },
+      // Compartido con Josefina, Nahuel y Juan Pablo Sepúlveda (14/10/2026).
+      { h: '/crm-calendario.html', t: 'Calendario CRM', s: 'Acciones por rubro', i: 'fechas' },
       { h: 'admin-reportes.html', t: 'Mis reportes', s: 'Para Dirección', i: 'resultados' },
     ]},
   ];

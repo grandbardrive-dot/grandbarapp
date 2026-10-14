@@ -67,6 +67,7 @@ function montarPanel(cfg) {
       <div class="sb-spacer"></div>
       <a class="sb-item" href="auditoria-tareas.html"><span class="i">✅</span> Tareas de la auditoría</a>
       <a class="sb-item" href="mi-agenda.html"><span class="i">📅</span> Mi agenda</a>
+      <a class="sb-item" href="crm-calendario.html"><span class="i">🗓️</span> Calendario CRM</a>
       <a class="sb-item" href="${otro.r}"><span class="i">${otro.i}</span> ${otro.n}</a>
       <a class="sb-item" href="hub.html"><span class="i">←</span> Volver al Hub</a>
       <div class="sb-pie">Los paneles de Diseño y Desarrollo tienen exactamente lo mismo: cambia el nombre, nada más.</div>
