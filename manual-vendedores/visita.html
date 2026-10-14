@@ -5091,29 +5091,28 @@ body { background:transparent !important; }
   // una línea en los últimos 6 meses (ventas_cliente, negro + blanco del ERP), esa
   // línea NO se le ofrece hasta que pasen los 6 meses. Las líneas sin SKU cargado
   // se muestran siempre. Cruce por cliente.codigo_cliente + propuestas_incorporacion.sku.
-  // Es el ÚNICO lugar a tocar: el render ya pasa por esta función.
-  let _skus6m = null;
-  async function _skusComprados6m() {
-    if (_skus6m) return _skus6m;
-    _skus6m = new Set();
+  // Consulta SOLO los SKU de estas propuestas (no todas las ventas): así no se corta
+  // en el tope de 1000 filas de PostgREST y es más liviano. Es el ÚNICO lugar a tocar.
+  const _splitSku = s => String(s || '').split(/[,;\s]+/).map(x => x.trim()).filter(Boolean);
+  async function filtrarPropuestasPorCliente(propuestas, clienteId) {
     const cod = String(cliente.codigo_cliente || '').trim();
-    if (!cod) return _skus6m;
+    if (!cod) return propuestas;
+    const skusInteres = [...new Set(propuestas.flatMap(p => _splitSku(p.sku)))];
+    if (!skusInteres.length) return propuestas;   // ninguna línea tiene SKU: se ofrecen todas
+    const comprados = new Set();
     try {
       const desde = new Date(); desde.setMonth(desde.getMonth() - 6);
       const d = desde.toISOString().slice(0, 10);
       const { data } = await sb.from('ventas_cliente')
-        .select('sku').eq('cliente_codigo', cod).gt('unidades', 0).gte('fecha', d);
-      (data || []).forEach(r => { if (r.sku != null) _skus6m.add(String(r.sku).trim()); });
-    } catch (e) { /* sin ventas: no se filtra nada */ }
-    return _skus6m;
-  }
-  async function filtrarPropuestasPorCliente(propuestas, clienteId) {
-    const recientes = await _skusComprados6m();
-    if (!recientes.size) return propuestas;
+        .select('sku').eq('cliente_codigo', cod).gt('unidades', 0).gte('fecha', d)
+        .in('sku', skusInteres);
+      (data || []).forEach(r => { if (r.sku != null) comprados.add(String(r.sku).trim()); });
+    } catch (e) { return propuestas; }            // sin ventas / error: no se filtra nada
+    if (!comprados.size) return propuestas;
     return propuestas.filter(p => {
-      const skus = String(p.sku || '').split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
+      const skus = _splitSku(p.sku);
       if (!skus.length) return true;              // sin SKU cargado: se ofrece siempre
-      return !skus.some(s => recientes.has(s));   // compró alguno en 6 meses → no se ofrece
+      return !skus.some(s => comprados.has(s));   // compró alguno en 6 meses → no se ofrece
     });
   }
 
