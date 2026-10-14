@@ -1,8 +1,8 @@
 // ============================================================
 //  GrandBar · _evidencia-accion.js  (14/10/2026)
 //  Evidencia de las acciones de Luciana en la visita: campañas, planes, fechas
-//  especiales, catálogo de clientes, vinos sobre la mesa, punteras, volumen y
-//  degustaciones. Las que Luciana marcó "Requiere evidencia" tienen
+//  especiales, vinos sobre la mesa, punteras, volumen y degustaciones (el catálogo
+//  de clientes no lleva evidencia). Las que Luciana marcó "Requiere evidencia" tienen
 //  "📷 Cargar evidencia" (fotos + comentario); las demás, no.
 //  El día del cierre el pedido todavía no llegó: la evidencia se carga en la visita
 //  siguiente. Por eso la Introducción muestra "Evidencias pendientes": lo que se
@@ -18,7 +18,7 @@
 (function () {
   if (window.GBEvid) return;
   var FN = '/.netlify/functions/acciones-evidencias';
-  var TIPO = { campania: 'Campaña', plan: 'Plan', fecha: 'Fecha especial', catalogo: 'Catálogo', vino_mesa: 'Sobre la mesa', puntera: 'Puntera', volumen: 'Acción de volumen', degustacion: 'Degustación' };
+  var TIPO = { campania: 'Campaña', plan: 'Plan', fecha: 'Fecha especial', vino_mesa: 'Sobre la mesa', puntera: 'Puntera', volumen: 'Acción de volumen', degustacion: 'Degustación' };
   // Estados del carrito que significan "el cliente cerró la acción".
   var CIERRAN = /^(aceptada|cerrada|oferta|incorporaci|agregad)/i;
   var MAX_FOTOS = 3;

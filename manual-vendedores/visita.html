@@ -1851,7 +1851,7 @@ body { background:transparent !important; }
 <script src="_checklist-data.js?v=5"></script>
 <script src="_torneo.js"></script>
 <script src="_acciones-render.js?v=6"></script>
-<script src="_evidencia-accion.js?v=2"></script>
+<script src="_evidencia-accion.js?v=3"></script>
 <script src="_celebracion.js"></script>
 <script src="_disco-tools.js"></script>
 <script>
@@ -6354,9 +6354,8 @@ body { background:transparent !important; }
             <input class="oferta-qty-input" type="number" min="1" inputmode="numeric" value="${qSel}"
                    oninput="ofertaSyncCart(this.closest('.oferta-card'))">
           </div>
-          <button class="oferta-add ${added ? 'added' : ''}" data-seccion="${esc(label)}" data-nombre="${esc(o.producto)}" data-catid="${esc(o.id || '')}" data-catev="${o.requiere_evidencia ? '1' : ''}"
+          <button class="oferta-add ${added ? 'added' : ''}" data-seccion="${esc(label)}" data-nombre="${esc(o.producto)}"
             onclick="toggleOfertaCarrito(this)">${added ? '✓' : '+'}</button>
-          ${o.id ? `<div class="oferta-evid-btn">${(window.GBEvid ? GBEvid.boton({ t: 'catalogo', id: o.id, titulo: o.producto, prov: o.bodega, req: o.requiere_evidencia === true }) : '')}</div>` : ''}
         </div>`;
     }).join('');
     const m = document.getElementById('ofertas-modal');
@@ -6407,8 +6406,7 @@ body { background:transparent !important; }
       if (card) card.classList.remove('added-card');
     } else {
       const { unidad, cantidad } = _ofertaQty(card);
-      const it = cartAdd(seccion, nombre, 'Oferta', cantidad, unidad);
-      if (it && btn.dataset.catid) it.origen = { t: 'catalogo', id: btn.dataset.catid, ev: btn.dataset.catev === '1' };
+      cartAdd(seccion, nombre, 'Oferta', cantidad, unidad);
       btn.classList.add('added'); btn.textContent = '✓';
       if (card) card.classList.add('added-card');
       showToast(`🛒 Agregada: ${nombre} (${cantidad} ${unidad})`, 'success');

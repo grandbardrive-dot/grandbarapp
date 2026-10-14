@@ -19,8 +19,6 @@ const HUB_URL = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const MAN_URL = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_KEY = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
-const CAT_URL = 'https://zlwnoqdxendsgbfvfyue.supabase.co';
-const CAT_KEY = 'sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4';
 const BUCKET = 'acciones-evidencias';
 const MAX_FOTOS = 3, MAX_BYTES = 3 * 1024 * 1024;
 
@@ -44,7 +42,6 @@ const TIPOS = {
   campania:    { db: 'man', tabla: 'acciones_mensuales', sel: 'id,producto,accion,proveedor,requiere_evidencia', m: r => ({ titulo: r.producto, condicion: r.accion, proveedor: r.proveedor }) },
   plan:        { db: 'man', tabla: 'checklist_planes',   sel: 'id,nombre,condicion,proveedor,requiere_evidencia', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
   fecha:       { db: 'man', tabla: 'acciones_fechas',    sel: 'id,nombre,condicion,propuesta_id,requiere_evidencia', m: r => ({ titulo: r.nombre, condicion: r.condicion, propuesta_id: r.propuesta_id }) },
-  catalogo:    { db: 'cat', tabla: 'catalogo_acciones',  sel: 'id,nombre_producto,mecanica,proveedor_id,requiere_evidencia', m: r => ({ titulo: r.nombre_producto, condicion: r.mecanica, proveedor_id: r.proveedor_id }) },
   vino_mesa:   { db: 'hub', tabla: 'vinos_sobre_mesa',   sel: 'id,nombre,condicion,proveedor,requiere_evidencia', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
   puntera:     { db: 'hub', tabla: 'acciones_herramientas', sel: 'id,nombre,condicion,proveedor,requiere_evidencia', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
   volumen:     { db: 'hub', tabla: 'acciones_herramientas', sel: 'id,nombre,condicion,proveedor,requiere_evidencia', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
@@ -66,7 +63,6 @@ exports.handler = async (event) => {
     const st = (path, opts = {}) => fetch(HUB_URL + '/storage/v1/' + path, { ...opts, headers: cab(opts.headers) });
     const leer = async (base, key, path) => { const r = await fetch(base + '/rest/v1/' + path, { headers: { apikey: key, Authorization: 'Bearer ' + key } }); return r.ok ? r.json() : []; };
     const man = path => leer(MAN_URL, MAN_KEY, path);
-    const cat = path => leer(CAT_URL, CAT_KEY, path);
     const hub = async path => { const r = await sb(path); return r.ok ? r.json() : []; };
 
     const perfil = (await hub('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=nombre,rol,empresa,codigo_vendedor,activo'))[0] || {};
@@ -147,12 +143,11 @@ exports.handler = async (event) => {
 
     // La acción, de la base.
     const path = T.tabla + '?id=eq.' + encodeURIComponent(aid) + '&select=' + T.sel;
-    const fila = (T.db === 'man' ? await man(path) : T.db === 'cat' ? await cat(path) : await hub(path))[0];
+    const fila = (T.db === 'man' ? await man(path) : await hub(path))[0];
     if (!fila) return json(404, { error: 'No encontré la acción (¿la sacaron?).' });
     // Solo las acciones que Luciana marcó "Requiere evidencia" (14/10/2026).
     if (fila.requiere_evidencia !== true) return json(400, { error: 'Esta acción no pide evidencia.' });
     const acc = T.m(fila);
-    if (b.tipo === 'catalogo' && acc.proveedor_id) acc.proveedor = ((await cat('catalogo_proveedores?id=eq.' + encodeURIComponent(acc.proveedor_id) + '&select=nombre'))[0] || {}).nombre || null;
     if (b.tipo === 'fecha' && esUuid(acc.propuesta_id)) acc.proveedor = ((await man('propuestas_acciones?id=eq.' + acc.propuesta_id + '&select=autor_empresa,autor_nombre'))[0] || {}).autor_empresa || null;
 
     // El cliente, de la base.
