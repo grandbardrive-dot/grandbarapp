@@ -5077,12 +5077,34 @@ body { background:transparent !important; }
     return _propTextos;
   }
 
-  // HOY devuelve todas las propuestas, sin filtrar.
-  // TODO(filtro-6-meses): cuando exista el Google Sheet por cliente (estilo 5T),
-  // filtrar acá las propuestas que el cliente ya compró en los últimos 6 meses.
-  // Es el ÚNICO lugar a tocar: el render ya pasa por esta función, sin importar proveedor/grupo.
-  function filtrarPropuestasPorCliente(propuestas, clienteId) {
-    return propuestas;
+  // Regla de incorporación por SKU (cada 6 meses): si el cliente compró el SKU de
+  // una línea en los últimos 6 meses (ventas_cliente, negro + blanco del ERP), esa
+  // línea NO se le ofrece hasta que pasen los 6 meses. Las líneas sin SKU cargado
+  // se muestran siempre. Cruce por cliente.codigo_cliente + propuestas_incorporacion.sku.
+  // Es el ÚNICO lugar a tocar: el render ya pasa por esta función.
+  let _skus6m = null;
+  async function _skusComprados6m() {
+    if (_skus6m) return _skus6m;
+    _skus6m = new Set();
+    const cod = String(cliente.codigo_cliente || '').trim();
+    if (!cod) return _skus6m;
+    try {
+      const desde = new Date(); desde.setMonth(desde.getMonth() - 6);
+      const d = desde.toISOString().slice(0, 10);
+      const { data } = await sb.from('ventas_cliente')
+        .select('sku').eq('cliente_codigo', cod).gt('unidades', 0).gte('fecha', d);
+      (data || []).forEach(r => { if (r.sku != null) _skus6m.add(String(r.sku).trim()); });
+    } catch (e) { /* sin ventas: no se filtra nada */ }
+    return _skus6m;
+  }
+  async function filtrarPropuestasPorCliente(propuestas, clienteId) {
+    const recientes = await _skusComprados6m();
+    if (!recientes.size) return propuestas;
+    return propuestas.filter(p => {
+      const skus = String(p.sku || '').split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
+      if (!skus.length) return true;              // sin SKU cargado: se ofrece siempre
+      return !skus.some(s => recientes.has(s));   // compró alguno en 6 meses → no se ofrece
+    });
   }
 
   // Lista de productos con botón [+]/✓. cartLabel = sección con la que entra al carrito.
@@ -5110,7 +5132,7 @@ body { background:transparent !important; }
       const uuidSec = (buscarSec(secId) || {})._uuid;
       props = (data || []).filter(p => segVa(p, uuidSec) && (segMarcado(p) || !categoria || p.categoria === categoria));
     } catch {}
-    props = filtrarPropuestasPorCliente(props, cliente.id);
+    props = await filtrarPropuestasPorCliente(props, cliente.id);
     const textosProv = await _getPropTextos();
     props.forEach(p => marcarOfrecido(p.nombre, sec));   // Mejora 3: registrar lo ofrecido
     if (!props.length) { el.innerHTML = `<div class="prop-loading">Todavía no hay propuestas de incorporación cargadas para esta sección.</div>`; return; }
