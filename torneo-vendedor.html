@@ -494,7 +494,7 @@
         if (forzar) window.mostrar('evid');
         // Los clientes de la cartera, para elegir el punto de venta.
         fetch('/.netlify/functions/cuentas-vendedor', { headers: { Authorization: 'Bearer ' + TOKEN } }).then(x => x.ok ? x.json() : {}).then(j => {
-          CLIENTES = (j.clientes || []).map(c => ({ codigo: String(c.codigo), nombre: c.nombre || '', etiqueta: (c.nombre || '') + ' · ' + c.codigo }));
+          CLIENTES = (j.clientes || []).filter(c => !c.oculto).map(c => ({ codigo: String(c.codigo), nombre: c.nombre || '', etiqueta: (c.nombre || '') + ' · ' + c.codigo }));
           $e('evClientes').innerHTML = CLIENTES.map(c => '<option value="' + esc(c.etiqueta) + '"></option>').join('');
         }).catch(() => {});
       } catch (e) { BLOQUEO = 'No se pudo abrir la carga de activaciones. Probá de nuevo en un rato.'; fin(); }

@@ -709,7 +709,7 @@
 
       // Saldo/deuda reales (cuentas_cubo vía Netlify Function). Aditivo: si falla, no rompe nada.
       try{
-        const fr = await fetch("/.netlify/functions/cuentas-vendedor", { headers:{ Authorization:"Bearer "+session.access_token } });
+        const fr = await fetch("/.netlify/functions/cuentas-vendedor?con_ocultos=1", { headers:{ Authorization:"Bearer "+session.access_token } });
         if(fr.ok){
           const fj = await fr.json();
           (fj.clientes||[]).forEach(cc=>{

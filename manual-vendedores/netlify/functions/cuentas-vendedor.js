@@ -64,6 +64,32 @@ exports.handler = async (event) => {
     // tienda veían menos vencido que el resto en los clientes con saldo a favor.
     clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, Number(c.vencida) || 0) }));
 
+    // 3b) Clientes OCULTOS de la cartera (14/10/2026: los supervisores seguían viendo los que
+    //     ocultaron). Misma regla que la lista de Clientes y el panel del supervisor: manda
+    //     clientes_estado (botón Quitar, por código); si no figura, la columna activo del Manual.
+    //     - Oculto sin deuda: no se devuelve (no aparece en ninguna pantalla).
+    //     - Oculto con deuda: se devuelve con oculto=true (la deuda no se pierde de vista;
+    //       Cobranzas lo marca, y ruta / torneo / mapa lo dejan afuera).
+    //     ?con_ocultos=1 devuelve todos marcados (Mis clientes, pestaña Quitados).
+    try {
+      const MAN_URL = 'https://fzaxwuuodseyyinveknn.supabase.co';
+      const MAN_KEY = process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
+      const man = (p, o) => fetch(MAN_URL + '/rest/v1/' + p, { headers: Object.assign({ apikey: MAN_KEY, Authorization: 'Bearer ' + MAN_KEY }, (o && o.headers) || {}) });
+      const norm = x => (String(x == null ? '' : x).trim().replace(/^0+/, '') || '0');
+      const vend = (await (await man('vendedores?codigo=eq.' + encodeURIComponent(codigo) + '&select=id')).json())[0];
+      const [est, cli] = await Promise.all([
+        traerTodo(man, 'clientes_estado?select=codigo,activo&order=codigo.asc'),
+        vend ? traerTodo(man, 'clientes?vendedor_id=eq.' + vend.id + '&select=codigo_cliente,activo&order=codigo_cliente.asc') : [],
+      ]);
+      const estMap = {}; (Array.isArray(est) ? est : []).forEach(r => { estMap[norm(r.codigo)] = r.activo; });
+      const colMap = {}; (Array.isArray(cli) ? cli : []).forEach(r => { colMap[norm(r.codigo_cliente)] = r.activo; });
+      const oculto = c => { const k = norm(c.codigo); if (k in estMap) return estMap[k] === false; return colMap[k] === false; };
+      const debe = c => (Number(c.saldo) || 0) > 0 || (Number(c.vencida) || 0) > 0;
+      const qp = event.queryStringParameters || {};
+      clientes = clientes.map(c => (oculto(c) ? { ...c, oculto: true } : c))
+        .filter(c => qp.con_ocultos === '1' || !c.oculto || debe(c));
+    } catch (e) { /* si no se puede leer el Manual, se devuelven todas como antes */ }
+
     // 4) Coordenadas + dirección desde clientes_geo (Supabase del Hub, service role).
     //    OJO: clientes_geo.codigo quedó numérico (sin ceros) → cruzamos por número.
     const hubService = process.env.HUB_SERVICE_ROLE;

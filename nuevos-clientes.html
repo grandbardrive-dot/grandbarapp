@@ -126,7 +126,7 @@
       const r = await fetch("/.netlify/functions/cuentas-vendedor", { headers:{ Authorization:"Bearer "+token } });
       const j = await r.json();
       if(j.nombre){ document.getElementById("uName").textContent=j.nombre; document.getElementById("av").textContent=initials(j.nombre); }
-      const geo = (j.clientes||[]).filter(c=>typeof c.lat==="number");
+      const geo = (j.clientes||[]).filter(c=>!c.oculto && typeof c.lat==="number");
       geo.forEach(c=> L.circleMarker([c.lat,c.lng],{ radius:4, color:"#245647", weight:1, fillColor:"#2f6f5e", fillOpacity:.6 }).addTo(mapa).bindPopup(c.nombre+" (cliente)"));
       if(geo.length) mapa.fitBounds(geo.map(c=>[c.lat,c.lng]),{ padding:[30,30], maxZoom:14 });
     }catch(e){}

@@ -440,7 +440,8 @@
       ponerNombre(j.nombre);
       if(!r.ok) return avisoIntro("No se pudieron leer tus clientes" + (j.error ? ": " + j.error : ". Intentá de nuevo en un rato."));
       if(!j.clientes || !j.clientes.length) return avisoIntro("Todavía no tenés clientes cargados en tu cartera.");
-      toRealMode(j.nombre || "Vendedor", j.clientes);
+      // Los ocultos de la cartera no se planifican (14/10/2026).
+      toRealMode(j.nombre || "Vendedor", j.clientes.filter(c => !c.oculto));
     }catch(e){ avisoIntro("No se pudieron leer tus clientes. Revisá la conexión e intentá de nuevo."); }
   }
   document.addEventListener("DOMContentLoaded", planificar);

@@ -95,6 +95,7 @@
     .cli-row .mto .et{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
     .cli-row .mto .nu{font-weight:800;font-size:14.5px}
     .cli-row .mto .nu.rojo{color:#c0392b}
+    .oc-tag{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:800;color:#8a6a1e;background:var(--gold-soft);border-radius:6px;padding:1px 7px;vertical-align:1px}
     .wa{background:var(--green-soft);border:1px solid #bfe3d2;color:var(--green-d);border-radius:9px;padding:7px 11px;font:inherit;font-weight:700;font-size:12px;cursor:pointer;text-decoration:none;white-space:nowrap}
     @media(max-width:820px){ .kpis{grid-template-columns:1fr} .cli-row{grid-template-columns:1fr 1fr;gap:8px} .cli-row .mto{text-align:left} }
   </style>
@@ -286,7 +287,7 @@
       const msg = encodeURIComponent(`Hola! Te escribo de GrandBar por el saldo de tu cuenta${c.vencida>0?` (tenés ${fmtMoney(c.vencida)} vencido)`:""}. ¿Cómo lo coordinamos?`);
       return `<div class="cli-row">
         <div>
-          <div class="nm">${esc(c.nombre||"—")}</div>
+          <div class="nm">${esc(c.nombre||"—")}${c.oculto?`<span class="oc-tag" title="Lo sacaste de tu cartera, pero todavía debe">Oculto de tu cartera</span>`:""}</div>
           <div class="meta">#${esc(c.codigo||"")}${c.localidad?" · "+esc(c.localidad):""}${c.direccion?" · "+esc(c.direccion):""}</div>
         </div>
         <div class="mto"><div class="et">${c.saldo<0?"Saldo a favor":"Saldo"}</div><div class="nu">${fmtMoney(c.saldo<0?-c.saldo:c.saldo)}</div></div>
