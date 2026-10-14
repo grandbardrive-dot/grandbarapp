@@ -42,6 +42,9 @@ function norm(s) {
     .replace(/\s+/g, ' ').trim();
 }
 function tokens(s) { return norm(s).split(' ').filter((t) => t.length >= 3 && !STOP.has(t)); }
+// Artículo con código y que no sea de los rubros 06 (Cheque) ni 14 (ajustes). Igual que
+// dir_es_producto() en la base (dir-ventas-setup.sql).
+const esProducto = (sku) => /^[0-9]/.test(String(sku || '')) && !['06', '14'].includes(String(sku).slice(0, 2));
 
 function mesEnCurso() {
   const d = new Date();
@@ -77,14 +80,20 @@ exports.handler = async (event) => {
       let unidades = 0, importe = 0, costo = 0, impInterno = 0, importeNeto = 0;
       const skus = new Map();
       for (const v of ventas) {
+        // Solo productos: los renglones sin código de artículo ("--------", CUBO les pone la
+        // descripción de otro artículo y no tienen costo) y los rubros 06/14 (cheques, ajustes)
+        // no son venta de la acción (14/10/2026, mismo criterio que el panel de Dirección).
+        if (!esProducto(v.sku)) continue;
         let match = false;
         if (metodo === 'articulos') match = artManual.includes(String(v.sku));
         else if (metodo === 'sku_promo') match = String(v.sku).replace(/\D/g, '') === skuPromo;
         else if (metodo === 'nombre') { let h = 0; for (const t of toks) if (v._txt.includes(t)) h++; match = h / toks.length >= 0.6; }
         if (!match) continue;
-        // Facturado = con IVA; costo = pleno (neto + IVA + imp. interno). Fallback a neto si faltan columnas.
-        const fact = Number(v.importe_iva) || Number(v.importe) || 0;
-        const cst = Number(v.costo_pleno) || Number(v.costo) || 0;
+        // Venta y costo NETOS, los dos sin IVA (14/10/2026). Antes era "con IVA − costo pleno",
+        // pero el costo pleno suma el impuesto interno y la venta no: todos los spirits daban
+        // margen negativo. El impuesto interno es de paso (el cliente lo paga aparte).
+        const fact = Number(v.importe) || 0;
+        const cst = Number(v.costo) || 0;
         unidades += Number(v.unidades) || 0; importe += fact; costo += cst;
         impInterno += Number(v.imp_interno) || 0; importeNeto += Number(v.importe) || 0;
         const s = skus.get(v.sku) || { sku: v.sku, descripcion: v.descripcion, unidades: 0, importe: 0 };
