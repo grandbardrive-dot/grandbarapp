@@ -5366,9 +5366,12 @@ body { background:transparent !important; }
     // Una sección con nombre de proveedor (ZUELO, GRUPO PEÑAFLOR…) muestra solo las
     // ofertas de ese proveedor, del canal del cliente (13/10/2026).
     const prov = _proveedorDeSeccion(secId, cat);
+    // Y esas ofertas no se repiten en las grillas generales (VINOS, SPIRITS…): si el
+    // manual tiene GRUPO PEÑAFLOR con ofertas, Peñaflor sale solo ahí (14/10/2026).
+    const conSeccion = prov ? null : _provsConSeccion(cat);
     return cat.filter(o => segVa(o, uuidSec) && (segMarcado(o) || (
       (o.canal === canal || o.canal === 'ambos') &&
-      (prov ? _nomProv(o.bodega) === prov : (!quiere || o.categoria === quiere)) &&
+      (prov ? _nomProv(o.bodega) === prov : ((!quiere || o.categoria === quiere) && !conSeccion.has(_nomProv(o.bodega)))) &&
       (!soloEspumantes || ES_ESPUMANTE.test(o.producto + ' ' + (o.descripcion_larga || '')))
     )));
   }
@@ -5381,6 +5384,17 @@ body { background:transparent !important; }
       if (t && provs.has(t)) return t;
     }
     return null;
+  }
+  // Proveedores que tienen sección propia con ofertas en este manual.
+  function _provsConSeccion(cat) {
+    const set = new Set();
+    seccionesHoja(checklist).forEach(s => {
+      const w = widgetDe(s);
+      if (!w || w.tipo !== 'ofertas') return;
+      const p = _proveedorDeSeccion(s.id, cat);
+      if (p) set.add(p);
+    });
+    return set;
   }
 
   const fmtPesos = n => '$' + Number(n || 0).toLocaleString('es-AR');
