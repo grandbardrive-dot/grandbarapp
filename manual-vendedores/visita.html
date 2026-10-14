@@ -1850,7 +1850,8 @@ body { background:transparent !important; }
 <script src="_torneo-oficial.js"></script>
 <script src="_checklist-data.js?v=4"></script>
 <script src="_torneo.js"></script>
-<script src="_acciones-render.js?v=4"></script>
+<script src="_acciones-render.js?v=5"></script>
+<script src="_evidencia-accion.js?v=1"></script>
 <script src="_celebracion.js"></script>
 <script src="_disco-tools.js"></script>
 <script>
@@ -2866,6 +2867,7 @@ body { background:transparent !important; }
         const nombre = (a.producto || 'Acción') + (a.accion ? ' — ' + a.accion : '');
         const it = prev || cartAdd('Acciones del mes', nombre, 'Aceptada', a.cantidad || 1, a.unidad || 'cajas');
         it._amId = a.id; it.cantidad = a.cantidad || 1; it.unidad = a.unidad || 'cajas';
+        it.origen = { t: 'campania', id: a.id };
         renderCartBar();
       },
       onGuardar: async (seleccionadas) => {
@@ -2919,6 +2921,10 @@ body { background:transparent !important; }
     cargarProgresos();
     cargarTorneoFicha();
     cargarSeccionesEspeciales();
+    // Evidencias de las acciones de Luciana: botón en cada acción y, en la Introducción,
+    // lo que se cerró en visitas anteriores y todavía no tiene fotos (14/10/2026).
+    if (window.GBEvid) GBEvid.init({ cliente, token: _hubToken, sb, toast: showToast })
+      .then(() => GBEvid.pendientes(document.getElementById('gbev-pendientes')));
     if (typeof dcInit === 'function') dcInit();   // manual de discos (_disco-tools.js)
     // Habilitar botón Agregar en acciones mensuales
     initAccionesCallbacks();
@@ -3023,6 +3029,7 @@ body { background:transparent !important; }
         <div class="plan-body" id="pb-${sec.id}__${p.id}">
           <div class="plan-desc">${esc(p.desc)}</div>
           <div class="tags-row">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+          ${(window.GBEvid ? GBEvid.boton({ t: 'plan', id: p.id, titulo: p.titulo, prov: p.proveedor }) : '')}
           ${p.pdf_url ? `<a href="${esc(p.pdf_url)}" target="_blank" rel="noopener"
             style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;
                    padding:7px 14px;background:#1F447F;color:#fff;border-radius:20px;
@@ -3091,7 +3098,7 @@ body { background:transparent !important; }
     return `
       ${planesHtml}
       <div class="checks-zone">
-        ${esIntro(sec) ? `<div id="minuta-anterior"></div><div id="oportunidades-intro"></div>` : ''}
+        ${esIntro(sec) ? `<div id="gbev-pendientes"></div><div id="minuta-anterior"></div><div id="oportunidades-intro"></div>` : ''}
         ${calcHtml}
         ${especialHtml}
         ${sec.especial !== 'acciones_mensuales' ? `<div id="acm-${sec.id}"></div>` : ''}
@@ -3736,7 +3743,7 @@ body { background:transparent !important; }
     const payloadConCrono = { ...basePayload, hora_fin: horaFin.toISOString() };
     if (horaInicio)              payloadConCrono.hora_inicio       = horaInicio.toISOString();
     if (duracionMinutos !== null) payloadConCrono.duracion_minutos = duracionMinutos;
-    payloadConCrono.carrito = cartItems.map(c => ({ seccion:c.seccion, nombre:c.nombre, estado:c.estado, cantidad:c.cantidad||null, unidad:c.unidad||null }));
+    payloadConCrono.carrito = cartItems.map(c => ({ seccion:c.seccion, nombre:c.nombre, estado:c.estado, cantidad:c.cantidad||null, unidad:c.unidad||null, origen:c.origen||null }));
     if (proximaAccion)    payloadConCrono.proxima_accion    = proximaAccion;
     if (fechaSeguimiento) payloadConCrono.fecha_seguimiento = fechaSeguimiento;
 
@@ -4656,7 +4663,10 @@ body { background:transparent !important; }
     // Sumar cada acción cerrada al carrito de acuerdos (dedup por sección+nombre)
     if (accionesSel.length && typeof cartAdd === 'function') {
       const secCarrito = compModalData.evNombre || compModalData.descripcion || 'Fechas especiales';
-      accionesSel.forEach(a => cartAdd(secCarrito, a.titulo, 'Cerrada'));
+      accionesSel.forEach(a => {
+        const it = cartAdd(secCarrito, a.titulo, 'Cerrada');
+        if (it && compModalData.fechaId) it.origen = { t: 'fecha', id: compModalData.fechaId };
+      });
     }
 
     cerrarCompModal();
@@ -5303,6 +5313,7 @@ body { background:transparent !important; }
           precio_accionado: a.precio_accionado || 0,
           precio_regular: a.precio_regular || 0,
           sugerido_venta: a.sugerido_venta || 0,
+          id: a.id,
           foto_url: a.imagen_url || '',
           orden: a.orden || 0,
           secciones: Array.isArray(a.secciones) ? a.secciones : [],
@@ -5597,6 +5608,7 @@ body { background:transparent !important; }
           ${a.condicion ? `<div class="vc-cond">${esc(a.condicion)}</div>` : ''}
           ${vig ? `<div class="vc-desc">${vig}</div>` : ''}
           ${a.descripcion ? `<div class="vc-desc">${esc(a.descripcion)}</div>` : ''}
+          ${(window.GBEvid ? GBEvid.boton({ t: a.tipo, id: a.id, titulo: a.nombre, prov: a.proveedor }) : '')}
         </div>`;
   }
   async function cargarAccionesHerramientas() {
@@ -6342,8 +6354,9 @@ body { background:transparent !important; }
             <input class="oferta-qty-input" type="number" min="1" inputmode="numeric" value="${qSel}"
                    oninput="ofertaSyncCart(this.closest('.oferta-card'))">
           </div>
-          <button class="oferta-add ${added ? 'added' : ''}" data-seccion="${esc(label)}" data-nombre="${esc(o.producto)}"
+          <button class="oferta-add ${added ? 'added' : ''}" data-seccion="${esc(label)}" data-nombre="${esc(o.producto)}" data-catid="${esc(o.id || '')}"
             onclick="toggleOfertaCarrito(this)">${added ? '✓' : '+'}</button>
+          ${o.id ? `<div class="oferta-evid-btn">${(window.GBEvid ? GBEvid.boton({ t: 'catalogo', id: o.id, titulo: o.producto, prov: o.bodega }) : '')}</div>` : ''}
         </div>`;
     }).join('');
     const m = document.getElementById('ofertas-modal');
@@ -6394,7 +6407,8 @@ body { background:transparent !important; }
       if (card) card.classList.remove('added-card');
     } else {
       const { unidad, cantidad } = _ofertaQty(card);
-      cartAdd(seccion, nombre, 'Oferta', cantidad, unidad);
+      const it = cartAdd(seccion, nombre, 'Oferta', cantidad, unidad);
+      if (it && btn.dataset.catid) it.origen = { t: 'catalogo', id: btn.dataset.catid };
       btn.classList.add('added'); btn.textContent = '✓';
       if (card) card.classList.add('added-card');
       showToast(`🛒 Agregada: ${nombre} (${cantidad} ${unidad})`, 'success');
@@ -6763,6 +6777,7 @@ body { background:transparent !important; }
           <span class="cal-ev-chev" id="${chevId}">▼</span>
         </button>
         <div class="cal-ev-body" id="${bodyId}"></div>
+        <div class="cal-ev-evid">${(window.GBEvid ? GBEvid.boton({ t: 'fecha', id: ev.id, titulo: ev.nombre }) : '')}</div>
       </div>`;
     }).join('') : `<div class="esp-loading">Sin fechas especiales cargadas para este mes.</div>`;
 

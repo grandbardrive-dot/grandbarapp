@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Evidencias de acciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* Evidencias de acciones para Trade Marketing (14/10/2026): las fotos que cargan los
+     vendedores de las acciones de Luciana, en la visita siguiente a la del cierre.
+     Datos: función acciones-evidencias (tabla y fotos privadas). Mismo marco que
+     trade-acciones.html y torneo-evidencias.html: comparten el menú. */
+  :root{--navy:#0d2230;--navy-2:#14304c;--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;
+    --gold:#c0912f;--gold-d:#a97c22;--gold-s:#f7efdc;--green:#2f6f5e;--green-d:#245647;--green-s:#e3efe9;--danger:#b5482d;--danger-s:#f7e1da;--amber:#8a6412;--amber-s:#f8efd6;
+    --blue:#2b5aa3;--blue-s:#e4ecf6;
+    --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+  *{box-sizing:border-box} body{margin:0;font-family:var(--font);background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+  .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+  .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+  .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+  .sb-nav{display:flex;flex-direction:column;gap:3px}
+  .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+  .sb-nav a.active{background:var(--gold);color:#2a2007;font-weight:600}
+  .sb-nav svg{width:19px;height:19px;flex:none}
+  .sb-foot{margin-top:auto;padding-top:16px}
+  .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px;cursor:pointer}
+  .sb-user .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy)}
+  .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+  .main{flex:1;min-width:0}
+  .content{max-width:1180px;margin:0 auto;padding:26px 28px 60px}
+  .head h1{font-size:25px;margin:0 0 4px;font-weight:800}
+  .head p{margin:0 0 18px;color:var(--muted);font-size:14px;max-width:70ch}
+  .vistas{display:flex;gap:8px;margin-bottom:16px}
+  .vistas button{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 14px;font:inherit;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer}
+  .vistas button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .vistas .n{display:inline-block;min-width:20px;padding:1px 6px;border-radius:999px;background:var(--gold-s);color:var(--gold-d);font-size:11.5px;margin-left:6px}
+  .barra{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+  .tabs{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px}
+  .tabs button{border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .tabs button.on{background:var(--navy);color:#fff}
+  .barra input,.barra select{border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:13.5px;background:#fff;color:var(--ink)}
+  .barra input{flex:1;min-width:180px}
+  .cuenta{font-size:13px;color:var(--muted);margin:-6px 0 12px}
+  .btn{border:0;border-radius:10px;padding:9px 14px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .btn.ok{background:var(--green);color:#fff} .btn.claro{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+  .btn.dev{background:var(--gold);color:#2a2007}
+  .btn:disabled{opacity:.55;cursor:default}
+  .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+  .ac{background:var(--card);border:1px solid var(--line);border-radius:15px;overflow:hidden;display:flex;flex-direction:column}
+  .ac .top{display:flex;gap:12px;padding:14px 15px 10px}
+  .ac .img{width:64px;height:64px;flex:none;border-radius:10px;background:var(--cream);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:24px}
+  .ac .img img{max-width:100%;max-height:100%;object-fit:contain}
+  .ac .tit{font-weight:800;font-size:15.5px;line-height:1.25}
+  .ac .prov{font-size:13px;color:var(--muted);margin-top:2px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .chip{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--blue-s);color:var(--blue)}
+  .chip.vig{background:var(--green-s);color:var(--green-d)} .chip.prox{background:var(--amber-s);color:var(--amber)} .chip.venc{background:#eee;color:#777}
+  .ac .cuerpo{padding:0 15px 12px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .dato{display:grid;grid-template-columns:86px 1fr;gap:8px;font-size:13.5px}
+  .dato .k{color:var(--muted)}
+  .mec{font-size:15px;font-weight:800;color:var(--green-d)}
+  .det{background:var(--cream);border-radius:9px;padding:8px 10px;font-size:13px;white-space:pre-wrap;max-height:120px;overflow:auto}
+  .pie{display:flex;gap:8px;align-items:center;padding:11px 15px;border-top:1px solid var(--line2);flex-wrap:wrap}
+  .pie .hist{font-size:12.5px;color:var(--muted);flex:1;min-width:140px}
+  .estado{font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px}
+  .e-pendiente{background:var(--amber-s);color:var(--amber)} .e-vista{background:var(--blue-s);color:var(--blue)} .e-resuelta{background:var(--green-s);color:var(--green-d)}
+  .dv{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px 16px}
+  .dv + .dv{margin-top:12px}
+  .dv .h{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+  .dv .h .tit{font-weight:800;font-size:15px;flex:1;min-width:200px}
+  .dv .meta{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .obs{background:var(--gold-s);border-left:3px solid var(--gold);border-radius:0 10px 10px 0;padding:9px 12px;font-size:13.5px;white-space:pre-wrap;margin-top:10px}
+  .resp{background:var(--green-s);border-left:3px solid var(--green);border-radius:0 10px 10px 0;padding:9px 12px;font-size:13.5px;white-space:pre-wrap;margin-top:8px}
+  .borrar{background:none;border:0;color:var(--muted);font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0;margin-top:8px}
+  .vacio{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:34px 20px;text-align:center;color:var(--muted);font-size:14px}
+  .ov{position:fixed;inset:0;background:rgba(13,34,48,.6);display:none;align-items:center;justify-content:center;z-index:80;padding:16px}
+  .ov.open{display:flex}
+  .modal{background:#fff;border-radius:16px;padding:18px;width:100%;max-width:520px;max-height:92vh;overflow:auto}
+  .modal h3{margin:0 0 4px;font-size:17px} .modal p{margin:0 0 10px;color:var(--muted);font-size:13.5px}
+  .modal label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:12px 0 5px}
+  .modal textarea,.modal input{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:14px}
+  .modal textarea{min-height:120px;resize:vertical}
+  .modal .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+  .modal .msg{font-size:13px;color:var(--danger);margin-top:8px;min-height:16px}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 18px;border-radius:11px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:90}
+  .toast.show{opacity:1} .toast.err{background:var(--danger)}
+  /* Agrupado por proveedor (06/10/2026): con 190 acciones la lista sola no se leía. */
+  .cuenta-fila{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:-6px 0 12px}
+  .cuenta-fila .cuenta{margin:0}
+  .agrupar{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+  .lnk{background:none;border:0;padding:0;font:inherit;font-size:13px;font-weight:600;color:var(--gold-d);text-decoration:underline;cursor:pointer}
+  .lista.agrupada{display:block}
+  .grupo{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+  .grupo > summary{list-style:none;display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;font-weight:800;font-size:15px}
+  .grupo > summary::-webkit-details-marker{display:none}
+  .grupo > summary::after{content:'▾';margin-left:auto;color:var(--muted);transition:transform .15s}
+  .grupo:not([open]) > summary::after{transform:rotate(-90deg)}
+  .grupo .cant{font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;background:var(--gold-s);color:var(--gold-d)}
+  .grupo .tipos{font-size:12px;font-weight:500;color:var(--muted)}
+  .grupo .dentro{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;padding:0 14px 14px}
+  @media(max-width:900px){ .sidebar{display:none} .content{padding:18px 14px 50px} .lista,.grupo .dentro{grid-template-columns:1fr} }
+  .tabs .n{display:inline-block;min-width:18px;padding:0 6px;margin-left:5px;border-radius:999px;background:var(--gold-s);color:var(--gold-d);font-size:11px}
+  .tabs button.on .n{background:rgba(255,255,255,.2);color:#fff}
+  .fotos{display:flex;gap:6px;flex-wrap:wrap}
+  .fotos a{width:78px;height:78px;border-radius:9px;overflow:hidden;background:var(--cream);display:block}
+  .fotos img{width:100%;height:100%;object-fit:cover;display:block}
+  .e-nueva{background:var(--amber-s);color:var(--amber)} .e-revisada{background:var(--green-s);color:var(--green-d)}
+  .sb-cat{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#9db0ba;padding:16px 12px 6px;margin-top:6px;border-top:1px solid rgba(255,255,255,.08)}
+</style>
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav">
+      <a href="torneo-evidencias.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg> Evidencias del torneo</a>
+      <a href="trade-acciones.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h10"/></svg> Acciones comerciales</a>
+      <a href="trade-evidencias.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/></svg> Evidencias de acciones</a>
+    </nav>
+    <div class="sb-cat">CRM</div>
+    <nav class="sb-nav">
+      <a href="crm-calendario.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Calendario de acciones</a>
+    </nav>
+    <div class="sb-foot"><div class="sb-user" id="logout"><div class="av" id="av">T</div><div><div class="t" id="uName">Trade Marketing</div><div class="s">Jefe de Trade Marketing</div></div></div></div>
+  </aside>
+
+  <div class="main"><div class="content">
+    <div class="head">
+      <h1>Evidencias de acciones</h1>
+      <p>Las fotos que cargan los vendedores de las acciones de Luciana (campañas, planes, fechas especiales, catálogo, vinos sobre la mesa, punteras, volumen y degustaciones). Las cargan en la visita siguiente a la del cierre, cuando ya llegó el pedido. A cada proveedor le llegan las suyas.</p>
+    </div>
+    <div class="barra">
+      <div class="tabs" id="tabs">
+        <button data-t="nueva" class="on">Nuevas<span class="n" id="nNuevas">0</span></button>
+        <button data-t="revisada">Revisadas</button>
+        <button data-t="">Todas</button>
+      </div>
+      <select id="fProv"><option value="">Todos los proveedores</option></select>
+      <select id="fVend"><option value="">Todos los vendedores</option></select>
+      <input id="q" type="search" placeholder="Buscar acción o cliente…" autocomplete="off">
+    </div>
+    <div class="cuenta" id="cuenta"></div>
+    <div id="lista" class="lista"><div class="vacio">Cargando…</div></div>
+  </div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script>
+  const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+  const FN = '/.netlify/functions/acciones-evidencias';
+  const ROLES = ['torneo', 'desarrollo', 'diseno'];
+  const TIPO = { campania:'Campaña', plan:'Plan', fecha:'Fecha especial', catalogo:'Catálogo', vino_mesa:'Sobre la mesa', puntera:'Puntera', volumen:'Acción de volumen', degustacion:'Degustación' };
+  const RUBRO = { restaurante:'Restaurante', bar:'Bar', vinoteca:'Vinoteca', 'tienda de bebidas':'Tienda de bebidas', tienda_bebidas:'Tienda de bebidas', autoservicio:'Autoservicio', hotel:'Hotel', disco:'Disco', evento:'Evento', mayorista:'Mayorista' };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  let TOKEN = null, EV = [], TAB = 'nueva';
+  function toast(m, e){ const t = $('toast'); t.textContent = m; t.className = 'toast show' + (e ? ' err' : ''); setTimeout(() => t.className = 'toast', 2800); }
+  const fFecha = v => { if(!v) return ''; const d = new Date(String(v).length <= 10 ? v + 'T12:00:00' : v); return d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' }); };
+  const fHora = v => v ? new Date(v).toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' }) : '';
+
+  function llenarFiltros(){
+    const provs = [...new Set(EV.map(e => e.proveedor_empresa || e.proveedor).filter(Boolean))].sort();
+    const vends = [...new Set(EV.map(e => e.vendedor_nombre).filter(Boolean))].sort();
+    const p0 = $('fProv').value, v0 = $('fVend').value;
+    $('fProv').innerHTML = '<option value="">Todos los proveedores</option>' + provs.map(p => `<option>${esc(p)}</option>`).join('');
+    $('fVend').innerHTML = '<option value="">Todos los vendedores</option>' + vends.map(v => `<option>${esc(v)}</option>`).join('');
+    $('fProv').value = provs.includes(p0) ? p0 : ''; $('fVend').value = vends.includes(v0) ? v0 : '';
+  }
+
+  function pintar(){
+    $('nNuevas').textContent = EV.filter(e => e.estado === 'nueva').length;
+    const prov = $('fProv').value, vend = $('fVend').value, q = $('q').value.trim().toLowerCase();
+    const lista = EV.filter(e => (!TAB || e.estado === TAB)
+      && (!prov || (e.proveedor_empresa || e.proveedor) === prov)
+      && (!vend || e.vendedor_nombre === vend)
+      && (!q || [e.accion_titulo, e.accion_condicion, e.cliente_nombre, e.cliente_codigo, e.comentario].join(' ').toLowerCase().includes(q)));
+    $('cuenta').textContent = lista.length + (lista.length === 1 ? ' evidencia' : ' evidencias');
+    if(!lista.length){
+      $('lista').innerHTML = `<div class="vacio">${EV.length ? 'No hay evidencias con ese filtro.' : 'Todavía no hay evidencias. Cuando un vendedor cargue fotos de una acción de Luciana, aparecen acá y te llega el aviso.'}</div>`;
+      return;
+    }
+    $('lista').innerHTML = lista.map(e => {
+      const fotos = e.fotos_url || [];
+      const prov = e.proveedor_empresa || e.proveedor;
+      return `<div class="ac">
+        <div class="top">
+          <div class="img">${fotos[0] ? `<img src="${esc(fotos[0])}" alt="">` : '📷'}</div>
+          <div style="min-width:0">
+            <div class="tit">${esc(e.accion_titulo)}</div>
+            <div class="prov">${esc(e.accion_condicion || '')}</div>
+            <div class="chips"><span class="chip">${esc(TIPO[e.tipo] || e.tipo)}</span>${prov ? `<span class="chip vig">${esc(prov)}</span>` : ''}${e.proveedor && !e.proveedor_empresa ? '<span class="chip venc">Proveedor sin usuario en el portal</span>' : ''}</div>
+          </div>
+        </div>
+        <div class="cuerpo">
+          <div class="dato"><span class="k">Cliente</span><span><b>${esc(e.cliente_nombre || '—')}</b>${e.cliente_codigo ? ' · ' + esc(e.cliente_codigo) : ''}${e.cliente_tipo ? ' · ' + esc(RUBRO[e.cliente_tipo] || e.cliente_tipo) : ''}</span></div>
+          <div class="dato"><span class="k">Vendedor</span><span>${esc(e.vendedor_nombre || '—')}${e.vendedor_codigo ? ' (' + esc(e.vendedor_codigo) + ')' : ''}</span></div>
+          ${e.fecha_cierre ? `<div class="dato"><span class="k">Se cerró</span><span>${fFecha(e.fecha_cierre)}</span></div>` : ''}
+          <div class="dato"><span class="k">Evidencia</span><span>${fFecha(e.created_at)} ${fHora(e.created_at)}</span></div>
+          ${e.comentario ? `<div class="det">${esc(e.comentario)}</div>` : ''}
+          <div class="fotos">${fotos.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener" title="Ver la foto ${i + 1}"><img src="${esc(u)}" alt="Foto ${i + 1}" loading="lazy"></a>`).join('')}</div>
+        </div>
+        <div class="pie">
+          <span class="estado e-${esc(e.estado)}">${e.estado === 'revisada' ? 'Revisada' : 'Nueva'}</span>
+          <span class="hist">${e.estado === 'revisada' && e.revisado_por ? 'Revisó ' + esc(e.revisado_por) + ' el ' + fFecha(e.revisado_at) : ''}</span>
+          ${e.estado === 'revisada'
+            ? `<button class="btn claro" data-rev="${esc(e.id)}" data-est="nueva">Volver a nueva</button>`
+            : `<button class="btn ok" data-rev="${esc(e.id)}" data-est="revisada">✓ Marcar revisada</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function cargar(){
+    const r = await fetch(FN, { headers:{ Authorization:'Bearer ' + TOKEN } });
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(d.error || 'No se pudieron leer las evidencias.');
+    EV = d.evidencias || [];
+    llenarFiltros(); pintar();
+  }
+
+  $('tabs').addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-t]'); if(!b) return;
+    TAB = b.dataset.t; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b)); pintar();
+  });
+  ['fProv', 'fVend'].forEach(id => $(id).addEventListener('change', pintar));
+  $('q').addEventListener('input', pintar);
+  $('lista').addEventListener('click', async ev => {
+    const b = ev.target.closest('button[data-rev]'); if(!b) return;
+    b.disabled = true;
+    try{
+      const r = await fetch(FN, { method:'POST', headers:{ Authorization:'Bearer ' + TOKEN, 'Content-Type':'application/json' }, body: JSON.stringify({ accion:'revisar', id:b.dataset.rev, estado:b.dataset.est }) });
+      const d = await r.json().catch(() => ({})); if(!r.ok) throw new Error(d.error || 'No se pudo guardar');
+      const e = EV.find(x => String(x.id) === String(b.dataset.rev));
+      if(e){ e.estado = b.dataset.est; e.revisado_por = b.dataset.est === 'revisada' ? ($('uName').textContent || '') : null; e.revisado_at = b.dataset.est === 'revisada' ? new Date().toISOString() : null; }
+      pintar(); toast(b.dataset.est === 'revisada' ? '✓ Marcada como revisada' : 'Volvió a nuevas');
+    }catch(e){ b.disabled = false; toast(e.message, true); }
+  });
+
+  (async () => {
+    const hub = supabase.createClient(HUB.url, HUB.key);
+    const { data:{ session } } = await hub.auth.getSession();
+    if(!session){ location.href = 'index.html'; return; }
+    TOKEN = session.access_token;
+    const { data:u } = await hub.from('usuarios').select('nombre,rol').eq('id', session.user.id).maybeSingle();
+    if(!u || !ROLES.includes(String(u.rol || '').toLowerCase())){ location.replace('hub.html'); return; }
+    if(u.nombre){ $('uName').textContent = u.nombre; $('av').textContent = u.nombre.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+    try{ await cargar(); }catch(e){ $('lista').innerHTML = `<div class="vacio">${esc(e.message)}</div>`; }
+  })();
+</script>
+<script src="assets/notif.js?v=3"></script>
+<script src="assets/user-menu.js?v=1"></script>
+<script src="assets/mobile-nav.js?v=1"></script>
+<script src="/assets/cuenta-activa.js?v=1"></script>
+</body>
+</html>

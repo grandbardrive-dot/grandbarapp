@@ -508,6 +508,7 @@ function renderAccionCard(a, opts = {}) {
           <span class="am-precio-val">${precio}</span>
         </div>` : ''}
         ${btnHtml}
+        ${seleccionable && window.GBEvid ? GBEvid.boton({ t: 'campania', id: a.id, titulo: a.producto, prov: a.proveedor }) : ''}
         ${seleccionable ? `
         <div class="am-qty" id="am-qty-${_amEsc(a.id)}" style="display:flex">
           <span class="am-qty-label">Cantidad</span>
