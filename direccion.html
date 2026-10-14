@@ -151,6 +151,7 @@
     <div class="sb-logo">Grand<b>Bar</b><small>Distribuciones</small></div>
     <nav class="sb-nav">
       <a class="on" href="direccion.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg> Inicio</a>
+      <a href="dir-ventas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg> Ventas</a>
       <a href="dir-cobranzas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg> Cobranzas</a>
       <a href="reportes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg> Reportes</a>
       <a href="dir-agenda.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg> Agenda</a>
@@ -224,7 +225,7 @@
     <!-- Áreas de la empresa -->
     <div class="c-h" style="margin:4px 2px 10px"><div class="t" style="font-size:16px">Áreas de la empresa</div></div>
     <div class="areas">
-      <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v" id="vtVend">—</div><div class="l">Vendedores</div></div><div><div class="v" id="vtVisHoy">—</div><div class="l">Visitas hoy</div></div><div><div class="v" id="vtVisMes">—</div><div class="l">Visitas del mes</div></div><div><div class="v" id="vtClientes">—</div><div class="l">Clientes</div></div></div></div>
+      <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v" id="vtVend">—</div><div class="l">Vendedores</div></div><div><div class="v" id="vtVisHoy">—</div><div class="l">Visitas hoy</div></div><div><div class="v" id="vtVisMes">—</div><div class="l">Visitas del mes</div></div><div><div class="v" id="vtClientes">—</div><div class="l">Clientes</div></div><div><div class="v" id="vtVentaMes">—</div><div class="l">Venta del mes (toda la empresa)</div></div><div><div class="v" id="vtMargenMes">—</div><div class="l">Margen del mes</div></div></div><a class="en" href="dir-ventas.html">Ver ventas y margen →</a></div>
       <div class="area"><div class="ah"><span class="ai">🗂️</span> Administración</div><div class="st"><div><div class="v" id="adCC">—</div><div class="l">Cuenta corriente</div></div><div><div class="v" id="adVenc">—</div><div class="l">Deuda vencida</div></div><div><div class="v" id="adCliVenc">—</div><div class="l">Clientes vencidos</div></div><div><div class="v" id="adClientes">—</div><div class="l">Clientes activos</div></div></div><a class="en" href="dir-cobranzas.html">Entrar →</a></div>
     </div>
 
@@ -287,6 +288,21 @@
     const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
     const fmtInt=n=>Number(n||0).toLocaleString('es-AR');
     const fmtM=n=>{ n=Number(n||0); if(Math.abs(n)>=1e6) return '$'+(n/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M'; if(Math.abs(n)>=1e3) return '$'+Math.round(n/1e3)+'K'; return '$'+Math.round(n); };
+    // Venta y margen del mes, de CUBO (función dir-ventas). Es de toda la empresa: no
+    // depende del filtro de sucursal. Se refresca cada 5 minutos.
+    async function cargarVentasMes(){
+      try{
+        // Sesión fresca: el panel puede quedar abierto horas y el token vence.
+        const { data:{ session:ses } } = await hub.auth.getSession();
+        const r = await fetch('/.netlify/functions/dir-ventas?periodo=mes',{headers:{Authorization:'Bearer '+((ses&&ses.access_token)||TOKEN)}});
+        if(!r.ok) return;
+        const d = await r.json(), a = d.actual || {};
+        set('vtVentaMes', fmtM(a.venta));
+        set('vtMargenMes', a.venta>0 ? fmtM(a.margen)+' · '+(a.margen/a.venta*100).toLocaleString('es-AR',{maximumFractionDigits:1})+'%' : '—');
+      }catch(e){}
+    }
+    cargarVentasMes(); setInterval(()=>{ if(!document.hidden) cargarVentasMes(); }, 5*60*1000);
+
     async function cargarResumen(region){
       ['adCC','adVenc','adCliVenc','adClientes','vtVend','vtClientes','vtVisHoy','vtVisMes','kpiVisMes','kpiCobHoy'].forEach(id=>set(id,'…'));
       const tl=document.getElementById('top5list'); if(tl) tl.innerHTML='<div class="t5"><span class="nm" style="color:var(--muted)">Cargando…</span></div>';

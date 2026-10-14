@@ -73,9 +73,11 @@ async function enTandas(items, tam, fn) {
   for (let i = 0; i < items.length; i += tam) await Promise.all(items.slice(i, i + tam).map(fn));
 }
 
-async function sincronizarDia(ctxs, fechaStr) {
+// opts.parcial (14/10/2026): el día de HOY, que se vuelve a bajar en cada corrida para el
+// panel de Dirección. No deja fila "v2" en ventas_sync_log: mañana se baja completo como "ayer".
+async function sincronizarDia(ctxs, fechaStr, opts = {}) {
   const agg = new Map();
-  const aggCli = new Map();   // cliente|sku|fecha -> unidades netas (para 11T / 6 meses)
+  const aggCli = new Map();   // cliente|sku|fecha -> { u: unidades, imp: venta neta, cst: costo neto } (11T / 6 meses / ventas por vendedor)
   let renglones = 0, totalUtiles = 0;
   const porEmpresa = {};
   for (const ctx of ctxs) {
@@ -102,7 +104,6 @@ async function sincronizarDia(ctxs, fechaStr) {
       const sku = String(val(r, 'Articulo', 'ArticuloCodigo') || '').trim();
       if (!sku) continue;
       const cant = num(val(r, 'Cantidad'));
-      if (clienteCod) { const ck = clienteCod + '|' + sku + '|' + fISO; aggCli.set(ck, (aggCli.get(ck) || 0) + cant * signo); }
       // Venta neta (sin IVA) del renglón.
       const netoLinea = Math.abs(num(val(r, 'TotalNeto', 'ImporteUni', 'Total')));
       // Impuesto interno del renglón (0 en vinos/champagne). Destilados y cervezas lo traen.
@@ -116,6 +117,12 @@ async function sincronizarDia(ctxs, fechaStr) {
       const costoNetoLinea = Math.abs(num(val(r, 'ArticuloCostoNeto')) * cant);
       // Costo PLENO = (costo neto + impuesto interno) con IVA. Venta comparada = neto con IVA.
       const costoPlenoLinea = (costoNetoLinea + impInt) * factor;
+      if (clienteCod) {
+        const ck = clienteCod + '|' + sku + '|' + fISO;
+        const o = aggCli.get(ck) || { u: 0, imp: 0, cst: 0 };
+        o.u += cant * signo; o.imp += netoLinea * signo; o.cst += costoNetoLinea * signo;
+        aggCli.set(ck, o);
+      }
 
       const key = sku + '|' + fISO;
       const row = agg.get(key) || {
@@ -157,13 +164,16 @@ async function sincronizarDia(ctxs, fechaStr) {
   // Ventas POR CLIENTE del día (11T / reportes / condición 6 meses). Idempotente por día.
   const delc = await sb(`ventas_cliente?fecha=eq.${fISO}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
   if (!delc.ok && delc.status !== 404) throw new Error('DELETE cliente día ' + fISO + ': ' + (await delc.text()).slice(0, 120));
-  const filasCli = [...aggCli.entries()].map(([k, u]) => { const p = k.split('|'); return { cliente_codigo: p[0], sku: p[1], fecha: p[2], unidades: Math.round(u * 100) / 100 }; }).filter((x) => x.unidades !== 0);
+  // Con venta y costo netos (sin IVA) por cliente: así el panel de Dirección suma ventas y
+  // margen por vendedor con los mismos números que el total (14/10/2026).
+  const filasCli = [...aggCli.entries()].map(([k, o]) => { const p = k.split('|'); return { cliente_codigo: p[0], sku: p[1], fecha: p[2], unidades: Math.round(o.u * 100) / 100, importe: Math.round(o.imp), costo: Math.round(o.cst) }; }).filter((x) => x.unidades !== 0 || x.importe !== 0);
   for (let i = 0; i < filasCli.length; i += 500) {
     const ins = await sb('ventas_cliente', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filasCli.slice(i, i + 500)) });
     if (!ins.ok) throw new Error('INSERT cliente día ' + fISO + ': ' + (await ins.text()).slice(0, 160));
   }
   // Marca el día como completo (v2 = las dos empresas) para sync-ventas-cron.
   const res = { comprobantes: totalUtiles, renglones, skus: filas.length, clientes: filasCli.length, por_empresa: porEmpresa };
+  if (opts.parcial) return res;
   try {
     await sb('ventas_sync_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({
       desde: fISO, hasta: fISO, comprobantes: totalUtiles, renglones, skus: filas.length, ok: true,

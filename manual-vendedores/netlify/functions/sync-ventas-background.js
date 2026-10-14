@@ -13,6 +13,9 @@
 //         2025 en la Reunión por marca). Un día está
 //         hecho si tiene fila "v2 …" en ventas_sync_log; los últimos 3 días
 //         se vuelven a bajar a las 48 h (NC y facturas aprobadas tarde).
+//         Además, en cada corrida baja HOY (parcial, 14/10/2026): así el panel de
+//         Dirección ve la venta del día con no más de 20 min de atraso. Hoy no
+//         deja fila "v2": mañana se baja completo como "ayer".
 //  Responde 202 al instante; el avance se ve en ventas_sync_log.
 //  Env: AIKON_* (+ AIKON_EMPRESAS), VENTAS_DESDE, VENTAS_BG_BUDGET_MS.
 // ============================================================
@@ -24,13 +27,27 @@ const DIA = 24 * 3600 * 1000;
 const isoDe = (d) => d.toISOString().slice(0, 10);
 const parseFecha = (s) => { const m = String(s || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? new Date(Date.UTC(+m[3], +m[2] - 1, +m[1], 12)) : null; };
 
+const rpc = async (fn, args) => {
+  const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+  if (!r.ok) throw new Error(fn + ' ' + r.status);
+  return r.json();
+};
+
 async function diasPendientes() {
   const desdeMin = process.env.VENTAS_DESDE || '2025-01-01';
-  const r = await fetch(`${SB_URL}/rest/v1/ventas_sync_log?select=desde,created_at&ok=eq.true&detalle=like.v2*&desde=gte.${desdeMin}&order=created_at.desc&limit=3000`,
-    { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } });
-  const logs = r.ok ? await r.json() : [];
+  // Una fila por día ya bajado (ventas_sync_hechos). Antes se leía el log entero con
+  // limit=3000, pero Supabase corta en 1000 filas: los días viejos parecían "no bajados"
+  // y se volvían a bajar sin fin (95 días por día al 14/10/2026).
   const ultima = new Map();
-  for (const l of logs) if (!ultima.has(l.desde)) ultima.set(l.desde, l.created_at);
+  try {
+    for (const l of await rpc('ventas_sync_hechos', { p_desde: desdeMin })) ultima.set(l.desde, l.ultima);
+  } catch (e) {
+    // Respaldo: la lectura anterior (puede quedar corta, pero la sync no se frena).
+    console.error('sync-ventas-background ventas_sync_hechos:', (e && e.message) || e);
+    const r = await fetch(`${SB_URL}/rest/v1/ventas_sync_log?select=desde,created_at&ok=eq.true&detalle=like.v2*&desde=gte.${desdeMin}&order=created_at.desc&limit=3000`,
+      { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } });
+    for (const l of (r.ok ? await r.json() : [])) if (!ultima.has(l.desde)) ultima.set(l.desde, l.created_at);
+  }
   const hoyART = new Date(Date.now() - 3 * 3600 * 1000);
   const ayer = new Date(Date.UTC(hoyART.getUTCFullYear(), hoyART.getUTCMonth(), hoyART.getUTCDate(), 12) - DIA);
   const out = [];
@@ -54,12 +71,31 @@ exports.handler = async (event) => {
     for (let d = desde; d.getTime() <= hasta.getTime() && dias.length < 62; d = new Date(d.getTime() + DIA)) dias.push(d);
   } else {
     dias = await diasPendientes();
+    // Relleno de a poco (14/10/2026): días viejos sin venta/costo por cliente, para que el
+    // panel de Dirección tenga ventas por vendedor. Hasta 10 por corrida, los más nuevos primero.
+    try {
+      const ya = new Set(dias.map(isoDe));
+      const faltan = await rpc('ventas_dias_sin_monto', { p_desde: process.env.VENTAS_DESDE || '2025-01-01', p_lim: Number(process.env.VENTAS_RELLENO_DIAS || 10) });
+      for (const f of faltan) if (!ya.has(f.fecha)) dias.push(new Date(f.fecha + 'T12:00:00Z'));
+    } catch (e) { console.error('sync-ventas-background relleno:', (e && e.message) || e); }
   }
-  if (!dias.length) { console.log('sync-ventas-background: al día'); return; }
+  // Modo automático: también HOY (parcial), primero, para que Dirección vea el día en curso.
+  const hoyART = new Date(Date.now() - 3 * 3600 * 1000);
+  const hoy = desde ? null : new Date(Date.UTC(hoyART.getUTCFullYear(), hoyART.getUTCMonth(), hoyART.getUTCDate(), 12));
+  if (!dias.length && !hoy) { console.log('sync-ventas-background: al día'); return; }
 
   const hechos = [];
   try {
     const ctxs = await loginTodas();
+    if (hoy) {
+      try {
+        const res = await sincronizarDia(ctxs, fmtFecha(hoy), { parcial: true });
+        hechos.push(`hoy ${isoDe(hoy)} ${JSON.stringify(res.por_empresa)}`);
+      } catch (e) {
+        // Si falla, la próxima corrida (20 min) lo vuelve a intentar. No se anota como día fallido.
+        console.error('sync-ventas-background hoy:', (e && e.message) || e);
+      }
+    }
     for (const [i, d] of dias.entries()) {
       if (i > 0 && Date.now() - start > BUDGET) break; // al menos 1 día por corrida
       try {

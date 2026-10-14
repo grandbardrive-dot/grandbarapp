@@ -6,6 +6,8 @@
   // los archivos siguen en el repo, pero no se llega a ellos desde acá.
   var items=[
     {h:'direccion.html',l:'Inicio',i:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>'},
+    // Ventas y margen desde CUBO (14/10/2026), se actualiza cada 20 minutos.
+    {h:'dir-ventas.html',l:'Ventas',i:'<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>'},
     {h:'dir-cobranzas.html',l:'Cobranzas',i:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'},
     {h:'reportes.html',l:'Reportes',i:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>'},
     {h:'dir-agenda.html',l:'Agenda',i:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>'}
