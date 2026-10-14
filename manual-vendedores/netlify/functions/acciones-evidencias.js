@@ -41,14 +41,14 @@ const ilikeExacto = s => encodeURIComponent(String(s).replace(/[%_\\]/g, m => '\
 
 // De qué tabla sale cada tipo de acción y cómo se lee.
 const TIPOS = {
-  campania:    { db: 'man', tabla: 'acciones_mensuales', sel: 'id,producto,accion,proveedor', m: r => ({ titulo: r.producto, condicion: r.accion, proveedor: r.proveedor }) },
-  plan:        { db: 'man', tabla: 'checklist_planes',   sel: 'id,nombre,condicion,proveedor', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
-  fecha:       { db: 'man', tabla: 'acciones_fechas',    sel: 'id,nombre,condicion,propuesta_id', m: r => ({ titulo: r.nombre, condicion: r.condicion, propuesta_id: r.propuesta_id }) },
-  catalogo:    { db: 'cat', tabla: 'catalogo_acciones',  sel: 'id,nombre_producto,mecanica,proveedor_id', m: r => ({ titulo: r.nombre_producto, condicion: r.mecanica, proveedor_id: r.proveedor_id }) },
-  vino_mesa:   { db: 'hub', tabla: 'vinos_sobre_mesa',   sel: 'id,nombre,condicion,proveedor', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
-  puntera:     { db: 'hub', tabla: 'acciones_herramientas', sel: 'id,nombre,condicion,proveedor', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
-  volumen:     { db: 'hub', tabla: 'acciones_herramientas', sel: 'id,nombre,condicion,proveedor', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
-  degustacion: { db: 'hub', tabla: 'acciones_herramientas', sel: 'id,nombre,condicion,proveedor', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
+  campania:    { db: 'man', tabla: 'acciones_mensuales', sel: 'id,producto,accion,proveedor,requiere_evidencia', m: r => ({ titulo: r.producto, condicion: r.accion, proveedor: r.proveedor }) },
+  plan:        { db: 'man', tabla: 'checklist_planes',   sel: 'id,nombre,condicion,proveedor,requiere_evidencia', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
+  fecha:       { db: 'man', tabla: 'acciones_fechas',    sel: 'id,nombre,condicion,propuesta_id,requiere_evidencia', m: r => ({ titulo: r.nombre, condicion: r.condicion, propuesta_id: r.propuesta_id }) },
+  catalogo:    { db: 'cat', tabla: 'catalogo_acciones',  sel: 'id,nombre_producto,mecanica,proveedor_id,requiere_evidencia', m: r => ({ titulo: r.nombre_producto, condicion: r.mecanica, proveedor_id: r.proveedor_id }) },
+  vino_mesa:   { db: 'hub', tabla: 'vinos_sobre_mesa',   sel: 'id,nombre,condicion,proveedor,requiere_evidencia', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
+  puntera:     { db: 'hub', tabla: 'acciones_herramientas', sel: 'id,nombre,condicion,proveedor,requiere_evidencia', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
+  volumen:     { db: 'hub', tabla: 'acciones_herramientas', sel: 'id,nombre,condicion,proveedor,requiere_evidencia', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
+  degustacion: { db: 'hub', tabla: 'acciones_herramientas', sel: 'id,nombre,condicion,proveedor,requiere_evidencia', m: r => ({ titulo: r.nombre, condicion: r.condicion, proveedor: r.proveedor }) },
 };
 
 exports.handler = async (event) => {
@@ -149,6 +149,8 @@ exports.handler = async (event) => {
     const path = T.tabla + '?id=eq.' + encodeURIComponent(aid) + '&select=' + T.sel;
     const fila = (T.db === 'man' ? await man(path) : T.db === 'cat' ? await cat(path) : await hub(path))[0];
     if (!fila) return json(404, { error: 'No encontré la acción (¿la sacaron?).' });
+    // Solo las acciones que Luciana marcó "Requiere evidencia" (14/10/2026).
+    if (fila.requiere_evidencia !== true) return json(400, { error: 'Esta acción no pide evidencia.' });
     const acc = T.m(fila);
     if (b.tipo === 'catalogo' && acc.proveedor_id) acc.proveedor = ((await cat('catalogo_proveedores?id=eq.' + encodeURIComponent(acc.proveedor_id) + '&select=nombre'))[0] || {}).nombre || null;
     if (b.tipo === 'fecha' && esUuid(acc.propuesta_id)) acc.proveedor = ((await man('propuestas_acciones?id=eq.' + acc.propuesta_id + '&select=autor_empresa,autor_nombre'))[0] || {}).autor_empresa || null;
@@ -163,13 +165,23 @@ exports.handler = async (event) => {
     if (!fotos.length) return json(400, { error: 'Sumá al menos una foto.' });
 
     // Proveedor del portal que la recibe (mismo nombre, sin "Grupo", "Bodega"…).
-    const provs = await hub('usuarios?rol=eq.proveedor&select=id,nombre,empresa,activo');
+    const provsRes = await hub('usuarios?rol=eq.proveedor&select=id,nombre,empresa,activo');
+    const provs = (Array.isArray(provsRes) ? provsRes : []).filter(u => u.activo !== false);
     const pn = nrmProv(acc.proveedor);
-    const destProv = (Array.isArray(provs) ? provs : []).filter(u => {
-      if (u.activo === false || !pn || pn.length < 4) return false;
+    let destProv = provs.filter(u => {
+      if (!pn || pn.length < 4) return false;
       const en = nrmProv(u.empresa || u.nombre);
       return en.length >= 4 && (en === pn || en.includes(pn) || pn.includes(en));
     });
+    // Si el proveedor de la acción no es una marca del portal (ej. en el catálogo, el
+    // proveedor "Dia de la Madre"), se busca la marca en el nombre del producto, como
+    // palabra entera: "Doña Paula Estate" → Doña Paula (14/10/2026).
+    if (!destProv.length) {
+      const tn = ' ' + nrmProv(acc.titulo) + ' ';
+      const porTitulo = provs.filter(u => { const en = nrmProv(u.empresa || u.nombre); return en.length >= 4 && tn.includes(' ' + en + ' '); });
+      const empresas = new Set(porTitulo.map(u => nrmProv(u.empresa || u.nombre)));
+      if (empresas.size === 1) destProv = porTitulo;   // una sola marca: si hay dos, no se adivina
+    }
     const empresa = destProv.length ? (destProv[0].empresa || destProv[0].nombre) : null;
 
     // Fotos a la carpeta privada.

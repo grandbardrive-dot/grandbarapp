@@ -87,6 +87,7 @@
   .tag.nivel{background:var(--amber-bg);color:var(--amber)}
   .tag.precio{background:var(--green-bg);color:var(--green)}
   .tag.off{background:var(--red-bg);color:var(--red)}
+  .tag.evid{background:#E7F0FA;color:#1F4E8C}
   .acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
   .ab{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line-2);border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;white-space:nowrap}
   .ab:hover{border-color:var(--navy);color:var(--navy)}
@@ -200,6 +201,7 @@
         <div id="seg-dest"></div>
         <div class="hint" id="m-hint-donde"></div>
       </div>
+      <div class="fld"><label class="sw"><input type="checkbox" id="f-evid"> Requiere evidencia</label><div class="hint">El vendedor tiene que cargar fotos del punto de venta. Puede hacerlo en la visita siguiente, cuando ya llegó el pedido. Le llegan a Trade Marketing y al proveedor.</div></div>
       <div class="fld"><label class="sw"><input type="checkbox" id="f-activo" checked> Visible para los vendedores</label></div>
       <div class="msg" id="m-msg"></div>
     </div>
@@ -295,6 +297,7 @@
           <div class="combo-nom">${esc(c.nombre)}
             ${c.proveedor?`<span class="tag nivel">${esc(c.proveedor)}</span>`:''}
             ${vg?`<span class="tag ${vg.cls}">${esc(vg.t)}</span>`:''}
+            ${c.requiere_evidencia?'<span class="tag evid">📷 Pide evidencia</span>':''}
             ${c.activo===false?'<span class="tag off">Oculta</span>':''}</div>
           <div style="margin-top:6px"><span class="tag donde">📍 ${esc(dondeTxt(c))}</span></div>
           ${c.condicion?`<div class="combo-cont">${esc(c.condicion)}</div>`:''}
@@ -312,7 +315,7 @@
 
   function limpiarForm(){
     ['f-nombre','f-proveedor','f-condicion','f-desc','f-desde','f-hasta'].forEach(id => $(id).value = '');
-    $('f-activo').checked = true; $('m-msg').textContent = '';
+    $('f-activo').checked = true; $('f-evid').checked = false; $('m-msg').textContent = '';
   }
   function abrirNuevo(){
     edit=null; $('m-title').textContent = 'Nueva ' + V.una;
@@ -325,7 +328,7 @@
     limpiarForm();
     $('f-nombre').value=edit.nombre||''; $('f-proveedor').value=edit.proveedor||''; $('f-condicion').value=edit.condicion||'';
     $('f-desc').value=edit.descripcion||''; $('f-desde').value=edit.fecha_desde||''; $('f-hasta').value=edit.fecha_hasta||'';
-    $('f-activo').checked=edit.activo!==false;
+    $('f-activo').checked=edit.activo!==false; $('f-evid').checked=edit.requiere_evidencia===true;
     SEG && SEG.set({ secciones: edit.secciones || [], zonas: edit.zonas || [] });
     $('ov').classList.add('open');
   }
@@ -350,6 +353,7 @@
       descripcion: $('f-desc').value.trim() || null,
       fecha_desde: desde, fecha_hasta: hasta,
       activo:      $('f-activo').checked,
+      requiere_evidencia: $('f-evid').checked,
       ...(SEG ? SEG.valor() : { secciones: [], zonas: [] }),
     };
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…'; $('m-save').disabled=true;

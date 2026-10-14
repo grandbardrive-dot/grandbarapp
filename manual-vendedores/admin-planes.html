@@ -31,6 +31,7 @@
   .plan.off{opacity:.62}
   .plan-top{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
   .badge{flex:none;background:var(--green-bg);color:var(--green);font-size:11.5px;font-weight:800;padding:5px 11px;border-radius:20px;white-space:nowrap}
+  .badge.evid{background:#E7F0FA;color:#1F4E8C}
   .plan-h{flex:1;min-width:180px}
   .plan-tit{font-size:16px;font-weight:800;color:var(--azul);line-height:1.2}
   .plan-meta{font-size:12.5px;color:var(--ink3);margin-top:3px}
@@ -110,6 +111,7 @@
       return `<div class="plan ${activo?'':'off'}">
         <div class="plan-top">
           ${p.condicion?`<span class="badge">${esc(p.condicion)}</span>`:''}
+          ${p.requiere_evidencia?'<span class="badge evid">📷 Pide evidencia</span>':''}
           <div class="plan-h">
             <div class="plan-tit">${esc(p.nombre||'(sin título)')}</div>
             <div class="plan-meta">${p.proveedor?esc(p.proveedor)+' · ':''}Aparece en: ${secTxt}</div>

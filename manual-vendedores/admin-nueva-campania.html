@@ -101,6 +101,10 @@
   .toggle.on .tk{background:var(--navy);border-color:var(--navy);color:#fff}
 
   .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+  label.evid-chk,.fld label.evid-chk,.fg label.evid-chk{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border:1.5px solid var(--line-2);border-radius:10px;cursor:pointer;background:var(--surface,#fff);margin:0;text-transform:none;letter-spacing:0}
+  label.evid-chk input{width:18px !important;height:18px;margin:2px 0 0;padding:0;flex:none;accent-color:var(--navy,var(--azul))}
+  label.evid-chk b{display:block;font-size:13.5px;font-weight:800;color:var(--ink)}
+  label.evid-chk small{display:block;font-size:12px;font-weight:500;color:var(--ink3);margin-top:3px;line-height:1.45}
   @media (max-width:560px){ .form-grid{grid-template-columns:1fr} }
   .fld label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px}
   .fld input, .fld select{width:100%;padding:11px 12px;border:1.5px solid var(--line-2);border-radius:9px;font-size:14px;font-family:inherit;outline:none;background:var(--surface)}
@@ -344,7 +348,7 @@
   let SEG=null, SEG_OK=false, SEG_MAPA=null;
   let editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
   let prodPage=1, prodCat='', prodQ='';
-  const st={ proveedor:null, productos:[], canales:[], ubicaciones:[], mecanica:'', precioReg:'', precioAcc:'', fechaIni:'', fechaFin:'', materiales:[] };
+  const st={ proveedor:null, productos:[], canales:[], ubicaciones:[], mecanica:'', precioReg:'', precioAcc:'', fechaIni:'', fechaFin:'', materiales:[], requiereEvid:false };
 
   // Mendoza y San Luis usan los mismos códigos de sección: cada sección se muestra una
   // sola vez (la de Mendoza). Las que existen solo en San Luis se suman colgadas de la
@@ -393,6 +397,7 @@
           st.fechaIni  = row.fecha_inicio||'';
           st.fechaFin  = row.fecha_fin||'';
           st.materiales= Array.isArray(row.materiales)?row.materiales.slice():[];
+          st.requiereEvid = row.requiere_evidencia === true;
           st._activa   = row.activa;
           st._seg      = { secciones: Array.isArray(row.secciones)?row.secciones.slice():[], zonas: Array.isArray(row.zonas)?row.zonas.slice():[] };
           document.getElementById('page-title-txt').textContent='Editar campaña';
@@ -516,6 +521,7 @@
           <div class="fld"><label>&nbsp;</label><div style="font-size:13px;color:var(--ink3);padding-top:11px">${pctOff()}</div></div>
           <div class="fld"><label>Desde <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><input id="f-ini" type="date" value="${esc(st.fechaIni)}" oninput="st.fechaIni=this.value;renderResumen()"></div>
           <div class="fld"><label>Hasta <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><input id="f-fin" type="date" value="${esc(st.fechaFin)}" oninput="st.fechaFin=this.value;renderResumen()"></div>
+          <div class="fld" style="grid-column:1/-1"><label class="evid-chk"><input type="checkbox" id="f-evid" ${st.requiereEvid?'checked':''} onchange="st.requiereEvid=this.checked"><span><b>Requiere evidencia</b><small>El vendedor tiene que cargar fotos del punto de venta. Puede hacerlo en la visita siguiente, cuando ya llegó el pedido. Le llegan a Trade Marketing y al proveedor.</small></span></label></div>
         </div>`;
     } else if(paso===6){
       const imgOf=m=>m.processed_image_url||m.original_image_url||'';
@@ -559,6 +565,7 @@
           ${filaRev('Precios', (st.precioReg||st.precioAcc)?`$${st.precioReg||'—'} → $${st.precioAcc||'—'}`:'')}
           ${filaRev('Vigencia', (st.fechaIni||st.fechaFin)?`${st.fechaIni||'—'} a ${st.fechaFin||'—'}`:'Sin límite de tiempo')}
           ${filaRev('Materiales', st.materiales.length? st.materiales.map(m=>m.name).join(', '):'')}
+          ${filaRev('Evidencia', st.requiereEvid?'Sí: el vendedor carga fotos':'No pide')}
         </div>
         <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
           ${editId
@@ -700,6 +707,7 @@
       fecha_inicio: st.fechaIni||null,
       fecha_fin: st.fechaFin||null,
       materiales: st.materiales,
+      requiere_evidencia: !!st.requiereEvid,
       activa: !!activa,
       ...segValor()   // secciones uuid[] + zonas text[] (vacío = se ve como hasta ahora)
     };

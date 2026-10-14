@@ -2,7 +2,8 @@
 //  GrandBar · _evidencia-accion.js  (14/10/2026)
 //  Evidencia de las acciones de Luciana en la visita: campañas, planes, fechas
 //  especiales, catálogo de clientes, vinos sobre la mesa, punteras, volumen y
-//  degustaciones. Cada una tiene "📷 Cargar evidencia" (fotos + comentario).
+//  degustaciones. Las que Luciana marcó "Requiere evidencia" tienen
+//  "📷 Cargar evidencia" (fotos + comentario); las demás, no.
 //  El día del cierre el pedido todavía no llegó: la evidencia se carga en la visita
 //  siguiente. Por eso la Introducción muestra "Evidencias pendientes": lo que se
 //  cerró en visitas anteriores con este cliente y todavía no tiene fotos.
@@ -11,7 +12,7 @@
 //
 //  Uso (visita.html):
 //    GBEvid.init({ cliente, token: _hubToken, sb, toast: showToast })
-//    GBEvid.boton({ t:'campania', id, titulo, prov })   → HTML del botón
+//    GBEvid.boton({ t:'campania', id, titulo, prov, req }) → HTML del botón ('' si req no es true)
 //    GBEvid.pendientes(elemento)                          → lista de pendientes
 // ============================================================
 (function () {
@@ -100,7 +101,7 @@
   }, true);
 
   function boton(meta) {
-    if (!meta || !meta.t || !meta.id || !TIPO[meta.t]) return '';
+    if (!meta || meta.req !== true || !meta.t || !meta.id || !TIPO[meta.t]) return '';
     var k = clave(meta.t, meta.id), ya = YA.has(k);
     return '<button type="button" class="gbev-btn' + (ya ? ' ya' : '') + '" data-gbev-k="' + esc(k) + '" data-gbev="' + esc(encodeURIComponent(JSON.stringify(meta))) + '">' +
       (ya ? '✓ Evidencia cargada · sumar otra' : '📷 Cargar evidencia') + '</button>';
@@ -191,9 +192,10 @@
       (res.data || []).forEach(function (v) {
         var cart = Array.isArray(v.carrito) ? v.carrito : ((v.progreso && v.progreso._carrito) || []);
         cart.forEach(function (c) {
-          if (!c || !c.origen || !c.origen.t || !c.origen.id || !CIERRAN.test(c.estado || '')) return;
+          // Solo las que pedían evidencia cuando se cerraron (origen.ev).
+          if (!c || !c.origen || !c.origen.ev || !c.origen.t || !c.origen.id || !CIERRAN.test(c.estado || '')) return;
           var k = clave(c.origen.t, c.origen.id);
-          if (!vistos.has(k)) vistos.set(k, { t: c.origen.t, id: c.origen.id, titulo: c.nombre, fecha: String(v.fecha || '').slice(0, 10) });
+          if (!vistos.has(k)) vistos.set(k, { t: c.origen.t, id: c.origen.id, req: true, titulo: c.nombre, fecha: String(v.fecha || '').slice(0, 10) });
         });
       });
       PEND = Array.from(vistos.values());

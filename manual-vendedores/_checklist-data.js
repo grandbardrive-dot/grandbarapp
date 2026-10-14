@@ -192,6 +192,7 @@ async function getChecklistDynamic(tipo, zonaPedida) {
         desc:      p.descripcion || '',
         tags:      p.lineas_participantes || [],
         pdf_url:   p.pdf_url   || null,
+        requiere_evidencia: p.requiere_evidencia === true,   // casilla de Luciana (14/10/2026)
       })),
     }));
 

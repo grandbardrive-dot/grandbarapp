@@ -94,6 +94,10 @@
   .fg textarea{resize:vertical;min-height:64px}
   .fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .hint{font-size:11px;color:var(--ink3);margin-top:5px}
+  label.evid-chk,.fld label.evid-chk,.fg label.evid-chk{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border:1.5px solid var(--line-2);border-radius:10px;cursor:pointer;background:var(--surface,#fff);margin:0;text-transform:none;letter-spacing:0}
+  label.evid-chk input{width:18px !important;height:18px;margin:2px 0 0;padding:0;flex:none;accent-color:var(--navy,var(--azul))}
+  label.evid-chk b{display:block;font-size:13.5px;font-weight:800;color:var(--ink)}
+  label.evid-chk small{display:block;font-size:12px;font-weight:500;color:var(--ink3);margin-top:3px;line-height:1.45}
   .rchips{display:flex;flex-wrap:wrap;gap:7px}
   .rchip{border:1.5px solid var(--line-2);background:var(--surface);border-radius:20px;padding:7px 13px;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;user-select:none;transition:.12s}
   .rchip:hover{border-color:var(--navy)}
@@ -126,6 +130,7 @@
   .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px}
   .c-on{background:rgba(31,68,127,.09);color:var(--navy)} .c-off{background:rgba(203,184,106,.18);color:var(--gold-d)} .c-todos{background:var(--green-bg);color:var(--green)}
   .badge-est{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px}
+  .badge-est.evid{background:#E7F0FA;color:#1F4E8C}
   .est-activa{background:var(--green-bg);color:var(--green)} .est-pausa{background:var(--surface2);color:var(--ink3)} .est-vencida{background:var(--red-bg);color:var(--red)}
   .fcard-acts{display:flex;flex-direction:column;gap:6px;flex:none}
   .mini{border:1.5px solid var(--line-2);background:var(--surface);border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;white-space:nowrap}
@@ -195,6 +200,7 @@
             <div class="fg"><label>Desde *</label><input id="f-inicio" type="date"></div>
             <div class="fg"><label>Hasta *</label><input id="f-fin" type="date"></div>
           </div>
+          <div class="fg"><label class="evid-chk"><input type="checkbox" id="f-evid"><span><b>Requiere evidencia</b><small>El vendedor tiene que cargar fotos del punto de venta. Puede hacerlo en la visita siguiente, cuando ya llegó el pedido. Le llegan a Trade Marketing y al proveedor.</small></span></label></div>
           <div class="fg">
             <label>Imagen / placa (opcional)</label>
             <div class="drop" id="f-drop" onclick="document.getElementById('f-file').click()">
@@ -335,6 +341,7 @@
             <span>📅 ${fmtF(a.fecha_inicio)} → ${fmtF(a.fecha_fin)}</span>
             ${a.condicion?`<span>· ${esc(a.condicion)}</span>`:''}
             <span class="badge-est ${estCls}">${estLbl}</span>
+            ${a.requiere_evidencia?'<span class="badge-est evid">📷 Pide evidencia</span>':''}
           </div>
         </div>
         <div class="fcard-acts">
@@ -386,7 +393,7 @@
       let img=null; try{ img=await subirImagen(); }catch(e){ /* si falla la imagen, guardamos igual sin ella */ }
       // En edición, si no eligieron imagen nueva se conserva la actual.
       if(!img && editando) img=editImg;
-      const fila={ nombre, descripcion:desc, condicion:cond||null, canal, rubros, imagen_url:img, fecha_inicio:inicio, fecha_fin:fin, ...(SEG ? SEG.valor() : {}) };
+      const fila={ nombre, descripcion:desc, condicion:cond||null, canal, rubros, imagen_url:img, fecha_inicio:inicio, fecha_fin:fin, requiere_evidencia:$('f-evid').checked, ...(SEG ? SEG.valor() : {}) };
       const { error } = editando
         ? await sb.from('acciones_fechas').update(fila).eq('id',editando)
         : await sb.from('acciones_fechas').insert({ ...fila, activa:true });
@@ -408,6 +415,7 @@
   // Deja el formulario vacío y en modo alta.
   function limpiarForm(){
     ['f-nombre','f-desc','f-cond','f-inicio','f-fin'].forEach(id=>$(id).value='');
+    $('f-evid').checked=false;
     selRubros=new Set(); renderChips(); SEG && SEG.set({}); _imgFile=null; $('f-drop').innerHTML='<div id="f-drop-txt">📷 Tocá para subir una imagen</div>'; $('f-file').value='';
     editId=null; editImg=null;
     $('f-titulo').textContent='Nueva fecha especial';
@@ -426,6 +434,7 @@
     $('f-cond').value=a.condicion||'';
     $('f-inicio').value=a.fecha_inicio||'';
     $('f-fin').value=a.fecha_fin||'';
+    $('f-evid').checked=a.requiere_evidencia===true;
     selRubros=new Set(rubrosDe(a)); renderChips();
     SEG && SEG.set({ secciones:a.secciones||[], zonas:a.zonas||[] });
     $('f-drop').innerHTML = editImg

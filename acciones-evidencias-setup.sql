@@ -51,3 +51,13 @@ on conflict (id) do nothing;
 
 -- Control: tiene que dar rls = true.
 select relname, relrowsecurity as rls from pg_class where relname = 'acciones_evidencias';
+
+-- ── Casilla "Requiere evidencia" (14/10/2026, ya aplicado) ──────────────────
+-- El botón del vendedor sale solo en las acciones que Luciana marca. Las campañas
+-- (acciones_mensuales), las fechas (acciones_fechas) y el catálogo (catalogo_acciones)
+-- ya tenían la columna. Se sumó en:
+--   proyecto del MANUAL (fzaxwuuodseyyinveknn):
+--     alter table public.checklist_planes add column if not exists requiere_evidencia boolean not null default false;
+--   proyecto del PORTAL (xqhyemccbwmzxqzkrtwa):
+--     alter table public.vinos_sobre_mesa add column if not exists requiere_evidencia boolean not null default false;
+--     alter table public.acciones_herramientas add column if not exists requiere_evidencia boolean not null default false;

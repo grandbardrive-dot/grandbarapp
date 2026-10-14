@@ -1848,10 +1848,10 @@ body { background:transparent !important; }
 <script src="_avatar.js?v=2"></script>
 <script src="_sucursales.js"></script>
 <script src="_torneo-oficial.js"></script>
-<script src="_checklist-data.js?v=4"></script>
+<script src="_checklist-data.js?v=5"></script>
 <script src="_torneo.js"></script>
-<script src="_acciones-render.js?v=5"></script>
-<script src="_evidencia-accion.js?v=1"></script>
+<script src="_acciones-render.js?v=6"></script>
+<script src="_evidencia-accion.js?v=2"></script>
 <script src="_celebracion.js"></script>
 <script src="_disco-tools.js"></script>
 <script>
@@ -2867,7 +2867,7 @@ body { background:transparent !important; }
         const nombre = (a.producto || 'Acción') + (a.accion ? ' — ' + a.accion : '');
         const it = prev || cartAdd('Acciones del mes', nombre, 'Aceptada', a.cantidad || 1, a.unidad || 'cajas');
         it._amId = a.id; it.cantidad = a.cantidad || 1; it.unidad = a.unidad || 'cajas';
-        it.origen = { t: 'campania', id: a.id };
+        it.origen = { t: 'campania', id: a.id, ev: a.requiere_evidencia === true };
         renderCartBar();
       },
       onGuardar: async (seleccionadas) => {
@@ -3029,7 +3029,7 @@ body { background:transparent !important; }
         <div class="plan-body" id="pb-${sec.id}__${p.id}">
           <div class="plan-desc">${esc(p.desc)}</div>
           <div class="tags-row">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
-          ${(window.GBEvid ? GBEvid.boton({ t: 'plan', id: p.id, titulo: p.titulo, prov: p.proveedor }) : '')}
+          ${(window.GBEvid ? GBEvid.boton({ t: 'plan', id: p.id, titulo: p.titulo, prov: p.proveedor, req: p.requiere_evidencia === true }) : '')}
           ${p.pdf_url ? `<a href="${esc(p.pdf_url)}" target="_blank" rel="noopener"
             style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;
                    padding:7px 14px;background:#1F447F;color:#fff;border-radius:20px;
@@ -4665,7 +4665,7 @@ body { background:transparent !important; }
       const secCarrito = compModalData.evNombre || compModalData.descripcion || 'Fechas especiales';
       accionesSel.forEach(a => {
         const it = cartAdd(secCarrito, a.titulo, 'Cerrada');
-        if (it && compModalData.fechaId) it.origen = { t: 'fecha', id: compModalData.fechaId };
+        if (it && compModalData.fechaId) it.origen = { t: 'fecha', id: compModalData.fechaId, ev: _fechaPideEvid(compModalData.fechaId) };
       });
     }
 
@@ -5590,8 +5590,8 @@ body { background:transparent !important; }
         } catch (e) { return []; }
       };
       const [vinos, otras] = await Promise.all([
-        leer('vinos_sobre_mesa', 'id,nombre,proveedor,condicion,descripcion,secciones,zonas,orden'),
-        leer('acciones_herramientas', 'id,tipo,nombre,proveedor,condicion,descripcion,fecha_desde,fecha_hasta,secciones,zonas,orden'),
+        leer('vinos_sobre_mesa', 'id,nombre,proveedor,condicion,descripcion,secciones,zonas,orden,requiere_evidencia'),
+        leer('acciones_herramientas', 'id,tipo,nombre,proveedor,condicion,descripcion,fecha_desde,fecha_hasta,secciones,zonas,orden,requiere_evidencia'),
       ]);
       const hoy = _hoyAcc();
       return vinos.map(v => ({ ...v, tipo: 'vino_mesa' }))
@@ -5608,7 +5608,7 @@ body { background:transparent !important; }
           ${a.condicion ? `<div class="vc-cond">${esc(a.condicion)}</div>` : ''}
           ${vig ? `<div class="vc-desc">${vig}</div>` : ''}
           ${a.descripcion ? `<div class="vc-desc">${esc(a.descripcion)}</div>` : ''}
-          ${(window.GBEvid ? GBEvid.boton({ t: a.tipo, id: a.id, titulo: a.nombre, prov: a.proveedor }) : '')}
+          ${(window.GBEvid ? GBEvid.boton({ t: a.tipo, id: a.id, titulo: a.nombre, prov: a.proveedor, req: a.requiere_evidencia === true }) : '')}
         </div>`;
   }
   async function cargarAccionesHerramientas() {
@@ -6354,9 +6354,9 @@ body { background:transparent !important; }
             <input class="oferta-qty-input" type="number" min="1" inputmode="numeric" value="${qSel}"
                    oninput="ofertaSyncCart(this.closest('.oferta-card'))">
           </div>
-          <button class="oferta-add ${added ? 'added' : ''}" data-seccion="${esc(label)}" data-nombre="${esc(o.producto)}" data-catid="${esc(o.id || '')}"
+          <button class="oferta-add ${added ? 'added' : ''}" data-seccion="${esc(label)}" data-nombre="${esc(o.producto)}" data-catid="${esc(o.id || '')}" data-catev="${o.requiere_evidencia ? '1' : ''}"
             onclick="toggleOfertaCarrito(this)">${added ? '✓' : '+'}</button>
-          ${o.id ? `<div class="oferta-evid-btn">${(window.GBEvid ? GBEvid.boton({ t: 'catalogo', id: o.id, titulo: o.producto, prov: o.bodega }) : '')}</div>` : ''}
+          ${o.id ? `<div class="oferta-evid-btn">${(window.GBEvid ? GBEvid.boton({ t: 'catalogo', id: o.id, titulo: o.producto, prov: o.bodega, req: o.requiere_evidencia === true }) : '')}</div>` : ''}
         </div>`;
     }).join('');
     const m = document.getElementById('ofertas-modal');
@@ -6408,7 +6408,7 @@ body { background:transparent !important; }
     } else {
       const { unidad, cantidad } = _ofertaQty(card);
       const it = cartAdd(seccion, nombre, 'Oferta', cantidad, unidad);
-      if (it && btn.dataset.catid) it.origen = { t: 'catalogo', id: btn.dataset.catid };
+      if (it && btn.dataset.catid) it.origen = { t: 'catalogo', id: btn.dataset.catid, ev: btn.dataset.catev === '1' };
       btn.classList.add('added'); btn.textContent = '✓';
       if (card) card.classList.add('added-card');
       showToast(`🛒 Agregada: ${nombre} (${cantidad} ${unidad})`, 'success');
@@ -6713,6 +6713,10 @@ body { background:transparent !important; }
     } catch { _fechasCalCache[rubro] = []; }
     return _fechasCalCache[rubro];
   }
+  // ¿La fecha especial pide evidencia? (casilla de Luciana; se busca en lo ya leído)
+  function _fechaPideEvid(id) {
+    return Object.values(_fechasCalCache).some(l => (l || []).some(a => String(a.id) === String(id) && a.requiere_evidencia === true));
+  }
   function calNav(secId, delta) {
     calRefMes = new Date(calRefMes.getFullYear(), calRefMes.getMonth() + delta, 1);
     renderCalendarioMes(secId, calRefMes, _calCanales[secId]);
@@ -6777,7 +6781,7 @@ body { background:transparent !important; }
           <span class="cal-ev-chev" id="${chevId}">▼</span>
         </button>
         <div class="cal-ev-body" id="${bodyId}"></div>
-        <div class="cal-ev-evid">${(window.GBEvid ? GBEvid.boton({ t: 'fecha', id: ev.id, titulo: ev.nombre }) : '')}</div>
+        <div class="cal-ev-evid">${(window.GBEvid ? GBEvid.boton({ t: 'fecha', id: ev.id, titulo: ev.nombre, req: ev.requiere_evidencia === true }) : '')}</div>
       </div>`;
     }).join('') : `<div class="esp-loading">Sin fechas especiales cargadas para este mes.</div>`;
 
