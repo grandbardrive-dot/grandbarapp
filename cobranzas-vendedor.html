@@ -130,9 +130,11 @@
           <div class="kpi"><div class="k">Saldo de tu cartera</div><div class="v" id="kSaldo">—</div></div>
           <div class="kpi"><div class="k">Vencido</div><div class="v rojo" id="kVenc">—</div></div>
         </div>
-        <!-- Los que deben y los que no, separados (pedido 14/10/2026: no mezclar a todos). -->
+        <!-- Separados (pedidos del 14/10 y 15/10/2026): los que tienen vencido, los que tienen
+             saldo pero nada vencido, y los que no deben nada. -->
         <div class="subtabs">
-          <button id="st-deuda" class="on" onclick="verSub('deuda')">Con deuda <b id="nDeuda"></b></button>
+          <button id="st-venc" class="on" onclick="verSub('venc')">Con vencido <b id="nVenc"></b></button>
+          <button id="st-saldo" onclick="verSub('saldo')">Con saldo <b id="nSaldo"></b></button>
           <button id="st-cero" onclick="verSub('cero')">Clientes con deuda 0 <b id="nCero"></b></button>
         </div>
         <div class="filtros">
@@ -141,10 +143,6 @@
             <option value="vencida">Primero los más vencidos</option>
             <option value="saldo">Primero los de más saldo</option>
             <option value="nombre">Por nombre</option>
-          </select>
-          <select id="dFiltro" onchange="pintarDeuda()">
-            <option value="deuda">Todos los que deben</option>
-            <option value="vencida">Solo con vencido</option>
           </select>
         </div>
         <div id="dLista"><div class="empty"><div class="big">⏳</div>Cargando…</div></div>
@@ -226,15 +224,14 @@
   }
 
   // ── Deuda de mis clientes (datos reales del ERP, tabla cuentas_cubo) ────────
-  let CLIENTES = [], SUB = 'deuda';
+  let CLIENTES = [], SUB = 'venc';
   // Con deuda = tiene saldo a pagar o facturas vencidas (la vencida no descuenta el saldo a
-  // favor, regla del 29/09). Deuda 0 = ni saldo ni vencido: van en su pestaña aparte.
+  // favor, regla del 29/09). Tres pestañas: con vencido / con saldo (nada vencido) / deuda 0.
   const debe = c => c.saldo > 0 || c.vencida > 0;
+  const grupo = c => c.vencida > 0 ? "venc" : c.saldo > 0 ? "saldo" : "cero";
   function verSub(cual){
     SUB = cual;
-    document.getElementById("st-deuda").classList.toggle("on", cual==="deuda");
-    document.getElementById("st-cero").classList.toggle("on", cual==="cero");
-    document.getElementById("dFiltro").style.display = cual==="deuda" ? "" : "none";
+    ["venc","saldo","cero"].forEach(k => document.getElementById("st-"+k).classList.toggle("on", cual===k));
     pintarDeuda();
   }
   window.verSub = verSub;
@@ -262,10 +259,11 @@
   function pintarDeuda(){
     const q = (document.getElementById("dBuscar").value||"").trim().toLowerCase();
     const orden = document.getElementById("dOrden").value;
-    const filtro = document.getElementById("dFiltro").value;
-    const conDeuda = CLIENTES.filter(debe), sinDeuda = CLIENTES.filter(c=>!debe(c));
-    document.getElementById("nDeuda").textContent = "(" + conDeuda.length + ")";
-    document.getElementById("nCero").textContent  = "(" + sinDeuda.length + ")";
+    const conDeuda = CLIENTES.filter(debe);
+    const n = { venc:0, saldo:0, cero:0 }; CLIENTES.forEach(c => { n[grupo(c)]++; });
+    document.getElementById("nVenc").textContent  = "(" + n.venc + ")";
+    document.getElementById("nSaldo").textContent = "(" + n.saldo + ")";
+    document.getElementById("nCero").textContent  = "(" + n.cero + ")";
     // Los totales miran SIEMPRE toda la cartera, no lo que se esté filtrando
     document.getElementById("kCli").textContent   = conDeuda.length + " de " + CLIENTES.length;
     // Saldo neto de la cartera: los clientes con saldo a favor restan, igual que en el
@@ -273,14 +271,14 @@
     document.getElementById("kSaldo").textContent = fmtMoney(CLIENTES.reduce((a,c)=>a+c.saldo,0));
     document.getElementById("kVenc").textContent  = fmtMoney(CLIENTES.reduce((a,c)=>a+c.vencida,0));
 
-    let lista = SUB==="cero" ? sinDeuda.slice() : filtro==="vencida" ? conDeuda.filter(c=>c.vencida>0) : conDeuda.slice();
+    let lista = CLIENTES.filter(c => grupo(c)===SUB);
     if(q) lista = lista.filter(c => String(c.nombre||"").toLowerCase().includes(q) || String(c.codigo||"").toLowerCase().includes(q));
     lista.sort((a,b)=> orden==="nombre" ? String(a.nombre||"").localeCompare(String(b.nombre||""))
                      : orden==="saldo"  ? b.saldo - a.saldo
                      : (b.vencida - a.vencida) || (b.saldo - a.saldo));
 
     const box = document.getElementById("dLista");
-    if(!lista.length){ box.innerHTML = `<div class="empty"><div class="big">👌</div>${q?"Ningún cliente con ese nombre.":SUB==="cero"?"Todos tus clientes tienen algo de deuda.":"Ningún cliente te debe: están todos en Clientes con deuda 0."}</div>`; }
+    if(!lista.length){ box.innerHTML = `<div class="empty"><div class="big">👌</div>${q?"Ningún cliente con ese nombre.":SUB==="venc"?"Ningún cliente tiene facturas vencidas.":SUB==="saldo"?"Ningún cliente tiene saldo sin vencer.":"Todos tus clientes tienen algo de deuda."}</div>`; }
     else box.innerHTML = lista.map(c=>{
       const tel = String(c.telefono||"").replace(/\D/g,"");
       const msg = encodeURIComponent(`Hola! Te escribo de GrandBar por el saldo de tu cuenta${c.vencida>0?` (tenés ${fmtMoney(c.vencida)} vencido)`:""}. ¿Cómo lo coordinamos?`);
@@ -291,11 +289,11 @@
         </div>
         <div class="mto"><div class="et">${c.saldo<0?"Saldo a favor":"Saldo"}</div><div class="nu">${fmtMoney(c.saldo<0?-c.saldo:c.saldo)}</div></div>
         <div class="mto"><div class="et">Vencido</div><div class="nu ${c.vencida>0?"rojo":""}">${c.vencida>0?fmtMoney(c.vencida):"—"}</div></div>
-        <div>${tel&&SUB==="deuda"?`<a class="wa" href="https://wa.me/${tel.length<=10?"549"+tel:tel}?text=${msg}" target="_blank" rel="noopener">💬 WhatsApp</a>`:""}</div>
+        <div>${tel&&SUB!=="cero"?`<a class="wa" href="https://wa.me/${tel.length<=10?"549"+tel:tel}?text=${msg}" target="_blank" rel="noopener">💬 WhatsApp</a>`:""}</div>
       </div>`;
     }).join("");
     document.getElementById("dNota").textContent =
-      `Mostrando ${lista.length} de ${SUB==="cero"?sinDeuda.length+" clientes con deuda 0":conDeuda.length+" clientes con deuda"} (tu cartera tiene ${CLIENTES.length}). Los saldos salen del sistema de la empresa; si cobraste hoy, puede tardar en actualizarse.`;
+      `Mostrando ${lista.length} de ${n[SUB]} ${SUB==="venc"?"clientes con vencido":SUB==="saldo"?"clientes con saldo sin vencer":"clientes con deuda 0"} (tu cartera tiene ${CLIENTES.length}). Los saldos salen del sistema de la empresa; si cobraste hoy, puede tardar en actualizarse.`;
   }
   window.pintarDeuda = pintarDeuda;
   const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));

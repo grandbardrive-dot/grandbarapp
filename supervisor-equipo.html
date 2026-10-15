@@ -150,9 +150,10 @@
       <div id="viewVend"><div class="vgrid" id="vgrid"><div class="loading">Cargando…</div></div></div>
 
       <div id="viewCli" style="display:none">
-        <!-- Con deuda / sin deuda por separado (pedido de Diego, 15/10/2026). -->
+        <!-- Con vencido / con saldo (nada vencido) / sin deuda, por separado (15/10/2026). -->
         <div class="subtabs">
-          <button id="scDeuda" class="on" onclick="verSubCli('deuda')">Con deuda <b id="nCliDeuda"></b></button>
+          <button id="scVenc" class="on" onclick="verSubCli('venc')">Con vencido <b id="nCliVenc"></b></button>
+          <button id="scSaldo" onclick="verSubCli('saldo')">Con saldo <b id="nCliSaldo"></b></button>
           <button id="scCero" onclick="verSubCli('cero')">Sin deuda <b id="nCliCero"></b></button>
         </div>
         <div class="toolbar"><input id="buscar" placeholder="Buscar por nombre, código, vendedor o dirección…" oninput="renderClientes()" /></div>
@@ -263,29 +264,29 @@
     try{
       const r = await fetch('/.netlify/functions/supervisor-equipo?vendedor='+encodeURIComponent(cod), { headers:{ Authorization:'Bearer '+TOKEN } });
       const d = await r.json();
-      DR_CL = d.clientes||[]; DR_SUB = 'deuda';
+      DR_CL = d.clientes||[]; DR_SUB = 'venc';
       renderDrawer();
     }catch(e){ document.getElementById('drBody').innerHTML='<div class="empty">Error cargando.</div>'; }
   }
-  // Clientes del vendedor: con deuda / sin deuda por separado (15/10/2026, como en
-  // "Todos los clientes"). Los que deben van primero los de más vencido.
-  let DR_CL = [], DR_SUB = 'deuda';
+  // Clientes del vendedor: con vencido / con saldo / sin deuda por separado (15/10/2026,
+  // como en "Todos los clientes"). Cada pestaña, primero los de más plata.
+  let DR_CL = [], DR_SUB = 'venc';
   function verSubDr(cual){ DR_SUB = cual; renderDrawer(); }
   window.verSubDr = verSubDr;
   function renderDrawer(){
-    const conDeuda = DR_CL.filter(debe).sort((a,b) => (Number(b.vencida)||0)-(Number(a.vencida)||0) || (Number(b.saldo)||0)-(Number(a.saldo)||0));
-    const sinDeuda = DR_CL.filter(c => !debe(c));
-    const list = DR_SUB==='deuda' ? conDeuda : sinDeuda;
+    const n = cuentaGrupos(DR_CL);
+    const list = ordenarGrupo(DR_CL.filter(c => grupoDeuda(c)===DR_SUB), DR_SUB);
     const tabs = `<div class="subtabs">
-        <button class="${DR_SUB==='deuda'?'on':''}" onclick="verSubDr('deuda')">Con deuda <b>(${conDeuda.length.toLocaleString('es-AR')})</b></button>
-        <button class="${DR_SUB==='cero'?'on':''}" onclick="verSubDr('cero')">Sin deuda <b>(${sinDeuda.length.toLocaleString('es-AR')})</b></button>
+        <button class="${DR_SUB==='venc'?'on':''}" onclick="verSubDr('venc')">Con vencido <b>(${n.venc.toLocaleString('es-AR')})</b></button>
+        <button class="${DR_SUB==='saldo'?'on':''}" onclick="verSubDr('saldo')">Con saldo <b>(${n.saldo.toLocaleString('es-AR')})</b></button>
+        <button class="${DR_SUB==='cero'?'on':''}" onclick="verSubDr('cero')">Sin deuda <b>(${n.cero.toLocaleString('es-AR')})</b></button>
       </div>`;
     document.getElementById('drBody').innerHTML = !DR_CL.length ? '<div class="empty">Sin clientes cargados.</div>' : tabs + (list.length ? list.map(c=>`
         <div class="crow" style="background:var(--card);border:1px solid var(--line);border-radius:11px;margin-bottom:8px;grid-template-columns:1fr auto auto">
           <div><div class="nm">${esc(c.nombre)}</div><div class="meta">${esc(c.direccion||c.localidad||('Cód. '+c.codigo))}</div></div>
           <div class="col"><div class="k">Saldo</div><div class="v ${Number(c.saldo)>0?'gold':''}">${fmt(c.saldo)}</div></div>
           <div class="col"><div class="k">Vencida</div><div class="v ${Number(c.vencida)>0?'red':''}">${fmt(c.vencida)}</div></div>
-        </div>`).join('') : '<div class="empty">'+(DR_SUB==='deuda'?'Ningún cliente de este vendedor tiene deuda.':'Todos los clientes de este vendedor tienen algo de deuda.')+'</div>');
+        </div>`).join('') : '<div class="empty">'+VACIO_GRUPO[DR_SUB]('este vendedor')+'</div>');
   }
   function cerrar(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('drawer').classList.remove('open'); }
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') cerrar(); });
@@ -297,13 +298,24 @@
       const d = await r.json(); CLIENTES = d.clientes||[]; renderClientes();
     }catch(e){ cont.innerHTML='<div class="empty">Error cargando.</div>'; }
   }
-  // Con deuda = saldo a pagar o algo vencido (la vencida no descuenta el saldo a favor).
-  // Sin deuda = ni saldo ni vencido. Igual que la pantalla Cobranzas.
-  let SUBCLI = 'deuda';
-  const debe = c => Number(c.saldo) > 0 || Number(c.vencida) > 0;
+  // Tres grupos, igual que la pantalla Cobranzas del vendedor (15/10/2026):
+  //   venc  = algo vencido (la vencida no descuenta el saldo a favor)
+  //   saldo = saldo a pagar sin nada vencido
+  //   cero  = ni saldo ni vencido (incluye a los que tienen saldo a favor)
+  let SUBCLI = 'venc';
+  const grupoDeuda = c => Number(c.vencida) > 0 ? 'venc' : Number(c.saldo) > 0 ? 'saldo' : 'cero';
+  const cuentaGrupos = arr => { const n = { venc:0, saldo:0, cero:0 }; arr.forEach(c => { n[grupoDeuda(c)]++; }); return n; };
+  const ordenarGrupo = (arr, g) => g==='venc' ? arr.sort((a,b) => (Number(b.vencida)||0)-(Number(a.vencida)||0) || (Number(b.saldo)||0)-(Number(a.saldo)||0))
+                                  : g==='saldo' ? arr.sort((a,b) => (Number(b.saldo)||0)-(Number(a.saldo)||0)) : arr;
+  const VACIO_GRUPO = {
+    venc:  q => 'Ningún cliente de '+q+' tiene facturas vencidas.',
+    saldo: q => 'Ningún cliente de '+q+' tiene saldo sin vencer.',
+    cero:  q => 'Todos los clientes de '+q+' tienen algo de deuda.',
+  };
   function verSubCli(cual){
     SUBCLI = cual;
-    document.getElementById('scDeuda').classList.toggle('on', cual==='deuda');
+    document.getElementById('scVenc').classList.toggle('on', cual==='venc');
+    document.getElementById('scSaldo').classList.toggle('on', cual==='saldo');
     document.getElementById('scCero').classList.toggle('on', cual==='cero');
     renderClientes();
   }
@@ -311,12 +323,13 @@
   function renderClientes(){
     const cont=document.getElementById('clist'); if(CLIENTES===null) return;
     const q=(document.getElementById('buscar').value||'').toLowerCase().trim();
-    const nDeuda = CLIENTES.filter(debe).length;
-    document.getElementById('nCliDeuda').textContent = '('+nDeuda.toLocaleString('es-AR')+')';
-    document.getElementById('nCliCero').textContent  = '('+(CLIENTES.length-nDeuda).toLocaleString('es-AR')+')';
-    const list = CLIENTES.filter(c => SUBCLI==='deuda' ? debe(c) : !debe(c))
+    const n = cuentaGrupos(CLIENTES);
+    document.getElementById('nCliVenc').textContent  = '('+n.venc.toLocaleString('es-AR')+')';
+    document.getElementById('nCliSaldo').textContent = '('+n.saldo.toLocaleString('es-AR')+')';
+    document.getElementById('nCliCero').textContent  = '('+n.cero.toLocaleString('es-AR')+')';
+    const list = ordenarGrupo(CLIENTES.filter(c => grupoDeuda(c)===SUBCLI), SUBCLI)
       .filter(c=>!q || ((c.nombre||'')+' '+(c.vendedor_nombre||'')+' '+(c.direccion||'')+' '+(c.codigo||'')+' '+(c.localidad||'')).toLowerCase().includes(q));
-    if(!list.length){ cont.innerHTML='<div class="empty">'+(q?'Sin resultados.':SUBCLI==='deuda'?'Ningún cliente del equipo tiene deuda.':'Todos los clientes del equipo tienen algo de deuda.')+'</div>'; return; }
+    if(!list.length){ cont.innerHTML='<div class="empty">'+(q?'Sin resultados.':VACIO_GRUPO[SUBCLI]('tu equipo'))+'</div>'; return; }
     cont.innerHTML = list.slice(0,400).map(c=>`
       <div class="crow">
         <div><div class="nm">${esc(c.nombre)}</div><div class="meta">${esc(c.vendedor_nombre||'')}${c.direccion?' · '+esc(c.direccion):''}</div></div>
