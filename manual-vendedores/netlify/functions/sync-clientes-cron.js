@@ -2,7 +2,8 @@
 //  GrandBar Hub · Function PROGRAMADA · sync-clientes-cron
 //  Corre sola cada hora (ver netlify.toml) y deja la lista de clientes del
 //  manual igual que CUBO: crea los nuevos y corrige nombre, rubro y vendedor.
-//  Además (14/10/2026), los clientes ocultos que volvieron a comprar vuelven a verse.
+//  Además (14/10/2026), los clientes ocultos que volvieron a comprar vuelven a verse,
+//  y (15/10/2026) se marca qué clientes deben (clientes.con_deuda), desde Cobranzas.
 //
 //  CUBO no avisa cuando algo cambia, así que la única forma de "estar al día"
 //  es preguntarle seguido. Cada hora es suficiente para que un cliente nuevo o un
@@ -14,7 +15,7 @@
 //  Qué hizo cada corrida queda en los registros de la función en Netlify.
 // ============================================================
 
-const { sincronizar, reactivarCompradores } = require('./sync-clientes-cubo');
+const { sincronizar, reactivarCompradores, marcarConDeuda } = require('./sync-clientes-cubo');
 
 exports.handler = async () => {
   const t0 = Date.now();
@@ -28,6 +29,12 @@ exports.handler = async () => {
     }));
   } catch (e) {
     console.error('sync-clientes-cron reactivar ERROR', (e && e.message) || String(e));
+  }
+  // Quién debe (15/10/2026): "los que tienen deuda no se ocultan".
+  try {
+    console.log('sync-clientes-cron con_deuda', JSON.stringify(await marcarConDeuda()));
+  } catch (e) {
+    console.error('sync-clientes-cron con_deuda ERROR', (e && e.message) || String(e));
   }
   try {
     const inf = await sincronizar('aplicar', t0);

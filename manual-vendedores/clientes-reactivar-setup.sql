@@ -91,3 +91,27 @@ notify pgrst, 'reload schema';
 
 -- Ver qué haría ahora, sin cambiar nada:
 --   select public.reactivar_clientes_que_compraron(true);
+
+-- ── Quién debe (15/10/2026: "los que tienen deuda no se ocultan") ──────────
+-- clientes.con_deuda la marca sync-clientes-cron cada hora con la lista de deudores de
+-- Cobranzas (cuentas_cubo: saldo > 0 o algo vencido). Con lista vacía no toca nada.
+alter table clientes add column if not exists con_deuda boolean not null default false;
+
+create or replace function public.marcar_clientes_con_deuda(p_codigos text[])
+returns jsonb language plpgsql set search_path = public as $$
+declare v_on int; v_off int;
+begin
+  -- Sin lista no se toca nada (si CUBO no contestó, mejor dejar la marca como estaba).
+  if p_codigos is null or array_length(p_codigos, 1) is null then
+    return jsonb_build_object('ok', false, 'motivo', 'lista vacía');
+  end if;
+  update clientes set con_deuda = true
+   where not con_deuda and ltrim(trim(codigo_cliente), '0') = any(p_codigos);
+  get diagnostics v_on = row_count;
+  update clientes set con_deuda = false
+   where con_deuda and not (ltrim(trim(codigo_cliente), '0') = any(p_codigos));
+  get diagnostics v_off = row_count;
+  return jsonb_build_object('ok', true, 'con_deuda_nuevos', v_on, 'sin_deuda_nuevos', v_off);
+end $$;
+
+notify pgrst, 'reload schema';

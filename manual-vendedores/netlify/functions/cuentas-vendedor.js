@@ -68,9 +68,10 @@ exports.handler = async (event) => {
     //     ocultaron). Misma regla que la lista de Clientes y el panel del supervisor: manda
     //     clientes_estado (botón Quitar, por código); si no figura, la columna activo del Manual.
     //     - Oculto sin deuda: no se devuelve (no aparece en ninguna pantalla).
-    //     - Oculto con deuda: se devuelve con oculto=true (la deuda no se pierde de vista;
-    //       Cobranzas lo marca, y ruta / torneo / mapa lo dejan afuera).
-    //     ?con_ocultos=1 devuelve todos marcados (Mis clientes, pestaña Quitados).
+    //     - Oculto CON deuda: se devuelve normal. "Los que tienen deuda no se ocultan"
+    //       (dueño, 15/10/2026).
+    //     ?con_ocultos=1 devuelve también los ocultos sin deuda, marcados (Mis clientes,
+    //     pestaña Quitados).
     try {
       const MAN_URL = 'https://fzaxwuuodseyyinveknn.supabase.co';
       const MAN_KEY = process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
@@ -86,8 +87,8 @@ exports.handler = async (event) => {
       const oculto = c => { const k = norm(c.codigo); if (k in estMap) return estMap[k] === false; return colMap[k] === false; };
       const debe = c => (Number(c.saldo) || 0) > 0 || (Number(c.vencida) || 0) > 0;
       const qp = event.queryStringParameters || {};
-      clientes = clientes.map(c => (oculto(c) ? { ...c, oculto: true } : c))
-        .filter(c => qp.con_ocultos === '1' || !c.oculto || debe(c));
+      clientes = clientes.map(c => (oculto(c) && !debe(c) ? { ...c, oculto: true } : c))
+        .filter(c => qp.con_ocultos === '1' || !c.oculto);
     } catch (e) { /* si no se puede leer el Manual, se devuelven todas como antes */ }
 
     // 4) Coordenadas + dirección desde clientes_geo (Supabase del Hub, service role).

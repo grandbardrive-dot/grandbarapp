@@ -32,7 +32,7 @@ const normCod = x => (String(x == null ? '' : x).trim().replace(/^0+/, '') || '0
 //   countByVendor    → { codigoVendedor: cantidad de clientes activos }
 async function carteraManual(codigos) {
   const man = (p, o) => fetch(MAN_URL + '/rest/v1/' + p, { headers: Object.assign({ apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON }, (o && o.headers) || {}) });
-  const out = { allowed: new Set(), vendorsWithManual: new Set(), countByVendor: {} };
+  const out = { allowed: new Set(), vendorsWithManual: new Set(), countByVendor: {}, est: {}, col: {} };
   try {
     const vends = await (await man('vendedores?codigo=in.(' + qvals(codigos) + ')&select=id,codigo')).json();
     if (!Array.isArray(vends) || !vends.length) return out;
@@ -44,10 +44,12 @@ async function carteraManual(codigos) {
       traerTodo(man, 'clientes_estado?select=codigo,activo&order=codigo.asc'),
     ]);
     const estMap = {}; (Array.isArray(est) ? est : []).forEach(r => { estMap[normCod(r.codigo)] = r.activo; });
+    out.est = estMap;
     (Array.isArray(cli) ? cli : []).forEach(c => {
       const vcod = codOf[c.vendedor_id]; if (!vcod) return;
       out.vendorsWithManual.add(vcod);
       const k = normCod(c.codigo_cliente);
+      out.col[k] = c.activo;
       const activo = (k in estMap) ? estMap[k] : (c.activo !== false);
       if (activo) { out.allowed.add(k); out.countByVendor[vcod] = (out.countByVendor[vcod] || 0) + 1; }
     });
@@ -107,12 +109,20 @@ exports.handler = async (event) => {
     // mostraban números distintos. La cartera se usa solo para CONTAR clientes
     // (ese número sí es el del Manual, el que ve el vendedor en "Mi cartera").
     const cartera = await carteraManual(codigos);
+    // En las LISTAS de clientes no van los ocultos de la cartera, salvo que deban: "los que
+    // tienen deuda no se ocultan" (15/10/2026). Oculto = clientes_estado por código; si no
+    // figura, la columna activo del Manual. Los totales de plata siguen siendo de todo.
+    const ocultoSinDeuda = c => {
+      if (num(c.saldo) > 0 || num(c.vencida) > 0) return false;
+      const k = normCod(c.codigo);
+      return (k in cartera.est) ? cartera.est[k] === false : cartera.col[k] === false;
+    };
 
     // ¿drill-in de un vendedor puntual?
     const qp = event.queryStringParameters || {};
     if (qp.vendedor) {
       const cod = String(qp.vendedor);
-      let lista = clientes.filter(c => String(c.vendedor) === cod);
+      let lista = clientes.filter(c => String(c.vendedor) === cod && !ocultoSinDeuda(c));
       lista = await enriquecerGeo(lista, hubService);
       return json(200, { vendedor: cod, nombre: nombreDeCod[cod] || cod, clientes: lista });
     }
@@ -136,7 +146,7 @@ exports.handler = async (event) => {
 
     let listaClientes = [];
     if (qp.clientes) {
-      listaClientes = await enriquecerGeo(clientes.map(c => ({ ...c, vendedor_nombre: nombreDeCod[String(c.vendedor)] || c.vendedor })), hubService);
+      listaClientes = await enriquecerGeo(clientes.filter(c => !ocultoSinDeuda(c)).map(c => ({ ...c, vendedor_nombre: nombreDeCod[String(c.vendedor)] || c.vendedor })), hubService);
     }
 
     return json(200, { nombre: perfil.nombre, canal: perfil.canal, region: perfil.region, equipo: equipoOut, totales, clientes: listaClientes, actualizado });
