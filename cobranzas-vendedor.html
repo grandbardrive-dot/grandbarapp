@@ -101,6 +101,20 @@
     @keyframes efeDotPulse{0%{box-shadow:0 0 0 0 rgba(226,59,59,.55)}70%{box-shadow:0 0 0 8px rgba(226,59,59,0)}100%{box-shadow:0 0 0 0 rgba(226,59,59,0)}}
     @keyframes efeFlash{0%,100%{box-shadow:0 0 0 0 rgba(31,138,76,0)}50%{box-shadow:0 0 0 4px rgba(31,138,76,.5)}}
     #efeBox.nuevo>div{animation:efeFlash 1s ease 2}
+    /* Planilla (cargar lo cobrado) */
+    .plan-intro{font-size:13px;color:var(--muted);margin-bottom:12px}
+    .plan-form{display:grid;grid-template-columns:150px 1.4fr 120px 140px 1fr auto;gap:10px;margin-bottom:14px;align-items:center}
+    .plan-form input,.plan-form select{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;background:var(--card);min-width:0}
+    .plan-tot{font-size:15px;margin:2px 0 14px}
+    .plan-tot b{font-size:20px;font-weight:800}
+    .pl-row{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px}
+    .pl-row .nm{font-weight:700;font-size:14px}
+    .pl-row .meta{font-size:11.5px;color:var(--muted);margin-top:2px}
+    .pl-row .mto{font-weight:800;font-size:15px;white-space:nowrap}
+    .pl-medio{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--gold-soft);color:var(--gold-d);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+    .pl-del{background:#fff;border:1px solid var(--line);color:var(--coral);border-radius:9px;padding:7px 10px;font:inherit;font-size:13px;cursor:pointer}
+    .pl-del:hover{border-color:var(--coral)}
+    @media(max-width:820px){ .plan-form{grid-template-columns:1fr 1fr} .plan-form #plAdd{grid-column:1/-1} .pl-row{grid-template-columns:1fr auto;gap:6px 10px} .pl-row .mto{grid-column:2} }
   </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 <script>try{var v=localStorage.getItem('gb_es_sup'),t=JSON.parse(localStorage.getItem('sb-xqhyemccbwmzxqzkrtwa-auth-token')||'null'),u=t&&(t.user||(t.currentSession||{}).user);if(v&&u&&v===u.id)document.documentElement.classList.add('gb-sup')}catch(e){}</script>
@@ -125,6 +139,7 @@
       <div class="tabs">
         <button id="tab-deuda" class="on" onclick="verTab('deuda')">💲 Deuda de mis clientes</button>
         <button id="tab-comp" onclick="verTab('comp')">📄 Comprobantes</button>
+        <button id="tab-plan" onclick="verTab('plan')">📋 Planilla</button>
       </div>
 
       <!-- DEUDA DE MIS CLIENTES -->
@@ -166,6 +181,28 @@
 
       <div class="aviso" id="aviso"></div>
       <div class="list" id="list"><div class="empty"><div class="big">⏳</div>Cargando…</div></div>
+      </div>
+
+      <!-- PLANILLA (cargar lo cobrado) -->
+      <div id="vista-plan" style="display:none">
+        <div class="plan-intro">Anotá acá lo que fuiste cobrando en el día. Elegí el cliente, el monto y el medio; queda guardado y podés revisarlo por fecha.</div>
+        <div class="plan-form">
+          <input id="plFecha" type="date" title="Fecha">
+          <input id="plCli" list="plClientes" placeholder="Cliente (nombre o código)" autocomplete="off">
+          <datalist id="plClientes"></datalist>
+          <input id="plMonto" type="number" inputmode="decimal" min="0" step="1" placeholder="Monto $">
+          <select id="plMedio">
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="cheque">Cheque</option>
+            <option value="otro">Otro</option>
+          </select>
+          <input id="plNota" placeholder="Nota (opcional)">
+          <button class="btn-ok" id="plAdd" onclick="agregarPlanilla()">＋ Agregar</button>
+        </div>
+        <div class="aviso" id="plErr" style="display:none"></div>
+        <div class="plan-tot">Total cobrado: <b id="plTotal">$ 0</b> <span id="plCount" style="color:var(--muted);font-weight:500;font-size:13px"></span></div>
+        <div id="plLista"><div class="empty"><div class="big">⏳</div>Cargando…</div></div>
       </div>
     </div>
   </div>
@@ -241,12 +278,87 @@
   }
   window.verSub = verSub;
   function verTab(cual){
-    document.getElementById("vista-deuda").style.display = cual==="deuda" ? "block" : "none";
-    document.getElementById("vista-comp").style.display  = cual==="comp"  ? "block" : "none";
-    document.getElementById("tab-deuda").classList.toggle("on", cual==="deuda");
-    document.getElementById("tab-comp").classList.toggle("on", cual==="comp");
+    ["deuda","comp","plan"].forEach(t=>{
+      const v=document.getElementById("vista-"+t), b=document.getElementById("tab-"+t);
+      if(v) v.style.display = cual===t ? "block" : "none";
+      if(b) b.classList.toggle("on", cual===t);
+    });
+    if(cual==="plan") abrirPlanilla();
   }
   window.verTab = verTab;
+
+  // ── PLANILLA: cargar lo cobrado ─────────────────────────────────────────────
+  const hoyISO = () => { const d=new Date(), z=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate()); };
+  let PLAN_CLI = {}, _planIni = false;
+  function llenarClientesDatalist(){
+    const dl=document.getElementById("plClientes"); if(!dl) return;
+    PLAN_CLI={};
+    dl.innerHTML = (CLIENTES||[]).map(c=>{ const label=(c.nombre||"Cliente")+" · #"+(c.codigo||""); PLAN_CLI[label]={codigo:c.codigo,nombre:c.nombre}; return `<option value="${esc(label)}"></option>`; }).join("");
+  }
+  function abrirPlanilla(){
+    const f=document.getElementById("plFecha"); if(f && !f.value) f.value=hoyISO();
+    llenarClientesDatalist();
+    if(!_planIni){ _planIni=true; if(f) f.addEventListener("change", cargarPlanilla); }
+    cargarPlanilla();
+  }
+  async function cargarPlanilla(){
+    const box=document.getElementById("plLista"); if(!box) return;
+    const fecha=(document.getElementById("plFecha")||{}).value || hoyISO();
+    box.innerHTML = `<div class="empty"><div class="big">⏳</div>Cargando…</div>`;
+    try{
+      const r=await fetch("/.netlify/functions/planilla-cobranzas?fecha="+encodeURIComponent(fecha), { headers:{ Authorization:"Bearer "+token } });
+      const j=await r.json();
+      if(j.error){ box.innerHTML=`<div class="empty">No pude cargar la planilla: ${esc(j.error)}</div>`; return; }
+      document.getElementById("plTotal").textContent = fmtMoney(j.total||0);
+      const filas=j.filas||[];
+      document.getElementById("plCount").textContent = filas.length ? `· ${filas.length} cobro${filas.length>1?"s":""}` : "";
+      if(!filas.length){ box.innerHTML=`<div class="empty"><div class="big">📋</div>No cargaste cobros para este día. Agregá el primero arriba.</div>`; return; }
+      box.innerHTML = filas.map(f=>{
+        const hora = f.created_at ? new Date(f.created_at).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}) : "";
+        return `<div class="pl-row">
+          <div><div class="nm">${esc(f.cliente_nombre||"—")}${f.codigo?` <span style="color:var(--muted);font-weight:600;font-size:12px">#${esc(f.codigo)}</span>`:""}</div>
+            <div class="meta">${hora}${f.nota?` · ${esc(f.nota)}`:""}</div></div>
+          <span class="pl-medio">${esc(f.medio||"")}</span>
+          <div class="mto">${fmtMoney(f.monto)}</div>
+          <button class="pl-del" onclick="borrarPlanilla('${esc(String(f.id))}')" title="Borrar">✕</button>
+        </div>`;
+      }).join("");
+    }catch(e){ box.innerHTML=`<div class="empty">Error de conexión: ${esc(e.message||e)}</div>`; }
+  }
+  window.cargarPlanilla=cargarPlanilla;
+  async function agregarPlanilla(){
+    const err=document.getElementById("plErr"), aviso=t=>{ if(err){ err.textContent=t; err.style.display=t?"block":"none"; } };
+    const cliInput=document.getElementById("plCli"), val=(cliInput.value||"").trim();
+    const monto=Number(document.getElementById("plMonto").value);
+    const medio=document.getElementById("plMedio").value;
+    const nota=(document.getElementById("plNota").value||"").trim();
+    const fecha=(document.getElementById("plFecha")||{}).value || hoyISO();
+    aviso("");
+    if(!(monto>0)){ aviso("Poné un monto válido."); return; }
+    let codigo=null, nombre=val;
+    if(PLAN_CLI[val]){ codigo=PLAN_CLI[val].codigo; nombre=PLAN_CLI[val].nombre; }
+    if(!nombre){ aviso("Elegí o escribí el cliente."); return; }
+    const btn=document.getElementById("plAdd"), antes=btn.textContent; btn.disabled=true; btn.textContent="Guardando…";
+    try{
+      const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"agregar", codigo, cliente_nombre:nombre, monto, medio, nota, fecha }) });
+      const j=await r.json();
+      if(!j.ok){ aviso("No se pudo guardar: "+(j.error||"error")); btn.disabled=false; btn.textContent=antes; return; }
+      cliInput.value=""; document.getElementById("plMonto").value=""; document.getElementById("plNota").value="";
+      btn.disabled=false; btn.textContent=antes;
+      cargarPlanilla(); cliInput.focus();
+    }catch(e){ aviso("Error de conexión: "+(e.message||e)); btn.disabled=false; btn.textContent=antes; }
+  }
+  window.agregarPlanilla=agregarPlanilla;
+  async function borrarPlanilla(id){
+    if(!confirm("¿Borrar este cobro de la planilla?")) return;
+    try{
+      const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"borrar", id }) });
+      const j=await r.json();
+      if(!j.ok){ alert("No se pudo borrar: "+(j.error||"error")); return; }
+      cargarPlanilla();
+    }catch(e){ alert("Error de conexión: "+(e.message||e)); }
+  }
+  window.borrarPlanilla=borrarPlanilla;
 
   async function cargarDeuda(){
     try{
@@ -259,6 +371,7 @@
       CLIENTES = (j.clientes||[]).map(c=>({ ...c, saldo:Number(c.saldo)||0, vencida:Math.max(0, Number(c.vencida)||0) }));
       pintarEfectivo(j.cobros||[]);
       pintarDeuda();
+      llenarClientesDatalist(); // para la Planilla
     }catch(e){ document.getElementById("dLista").innerHTML = `<div class="empty">Error de conexión: ${e.message||e}</div>`; }
   }
 
