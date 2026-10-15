@@ -241,6 +241,21 @@ exports.handler = async (event) => {
       return json(200, { filas: await leer('cobros_efectivo?select=*&order=created_at.desc&limit=300') });
     }
 
+    // Planillas de rendición que envían los vendedores (lista de envíos).
+    if (que === 'planillas') {
+      return json(200, { filas: await leer('planilla_envios?select=*&order=enviada_at.desc&limit=400') });
+    }
+    // Detalle de una planilla (filas + envío) de un vendedor y día.
+    if (que === 'planilla-det') {
+      const vend = p.vendedor, fecha = p.fecha;
+      if (!vend || !fecha) return json(400, { error: 'Falta el vendedor o la fecha.' });
+      const [filas, env] = await Promise.all([
+        leer('planilla_cobranzas?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha) + '&order=created_at.asc'),
+        leer('planilla_envios?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha)),
+      ]);
+      return json(200, { filas, envio: (env || [])[0] || null });
+    }
+
     if (que === 'reclamos') {
       if (p.id) {
         const [rec, mensajes] = await Promise.all([

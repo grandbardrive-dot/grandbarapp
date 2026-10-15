@@ -17,6 +17,7 @@ const COB_SECCIONES = [
   { id:'bloquear',     ico:'🔒', n:'Bloquear cuentas',    d:'Clientes que superaron su límite: bloqueá o dá de alta.',        color:'#d6a52b' },
   { id:'reclamos',     ico:'💬', n:'Reclamos',            d:'Reclamos de clientes, con chat y número de seguimiento.',        color:'#7b5cd6' },
   { id:'efectivo',     ico:'💵', n:'Cobros en efectivo',  d:'Clientes que avisaron que tienen el efectivo listo para retirar.', color:'#2d8a4f' },
+  { id:'planillas',    ico:'📋', n:'Planillas de rendición', d:'Las rendiciones de cobranzas que te envían los vendedores, por día.', color:'#b5802b' },
   { id:'tareas',       ico:'✅', n:'Tareas del equipo',   d:'Qué tiene que hacer cada una del equipo y qué quedó hecho.',      color:'#3b6fa0' },
 ];
 
@@ -123,7 +124,7 @@ function cobAbrir(id) {
   const ex = cobExtra().find(s => s.id === id);
   if (ex) return ex.abrir();
   ({ clientes: cobClientes, bloquear: cobBloquear, efectivo: cobEfectivo,
-     comprobantes: cobComprobantes, reclamos: cobReclamos,
+     comprobantes: cobComprobantes, reclamos: cobReclamos, planillas: cobPlanillas,
      estadisticas: cobEstadisticas, whatsapp: cobWhatsapp,
      tareas: eqTareas }[id] || cobTablero)();
 }
@@ -1046,6 +1047,65 @@ function cobEfectivoPintar(d) {
 async function cobEfectivoRefrescar() {
   if (!cq('ef-lista')) return;
   cobEfectivoPintar(await cobApi('?que=efectivo'));
+}
+
+// ── Planillas de rendición (las que envían los vendedores) ─
+async function cobPlanillas() {
+  cq('cob').innerHTML = cobCabecera('Planillas de rendición', 'Las rendiciones de cobranzas que te envían los vendedores. Entrá a una para ver el detalle y los comprobantes.') +
+    `<div id="pla-lista"><div class="pv-vacio">Cargando…</div></div>`;
+  try {
+    const d = await cobApi('?que=planillas');
+    const filas = d.filas || [];
+    if (!filas.length) { cq('pla-lista').innerHTML = `<div class="pv-vacio">Todavía no te enviaron ninguna planilla.</div>`; return; }
+    cq('pla-lista').innerHTML = filas.map(e => {
+      const t = e.totales || {};
+      const lbl = { efectivo: 'Efectivo', cheques: 'Cheques', retenciones: 'Retenc.', transferencia: 'Transf/MP', echeq: 'E-cheq' };
+      const tot = Object.keys(lbl).filter(k => Number(t[k]) > 0).map(k => `${lbl[k]}: <b>${cnum(t[k])}</b>`).join(' · ');
+      return `<article class="hh" style="cursor:pointer" onclick="cobPlanillaDet('${cesc(String(e.vendedor))}','${cesc(String(e.fecha_rendicion))}')">
+        <div class="hh-top"><span class="hh-ico">📋</span>
+          <div class="hh-nom">${cesc(e.vendedor_nombre || ('Vendedor ' + e.vendedor))} · ${cfec(e.fecha_rendicion)}</div>
+          <span class="cb-chip ok">${e.filas} fila${e.filas === 1 ? '' : 's'}</span></div>
+        <div class="hh-desc">Enviada ${cfec(e.enviada_at)} · Importe total: <b>${cnum(t.importe || 0)}</b></div>
+        ${tot ? `<div class="hh-desc">${tot}</div>` : ''}</article>`;
+    }).join('');
+  } catch (e) { cq('pla-lista').innerHTML = cerror(e.message); }
+}
+
+async function cobPlanillaDet(vendedor, fecha) {
+  cq('cob').innerHTML = `<button class="cb-volver" onclick="cobPlanillas()">‹ Volver a planillas</button>
+    <div id="pla-det"><div class="pv-vacio">Cargando…</div></div>`;
+  try {
+    const d = await cobApi('?que=planilla-det&vendedor=' + encodeURIComponent(vendedor) + '&fecha=' + encodeURIComponent(fecha));
+    const filas = d.filas || [], env = d.envio;
+    const MONEY = ['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'echeq'];
+    const t = {}; MONEY.forEach(k => t[k] = 0); filas.forEach(f => MONEY.forEach(k => t[k] += Number(f[k]) || 0));
+    const money = v => (Number(v) || 0) ? cnum(v) : '';
+    const arch = u => u ? `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : '<span style="color:var(--muted)">—</span>';
+    const nomVend = (env && env.vendedor_nombre) || ('Vendedor ' + vendedor);
+    const th = (h, r) => `<th style="padding:9px 11px;text-align:${r ? 'right' : 'left'};font-size:11px;text-transform:uppercase">${h}</th>`;
+    const td = (v, r) => `<td style="padding:8px 11px;text-align:${r ? 'right' : 'left'}">${v}</td>`;
+    cq('pla-det').innerHTML = `
+      <div class="head"><div><h1>Rendición · ${cesc(nomVend)}</h1>
+        <div class="head-sub">${cfec(fecha)}${env && env.enviada_at ? ' · enviada ' + cfec(env.enviada_at) : ''} · ${filas.length} fila${filas.length === 1 ? '' : 's'}</div></div></div>
+      <div style="overflow-x:auto;border:1px solid #e6e6e6;border-radius:12px;margin-top:12px">
+      <table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap">
+        <thead><tr style="background:#0d2238;color:#eaf0f4">
+          ${th('Recibo')}${th('Razón social')}${th('Factura')}${th('Importe', 1)}${th('Efectivo', 1)}${th('Cheques', 1)}${th('Retenc.', 1)}${th('Transf/MP', 1)}${th('E-cheq', 1)}${th('Fecha')}${th('Comprob.')}${th('Recepción')}
+        </tr></thead>
+        <tbody>${filas.length ? filas.map(f => `<tr style="border-top:1px solid #eee">
+          ${td(cesc(f.recibo || ''))}
+          ${td(cesc(f.razon_social || '') + (f.codigo ? ` <span style="color:var(--muted);font-size:11px">#${cesc(f.codigo)}</span>` : ''))}
+          ${td(cesc(f.factura || ''))}
+          ${td(money(f.importe), 1)}${td(money(f.efectivo), 1)}${td(money(f.cheques), 1)}${td(money(f.retenciones), 1)}${td(money(f.transferencia), 1)}${td(money(f.echeq), 1)}
+          ${td(f.fecha_pago ? cfec(f.fecha_pago) : '')}${td(arch(f.comprobante_url))}${td(arch(f.recepcion_url))}
+        </tr>`).join('') : `<tr><td colspan="12" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
+        <tfoot><tr style="background:#f7efda;font-weight:800;border-top:2px solid #c9a13b">
+          <td colspan="3" style="padding:9px 11px;text-align:right">TOTALES</td>
+          ${td(cnum(t.importe), 1)}${td(cnum(t.efectivo), 1)}${td(cnum(t.cheques), 1)}${td(cnum(t.retenciones), 1)}${td(cnum(t.transferencia), 1)}${td(cnum(t.echeq), 1)}
+          <td colspan="3"></td>
+        </tr></tfoot>
+      </table></div>`;
+  } catch (e) { cq('pla-det').innerHTML = cerror(e.message); }
 }
 
 // ── Acciones (todas pasan por acá) ─────────────────────────

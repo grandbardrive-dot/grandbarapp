@@ -101,20 +101,26 @@
     @keyframes efeDotPulse{0%{box-shadow:0 0 0 0 rgba(226,59,59,.55)}70%{box-shadow:0 0 0 8px rgba(226,59,59,0)}100%{box-shadow:0 0 0 0 rgba(226,59,59,0)}}
     @keyframes efeFlash{0%,100%{box-shadow:0 0 0 0 rgba(31,138,76,0)}50%{box-shadow:0 0 0 4px rgba(31,138,76,.5)}}
     #efeBox.nuevo>div{animation:efeFlash 1s ease 2}
-    /* Planilla (cargar lo cobrado) */
-    .plan-intro{font-size:13px;color:var(--muted);margin-bottom:12px}
-    .plan-form{display:grid;grid-template-columns:150px 1.4fr 120px 140px 1fr auto;gap:10px;margin-bottom:14px;align-items:center}
-    .plan-form input,.plan-form select{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;background:var(--card);min-width:0}
-    .plan-tot{font-size:15px;margin:2px 0 14px}
-    .plan-tot b{font-size:20px;font-weight:800}
-    .pl-row{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px}
-    .pl-row .nm{font-weight:700;font-size:14px}
-    .pl-row .meta{font-size:11.5px;color:var(--muted);margin-top:2px}
-    .pl-row .mto{font-weight:800;font-size:15px;white-space:nowrap}
-    .pl-medio{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--gold-soft);color:var(--gold-d);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
-    .pl-del{background:#fff;border:1px solid var(--line);color:var(--coral);border-radius:9px;padding:7px 10px;font:inherit;font-size:13px;cursor:pointer}
-    .pl-del:hover{border-color:var(--coral)}
-    @media(max-width:820px){ .plan-form{grid-template-columns:1fr 1fr} .plan-form #plAdd{grid-column:1/-1} .pl-row{grid-template-columns:1fr auto;gap:6px 10px} .pl-row .mto{grid-column:2} }
+    /* Planilla de rendición de cobranzas */
+    .plan-top{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+    .plan-fecha label{display:block;font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+    .plan-fecha input{border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;font-size:14px;background:var(--card)}
+    .plan-env{font-size:12.5px;color:var(--muted);flex:1;min-width:120px}
+    .plan-env.ok{color:var(--green-d);font-weight:700}
+    .plan-add{display:grid;grid-template-columns:repeat(6,1fr) auto;gap:8px;margin:0 0 16px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+    .plan-add input{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13.5px;background:#fff;min-width:0}
+    .plan-add #plAdd{grid-column:1/-1;justify-self:start}
+    .plan-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+    .plan-tabla{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
+    .plan-tabla th,.plan-tabla td{padding:9px 11px;border-bottom:1px solid var(--line-2);text-align:left}
+    .plan-tabla th{background:var(--navy);color:#eaf0f4;font-size:11px;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0}
+    .plan-tabla th.num,.plan-tabla td.num{text-align:right}
+    .plan-tabla tbody tr:hover{background:var(--cream)}
+    .plan-tabla tfoot td{font-weight:800;background:var(--gold-soft);border-top:2px solid var(--gold)}
+    .pl-file{background:var(--green-soft);border:1px solid #bfe3d2;color:var(--green-d);border-radius:8px;padding:5px 9px;font:inherit;font-size:12px;cursor:pointer;text-decoration:none;display:inline-block}
+    .pl-file.vacio{background:#fff;border-color:var(--line);color:var(--muted)}
+    .pl-del{background:#fff;border:1px solid var(--line);color:var(--coral);border-radius:8px;padding:5px 9px;font:inherit;font-size:13px;cursor:pointer}
+    @media(max-width:820px){ .plan-add{grid-template-columns:1fr 1fr} .plan-add #plAdd{grid-column:1/-1} }
   </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 <script>try{var v=localStorage.getItem('gb_es_sup'),t=JSON.parse(localStorage.getItem('sb-xqhyemccbwmzxqzkrtwa-auth-token')||'null'),u=t&&(t.user||(t.currentSession||{}).user);if(v&&u&&v===u.id)document.documentElement.classList.add('gb-sup')}catch(e){}</script>
@@ -183,26 +189,43 @@
       <div class="list" id="list"><div class="empty"><div class="big">⏳</div>Cargando…</div></div>
       </div>
 
-      <!-- PLANILLA (cargar lo cobrado) -->
+      <!-- PLANILLA DE RENDICIÓN DE COBRANZAS (réplica de la de papel) -->
       <div id="vista-plan" style="display:none">
-        <div class="plan-intro">Anotá acá lo que fuiste cobrando en el día. Elegí el cliente, el monto y el medio; queda guardado y podés revisarlo por fecha.</div>
-        <div class="plan-form">
-          <input id="plFecha" type="date" title="Fecha">
-          <input id="plCli" list="plClientes" placeholder="Cliente (nombre o código)" autocomplete="off">
-          <datalist id="plClientes"></datalist>
-          <input id="plMonto" type="number" inputmode="decimal" min="0" step="1" placeholder="Monto $">
-          <select id="plMedio">
-            <option value="efectivo">Efectivo</option>
-            <option value="transferencia">Transferencia</option>
-            <option value="cheque">Cheque</option>
-            <option value="otro">Otro</option>
-          </select>
-          <input id="plNota" placeholder="Nota (opcional)">
-          <button class="btn-ok" id="plAdd" onclick="agregarPlanilla()">＋ Agregar</button>
+        <div class="plan-top">
+          <div class="plan-fecha"><label>Fecha de rendición</label><input id="plFecha" type="date"></div>
+          <div id="plEnvEstado" class="plan-env"></div>
+          <button class="btn-ok" id="plEnviar" onclick="enviarPlanilla()">📤 Enviar a Moni</button>
         </div>
         <div class="aviso" id="plErr" style="display:none"></div>
-        <div class="plan-tot">Total cobrado: <b id="plTotal">$ 0</b> <span id="plCount" style="color:var(--muted);font-weight:500;font-size:13px"></span></div>
-        <div id="plLista"><div class="empty"><div class="big">⏳</div>Cargando…</div></div>
+
+        <div class="plan-add">
+          <input id="plRecibo" placeholder="Recibo">
+          <input id="plRazon" list="plClientes" placeholder="Razón social" autocomplete="off">
+          <datalist id="plClientes"></datalist>
+          <input id="plFactura" placeholder="Factura">
+          <input id="plImporte" type="number" inputmode="decimal" placeholder="Importe">
+          <input id="plEfectivo" type="number" inputmode="decimal" placeholder="Efectivo">
+          <input id="plCheques" type="number" inputmode="decimal" placeholder="Cheques">
+          <input id="plReten" type="number" inputmode="decimal" placeholder="Retenciones">
+          <input id="plTransf" type="number" inputmode="decimal" placeholder="Transf / Merc Pago">
+          <input id="plEcheq" type="number" inputmode="decimal" placeholder="E-cheq">
+          <input id="plFechaPago" type="date" title="Fecha del pago">
+          <button class="btn-ok" id="plAdd" onclick="agregarPlanilla()">＋ Agregar fila</button>
+        </div>
+
+        <div class="plan-wrap">
+          <table class="plan-tabla">
+            <thead><tr>
+              <th>Recibo</th><th>Razón social</th><th>Factura</th>
+              <th class="num">Importe</th><th class="num">Efectivo</th><th class="num">Cheques</th>
+              <th class="num">Retenciones</th><th class="num">Transf/MP</th><th class="num">E-cheq</th>
+              <th>Fecha</th><th>Comprob.</th><th>Recepción</th><th></th>
+            </tr></thead>
+            <tbody id="plBody"><tr><td colspan="13" style="text-align:center;padding:24px;color:var(--muted)">Cargando…</td></tr></tbody>
+            <tfoot id="plFoot"></tfoot>
+          </table>
+        </div>
+        <input type="file" id="plFile" accept="image/*,application/pdf" style="display:none">
       </div>
     </div>
   </div>
@@ -287,70 +310,100 @@
   }
   window.verTab = verTab;
 
-  // ── PLANILLA: cargar lo cobrado ─────────────────────────────────────────────
+  // ── PLANILLA DE RENDICIÓN DE COBRANZAS ──────────────────────────────────────
   const hoyISO = () => { const d=new Date(), z=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate()); };
-  let PLAN_CLI = {}, _planIni = false;
+  const plN = v => (Number(v)||0) ? fmtMoney(v) : "";
+  let PLAN_CLI = {}, _planIni = false, _plSubir = null;
   function llenarClientesDatalist(){
     const dl=document.getElementById("plClientes"); if(!dl) return;
     PLAN_CLI={};
-    dl.innerHTML = (CLIENTES||[]).map(c=>{ const label=(c.nombre||"Cliente")+" · #"+(c.codigo||""); PLAN_CLI[label]={codigo:c.codigo,nombre:c.nombre}; return `<option value="${esc(label)}"></option>`; }).join("");
+    dl.innerHTML = (CLIENTES||[]).map(c=>{ const nom=c.nombre||("Cliente #"+(c.codigo||"")); PLAN_CLI[nom.toLowerCase()]={codigo:c.codigo,nombre:nom}; return `<option value="${esc(nom)}"></option>`; }).join("");
   }
   function abrirPlanilla(){
-    const f=document.getElementById("plFecha"); if(f && !f.value) f.value=hoyISO();
+    const f=document.getElementById("plFecha"), fp=document.getElementById("plFechaPago");
+    if(f && !f.value) f.value=hoyISO();
+    if(fp && !fp.value) fp.value=(f&&f.value)||hoyISO();
     llenarClientesDatalist();
-    if(!_planIni){ _planIni=true; if(f) f.addEventListener("change", cargarPlanilla); }
+    if(!_planIni){ _planIni=true;
+      if(f) f.addEventListener("change", ()=>{ const p=document.getElementById("plFechaPago"); if(p) p.value=f.value; cargarPlanilla(); });
+      const file=document.getElementById("plFile"); if(file) file.addEventListener("change", subirArchivoElegido);
+    }
     cargarPlanilla();
   }
   async function cargarPlanilla(){
-    const box=document.getElementById("plLista"); if(!box) return;
+    const body=document.getElementById("plBody"), foot=document.getElementById("plFoot"); if(!body) return;
     const fecha=(document.getElementById("plFecha")||{}).value || hoyISO();
-    box.innerHTML = `<div class="empty"><div class="big">⏳</div>Cargando…</div>`;
+    body.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:24px;color:var(--muted)">Cargando…</td></tr>`;
     try{
       const r=await fetch("/.netlify/functions/planilla-cobranzas?fecha="+encodeURIComponent(fecha), { headers:{ Authorization:"Bearer "+token } });
       const j=await r.json();
-      if(j.error){ box.innerHTML=`<div class="empty">No pude cargar la planilla: ${esc(j.error)}</div>`; return; }
-      document.getElementById("plTotal").textContent = fmtMoney(j.total||0);
+      if(j.error){ body.innerHTML=`<tr><td colspan="13" style="padding:20px;color:var(--coral)">${esc(j.error)}</td></tr>`; return; }
       const filas=j.filas||[];
-      document.getElementById("plCount").textContent = filas.length ? `· ${filas.length} cobro${filas.length>1?"s":""}` : "";
-      if(!filas.length){ box.innerHTML=`<div class="empty"><div class="big">📋</div>No cargaste cobros para este día. Agregá el primero arriba.</div>`; return; }
-      box.innerHTML = filas.map(f=>{
-        const hora = f.created_at ? new Date(f.created_at).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}) : "";
-        return `<div class="pl-row">
-          <div><div class="nm">${esc(f.cliente_nombre||"—")}${f.codigo?` <span style="color:var(--muted);font-weight:600;font-size:12px">#${esc(f.codigo)}</span>`:""}</div>
-            <div class="meta">${hora}${f.nota?` · ${esc(f.nota)}`:""}</div></div>
-          <span class="pl-medio">${esc(f.medio||"")}</span>
-          <div class="mto">${fmtMoney(f.monto)}</div>
-          <button class="pl-del" onclick="borrarPlanilla('${esc(String(f.id))}')" title="Borrar">✕</button>
-        </div>`;
-      }).join("");
-    }catch(e){ box.innerHTML=`<div class="empty">Error de conexión: ${esc(e.message||e)}</div>`; }
+      const est=document.getElementById("plEnvEstado"), btn=document.getElementById("plEnviar");
+      if(j.envio && j.envio.enviada_at){ est.className="plan-env ok"; est.textContent="✓ Enviada a Moni el "+new Date(j.envio.enviada_at).toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+". Si cargás o cambiás filas, reenviala."; if(btn) btn.textContent="📤 Reenviar a Moni"; }
+      else { est.className="plan-env"; est.textContent="Cuando termines de cargar, tocá \"Enviar a Moni\"."; if(btn) btn.textContent="📤 Enviar a Moni"; }
+      if(!filas.length){ body.innerHTML=`<tr><td colspan="13" style="text-align:center;padding:24px;color:var(--muted)">📋 No cargaste filas para este día. Agregá la primera arriba.</td></tr>`; foot.innerHTML=""; return; }
+      const cel = (f,campo) => { const u=f[campo]; return u ? `<a class="pl-file" href="${esc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : `<button class="pl-file vacio" onclick="subirArchivo('${esc(String(f.id))}','${campo==='recepcion_url'?'recepcion':'comprobante'}')">📎 Cargar</button>`; };
+      body.innerHTML = filas.map(f=>`<tr>
+        <td>${esc(f.recibo||"")}</td>
+        <td>${esc(f.razon_social||"")}${f.codigo?` <span style="color:var(--muted);font-size:11px">#${esc(f.codigo)}</span>`:""}</td>
+        <td>${esc(f.factura||"")}</td>
+        <td class="num">${plN(f.importe)}</td>
+        <td class="num">${plN(f.efectivo)}</td>
+        <td class="num">${plN(f.cheques)}</td>
+        <td class="num">${plN(f.retenciones)}</td>
+        <td class="num">${plN(f.transferencia)}</td>
+        <td class="num">${plN(f.echeq)}</td>
+        <td>${f.fecha_pago?fmtFecha(f.fecha_pago):""}</td>
+        <td>${cel(f,"comprobante_url")}</td>
+        <td>${cel(f,"recepcion_url")}</td>
+        <td><button class="pl-del" onclick="borrarPlanilla('${esc(String(f.id))}')" title="Borrar fila">✕</button></td>
+      </tr>`).join("");
+      const t=j.totales||{};
+      foot.innerHTML = `<tr>
+        <td colspan="3" style="text-align:right">TOTALES</td>
+        <td class="num">${fmtMoney(t.importe||0)}</td>
+        <td class="num">${fmtMoney(t.efectivo||0)}</td>
+        <td class="num">${fmtMoney(t.cheques||0)}</td>
+        <td class="num">${fmtMoney(t.retenciones||0)}</td>
+        <td class="num">${fmtMoney(t.transferencia||0)}</td>
+        <td class="num">${fmtMoney(t.echeq||0)}</td>
+        <td colspan="4"></td>
+      </tr>`;
+    }catch(e){ body.innerHTML=`<tr><td colspan="13" style="padding:20px;color:var(--coral)">Error de conexión: ${esc(e.message||e)}</td></tr>`; }
   }
   window.cargarPlanilla=cargarPlanilla;
+
   async function agregarPlanilla(){
     const err=document.getElementById("plErr"), aviso=t=>{ if(err){ err.textContent=t; err.style.display=t?"block":"none"; } };
-    const cliInput=document.getElementById("plCli"), val=(cliInput.value||"").trim();
-    const monto=Number(document.getElementById("plMonto").value);
-    const medio=document.getElementById("plMedio").value;
-    const nota=(document.getElementById("plNota").value||"").trim();
-    const fecha=(document.getElementById("plFecha")||{}).value || hoyISO();
+    const g=id=>document.getElementById(id);
+    const razon=(g("plRazon").value||"").trim();
+    const campos={
+      fecha_rendicion:(g("plFecha")||{}).value||hoyISO(),
+      recibo:(g("plRecibo").value||"").trim(),
+      razon_social:razon,
+      factura:(g("plFactura").value||"").trim(),
+      importe:g("plImporte").value, efectivo:g("plEfectivo").value, cheques:g("plCheques").value,
+      retenciones:g("plReten").value, transferencia:g("plTransf").value, echeq:g("plEcheq").value,
+      fecha_pago:(g("plFechaPago")||{}).value||null,
+    };
+    const m=PLAN_CLI[razon.toLowerCase()]; if(m) campos.codigo=m.codigo;
     aviso("");
-    if(!(monto>0)){ aviso("Poné un monto válido."); return; }
-    let codigo=null, nombre=val;
-    if(PLAN_CLI[val]){ codigo=PLAN_CLI[val].codigo; nombre=PLAN_CLI[val].nombre; }
-    if(!nombre){ aviso("Elegí o escribí el cliente."); return; }
-    const btn=document.getElementById("plAdd"), antes=btn.textContent; btn.disabled=true; btn.textContent="Guardando…";
+    if(!campos.recibo && !campos.razon_social && !campos.factura){ aviso("Cargá al menos el recibo, la razón social o la factura."); return; }
+    const btn=g("plAdd"), antes=btn.textContent; btn.disabled=true; btn.textContent="Guardando…";
     try{
-      const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"agregar", codigo, cliente_nombre:nombre, monto, medio, nota, fecha }) });
+      const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"agregar", ...campos }) });
       const j=await r.json();
       if(!j.ok){ aviso("No se pudo guardar: "+(j.error||"error")); btn.disabled=false; btn.textContent=antes; return; }
-      cliInput.value=""; document.getElementById("plMonto").value=""; document.getElementById("plNota").value="";
+      ["plRecibo","plRazon","plFactura","plImporte","plEfectivo","plCheques","plReten","plTransf","plEcheq"].forEach(id=>{ g(id).value=""; });
       btn.disabled=false; btn.textContent=antes;
-      cargarPlanilla(); cliInput.focus();
+      cargarPlanilla(); g("plRecibo").focus();
     }catch(e){ aviso("Error de conexión: "+(e.message||e)); btn.disabled=false; btn.textContent=antes; }
   }
   window.agregarPlanilla=agregarPlanilla;
+
   async function borrarPlanilla(id){
-    if(!confirm("¿Borrar este cobro de la planilla?")) return;
+    if(!confirm("¿Borrar esta fila de la planilla?")) return;
     try{
       const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"borrar", id }) });
       const j=await r.json();
@@ -359,6 +412,36 @@
     }catch(e){ alert("Error de conexión: "+(e.message||e)); }
   }
   window.borrarPlanilla=borrarPlanilla;
+
+  // Subir comprobante / recepción a una fila.
+  function subirArchivo(id, tipo){ _plSubir={id,tipo}; const f=document.getElementById("plFile"); if(f){ f.value=""; f.click(); } }
+  window.subirArchivo=subirArchivo;
+  async function subirArchivoElegido(ev){
+    const file=ev.target.files && ev.target.files[0]; if(!file || !_plSubir) return;
+    if(file.size>5*1024*1024){ alert("El archivo es muy grande (máx 5 MB)."); _plSubir=null; return; }
+    try{
+      const b64=await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result).replace(/^data:[^,]*,/,"")); fr.onerror=rej; fr.readAsDataURL(file); });
+      const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"subir", id:_plSubir.id, tipo:_plSubir.tipo, file_base64:b64, mime:file.type, filename:file.name }) });
+      const j=await r.json();
+      if(!j.ok){ alert("No se pudo subir: "+(j.error||"error")); return; }
+      cargarPlanilla();
+    }catch(e){ alert("Error de conexión: "+(e.message||e)); }
+    finally{ _plSubir=null; }
+  }
+
+  async function enviarPlanilla(){
+    const fecha=(document.getElementById("plFecha")||{}).value || hoyISO();
+    if(!confirm("¿Enviar la planilla de este día a Moni? Podés seguir agregando filas y reenviarla.")) return;
+    const btn=document.getElementById("plEnviar"), antes=btn.textContent; btn.disabled=true; btn.textContent="Enviando…";
+    try{
+      const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"enviar", fecha }) });
+      const j=await r.json();
+      btn.disabled=false; btn.textContent=antes;
+      if(!j.ok){ alert("No se pudo enviar: "+(j.error||"error")); return; }
+      cargarPlanilla(); alert("✓ Planilla enviada a Moni.");
+    }catch(e){ btn.disabled=false; btn.textContent=antes; alert("Error de conexión: "+(e.message||e)); }
+  }
+  window.enviarPlanilla=enviarPlanilla;
 
   async function cargarDeuda(){
     try{
