@@ -502,13 +502,14 @@ async function waRefrescar() {
 
 async function cobRefrescar(porAviso) {
   if (document.hidden || !COB_TOKEN) return;
-  if (COB_VISTA !== 'whatsapp' && COB_VISTA !== 'reclamos') return;
+  if (COB_VISTA !== 'whatsapp' && COB_VISTA !== 'reclamos' && COB_VISTA !== 'efectivo') return;
   // Si ya hay un pedido en curso y llega un aviso, se repite al terminar
   // (así no se pierde un mensaje que entró mientras se cargaba).
   if (_cobRefrescando) { if (porAviso) _cobPendiente = true; return; }
   _cobRefrescando = true; _cobUltimo = Date.now();
   try {
     if (COB_VISTA === 'whatsapp') await waRefrescar();
+    else if (COB_VISTA === 'efectivo') await cobEfectivoRefrescar();
     else await recRefrescar();
   } catch (e) { /* si falla un refresco, se reintenta en el próximo */ }
   finally {
@@ -955,36 +956,50 @@ function cobEstadoReclamo(id, estado, btn) {
 
 // ── 7 · Cobros en efectivo ─────────────────────────────────
 async function cobEfectivo() {
-  cq('cob').innerHTML = cobCabecera('Cobros en efectivo', 'Clientes que avisaron que tienen el efectivo listo.') +
+  cobEscucharCambios(); _cobUltimo = Date.now();
+  cq('cob').innerHTML = cobCabecera('Cobros en efectivo', 'Clientes que avisaron que tienen el efectivo listo. Se actualiza solo cuando avisa un cliente.') +
     `<div id="ef-lista"><div class="pv-vacio">Cargando…</div></div>`;
-  try {
-    const d = await cobApi('?que=efectivo');
-    const pend = d.filas.filter(c => (c.estado || 'pendiente') === 'pendiente');
-    const resto = d.filas.filter(c => (c.estado || 'pendiente') !== 'pendiente');
-    const card = c => {
-      let facturas = '';
-      try { const f = typeof c.facturas === 'string' ? JSON.parse(c.facturas) : c.facturas;
-        if (Array.isArray(f) && f.length) facturas = f.map(x => (x.tipo || '') + ' ' + (x.numero || '')).join(', ');
-      } catch (e) {}
-      return `<article class="hh">
-        <div class="hh-top"><span class="hh-ico">💵</span>
-          <div class="hh-nom">${cesc(c.cliente_nombre || c.codigo || 'Sin nombre')}</div>
-          <span class="cb-chip ${c.estado === 'cobrado' ? 'ok' : c.estado === 'cancelado' ? '' : 'alerta'}">${cesc(c.estado || 'pendiente')}</span></div>
-        <div class="hh-desc">${cesc(c.codigo || '')}${c.vendedor ? ' · ' + cesc(c.vendedor) : ''} · avisó el ${cfec(c.created_at)}</div>
-        <div style="font-size:22px;font-weight:800;margin-top:8px">${cnum(c.monto)}</div>
-        ${facturas ? `<div class="hh-desc">Facturas: ${cesc(facturas)}</div>` : ''}
-        ${c.nota ? `<div class="pd-detalle">${cesc(c.nota)}</div>` : ''}
-        <div class="pd-acts">
-          ${c.telefono ? `<a class="cb-b" href="https://wa.me/${cesc(String(c.telefono).replace(/\D/g,''))}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
-          ${(c.estado || 'pendiente') === 'pendiente' ? `
-            <button class="cb-b ok" onclick="cobAccion('cobro-cobrado','${c.id}',this,cobEfectivo)">✅ Cobrado</button>
-            <button class="cb-b danger" onclick="cobAccion('cobro-cancelado','${c.id}',this,cobEfectivo)">✕ Cancelar</button>` : ''}
-        </div></article>`;
-    };
-    cq('ef-lista').innerHTML =
-      (pend.length ? pend.map(card).join('') : `<div class="pv-vacio">No hay cobros pendientes de retirar.</div>`) +
-      (resto.length ? `<h2 style="font-size:16px;margin:28px 0 0">Ya resueltos <span class="pv-n">${resto.length}</span></h2>` + resto.map(card).join('') : '');
-  } catch (e) { cq('ef-lista').innerHTML = cerror(e.message); }
+  try { cobEfectivoPintar(await cobApi('?que=efectivo')); }
+  catch (e) { cq('ef-lista').innerHTML = cerror(e.message); }
+}
+
+function cobEfectivoPintar(d) {
+  const box = cq('ef-lista'); if (!box) return;
+  const filas = d.filas || [];
+  // No repintar si nada cambió (evita parpadeos en el auto-refresco).
+  const firma = JSON.stringify(filas.map(c => [c.id, c.estado, c.monto]));
+  if (box.dataset.firma === firma) return;
+  box.dataset.firma = firma;
+  const pend = filas.filter(c => (c.estado || 'pendiente') === 'pendiente');
+  const resto = filas.filter(c => (c.estado || 'pendiente') !== 'pendiente');
+  const card = c => {
+    let facturas = '';
+    try { const f = typeof c.facturas === 'string' ? JSON.parse(c.facturas) : c.facturas;
+      if (Array.isArray(f) && f.length) facturas = f.map(x => (x.tipo || '') + ' ' + (x.numero || '')).join(', ');
+    } catch (e) {}
+    return `<article class="hh">
+      <div class="hh-top"><span class="hh-ico">💵</span>
+        <div class="hh-nom">${cesc(c.cliente_nombre || c.codigo || 'Sin nombre')}</div>
+        <span class="cb-chip ${c.estado === 'cobrado' ? 'ok' : c.estado === 'cancelado' ? '' : 'alerta'}">${cesc(c.estado || 'pendiente')}</span></div>
+      <div class="hh-desc">${cesc(c.codigo || '')}${c.vendedor ? ' · ' + cesc(c.vendedor) : ''} · avisó el ${cfec(c.created_at)}</div>
+      <div style="font-size:22px;font-weight:800;margin-top:8px">${cnum(c.monto)}</div>
+      ${facturas ? `<div class="hh-desc">Facturas: ${cesc(facturas)}</div>` : ''}
+      ${c.nota ? `<div class="pd-detalle">${cesc(c.nota)}</div>` : ''}
+      <div class="pd-acts">
+        ${c.telefono ? `<a class="cb-b" href="https://wa.me/${cesc(String(c.telefono).replace(/\D/g,''))}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
+        ${(c.estado || 'pendiente') === 'pendiente' ? `
+          <button class="cb-b ok" onclick="cobAccion('cobro-cobrado','${c.id}',this,cobEfectivo)">✅ Cobrado</button>
+          <button class="cb-b danger" onclick="cobAccion('cobro-cancelado','${c.id}',this,cobEfectivo)">✕ Cancelar</button>` : ''}
+      </div></article>`;
+  };
+  box.innerHTML =
+    (pend.length ? pend.map(card).join('') : `<div class="pv-vacio">No hay cobros pendientes de retirar.</div>`) +
+    (resto.length ? `<h2 style="font-size:16px;margin:28px 0 0">Ya resueltos <span class="pv-n">${resto.length}</span></h2>` + resto.map(card).join('') : '');
+}
+
+async function cobEfectivoRefrescar() {
+  if (!cq('ef-lista')) return;
+  cobEfectivoPintar(await cobApi('?que=efectivo'));
 }
 
 // ── Acciones (todas pasan por acá) ─────────────────────────

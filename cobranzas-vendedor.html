@@ -365,6 +365,20 @@
     }catch(e){}
     cargar();
     cargarDeuda();
+
+    // ── Actualización en vivo ───────────────────────────────────────────────
+    // Cuando un cliente avisa un pago (efectivo listo o comprobante), la base de
+    // Cobranzas manda un aviso por el canal Realtime 'cobranzas-avisos' y la
+    // pantalla se recarga sola, sin tener que apretar F5. Mismo canal que usa el
+    // panel de Moni. Respaldo por si el canal no conecta: refresco cada 45s.
+    try {
+      const COB = { url:"https://qpaoyfubyaloyhepatlm.supabase.co", key:"sb_publishable_FDuwwvOjBCAGOi1IoUHRKQ_UAD6IQaM" };
+      const cob = supabase.createClient(COB.url, COB.key, { auth:{ persistSession:false, autoRefreshToken:false, detectSessionInUrl:false, storageKey:"gb-cob-avisos-vend" } });
+      let rt=null;
+      cob.channel("cobranzas-avisos").on("broadcast", { event:"cambio" }, ()=>{ clearTimeout(rt); rt=setTimeout(()=>{ cargarDeuda(); cargar(); }, 500); }).subscribe();
+    } catch(e){}
+    setInterval(()=>{ if(!document.hidden){ cargarDeuda(); } }, 45000);
+    document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) cargarDeuda(); });
   })();
 </script>
 <script src="assets/hub-nav.js?v=7"></script>
