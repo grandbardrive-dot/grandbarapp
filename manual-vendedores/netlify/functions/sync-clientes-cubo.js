@@ -295,31 +295,9 @@ async function reactivarCompradores() {
   return d;
 }
 
-// Marca clientes.con_deuda en el Manual con lo que debe cada uno en Cobranzas (15/10/2026:
-// "los que tienen deuda no se ocultan"). Debe = saldo > 0 o algo vencido (la vencida no
-// descuenta el saldo a favor). Si la lista no llega completa no se toca nada: una lista
-// cortada dejaría como "sin deuda" a clientes que deben.
-async function marcarConDeuda() {
-  const COB_URL = 'https://qpaoyfubyaloyhepatlm.supabase.co';
-  const key = process.env.COBRANZAS_SERVICE_ROLE;
-  if (!key) throw new Error('Falta COBRANZAS_SERVICE_ROLE');
-  const cob = (p, o) => fetch(COB_URL + '/rest/v1/' + p, { headers: Object.assign({ apikey: key, Authorization: 'Bearer ' + key }, (o && o.headers) || {}) });
-  const filtro = 'cuentas_cubo?or=(saldo.gt.0,vencida.gt.0)';
-  const h = await cob(filtro + '&select=codigo', { headers: { Prefer: 'count=exact', 'Range-Unit': 'items', Range: '0-0' } });
-  const total = parseInt(String(h.headers.get('content-range') || '').split('/')[1], 10);
-  const filas = await traerTodo(cob, filtro + '&select=codigo&order=codigo.asc');
-  if (!total || filas.length !== total) throw new Error('lista de deudores incompleta (' + filas.length + ' de ' + total + ')');
-  const codigos = [...new Set(filas.map(r => String(r.codigo == null ? '' : r.codigo).trim().replace(/^0+/, '')).filter(Boolean))];
-  const r = await man('rpc/marcar_clientes_con_deuda', { method: 'POST', body: JSON.stringify({ p_codigos: codigos }) });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error('marcar_clientes_con_deuda ' + r.status + ' ' + JSON.stringify(d).slice(0, 200));
-  return { deudores: codigos.length, ...d };
-}
-
 exports.calcular = calcular;         // para probar el cálculo sin conectarse a CUBO
 exports.sincronizar = sincronizar;   // la usa sync-clientes-cron
 exports.reactivarCompradores = reactivarCompradores;   // la usa sync-clientes-cron
-exports.marcarConDeuda = marcarConDeuda;               // la usa sync-clientes-cron
 
 // Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
 module.exports.handler = require('./_errores').conErrores('sync-clientes-cubo', module.exports.handler);

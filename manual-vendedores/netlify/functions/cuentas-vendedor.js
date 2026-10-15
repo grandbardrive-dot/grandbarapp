@@ -67,11 +67,9 @@ exports.handler = async (event) => {
     // 3b) Clientes OCULTOS de la cartera (14/10/2026: los supervisores seguían viendo los que
     //     ocultaron). Misma regla que la lista de Clientes y el panel del supervisor: manda
     //     clientes_estado (botón Quitar, por código); si no figura, la columna activo del Manual.
-    //     - Oculto sin deuda: no se devuelve (no aparece en ninguna pantalla).
-    //     - Oculto CON deuda: se devuelve normal. "Los que tienen deuda no se ocultan"
-    //       (dueño, 15/10/2026).
-    //     ?con_ocultos=1 devuelve también los ocultos sin deuda, marcados (Mis clientes,
-    //     pestaña Quitados).
+    //     Un oculto no se devuelve AUNQUE DEBA: "si tienen deuda no importa, los pueden ocultar
+    //     igual; la deuda es tarea de Administración, fuera de las apps" (dueño, 15/10/2026).
+    //     ?con_ocultos=1 devuelve también los ocultos, marcados (Mis clientes, pestaña Quitados).
     try {
       const MAN_URL = 'https://fzaxwuuodseyyinveknn.supabase.co';
       const MAN_KEY = process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
@@ -85,9 +83,8 @@ exports.handler = async (event) => {
       const estMap = {}; (Array.isArray(est) ? est : []).forEach(r => { estMap[norm(r.codigo)] = r.activo; });
       const colMap = {}; (Array.isArray(cli) ? cli : []).forEach(r => { colMap[norm(r.codigo_cliente)] = r.activo; });
       const oculto = c => { const k = norm(c.codigo); if (k in estMap) return estMap[k] === false; return colMap[k] === false; };
-      const debe = c => (Number(c.saldo) || 0) > 0 || (Number(c.vencida) || 0) > 0;
       const qp = event.queryStringParameters || {};
-      clientes = clientes.map(c => (oculto(c) && !debe(c) ? { ...c, oculto: true } : c))
+      clientes = clientes.map(c => (oculto(c) ? { ...c, oculto: true } : c))
         .filter(c => qp.con_ocultos === '1' || !c.oculto);
     } catch (e) { /* si no se puede leer el Manual, se devuelven todas como antes */ }
 

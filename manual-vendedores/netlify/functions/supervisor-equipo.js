@@ -103,26 +103,25 @@ exports.handler = async (event) => {
     // baja la deuda aunque el cubo viejo la dejara inflada. (Corrige la vista al toque.)
     clientes = clientes.map(c => ({ ...c, vencida: Math.max(0, num(c.vencida)) })); // vencida = facturas vencidas, sin descontar el saldo a favor (29/09/2026)
 
-    // La PLATA sale de todo lo que el ERP tiene a nombre del vendedor, igual que
-    // en su pantalla de deuda: si acá se filtrara por la cartera del Manual, un
-    // cliente que debe y quedó fuera de la cartera desaparecía y los dos paneles
-    // mostraban números distintos. La cartera se usa solo para CONTAR clientes
-    // (ese número sí es el del Manual, el que ve el vendedor en "Mi cartera").
+    // Los clientes OCULTOS no van, ni en las listas ni en la plata, aunque deban: "si tienen
+    // deuda no importa, los pueden ocultar igual; la deuda es tarea de Administración, fuera de
+    // las apps" (dueño, 15/10/2026). Es la misma regla que la pantalla de deuda del vendedor
+    // (cuentas-vendedor), así los dos paneles dan los mismos números. Oculto = clientes_estado
+    // por código; si no figura, la columna activo del Manual. Un cliente que el ERP tiene a
+    // nombre del vendedor y no está en el Manual se cuenta (no está oculto).
+    // El número de clientes sigue siendo el de la cartera del Manual ("Mi cartera").
     const cartera = await carteraManual(codigos);
-    // En las LISTAS de clientes no van los ocultos de la cartera, salvo que deban: "los que
-    // tienen deuda no se ocultan" (15/10/2026). Oculto = clientes_estado por código; si no
-    // figura, la columna activo del Manual. Los totales de plata siguen siendo de todo.
-    const ocultoSinDeuda = c => {
-      if (num(c.saldo) > 0 || num(c.vencida) > 0) return false;
+    const oculto = c => {
       const k = normCod(c.codigo);
       return (k in cartera.est) ? cartera.est[k] === false : cartera.col[k] === false;
     };
+    clientes = clientes.filter(c => !oculto(c));
 
     // ¿drill-in de un vendedor puntual?
     const qp = event.queryStringParameters || {};
     if (qp.vendedor) {
       const cod = String(qp.vendedor);
-      let lista = clientes.filter(c => String(c.vendedor) === cod && !ocultoSinDeuda(c));
+      let lista = clientes.filter(c => String(c.vendedor) === cod);
       lista = await enriquecerGeo(lista, hubService);
       return json(200, { vendedor: cod, nombre: nombreDeCod[cod] || cod, clientes: lista });
     }
@@ -146,7 +145,7 @@ exports.handler = async (event) => {
 
     let listaClientes = [];
     if (qp.clientes) {
-      listaClientes = await enriquecerGeo(clientes.filter(c => !ocultoSinDeuda(c)).map(c => ({ ...c, vendedor_nombre: nombreDeCod[String(c.vendedor)] || c.vendedor })), hubService);
+      listaClientes = await enriquecerGeo(clientes.map(c => ({ ...c, vendedor_nombre: nombreDeCod[String(c.vendedor)] || c.vendedor })), hubService);
     }
 
     return json(200, { nombre: perfil.nombre, canal: perfil.canal, region: perfil.region, equipo: equipoOut, totales, clientes: listaClientes, actualizado });

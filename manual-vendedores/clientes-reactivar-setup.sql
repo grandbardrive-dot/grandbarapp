@@ -92,9 +92,10 @@ notify pgrst, 'reload schema';
 -- Ver qué haría ahora, sin cambiar nada:
 --   select public.reactivar_clientes_que_compraron(true);
 
--- ── Quién debe (15/10/2026: "los que tienen deuda no se ocultan") ──────────
--- clientes.con_deuda la marca sync-clientes-cron cada hora con la lista de deudores de
--- Cobranzas (cuentas_cubo: saldo > 0 o algo vencido). Con lista vacía no toca nada.
+-- ── Quién debe (15/10/2026) — SIN USO ──────────────────────────────────────
+-- Se armó para "los que tienen deuda no se ocultan", pero el mismo día el dueño aclaró que
+-- un oculto queda oculto aunque deba (la deuda la sigue Administración, fuera de las apps).
+-- Ya nada la actualiza ni la lee; se puede borrar (drop column con_deuda + la función).
 alter table clientes add column if not exists con_deuda boolean not null default false;
 
 create or replace function public.marcar_clientes_con_deuda(p_codigos text[])
