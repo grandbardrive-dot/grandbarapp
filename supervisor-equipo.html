@@ -263,13 +263,29 @@
     try{
       const r = await fetch('/.netlify/functions/supervisor-equipo?vendedor='+encodeURIComponent(cod), { headers:{ Authorization:'Bearer '+TOKEN } });
       const d = await r.json();
-      const cl = d.clientes||[];
-      document.getElementById('drBody').innerHTML = cl.length ? cl.map(c=>`
-        <div class="crow" style="background:var(--card);border:1px solid var(--line);border-radius:11px;margin-bottom:8px;grid-template-columns:1fr auto">
-          <div><div class="nm">${esc(c.nombre)}</div><div class="meta">${esc(c.direccion||c.localidad||('Cód. '+c.codigo))}</div></div>
-          <div class="col"><div class="k">Deuda vencida</div><div class="v ${Number(c.vencida)>0?'red':''}">${fmt(c.vencida)}</div></div>
-        </div>`).join('') : '<div class="empty">Sin clientes cargados.</div>';
+      DR_CL = d.clientes||[]; DR_SUB = 'deuda';
+      renderDrawer();
     }catch(e){ document.getElementById('drBody').innerHTML='<div class="empty">Error cargando.</div>'; }
+  }
+  // Clientes del vendedor: con deuda / sin deuda por separado (15/10/2026, como en
+  // "Todos los clientes"). Los que deben van primero los de más vencido.
+  let DR_CL = [], DR_SUB = 'deuda';
+  function verSubDr(cual){ DR_SUB = cual; renderDrawer(); }
+  window.verSubDr = verSubDr;
+  function renderDrawer(){
+    const conDeuda = DR_CL.filter(debe).sort((a,b) => (Number(b.vencida)||0)-(Number(a.vencida)||0) || (Number(b.saldo)||0)-(Number(a.saldo)||0));
+    const sinDeuda = DR_CL.filter(c => !debe(c));
+    const list = DR_SUB==='deuda' ? conDeuda : sinDeuda;
+    const tabs = `<div class="subtabs">
+        <button class="${DR_SUB==='deuda'?'on':''}" onclick="verSubDr('deuda')">Con deuda <b>(${conDeuda.length.toLocaleString('es-AR')})</b></button>
+        <button class="${DR_SUB==='cero'?'on':''}" onclick="verSubDr('cero')">Sin deuda <b>(${sinDeuda.length.toLocaleString('es-AR')})</b></button>
+      </div>`;
+    document.getElementById('drBody').innerHTML = !DR_CL.length ? '<div class="empty">Sin clientes cargados.</div>' : tabs + (list.length ? list.map(c=>`
+        <div class="crow" style="background:var(--card);border:1px solid var(--line);border-radius:11px;margin-bottom:8px;grid-template-columns:1fr auto auto">
+          <div><div class="nm">${esc(c.nombre)}</div><div class="meta">${esc(c.direccion||c.localidad||('Cód. '+c.codigo))}</div></div>
+          <div class="col"><div class="k">Saldo</div><div class="v ${Number(c.saldo)>0?'gold':''}">${fmt(c.saldo)}</div></div>
+          <div class="col"><div class="k">Vencida</div><div class="v ${Number(c.vencida)>0?'red':''}">${fmt(c.vencida)}</div></div>
+        </div>`).join('') : '<div class="empty">'+(DR_SUB==='deuda'?'Ningún cliente de este vendedor tiene deuda.':'Todos los clientes de este vendedor tienen algo de deuda.')+'</div>');
   }
   function cerrar(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('drawer').classList.remove('open'); }
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') cerrar(); });
