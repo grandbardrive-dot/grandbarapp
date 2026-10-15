@@ -107,7 +107,7 @@ const cobRevisionAdentro = () => cobExtra().some(s => s.id === 'revision');
 
 function cobNav() {
   const nav = cq('cob-nav'); if (!nav) return;
-  const extra = cobExtra(), boton = s => `<button class="sb-item ${COB_VISTA===s.id?'on':''}" onclick="cobAbrir('${s.id}')"><span class="i">${s.ico}</span> ${cesc(s.n)}</button>`;
+  const extra = cobExtra(), boton = s => `<button class="sb-item ${COB_VISTA===s.id?'on':''}" onclick="cobAbrir('${s.id}')"><span class="i">${s.ico}</span> ${cesc(s.n)}${s.id === 'efectivo' && _cobDotEfectivo ? ' <span class="cob-dot" title="Hay un cobro en efectivo nuevo"></span>' : ''}</button>`;
   const abajo = extra.filter(s => !s.arriba);
   nav.innerHTML = `<button class="sb-item ${COB_VISTA==='tablero'?'on':''}" onclick="cobTablero()"><span class="i">🏠</span> Tablero</button>` +
     (cobEsTesoreria() && !cobRevisionAdentro() ? `<a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">💳</span> Revisión de cobranzas</a>` : '') +
@@ -464,6 +464,48 @@ const COB_REFRESCO = 10000, COB_REFRESCO_RT = 60000;
 const COB_RT_URL = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const COB_RT_KEY = 'sb_publishable_FDuwwvOjBCAGOi1IoUHRKQ_UAD6IQaM'; // clave pública del proyecto de Cobranzas
 let _cobRefrescando = false, _cobPendiente = false, _cobUltimo = 0, _cobRT = false, _cobCanal = null, _cobAvisoT = null;
+// Aviso de cobro en efectivo nuevo: puntito rojo en el menú + sonido.
+let _cobrosPendVistos = null, _cobDotEfectivo = false;
+
+// Puntito rojo pulsante (se inyecta una sola vez).
+(function () {
+  if (typeof document === 'undefined' || document.getElementById('cob-dot-css')) return;
+  const st = document.createElement('style'); st.id = 'cob-dot-css';
+  st.textContent = '.cob-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#e23b3b;margin-left:6px;vertical-align:middle;animation:cobDotPulse 1.3s infinite}@keyframes cobDotPulse{0%{box-shadow:0 0 0 0 rgba(226,59,59,.55)}70%{box-shadow:0 0 0 7px rgba(226,59,59,0)}100%{box-shadow:0 0 0 0 rgba(226,59,59,0)}}';
+  document.head.appendChild(st);
+})();
+
+// Campanita (ding-dong) con Web Audio, sin archivo.
+function cobBeep() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+    const ctx = new Ctx(); if (ctx.resume) ctx.resume();
+    const tono = (f, t0, dur) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + t0);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + t0 + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t0 + dur);
+      o.start(ctx.currentTime + t0); o.stop(ctx.currentTime + t0 + dur + 0.02);
+    };
+    tono(880, 0, 0.5); tono(1175, 0.18, 0.55);
+    setTimeout(() => { try { ctx.close(); } catch (_) {} }, 1000);
+  } catch (_) {}
+}
+
+// Al llegar un aviso, mirar si hay un cobro en efectivo NUEVO (subió el pendiente).
+async function cobChequearCobros() {
+  try {
+    const d = await cobApi('?que=resumen');
+    const n = Number(d.cobrosPend || 0);
+    if (_cobrosPendVistos != null && n > _cobrosPendVistos) {
+      cobBeep();
+      if (COB_VISTA !== 'efectivo') { _cobDotEfectivo = true; cobNav(); }
+    }
+    _cobrosPendVistos = n;
+    COB_RESUMEN.cobrosPend = n;
+  } catch (_) {}
+}
 
 function cobEscucharCambios() {
   if (_cobCanal || !window.supabase || !window.supabase.createClient) return;
@@ -476,6 +518,8 @@ function cobEscucharCambios() {
         // Varios avisos seguidos (ej. mensaje + su registro) → un solo pedido.
         clearTimeout(_cobAvisoT);
         _cobAvisoT = setTimeout(() => cobRefrescar(true), 400);
+        // ¿Entró un cobro en efectivo nuevo? (sonido + puntito, mire donde mire).
+        cobChequearCobros();
       })
       .subscribe(estado => { _cobRT = estado === 'SUBSCRIBED'; });
   } catch (e) { _cobCanal = null; }
@@ -957,6 +1001,7 @@ function cobEstadoReclamo(id, estado, btn) {
 // ── 7 · Cobros en efectivo ─────────────────────────────────
 async function cobEfectivo() {
   cobEscucharCambios(); _cobUltimo = Date.now();
+  _cobDotEfectivo = false; cobNav(); // al abrir la sección, se apaga el puntito
   cq('cob').innerHTML = cobCabecera('Cobros en efectivo', 'Clientes que avisaron que tienen el efectivo listo. Se actualiza solo cuando avisa un cliente.') +
     `<div id="ef-lista"><div class="pv-vacio">Cargando…</div></div>`;
   try { cobEfectivoPintar(await cobApi('?que=efectivo')); }
@@ -972,6 +1017,7 @@ function cobEfectivoPintar(d) {
   box.dataset.firma = firma;
   const pend = filas.filter(c => (c.estado || 'pendiente') === 'pendiente');
   const resto = filas.filter(c => (c.estado || 'pendiente') !== 'pendiente');
+  _cobrosPendVistos = pend.length; // estando en la sección, ya los "vimos"
   const card = c => {
     let facturas = '';
     try { const f = typeof c.facturas === 'string' ? JSON.parse(c.facturas) : c.facturas;
@@ -1035,6 +1081,7 @@ async function montarCobranzas() {
   const quien = cq('cob-quien'); if (quien) quien.textContent = s.nombre || '';
 
   await cobCargarResumen();
+  _cobrosPendVistos = Number((COB_RESUMEN && COB_RESUMEN.cobrosPend) || 0); // base, para no sonar al entrar
   if (COB_RESUMEN._error) {
     cobNav();
     cq('cob').innerHTML = `<div class="head"><div><h1>Cobranzas</h1></div></div>` + cerror(COB_RESUMEN._error);
