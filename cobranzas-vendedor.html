@@ -125,6 +125,7 @@
 
       <!-- DEUDA DE MIS CLIENTES -->
       <div id="vista-deuda">
+        <div id="efeBox"></div>
         <div class="kpis">
           <div class="kpi"><div class="k">Clientes con deuda</div><div class="v" id="kCli">—</div></div>
           <div class="kpi"><div class="k">Saldo de tu cartera</div><div class="v" id="kSaldo">—</div></div>
@@ -252,6 +253,7 @@
       // Misma cuenta que el panel del supervisor, Dirección y tesorería: la vencida son
       // todas las facturas vencidas, sin descontar el saldo a favor (29/09/2026).
       CLIENTES = (j.clientes||[]).map(c=>({ ...c, saldo:Number(c.saldo)||0, vencida:Math.max(0, Number(c.vencida)||0) }));
+      pintarEfectivo(j.cobros||[]);
       pintarDeuda();
     }catch(e){ document.getElementById("dLista").innerHTML = `<div class="empty">Error de conexión: ${e.message||e}</div>`; }
   }
@@ -297,6 +299,32 @@
   }
   window.pintarDeuda = pintarDeuda;
   const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  // Avisos de EFECTIVO listo para retirar (clientes que lo marcaron desde su portal).
+  function pintarEfectivo(cobros){
+    const box = document.getElementById("efeBox"); if(!box) return;
+    if(!cobros || !cobros.length){ box.innerHTML = ""; return; }
+    const items = cobros.map(c=>{
+      const tel = String(c.telefono||"").replace(/\D/g,"");
+      const msg = encodeURIComponent(`Hola! Soy de GrandBar. Me avisaste que tenés el efectivo listo para retirar. ¿Coordinamos?`);
+      let facturas = "";
+      try{ const f = typeof c.facturas==="string"?JSON.parse(c.facturas):c.facturas; if(Array.isArray(f)&&f.length) facturas = f.map(x=>((x.tipo||"")+" "+(x.numero||"")).trim()).filter(Boolean).join(", "); }catch(_){}
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid #cdebd7;border-radius:10px;margin-top:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px;color:#13361f">💵 ${esc(c.cliente_nombre||"Cliente")} <span style="color:#6b8a76;font-weight:600;font-size:12px">#${esc(c.codigo||"")}</span></div>
+          <div style="font-size:12px;color:#5f7a68;margin-top:2px">Avisó: ${fmtFecha(c.created_at)}${facturas?` · ${esc(facturas)}`:""}</div>
+        </div>
+        <div style="font-weight:800;font-size:15px;color:#13361f;white-space:nowrap">${fmtMoney(c.monto)}</div>
+        ${tel?`<a href="https://wa.me/${tel.length<=10?"549"+tel:tel}?text=${msg}" target="_blank" rel="noopener" title="Coordinar por WhatsApp" style="background:#1f8a4c;color:#fff;border-radius:9px;padding:8px 11px;text-decoration:none;font-size:14px">💬</a>`:""}
+      </div>`;
+    }).join("");
+    box.innerHTML = `<div style="background:#eaf7ef;border:1px solid #bfe3cd;border-radius:14px;padding:14px;margin-bottom:16px">
+      <div style="font-weight:800;font-size:15px;color:#13361f">💵 Efectivo listo para retirar <span style="background:#1f8a4c;color:#fff;border-radius:999px;padding:1px 9px;font-size:12px;margin-left:4px">${cobros.length}</span></div>
+      ${items}
+      <div style="font-size:12px;color:#5f7a68;margin-top:10px">Estos clientes avisaron desde su portal que tienen la plata lista. Coordiná el retiro; cuando se cobra, tesorería lo cierra en su panel.</div>
+    </div>`;
+  }
+  window.pintarEfectivo = pintarEfectivo;
 
   async function cargar(){
     try{

@@ -109,8 +109,17 @@ exports.handler = async (event) => {
       });
     }
 
+    // 5) Avisos de EFECTIVO listo para retirar: los clientes de este vendedor que
+    //    marcaron "ya tengo la plata" desde su portal (cobros_efectivo, pendientes).
+    //    El vendedor/mayorista los ve acá; Moni los ve además en su panel de cobranzas.
+    let cobros = [];
+    try {
+      const cRes = await cob('cobros_efectivo?vendedor=eq.' + encodeURIComponent(codigo) + '&estado=eq.pendiente&select=id,codigo,cliente_nombre,monto,telefono,facturas,created_at&order=created_at.desc');
+      if (cRes.ok) { const arr = await cRes.json(); if (Array.isArray(arr)) cobros = arr; }
+    } catch (_) {}
+
     const conCoords = clientes.filter(c => c.lat != null).length;
-    return json(200, { codigo, nombre: perfil.nombre || null, con_coords: conCoords, clientes });
+    return json(200, { codigo, nombre: perfil.nombre || null, con_coords: conCoords, clientes, cobros });
   } catch (e) {
     return json(500, { error: (e && e.message) || String(e) });
   }
