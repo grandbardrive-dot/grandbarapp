@@ -146,6 +146,7 @@
       <div class="prov-tabs">
         <button class="ptab on" onclick="provTab('propuestas',this)">📥 Propuestas de contenido de valor</button>
         <button class="ptab" onclick="provTab('acciones',this)">📤 Acciones mensuales</button>
+        <button class="ptab" onclick="provTab('incentivos',this)">🎁 Incentivos</button>
         <button class="ptab" onclick="provTab('diseno',this)">🖼️ Diseño del portal</button>
       </div>
 
@@ -177,6 +178,12 @@
         <div class="page-sub" style="margin:0 0 14px">Los proveedores suben su plan de acciones del mes (PDF, PPT, Word, imagen). Abrí el archivo y aprobá o pediles cambios.</div>
         <div class="filtros" id="am-filtros"></div>
         <div id="am-lista"><div class="empty">Cargando…</div></div>
+      </div>
+
+      <div class="prov-pane" id="pane-incentivos" hidden>
+        <div class="page-sub" style="margin:0 0 14px">Los proveedores suben incentivos (archivo + vigencia + canal ON/OFF/ambos). Abrí el archivo y aprobá o pediles cambios.</div>
+        <div class="filtros" id="inc-filtros"></div>
+        <div id="inc-lista"><div class="empty">Cargando…</div></div>
       </div>
     </main>
   </div>
@@ -446,10 +453,11 @@
 
   // ── Pestañas de la sección Proveedores ─────────────────────────────────────
   function provTab(t, btn){
-    ['propuestas','acciones','diseno'].forEach(x=>{ const p=$('pane-'+x); if(p) p.hidden = (x!==t); });
+    ['propuestas','acciones','incentivos','diseno'].forEach(x=>{ const p=$('pane-'+x); if(p) p.hidden = (x!==t); });
     document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));
     if(btn) btn.classList.add('on');
     if(t==='acciones' && !_amCargado) amCargar();
+    if(t==='incentivos' && !_incCargado) incCargar();
   }
   window.provTab=provTab;
 
@@ -508,6 +516,69 @@
     amRender(); toast('Devuelta al proveedor con tu comentario');
   }
   window.amSetFiltro=amSetFiltro; window.amEstado=amEstado; window.amCambios=amCambios;
+
+  // ── Incentivos (archivo + vigencia + canal que suben los proveedores) ───────
+  let INC=[], INC_FILTRO='pendiente', _incCargado=false;
+  const INC_EST=[['pendiente','Pendientes'],['cambios','Con cambios'],['aprobada','Aprobadas'],['descartada','Descartadas'],['','Todos']];
+  const INC_CANAL={on:'ON',off:'OFF',ambos:'ON + OFF'};
+  function incVig(r){
+    const f=v=>{ const d=new Date(v+'T12:00:00'); return isNaN(d)?'—':d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'}); };
+    if(!r.vigencia_desde && !r.vigencia_hasta) return '';
+    return '📅 '+(r.vigencia_desde?f(r.vigencia_desde):'—')+' → '+(r.vigencia_hasta?f(r.vigencia_hasta):'—');
+  }
+  async function incCargar(){
+    _incCargado=true;
+    const { data, error } = await sb.from('incentivos_prov').select('*').order('created_at',{ascending:false});
+    if(error){ $('inc-lista').innerHTML='<div class="empty">No se pudieron cargar.<br>'+esc(error.message)+'</div>'; return; }
+    INC=data||[]; incRender();
+  }
+  function incCuenta(e){ return e ? INC.filter(x=>x.estado===e).length : INC.length; }
+  function incRender(){
+    $('inc-filtros').innerHTML=INC_EST.map(([k,l])=>`<button class="fbtn ${INC_FILTRO===k?'on':''}" onclick="incSetFiltro('${k}')">${l}<span class="n">${incCuenta(k)}</span></button>`).join('');
+    const lista = INC_FILTRO ? INC.filter(x=>x.estado===INC_FILTRO) : INC;
+    if(!lista.length){ $('inc-lista').innerHTML='<div class="empty">No hay incentivos '+(INC_FILTRO?('en “'+INC_EST.find(e=>e[0]===INC_FILTRO)[1].toLowerCase()+'”'):'')+'.</div>'; return; }
+    $('inc-lista').innerHTML=lista.map(r=>{
+      const can=`<span class="am-chip" style="background:#eef2f6;color:#3f6f9c">${esc(INC_CANAL[String(r.canal).toLowerCase()]||r.canal||'—')}</span>`;
+      const vig=incVig(r); const vigHtml=vig?`<div class="pc-meta">${vig}</div>`:'';
+      const obs=r.observaciones?`<div class="pc-desc">💬 ${esc(r.observaciones)}</div>`:'';
+      const nota=r.nota_revision?`<div class="pc-nota">📝 Le pediste: ${esc(r.nota_revision)}</div>`:'';
+      return `<div class="pcard">
+        <div class="pc-top">
+          <div class="pc-emp">${esc(ini(r.proveedor_empresa))}</div>
+          <div class="pc-info">
+            <div class="pc-tit">${esc(r.nombre)} · <span style="font-weight:600;color:var(--ink3,#6d7d85)">${esc(r.proveedor_empresa)}</span></div>
+            <div class="pc-meta">📎 ${esc(r.archivo_nombre||'archivo')} · cargado el ${amFecha(r.created_at)}</div>
+            ${vigHtml}${obs}${nota}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">${can}<span class="am-chip ${esc(r.estado)}">${esc(r.estado)}</span></div>
+        </div>
+        <div class="pc-acc">
+          <a class="ab" href="${esc(r.archivo_url)}" target="_blank" rel="noopener">📎 Abrir archivo</a>
+          ${r.estado!=='aprobada'?`<button class="ab ok" onclick="incEstado('${r.id}','aprobada')">✓ Aprobar</button>
+          <button class="ab cam" onclick="incCambios('${r.id}')">✎ Pedir cambios</button>
+          <button class="ab no" onclick="incEstado('${r.id}','descartada')">✕ Descartar</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  function incSetFiltro(k){ INC_FILTRO=k; incRender(); }
+  async function incEstado(id,estado){
+    if(estado==='descartada' && !confirm('¿Descartar este incentivo del proveedor?')) return;
+    const { error } = await sb.from('incentivos_prov').update({estado,revisado_at:new Date().toISOString()}).eq('id',id);
+    if(error){ toast('Error: '+error.message); return; }
+    const r=INC.find(x=>x.id===id); if(r) r.estado=estado;
+    incRender(); toast(estado==='aprobada'?'✓ Aprobado':'Descartado');
+  }
+  async function incCambios(id){
+    const r=INC.find(x=>x.id===id);
+    const nota=prompt('¿Qué cambios le pedís al proveedor?',(r&&r.nota_revision)||'');
+    if(nota===null) return;
+    const { error } = await sb.from('incentivos_prov').update({estado:'cambios',nota_revision:nota.trim()||null,revisado_at:new Date().toISOString()}).eq('id',id);
+    if(error){ toast('Error: '+error.message); return; }
+    if(r){ r.estado='cambios'; r.nota_revision=nota.trim()||null; }
+    incRender(); toast('Devuelto al proveedor con tu comentario');
+  }
+  window.incSetFiltro=incSetFiltro; window.incEstado=incEstado; window.incCambios=incCambios;
 
   cargar();
   bnCargar();

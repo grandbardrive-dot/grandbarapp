@@ -451,6 +451,7 @@ async function cargarIncentivos(){
           <div class="ii-nom">${esc(r.nombre)}</div>
           <div class="ii-meta"><span class="ii-ch">${esc(CANAL_LBL[String(r.canal).toLowerCase()]||r.canal||'—')}</span>${vig?`<span>${vig}</span>`:''}<span>${esc(est)}</span></div>
           ${r.observaciones?`<div class="ii-meta">${esc(r.observaciones)}</div>`:''}
+          ${r.nota_revision?`<div class="ii-meta" style="color:#8a6a1e">📝 GrandBar te pidió: ${esc(r.nota_revision)}</div>`:''}
         </div>
         ${r.archivo_url?`<a class="ii-ver" href="${esc(r.archivo_url)}" target="_blank" rel="noopener">Ver archivo ↗</a>`:''}
       </div>`;
