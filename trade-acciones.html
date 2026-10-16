@@ -45,6 +45,19 @@
   .vistas button{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 14px;font:inherit;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer}
   .vistas button.on{background:var(--navy);border-color:var(--navy);color:#fff}
   .vistas .n{display:inline-block;min-width:20px;padding:1px 6px;border-radius:999px;background:var(--gold-s);color:var(--gold-d);font-size:11.5px;margin-left:6px}
+  .inc-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+  .inc-h{display:flex;align-items:flex-start;gap:12px}
+  .inc-nom{font-weight:800;font-size:15px;color:var(--navy)}
+  .inc-sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .inc-h .estado{margin-left:auto}
+  .inc-obs{font-size:12.5px;color:var(--ink);margin-top:8px;background:#f6f3ec;border-radius:8px;padding:7px 10px}
+  .inc-nota{font-size:12.5px;color:#8a6a1e;margin-top:8px;background:var(--gold-s);border:1px solid #ecdcb2;border-radius:8px;padding:7px 10px}
+  .inc-acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .inc-acc .btn{padding:7px 12px;font-size:13px}
+  .estado.e-pendiente{background:#eef1f3;color:#5a6b73}
+  .estado.e-cambios{background:var(--gold-s);color:var(--gold-d)}
+  .estado.e-aprobada{background:#e6f2ec;color:#256f54}
+  .estado.e-descartada{background:#fbe9e4;color:#c0603e}
   .barra{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
   .tabs{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px}
   .tabs button{border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
@@ -139,6 +152,7 @@
     <div class="vistas">
       <button data-v="acciones" class="on">Acciones de Luciana</button>
       <button data-v="devoluciones">Mis devoluciones<span class="n" id="nDev">0</span></button>
+      <button data-v="incentivos">Incentivos<span class="n" id="nInc">0</span></button>
     </div>
 
     <div id="vAcciones">
@@ -187,6 +201,19 @@
         </div>
       </div>
       <div id="listaDev"><div class="vacio">Cargando…</div></div>
+    </div>
+
+    <div id="vIncentivos" hidden>
+      <p style="color:var(--muted);font-size:13.5px;margin:0 0 12px">Incentivos que cargan los proveedores (archivo + vigencia + canal). Abrí el archivo y aprobá o pediles cambios.</p>
+      <div class="barra">
+        <div class="tabs" id="tabsInc">
+          <button data-e="pendiente" class="on">Pendientes</button>
+          <button data-e="cambios">Con cambios</button>
+          <button data-e="aprobada">Aprobados</button>
+          <button data-e="">Todos</button>
+        </div>
+      </div>
+      <div id="listaInc"><div class="vacio">Cargando…</div></div>
     </div>
   </div></div>
 </div>
@@ -446,16 +473,60 @@
     }).join('');
   }
 
+  // ── Incentivos de proveedores (incentivos_prov, Manual). Trade los ve y actúa. ──
+  let INC = [], INC_EST = 'pendiente', _incCli = null;
+  const INC_CANAL = { on:'ON', off:'OFF', ambos:'ON + OFF' };
+  function incCli(){ return _incCli = _incCli || supabase.createClient(MAN.url, MAN.key, { auth:{ persistSession:false } }); }
+  const incFecha = v => { if(!v) return '—'; const d = new Date(v + 'T12:00:00'); return isNaN(d) ? '—' : d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' }); };
+  function incPend(){ return INC.filter(x => x.estado === 'pendiente').length; }
+  async function cargarIncentivos(){
+    const { data, error } = await incCli().from('incentivos_prov').select('*').order('created_at', { ascending:false });
+    if(error) throw error;
+    INC = data || [];
+  }
+  function pintarIncentivos(){
+    try{ $('nInc').textContent = incPend(); }catch(e){}
+    const cont = $('listaInc'); if(!cont) return;
+    const lista = INC_EST ? INC.filter(x => x.estado === INC_EST) : INC;
+    if(!lista.length){ cont.innerHTML = '<div class="vacio">No hay incentivos' + (INC_EST ? ' en este estado' : '') + '.</div>'; return; }
+    cont.innerHTML = lista.map(r => {
+      const vig = (r.vigencia_desde || r.vigencia_hasta) ? '📅 ' + incFecha(r.vigencia_desde) + ' → ' + incFecha(r.vigencia_hasta) : '';
+      const canal = INC_CANAL[String(r.canal).toLowerCase()] || r.canal || '—';
+      const obs = r.observaciones ? '<div class="inc-obs">💬 ' + esc(r.observaciones) + '</div>' : '';
+      const nota = r.nota_revision ? '<div class="inc-nota">📝 Le pidieron: ' + esc(r.nota_revision) + '</div>' : '';
+      const acc = r.estado !== 'aprobada'
+        ? '<button class="btn claro" data-inc-ok="' + esc(r.id) + '">✓ Aprobar</button><button class="btn claro" data-inc-cam="' + esc(r.id) + '">✎ Pedir cambios</button><button class="btn claro" data-inc-no="' + esc(r.id) + '">✕ Descartar</button>'
+        : '';
+      return '<div class="inc-card"><div class="inc-h"><div><div class="inc-nom">' + esc(r.nombre) + '</div><div class="inc-sub">' + esc(r.proveedor_empresa) + ' · <b>' + esc(canal) + '</b>' + (vig ? ' · ' + vig : '') + '</div></div><span class="estado e-' + esc(r.estado) + '">' + esc(r.estado) + '</span></div>'
+        + obs + nota
+        + '<div class="inc-acc">' + (r.archivo_url ? '<a class="btn claro" href="' + esc(r.archivo_url) + '" target="_blank" rel="noopener">📎 Abrir archivo</a>' : '') + acc + '</div></div>';
+    }).join('');
+  }
+  async function incAccion(id, estado){
+    if(estado === 'descartada' && !confirm('¿Descartar este incentivo?')) return;
+    const patch = { estado, revisado_at:new Date().toISOString() };
+    if(estado === 'cambios'){ const n = prompt('¿Qué cambios le pedís al proveedor?', ''); if(n === null) return; patch.nota_revision = n.trim() || null; }
+    const { error } = await incCli().from('incentivos_prov').update(patch).eq('id', id);
+    if(error){ toast(error.message, true); return; }
+    const r = INC.find(x => x.id === id); if(r){ r.estado = estado; if('nota_revision' in patch) r.nota_revision = patch.nota_revision; }
+    pintarIncentivos(); toast(estado === 'aprobada' ? 'Aprobado ✓' : (estado === 'cambios' ? 'Devuelto al proveedor' : 'Descartado'));
+  }
+
   function ir(v){
     VISTA = v;
     document.querySelectorAll('.vistas button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
-    $('vAcciones').hidden = v !== 'acciones'; $('vDev').hidden = v !== 'devoluciones';
-    history.replaceState(null, '', v === 'devoluciones' ? '#devoluciones' : location.pathname);
-    v === 'devoluciones' ? pintarDevoluciones() : pintarAcciones();
+    $('vAcciones').hidden = v !== 'acciones'; $('vDev').hidden = v !== 'devoluciones'; $('vIncentivos').hidden = v !== 'incentivos';
+    history.replaceState(null, '', v === 'devoluciones' ? '#devoluciones' : (v === 'incentivos' ? '#incentivos' : location.pathname));
+    if(v === 'incentivos') pintarIncentivos(); else if(v === 'devoluciones') pintarDevoluciones(); else pintarAcciones();
   }
   document.querySelectorAll('.vistas button').forEach(b => b.onclick = () => ir(b.dataset.v));
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { $('tabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); TAB = b.dataset.t; pintarAcciones(); });
   $('tabsDev').querySelectorAll('button').forEach(b => b.onclick = () => { $('tabsDev').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); EST_DEV = b.dataset.e; pintarDevoluciones(); });
+  $('tabsInc').querySelectorAll('button').forEach(b => b.onclick = () => { $('tabsInc').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); INC_EST = b.dataset.e; pintarIncentivos(); });
+  $('listaInc').addEventListener('click', ev => {
+    const ok = ev.target.closest('[data-inc-ok]'), cam = ev.target.closest('[data-inc-cam]'), no = ev.target.closest('[data-inc-no]');
+    if(ok) incAccion(ok.dataset.incOk, 'aprobada'); else if(cam) incAccion(cam.dataset.incCam, 'cambios'); else if(no) incAccion(no.dataset.incNo, 'descartada');
+  });
   ['q', 'fTipo', 'fCanal', 'fProv', 'fAgrupar'].forEach(id => $(id).addEventListener(id === 'q' ? 'input' : 'change', pintarAcciones));
   $('bAbrir').onclick = () => { document.querySelectorAll('details.grupo').forEach(d => d.open = true); };
   $('bCerrar').onclick = () => { document.querySelectorAll('details.grupo').forEach(d => d.open = false); };
@@ -502,10 +573,11 @@
     const { data:u } = await hub.from('usuarios').select('nombre,rol').eq('id', session.user.id).maybeSingle();
     if(!u || !ROLES.includes(String(u.rol || '').toLowerCase())){ location.replace('hub.html'); return; }
     if(u.nombre){ $('uName').textContent = u.nombre; $('av').textContent = u.nombre.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
-    const [ra, rd] = await Promise.allSettled([cargarAcciones(), cargarDevoluciones()]);
+    const [ra, rd, ri] = await Promise.allSettled([cargarAcciones(), cargarDevoluciones(), cargarIncentivos()]);
     if(ra.status === 'rejected') ERR_ACC = String(ra.reason && ra.reason.message || ra.reason);
     if(rd.status === 'rejected') ERR_DEV = String(rd.reason && rd.reason.message || rd.reason);
-    ir(location.hash === '#devoluciones' ? 'devoluciones' : 'acciones');
+    try{ $('nInc').textContent = incPend(); }catch(e){}
+    ir(location.hash === '#devoluciones' ? 'devoluciones' : (location.hash === '#incentivos' ? 'incentivos' : 'acciones'));
   })();
 </script>
 <script src="assets/notif.js?v=3"></script>
