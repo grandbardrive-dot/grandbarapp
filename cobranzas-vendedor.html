@@ -121,6 +121,17 @@
     .pl-file.vacio{background:#fff;border-color:var(--line);color:var(--muted)}
     .pl-del{background:#fff;border:1px solid var(--line);color:var(--coral);border-radius:8px;padding:5px 9px;font:inherit;font-size:13px;cursor:pointer}
     @media(max-width:820px){ .plan-add{grid-template-columns:1fr 1fr} .plan-add #plAdd{grid-column:1/-1} }
+    .plan-fact{margin:-4px 0 16px}
+    .plan-fact .pf-box{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px}
+    .plan-fact .pf-tit{font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .plan-fact .pf-tit a{color:var(--green-d);font-weight:700;cursor:pointer;font-size:12px}
+    .plan-fact label.pf-row{display:flex;align-items:center;gap:10px;padding:7px 6px;border-top:1px solid var(--line-2);font-size:13px;cursor:pointer}
+    .plan-fact label.pf-row:first-of-type{border-top:0}
+    .plan-fact .pf-num{font-weight:700}
+    .plan-fact .pf-venc{color:var(--muted);font-size:12px}
+    .plan-fact .pf-saldo{margin-left:auto;font-weight:800;white-space:nowrap}
+    .plan-fact .pf-saldo.neg{color:var(--green-d)}
+    .plan-fact .pf-msg{font-size:13px;color:var(--muted);padding:4px 2px}
   </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 <script>try{var v=localStorage.getItem('gb_es_sup'),t=JSON.parse(localStorage.getItem('sb-xqhyemccbwmzxqzkrtwa-auth-token')||'null'),u=t&&(t.user||(t.currentSession||{}).user);if(v&&u&&v===u.id)document.documentElement.classList.add('gb-sup')}catch(e){}</script>
@@ -199,29 +210,31 @@
         <div class="aviso" id="plErr" style="display:none"></div>
 
         <div class="plan-add">
-          <input id="plRecibo" placeholder="Recibo">
-          <input id="plRazon" list="plClientes" placeholder="Razón social" autocomplete="off">
-          <datalist id="plClientes"></datalist>
-          <input id="plFactura" placeholder="Factura">
+          <input id="plCodigo" list="plCodigos" placeholder="Código de cliente" autocomplete="off" inputmode="numeric">
+          <datalist id="plCodigos"></datalist>
+          <input id="plRazon" placeholder="Razón social (se completa sola)" readonly>
+          <input id="plFactura" placeholder="Factura(s) — elegilas abajo" readonly>
           <input id="plImporte" type="number" inputmode="decimal" placeholder="Importe">
           <input id="plEfectivo" type="number" inputmode="decimal" placeholder="Efectivo">
           <input id="plCheques" type="number" inputmode="decimal" placeholder="Cheques">
           <input id="plReten" type="number" inputmode="decimal" placeholder="Retenciones">
           <input id="plTransf" type="number" inputmode="decimal" placeholder="Transf / Merc Pago">
+          <input id="plTarjeta" type="number" inputmode="decimal" placeholder="Tarjeta">
           <input id="plEcheq" type="number" inputmode="decimal" placeholder="E-cheq">
           <input id="plFechaPago" type="date" title="Fecha del pago">
           <button class="btn-ok" id="plAdd" onclick="agregarPlanilla()">＋ Agregar fila</button>
         </div>
+        <div id="plFacturas" class="plan-fact"></div>
 
         <div class="plan-wrap">
           <table class="plan-tabla">
             <thead><tr>
-              <th>Recibo</th><th>Razón social</th><th>Factura</th>
+              <th>Código</th><th>Razón social</th><th>Factura</th>
               <th class="num">Importe</th><th class="num">Efectivo</th><th class="num">Cheques</th>
-              <th class="num">Retenciones</th><th class="num">Transf/MP</th><th class="num">E-cheq</th>
+              <th class="num">Retenciones</th><th class="num">Transf/MP</th><th class="num">Tarjeta</th><th class="num">E-cheq</th>
               <th>Fecha</th><th>Comprob.</th><th>Recepción</th><th></th>
             </tr></thead>
-            <tbody id="plBody"><tr><td colspan="13" style="text-align:center;padding:24px;color:var(--muted)">Cargando…</td></tr></tbody>
+            <tbody id="plBody"><tr><td colspan="14" style="text-align:center;padding:24px;color:var(--muted)">Cargando…</td></tr></tbody>
             <tfoot id="plFoot"></tfoot>
           </table>
         </div>
@@ -313,11 +326,10 @@
   // ── PLANILLA DE RENDICIÓN DE COBRANZAS ──────────────────────────────────────
   const hoyISO = () => { const d=new Date(), z=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate()); };
   const plN = v => (Number(v)||0) ? fmtMoney(v) : "";
-  let PLAN_CLI = {}, _planIni = false, _plSubir = null;
+  let _planIni = false, _plSubir = null, _plFacts = [], _plSelFact = {};
   function llenarClientesDatalist(){
-    const dl=document.getElementById("plClientes"); if(!dl) return;
-    PLAN_CLI={};
-    dl.innerHTML = (CLIENTES||[]).map(c=>{ const nom=c.nombre||("Cliente #"+(c.codigo||"")); PLAN_CLI[nom.toLowerCase()]={codigo:c.codigo,nombre:nom}; return `<option value="${esc(nom)}"></option>`; }).join("");
+    const dl=document.getElementById("plCodigos"); if(!dl) return;
+    dl.innerHTML = (CLIENTES||[]).map(c=>`<option value="${esc(c.codigo||"")}">${esc(c.nombre||"")}</option>`).join("");
   }
   function abrirPlanilla(){
     const f=document.getElementById("plFecha"), fp=document.getElementById("plFechaPago");
@@ -327,32 +339,77 @@
     if(!_planIni){ _planIni=true;
       if(f) f.addEventListener("change", ()=>{ const p=document.getElementById("plFechaPago"); if(p) p.value=f.value; cargarPlanilla(); });
       const file=document.getElementById("plFile"); if(file) file.addEventListener("change", subirArchivoElegido);
+      const cod=document.getElementById("plCodigo");
+      if(cod){ cod.addEventListener("change", ()=>cargarFacturasCliente(cod.value));
+               cod.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); cargarFacturasCliente(cod.value); } }); }
     }
     cargarPlanilla();
+  }
+
+  // Al cargar el código → se completa la razón social y se despliegan sus facturas.
+  async function cargarFacturasCliente(codigo){
+    const cont=document.getElementById("plFacturas"), razon=document.getElementById("plRazon");
+    const cod=(codigo||"").trim(); _plFacts=[]; _plSelFact={};
+    document.getElementById("plFactura").value=""; document.getElementById("plImporte").value="";
+    if(!cod){ cont.innerHTML=""; razon.value=""; return; }
+    cont.innerHTML=`<div class="pf-box"><div class="pf-msg">Buscando facturas…</div></div>`;
+    try{
+      const r=await fetch("/.netlify/functions/planilla-cobranzas?que=facturas&codigo="+encodeURIComponent(cod), { headers:{ Authorization:"Bearer "+token } });
+      const j=await r.json();
+      razon.value = j.razon_social || "";
+      if(j.ajeno){ cont.innerHTML=`<div class="pf-box"><div class="pf-msg">Ese cliente no figura en tu cartera.</div></div>`; return; }
+      if(j.noExiste){ cont.innerHTML=`<div class="pf-box"><div class="pf-msg">No encontré un cliente con ese código.</div></div>`; return; }
+      _plFacts = j.facturas||[];
+      if(!_plFacts.length){ cont.innerHTML=`<div class="pf-box"><div class="pf-tit"><span>${esc(j.razon_social||"")}</span></div><div class="pf-msg">Este cliente no tiene facturas con saldo.</div></div>`; return; }
+      pintarFacturas(j.razon_social);
+    }catch(e){ cont.innerHTML=`<div class="pf-box"><div class="pf-msg">No pude traer las facturas: ${esc(e.message||e)}</div></div>`; }
+  }
+  function pintarFacturas(razon){
+    const cont=document.getElementById("plFacturas");
+    cont.innerHTML=`<div class="pf-box">
+      <div class="pf-tit"><span>Facturas de <b>${esc(razon||"")}</b> — elegí la/s que cobró</span><span><a onclick="plTodasFacturas(true)">todas</a> · <a onclick="plTodasFacturas(false)">ninguna</a></span></div>
+      ${_plFacts.map((f,i)=>{ const neg=Number(f.saldo)<0; return `<label class="pf-row">
+        <input type="checkbox" ${_plSelFact[i]?"checked":""} onchange="plToggleFactura(${i},this.checked)">
+        <span class="pf-num">${esc(f.tipo||"")} ${esc(f.numero||"")}</span>
+        <span class="pf-venc">${f.vencimiento?("vence "+fmtFecha(f.vencimiento)):""}</span>
+        <span class="pf-saldo ${neg?"neg":""}">${fmtMoney(f.saldo)}</span>
+      </label>`; }).join("")}
+    </div>`;
+  }
+  function plToggleFactura(i,on){ if(on) _plSelFact[i]=true; else delete _plSelFact[i]; recalcFacturas(); }
+  window.plToggleFactura=plToggleFactura;
+  function plTodasFacturas(todas){ _plSelFact={}; if(todas) _plFacts.forEach((f,i)=>{ _plSelFact[i]=true; }); pintarFacturas(document.getElementById("plRazon").value); recalcFacturas(); }
+  window.plTodasFacturas=plTodasFacturas;
+  function recalcFacturas(){
+    const sel=Object.keys(_plSelFact).map(i=>_plFacts[i]).filter(Boolean);
+    document.getElementById("plFactura").value = sel.map(f=>f.numero).join("; ");
+    const tot=sel.reduce((a,f)=>a+(Number(f.saldo)||0),0);
+    document.getElementById("plImporte").value = tot ? Math.round(tot*100)/100 : "";
   }
   async function cargarPlanilla(){
     const body=document.getElementById("plBody"), foot=document.getElementById("plFoot"); if(!body) return;
     const fecha=(document.getElementById("plFecha")||{}).value || hoyISO();
-    body.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:24px;color:var(--muted)">Cargando…</td></tr>`;
+    body.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:24px;color:var(--muted)">Cargando…</td></tr>`;
     try{
       const r=await fetch("/.netlify/functions/planilla-cobranzas?fecha="+encodeURIComponent(fecha), { headers:{ Authorization:"Bearer "+token } });
       const j=await r.json();
-      if(j.error){ body.innerHTML=`<tr><td colspan="13" style="padding:20px;color:var(--coral)">${esc(j.error)}</td></tr>`; return; }
+      if(j.error){ body.innerHTML=`<tr><td colspan="14" style="padding:20px;color:var(--coral)">${esc(j.error)}</td></tr>`; return; }
       const filas=j.filas||[];
       const est=document.getElementById("plEnvEstado"), btn=document.getElementById("plEnviar");
       if(j.envio && j.envio.enviada_at){ est.className="plan-env ok"; est.textContent="✓ Enviada a Moni el "+new Date(j.envio.enviada_at).toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+". Si cargás o cambiás filas, reenviala."; if(btn) btn.textContent="📤 Reenviar a Moni"; }
       else { est.className="plan-env"; est.textContent="Cuando termines de cargar, tocá \"Enviar a Moni\"."; if(btn) btn.textContent="📤 Enviar a Moni"; }
-      if(!filas.length){ body.innerHTML=`<tr><td colspan="13" style="text-align:center;padding:24px;color:var(--muted)">📋 No cargaste filas para este día. Agregá la primera arriba.</td></tr>`; foot.innerHTML=""; return; }
+      if(!filas.length){ body.innerHTML=`<tr><td colspan="14" style="text-align:center;padding:24px;color:var(--muted)">📋 No cargaste filas para este día. Agregá la primera arriba.</td></tr>`; foot.innerHTML=""; return; }
       const cel = (f,campo) => { const u=f[campo]; return u ? `<a class="pl-file" href="${esc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : `<button class="pl-file vacio" onclick="subirArchivo('${esc(String(f.id))}','${campo==='recepcion_url'?'recepcion':'comprobante'}')">📎 Cargar</button>`; };
       body.innerHTML = filas.map(f=>`<tr>
-        <td>${esc(f.recibo||"")}</td>
-        <td>${esc(f.razon_social||"")}${f.codigo?` <span style="color:var(--muted);font-size:11px">#${esc(f.codigo)}</span>`:""}</td>
+        <td>${esc(f.codigo||"")}</td>
+        <td>${esc(f.razon_social||"")}</td>
         <td>${esc(f.factura||"")}</td>
         <td class="num">${plN(f.importe)}</td>
         <td class="num">${plN(f.efectivo)}</td>
         <td class="num">${plN(f.cheques)}</td>
         <td class="num">${plN(f.retenciones)}</td>
         <td class="num">${plN(f.transferencia)}</td>
+        <td class="num">${plN(f.tarjeta)}</td>
         <td class="num">${plN(f.echeq)}</td>
         <td>${f.fecha_pago?fmtFecha(f.fecha_pago):""}</td>
         <td>${cel(f,"comprobante_url")}</td>
@@ -367,37 +424,37 @@
         <td class="num">${fmtMoney(t.cheques||0)}</td>
         <td class="num">${fmtMoney(t.retenciones||0)}</td>
         <td class="num">${fmtMoney(t.transferencia||0)}</td>
+        <td class="num">${fmtMoney(t.tarjeta||0)}</td>
         <td class="num">${fmtMoney(t.echeq||0)}</td>
         <td colspan="4"></td>
       </tr>`;
-    }catch(e){ body.innerHTML=`<tr><td colspan="13" style="padding:20px;color:var(--coral)">Error de conexión: ${esc(e.message||e)}</td></tr>`; }
+    }catch(e){ body.innerHTML=`<tr><td colspan="14" style="padding:20px;color:var(--coral)">Error de conexión: ${esc(e.message||e)}</td></tr>`; }
   }
   window.cargarPlanilla=cargarPlanilla;
 
   async function agregarPlanilla(){
     const err=document.getElementById("plErr"), aviso=t=>{ if(err){ err.textContent=t; err.style.display=t?"block":"none"; } };
     const g=id=>document.getElementById(id);
-    const razon=(g("plRazon").value||"").trim();
     const campos={
       fecha_rendicion:(g("plFecha")||{}).value||hoyISO(),
-      recibo:(g("plRecibo").value||"").trim(),
-      razon_social:razon,
+      codigo:(g("plCodigo").value||"").trim(),
+      razon_social:(g("plRazon").value||"").trim(),
       factura:(g("plFactura").value||"").trim(),
       importe:g("plImporte").value, efectivo:g("plEfectivo").value, cheques:g("plCheques").value,
-      retenciones:g("plReten").value, transferencia:g("plTransf").value, echeq:g("plEcheq").value,
+      retenciones:g("plReten").value, transferencia:g("plTransf").value, tarjeta:g("plTarjeta").value, echeq:g("plEcheq").value,
       fecha_pago:(g("plFechaPago")||{}).value||null,
     };
-    const m=PLAN_CLI[razon.toLowerCase()]; if(m) campos.codigo=m.codigo;
     aviso("");
-    if(!campos.recibo && !campos.razon_social && !campos.factura){ aviso("Cargá al menos el recibo, la razón social o la factura."); return; }
+    if(!campos.codigo && !campos.razon_social && !campos.factura){ aviso("Cargá el código del cliente."); return; }
     const btn=g("plAdd"), antes=btn.textContent; btn.disabled=true; btn.textContent="Guardando…";
     try{
       const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"agregar", ...campos }) });
       const j=await r.json();
       if(!j.ok){ aviso("No se pudo guardar: "+(j.error||"error")); btn.disabled=false; btn.textContent=antes; return; }
-      ["plRecibo","plRazon","plFactura","plImporte","plEfectivo","plCheques","plReten","plTransf","plEcheq"].forEach(id=>{ g(id).value=""; });
+      ["plCodigo","plRazon","plFactura","plImporte","plEfectivo","plCheques","plReten","plTransf","plTarjeta","plEcheq"].forEach(id=>{ g(id).value=""; });
+      document.getElementById("plFacturas").innerHTML=""; _plFacts=[]; _plSelFact={};
       btn.disabled=false; btn.textContent=antes;
-      cargarPlanilla(); g("plRecibo").focus();
+      cargarPlanilla(); g("plCodigo").focus();
     }catch(e){ aviso("Error de conexión: "+(e.message||e)); btn.disabled=false; btn.textContent=antes; }
   }
   window.agregarPlanilla=agregarPlanilla;

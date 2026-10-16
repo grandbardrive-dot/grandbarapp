@@ -1059,7 +1059,7 @@ async function cobPlanillas() {
     if (!filas.length) { cq('pla-lista').innerHTML = `<div class="pv-vacio">Todavía no te enviaron ninguna planilla.</div>`; return; }
     cq('pla-lista').innerHTML = filas.map(e => {
       const t = e.totales || {};
-      const lbl = { efectivo: 'Efectivo', cheques: 'Cheques', retenciones: 'Retenc.', transferencia: 'Transf/MP', echeq: 'E-cheq' };
+      const lbl = { efectivo: 'Efectivo', cheques: 'Cheques', retenciones: 'Retenc.', transferencia: 'Transf/MP', tarjeta: 'Tarjeta', echeq: 'E-cheq' };
       const tot = Object.keys(lbl).filter(k => Number(t[k]) > 0).map(k => `${lbl[k]}: <b>${cnum(t[k])}</b>`).join(' · ');
       return `<article class="hh" style="cursor:pointer" onclick="cobPlanillaDet('${cesc(String(e.vendedor))}','${cesc(String(e.fecha_rendicion))}')">
         <div class="hh-top"><span class="hh-ico">📋</span>
@@ -1077,7 +1077,7 @@ async function cobPlanillaDet(vendedor, fecha) {
   try {
     const d = await cobApi('?que=planilla-det&vendedor=' + encodeURIComponent(vendedor) + '&fecha=' + encodeURIComponent(fecha));
     const filas = d.filas || [], env = d.envio;
-    const MONEY = ['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'echeq'];
+    const MONEY = ['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'];
     const t = {}; MONEY.forEach(k => t[k] = 0); filas.forEach(f => MONEY.forEach(k => t[k] += Number(f[k]) || 0));
     const money = v => (Number(v) || 0) ? cnum(v) : '';
     const arch = u => u ? `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : '<span style="color:var(--muted)">—</span>';
@@ -1090,18 +1090,18 @@ async function cobPlanillaDet(vendedor, fecha) {
       <div style="overflow-x:auto;border:1px solid #e6e6e6;border-radius:12px;margin-top:12px">
       <table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap">
         <thead><tr style="background:#0d2238;color:#eaf0f4">
-          ${th('Recibo')}${th('Razón social')}${th('Factura')}${th('Importe', 1)}${th('Efectivo', 1)}${th('Cheques', 1)}${th('Retenc.', 1)}${th('Transf/MP', 1)}${th('E-cheq', 1)}${th('Fecha')}${th('Comprob.')}${th('Recepción')}
+          ${th('Código')}${th('Razón social')}${th('Factura')}${th('Importe', 1)}${th('Efectivo', 1)}${th('Cheques', 1)}${th('Retenc.', 1)}${th('Transf/MP', 1)}${th('Tarjeta', 1)}${th('E-cheq', 1)}${th('Fecha')}${th('Comprob.')}${th('Recepción')}
         </tr></thead>
         <tbody>${filas.length ? filas.map(f => `<tr style="border-top:1px solid #eee">
-          ${td(cesc(f.recibo || ''))}
-          ${td(cesc(f.razon_social || '') + (f.codigo ? ` <span style="color:var(--muted);font-size:11px">#${cesc(f.codigo)}</span>` : ''))}
+          ${td(cesc(f.codigo || ''))}
+          ${td(cesc(f.razon_social || ''))}
           ${td(cesc(f.factura || ''))}
-          ${td(money(f.importe), 1)}${td(money(f.efectivo), 1)}${td(money(f.cheques), 1)}${td(money(f.retenciones), 1)}${td(money(f.transferencia), 1)}${td(money(f.echeq), 1)}
+          ${td(money(f.importe), 1)}${td(money(f.efectivo), 1)}${td(money(f.cheques), 1)}${td(money(f.retenciones), 1)}${td(money(f.transferencia), 1)}${td(money(f.tarjeta), 1)}${td(money(f.echeq), 1)}
           ${td(f.fecha_pago ? cfec(f.fecha_pago) : '')}${td(arch(f.comprobante_url))}${td(arch(f.recepcion_url))}
-        </tr>`).join('') : `<tr><td colspan="12" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
+        </tr>`).join('') : `<tr><td colspan="13" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
         <tfoot><tr style="background:#f7efda;font-weight:800;border-top:2px solid #c9a13b">
           <td colspan="3" style="padding:9px 11px;text-align:right">TOTALES</td>
-          ${td(cnum(t.importe), 1)}${td(cnum(t.efectivo), 1)}${td(cnum(t.cheques), 1)}${td(cnum(t.retenciones), 1)}${td(cnum(t.transferencia), 1)}${td(cnum(t.echeq), 1)}
+          ${td(cnum(t.importe), 1)}${td(cnum(t.efectivo), 1)}${td(cnum(t.cheques), 1)}${td(cnum(t.retenciones), 1)}${td(cnum(t.transferencia), 1)}${td(cnum(t.tarjeta), 1)}${td(cnum(t.echeq), 1)}
           <td colspan="3"></td>
         </tr></tfoot>
       </table></div>`;

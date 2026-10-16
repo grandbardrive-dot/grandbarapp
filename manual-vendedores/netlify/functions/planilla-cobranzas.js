@@ -22,7 +22,8 @@ const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const BUCKET   = 'comprobantes';
 const MAX_BYTES = 5 * 1024 * 1024;
-const MONEY = ['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'echeq'];
+const MONEY = ['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'];
+const padCod = v => { const s = String(v == null ? '' : v).trim(); const n = s.replace(/\D/g, ''); return n ? n.padStart(5, '0') : s; };
 
 function json(statusCode, body) {
   return { statusCode, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(body) };
@@ -131,20 +132,34 @@ exports.handler = async (event) => {
         codigo: b.codigo ? String(b.codigo).slice(0, 30) : null,
         factura: b.factura ? String(b.factura).slice(0, 60) : null,
         importe: num(b.importe), efectivo: num(b.efectivo), cheques: num(b.cheques),
-        retenciones: num(b.retenciones), transferencia: num(b.transferencia), echeq: num(b.echeq),
+        retenciones: num(b.retenciones), transferencia: num(b.transferencia), tarjeta: num(b.tarjeta), echeq: num(b.echeq),
         fecha_pago: okFecha(b.fecha_pago) ? b.fecha_pago : null,
         nota: b.nota ? String(b.nota).slice(0, 300) : null,
         creado_por: user.id,
       };
-      if (!fila.razon_social && !fila.recibo && !fila.factura) return json(400, { error: 'Cargá al menos el recibo, la razón social o la factura.' });
+      if (!fila.codigo && !fila.razon_social && !fila.factura) return json(400, { error: 'Cargá el código del cliente.' });
       const r = await cob('planilla_cobranzas', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) });
       const ins = await r.json();
       if (!r.ok) return json(400, { error: (ins && ins.message) || 'No se pudo guardar.' });
       return json(200, { ok: true, fila: ins[0] || null });
     }
 
-    // GET: filas del día pedido + totales + si ya fue enviada.
     const q = event.queryStringParameters || {};
+
+    // GET facturas de un cliente (para desplegarlas al cargar el código en la planilla).
+    if (q.que === 'facturas') {
+      const cod = padCod(q.codigo);
+      if (!cod) return json(400, { error: 'Falta el código de cliente.' });
+      const ccR = await cob('cuentas_cubo?codigo=eq.' + encodeURIComponent(cod) + '&select=codigo,nombre,vendedor&limit=1');
+      const cc = (ccR.ok ? await ccR.json() : [])[0];
+      if (!cc) return json(200, { codigo: cod, razon_social: null, facturas: [], noExiste: true });
+      if (String(cc.vendedor || '') !== String(codigo)) return json(200, { codigo: cod, razon_social: cc.nombre || null, facturas: [], ajeno: true });
+      const fR = await cob('facturas?codigo=eq.' + encodeURIComponent(cc.codigo) + '&saldo=neq.0&select=numero,tipo,fecha,vencimiento,importe,saldo&order=vencimiento.asc.nullslast&limit=300');
+      const facturas = fR.ok ? await fR.json() : [];
+      return json(200, { codigo: cc.codigo, razon_social: cc.nombre || null, facturas: Array.isArray(facturas) ? facturas : [] });
+    }
+
+    // GET: filas del día pedido + totales + si ya fue enviada.
     const fecha = okFecha(q.fecha) ? q.fecha : hoyAR();
     const [fr, er] = await Promise.all([
       cob('planilla_cobranzas?select=*&vendedor=eq.' + encodeURIComponent(codigo) + '&fecha_rendicion=eq.' + fecha + '&order=created_at.asc'),
