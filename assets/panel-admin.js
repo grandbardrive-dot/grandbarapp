@@ -26,6 +26,7 @@ const PANEL_HERRAMIENTAS = [
 const PANEL_VISTAS = [
   { k:'mapa',         i:'🗺️', n:'Mapa de pantallas' },
   { k:'pedidos',      i:'🎨', n:'Pedidos de diseño' },
+  { k:'placas',       i:'📷', n:'Placas de evidencia' },
   { k:'portadas',     i:'📕', n:'Portadas del catálogo' },
   { k:'piezas',       i:'🖼️', n:'Biblioteca de piezas' },
   { k:'usuarios',     i:'👤', n:'Usuarios y roles' },
@@ -94,6 +95,17 @@ function montarPanel(cfg) {
         <div id="pd-lista"><div class="pv-vacio">Cargando pedidos…</div></div>
       </div>
 
+      <div class="vista" id="v-placas">
+        <div class="aviso"><span>📷</span><div>Las acciones del catálogo que Luciana marca <b>Requiere evidencia</b> necesitan una placa
+          para que el cliente la suba a sus redes. La subís acá y aparece sola: en el catálogo (catalogoon, catalogooff y mayorista)
+          con el botón <b>Descargar placa</b>, y en el manual de vendedores, en la tarjeta de la oferta, donde el vendedor la puede
+          bajar o mandar con el logo del cliente. <b>No hay que volver a subir nada a Netlify.</b></div></div>
+        <div class="buscador"><span class="lupa">🔎</span><input id="pe-q" type="text" placeholder="Buscar acción o proveedor… (ej: Killka, Salentein)"></div>
+        <div class="pd-tabs" id="pe-tabs"></div>
+        <div class="po-estado ok" id="pe-ok" style="display:none;margin-top:14px"></div>
+        <div id="pe-lista"><div class="pv-vacio">Cargando acciones del catálogo…</div></div>
+      </div>
+
       <div class="vista" id="v-portadas">
         <div id="portadas"><div class="pv-vacio">Cargando portadas…</div></div>
       </div>
@@ -145,6 +157,8 @@ function montarPanel(cfg) {
 
   hhCargar();
   poCargar();
+  peCargar();
+  document.getElementById('pe-q').addEventListener('input', e => { _peQ = e.target.value; peRender(); });
   usCargar();
 }
 
@@ -768,4 +782,134 @@ async function poQuitar(canal) {
   if (r.error) { alert('No pude guardar: ' + r.error.message); return; }
   PO['portada_' + canal] = '';
   poRender();
+}
+
+/* ── Placas de evidencia del catálogo (16/10/2026) ─────────────────────────
+   Las acciones del catálogo que Luciana marca "Requiere evidencia" necesitan una
+   placa para que el cliente la suba a sus redes. Josefina y Nahuel la suben acá:
+   queda en catalogo_acciones.placa_url (la misma columna que usa el administrador
+   del catálogo de Luciana) y sale sola en catalogoon / catalogooff / mayorista
+   ("Descargar placa", ya lo hacía el sitio) y en el manual, en la tarjeta de la
+   oferta ("Descargar placa", con la opción de ponerle el logo del cliente).
+   Solo imágenes: en el manual el vendedor le pone el logo del cliente encima.   */
+const PE_CANAL = { on:'ON', off:'OFF', ambos:'ON y OFF', mayorista:'Mayorista' };
+let PE = [], _peFiltro = 'faltan', _peQ = '';
+const peTiene = a => !!String(a.placa_url || '').trim();
+
+async function peCargar() {
+  const cont = document.getElementById('pe-lista');
+  if (!cont) return;
+  try {
+    const [ra, rp] = await Promise.all([
+      poSb().from('catalogo_acciones')
+        .select('id,nombre_producto,mecanica,canal,imagen_url,placa_url,requiere_evidencia,proveedor_id,orden')
+        .eq('activo', true).order('orden'),
+      poSb().from('catalogo_proveedores').select('id,nombre'),
+    ]);
+    if (ra.error) throw ra.error;
+    const prov = {}; (rp.data || []).forEach(p => { prov[p.id] = p.nombre; });
+    PE = (ra.data || []).map(a => ({ ...a, proveedor: prov[a.proveedor_id] || 'Sin proveedor' }))
+      .sort((a, b) => a.proveedor.localeCompare(b.proveedor, 'es') || (a.orden || 0) - (b.orden || 0));
+  } catch (e) {
+    document.getElementById('pe-tabs').innerHTML = '';
+    cont.innerHTML = `<div class="aviso"><span>⚠️</span><div>No pude leer las acciones del catálogo: ${hhEsc(e.message || e)}</div></div>`;
+    return;
+  }
+  peRender();
+}
+
+function peFiltrar(k) { _peFiltro = k; document.getElementById('pe-ok').style.display = 'none'; peRender(); }
+
+function peRender() {
+  const tabs = [
+    { k:'faltan', n:'Piden evidencia y no tienen placa', l: PE.filter(a => a.requiere_evidencia && !peTiene(a)) },
+    { k:'con',    n:'Con placa',                         l: PE.filter(peTiene) },
+    { k:'todas',  n:'Todas las acciones',                l: PE },
+  ];
+  document.getElementById('pe-tabs').innerHTML = tabs.map(t =>
+    `<button class="pd-tab ${_peFiltro === t.k ? 'on' : ''}" onclick="peFiltrar('${t.k}')">${t.n} <span class="pv-n">${t.l.length}</span></button>`).join('');
+  const q = _peQ.trim().toLowerCase();
+  const lista = tabs.find(t => t.k === _peFiltro).l
+    .filter(a => !q || (String(a.nombre_producto || '') + ' ' + a.proveedor + ' ' + String(a.mecanica || '')).toLowerCase().includes(q));
+  const cont = document.getElementById('pe-lista');
+  if (!lista.length) {
+    cont.innerHTML = `<div class="pv-vacio">${q ? 'Ninguna acción con ese nombre.'
+      : _peFiltro === 'faltan' ? 'Todas las acciones que piden evidencia ya tienen su placa.'
+      : _peFiltro === 'con' ? 'Todavía ninguna acción del catálogo tiene placa.'
+      : 'No hay acciones activas en el catálogo.'}</div>`;
+    return;
+  }
+  cont.innerHTML = lista.map(a => {
+    const id = hhEsc(a.id), url = String(a.placa_url || '').trim();
+    return `<article class="hh">
+      <div class="pe-fila">
+        ${a.imagen_url ? `<img class="pe-foto" src="${hhEsc(a.imagen_url)}" alt="" loading="lazy">` : '<div class="pe-foto"></div>'}
+        <div class="pe-info">
+          <div class="hh-nom">${hhEsc(a.nombre_producto)}</div>
+          <div class="hh-desc">${hhEsc(a.proveedor)} · Catálogo ${hhEsc(PE_CANAL[a.canal] || a.canal || 'ON y OFF')}${a.mecanica ? ' · ' + hhEsc(a.mecanica) : ''}</div>
+          ${a.requiere_evidencia ? '<span class="pe-chip">Requiere evidencia</span>' : ''}
+        </div>
+        ${url ? `<a class="pe-placa" href="${hhEsc(url)}" target="_blank" rel="noopener" title="Ver la placa"><img src="${hhEsc(url)}" alt="Placa de ${hhEsc(a.nombre_producto)}"></a>` : ''}
+      </div>
+      <div class="po-acts">
+        <input type="file" accept="image/*" id="pe-file-${id}" style="display:none" onchange="peSubir('${id}', this)">
+        <button class="pd-b ok" onclick="document.getElementById('pe-file-${id}').click()">📤 ${url ? 'Cambiar placa' : 'Subir placa'}</button>
+        ${url ? `<button class="pd-b danger" onclick="peQuitar('${id}')">Quitar placa</button>` : ''}
+        <span class="po-estado" id="pe-msg-${id}"></span>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+// Aviso arriba de la lista: al subir la placa, la acción se pasa a "Con placa" y su
+// tarjeta deja de verse en la pestaña donde estaba.
+function peAviso(t) { const el = document.getElementById('pe-ok'); el.textContent = t; el.style.display = t ? 'block' : 'none'; }
+
+async function peGuardar(id, placa) {
+  const r = await poSb().from('catalogo_acciones')
+    .update({ placa_url: placa, updated_at: new Date().toISOString() }).eq('id', id).select('id,placa_url');
+  if (r.error) throw r.error;
+  if (!r.data || !r.data.length) throw new Error('La acción no se actualizó.');
+}
+
+async function peSubir(id, input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  const a = PE.find(x => String(x.id) === String(id));
+  if (!a) return;
+  const msg = document.getElementById('pe-msg-' + id);
+  const decir = (t, err) => { if (msg) { msg.textContent = t; msg.className = 'po-estado' + (err ? ' err' : ''); } };
+  if (!/^image\//.test(file.type)) { decir('Tiene que ser una imagen (JPG o PNG): en el manual se le pone el logo del cliente encima.', true); return; }
+  if (file.size > 5 * 1024 * 1024 &&
+      !confirm('La placa pesa ' + (file.size / 1048576).toFixed(1) + ' MB.\n\nEn el celular va a tardar en bajar. ¿La subo igual?')) return;
+  decir('Subiendo…');
+  try {
+    const ext  = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const path = `catalogo/placas/${id}_${Date.now()}.${ext}`;
+    const up = await poSb().storage.from(CAT_BUCKET).upload(path, file, { upsert: true, contentType: file.type });
+    if (up.error) throw up.error;
+    const url = poSb().storage.from(CAT_BUCKET).getPublicUrl(path).data.publicUrl;
+    await peGuardar(id, url);
+    a.placa_url = url;
+    peRender();
+    peAviso('Listo: la placa de ' + (a.nombre_producto || 'la acción') + ' ya sale en el catálogo y en el manual.');
+  } catch (e) {
+    decir('No se pudo subir: ' + (e.message || e), true);
+  }
+}
+
+async function peQuitar(id) {
+  const a = PE.find(x => String(x.id) === String(id));
+  if (!a) return;
+  if (!confirm('La placa de ' + (a.nombre_producto || 'esta acción') + ' deja de verse en el catálogo y en el manual.\n\n¿Seguir?')) return;
+  try {
+    await peGuardar(id, null);
+    a.placa_url = null;
+    peRender();
+    peAviso('Se quitó la placa de ' + (a.nombre_producto || 'la acción') + '.');
+  } catch (e) {
+    const msg = document.getElementById('pe-msg-' + id);
+    if (msg) { msg.textContent = 'No se pudo quitar: ' + (e.message || e); msg.className = 'po-estado err'; }
+  }
 }

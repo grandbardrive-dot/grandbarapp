@@ -5319,6 +5319,9 @@ body { background:transparent !important; }
           zonas: Array.isArray(a.zonas) ? a.zonas : [],
           // Luciana lo marca en su panel (08/10/2026): sale como cartel en la tarjeta.
           requiere_evidencia: a.requiere_evidencia === true,
+          // Placa de evidencia (16/10/2026): la suben Diseño y Desarrollo desde su panel.
+          // Solo direcciones https: el dato viene de una tabla que se edita desde afuera.
+          placa_url: /^https:\/\//i.test(String(a.placa_url || '').trim()) ? String(a.placa_url).trim() : '',
         };
       }).filter(o => o.producto);
     } catch (e) { console.warn('catálogo:', e); _catCache = []; }
@@ -6346,6 +6349,7 @@ body { background:transparent !important; }
           </div>
           <div class="oferta-nombre">${esc(o.producto)}</div>
           ${o.requiere_evidencia ? '<div class="oferta-evid">Requiere evidencia</div>' : ''}
+          ${o.placa_url ? `<button class="oferta-material" data-url="${esc(o.placa_url)}" data-titulo="${esc(o.producto)} — placa de evidencia" data-ctx="${esc(o.producto)}" onclick="abrirPlacaDesde(this)">⬇️ Descargar placa</button>` : ''}
           ${o.descripcion_larga ? `<div class="oferta-desc" onclick="this.classList.toggle('expanded')" title="Tocar para ver más">${esc(o.descripcion_larga)}</div>` : ''}
           ${o.material_foto_url ? `<button class="oferta-material" data-url="${esc(o.material_foto_url)}" data-titulo="${esc(o.producto)} — material" data-ctx="${esc(o.producto)}" onclick="abrirPlacaDesde(this)">🖼️ Ver material</button>` : ''}
           ${(() => {
