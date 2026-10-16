@@ -91,6 +91,8 @@
 
     <h2>Herramientas</h2>
     <div class="tools">
+      <button class="tool" type="button" onclick="abrirAV()" style="width:100%;font-family:inherit;text-align:left;cursor:pointer"><div class="ti">🏷️</div><div><div class="tn">Acciones vigentes</div><div class="ts">Mirá tus acciones del catálogo de GrandBar, con sus placas</div></div></button>
+      <button class="tool" type="button" onclick="abrirINC()" style="width:100%;font-family:inherit;text-align:left;cursor:pointer;border-color:var(--gold);background:var(--gold-s)"><div class="ti" style="background:var(--gold);color:#fff">🎁</div><div><div class="tn">Nuevo incentivo</div><div class="ts">Subí un incentivo (archivo), su vigencia y a qué canal va (ON / OFF / ambos)</div></div></button>
       <button class="tool" type="button" onclick="abrirAM()" style="width:100%;font-family:inherit;text-align:left;cursor:pointer;border-color:var(--gold);background:var(--gold-s)"><div class="ti" style="background:var(--gold);color:#fff">📤</div><div><div class="tn">Cargar acciones mensuales</div><div class="ts">Subí tu plan del mes (PDF, PPT, Word, imagen) para que lo apruebe GrandBar</div></div></button>
       <a class="tool" href="proveedor-manual.html"><div class="ti">📖</div><div><div class="tn">Manual de vendedores</div><div class="ts">Proponé acciones por rubro y sección</div></div></a>
       <a class="tool soon" href="#"><div class="ti">📣</div><div><div class="tn">Novedades a vendedores</div><div class="ts">Próximamente</div></div></a>
@@ -103,11 +105,56 @@
     <h2 id="materiales">Materiales en GrandBar</h2>
     <div id="mats"><div class="empty">Cargando…</div></div>
 
+    <h2>Mis incentivos</h2>
+    <div id="incList"><div class="empty">Cargando…</div></div>
+
     <h2>Mis acciones mensuales</h2>
     <div id="amList"><div class="empty">Cargando…</div></div>
 
     <h2>Mis propuestas</h2>
     <div id="props"><div class="empty">Cargando…</div></div>
+  </div>
+
+  <!-- Modal: acciones vigentes del catálogo -->
+  <div id="avModal" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:100;align-items:flex-start;justify-content:center;padding:16px;overflow:auto" onclick="if(event.target===this)cerrarAV()">
+    <div style="background:#f6f3ec;border-radius:16px;max-width:900px;width:100%;padding:20px;max-height:92vh;overflow:auto;margin-top:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <h3 style="margin:0;font-size:18px;color:var(--navy);flex:1">🏷️ Acciones vigentes</h3>
+        <button type="button" onclick="cerrarAV()" style="background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 14px;font:inherit;font-weight:700;color:var(--ink);cursor:pointer">Cerrar</button>
+      </div>
+      <p style="margin:0 0 14px;font-size:13px;color:var(--muted)">Tus acciones cargadas en el catálogo de GrandBar, tal como las ven los vendedores.</p>
+      <div id="avCont"><div class="empty">Cargando…</div></div>
+    </div>
+  </div>
+
+  <!-- Modal: nuevo incentivo -->
+  <div id="incModal" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:100;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)cerrarINC()">
+    <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;padding:22px;max-height:92vh;overflow:auto">
+      <h3 style="margin:0 0 4px;font-size:18px;color:var(--navy)">🎁 Nuevo incentivo</h3>
+      <p style="margin:0 0 16px;font-size:13px;color:var(--muted)">Subí el incentivo, su vigencia y a qué canal va. Le llega a GrandBar.</p>
+      <label class="inc-lab">Nombre del incentivo</label>
+      <input id="incNombre" class="inc-in" type="text" placeholder="Ej: Incentivo de volumen octubre">
+      <label class="inc-lab">Archivo</label>
+      <input type="file" id="incFile" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,image/*,application/pdf" style="width:100%;font-size:13px;margin-bottom:4px">
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px">PDF, PowerPoint, Word, Excel o imagen (máx. 50 MB).</div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1"><label class="inc-lab">Vigente desde</label><input id="incDesde" class="inc-in" type="date"></div>
+        <div style="flex:1"><label class="inc-lab">Vigente hasta</label><input id="incHasta" class="inc-in" type="date"></div>
+      </div>
+      <label class="inc-lab">Canal al que va dirigido</label>
+      <div id="incCanal" style="display:flex;gap:8px;margin-bottom:4px">
+        <button type="button" class="inc-canal on" data-canal="on" onclick="setCanal('on')">ON</button>
+        <button type="button" class="inc-canal" data-canal="off" onclick="setCanal('off')">OFF</button>
+        <button type="button" class="inc-canal" data-canal="ambos" onclick="setCanal('ambos')">Ambos</button>
+      </div>
+      <label class="inc-lab">Observaciones (opcional)</label>
+      <textarea id="incObs" rows="2" class="inc-in" placeholder="Algo que quieras aclararle a GrandBar…" style="resize:vertical"></textarea>
+      <div id="incMsg" style="font-size:13px;margin:10px 0 8px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button type="button" onclick="cerrarINC()" style="background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;color:var(--ink);cursor:pointer">Cancelar</button>
+        <button type="button" id="incSend" onclick="subirINC()" style="background:var(--gold);border:none;border-radius:10px;padding:10px 18px;font:inherit;font-weight:800;color:#fff;cursor:pointer">Enviar a GrandBar</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal: cargar acciones mensuales -->
@@ -135,6 +182,32 @@
   .ep-field{display:block;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 6px}
   .ep-in{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px}
   .ep-in:focus{outline:none;border-color:var(--gold)}
+  .inc-lab{display:block;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 6px}
+  .inc-in{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px}
+  .inc-in:focus{outline:none;border-color:var(--gold)}
+  .inc-canal{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:10px;font:inherit;font-weight:800;font-size:13px;color:var(--muted);cursor:pointer}
+  .inc-canal.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  /* Acciones vigentes (cards estilo catálogo) */
+  .av-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+  .av-card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(13,34,48,.06);display:flex;flex-direction:column}
+  .av-img{width:100%;aspect-ratio:1;object-fit:cover;background:#f0ece2;display:block}
+  .av-ph{width:100%;aspect-ratio:1;display:grid;place-items:center;background:#f0ece2;color:#b8b0a0;font-size:30px}
+  .av-bd{padding:11px 13px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .av-nom{font-weight:800;font-size:14px;line-height:1.25;color:var(--navy)}
+  .av-badges{display:flex;flex-wrap:wrap;gap:5px}
+  .av-tag{font-size:10.5px;font-weight:800;border-radius:20px;padding:3px 9px;background:var(--gold-s);color:var(--gold-d)}
+  .av-tag.canal{background:#eef2f6;color:#3f6f9c}
+  .av-tag.off{background:#fbe9e4;color:#c0603e}
+  .av-prices{font-size:12.5px;color:var(--ink);margin-top:2px}
+  .av-prices .ac{font-weight:800;color:var(--green-d,#256f54)}
+  .av-prices .rg{text-decoration:line-through;color:var(--muted);font-size:11.5px;margin-left:6px}
+  .av-vig{font-size:11.5px;color:var(--muted);margin-top:auto}
+  .inc-item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:9px;display:flex;gap:12px;align-items:flex-start}
+  .inc-item .ii-ic{font-size:22px;flex:none}
+  .inc-item .ii-nom{font-weight:800;font-size:14.5px;color:var(--navy)}
+  .inc-item .ii-meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:8px}
+  .inc-item .ii-ch{font-size:10.5px;font-weight:800;border-radius:20px;padding:2px 9px;background:#eef2f6;color:#3f6f9c}
+  .inc-item a.ii-ver{margin-left:auto;font-size:12px;font-weight:800;color:var(--gold-d);text-decoration:none;white-space:nowrap}
 </style>
 <!-- Modal: editar propuesta con cambios y reenviar -->
 <div id="epModal" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:100;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)cerrarEdit()">
@@ -168,7 +241,9 @@ const RUBRO={restaurante:['🍽️','Restaurante'],bar:['🍸','Bar'],vinoteca:[
 const rLbl=r=>(RUBRO[r]?RUBRO[r][1]:r);
 // El proveedor entra por el MISMO login del Hub (index.html) con rol 'proveedor'.
 const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
-let hub, PROV=null;
+// Catálogo de acciones (proyecto aparte): de ahí salen las "Acciones vigentes".
+const CAT={url:"https://zlwnoqdxendsgbfvfyue.supabase.co",key:"sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4"};
+let hub, cat, PROV=null;
 const ESTADO={pendiente:['pend','⏳ Pendiente'],aprobada:['ok','✓ Aprobada'],descartada:['no','✕ Descartada'],cambios:['cam','✎ Te pidieron cambios']};
 async function salir(){ try{ await hub.auth.signOut(); }catch(e){} location.replace('../index.html'); }
 window.salir=salir;
@@ -191,6 +266,7 @@ async function cargarBanner(){
 
 (async()=>{
   hub=supabase.createClient(HUB.url,HUB.key);
+  cat=supabase.createClient(CAT.url,CAT.key,{auth:{persistSession:false}});
   const {data:{session}}=await hub.auth.getSession();
   if(!session){ location.replace('../index.html'); return; }
   const {data:perfil}=await hub.from('usuarios').select('nombre,rol,empresa').eq('id',session.user.id).maybeSingle();
@@ -201,6 +277,7 @@ async function cargarBanner(){
   cargarBanner();
   cargarAlertas();
   cargarAccionesMensuales();
+  cargarIncentivos();
   cargarPropuestas();
   cargarEvidencias();
   cargarMateriales();
@@ -283,6 +360,104 @@ async function subirAM(){
   }catch(e){ msg('No se pudo enviar: '+(e.message||e),'var(--danger)'); btn.disabled=false; }
 }
 window.subirAM=subirAM;
+
+// ── Acciones vigentes (del catálogo de GrandBar) ─────────────────────────────
+const CANAL_LBL={on:'ON',off:'OFF',ambos:'ON + OFF'};
+const money=n=>(n==null||n==='')?'':'$'+Number(n).toLocaleString('es-AR');
+let _provCatId=null;
+async function _catProvId(){
+  if(_provCatId!==null) return _provCatId;
+  try{
+    const {data}=await cat.from('catalogo_proveedores').select('id,nombre').ilike('nombre',PROV.empresa).limit(1);
+    _provCatId=(data&&data[0])?data[0].id:'';
+  }catch(e){ _provCatId=''; }
+  return _provCatId;
+}
+function abrirAV(){ $('avModal').style.display='flex'; cargarAV(); }
+function cerrarAV(){ $('avModal').style.display='none'; }
+window.abrirAV=abrirAV; window.cerrarAV=cerrarAV;
+async function cargarAV(){
+  const cont=$('avCont');
+  try{
+    const pid=await _catProvId();
+    if(!pid){ cont.innerHTML='<div class="empty">Todavía no encontramos acciones tuyas en el catálogo de GrandBar.</div>'; return; }
+    const {data,error}=await cat.from('catalogo_acciones').select('*').eq('proveedor_id',pid).eq('activo',true).order('orden');
+    if(error) throw error;
+    const hoy=new Date().toISOString().slice(0,10);
+    const rows=(data||[]).filter(a=>!a.vigente_hasta || a.vigente_hasta>=hoy);
+    if(!rows.length){ cont.innerHTML='<div class="empty">No tenés acciones vigentes en el catálogo en este momento.</div>'; return; }
+    cont.innerHTML='<div class="av-grid">'+rows.map(a=>{
+      const img=a.placa_url||a.imagen_url;
+      const off=a.porcentaje_off?`<span class="av-tag off">${a.porcentaje_off}% OFF</span>`:'';
+      const mec=a.mecanica?`<span class="av-tag">${esc(a.mecanica)}</span>`:'';
+      const flag=a.flag?`<span class="av-tag">${esc(a.flag)}</span>`:'';
+      const can=a.canal?`<span class="av-tag canal">${esc(CANAL_LBL[String(a.canal).toLowerCase()]||a.canal)}</span>`:'';
+      const precio=a.precio_accionado?`<div class="av-prices"><span class="ac">${money(a.precio_accionado)}</span>${a.precio_regular?`<span class="rg">${money(a.precio_regular)}</span>`:''}</div>`:'';
+      const sug=a.sugerido_venta?`<div class="av-prices" style="color:var(--muted);font-size:11.5px">Sugerido: ${money(a.sugerido_venta)}</div>`:'';
+      const vig=a.vigente_hasta?`<div class="av-vig">Vigente hasta ${fFecha(a.vigente_hasta+'T12:00:00')}</div>`:'';
+      return `<div class="av-card">${img?`<a href="${esc(img)}" target="_blank" rel="noopener"><img class="av-img" src="${esc(img)}" alt="${esc(a.nombre_producto||'')}" loading="lazy"></a>`:'<div class="av-ph">🏷️</div>'}
+        <div class="av-bd">
+          <div class="av-nom">${esc(a.nombre_producto||'Acción')}</div>
+          <div class="av-badges">${off}${mec}${flag}${can}</div>
+          ${precio}${sug}${a.info_adicional?`<div class="av-vig">${esc(a.info_adicional)}</div>`:''}${vig}
+        </div></div>`;
+    }).join('')+'</div>';
+  }catch(e){ cont.innerHTML='<div class="empty">No se pudieron cargar tus acciones del catálogo.<br>'+esc(e.message||e)+'</div>'; }
+}
+
+// ── Nuevo incentivo (archivo + vigencia + canal) ─────────────────────────────
+let INC_CANAL='on';
+function setCanal(c){ INC_CANAL=c; document.querySelectorAll('#incCanal .inc-canal').forEach(b=>b.classList.toggle('on',b.dataset.canal===c)); }
+window.setCanal=setCanal;
+function abrirINC(){ $('incMsg').textContent=''; $('incNombre').value=''; $('incFile').value=''; $('incDesde').value=''; $('incHasta').value=''; $('incObs').value=''; setCanal('on'); $('incSend').disabled=false; $('incModal').style.display='flex'; }
+function cerrarINC(){ $('incModal').style.display='none'; }
+window.abrirINC=abrirINC; window.cerrarINC=cerrarINC;
+async function subirINC(){
+  const nombre=($('incNombre').value||'').trim();
+  const f=$('incFile').files[0];
+  const msg=(t,c)=>{ $('incMsg').textContent=t; $('incMsg').style.color=c||'var(--muted)'; };
+  if(!nombre){ msg('Poné el nombre del incentivo.','var(--danger)'); return; }
+  if(!f){ msg('Elegí un archivo.','var(--danger)'); return; }
+  if(f.size>50*1024*1024){ msg('El archivo es muy grande (máx. 50 MB).','var(--danger)'); return; }
+  const desde=$('incDesde').value||null, hasta=$('incHasta').value||null;
+  if(desde&&hasta&&hasta<desde){ msg('La fecha "hasta" no puede ser anterior a "desde".','var(--danger)'); return; }
+  const btn=$('incSend'); btn.disabled=true; msg('Subiendo…');
+  try{
+    const safe=f.name.replace(/[^\w.\-]+/g,'_');
+    const path='incentivos/'+String(PROV.empresa).replace(/[^\w.\-]+/g,'_')+'/'+Date.now()+'_'+safe;
+    const up=await sb.storage.from('Activaciones').upload(path,f,{upsert:false,contentType:f.type||undefined});
+    if(up.error) throw up.error;
+    const url=sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
+    const ins=await sb.from('incentivos_prov').insert({proveedor_empresa:PROV.empresa,nombre,archivo_url:url,archivo_nombre:f.name,archivo_tipo:f.type||null,vigencia_desde:desde,vigencia_hasta:hasta,canal:INC_CANAL,observaciones:($('incObs').value||'').trim()||null,estado:'pendiente'});
+    if(ins.error) throw ins.error;
+    msg('✅ Enviado. GrandBar lo va a revisar.','var(--green-d)');
+    setTimeout(()=>{ cerrarINC(); cargarIncentivos(); },1100);
+  }catch(e){ msg('No se pudo enviar: '+(e.message||e),'var(--danger)'); btn.disabled=false; }
+}
+window.subirINC=subirINC;
+async function cargarIncentivos(){
+  const cont=$('incList');
+  try{
+    const {data,error}=await sb.from('incentivos_prov').select('*').eq('proveedor_empresa',PROV.empresa).order('created_at',{ascending:false}).limit(40);
+    if(error) throw error;
+    const rows=data||[];
+    if(!rows.length){ cont.innerHTML='<div class="empty">Todavía no cargaste incentivos.<br>Usá el botón <b>Nuevo incentivo</b> de arriba.</div>'; return; }
+    cont.innerHTML=rows.map(r=>{
+      const vig=(r.vigencia_desde||r.vigencia_hasta)?`📅 ${r.vigencia_desde?fFecha(r.vigencia_desde+'T12:00:00'):'—'} → ${r.vigencia_hasta?fFecha(r.vigencia_hasta+'T12:00:00'):'—'}`:'';
+      const est=ESTADO[r.estado]?ESTADO[r.estado][1]:r.estado;
+      return `<div class="inc-item">
+        <div class="ii-ic">🎁</div>
+        <div style="flex:1">
+          <div class="ii-nom">${esc(r.nombre)}</div>
+          <div class="ii-meta"><span class="ii-ch">${esc(CANAL_LBL[String(r.canal).toLowerCase()]||r.canal||'—')}</span>${vig?`<span>${vig}</span>`:''}<span>${esc(est)}</span></div>
+          ${r.observaciones?`<div class="ii-meta">${esc(r.observaciones)}</div>`:''}
+        </div>
+        ${r.archivo_url?`<a class="ii-ver" href="${esc(r.archivo_url)}" target="_blank" rel="noopener">Ver archivo ↗</a>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){ cont.innerHTML='<div class="empty">No se pudieron cargar tus incentivos.</div>'; }
+}
+window.cargarIncentivos=cargarIncentivos;
 // ── Materiales en GrandBar (14/10/2026) ──────────────────────────────────────
 // El material POP de la marca que hay en el depósito, con el stock de hoy. Lo carga
 // Marketing en Materiales; la función proveedor-materiales devuelve solo lo de esta
