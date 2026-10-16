@@ -340,22 +340,42 @@
       if(f) f.addEventListener("change", ()=>{ const p=document.getElementById("plFechaPago"); if(p) p.value=f.value; cargarPlanilla(); });
       const file=document.getElementById("plFile"); if(file) file.addEventListener("change", subirArchivoElegido);
       const cod=document.getElementById("plCodigo");
-      if(cod){ cod.addEventListener("change", ()=>cargarFacturasCliente(cod.value));
-               cod.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); cargarFacturasCliente(cod.value); } }); }
+      if(cod){
+        let tmr=null;
+        const lanzar=()=>cargarFacturasCliente(cod.value);
+        cod.addEventListener("change", lanzar);
+        cod.addEventListener("input", ()=>{ clearTimeout(tmr); tmr=setTimeout(lanzar, 500); });  // busca mientras escriben
+        cod.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); clearTimeout(tmr); lanzar(); } });
+      }
     }
     cargarPlanilla();
   }
 
+  // Resuelve lo que el vendedor escribió (código o nombre) a un código de cliente.
+  function resolverCodigo(v){
+    const s=(v||"").trim(); if(!s) return "";
+    const soloNum=s.replace(/\D/g,"");
+    if(soloNum){
+      const hit=(CLIENTES||[]).find(c=>String(c.codigo||"").replace(/^0+/,"")===soloNum.replace(/^0+/,""));
+      return hit ? hit.codigo : soloNum;
+    }
+    const hit=(CLIENTES||[]).find(c=>String(c.nombre||"").toLowerCase()===s.toLowerCase());
+    return hit ? hit.codigo : s;
+  }
+
   // Al cargar el código → se completa la razón social y se despliegan sus facturas.
+  let _plFactReq=0;
   async function cargarFacturasCliente(codigo){
     const cont=document.getElementById("plFacturas"), razon=document.getElementById("plRazon");
-    const cod=(codigo||"").trim(); _plFacts=[]; _plSelFact={};
+    const cod=resolverCodigo(codigo); _plFacts=[]; _plSelFact={};
     document.getElementById("plFactura").value=""; document.getElementById("plImporte").value="";
-    if(!cod){ cont.innerHTML=""; razon.value=""; return; }
+    if(!cod || cod.replace(/\D/g,"").length<2){ cont.innerHTML=""; razon.value=""; return; }
+    const req=++_plFactReq;  // evita que una respuesta vieja pise a una nueva
     cont.innerHTML=`<div class="pf-box"><div class="pf-msg">Buscando facturas…</div></div>`;
     try{
       const r=await fetch("/.netlify/functions/planilla-cobranzas?que=facturas&codigo="+encodeURIComponent(cod), { headers:{ Authorization:"Bearer "+token } });
       const j=await r.json();
+      if(req!==_plFactReq) return;  // llegó una búsqueda más nueva
       razon.value = j.razon_social || "";
       if(j.ajeno){ cont.innerHTML=`<div class="pf-box"><div class="pf-msg">Ese cliente no figura en tu cartera.</div></div>`; return; }
       if(j.noExiste){ cont.innerHTML=`<div class="pf-box"><div class="pf-msg">No encontré un cliente con ese código.</div></div>`; return; }
