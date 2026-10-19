@@ -136,7 +136,9 @@ function cobAbrir(id) {
   ({ clientes: cobClientes, bloquear: cobBloquear, efectivo: cobEfectivo,
      comprobantes: cobComprobantes, reclamos: cobReclamos, planillas: cobPlanillas,
      estadisticas: cobEstadisticas, whatsapp: cobWhatsapp,
-     tareas: eqTareas }[id] || cobTablero)();
+     // eqTareas viene de equipo-admin.js, que el panel de Dirección (dir-cobranzas) no
+     // carga: nombrarla directo tiraba un error y en ese panel no abría ninguna sección.
+     tareas: window.eqTareas }[id] || cobTablero)();
 }
 
 const cobCabecera = (t, sub) => `
