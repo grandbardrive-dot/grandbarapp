@@ -9,16 +9,19 @@
    =========================================================== */
 const COB_API = '/.netlify/functions/cobranzas-panel';
 
+// Secciones que son de Brenda (administración): no se le muestran a tesorería (Mónica).
+// Mónica ve: Tablero, Revisión (extra), Clientes, Supervisión, Cobros en efectivo y Planillas.
+const COB_SOLO_ADMIN = ['administracion', 'admin', 'desarrollo', 'diseno'];
 const COB_SECCIONES = [
   { id:'clientes',     ico:'👥', n:'Clientes',            d:'Buscá un cliente y mirá su cuenta corriente, facturas y datos.', color:'#e0567f' },
   { id:'comprobantes', ico:'🧾', n:'Supervisión de cobranzas', d:'Cómo vienen los comprobantes que suben los clientes: dónde se frenan y cuánto tardan.', color:'#69a531' },
-  { id:'whatsapp',     ico:'📲', n:'WhatsApp',            d:'Lo que responden los clientes y cómo llegaron los avisos. Es de lectura.', color:'#e0533c' },
-  { id:'estadisticas', ico:'📊', n:'Estadísticas',        d:'Cartera, cobranzas y comparativas del período.',                 color:'#2f6db0' },
-  { id:'bloquear',     ico:'🔒', n:'Bloquear cuentas',    d:'Clientes que superaron su límite: bloqueá o dá de alta.',        color:'#d6a52b' },
-  { id:'reclamos',     ico:'💬', n:'Reclamos',            d:'Reclamos de clientes, con chat y número de seguimiento.',        color:'#7b5cd6' },
+  { id:'whatsapp',     ico:'📲', n:'WhatsApp',            d:'Lo que responden los clientes y cómo llegaron los avisos. Es de lectura.', color:'#e0533c', roles:COB_SOLO_ADMIN },
+  { id:'estadisticas', ico:'📊', n:'Estadísticas',        d:'Cartera, cobranzas y comparativas del período.',                 color:'#2f6db0', roles:COB_SOLO_ADMIN },
+  { id:'bloquear',     ico:'🔒', n:'Bloquear cuentas',    d:'Clientes que superaron su límite: bloqueá o dá de alta.',        color:'#d6a52b', roles:COB_SOLO_ADMIN },
+  { id:'reclamos',     ico:'💬', n:'Reclamos',            d:'Reclamos de clientes, con chat y número de seguimiento.',        color:'#7b5cd6', roles:COB_SOLO_ADMIN },
   { id:'efectivo',     ico:'💵', n:'Cobros en efectivo',  d:'Clientes que avisaron que tienen el efectivo listo para retirar.', color:'#2d8a4f' },
   { id:'planillas',    ico:'📋', n:'Planillas de rendición', d:'Las rendiciones de cobranzas que te envían los vendedores, por día.', color:'#b5802b' },
-  { id:'tareas',       ico:'✅', n:'Tareas del equipo',   d:'Qué tiene que hacer cada una del equipo y qué quedó hecho.',      color:'#3b6fa0' },
+  { id:'tareas',       ico:'✅', n:'Tareas del equipo',   d:'Qué tiene que hacer cada una del equipo y qué quedó hecho.',      color:'#3b6fa0', roles:COB_SOLO_ADMIN },
 ];
 
 let COB_TOKEN = null, COB_RESUMEN = {}, COB_VISTA = 'tablero';
@@ -115,7 +118,7 @@ function cobNav() {
   nav.innerHTML = `<button class="sb-item ${COB_VISTA==='tablero'?'on':''}" onclick="cobTablero()"><span class="i">🏠</span> Tablero</button>` +
     (cobEsTesoreria() && !cobRevisionAdentro() ? `<a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">💳</span> Revisión de cobranzas</a>` : '') +
     extra.filter(s => s.arriba).map(boton).join('') +
-    COB_SECCIONES.map(boton).join('') +
+    COB_SECCIONES.filter(s => !s.roles || s.roles.includes(cobRol())).map(boton).join('') +
     (abajo.length ? `<div class="sb-grupo">Equipo y lo mío</div>` + abajo.map(boton).join('') : '');
 }
 

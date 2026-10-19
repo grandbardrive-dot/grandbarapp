@@ -44,7 +44,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/supabase-config.js"></script>
 <script src="assets/auth.js"></script>
-<script src="assets/cobranzas.js?v=22"></script>
+<script src="assets/cobranzas.js?v=23"></script>
 <script src="assets/push-cliente.js?v=1"></script>
 <script src="assets/equipo-admin.js?v=3"></script>
 <script>
@@ -54,8 +54,8 @@
   window.COB_HASH = true;
   window.COB_EXTRA = [
     { id:'revision',      ico:'💳', n:'Revisión de cobranzas', roles:['tesoreria'], arriba:true, abrir: () => cobMarco('/cobranzas-tesoreria.html?embed=1', 'Revisión de cobranzas') },
-    { id:'agenda-equipo', ico:'📅', n:'Agenda del equipo', abrir: () => eqAgenda() },
-    { id:'mi-agenda',     ico:'🗓️', n:'Mi agenda',         abrir: () => cobMarco('/mi-agenda.html?embed=1', 'Mi agenda') },
+    { id:'agenda-equipo', ico:'📅', n:'Agenda del equipo', roles:['administracion','admin','desarrollo','diseno'], abrir: () => eqAgenda() },
+    { id:'mi-agenda',     ico:'🗓️', n:'Mi agenda',         roles:['administracion','admin','desarrollo','diseno'], abrir: () => cobMarco('/mi-agenda.html?embed=1', 'Mi agenda') },
     { id:'reportes',      ico:'📊', n:'Mis reportes', roles:['administracion'], abrir: () => cobMarco('/mis-reportes.html?embed=1', 'Mis reportes') },
     // Mi asistente (10/10/2026): Brenda lo va educando mientras trabaja. Ver asistente.html.
     { id:'asistente',     ico:'📝', n:'Mi asistente', roles:['administracion'], abrir: () => cobMarco('/asistente.html?embed=1', 'Mi asistente') },
