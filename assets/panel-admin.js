@@ -549,7 +549,8 @@ const US_ROLES = [
   { k:'deposito',       n:'Depósito',        d:'Stock, vencimientos, materiales.' },
   { k:'mayorista',      n:'Mayorista',       d:'Tienda (Mza Distribución): panel de vendedor sin ruta ni agenda eficiente. Necesita código de vendedor.' },
   { k:'reportes',       n:'Reportes',        d:'Solo dashboards.' },
-  { k:'torneo',         n:'Trade Marketing', d:'Juan Pablo Sepúlveda, jefe de Trade Marketing: evidencias del Torneo Doña Paula y devoluciones de las acciones de Luciana.' },
+  { k:'torneo',         n:'Trade Marketing', d:'Juan Pablo Sepúlveda, jefe de Trade Marketing: evidencias del Torneo Doña Paula, devoluciones de las acciones de Luciana y los paneles KAF.' },
+  { k:'kaf',            n:'KAF',             d:'Representante de una marca en la calle (Facu Llaver, Campari): sus clientes, visitas, evidencias y pedidos de materiales. Juan Pablo le arma el panel.' },
   { k:'cliente',        n:'Cliente',         d:'Externo: portal de cuenta corriente.' },
 ];
 let US = [], _usYo = null;

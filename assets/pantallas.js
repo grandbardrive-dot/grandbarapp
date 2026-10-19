@@ -94,6 +94,19 @@ const PANTALLAS = [
     ],
   },
   {
+    grupo: 'Trade Marketing y KAF',
+    color: '#2f6f5e',
+    ico: '🍸',
+    quien: 'Juan Pablo Sepúlveda y los KAF',
+    items: [
+      { n:'Panel del KAF',     r:'kaf.html',          nota:'Representante de marca en la calle (Facu Llaver, Campari): clientes ON con vendedor, compras de la marca y Plan 5T, marcar visita, evidencias, Perfect Serve/Store, capacitaciones, presupuestos y pedido de materiales a Andrea (19/10/2026). Rol kaf.' },
+      { n:'Paneles KAF (Trade)', r:'trade-kaf.html', nota:'Juan Pablo arma el panel de cada KAF (marca, clientes, secciones), carga objetivos, ve visitas y cargas, aprueba presupuestos y carga los modelos de Perfect Serve/Store.' },
+      { n:'Acciones comerciales', r:'trade-acciones.html', nota:'Las acciones de Luciana para devolverlas con observaciones.' },
+      { n:'Evidencias de acciones', r:'trade-evidencias.html', nota:'Fotos de los vendedores de las acciones que piden evidencia.' },
+      { n:'Evidencias del torneo', r:'torneo-evidencias.html', nota:'Validación del Torneo Doña Paula.' },
+    ],
+  },
+  {
     grupo: 'Dirección',
     color: '#0d2238',
     ico: '📈',

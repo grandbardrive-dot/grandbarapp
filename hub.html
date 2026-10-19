@@ -213,6 +213,8 @@
     if (["direccion", "admin", "duenio"].includes(String(currentRole).toLowerCase())) { location.replace("direccion.html"); return; }
     // Validación del torneo: su única pantalla es la revisión de evidencias (29/09/2026).
     if (String(currentRole).toLowerCase() === "torneo") { location.replace("torneo-evidencias.html"); return; }
+    // KAF (representante de una marca en la calle): su panel, armado por Trade Marketing (19/10/2026).
+    if (String(currentRole).toLowerCase() === "kaf") { location.replace("kaf.html"); return; }
     // Luciana (compras) trabaja todo en su panel comercial: campañas, manual, catálogo,
     // reportes y agenda. Antes caía acá y cada tarjeta la llevaba a otra pantalla (30/09/2026).
     if (String(currentRole).toLowerCase() === "compras") { location.replace("manual-vendedores/admin-comercial.html"); return; }

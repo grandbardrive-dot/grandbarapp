@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>GrandBar Hub — Paneles KAF</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<!-- Tablero de los KAF para Trade Marketing (19/10/2026, Juan Pablo Sepúlveda): arma el
+     panel de cada KAF (marca, clientes, secciones), le carga objetivos, ve sus visitas
+     y lo que carga, aprueba presupuestos y carga los modelos de Perfect Serve / Store.
+     Mismo menú que trade-acciones, trade-evidencias y torneo-evidencias. -->
+<link rel="stylesheet" href="assets/kaf.css?v=1">
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav">
+      <a href="torneo-evidencias.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg> Evidencias del torneo</a>
+      <a href="trade-acciones.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h10"/></svg> Acciones comerciales</a>
+      <a href="trade-evidencias.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/></svg> Evidencias de acciones</a>
+    </nav>
+    <div class="sb-cat">KAF</div>
+    <nav class="sb-nav">
+      <a href="trade-kaf.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> Paneles KAF</a>
+    </nav>
+    <div class="sb-cat">CRM</div>
+    <nav class="sb-nav">
+      <a href="crm-calendario.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Calendario de acciones</a>
+    </nav>
+    <div class="sb-foot"><div class="sb-user" id="logout"><div class="av" id="av">T</div><div><div class="t" id="uName">Trade Marketing</div><div class="s">Jefe de Trade Marketing</div></div></div></div>
+  </aside>
+  <div class="main"><div class="content">
+    <div class="head"><div><h1>Paneles KAF</h1><p>Elegí un KAF para ver cómo viene, cargarle objetivos y armar su panel. Lo que cambiás acá es lo que él ve en su celular.</p></div></div>
+    <div class="kaf-cards" id="kafs"><div class="vacio" style="grid-column:1/-1">Cargando…</div></div>
+    <div class="barra"><div class="tabs" id="tabs"></div></div>
+    <div id="vista"></div>
+  </div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/kaf-comun.js?v=1"></script>
+<script>
+  const { K, $, esc, num, fecha, toast, get, post, ventana, cerrar } = KAF;
+  K.modo = 'trade';
+  const ROLES = ['torneo', 'desarrollo', 'diseno'];
+  const TABS = [['resumen', 'Resumen'], ['clientes', 'Clientes y oportunidades'], ['visitas', 'Visitas'], ['nuevos', 'Clientes nuevos'], ['registros', 'Lo que carga'], ['materiales', 'Materiales'], ['objetivos', 'Objetivos'], ['armado', 'Armado del panel'], ['modelos', 'Modelos']];
+  let D = null, TAB = 'resumen', SEL = null, MOD_TIPO = 'perfect_serve', REG_TIPO = '';
+
+  function pintarKafs() {
+    const l = D.kafs || [];
+    if (!l.length) {
+      $('kafs').innerHTML = `<div class="vacio" style="grid-column:1/-1">Todavía no hay usuarios KAF. Para sumar uno, Desarrollo (Nahuel) le crea la cuenta y le pone el rol <b>KAF</b> en Usuarios y roles. Después lo armás acá. Mientras tanto podés ir cargando los modelos de Perfect Serve y Perfect Store.</div>`;
+      $('tabs').innerHTML = '<button data-t="modelos" class="on">Modelos</button>';
+      if (TAB !== 'modelos') { TAB = 'modelos'; vista(); }
+      return;
+    }
+    $('kafs').innerHTML = l.map(k => {
+      const o = k.objetivos || {};
+      return `<button class="kaf-card ${SEL && SEL.id === k.id ? 'on' : ''}" data-k="${esc(k.id)}" type="button">
+        <b>${esc(k.nombre || k.email)}</b>
+        <span>${k.perfil ? 'KAF ' + esc(k.perfil.marca) : 'Panel sin armar'}${k.activo ? '' : ' · sin acceso'}</span>
+        <span>Hoy: <b style="display:inline;font-size:13px;color:var(--ink)">${k.visitasHoy}</b>${o.visitas_dia ? ' de ' + o.visitas_dia : ''} clientes · mes: ${k.visitasMes} visitas</span>
+        ${k.sinRevisar || k.pedidosAbiertos ? `<span class="chips">${k.sinRevisar ? `<span class="chip ambar">${k.sinRevisar} para revisar</span>` : ''}${k.pedidosAbiertos ? `<span class="chip">${k.pedidosAbiertos} pedido${k.pedidosAbiertos > 1 ? 's' : ''} de materiales</span>` : ''}</span>` : ''}
+      </button>`;
+    }).join('');
+  }
+  function pintarTabs() {
+    $('tabs').innerHTML = TABS.map(([k, n]) => `<button data-t="${k}" class="${TAB === k ? 'on' : ''}">${esc(n)}</button>`).join('');
+  }
+  async function elegir(id) {
+    SEL = (D.kafs || []).find(k => k.id === id) || null;
+    if (!SEL) return;
+    K.kaf = SEL.id; K.perfil = SEL.perfil; K.clientes = null; K.secciones = [];
+    const u = new URL(location.href); u.searchParams.set('kaf', SEL.id); history.replaceState(null, '', u.pathname + u.search + '#' + TAB);
+    pintarKafs(); pintarTabs();
+    try { const ini = await get('inicio'); K.perfil = ini.perfil; K.secciones = ini.secciones || []; SEL.secciones = ini.secciones; } catch (e) {}
+    vista();
+  }
+  async function vista() {
+    const el = $('vista');
+    el.onclick = null; el.onchange = null;
+    history.replaceState(null, '', location.pathname + location.search + '#' + TAB);
+    if (TAB === 'modelos') return modelos(el);
+    if (!SEL) { el.innerHTML = '<div class="vacio">Elegí un KAF.</div>'; return; }
+    if (TAB === 'resumen') return KAF.renderInicio(el);
+    if (TAB === 'clientes') return KAF.renderClientes(el);
+    if (TAB === 'visitas') return KAF.renderVisitas(el);
+    if (TAB === 'nuevos') return KAF.renderNuevos(el);
+    if (TAB === 'registros') {
+      el.innerHTML = `<div class="barra"><div class="tabs" id="rt">${[['', 'Todo']].concat(Object.entries(KAF.REG).map(([k, r]) => [k, r.n])).map(([k, n]) => `<button data-r="${k}" class="${REG_TIPO === k ? 'on' : ''}">${esc(n)}</button>`).join('')}</div></div><div id="rv"></div>`;
+      el.querySelector('#rt').onclick = e => { const b = e.target.closest('[data-r]'); if (!b) return; REG_TIPO = b.dataset.r; vista(); };
+      return KAF.renderRegistros(el.querySelector('#rv'), REG_TIPO);
+    }
+    if (TAB === 'materiales') {
+      el.innerHTML = '<p style="font-size:13.5px;color:var(--muted);margin:0 0 12px">Los pedidos le llegan a Andrea (facturación), que emite el remito y le avisa al KAF.</p><div id="mv"><div class="vacio">Cargando…</div></div>';
+      try { const d = await get('pedidos', { kaf: SEL.id }); el.querySelector('#mv').innerHTML = (d.pedidos || []).length ? d.pedidos.map(p => KAF.pedidoHtml(p, false)).join('') : '<div class="vacio">Este KAF todavía no pidió materiales.</div>'; }
+      catch (e) { el.querySelector('#mv').innerHTML = `<div class="vacio">${esc(e.message)}</div>`; }
+      return;
+    }
+    if (TAB === 'objetivos') return objetivos(el);
+    if (TAB === 'armado') return armado(el);
+  }
+  K.alCambiar = () => { if (['resumen', 'registros', 'clientes'].includes(TAB)) { if (TAB !== 'clientes') vista(); } recargarKafs(); };
+  async function recargarKafs() { try { D = await get('kafs'); const id = SEL && SEL.id; SEL = (D.kafs || []).find(k => k.id === id) || SEL; pintarKafs(); } catch (e) {} }
+
+  // ── Objetivos del mes ────────────────────────────────────────────────────
+  let OBJ_MES = '';
+  async function objetivos(el) {
+    const m0 = KAF.mesDe(KAF.hoy()), mes = OBJ_MES || m0;
+    el.innerHTML = `<div class="barra"><select id="om">${[-1, 0, 1, 2, 3].map(i => { const m = KAF.mesMenos(m0, i); return `<option value="${m}" ${m === mes ? 'selected' : ''}>${esc(KAF.mesNombre(m))}</option>`; }).join('')}</select></div><div id="oc"><div class="vacio">Cargando…</div></div>`;
+    el.querySelector('#om').onchange = e => { OBJ_MES = e.target.value; objetivos(el); };
+    let d;
+    try { d = await get('objetivos', { mes }); } catch (e) { el.querySelector('#oc').innerHTML = `<div class="vacio">${esc(e.message)}</div>`; return; }
+    const O = d.objetivos || {};
+    const val = v => v == null ? '' : v;
+    el.querySelector('#oc').innerHTML = `<div class="bloque" style="margin-top:0"><h4>Objetivos de ${esc(KAF.mesNombre(mes))}</h4>
+        <div class="dos"><label class="campo"><span>Mínimo de clientes a visitar por día</span><input id="o-vis" inputmode="numeric" value="${val(O.visitas_dia)}"></label>
+        <span></span>
+        <label class="campo"><span>Clientes nuevos de ${esc((SEL.perfil || {}).marca || 'la marca')} en el mes</span><input id="o-nm" inputmode="numeric" value="${val(O.nuevos_marca)}"></label>
+        <label class="campo"><span>Clientes nuevos de GrandBar en el mes</span><input id="o-ng" inputmode="numeric" value="${val(O.nuevos_gb)}"></label></div>
+        <label class="campo"><span>Nota para el KAF (la ve arriba de todo en su inicio)</span><textarea id="o-nota" maxlength="1000">${esc(O.nota || '')}</textarea></label>
+        <div class="acts" style="justify-content:flex-start"><button class="btn ok" id="o-ok">Guardar objetivos</button>${O.updated_by ? `<span style="font-size:12.5px;color:var(--muted);align-self:center">Último cambio: ${esc(O.updated_by)} el ${fecha(O.updated_at)}</span>` : ''}</div>
+      </div>
+      <h2>Objetivos por cliente <small>${(d.objetivosCliente || []).length}</small></h2>
+      <p style="font-size:13px;color:var(--muted);margin:-4px 0 10px">Se cargan desde la ficha de cada cliente, en <a class="lnk" href="#clientes" data-ir="clientes">Clientes y oportunidades</a>: ahí ves lo que compra y qué le falta. El KAF marca si lo logró.</p>
+      ${(d.objetivosCliente || []).length ? d.objetivosCliente.map(o => `<div class="fila click" data-c="${esc(o.cliente_codigo)}"><div class="cuerpo"><div class="tit">${esc(o.cliente_nombre || o.cliente_codigo)}</div><div class="sub">${esc(o.objetivo)}${o.nota_kaf ? ' · Nota del KAF: ' + esc(o.nota_kaf) : ''}</div></div><div class="der"><span class="estado e-${esc(o.estado)}">${esc(KAF.ESTADO_OBJ[o.estado])}</span></div></div>`).join('') : '<div class="vacio">Todavía no hay objetivos por cliente para este mes.</div>'}`;
+    el.querySelector('#o-ok').onclick = async ev => {
+      const btn = ev.currentTarget;
+      btn.disabled = true;
+      try { await post({ accion: 'objetivos', mes, visitas_dia: $('o-vis').value, nuevos_marca: $('o-nm').value, nuevos_gb: $('o-ng').value, nota: $('o-nota').value }); toast('Objetivos guardados: le llega el aviso al KAF'); recargarKafs(); objetivos(el); }
+      catch (e) { toast(e.message, true); btn.disabled = false; }
+    };
+    el.onclick = e => {
+      const a = e.target.closest('[data-ir]'); if (a) { e.preventDefault(); TAB = a.dataset.ir; pintarTabs(); vista(); return; }
+      const f = e.target.closest('[data-c]'); if (f) { cerrar.despues = () => objetivos(el); KAF.abrirFicha(f.dataset.c); }
+    };
+  }
+
+  // ── Armado del panel ─────────────────────────────────────────────────────
+  async function armado(el) {
+    const P = SEL.perfil || {};
+    const sec = SEL.secciones || [];
+    const tipos = Object.keys(KAF.TIPO);
+    el.innerHTML = `${!SEL.perfil ? '<div class="aviso">Este KAF todavía no tiene el panel armado. Completá esto y guardá: recién ahí ve sus clientes.</div>' : ''}
+      <div class="bloque" style="margin-top:0"><h4>Marca y clientes</h4>
+        <div class="dos"><label class="campo"><span>Marca</span><input id="a-marca" maxlength="60" value="${esc(P.marca || '')}" placeholder="Ej. Campari"></label>
+          <label class="campo"><span>&nbsp;</span><button class="btn claro" type="button" id="a-preset">Usar lo sugerido para Campari</button></label></div>
+        <label class="campo"><span>Códigos de artículo de la marca en CUBO (primeros 4 dígitos, separados por coma)</span><input id="a-pref" value="${esc((P.prefijos || []).join(', '))}" placeholder="0204, 0253"></label>
+        <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 12px">El código de CUBO es rubro + proveedor + línea: 0204 = spirits de Campari, 0253 = Cinzano. Con esto se leen las compras de cada cliente.</p>
+        <label class="campo"><span>Marcas que se siguen (en este orden; se buscan en el nombre del artículo)</span><textarea id="a-marcas" style="min-height:64px">${esc((P.marcas || []).join(', '))}</textarea></label>
+        <label class="campo"><span>Tipos de cliente</span><div class="opciones">${tipos.map(t => `<label><input type="checkbox" value="${esc(t)}" data-tipo ${(P.tipos || []).includes(t) ? 'checked' : ''}> ${esc(KAF.TIPO[t])}</label>`).join('')}</div></label>
+        <div class="dos"><label class="campo"><span>Zona</span><select id="a-region"><option value="">Mendoza y San Luis</option><option value="mendoza" ${P.region === 'mendoza' ? 'selected' : ''}>Mendoza</option><option value="san_luis" ${P.region === 'san_luis' ? 'selected' : ''}>San Luis</option></select></label>
+          <label class="campo"><span>&nbsp;</span><div class="opciones"><label><input type="checkbox" id="a-camp" ${P.planillas_campari ? 'checked' : ''}> Mostrar Plan Campari 5T y Acuerdos Campari</label></div></label></div>
+      </div>
+      <div class="bloque"><h4>Secciones del panel</h4>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 10px">Prendé las que usa este KAF, cambiales el nombre si querés y dejale una explicación: la ve arriba de cada sección.</p>
+        ${sec.map(s => `<div style="border-top:1px solid var(--line2);padding:10px 0" data-sec="${esc(s.k)}">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <label style="display:flex;gap:8px;align-items:center;font-weight:700;font-size:14px;min-width:190px"><input type="checkbox" data-on ${s.on ? 'checked' : ''} ${s.fija ? 'disabled' : ''} style="width:18px;height:18px;accent-color:var(--navy)"> ${esc(s.base || s.t)}</label>
+              <input data-tit maxlength="60" value="${esc(s.t !== s.base ? s.t : '')}" placeholder="Nombre en el panel (opcional)" style="flex:1;min-width:180px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13.5px">
+              ${s.fija ? '<span class="chip gris">siempre</span>' : s.canal ? `<span class="chip gris">${s.canal === 'on' ? 'ON' : 'OFF'}</span>` : ''}
+            </div>
+            <textarea data-ayuda maxlength="600" placeholder="Explicación para el KAF (opcional)" style="width:100%;margin-top:6px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13.5px;min-height:44px;resize:vertical">${esc(s.ayuda || '')}</textarea>
+          </div>`).join('')}
+      </div>
+      <div class="acts" style="justify-content:flex-start;margin-top:14px"><button class="btn ok" id="a-ok">Guardar el panel</button>${P.updated_by ? `<span style="font-size:12.5px;color:var(--muted);align-self:center">Último cambio: ${esc(P.updated_by)} el ${fecha(P.updated_at)}</span>` : ''}</div>`;
+    el.querySelector('#a-preset').onclick = () => {
+      const p = D.preset || {};
+      $('a-marca').value = p.marca || ''; $('a-pref').value = (p.prefijos || []).join(', '); $('a-marcas').value = (p.marcas || []).join(', ');
+      el.querySelectorAll('[data-tipo]').forEach(i => { i.checked = (p.tipos || []).includes(i.value); });
+      $('a-region').value = p.region || ''; $('a-camp').checked = !!p.planillas_campari;
+      toast('Cargado lo sugerido: revisalo y guardá.');
+    };
+    el.querySelector('#a-ok').onclick = async ev => {
+      const btn = ev.currentTarget;
+      const secciones = {};
+      el.querySelectorAll('[data-sec]').forEach(d => { secciones[d.dataset.sec] = { on: d.querySelector('[data-on]').checked, titulo: d.querySelector('[data-tit]').value.trim(), ayuda: d.querySelector('[data-ayuda]').value.trim() }; });
+      const body = { accion: 'perfil', marca: $('a-marca').value.trim(), prefijos: $('a-pref').value.split(/[,\s]+/).filter(Boolean), marcas: $('a-marcas').value.split(',').map(s => s.trim()).filter(Boolean),
+        tipos: [...el.querySelectorAll('[data-tipo]:checked')].map(i => i.value), region: $('a-region').value, planillas_campari: $('a-camp').checked, secciones };
+      btn.disabled = true;
+      try { await post(body); toast('Panel guardado'); await recargarKafs(); await elegir(SEL.id); }
+      catch (e) { toast(e.message, true); btn.disabled = false; }
+    };
+  }
+
+  // ── Modelos de Perfect Serve / Perfect Store ─────────────────────────────
+  async function modelos(el) {
+    el.innerHTML = `<div class="barra"><div class="tabs" id="mt"><button data-m="perfect_serve" class="${MOD_TIPO === 'perfect_serve' ? 'on' : ''}">Perfect Serve (ON)</button><button data-m="perfect_store" class="${MOD_TIPO === 'perfect_store' ? 'on' : ''}">Perfect Store (OFF)</button></div><button class="btn ok chico" id="m-nuevo">Nuevo modelo</button></div>
+      <p style="font-size:13px;color:var(--muted);margin:-4px 0 12px">${MOD_TIPO === 'perfect_serve' ? 'Cómo se tiene que servir cada trago: receta, medida, cristalería, garnish y costo por medida. El KAF lo ve y compara contra lo que encuentra en el punto de venta.' : 'Cómo tiene que estar la marca en el punto de venta: surtido, precio sugerido y exhibición.'} Los ve cada KAF de esa marca (o todos, con marca "Todas").</p>
+      <div class="grid-mat" id="mg"><div class="vacio" style="grid-column:1/-1">Cargando…</div></div>`;
+    el.querySelector('#mt').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; MOD_TIPO = b.dataset.m; modelos(el); };
+    let mods = [];
+    try { mods = (await get('modelos', { tipo: MOD_TIPO })).modelos || []; } catch (e) { el.querySelector('#mg').innerHTML = `<div class="vacio" style="grid-column:1/-1">${esc(e.message)}</div>`; return; }
+    el.querySelector('#mg').innerHTML = mods.length ? mods.map(m => KAF.modeloHtml(m).replace(/<\/div><\/div>$/, `<div style="display:flex;gap:6px;margin-top:8px"><button class="btn claro chico" data-ed="${esc(m.id)}">Editar</button><button class="btn rojo chico" data-del="${esc(m.id)}">Borrar</button></div></div></div>`)).join('')
+      : '<div class="vacio" style="grid-column:1/-1">Todavía no hay modelos cargados.</div>';
+    el.querySelector('#m-nuevo').onclick = () => formModelo(null, el);
+    el.querySelector('#mg').onclick = async e => {
+      const ed = e.target.closest('[data-ed]'); if (ed) { formModelo(mods.find(m => m.id === ed.dataset.ed), el); return; }
+      const del = e.target.closest('[data-del]');
+      if (del) { if (!confirm('¿Borrar este modelo?')) return; try { await post({ accion: 'borrar_modelo', id: del.dataset.del }); toast('Modelo borrado'); modelos(el); } catch (er) { toast(er.message, true); } }
+    };
+  }
+  function formModelo(m, el) {
+    const tipo = m ? m.tipo : MOD_TIPO, x = (m && m.datos) || {};
+    const marca = m ? m.marca : ((SEL && SEL.perfil && SEL.perfil.marca) || 'Todas');
+    const mb = ventana(m ? 'Editar modelo' : 'Nuevo modelo de ' + (tipo === 'perfect_serve' ? 'Perfect Serve' : 'Perfect Store'), '');
+    const val = v => esc(v == null ? '' : v);
+    mb.innerHTML = `<div class="dos"><label class="campo"><span>Nombre</span><input id="mf-nom" maxlength="120" value="${val(m && m.nombre)}" placeholder="${tipo === 'perfect_serve' ? 'Ej. Aperol Spritz' : 'Ej. Góndola de aperitivos'}"></label>
+        <label class="campo"><span>Marca (o "Todas")</span><input id="mf-marca" maxlength="80" value="${val(marca)}"></label></div>
+      ${tipo === 'perfect_serve' ? `<label class="campo"><span>Trago</span><input id="mf-trago" maxlength="120" value="${val(x.trago)}"></label>
+        <label class="campo"><span>Receta y servicio</span><textarea id="mf-receta" maxlength="1500">${val(x.receta)}</textarea></label>
+        <div class="dos"><label class="campo"><span>Medida de la marca (ml)</span><input id="mf-medida" inputmode="decimal" value="${val(x.medida_ml)}"></label><label class="campo"><span>Cristalería</span><input id="mf-cris" maxlength="160" value="${val(x.cristaleria)}"></label></div>
+        <label class="campo"><span>Garnish</span><input id="mf-garn" maxlength="160" value="${val(x.garnish)}"></label>
+        <div class="dos"><label class="campo"><span>Precio de la botella ($)</span><input id="mf-pb" inputmode="decimal" value="${val(x.precio_botella)}"></label><label class="campo"><span>Contenido de la botella (ml)</span><input id="mf-ml" inputmode="decimal" value="${val(x.ml_botella)}"></label></div>
+        <div class="dos"><label class="campo"><span>Precio sugerido en carta ($)</span><input id="mf-ps" inputmode="decimal" value="${val(x.precio_sugerido)}"></label><label class="campo"><span>Costo por medida</span><input id="mf-costo" disabled></label></div>`
+      : `<label class="campo"><span>Surtido ideal</span><textarea id="mf-surt" maxlength="1500">${val(x.surtido)}</textarea></label>
+        <label class="campo"><span>Precio sugerido</span><textarea id="mf-prec" maxlength="600" style="min-height:60px">${val(x.precio_sugerido)}</textarea></label>
+        <label class="campo"><span>Exhibición</span><textarea id="mf-exh" maxlength="1000">${val(x.exhibicion)}</textarea></label>`}
+      <div class="dos"><label class="campo"><span>Foto (opcional)</span><input type="file" id="mf-foto" accept="image/*"></label>
+        <label class="campo"><span>&nbsp;</span><div class="opciones"><label><input type="checkbox" id="mf-act" ${!m || m.activo !== false ? 'checked' : ''}> Activo (lo ven los KAF)</label></div></label></div>
+      ${m && m.foto_url ? `<div class="opciones" style="margin-bottom:10px"><label><input type="checkbox" id="mf-sinfoto"> Sacar la foto actual</label></div>` : ''}
+      <div class="msg" id="mf-msg"></div>
+      <div class="acts"><button class="btn claro" id="mf-cancel">Cancelar</button><button class="btn ok" id="mf-ok">Guardar</button></div>`;
+    const calc = () => { const c = $('mf-costo'); if (!c) return; const pb = Number(String($('mf-pb').value).replace(',', '.')), ml = Number(String($('mf-ml').value).replace(',', '.')), md = Number(String($('mf-medida').value).replace(',', '.')); c.value = pb && ml && md ? KAF.plata(pb / ml * md) : ''; };
+    ['mf-pb', 'mf-ml', 'mf-medida'].forEach(id => { const i = $(id); if (i) i.oninput = calc; }); calc();
+    let foto = null;
+    $('mf-foto').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { foto = await KAF.leerArchivo(f); } catch (er) { toast(er.message, true); } };
+    $('mf-cancel').onclick = cerrar;
+    $('mf-ok').onclick = async ev => {
+      const btn = ev.currentTarget;
+      const v = id => { const i = $(id); return i ? i.value.trim() : ''; };
+      const datos = tipo === 'perfect_serve'
+        ? { trago: v('mf-trago'), receta: v('mf-receta'), medida_ml: v('mf-medida'), cristaleria: v('mf-cris'), garnish: v('mf-garn'), precio_botella: v('mf-pb'), ml_botella: v('mf-ml'), precio_sugerido: v('mf-ps') }
+        : { surtido: v('mf-surt'), precio_sugerido: v('mf-prec'), exhibicion: v('mf-exh') };
+      btn.disabled = true;
+      try {
+        await post({ accion: 'modelo', id: m ? m.id : undefined, tipo, nombre: v('mf-nom'), marca: v('mf-marca'), datos, activo: $('mf-act').checked, foto: foto || undefined, quitarFoto: $('mf-sinfoto') ? $('mf-sinfoto').checked : false });
+        toast('Modelo guardado'); cerrar(); modelos(el);
+      } catch (e) { $('mf-msg').textContent = e.message; btn.disabled = false; }
+    };
+  }
+
+  $('kafs').onclick = e => { const b = e.target.closest('[data-k]'); if (b) elegir(b.dataset.k); };
+  $('tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (!b) return; TAB = b.dataset.t; pintarTabs(); vista(); };
+
+  (async () => {
+    const { data: { session } } = await KAF.supa().auth.getSession();
+    if (!session) { location.href = 'index.html'; return; }
+    const { data: u } = await KAF.supa().from('usuarios').select('nombre,rol').eq('id', session.user.id).maybeSingle();
+    if (!u || !ROLES.includes(String(u.rol || '').toLowerCase())) { location.replace(String((u && u.rol) || '') === 'kaf' ? 'kaf.html' : 'hub.html'); return; }
+    if (u.nombre) { $('uName').textContent = u.nombre; $('av').textContent = u.nombre.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(); }
+    const h = (location.hash || '').slice(1); if (TABS.some(([k]) => k === h)) TAB = h;
+    try { D = await get('kafs'); } catch (e) { $('kafs').innerHTML = `<div class="vacio" style="grid-column:1/-1">${esc(e.message)}</div>`; return; }
+    pintarKafs();
+    const pedido = new URLSearchParams(location.search).get('kaf');
+    const primero = (D.kafs || []).find(k => k.id === pedido) || (D.kafs || [])[0];
+    if (primero) elegir(primero.id); else vista();
+  })();
+</script>
+<script src="assets/notif.js?v=3"></script>
+<script src="assets/user-menu.js?v=1"></script>
+<script src="assets/mobile-nav.js?v=1"></script>
+<script src="/assets/cuenta-activa.js?v=1"></script>
+</body>
+</html>

@@ -33,6 +33,21 @@
   .ep-prox h2{font-size:15px;color:var(--navy);margin:0 0 8px}
   .ep-ev{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2);font-size:13.5px}
   .ep-ev .f{min-width:92px;color:var(--muted);font-weight:700;font-size:12.5px}
+  /* Pedidos de materiales de los KAF (19/10/2026): las tarjetas las arma assets/kaf-comun.js. */
+  .cb-b.ok[data-mt]{background:var(--navy);border-color:var(--navy);color:#fff}
+  #ep-mat .fila{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 16px;display:flex;gap:12px}
+  #ep-mat .fila + .fila{margin-top:8px}
+  #ep-mat .cuerpo{flex:1;min-width:0}
+  #ep-mat .tit{font-weight:700;font-size:14.5px;color:var(--navy)}
+  #ep-mat .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+  #ep-mat .ops{margin:8px 0 0;padding-left:18px;font-size:14px;line-height:1.6}
+  #ep-mat .estado{font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;background:var(--gold-soft);color:var(--gold-d)}
+  #ep-mat .e-remito{background:var(--green-soft);color:var(--green)} #ep-mat .e-rechazado{background:var(--red-soft);color:var(--red)}
+  #ep-mat .chip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eee;color:#666}
+  #ep-mat .chip.rojo{background:var(--red-soft);color:var(--red)}
+  #ep-mat .btn{border:0;border-radius:10px;padding:8px 13px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+  #ep-mat .btn.ok{background:var(--green);color:#fff} #ep-mat .btn.rojo{background:#fff;color:var(--red);box-shadow:inset 0 0 0 1.5px var(--line)}
+  #ep-mat .btn.claro{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
 </style>
 </head>
 <body>
@@ -46,6 +61,7 @@
       <a class="sb-item" href="#tareas" data-v="tareas"><span class="i">✅</span> Mis tareas</a>
       <a class="sb-item" href="#agenda" data-v="agenda"><span class="i">📅</span> Agenda del equipo</a>
       <a class="sb-item" href="#mi-agenda" data-v="mi-agenda"><span class="i">🗓️</span> Mi agenda</a>
+      <a class="sb-item" href="#materiales" data-v="materiales" id="ep-mat-nav" style="display:none"><span class="i">📦</span> Pedidos de materiales <span id="ep-mat-n" style="margin-left:auto;font-size:11px;font-weight:800;background:rgba(255,255,255,.16);border-radius:999px;padding:1px 7px;display:none"></span></a>
     </nav>
     <div class="sb-spacer"></div>
     <button type="button" class="sb-item" data-soporte style="background:none;border:0;font:inherit;text-align:left;cursor:pointer"><span class="i">💬</span> Soporte</button>
@@ -63,6 +79,7 @@
 <script src="assets/supabase-config.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/equipo-admin.js?v=3"></script>
+<script src="assets/kaf-comun.js?v=1"></script>
 <script>
   window.EQ_SIN_VOLVER = true;      // el menú de la izquierda reemplaza al "volver"
   const ROLES_EQUIPO = ['equipo_admin'];
@@ -162,9 +179,48 @@
     }
     main.classList.remove('sin-pad');
     if (!eqQ('cob')) main.innerHTML = '<div id="cob"></div>';
-    if (v === 'agenda') eqAgenda(); else verTareas();
+    if (v === 'materiales') verMateriales();
+    else if (v === 'agenda') eqAgenda(); else verTareas();
   }
   window.addEventListener('hashchange', ir);
+
+  // ── Pedidos de materiales de los KAF (19/10/2026): le llegan a Andrea (facturación)
+  //    para emitir el remito. La función kaf decide quién los ve (por el mail).
+  let _epMatTab = 'enviado';
+  async function verMateriales() {
+    const cont = eqQ('cob');
+    cont.innerHTML = `<div class="head"><div><h1>Pedidos de materiales</h1><div class="head-sub">Los arman los KAF (representantes de marca) desde su panel. Cuando emitas el remito, cargá el número: al KAF le llega el aviso.</div></div></div>
+      <div class="cb-paginado" style="justify-content:flex-start;gap:6px">
+        <button class="cb-b ${_epMatTab === 'enviado' ? 'ok' : ''}" data-mt="enviado">Para hacer</button>
+        <button class="cb-b ${_epMatTab === 'remito' ? 'ok' : ''}" data-mt="remito">Con remito</button>
+        <button class="cb-b ${_epMatTab === 'rechazado' ? 'ok' : ''}" data-mt="rechazado">No salieron</button>
+      </div><div id="ep-mat" style="margin-top:14px"><div class="pv-vacio">Cargando…</div></div>`;
+    cont.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { _epMatTab = b.dataset.mt; verMateriales(); });
+    let d;
+    try { d = await KAF.get('pedidos', { estado: _epMatTab }); }
+    catch (e) { eqQ('ep-mat').innerHTML = eqErr('No se pudieron leer los pedidos: ' + (e.message || e)); return; }
+    const l = d.pedidos || [];
+    eqQ('ep-mat').innerHTML = l.length ? l.map(p => KAF.pedidoHtml(p, true)).join('')
+      : `<div class="pv-vacio">${_epMatTab === 'enviado' ? 'No hay pedidos pendientes.' : 'No hay pedidos en esta lista.'}</div>`;
+    eqQ('ep-mat').onclick = async e => {
+      const b = e.target.closest('[data-at]'); if (!b) return;
+      let remito = '', respuesta = '';
+      if (b.dataset.est === 'remito') { remito = prompt('Número de remito:'); if (remito === null) return; respuesta = prompt('Comentario para el KAF (opcional):') || ''; }
+      if (b.dataset.est === 'rechazado') { respuesta = prompt('¿Por qué no sale? (le llega al KAF)'); if (!respuesta || !respuesta.trim()) return; }
+      b.disabled = true;
+      try { await KAF.post({ accion: 'atender_pedido', id: b.dataset.at, estado: b.dataset.est, remito, respuesta }); verMateriales(); contarMateriales(); }
+      catch (er) { b.disabled = false; alert(er.message); }
+    };
+  }
+  async function contarMateriales() {
+    try {
+      const d = await KAF.get('pedidos', { estado: 'enviado' });
+      if (!d.soyDestino && !['desarrollo', 'diseno'].includes(String((SES && SES.role) || '').toLowerCase())) return;
+      eqQ('ep-mat-nav').style.display = '';
+      const n = (d.pedidos || []).length, el = eqQ('ep-mat-n');
+      el.textContent = n; el.style.display = n ? '' : 'none';
+    } catch (e) {}
+  }
 
   (async function () {
     const s = await GBAuth.requireAuth();
@@ -177,6 +233,7 @@
     try { YO = await quienSoy(); } catch (e) { YO = null; }
     if (YO && YO.puesto) eqQ('ep-quien').textContent = (s.nombre || YO.nombre) + ' · ' + YO.puesto;
     ir();
+    contarMateriales();
   })();
 
   // Cerrar sesión: corta la sesión del Portal y vuelve al ingreso (05/10/2026).
