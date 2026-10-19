@@ -53,3 +53,9 @@
 # Ver manual-vendedores/netlify/functions/sync-ventas-cron.js
 [functions."sync-ventas-cron"]
   schedule = "5,25,45 * * * *"
+
+# RECLAMOS por zona: cada 10 min mira si un cliente abrió un reclamo o escribió en uno
+# y se lo avisa a la administración de su zona (Romina, San Luis): campanita + celular.
+# Ver manual-vendedores/netlify/functions/reclamos-avisos-cron.js
+[functions."reclamos-avisos-cron"]
+  schedule = "*/10 * * * *"

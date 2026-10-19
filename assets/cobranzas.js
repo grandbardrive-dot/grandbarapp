@@ -884,8 +884,14 @@ async function cobBloquear() {
 
 async function cobReclamos() {
   cobEscucharCambios(); _cobUltimo = Date.now();
-  cq('cob').innerHTML = cobCabecera('Reclamos', 'Reclamos de clientes, con su historial.') +
+  const zona = COB_RESUMEN.zona;
+  cq('cob').innerHTML = cobCabecera('Reclamos', zona
+      ? 'Reclamos de los clientes de ' + zona + '. Cuando entra uno o el cliente responde, te llega a la campanita.'
+      : 'Reclamos de clientes, con su historial.') +
+    // Con zona (Romina): el aviso también puede llegar al celular o la compu (19/10/2026).
+    (zona ? `<div id="pushMount" style="display:none;align-items:center;gap:12px;background:#ece9f8;border:1px solid #d4cdf0;border-radius:13px;padding:12px 15px;margin:0 0 16px"></div>` : '') +
     `<div id="r-lista"><div class="pv-vacio">Cargando…</div></div>`;
+  if (zona && window.pushMount) window.pushMount(cq('pushMount'));
   try { recPintarLista(await cobApi('?que=reclamos')); }
   catch (e) { cq('r-lista').innerHTML = cerror(e.message); }
 }

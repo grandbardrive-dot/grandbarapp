@@ -16,3 +16,8 @@ create table if not exists public.notificaciones (
 );
 alter table public.notificaciones enable row level security;  -- solo el service role (Functions) accede
 create index if not exists notif_dest_idx on public.notificaciones(destinatario_id, created_at desc);
+
+-- 19/10/2026: avisos automáticos sin repetirse (reclamos de San Luis para Romina,
+-- reclamos-avisos-cron). ref = de qué es el aviso ('reclamo:<id>', 'reclamo-msg:<id>').
+alter table public.notificaciones add column if not exists ref text;
+create unique index if not exists notificaciones_dest_ref_uk on public.notificaciones (destinatario_id, ref);

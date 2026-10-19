@@ -33,6 +33,7 @@ const TAREAS = [
   { id: 'sync-clientes',  nombre: 'Clientes desde CUBO',            cada: 'cada hora',      maxMin: 150,     fallasSeguidas: 2 },
   { id: 'sync-ventas',    nombre: 'Ventas del ERP',                 cada: 'cada 20 minutos', maxMin: 80,     fallasSeguidas: 2 },
   { id: 'push-cron',      nombre: 'Avisos de reuniones al celular', cada: 'cada 15 minutos', maxMin: 50,     fallasSeguidas: 2 },
+  { id: 'reclamos-avisos', nombre: 'Avisos de reclamos por zona',   cada: 'cada 10 minutos', maxMin: 40,     fallasSeguidas: 2 },
   { id: 'sync-productos', nombre: 'Artículos y stock del ERP',      cada: '1 vez por día',  maxMin: 26 * 60, fallasSeguidas: 1 },
   { id: 'cazar-clientes', nombre: 'Cazador de clientes',            cada: '1 vez por día',  maxMin: 26 * 60, fallasSeguidas: 1 },
 ];
