@@ -50,10 +50,10 @@
 
     <div class="dhead">
       <span class="ic" style="background:var(--purple-soft);color:var(--purple)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
-      <div><h1>Agenda</h1><div class="sub">Planificación y seguimiento de actividades del equipo comercial</div></div>
+      <div><h1>Agenda</h1><div class="sub">Tus reuniones, sus minutas y los pendientes. Es privada: la ven solo vos y los invitados de cada reunión.</div></div>
       <span class="sp"></span>
 
-      <div class="ic-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="dot">3</span></div>
+      <div class="ic-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg></div>
       <button class="acc" id="btnReunion" style="background:var(--navy);color:#fff"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> Programar reunión</button>
     </div>
 
@@ -178,7 +178,8 @@
     const fl=new Date(selDia+'T00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
     // Las canceladas se siguen viendo (tachadas) para que quede el registro
     const rows=LISTA_REU.filter(x=>x.fecha===selDia).sort((a,b)=>(a.estado==='cancelada')-(b.estado==='cancelada') || String(a.hora||'99').localeCompare(String(b.hora||'99')));
-    let html=`<div style="font-weight:800;font-size:12.5px;color:#a97c22;text-transform:capitalize;margin-bottom:8px">${fl}</div>`;
+    // Solo la primera letra en mayúscula ("Lunes, 19 de octubre", no "19 De Octubre").
+    let html=`<div style="font-weight:800;font-size:12.5px;color:#a97c22;margin-bottom:8px">${fl.charAt(0).toUpperCase()+fl.slice(1)}</div>`;
     if(!rows.length){ html+='<div style="color:#6d7d85;font-size:12.5px;padding:6px 0">No hay reuniones este día.</div>'; box.innerHTML=html; return; }
     const btn='background:none;border:1px solid #e7ded0;color:#6d7d85;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer';
     const btnOk='background:#e7f3ee;border:1px solid #bfe0d2;color:#256f54;border-radius:8px;padding:6px 11px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer';
@@ -364,9 +365,9 @@
   })();
 })();
 </script>
-<script src="assets/reunion-form.js?v=1"></script>
+<script src="assets/reunion-form.js?v=2"></script>
 <script src="assets/minuta-ia.js?v=1"></script>
-<script src="assets/minuta-ver.js?v=1"></script>
+<script src="assets/minuta-ver.js?v=2"></script>
 <script src="assets/user-menu.js?v=1"></script>
 <script src="assets/mobile-nav.js?v=1"></script>
 <script src="/assets/minuta-fab.js?v=2"></script>

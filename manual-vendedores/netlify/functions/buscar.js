@@ -10,11 +10,12 @@ const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const DIR_ROLES = ['direccion', 'admin', 'duenio'];
 
-// Las mismas cuatro pantallas del menú de Dirección. Las maquetas (Compras,
+// Las mismas cinco pantallas del menú de Dirección (Ventas se sumó el 14/10). Las maquetas (Compras,
 // Administración, Marketing, Depósito, Desarrollo, Clientes, Vendedores,
 // Proveedores) se sacaron el 25/09/2026: la lupa no puede llevar a donde el menú no lleva.
 const SECCIONES = [
   { titulo: 'Inicio', link: 'direccion.html', kw: 'inicio home resumen finanzas efectivo cheques pagos' },
+  { titulo: 'Ventas', link: 'dir-ventas.html', kw: 'ventas margen facturacion facturado rubros proveedores productos vendedores' },
   { titulo: 'Cobranzas', link: 'dir-cobranzas.html', kw: 'cobranzas administracion cuenta corriente clientes deuda comprobantes' },
   { titulo: 'Reportes', link: 'reportes.html', kw: 'reportes entregas' },
   { titulo: 'Agenda', link: 'dir-agenda.html', kw: 'agenda reuniones' },
@@ -38,7 +39,9 @@ exports.handler = async (event) => {
 
     const q = String((event.queryStringParameters || {}).q || '').trim();
     if (q.length < 2) return json(200, { resultados: [] });
-    const like = '*' + encodeURIComponent(q) + '*';
+    // Entre comillas: un nombre con coma o paréntesis ("Rucade S.R.L. (Cafe)") rompía la
+    // consulta y salía "Sin resultados" (19/10/2026).
+    const like = encodeURIComponent('"*' + q.replace(/[\\"]/g, '\\$&') + '*"');
     const res = [];
 
     // Usuarios

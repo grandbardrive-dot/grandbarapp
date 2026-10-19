@@ -13,7 +13,7 @@ const DIR_ROLES = ['direccion', 'admin', 'duenio'];
 const NOVEDADES = [
   { id: 'nv-agenda',   icon: '📅', titulo: 'Nuevo: Agenda de Dirección', detalle: 'Programá reuniones a cualquier usuario y mirá si confirman o no.', ts: '2026-08-18T12:00:00Z', link: 'dir-agenda.html' },
   { id: 'nv-reportes', icon: '📊', titulo: 'Nuevo: Reportes', detalle: 'Cada usuario te envía reportes para que los apruebes y devuelvas.', ts: '2026-08-18T11:00:00Z', link: 'reportes.html' },
-  { id: 'nv-panel',    icon: '✨', titulo: 'Tu Panel de Dirección', detalle: 'Compras, Administración, Vendedores, Clientes, Proveedores y más.', ts: '2026-08-18T10:00:00Z', link: 'direccion.html' },
+  { id: 'nv-panel',    icon: '✨', titulo: 'Tu Panel de Dirección', detalle: 'Ventas, Cobranzas, Reportes y Agenda, con los números reales de la empresa.', ts: '2026-08-18T10:00:00Z', link: 'direccion.html' },
 ];
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
@@ -61,22 +61,11 @@ exports.handler = async (event) => {
       }));
     } catch (e) {}
 
-    // 2) Respuestas a mis reuniones (confirmó / no puede asistir)
-    try {
-      const reu = await (await sb('reuniones?estado=in.(confirmada,rechazada)&select=id,usuario_id,titulo,estado,respuesta,fecha,created_at&order=created_at.desc&limit=40')).json();
-      const rows = Array.isArray(reu) ? reu : [];
-      let nombres = {};
-      const ids = [...new Set(rows.map(r => r.usuario_id))];
-      if (ids.length) {
-        const us = await (await sb('usuarios?id=in.(' + ids.map(x => '"' + x + '"').join(',') + ')&select=id,nombre')).json();
-        (us || []).forEach(u => { nombres[u.id] = u.nombre; });
-      }
-      rows.forEach(r => {
-        const quien = nombres[r.usuario_id] || 'Un usuario';
-        if (r.estado === 'confirmada') notifs.push({ id: 'reu-' + r.id, icon: '✅', tipo: 'reunion', titulo: quien + ' confirmó la reunión', detalle: r.titulo || '', ts: r.created_at, link: 'dir-agenda.html' });
-        else notifs.push({ id: 'reu-' + r.id, icon: '⚠️', tipo: 'reunion', titulo: quien + ' no puede asistir', detalle: (r.titulo || '') + (r.respuesta ? ' · ' + r.respuesta : ''), ts: r.created_at, link: 'dir-agenda.html' });
-      });
-    } catch (e) {}
+    // 2) Respuestas a sus reuniones: ya no se arman acá (19/10/2026). Esta consulta traía
+    //    las de TODAS las reuniones de la empresa, sin mirar quién las creó, y con la fecha
+    //    de la reunión en vez de la de la respuesta. reuniones.js le guarda a quien creó la
+    //    reunión un aviso en la tabla notificaciones cada vez que alguien confirma o dice que
+    //    no puede, y ese aviso ya sale en el punto 0.
 
     // 3) Novedades de la app
     NOVEDADES.forEach(n => notifs.push({ ...n, tipo: 'novedad' }));

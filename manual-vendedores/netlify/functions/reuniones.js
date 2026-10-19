@@ -37,6 +37,22 @@ const lista = ids => '(' + ids.map(x => '"' + x + '"').join(',') + ')';
 const trozos = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
 const txt = (s, max) => (String(s == null ? '' : s).trim().slice(0, max) || null);
 
+const { traerTodo } = require('./_paginar');
+// Deja solo etiquetas de formato y les saca todos los atributos (19/10/2026).
+const ETIQ_OK = new Set(['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'blockquote', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span', 'small', 'mark']);
+function limpiarHtml(s) {
+  return String(s || '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(script|style|iframe|object|embed|svg|math|template|noscript|textarea|select|form)\b[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, (m, t) => {
+      t = t.toLowerCase();
+      if (!ETIQ_OK.has(t)) return '';
+      return m.charAt(1) === '/' ? '</' + t + '>' : '<' + t + '>';
+    })
+    .replace(/</g, (m, i, str) => (/^<\/?[a-z0-9]+>/.test(str.slice(i)) ? m : '&lt;'));
+}
+
 exports.handler = async (event) => {
   try {
     const srole = process.env.HUB_SERVICE_ROLE;
@@ -250,7 +266,10 @@ exports.handler = async (event) => {
 
       if (b.accion === 'resumen') {
         const minuta = cur.minuta || {};
-        minuta.resumen_html = String(b.resumen_html || '').slice(0, 150000) || null;
+        // Solo formato (títulos, párrafos, listas, negritas, tablas), sin atributos: lo manda
+        // el navegador de cualquier participante y después se muestra en la pantalla de los
+        // demás; un <img onerror=…> corría código con la sesión del otro (19/10/2026).
+        minuta.resumen_html = limpiarHtml(String(b.resumen_html || '').slice(0, 150000)) || null;
         await actualizar(filtroG, { minuta });
         return json(200, { ok: true });
       }
@@ -298,11 +317,13 @@ exports.handler = async (event) => {
 
     // Mi agenda: lo que creé y donde estoy invitado. `admin=1` (la agenda de
     // Dirección) devuelve lo mismo: cada uno ve solo lo suyo.
-    let path = 'reuniones?or=(usuario_id.eq.' + yo + ',creado_por.eq.' + yo + ')&select=*&limit=2000';
-    if (qp.historial) path += '&minuta=not.is.null&order=fecha.desc,hora.desc';
-    else path += '&order=fecha.asc,hora.asc';
+    // Paginado: la base corta en 1000 filas sin avisar (una fila por invitado) y se
+    // perdían justo las reuniones más nuevas (19/10/2026).
+    let path = 'reuniones?or=(usuario_id.eq.' + yo + ',creado_por.eq.' + yo + ')&select=*';
+    if (qp.historial) path += '&minuta=not.is.null&order=fecha.desc,hora.desc,id.asc';
+    else path += '&order=fecha.asc,hora.asc,id.asc';
     if (qp.desde && /^\d{4}-\d{2}-\d{2}$/.test(qp.desde)) path += '&fecha=gte.' + qp.desde;
-    const mias = await leerJson(path);
+    const mias = await traerTodo(sb, path, 10000);
 
     // Las otras filas de cada reunión (para saber con quién es y quién confirmó)
     const grupos = [...new Set(mias.map(r => r.grupo).filter(Boolean))];

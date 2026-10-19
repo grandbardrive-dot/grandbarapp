@@ -11,7 +11,7 @@ const COB_API = '/.netlify/functions/cobranzas-panel';
 
 // Secciones que son de Brenda (administración): no se le muestran a tesorería (Mónica).
 // Mónica ve: Tablero, Revisión (extra), Clientes, Supervisión, Cobros en efectivo y Planillas.
-const COB_SOLO_ADMIN = ['administracion', 'admin', 'desarrollo', 'diseno'];
+const COB_SOLO_ADMIN = ['administracion', 'admin', 'direccion', 'duenio', 'desarrollo', 'diseno'];
 const COB_SECCIONES = [
   { id:'clientes',     ico:'👥', n:'Clientes',            d:'Buscá un cliente y mirá su cuenta corriente, facturas y datos.', color:'#e0567f' },
   { id:'comprobantes', ico:'🧾', n:'Supervisión de cobranzas', d:'Cómo vienen los comprobantes que suben los clientes: dónde se frenan y cuánto tardan.', color:'#69a531' },
@@ -112,6 +112,11 @@ const cobRol = () => String((COB_RESUMEN && COB_RESUMEN.rol) || '').toLowerCase(
 // zona (Romina ve lo mismo que Mónica más Reclamos). Lo usan el menú, el tablero y el
 // arranque por #seccion, así los tres muestran lo mismo.
 const cobVe = s => !s.roles || s.roles.includes(cobRol()) || (!!s.conZona && !!(COB_RESUMEN && COB_RESUMEN.zona));
+// ¿Esta persona tiene esa sección? Lo usan los botones que llevan a una sección desde
+// otra (la ficha del cliente): si no la tiene en el menú, tampoco el atajo (19/10/2026).
+const cobVeId = id => COB_SECCIONES.some(s => s.id === id && cobVe(s));
+// Dirección (dir-cobranzas.html) mira sin operar: sin WhatsApp ni tildes en planillas.
+const cobSoloLectura = () => !!window.COB_SOLO_LECTURA;
 const cobExtra = () => (Array.isArray(window.COB_EXTRA) ? window.COB_EXTRA : [])
   .filter(s => !s.roles || s.roles.includes(cobRol()));
 const cobRevisionAdentro = () => cobExtra().some(s => s.id === 'revision');
@@ -210,11 +215,11 @@ async function cobFicha(codigo) {
         <div class="head-sub">Código ${cesc(c.codigo)}${c.vendedor ? ' · ' + cesc(c.vendedor) : ''}${c.equipo ? ' · ' + cesc(c.equipo) : ''}</div></div></div>
 
       <div class="pd-acts" style="margin-top:4px">
-        ${tel ? `<a class="cb-b ok" href="https://wa.me/${cesc(tel)}" target="_blank" rel="noopener">💬 Escribirle por WhatsApp</a>` : ''}
-        ${f ? (bloqueado
+        ${tel && !cobSoloLectura() ? `<a class="cb-b ok" href="https://wa.me/${cesc(tel)}" target="_blank" rel="noopener">💬 Escribirle por WhatsApp</a>` : ''}
+        ${f && cobVeId('bloquear') ? (bloqueado
           ? `<button class="cb-b ok" onclick="cobAccion('desbloquear','${f.id}',this,()=>cobFicha('${cesc(c.codigo)}'))">🔓 Dar de alta</button>`
           : `<button class="cb-b danger" onclick="cobAccion('bloquear','${f.id}',this,()=>cobFicha('${cesc(c.codigo)}'))">🔒 Bloquear la cuenta</button>`) : ''}
-        ${!f ? `<span class="pd-cuando" style="margin:0">Sin ficha en el portal de clientes: no se puede bloquear ni escribirle desde acá.</span>` : ''}
+        ${!f && cobVeId('bloquear') ? `<span class="pd-cuando" style="margin:0">Sin ficha en el portal de clientes: no se puede bloquear ni escribirle desde acá.</span>` : ''}
       </div>
 
       <div class="cb-cards" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
@@ -233,7 +238,7 @@ async function cobFicha(codigo) {
       </div>
 
       ${cobrosPend.length ? `<div class="aviso"><span>💵</span><div>Avisó que tiene efectivo listo para retirar:
-        <b>${cobrosPend.map(x => cnum(x.monto)).join(', ')}</b>. Se gestiona en Cobros en efectivo.</div></div>` : ''}
+        <b>${cobrosPend.map(x => cnum(x.monto)).join(', ')}</b>. ${cobVeId('efectivo') ? 'Se gestiona en Cobros en efectivo.' : 'Lo gestiona Administración.'}</div></div>` : ''}
 
       <h2 style="font-size:16px;margin:26px 0 0">Facturas <span class="pv-n">${(d.facturas||[]).length}</span></h2>
       ${(d.facturas || []).length ? `
@@ -268,13 +273,13 @@ async function cobFicha(codigo) {
       <h2 style="font-size:16px;margin:26px 0 0">Reclamos <span class="pv-n">${(d.reclamos||[]).length}</span></h2>
       ${(d.reclamos || []).length ? `
         <table class="cb-tabla">
-          <thead><tr><th>Asunto</th><th>Factura</th><th>Estado</th><th>Última novedad</th><th></th></tr></thead>
+          <thead><tr><th>Asunto</th><th>Factura</th><th>Estado</th><th>Última novedad</th>${cobVeId('reclamos') ? '<th></th>' : ''}</tr></thead>
           <tbody>${d.reclamos.map(x => `<tr>
             <td><b>${cesc(x.asunto || 'Reclamo')}</b></td>
             <td>${cesc(x.factura || '—')}</td>
             <td class="${x.estado === 'abierto' ? 'rojo' : ''}">${cesc(COB_REC_LBL[x.estado] || x.estado || '—')}</td>
             <td>${cfec(x.updated_at)}</td>
-            <td><button class="cb-b" onclick="cobReclamo('${x.id}')">Abrir</button></td>
+            ${cobVeId('reclamos') ? `<td><button class="cb-b" onclick="cobReclamo('${x.id}')">Abrir</button></td>` : ''}
           </tr>`).join('')}</tbody>
         </table>` : `<div class="pv-vacio">Sin reclamos.</div>`}`;
   } catch (e) { cq('f-cont').innerHTML = cerror(e.message); }
@@ -511,7 +516,7 @@ async function cobChequearCobros() {
   try {
     const d = await cobApi('?que=resumen');
     const n = Number(d.cobrosPend || 0);
-    if (_cobrosPendVistos != null && n > _cobrosPendVistos) {
+    if (_cobrosPendVistos != null && n > _cobrosPendVistos && cobVeId('efectivo')) {
       cobBeep();
       if (COB_VISTA !== 'efectivo') { _cobDotEfectivo = true; cobNav(); }
     }
@@ -1110,7 +1115,9 @@ async function cobPlanillaDet(vendedor, fecha) {
     cq('pla-det').innerHTML = `
       <div class="head"><div><h1>Rendición · ${cesc(nomVend)}</h1>
         <div class="head-sub">${cfec(fecha)}${env && env.enviada_at ? ' · enviada ' + cfec(env.enviada_at) : ''} · ${filas.length} fila${filas.length === 1 ? '' : 's'} · <b style="color:var(--green-d,#245647)">${nProc} procesada${nProc === 1 ? '' : 's'}</b></div></div></div>
-      <div class="wa-nota" style="margin-top:4px">Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Las que queden sin tildar son las que te faltan.</div>
+      ${cobSoloLectura()
+        ? `<div class="wa-nota" style="margin-top:4px">Las filas tildadas en <b>Procesado</b> ya las pasó tesorería; debajo del tilde figura quién.</div>`
+        : `<div class="wa-nota" style="margin-top:4px">Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Las que queden sin tildar son las que te faltan.</div>`}
       <div style="overflow-x:auto;border:1px solid #e6e6e6;border-radius:12px;margin-top:12px">
       <table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap">
         <thead><tr style="background:#0d2238;color:#eaf0f4">
@@ -1122,8 +1129,8 @@ async function cobPlanillaDet(vendedor, fecha) {
           ${td(cesc(f.factura || ''))}
           ${td(money(f.importe), 1)}${td(money(f.efectivo), 1)}${td(mDet(f.cheques, f.cheques_detalle), 1)}${td(money(f.retenciones), 1)}${td(mDet(f.transferencia, f.transferencia_detalle), 1)}${td(money(f.tarjeta), 1)}${td(money(f.echeq), 1)}
           ${td(f.fecha_pago ? cfec(f.fecha_pago) : '')}${td(archComp(f))}${td(arch(f.recepcion_url))}
-          <td style="padding:5px 8px"><input value="${cesc(f.observaciones || '')}" placeholder="…" onchange="cobPlanillaMarcar('${f.id}','observaciones',this.value,this)" style="border:1px solid #d7d7d7;border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;width:160px"></td>
-          <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${f.procesado ? 'checked' : ''} onchange="cobPlanillaMarcar('${f.id}','procesado',this.checked,this)" style="width:18px;height:18px;cursor:pointer">${f.procesado && f.procesado_por ? `<div style="font-size:9.5px;color:var(--muted)">${cesc(f.procesado_por)}</div>` : ''}</td>
+          <td style="padding:5px 8px"><input value="${cesc(f.observaciones || '')}" placeholder="…" ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','observaciones',this.value,this)" style="border:1px solid #d7d7d7;border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;width:160px"></td>
+          <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${f.procesado ? 'checked' : ''} ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','procesado',this.checked,this)" style="width:18px;height:18px;cursor:pointer">${f.procesado && f.procesado_por ? `<div style="font-size:9.5px;color:var(--muted)">${cesc(f.procesado_por)}</div>` : ''}</td>
         </tr>`).join('') : `<tr><td colspan="15" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
         <tfoot><tr style="background:#f7efda;font-weight:800;border-top:2px solid #c9a13b">
           <td colspan="3" style="padding:9px 11px;text-align:right">TOTALES</td>

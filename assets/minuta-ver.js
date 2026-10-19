@@ -20,7 +20,22 @@
     ov.querySelector('#mvX').onclick = cerrar;
     return ov;
   }
-  function abrir(titulo, html) { var ov = modalEl(); ov.querySelector('#mvTit').textContent = titulo; ov.querySelector('#mvBody').innerHTML = html; ov.style.display = 'flex'; }
+  // Solo formato, sin atributos ni scripts (19/10/2026): el resumen lo escribe otra persona.
+  var ETIQ_OK = { P:1, BR:1, B:1, STRONG:1, I:1, EM:1, U:1, UL:1, OL:1, LI:1, H1:1, H2:1, H3:1, H4:1, H5:1, H6:1, BLOCKQUOTE:1, HR:1, TABLE:1, THEAD:1, TBODY:1, TR:1, TH:1, TD:1, DIV:1, SPAN:1, SMALL:1, MARK:1 };
+  function limpio(html) {
+    var doc = new DOMParser().parseFromString('<div>' + String(html || '') + '</div>', 'text/html');
+    var raiz = doc.body.firstChild, out = document.createElement('div');
+    (function copiar(origen, destino) {
+      Array.prototype.forEach.call(origen.childNodes, function (n) {
+        if (n.nodeType === 3) { destino.appendChild(document.createTextNode(n.nodeValue)); return; }
+        if (n.nodeType !== 1) return;
+        if (ETIQ_OK[n.tagName]) { var e = document.createElement(n.tagName.toLowerCase()); destino.appendChild(e); copiar(n, e); }
+        else if (!/^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|SVG|MATH|TEMPLATE|NOSCRIPT)$/.test(n.tagName)) copiar(n, destino);
+      });
+    })(raiz || doc.body, out);
+    return out;
+  }
+  function abrir(titulo, html) { var ov = modalEl(); ov.querySelector('#mvTit').textContent = titulo; var b = ov.querySelector('#mvBody'); b.innerHTML = ''; b.appendChild(limpio(html)); ov.style.display = 'flex'; }
   function cerrar() { var ov = document.getElementById('mvOverlay'); if (ov) ov.style.display = 'none'; }
   window.cerrarMinutaVer = cerrar;
 

@@ -203,7 +203,7 @@
         <div class="tabla" id="finChequesDet"><div class="vacio">Leyendo la planilla...</div></div>
       </div>
       <div class="card">
-        <div class="c-h"><div class="t">Consultas por WhatsApp</div><a class="lnk" href="dir-cobranzas.html">Ver cobranzas &rsaquo;</a></div>
+        <div class="c-h"><div class="t">Reclamos de clientes</div><a class="lnk" href="dir-cobranzas.html">Ver cobranzas &rsaquo;</a></div>
         <div class="tabla" id="waResumen"><div class="vacio">Cargando...</div></div>
       </div>
     </div>
@@ -225,8 +225,8 @@
     <!-- Áreas de la empresa -->
     <div class="c-h" style="margin:4px 2px 10px"><div class="t" style="font-size:16px">Áreas de la empresa</div></div>
     <div class="areas">
-      <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v" id="vtVend">—</div><div class="l">Vendedores</div></div><div><div class="v" id="vtVisHoy">—</div><div class="l">Visitas hoy</div></div><div><div class="v" id="vtVisMes">—</div><div class="l">Visitas del mes</div></div><div><div class="v" id="vtClientes">—</div><div class="l">Clientes</div></div><div><div class="v" id="vtVentaMes">—</div><div class="l">Venta del mes (toda la empresa)</div></div><div><div class="v" id="vtMargenMes">—</div><div class="l">Margen del mes</div></div></div><a class="en" href="dir-ventas.html">Ver ventas y margen →</a></div>
-      <div class="area"><div class="ah"><span class="ai">🗂️</span> Administración</div><div class="st"><div><div class="v" id="adCC">—</div><div class="l">Cuenta corriente</div></div><div><div class="v" id="adVenc">—</div><div class="l">Deuda vencida</div></div><div><div class="v" id="adCliVenc">—</div><div class="l">Clientes vencidos</div></div><div><div class="v" id="adClientes">—</div><div class="l">Clientes activos</div></div></div><a class="en" href="dir-cobranzas.html">Entrar →</a></div>
+      <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v" id="vtVend">—</div><div class="l">Vendedores</div></div><div><div class="v" id="vtVisHoy">—</div><div class="l">Visitas hoy</div></div><div><div class="v" id="vtVisMes">—</div><div class="l">Visitas del mes</div></div><div><div class="v" id="vtClientes">—</div><div class="l">Cuentas</div></div><div><div class="v" id="vtVentaMes">—</div><div class="l">Venta de productos del mes</div></div><div><div class="v" id="vtMargenMes">—</div><div class="l">Margen del mes</div></div></div><a class="en" href="dir-ventas.html">Ver ventas y margen →</a></div>
+      <div class="area"><div class="ah"><span class="ai">🗂️</span> Administración</div><div class="st"><div><div class="v" id="adCC">—</div><div class="l">Cuenta corriente</div></div><div><div class="v" id="adVenc">—</div><div class="l">Deuda vencida</div></div><div><div class="v" id="adCliVenc">—</div><div class="l">Clientes vencidos</div></div><div><div class="v" id="adClientes">—</div><div class="l">Cuentas en CUBO</div></div></div><a class="en" href="dir-cobranzas.html">Entrar →</a></div>
     </div>
 
     <!-- Charts / Rankings -->
@@ -236,46 +236,51 @@
         <div id="top5list"><div class="t5"><span class="nm" style="color:var(--muted)">Cargando…</span></div></div>
         <div style="margin-top:8px"><a class="lnk" href="dir-cobranzas.html">Ver cobranzas ›</a></div>
       </div>
-      </div>
     </div>
 
-    <div class="foot"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0-2 6"/><path d="M20 5v6h-6"/></svg> Los datos se actualizan en tiempo real · <span id="upd"></span></div>
+    <div class="foot"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0-2 6"/><path d="M20 5v6h-6"/></svg> Ventas se actualiza cada 5 minutos; el resto, al abrir la página · <span id="upd"></span></div>
   </div></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="assets/dir-notif.js"></script>
-<script src="assets/finanzas.js?v=1"></script>
+<script src="assets/finanzas.js?v=2"></script>
 <script>
   const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const ini = n => (String(n||'F').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('')||'F').toUpperCase();
   (function(){
     const d=new Date();
     document.getElementById('fecha').textContent = d.toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-    document.getElementById('upd').textContent = 'Última actualización: ' + d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) + ' hs';
+    document.getElementById('upd').textContent = 'Abierta: ' + d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) + ' hs';
   })();
   (async ()=>{
     if(!window.supabase) return;
     const hub = supabase.createClient(HUB.url, HUB.key);
     const { data:{ session } } = await hub.auth.getSession();
     if(!session){ location.href='index.html'; return; }
-    const { data:u } = await hub.from('usuarios').select('nombre').eq('id', session.user.id).maybeSingle();
+    const { data:u } = await hub.from('usuarios').select('nombre,rol').eq('id', session.user.id).maybeSingle();
+    // El Inicio de Dirección es solo de Dirección (19/10/2026): antes bastaba con tener sesión.
+    if(!u || !['direccion','admin','duenio'].includes(String(u.rol||'').toLowerCase())){ location.replace('hub.html'); return; }
     const nombre = (u&&u.nombre) ? u.nombre.split(/\s+/)[0] : 'Fernando';
     document.getElementById('greet').textContent = 'Buen día, ' + nombre + ' 👋';
     if(u&&u.nombre){ document.getElementById('meName').textContent=u.nombre.split(/\s+/)[0]; document.getElementById('avSb').textContent=ini(u.nombre); }
     document.getElementById('logout').onclick = async ()=>{ if(confirm('¿Cerrar sesión?')){ try{ await hub.auth.signOut(); }catch(e){} location.href='index.html'; } };
 
-    const TOKEN = session.access_token;
+    // El token se renueva: con el panel abierto más de una hora vencía y todo quedaba vacío.
+    let TOKEN = session.access_token;
+    setInterval(async()=>{ try{ const { data:{ session:s } } = await hub.auth.getSession(); if(s) TOKEN=s.access_token; }catch(e){} }, 10*60*1000);
     const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
     // ---- Agenda de hoy (reuniones reales de Dirección) ----
     try{
-      const r = await fetch('/.netlify/functions/reuniones?admin=1',{headers:{Authorization:'Bearer '+TOKEN}});
+      const hoy = new Date().toLocaleDateString('en-CA'); // fecha local (con toISOString, después de las 21 ya era mañana)
+      // desde=hoy: sin eso venían todas las reuniones desde el principio y con muchas se cortaba.
+      const r = await fetch('/.netlify/functions/reuniones?admin=1&desde='+hoy,{headers:{Authorization:'Bearer '+TOKEN}});
       const box = document.getElementById('agHoy');
+      if(box && !r.ok) box.innerHTML='<div class="ag-row" style="color:var(--muted)"><span>No se pudo leer la agenda.</span></div>';
       if(r.ok && box){
         const d = await r.json();
-        const hoy = new Date().toLocaleDateString('en-CA'); // fecha local (con toISOString, después de las 21 ya era mañana)
         const rows = (d.reuniones||[]).filter(x=>x.fecha===hoy && x.estado!=='cancelada').sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
         if(!rows.length){ box.innerHTML='<div class="ag-row" style="color:var(--muted)"><span>No tenés reuniones agendadas para hoy.</span></div>'; }
         else box.innerHTML = rows.map(x=>`<div class="ag-row"><span class="h">${x.hora?esc(x.hora.slice(0,5)):'--:--'}</span><span class="dot"></span><div><div class="nm">${esc(x.titulo)} · ${esc(x.destinatario||'')}</div><div class="pl">${esc(x.lugar||x.tipo||'')}${x.estado==='confirmada'?' · ✓ confirmada':x.estado==='rechazada'?' · no asiste':''}</div></div></div>`).join('');
@@ -303,20 +308,28 @@
     }
     cargarVentasMes(); setInterval(()=>{ if(!document.hidden) cargarVentasMes(); }, 5*60*1000);
 
+    const selSuc=document.getElementById('selSuc');
     async function cargarResumen(region){
       ['adCC','adVenc','adCliVenc','adClientes','vtVend','vtClientes','vtVisHoy','vtVisMes','kpiVisMes','kpiCobHoy'].forEach(id=>set(id,'…'));
       const tl=document.getElementById('top5list'); if(tl) tl.innerHTML='<div class="t5"><span class="nm" style="color:var(--muted)">Cargando…</span></div>';
       try{
         const r = await fetch('/.netlify/functions/direccion-resumen'+(region?('?region='+encodeURIComponent(region)):''),{headers:{Authorization:'Bearer '+TOKEN}});
-        if(!r.ok) return;
+        const sinDato = ids => ids.forEach(id=>set(id,'—'));
+        if(!r.ok){ sinDato(['adCC','adVenc','adCliVenc','adClientes','vtVend','vtClientes','vtVisHoy','vtVisMes','kpiVisMes','kpiCobHoy']); set('kpiCobSub','No se pudo leer'); set('kpiVisHoy','No se pudo leer'); if(tl) tl.innerHTML='<div class="t5"><span class="nm" style="color:var(--muted)">No se pudo leer</span></div>'; return; }
         const d = await r.json();
+        // Si cambiaron la sucursal mientras cargaba, esta respuesta ya no va.
+        if(selSuc && (selSuc.value||'') !== (region||'')) return;
+        // Lo que no llegó dice que no se pudo leer, en vez de quedar en "…".
+        if(!d.cobranzas){ sinDato(['adCC','adVenc','adCliVenc','adClientes','vtVend','vtClientes']); set('alRiesgo','No se pudo leer'); }
+        if(!d.cobranzasHoy){ set('kpiCobHoy','—'); set('kpiCobSub','No se pudo leer'); }
+        if(!d.visitas){ sinDato(['vtVisHoy','vtVisMes','kpiVisMes']); set('kpiVisHoy','No se pudo leer'); }
         if(d.cobranzas){
           const c=d.cobranzas;
           set('adCC',fmtM(c.saldo)); set('adVenc',fmtM(c.vencida)); set('adCliVenc',fmtInt(c.clientesVencidos)); set('adClientes',fmtInt(c.clientes));
           set('vtVend',fmtInt(c.vendedores)); set('vtClientes',fmtInt(c.clientes));
           set('alRiesgo',fmtInt(c.clientesVencidos)+' clientes');
         }
-        if(d.cobranzasHoy){ set('kpiCobHoy',fmtM(d.cobranzasHoy.monto)); set('kpiCobSub',fmtInt(d.cobranzasHoy.cantidad)+' pago(s) aceptado(s) hoy'); }
+        if(d.cobranzasHoy){ set('kpiCobHoy',fmtM(d.cobranzasHoy.monto)); set('kpiCobSub',d.cobranzasHoy.cantidad ? fmtInt(d.cobranzasHoy.cantidad)+(d.cobranzasHoy.cantidad===1?' pago aceptado hoy':' pagos aceptados hoy') : 'Ningún pago aceptado hoy todavía'); }
         if(d.visitas){ set('vtVisHoy',fmtInt(d.visitas.hoy)); set('vtVisMes',fmtInt(d.visitas.mes)); set('kpiVisMes',fmtInt(d.visitas.mes)); set('kpiVisHoy','Hoy: '+fmtInt(d.visitas.hoy)); }
         if(tl){
           if(Array.isArray(d.ranking) && d.ranking.length){
@@ -326,7 +339,6 @@
         }
       }catch(e){}
     }
-    const selSuc=document.getElementById('selSuc');
     if(selSuc) selSuc.onchange=()=>cargarResumen(selSuc.value);
     cargarResumen(selSuc?selSuc.value:'');
 
@@ -334,6 +346,7 @@
     const money = n => (n==null ? null : (Math.abs(n)>=1e6 ? '$'+(n/1e6).toLocaleString('es-AR',{maximumFractionDigits:1})+'M'
                         : Math.abs(n)>=1e3 ? '$'+Math.round(n/1e3).toLocaleString('es-AR')+'K' : '$'+Math.round(n)));
     function semanaYaPaso(w){
+      if (typeof w.yaPaso === 'boolean') return w.yaPaso;
       const hoy = new Date(); hoy.setHours(0,0,0,0);
       const b = String(w.hasta||'').split('/'); if (b.length<2) return false;
       const d2 = new Date(hoy.getFullYear(), +b[1]-1, +b[0]);
@@ -364,10 +377,11 @@
       const cajaSem = document.getElementById('finSemanas');
       if (d.pagos && !d.pagos.error) {
         const w = (d.pagos.semanas||[]).find(x=>x.esEstaSemana);
-        set('finSemana', w ? money(w.facturas) : money(d.pagos.aPagar));
-        set('finSemanaSub', w ? ('Total a pagar '+money(d.pagos.aPagar)) : 'Total a pagar');
-        set('finFalta', w ? money(w.efectivo) : money(d.pagos.transferencia));
-        set('finFaltaSub', w ? ('Cubierto con cheques '+money(w.cheques)) : 'Transferencia o efectivo');
+        // Si la planilla no tiene la semana de hoy, no se muestra el total con el rótulo semanal.
+        set('finSemana', w ? money(w.facturas) : '—');
+        set('finSemanaSub', w ? ('Total a pagar '+money(d.pagos.aPagar)) : 'La planilla no tiene esta semana · total '+money(d.pagos.aPagar));
+        set('finFalta', w ? money(w.efectivo) : '—');
+        set('finFaltaSub', w ? ('Cubierto con cheques '+money(w.cheques)) : 'La planilla no tiene esta semana');
         if (d.pagos.fecha) fechas.push('pagos al '+d.pagos.fecha);
         const prox = (d.pagos.semanas||[]).filter(x=>x.esEstaSemana || !semanaYaPaso(x)).slice(0,7);
         cajaSem.innerHTML = prox.length
@@ -390,14 +404,16 @@
       if (ff) ff.textContent = fechas.length ? 'Archivos de Administracion · ' + fechas.join(' · ') : 'Archivos de Administracion';
     })();
 
-    // ---- Consultas por WhatsApp: si se resolvieron, de quien y cuanto tardaron ----
+    // ---- Reclamos de clientes (los que abren desde el Portal del Cliente): si se
+    //      resolvieron, de quién y cuánto tardaron. Antes la tarjeta decía "Consultas por
+    //      WhatsApp", pero son los reclamos del portal, no los mensajes de WhatsApp. ----
     (async () => {
       const box = document.getElementById('waResumen'); if(!box) return;
       try{
         const r = await fetch('/.netlify/functions/cobranzas-panel?que=reclamos',{headers:{Authorization:'Bearer '+TOKEN}});
-        if(!r.ok){ box.innerHTML = '<div class="vacio">No se pudieron leer las consultas.</div>'; return; }
+        if(!r.ok){ box.innerHTML = '<div class="vacio">No se pudieron leer los reclamos.</div>'; return; }
         const filas = (await r.json()).filas || [];
-        if(!filas.length){ box.innerHTML = '<div class="vacio">Todavia no hay consultas de clientes.</div>'; return; }
+        if(!filas.length){ box.innerHTML = '<div class="vacio">Todavía no hay reclamos de clientes.</div>'; return; }
         const horas = f => { const a=new Date(f.created_at||f.fecha||f.updated_at), b=new Date(f.updated_at||f.created_at);
                              const h=(b-a)/36e5; return isFinite(h)&&h>=0 ? h : null; };
         const resueltas = filas.filter(f=>f.estado==='resuelto');
@@ -410,14 +426,14 @@
             '<div class="fl"><span class="n">Sin resolver</span><span class="m '+(abiertas.length?'rojo':'verde')+'">'+abiertas.length+'</span></div>'
           + '<div class="fl"><span class="n">Resueltas</span><span class="m verde">'+resueltas.length+'</span></div>'
           + '<div class="fl"><span class="n">Demora promedio en resolver</span><span class="m">'+dice(prom)+'</span></div>'
-          + '<div class="cab" style="margin-top:8px"><span class="n">Ultimas consultas</span><span>Demora</span></div>'
+          + '<div class="cab" style="margin-top:8px"><span class="n">Últimos reclamos</span><span>Demora</span></div>'
           + filas.slice(0,6).map(f=>{
               const est = f.estado==='resuelto' ? 'ok' : f.estado==='en_curso' ? 'curso' : 'abierto';
               const lbl = f.estado==='resuelto' ? 'Resuelta' : f.estado==='en_curso' ? 'En curso' : 'Abierta';
               return '<div class="fl"><span class="n">'+esc(quien(f))+'</span><span class="chip-est '+est+'">'+lbl+'</span>'
                    + '<span class="m">'+(f.estado==='resuelto' ? dice(horas(f)) : '—')+'</span></div>';
             }).join('');
-      }catch(e){ box.innerHTML = '<div class="vacio">No se pudieron leer las consultas.</div>'; }
+      }catch(e){ box.innerHTML = '<div class="vacio">No se pudieron leer los reclamos.</div>'; }
     })();
   })();
 </script>

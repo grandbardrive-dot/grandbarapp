@@ -53,13 +53,15 @@
 <script src="assets/auth.js"></script>
 <script src="assets/dir-nav.js"></script>
 <script src="assets/dir-notif.js"></script>
-<script src="assets/cobranzas.js?v=27"></script>
+<script src="assets/cobranzas.js?v=28"></script>
 <script>
   // Lo que Dirección no ve adentro de Cobranzas: las conversaciones y las tareas
   // operativas del equipo. Se sacan de la lista antes de dibujar, así tampoco
   // aparecen como tarjetas en el tablero.
   (function () {
     var OCULTAS = ['whatsapp', 'reclamos', 'bloquear', 'efectivo', 'tareas'];
+    // Mira sin operar: sin WhatsApp en la ficha ni tildes en las planillas (19/10/2026).
+    window.COB_SOLO_LECTURA = true;
     for (var i = COB_SECCIONES.length - 1; i >= 0; i--) {
       if (OCULTAS.indexOf(COB_SECCIONES[i].id) > -1) COB_SECCIONES.splice(i, 1);
     }

@@ -16,6 +16,8 @@
     TOKEN = s.access_token;
     initBell(); initSearch();
   });
+  // El token vence a la hora: se renueva para que la campanita y la lupa no queden vacías.
+  setInterval(function () { c.auth.getSession().then(function (r) { if (r.data.session) TOKEN = r.data.session.access_token; }); }, 10 * 60 * 1000);
 
   function findBtn(rx) {
     var all = document.querySelectorAll('.ic-btn'); for (var i = 0; i < all.length; i++) { if (rx.test(all[i].innerHTML)) return all[i]; } return null;

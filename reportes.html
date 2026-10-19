@@ -98,12 +98,6 @@
           <p>Plan 11T — reportes por canal, estado y evolución mes a mes.</p>
           <span class="pc-go">Ver reportes →</span>
         </a>
-        <a class="prov-card" href="reportes-campari.html">
-          <div class="pc-ic">🍹</div>
-          <h3>Campari</h3>
-          <p>Plan 5T y acuerdos comerciales.</p>
-          <span class="pc-go">Ver reportes →</span>
-        </a>
       </div>
     </div>
 
@@ -198,7 +192,9 @@
     if(es11t&&mes){ $('mCont').style.whiteSpace='normal'; $('mCont').style.background='transparent'; $('mCont').style.padding='0';
       $('mCont').innerHTML='<div style="font-size:12.5px;color:var(--muted);padding:8px 0">Cargando tablero…</div>'; render11t(mes,r.contenido); }
     else { $('mCont').style.whiteSpace='pre-wrap'; $('mCont').style.background='#f5f1e8'; $('mCont').style.padding='12px'; $('mCont').textContent=r.contenido||'(sin texto)'; }
-    $('mLink').innerHTML=r.enlace?`<a href="${esc(r.enlace)}" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:#256f54">🔗 Abrir tablero completo</a>`:'';
+    // El tablero del 11T (admin-11t.html) es de Luciana: Fernando va a su página de Peñaflor.
+    const lnk = es11t ? 'reportes-penaflor.html' : r.enlace;
+    $('mLink').innerHTML=lnk?`<a href="${esc(lnk)}"${es11t?'':' target="_blank" rel="noopener"'} style="font-size:12.5px;font-weight:700;color:#256f54">🔗 ${es11t?'Ver la evolución del 11T':'Abrir el enlace del reporte'}</a>`:'';
     $('mDevo').value=r.devolucion||''; $('mMsg').textContent='';
     $('mIa').style.display='none'; $('mIa').innerHTML=''; $('mIaBtn').disabled=false; $('mIaBtn').innerHTML='✨ Sugerir estrategias';
     $('mFwd').style.display='none'; $('mFwdMsg').textContent=''; $('mFwdNota').value=''; $('mFwdSearch').value='';
@@ -296,7 +292,7 @@
         ${mini('Clientes logrados',nf(t.real))}
         ${mini('Faltan para el objetivo',nf(t.faltan),'#c0603e')}
       </div></div>`;
-    if(d.carga) h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:9px">Datos al ${new Date(d.carga.fecha).toLocaleDateString('es-AR')} · ${nf(d.carga.clientes)} clientes cargados.</div>`;
+    if(d.carga) h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:9px">Así está el mes hoy (datos al ${new Date(d.carga.fecha).toLocaleDateString('es-AR')}): puede no coincidir con lo que dice el texto del reporte, que se escribió antes.</div>`;
 
     h+=`<div style="font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 5px">Por canal</div><div style="${card};overflow:hidden">`;
     ['vinotecas','tienda_bebidas','on_premise','on_premise_noche'].forEach((k,i)=>{ const c=d.canales[k]; if(!c) return; const a=c.tot.alcance, col=alcColor(a);
@@ -363,7 +359,10 @@
   (async()=>{
     const hub=supabase.createClient(HUB.url,HUB.key);
     const {data:{session}}=await hub.auth.getSession();
-    if(!session) return; TOKEN=session.access_token; cargar();
+    if(!session) return; TOKEN=session.access_token; await cargar();
+    setInterval(async()=>{ try{ const {data:{session:s}}=await hub.auth.getSession(); if(s) TOKEN=s.access_token; }catch(e){} }, 10*60*1000);
+    // reportes.html?id=… abre ese reporte (lo usa la página de Peñaflor).
+    const pid=new URLSearchParams(location.search).get('id'); if(pid) abrir(pid);
   })();
 })();
 </script>

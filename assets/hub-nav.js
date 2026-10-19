@@ -118,7 +118,8 @@
   // pantalla equivalente de su panel. Para mirar a propósito cómo lo ve un
   // vendedor: agregar ?mirar=1 a la dirección.
   const ROLES_DIRECCION = ['direccion', 'admin', 'duenio'];
-  const EQUIVALENTE_DIR = { 'agenda': 'dir-agenda.html', 'clientes-hub': 'dir-clientes.html', 'inicio': 'direccion.html' };
+  // dir-clientes.html es una maqueta (sin datos): Clientes lo lleva a Cobranzas, donde están las cuentas.
+  const EQUIVALENTE_DIR = { 'agenda': 'dir-agenda.html', 'clientes-hub': 'dir-cobranzas.html', 'inicio': 'direccion.html' };
   const ETIQUETA_ROL = { ventas:'Vendedor', direccion:'Dirección', admin:'Dirección', duenio:'Dirección', administracion:'Administración',
     tesoreria:'Tesorería', compras:'Compras', marketing:'Marketing', diseno:'Diseño', desarrollo:'Desarrollo', deposito:'Depósito', mayorista:'Tienda mayorista', equipo_admin:'Administración' };
   function sesionGuardada() {

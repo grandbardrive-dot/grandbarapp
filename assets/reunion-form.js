@@ -17,7 +17,7 @@
 (function () {
   const API = '/.netlify/functions/reuniones';
   const TIPOS = { reunion: '🤝 Reunión', llamada: '📞 Llamada', visita: '📍 Visita', capacitacion: '🎓 Capacitación' };
-  const ROL = { ventas: 'Ventas', direccion: 'Dirección', duenio: 'Dirección', admin: 'Administración', administracion: 'Administración',
+  const ROL = { ventas: 'Ventas', direccion: 'Dirección', duenio: 'Dirección', admin: 'Dirección', administracion: 'Administración',
     tesoreria: 'Tesorería', compras: 'Compras', diseno: 'Diseño', desarrollo: 'Desarrollo', marketing: 'Marketing',
     deposito: 'Depósito', mayorista: 'Mayorista', reportes: 'Reportes' };
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));

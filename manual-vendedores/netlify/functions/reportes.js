@@ -90,7 +90,20 @@ exports.handler = async (event) => {
         const est = String(b.estado || '');
         if (!ESTADOS.includes(est)) return json(400, { error: 'Estado inválido.' });
         const patch = { estado: est, devolucion: b.devolucion || null, revisado_por: user.id, revisado_por_nombre: perfil.nombre || user.email, revisado_at: new Date().toISOString() };
-        await sb('reportes?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
+        const up = await sb('reportes?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(patch) });
+        const rep = up.ok ? ((await up.json()) || [])[0] : null;
+        // Avisarle al autor que tiene la devolución (19/10/2026: antes no se enteraba).
+        if (rep && rep.usuario_id && String(rep.usuario_id) !== String(user.id)) {
+          const txt = { aprobado: ['✅', 'aprobó'], revision: ['↺', 'te pidió cambios en'], rechazado: ['✕', 'rechazó'] }[est];
+          if (txt) {
+            try {
+              await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({
+                destinatario_id: rep.usuario_id, icono: txt[0], titulo: (perfil.nombre || 'Dirección') + ' ' + txt[1] + ' tu reporte',
+                detalle: String(rep.titulo || '').slice(0, 140) + (b.devolucion ? ' · ' + String(b.devolucion).slice(0, 140) : ''),
+                link: '/mis-reportes.html', ref: 'rep-rev-' + rep.id + '-' + Date.now() }) });
+            } catch (e) {}
+          }
+        }
         return json(200, { ok: true });
       }
 
@@ -111,8 +124,12 @@ exports.handler = async (event) => {
     // Lista de usuarios para reenviar (solo Dirección)
     if (qp.usuarios) {
       if (!isDir) return json(403, { error: 'Solo Dirección.' });
-      const rows = await (await sb('usuarios?select=id,nombre,rol,canal,region,es_supervisor&order=nombre.asc&limit=1000')).json();
-      const arr = (Array.isArray(rows) ? rows : []).filter((u) => String(u.id) !== String(user.id));
+      const rows = await (await sb('usuarios?select=id,nombre,rol,canal,region,es_supervisor,activo&order=nombre.asc&limit=1000')).json();
+      // Solo gente de la empresa con acceso: sin proveedores ni clientes (son externos) ni
+      // cuentas dadas de baja (19/10/2026).
+      const arr = (Array.isArray(rows) ? rows : [])
+        .filter((u) => String(u.id) !== String(user.id) && u.activo !== false && !['proveedor', 'cliente'].includes(String(u.rol || '').toLowerCase()))
+        .map(({ activo, ...u }) => u);
       return json(200, { usuarios: arr });
     }
 
@@ -122,7 +139,9 @@ exports.handler = async (event) => {
       let path = 'reportes?select=*&order=created_at.desc&limit=500';
       if (qp.estado && ESTADOS.includes(qp.estado)) path += '&estado=eq.' + qp.estado;
       const rows = await (await sb(path)).json();
-      const arr = Array.isArray(rows) ? rows : [];
+      // Las copias que Dirección reenvía ("↪ …") son de quien las recibe: no son reportes
+      // nuevos y no se cuentan (antes el único "Aprobado" era un reenvío de Fernando).
+      const arr = (Array.isArray(rows) ? rows : []).filter((r) => !/^↪/.test(String(r.titulo || '')));
       const cont = { total: arr.length, pendiente: 0, aprobado: 0, rechazado: 0, revision: 0 };
       arr.forEach(r => { if (cont[r.estado] !== undefined) cont[r.estado]++; });
       return json(200, { reportes: arr, conteo: cont, es_direccion: true });

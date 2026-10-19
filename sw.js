@@ -24,10 +24,16 @@ self.addEventListener('notificationclick', (event) => {
   const url = (event.notification.data && event.notification.data.url) || '/agenda.html';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      // Una pestaña que ya esté en esa misma pantalla se usa; si no, se abre una nueva.
+      const destino = new URL(url, self.location.origin);
       for (const c of list) {
-        if (c.url.includes('agenda') && 'focus' in c) return c.focus();
+        let u = null; try { u = new URL(c.url); } catch (e) {}
+        if (u && u.pathname === destino.pathname && 'focus' in c) {
+          if (destino.hash && 'navigate' in c) return c.navigate(destino.href).then(w => (w || c).focus());
+          return c.focus();
+        }
       }
-      return self.clients.openWindow(url);
+      return self.clients.openWindow(destino.href);
     })
   );
 });

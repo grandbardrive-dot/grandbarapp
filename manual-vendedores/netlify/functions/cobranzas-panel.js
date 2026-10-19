@@ -252,7 +252,10 @@ exports.handler = async (event) => {
       const pagina = Math.max(0, parseInt(p.pagina || '0', 10) || 0);
       const desde = pagina * POR_PAGINA;
       const q = (p.q || '').trim();
-      const filtro = q ? '&or=(codigo.ilike.*' + encodeURIComponent(q) + '*,nombre.ilike.*' + encodeURIComponent(q) + '*)' : '';
+      // Entre comillas: un nombre con coma o paréntesis rompía la consulta y salía
+      // "Ningún cliente coincide" (19/10/2026).
+      const lk = encodeURIComponent('"*' + q.replace(/[\\"]/g, '\\$&') + '*"');
+      const filtro = q ? '&or=(codigo.ilike.' + lk + ',nombre.ilike.' + lk + ')' : '';
       const soloDeuda = p.deuda === '1' ? '&vencida=gt.0' : '';
       const deZona = Z ? '&' + Z.filtroEquipo : '';
       const r = await cob('cuentas_cubo?select=*' + filtro + soloDeuda + deZona + '&order=vencida.desc.nullslast,saldo.desc.nullslast',
