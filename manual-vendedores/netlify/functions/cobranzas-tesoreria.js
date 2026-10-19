@@ -7,6 +7,8 @@
 //  Al cerrar deja quién y cuándo (revisado_por / revisado_at): es lo que mide la
 //  pantalla de supervisión de Brenda.
 //  Verifica el rol del Hub (tesoreria | administracion | admin).
+//  Zona (19/10/2026): con región en el perfil se ve y se cierra solo lo de esa zona
+//  (Romina, San Luis). Sin región, todo. Ver _zona-cobranzas.js.
 //  Env: COBRANZAS_SERVICE_ROLE
 // ============================================================
 
@@ -16,6 +18,7 @@ const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const ROLES_OK = ['tesoreria', 'administracion', 'admin'];
 
 const { traerTodo } = require('./_paginar');
+const { zonaDe, armarZona } = require('./_zona-cobranzas');
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const qids = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
 
@@ -29,13 +32,21 @@ exports.handler = async (event) => {
     const uRes = await fetch(HUB_URL + '/auth/v1/user', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
     if (!uRes.ok) return json(401, { error: 'Sesión inválida' });
     const user = await uRes.json();
-    const pRes = await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=rol,nombre', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
+    const pRes = await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=rol,nombre,region', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
     const perfil = (await pRes.json())[0] || {};
     if (!ROLES_OK.includes(String(perfil.rol || '').toLowerCase())) return json(403, { error: 'No autorizado (solo tesorería/administración).' });
 
     const quienRevisa = perfil.nombre || user.email || 'Sin identificar';
 
     const cob = (path, opts = {}) => fetch(COB_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: service, Authorization: 'Bearer ' + service, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+    const Z = await armarZona(zonaDe(perfil), path => traerTodo(cob, path));
+    // Con zona, el comprobante tiene que ser de un cliente de esa zona (se mira en la base).
+    const compDeLaZona = async id => {
+      if (!Z) return true;
+      const r = await cob('comprobantes?id=eq.' + encodeURIComponent(id) + '&select=cliente_id');
+      const c = r.ok ? ((await r.json()) || [])[0] : null;
+      return !c || Z.cliOk(c.cliente_id);
+    };
 
     if (event.httpMethod === 'POST') {
       let body = {}; try { body = JSON.parse(event.body || '{}'); } catch (e) {}
@@ -54,6 +65,10 @@ exports.handler = async (event) => {
           if (r.ok) cargados += chunk.length;
         }
         return json(200, { ok: true, recibidos: filas.length });
+      }
+
+      if ((body.accion === 'aceptar' || body.accion === 'rechazar') && body.id && !(await compDeLaZona(body.id))) {
+        return json(403, { error: 'Ese pago no es de ' + Z.nombre + '.' });
       }
 
       if (body.accion === 'aceptar' && body.id) {
@@ -86,12 +101,13 @@ exports.handler = async (event) => {
     // los pendientes más viejos iban a desaparecer de la lista sin aviso.
     // "revisado" es el estado del circuito anterior: el cliente lo ve como aceptado.
     const campos = 'id,cliente_id,concepto,archivo_url,monto,fecha_pago,estado,procesado_por,procesado_at,revisado_por,created_at,nc_aplicada,nc_creditos,total_facturas';
-    const pendientes = await traerTodo(cob, 'comprobantes?tipo=eq.cliente&estado=eq.procesado&select=' + campos + '&order=created_at.asc', 5000);
-    const cerr = await cob('comprobantes?tipo=eq.cliente&estado=in.(aceptado,rechazado,revisado)&select=' + campos + '&order=created_at.desc&limit=300');
-    const cerrados = cerr.ok ? ((await cerr.json()) || []) : [];
-    const comps = [...(Array.isArray(pendientes) ? pendientes : []), ...(Array.isArray(cerrados) ? cerrados : [])];
-    const rc = await cob('comprobantes?tipo=eq.recibo&select=id,cliente_id,factura,archivo_url,fecha_pago,concepto,created_at&order=created_at.desc&limit=150');
-    const recs = (await rc.json()) || [];
+    const enZona = arr => (Array.isArray(arr) ? arr : []).filter(c => !Z || Z.cliOk(c.cliente_id));
+    const pendientes = enZona(await traerTodo(cob, 'comprobantes?tipo=eq.cliente&estado=eq.procesado&select=' + campos + '&order=created_at.asc', 5000));
+    const cerr = await cob('comprobantes?tipo=eq.cliente&estado=in.(aceptado,rechazado,revisado)&select=' + campos + '&order=created_at.desc&limit=' + (Z ? 1000 : 300));
+    const cerrados = enZona(cerr.ok ? ((await cerr.json()) || []) : []).slice(0, 300);
+    const comps = [...pendientes, ...cerrados];
+    const rc = await cob('comprobantes?tipo=eq.recibo&select=id,cliente_id,factura,archivo_url,fecha_pago,concepto,created_at&order=created_at.desc&limit=' + (Z ? 600 : 150));
+    const recs = enZona(rc.ok ? ((await rc.json()) || []) : []).slice(0, 150);
 
     const clienteIds = [...new Set([...(Array.isArray(comps) ? comps : []), ...(Array.isArray(recs) ? recs : [])].map(c => c.cliente_id).filter(Boolean))];
     const cl = clienteIds.length ? (await (await cob('clientes?id=in.(' + qids(clienteIds) + ')&select=id,nombre,comercio,codigo_cubo')).json()) : [];
@@ -121,7 +137,7 @@ exports.handler = async (event) => {
     });
     const recibos = (Array.isArray(recs) ? recs : []).map(r => ({ id: r.id, cliente: nombreDe(r.cliente_id), codigo: (cmap[r.cliente_id] || {}).codigo_cubo || null, factura: r.factura, concepto: r.concepto, fecha: r.fecha_pago || r.created_at, recibo_url: r.archivo_url }));
 
-    return json(200, { rol: perfil.rol, por_revisar, historial, recibos });
+    return json(200, { rol: perfil.rol, zona: Z ? Z.nombre : null, por_revisar, historial, recibos });
   } catch (e) {
     return json(500, { error: (e && e.message) || String(e) });
   }

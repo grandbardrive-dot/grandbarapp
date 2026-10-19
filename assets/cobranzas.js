@@ -70,8 +70,10 @@ function cobTablero() {
   if (window.COB_HASH && location.hash) history.replaceState(null, '', location.pathname);
   cq('cob').innerHTML = `
     <div class="head"><div>
-      <h1>Cobranzas</h1>
-      <div class="head-sub">Cuenta corriente, comprobantes y reclamos, más las tareas del equipo.</div>
+      <h1>Cobranzas${COB_RESUMEN.zona ? ' · ' + cesc(COB_RESUMEN.zona) : ''}</h1>
+      <div class="head-sub">${COB_RESUMEN.zona
+        ? 'Cuenta corriente, comprobantes y reclamos de los clientes de ' + cesc(COB_RESUMEN.zona) + ', más las tareas del equipo.'
+        : 'Cuenta corriente, comprobantes y reclamos, más las tareas del equipo.'}</div>
     </div></div>
     <div class="cb-cards">
       ${cobEsTesoreria() ? (cobRevisionAdentro()
@@ -1141,6 +1143,8 @@ async function montarCobranzas() {
   const quien = cq('cob-quien'); if (quien) quien.textContent = s.nombre || '';
 
   await cobCargarResumen();
+  // Con zona (Romina, San Luis), que se vea debajo del nombre.
+  if (quien && COB_RESUMEN.zona) quien.textContent = (s.nombre || '') + ' · ' + COB_RESUMEN.zona;
   _cobrosPendVistos = Number((COB_RESUMEN && COB_RESUMEN.cobrosPend) || 0); // base, para no sonar al entrar
   if (COB_RESUMEN._error) {
     cobNav();

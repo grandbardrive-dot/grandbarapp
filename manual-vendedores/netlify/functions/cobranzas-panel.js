@@ -27,7 +27,13 @@
 //  tesoreria desde cobranzas-tesoreria. Aca la revision solo se supervisa.
 //
 //  Env: COBRANZAS_SERVICE_ROLE (ya usada por cuentas-vendedor y cobranzas-tesoreria)
+//
+//  Zona (19/10/2026): un usuario con región en su perfil ve solo esa zona
+//  (Romina, administración de San Luis = tesorería + región san_luis). Sin
+//  región se ve todo, como siempre. Ver _zona-cobranzas.js.
 // ============================================================
+
+const { zonaDe, armarZona } = require('./_zona-cobranzas');
 
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
@@ -57,7 +63,7 @@ exports.handler = async (event) => {
     if (!uRes.ok) return json(401, { error: 'Se venció la sesión. Volvé a entrar al Portal.' });
     const user = await uRes.json();
 
-    const pRes = await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=rol,nombre',
+    const pRes = await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=rol,nombre,region',
       { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
     const perfil = ((await pRes.json()) || [])[0] || {};
     const rol = String(perfil.rol || '').toLowerCase();
@@ -93,6 +99,11 @@ exports.handler = async (event) => {
       return Number((r.headers.get('content-range') || '*/0').split('/')[1]) || 0;
     };
 
+    // Zona del usuario: null = ve todo. Con zona, cada lectura se recorta y cada
+    // escritura se controla (no se puede tocar un cliente de la otra zona).
+    const Z = await armarZona(zonaDe(perfil), leerTodo);
+    const fuera = () => json(403, { error: 'Eso no es de ' + Z.nombre + '.' });
+
     // ══════════ ESCRITURA ══════════
     if (event.httpMethod === 'POST') {
       const b = JSON.parse(event.body || '{}');
@@ -104,19 +115,30 @@ exports.handler = async (event) => {
         return json(200, { ok: true, fila: filas[0] });
       };
 
+      // Con zona: la fila tiene que ser de esa zona (se mira en la base, no lo que manda el navegador).
+      const deLaZona = async (tabla, id) => {
+        if (!Z) return true;
+        if (tabla === 'clientes') return Z.cliOk(id);
+        const f0 = (await leer(tabla + '?select=codigo,cliente_id&id=eq.' + encodeURIComponent(id)))[0];
+        return !f0 || Z.filaOk(f0);
+      };
+
       if (b.accion === 'bloquear' || b.accion === 'desbloquear') {
         if (!b.id) return json(400, { error: 'Falta el cliente.' });
+        if (!(await deLaZona('clientes', b.id))) return fuera();
         return patch('clientes', 'id=eq.' + encodeURIComponent(b.id),
           { estado: b.accion === 'bloquear' ? 'bloqueado' : 'aprobado' }, 'Ese cliente');
       }
       if (b.accion === 'cobro-cobrado' || b.accion === 'cobro-cancelado') {
         if (!b.id) return json(400, { error: 'Falta el cobro.' });
+        if (!(await deLaZona('cobros_efectivo', b.id))) return fuera();
         return patch('cobros_efectivo', 'id=eq.' + encodeURIComponent(b.id),
           b.accion === 'cobro-cobrado' ? { estado: 'cobrado', cobrado_at: new Date().toISOString() } : { estado: 'cancelado' },
           'Ese cobro');
       }
       if (b.accion === 'reclamo-estado') {
         if (!b.id || !b.estado) return json(400, { error: 'Falta el reclamo o el estado.' });
+        if (!(await deLaZona('reclamos', b.id))) return fuera();
         return patch('reclamos', 'id=eq.' + encodeURIComponent(b.id),
           { estado: b.estado, updated_at: new Date().toISOString() }, 'Ese reclamo');
       }
@@ -125,6 +147,7 @@ exports.handler = async (event) => {
       if (b.accion === 'reclamo-responder') {
         const texto = String(b.texto || '').trim();
         if (!b.id) return json(400, { error: 'Falta el reclamo.' });
+        if (!(await deLaZona('reclamos', b.id))) return fuera();
         if (!texto && !b.archivo_base64) return json(400, { error: 'Escribí un mensaje o adjuntá un archivo.' });
         // Adjunto opcional: lo subimos al bucket público con la llave del servidor.
         let archivo_url = null;
@@ -176,6 +199,24 @@ exports.handler = async (event) => {
     };
     const pasadoDeTope = c => Number(c.deuda_vencida || 0) > Number(c.tope_deuda_vencida || 0);
 
+    if (que === 'resumen' && Z) {
+      // Con zona no alcanza con contar en la base: hay que ver de quién es cada fila.
+      const [cuentas, comps, recl, cobros, clientes] = await Promise.all([
+        contar('cuentas_cubo', Z.filtroEquipo, 'codigo'),
+        leerTodo('comprobantes?select=cliente_id&estado=eq.pendiente&tipo=eq.cliente&order=id'),
+        leerTodo('reclamos?select=codigo,cliente_id&estado=eq.abierto&order=id'),
+        leerTodo('cobros_efectivo?select=codigo,cliente_id&estado=eq.pendiente&order=id'),
+        clientesConDeuda('id,estado,tope_deuda_vencida,codigo_cubo'),
+      ]);
+      return json(200, {
+        rol, nombre: perfil.nombre, zona: Z.nombre, cuentas,
+        compPend: comps.filter(c => Z.cliOk(c.cliente_id)).length,
+        reclAbiertos: recl.filter(Z.filaOk).length,
+        cobrosPend: cobros.filter(Z.filaOk).length,
+        aBloquear: clientes.filter(c => Z.codOk(c.codigo_cubo) && pasadoDeTope(c) && c.estado !== 'bloqueado').length,
+      });
+    }
+
     if (que === 'resumen') {
       const [cuentas, compPend, reclAbiertos, cobrosPend, clientes] = await Promise.all([
         contar('cuentas_cubo', '', 'codigo'),
@@ -195,7 +236,8 @@ exports.handler = async (event) => {
       const q = (p.q || '').trim();
       const filtro = q ? '&or=(codigo.ilike.*' + encodeURIComponent(q) + '*,nombre.ilike.*' + encodeURIComponent(q) + '*)' : '';
       const soloDeuda = p.deuda === '1' ? '&vencida=gt.0' : '';
-      const r = await cob('cuentas_cubo?select=*' + filtro + soloDeuda + '&order=vencida.desc.nullslast,saldo.desc.nullslast',
+      const deZona = Z ? '&' + Z.filtroEquipo : '';
+      const r = await cob('cuentas_cubo?select=*' + filtro + soloDeuda + deZona + '&order=vencida.desc.nullslast,saldo.desc.nullslast',
         { headers: { Prefer: 'count=exact', Range: desde + '-' + (desde + POR_PAGINA - 1) } });
       const filas = r.ok ? await r.json() : [];
       const total = Number((r.headers.get('content-range') || '*/0').split('/')[1]) || 0;
@@ -205,6 +247,7 @@ exports.handler = async (event) => {
     // Ficha de un cliente: su cuenta + las facturas con saldo pendiente.
     if (que === 'cliente') {
       if (!p.codigo) return json(400, { error: 'Falta el código.' });
+      if (Z && !Z.codOk(p.codigo)) return fuera();
       const cod = encodeURIComponent(p.codigo);
       const [cuenta, facturas, ficha, cobros] = await Promise.all([
         leer('cuentas_cubo?select=*&codigo=eq.' + cod),
@@ -230,6 +273,7 @@ exports.handler = async (event) => {
 
     if (que === 'bloquear') {
       const todos = (await clientesConDeuda('id,estado,tope_deuda_vencida,codigo_cubo,comercio,nombre,cuit'))
+        .filter(c => !Z || Z.codOk(c.codigo_cubo))
         .sort((a, b) => b.deuda_vencida - a.deuda_vencida);
       return json(200, {
         filas: todos.filter(c => pasadoDeTope(c) && c.estado !== 'bloqueado'),
@@ -238,17 +282,20 @@ exports.handler = async (event) => {
     }
 
     if (que === 'efectivo') {
-      return json(200, { filas: await leer('cobros_efectivo?select=*&order=created_at.desc&limit=300') });
+      const filas = await leer('cobros_efectivo?select=*&order=created_at.desc&limit=' + (Z ? 1000 : 300));
+      return json(200, { filas: Z ? filas.filter(Z.filaOk).slice(0, 300) : filas });
     }
 
     // Planillas de rendición que envían los vendedores (lista de envíos).
     if (que === 'planillas') {
-      return json(200, { filas: await leer('planilla_envios?select=*&order=enviada_at.desc&limit=400') });
+      const filas = await leer('planilla_envios?select=*&order=enviada_at.desc&limit=' + (Z ? 1000 : 400));
+      return json(200, { filas: Z ? filas.filter(x => Z.vendOk(x.vendedor)).slice(0, 400) : filas });
     }
     // Detalle de una planilla (filas + envío) de un vendedor y día.
     if (que === 'planilla-det') {
       const vend = p.vendedor, fecha = p.fecha;
       if (!vend || !fecha) return json(400, { error: 'Falta el vendedor o la fecha.' });
+      if (Z && !Z.vendOk(vend)) return fuera();
       const [filas, env] = await Promise.all([
         leer('planilla_cobranzas?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha) + '&order=created_at.asc'),
         leer('planilla_envios?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha)),
@@ -262,9 +309,11 @@ exports.handler = async (event) => {
           leer('reclamos?select=*,cliente:clientes(comercio,nombre,whatsapp)&id=eq.' + encodeURIComponent(p.id)),
           leer('reclamos_mensajes?select=*&reclamo_id=eq.' + encodeURIComponent(p.id) + '&order=created_at.asc'),
         ]);
+        if (Z && rec[0] && !Z.filaOk(rec[0])) return fuera();
         return json(200, { reclamo: rec[0] || null, mensajes });
       }
-      return json(200, { filas: await leer('reclamos?select=*,cliente:clientes(comercio,nombre,whatsapp)&order=updated_at.desc&limit=200') });
+      const filas = await leer('reclamos?select=*,cliente:clientes(comercio,nombre,whatsapp)&order=updated_at.desc&limit=' + (Z ? 1000 : 200));
+      return json(200, { filas: Z ? filas.filter(Z.filaOk).slice(0, 200) : filas });
     }
 
     // ── Cómo viene la revisión de comprobantes ──────────────
@@ -277,8 +326,9 @@ exports.handler = async (event) => {
     if (que === 'supervision') {
       const desdeDias = Math.max(1, parseInt(p.dias || '30', 10) || 30);
       const desde = new Date(Date.now() - desdeDias * 86400000).toISOString();
-      const comps = await leerTodo('comprobantes?select=id,cliente_id,estado,monto,fecha_pago,procesado_por,procesado_at,revisado_por,revisado_at,created_at,tipo'
-        + '&tipo=eq.cliente&created_at=gte.' + desde + '&order=created_at.desc');
+      const comps = (await leerTodo('comprobantes?select=id,cliente_id,estado,monto,fecha_pago,procesado_por,procesado_at,revisado_por,revisado_at,created_at,tipo'
+        + '&tipo=eq.cliente&created_at=gte.' + desde + '&order=created_at.desc'))
+        .filter(c => !Z || Z.cliOk(c.cliente_id));
 
       const num  = v => Number(v || 0);
       const prom = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
@@ -390,7 +440,8 @@ exports.handler = async (event) => {
       // Se recorre la cartera para sacar los totales: la función stats_cuentas_cubo
       // del otro sistema exige ser admin DE ESE sistema, y acá entramos con la llave
       // de servicio, así que se calcula del lado nuestro.
-      const cuentas = await leerTodo('cuentas_cubo?select=saldo,vencida,equipo,vendedor&order=codigo');
+      const cuentas = (await leerTodo('cuentas_cubo?select=codigo,saldo,vencida,equipo,vendedor&order=codigo'))
+        .filter(c => !Z || Z.codOk(c.codigo));
       const num = v => Number(v || 0);
       const cartera = cuentas.reduce((a, c) => a + num(c.saldo), 0);
       const vencida = cuentas.reduce((a, c) => a + num(c.vencida), 0);
@@ -508,7 +559,8 @@ exports.handler = async (event) => {
         const info = dir[c.key] || {};
         c.mensajes.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
         return { telefono: c.telefono, cliente: info.nombre || c.nombreFallback || null, codigo: info.codigo || c.codigoFallback || null, entrantes: c.entrantes, ultimoTexto: c.ultimoTexto, ultimaFecha: c.ultimaFecha, ultimoEstado: c.ultimoEstado, error: c.error, mensajes: c.mensajes };
-      }).sort((a, b) => String(b.ultimaFecha || '').localeCompare(String(a.ultimaFecha || '')));
+      }).sort((a, b) => String(b.ultimaFecha || '').localeCompare(String(a.ultimaFecha || '')))
+        .filter(c => !Z || (c.codigo ? Z.codOk(c.codigo) : Z.zona !== 'san_luis'));
       return json(200, { conversaciones });
     }
 

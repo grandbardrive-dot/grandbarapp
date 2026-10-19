@@ -544,7 +544,7 @@ const US_ROLES = [
   { k:'compras',        n:'Compras',         d:'Luciana: campañas, catálogo, comparador.' },
   { k:'marketing',      n:'Marketing',       d:'Materiales y catálogo de acciones.' },
   { k:'administracion', n:'Administración',  d:'Cobranzas y cuenta corriente.' },
-  { k:'tesoreria',      n:'Tesorería',       d:'Revisión de cobranzas.' },
+  { k:'tesoreria',      n:'Tesorería',       d:'Revisión de cobranzas, reclamos y cuenta corriente. Con región San Luis ve solo lo de San Luis (Romina); sin región, todo (Mónica).' },
   { k:'equipo_admin',   n:'Equipo de administración', d:'Sebastián, Andrea, Laura y Kathy: sus tareas (las asigna Brenda), la agenda del equipo y la propia.' },
   { k:'deposito',       n:'Depósito',        d:'Stock, vencimientos, materiales.' },
   { k:'mayorista',      n:'Mayorista',       d:'Tienda (Mza Distribución): panel de vendedor sin ruta ni agenda eficiente. Necesita código de vendedor.' },
@@ -614,6 +614,13 @@ function usRender() {
         <label>Rol
           <select onchange="usRol('${hhEsc(u.id)}',this.value,this)">
             ${US_ROLES.map(r => `<option value="${r.k}" ${r.k === u.rol ? 'selected' : ''}>${r.n}</option>`).join('')}
+          </select>
+        </label>
+        <label>Región
+          <select onchange="usGuardar('${hhEsc(u.id)}',{region:this.value||null})" title="Vendedores: arma el equipo del supervisor. Tesorería y administración: con región ven solo esa zona en Cobranzas.">
+            <option value="" ${!u.region ? 'selected' : ''}>—</option>
+            <option value="mendoza" ${u.region === 'mendoza' ? 'selected' : ''}>Mendoza</option>
+            <option value="san_luis" ${u.region === 'san_luis' ? 'selected' : ''}>San Luis</option>
           </select>
         </label>
         <label>Supervisor
