@@ -1,10 +1,7 @@
 // GrandBar Hub · Grabar/subir audio de reunión → transcripción IA → minuta.
 // Uso: mountMinutaIA(contenedorEl, fill) donde fill({temas,pendientes,notas}).
 (function () {
-  var MAN = { url: 'https://fzaxwuuodseyyinveknn.supabase.co', key: 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk' };
   var HUB = { url: 'https://xqhyemccbwmzxqzkrtwa.supabase.co', key: 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
-  var _man = null;
-  function man() { if (!_man) _man = supabase.createClient(MAN.url, MAN.key); return _man; }
   async function hubToken() { try { var c = supabase.createClient(HUB.url, HUB.key); var r = await c.auth.getSession(); return r.data.session && r.data.session.access_token; } catch (e) { return null; } }
   function fmtT(s) { return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
 
@@ -47,12 +44,19 @@
         recBtn.disabled = true; fileInp.disabled = true;
         if ((blob.size || 0) > 100 * 1024 * 1024) { status.textContent = 'El audio pesa más de 100MB. Grabá algo más corto.'; recBtn.disabled = false; fileInp.disabled = false; return; }
         status.textContent = '⏳ Subiendo audio…';
-        var path = 'reuniones-audio/' + Date.now() + '-' + Math.floor(Math.random() * 99999) + '.' + ext;
-        var up = await man().storage.from('Activaciones').upload(path, blob, { upsert: true, contentType: blob.type || 'audio/webm' });
+        // Depósito PRIVADO del Portal, en la carpeta de cada uno (19/10/2026). Antes iba al
+        // depósito público del manual: cualquiera podía listar y bajar las grabaciones.
+        // La transcripción recibe una dirección firmada que vence en 2 horas.
+        var hub = supabase.createClient(HUB.url, HUB.key);
+        var ses = (await hub.auth.getSession()).data.session;
+        if (!ses) throw new Error('Volvé a entrar al Portal para grabar.');
+        var path = ses.user.id + '/' + Date.now() + '-' + Math.floor(Math.random() * 99999) + '.' + ext;
+        var up = await hub.storage.from('minutas-audio').upload(path, blob, { upsert: false, contentType: blob.type || 'audio/webm' });
         if (up.error) throw up.error;
-        var pub = man().storage.from('Activaciones').getPublicUrl(path);
-        var url = pub.data.publicUrl;
-        var token = await hubToken();
+        var fir = await hub.storage.from('minutas-audio').createSignedUrl(path, 7200);
+        if (fir.error) throw fir.error;
+        var url = fir.data.signedUrl;
+        var token = ses.access_token;
         status.textContent = '⏳ Transcribiendo con IA…';
         var r = await fetch('/.netlify/functions/transcribir-minuta', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'start', audio_url: url }) });
         var d = await r.json(); if (!r.ok || !d.ok) { status.textContent = 'Error: ' + (d.error || 'no se pudo iniciar'); recBtn.disabled = false; fileInp.disabled = false; return; }

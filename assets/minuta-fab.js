@@ -17,7 +17,7 @@
   function load(src) { return new Promise(function (res, rej) { var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
   async function deps() {
     if (!window.supabase) await load('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
-    if (!window.mountMinutaIA) await load('/assets/minuta-ia.js');
+    if (!window.mountMinutaIA) await load('/assets/minuta-ia.js?v=2');
   }
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); };
   var lines = function (v) { return String(v || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean); };
@@ -100,7 +100,9 @@
     btn.disabled = true; msg.style.color = '#6d7d85'; msg.textContent = 'Guardando…';
     try {
       var fila = { usuario_id: USER.id, usuario_nombre: USER.nombre, titulo: document.getElementById('mfab-tit').value.trim() || 'Minuta', temas: temas, pendientes: pend, notas: notas || null, transcript: TRANSCRIPT || null };
-      var r = await man.from('minutas_sueltas').insert(fila);
+      // En la base del Portal, con la sesión: cada uno guarda y ve solo las suyas (19/10/2026;
+      // antes estaban en la base del manual, abiertas para cualquiera con la clave pública).
+      var r = await hub.from('minutas_sueltas').insert(fila);
       if (r.error) throw r.error;
       msg.style.color = '#2f8f6e'; msg.textContent = '✅ Minuta guardada.';
       setTimeout(cerrar, 900);
@@ -112,7 +114,7 @@
     var body = ov.querySelector('#mfab-body');
     body.innerHTML = '<div style="text-align:center;color:#6d7d85;padding:20px">Cargando…</div>';
     try {
-      var r = await man.from('minutas_sueltas').select('*').eq('usuario_id', USER.id).order('created_at', { ascending: false }).limit(60);
+      var r = await hub.from('minutas_sueltas').select('*').eq('usuario_id', USER.id).order('created_at', { ascending: false }).limit(60);
       var arr = r.data || [];
       var head = '<button id="mfab-nueva" style="width:100%;border:1.5px dashed #cfe0ec;background:#f6fafd;color:#2c5a80;border-radius:11px;padding:12px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;margin-bottom:12px">＋ Nueva minuta</button>';
       if (!arr.length) { body.innerHTML = head + '<div style="text-align:center;color:#6d7d85;padding:14px">Todavía no guardaste minutas.</div>'; document.getElementById('mfab-nueva').onclick = abrir; return; }
