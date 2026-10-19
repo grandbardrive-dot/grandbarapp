@@ -173,6 +173,19 @@ exports.handler = async (event) => {
         await cob('reclamos?id=eq.' + encodeURIComponent(b.id) + '&estado=eq.abierto', { method: 'PATCH', body: JSON.stringify({ estado: 'en_curso' }) });
         return json(200, { ok: true, mensaje: filas[0] || null });
       }
+      // Moni marca una fila de la planilla de rendición como procesada y/o deja observaciones.
+      if (b.accion === 'planilla-marcar') {
+        if (!b.id) return json(400, { error: 'Falta la fila.' });
+        const campos = {};
+        if ('procesado' in b) {
+          campos.procesado = !!b.procesado;
+          campos.procesado_at = b.procesado ? new Date().toISOString() : null;
+          campos.procesado_por = b.procesado ? (perfil.nombre || null) : null;
+        }
+        if ('observaciones' in b) campos.observaciones = b.observaciones ? String(b.observaciones).slice(0, 500) : null;
+        if (!Object.keys(campos).length) return json(400, { error: 'Nada para guardar.' });
+        return patch('planilla_cobranzas', 'id=eq.' + encodeURIComponent(b.id), campos, 'Esa fila');
+      }
       return json(400, { error: 'Acción desconocida: ' + b.accion });
     }
 

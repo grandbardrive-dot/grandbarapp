@@ -1081,6 +1081,7 @@ async function cobPlanillaDet(vendedor, fecha) {
     const filas = d.filas || [], env = d.envio;
     const MONEY = ['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'];
     const t = {}; MONEY.forEach(k => t[k] = 0); filas.forEach(f => MONEY.forEach(k => t[k] += Number(f[k]) || 0));
+    const nProc = filas.filter(f => f.procesado).length;
     const money = v => (Number(v) || 0) ? cnum(v) : '';
     const arch = u => u ? `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : '<span style="color:var(--muted)">—</span>';
     const nomVend = (env && env.vendedor_nombre) || ('Vendedor ' + vendedor);
@@ -1088,26 +1089,46 @@ async function cobPlanillaDet(vendedor, fecha) {
     const td = (v, r) => `<td style="padding:8px 11px;text-align:${r ? 'right' : 'left'}">${v}</td>`;
     cq('pla-det').innerHTML = `
       <div class="head"><div><h1>Rendición · ${cesc(nomVend)}</h1>
-        <div class="head-sub">${cfec(fecha)}${env && env.enviada_at ? ' · enviada ' + cfec(env.enviada_at) : ''} · ${filas.length} fila${filas.length === 1 ? '' : 's'}</div></div></div>
+        <div class="head-sub">${cfec(fecha)}${env && env.enviada_at ? ' · enviada ' + cfec(env.enviada_at) : ''} · ${filas.length} fila${filas.length === 1 ? '' : 's'} · <b style="color:var(--green-d,#245647)">${nProc} procesada${nProc === 1 ? '' : 's'}</b></div></div></div>
+      <div class="wa-nota" style="margin-top:4px">Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Las que queden sin tildar son las que te faltan.</div>
       <div style="overflow-x:auto;border:1px solid #e6e6e6;border-radius:12px;margin-top:12px">
       <table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap">
         <thead><tr style="background:#0d2238;color:#eaf0f4">
-          ${th('Código')}${th('Razón social')}${th('Factura')}${th('Importe', 1)}${th('Efectivo', 1)}${th('Cheques', 1)}${th('Retenc.', 1)}${th('Transf/MP', 1)}${th('Tarjeta', 1)}${th('E-cheq', 1)}${th('Fecha')}${th('Comprob.')}${th('Recepción')}
+          ${th('Código')}${th('Razón social')}${th('Factura')}${th('Importe', 1)}${th('Efectivo', 1)}${th('Cheques', 1)}${th('Retenc.', 1)}${th('Transf/MP', 1)}${th('Tarjeta', 1)}${th('E-cheq', 1)}${th('Fecha')}${th('Comprob.')}${th('Recepción')}${th('Observaciones')}${th('Procesado')}
         </tr></thead>
-        <tbody>${filas.length ? filas.map(f => `<tr style="border-top:1px solid #eee">
+        <tbody>${filas.length ? filas.map(f => `<tr style="border-top:1px solid #eee;${f.procesado ? 'background:#e7f1ea' : ''}">
           ${td(cesc(f.codigo || ''))}
           ${td(cesc(f.razon_social || ''))}
           ${td(cesc(f.factura || ''))}
           ${td(money(f.importe), 1)}${td(money(f.efectivo), 1)}${td(money(f.cheques), 1)}${td(money(f.retenciones), 1)}${td(money(f.transferencia), 1)}${td(money(f.tarjeta), 1)}${td(money(f.echeq), 1)}
           ${td(f.fecha_pago ? cfec(f.fecha_pago) : '')}${td(arch(f.comprobante_url))}${td(arch(f.recepcion_url))}
-        </tr>`).join('') : `<tr><td colspan="13" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
+          <td style="padding:5px 8px"><input value="${cesc(f.observaciones || '')}" placeholder="…" onchange="cobPlanillaMarcar('${f.id}','observaciones',this.value,this)" style="border:1px solid #d7d7d7;border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;width:160px"></td>
+          <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${f.procesado ? 'checked' : ''} onchange="cobPlanillaMarcar('${f.id}','procesado',this.checked,this)" style="width:18px;height:18px;cursor:pointer">${f.procesado && f.procesado_por ? `<div style="font-size:9.5px;color:var(--muted)">${cesc(f.procesado_por)}</div>` : ''}</td>
+        </tr>`).join('') : `<tr><td colspan="15" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
         <tfoot><tr style="background:#f7efda;font-weight:800;border-top:2px solid #c9a13b">
           <td colspan="3" style="padding:9px 11px;text-align:right">TOTALES</td>
           ${td(cnum(t.importe), 1)}${td(cnum(t.efectivo), 1)}${td(cnum(t.cheques), 1)}${td(cnum(t.retenciones), 1)}${td(cnum(t.transferencia), 1)}${td(cnum(t.tarjeta), 1)}${td(cnum(t.echeq), 1)}
-          <td colspan="3"></td>
+          <td colspan="5"></td>
         </tr></tfoot>
       </table></div>`;
   } catch (e) { cq('pla-det').innerHTML = cerror(e.message); }
+}
+
+// Moni marca una fila como procesada / deja observaciones (en el detalle de la planilla).
+async function cobPlanillaMarcar(id, campo, valor, el) {
+  const body = { accion: 'planilla-marcar', id }; body[campo] = valor;
+  try {
+    await cobApi('', { method: 'POST', body: JSON.stringify(body) });
+    if (campo === 'procesado' && el) {
+      const tr = el.closest('tr'); if (tr) tr.style.background = valor ? '#e7f1ea' : '';
+      // actualizar el contador del subtítulo
+      const sub = cq('pla-det') && cq('pla-det').querySelector('.head-sub b');
+      if (sub) { const n = cq('pla-det').querySelectorAll('tbody input[type=checkbox]:checked').length; sub.textContent = n + ' procesada' + (n === 1 ? '' : 's'); }
+    }
+  } catch (e) {
+    alert('No se pudo guardar: ' + (e.message || e));
+    if (campo === 'procesado' && el) el.checked = !valor;
+  }
 }
 
 // ── Acciones (todas pasan por acá) ─────────────────────────
