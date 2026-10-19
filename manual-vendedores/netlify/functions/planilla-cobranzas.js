@@ -94,9 +94,9 @@ exports.handler = async (event) => {
 
       if (b.accion === 'subir') {
         if (!b.id || !b.file_base64) return json(400, { error: 'Falta la fila o el archivo.' });
-        const fila = await dueño(b.id);
+        const fr = await cob('planilla_cobranzas?id=eq.' + encodeURIComponent(b.id) + '&vendedor=eq.' + encodeURIComponent(codigo) + '&select=id,fecha_rendicion,comprobantes,comprobante_url');
+        const fila = (fr.ok ? await fr.json() : [])[0];
         if (!fila) return json(404, { error: 'Esa fila no es tuya o no existe.' });
-        const campo = b.tipo === 'recepcion' ? 'recepcion_url' : 'comprobante_url';
         let bytes; try { bytes = Buffer.from(String(b.file_base64).replace(/^data:[^,]*,/, ''), 'base64'); } catch (_) { bytes = null; }
         if (!bytes || !bytes.length) return json(400, { error: 'Archivo inválido.' });
         if (bytes.length > MAX_BYTES) return json(413, { error: 'El archivo es muy grande (máx 5 MB).' });
@@ -105,9 +105,19 @@ exports.handler = async (event) => {
         const up = await fetch(COB_URL + '/storage/v1/object/' + BUCKET + '/' + path, { method: 'POST', headers: { apikey: service, Authorization: 'Bearer ' + service, 'Content-Type': mime, 'x-upsert': 'true' }, body: bytes });
         if (!up.ok) return json(502, { error: 'No se pudo subir: ' + (await up.text()).slice(0, 150) });
         const url = COB_URL + '/storage/v1/object/public/' + BUCKET + '/' + path;
-        const r = await cob('planilla_cobranzas?id=eq.' + encodeURIComponent(b.id) + '&vendedor=eq.' + encodeURIComponent(codigo), { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ [campo]: url, updated_at: new Date().toISOString() }) });
+        const nombre = b.filename ? String(b.filename).slice(0, 80) : 'comprobante';
+        // Recepción: queda un solo archivo. Comprobante: se SUMA a la lista (varios por fila).
+        if (b.tipo === 'recepcion') {
+          const r = await cob('planilla_cobranzas?id=eq.' + encodeURIComponent(b.id) + '&vendedor=eq.' + encodeURIComponent(codigo), { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ recepcion_url: url, updated_at: new Date().toISOString() }) });
+          if (!r.ok) return json(400, { error: 'Se subió pero no se pudo guardar el enlace.' });
+          return json(200, { ok: true, url, campo: 'recepcion_url' });
+        }
+        const lista = Array.isArray(fila.comprobantes) ? fila.comprobantes.slice() : [];
+        if (fila.comprobante_url && !lista.some(x => x && x.url === fila.comprobante_url)) lista.unshift({ url: fila.comprobante_url, nombre: 'comprobante' });
+        lista.push({ url, nombre });
+        const r = await cob('planilla_cobranzas?id=eq.' + encodeURIComponent(b.id) + '&vendedor=eq.' + encodeURIComponent(codigo), { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ comprobantes: lista, comprobante_url: null, updated_at: new Date().toISOString() }) });
         if (!r.ok) return json(400, { error: 'Se subió pero no se pudo guardar el enlace.' });
-        return json(200, { ok: true, url, campo });
+        return json(200, { ok: true, url, campo: 'comprobantes', comprobantes: lista });
       }
 
       if (b.accion === 'enviar') {
@@ -125,14 +135,22 @@ exports.handler = async (event) => {
 
       // agregar (default)
       const fecha = okFecha(b.fecha_rendicion) ? b.fecha_rendicion : hoyAR();
+      // Transferencias y cheques pueden venir con VARIOS importes (detalle).
+      const detArr = v => Array.isArray(v) ? v.map(x => num(x)).filter(x => x > 0) : null;
+      const tDet = detArr(b.transferencia_detalle), cDet = detArr(b.cheques_detalle);
       const fila = {
         vendedor: codigo, fecha_rendicion: fecha,
         recibo: b.recibo ? String(b.recibo).slice(0, 60) : null,
         razon_social: b.razon_social ? String(b.razon_social).slice(0, 160) : null,
         codigo: b.codigo ? String(b.codigo).slice(0, 30) : null,
-        factura: b.factura ? String(b.factura).slice(0, 60) : null,
-        importe: num(b.importe), efectivo: num(b.efectivo), cheques: num(b.cheques),
-        retenciones: num(b.retenciones), transferencia: num(b.transferencia), tarjeta: num(b.tarjeta), echeq: num(b.echeq),
+        factura: b.factura ? String(b.factura).slice(0, 400) : null,
+        importe: num(b.importe), efectivo: num(b.efectivo),
+        cheques: (cDet && cDet.length) ? cDet.reduce((a, x) => a + x, 0) : num(b.cheques),
+        retenciones: num(b.retenciones),
+        transferencia: (tDet && tDet.length) ? tDet.reduce((a, x) => a + x, 0) : num(b.transferencia),
+        tarjeta: num(b.tarjeta), echeq: num(b.echeq),
+        transferencia_detalle: (tDet && tDet.length) ? tDet : null,
+        cheques_detalle: (cDet && cDet.length) ? cDet : null,
         fecha_pago: okFecha(b.fecha_pago) ? b.fecha_pago : null,
         nota: b.nota ? String(b.nota).slice(0, 300) : null,
         creado_por: user.id,

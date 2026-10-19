@@ -1092,7 +1092,11 @@ async function cobPlanillaDet(vendedor, fecha) {
     const t = {}; MONEY.forEach(k => t[k] = 0); filas.forEach(f => MONEY.forEach(k => t[k] += Number(f[k]) || 0));
     const nProc = filas.filter(f => f.procesado).length;
     const money = v => (Number(v) || 0) ? cnum(v) : '';
+    // Transferencia/cheques con varios importes: muestra el total + el desglose en tooltip.
+    const mDet = (val, det) => { const v = money(val); if (Array.isArray(det) && det.length > 1) return `<span title="${det.map(x => cnum(x)).join(' + ')}" style="border-bottom:1px dotted #999;cursor:help">${v} <span style="font-size:10px;color:var(--muted)">(${det.length})</span></span>`; return v; };
     const arch = u => u ? `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : '<span style="color:var(--muted)">—</span>';
+    // Comprobantes: pueden ser varios por fila.
+    const archComp = f => { const arr = (f.comprobante_url ? [{ url: f.comprobante_url }] : []).concat(Array.isArray(f.comprobantes) ? f.comprobantes : []); return arr.length ? arr.map((c, i) => `<a class="cb-b" href="${cesc(c.url)}" target="_blank" rel="noopener" style="margin:1px">👁${arr.length > 1 ? (' ' + (i + 1)) : ''}</a>`).join(' ') : '<span style="color:var(--muted)">—</span>'; };
     const nomVend = (env && env.vendedor_nombre) || ('Vendedor ' + vendedor);
     const th = (h, r) => `<th style="padding:9px 11px;text-align:${r ? 'right' : 'left'};font-size:11px;text-transform:uppercase">${h}</th>`;
     const td = (v, r) => `<td style="padding:8px 11px;text-align:${r ? 'right' : 'left'}">${v}</td>`;
@@ -1109,8 +1113,8 @@ async function cobPlanillaDet(vendedor, fecha) {
           ${td(cesc(f.codigo || ''))}
           ${td(cesc(f.razon_social || ''))}
           ${td(cesc(f.factura || ''))}
-          ${td(money(f.importe), 1)}${td(money(f.efectivo), 1)}${td(money(f.cheques), 1)}${td(money(f.retenciones), 1)}${td(money(f.transferencia), 1)}${td(money(f.tarjeta), 1)}${td(money(f.echeq), 1)}
-          ${td(f.fecha_pago ? cfec(f.fecha_pago) : '')}${td(arch(f.comprobante_url))}${td(arch(f.recepcion_url))}
+          ${td(money(f.importe), 1)}${td(money(f.efectivo), 1)}${td(mDet(f.cheques, f.cheques_detalle), 1)}${td(money(f.retenciones), 1)}${td(mDet(f.transferencia, f.transferencia_detalle), 1)}${td(money(f.tarjeta), 1)}${td(money(f.echeq), 1)}
+          ${td(f.fecha_pago ? cfec(f.fecha_pago) : '')}${td(archComp(f))}${td(arch(f.recepcion_url))}
           <td style="padding:5px 8px"><input value="${cesc(f.observaciones || '')}" placeholder="…" onchange="cobPlanillaMarcar('${f.id}','observaciones',this.value,this)" style="border:1px solid #d7d7d7;border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;width:160px"></td>
           <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${f.procesado ? 'checked' : ''} onchange="cobPlanillaMarcar('${f.id}','procesado',this.checked,this)" style="width:18px;height:18px;cursor:pointer">${f.procesado && f.procesado_por ? `<div style="font-size:9.5px;color:var(--muted)">${cesc(f.procesado_por)}</div>` : ''}</td>
         </tr>`).join('') : `<tr><td colspan="15" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
