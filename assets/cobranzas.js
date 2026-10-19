@@ -18,7 +18,8 @@ const COB_SECCIONES = [
   { id:'whatsapp',     ico:'📲', n:'WhatsApp',            d:'Lo que responden los clientes y cómo llegaron los avisos. Es de lectura.', color:'#e0533c', roles:COB_SOLO_ADMIN },
   { id:'estadisticas', ico:'📊', n:'Estadísticas',        d:'Cartera, cobranzas y comparativas del período.',                 color:'#2f6db0', roles:COB_SOLO_ADMIN },
   { id:'bloquear',     ico:'🔒', n:'Bloquear cuentas',    d:'Clientes que superaron su límite: bloqueá o dá de alta.',        color:'#d6a52b', roles:COB_SOLO_ADMIN },
-  { id:'reclamos',     ico:'💬', n:'Reclamos',            d:'Reclamos de clientes, con chat y número de seguimiento.',        color:'#7b5cd6', roles:COB_SOLO_ADMIN },
+  // conZona: también la ve tesorería con zona (Romina, San Luis: sus reclamos, 19/10/2026).
+  { id:'reclamos',     ico:'💬', n:'Reclamos',            d:'Reclamos de clientes, con chat y número de seguimiento.',        color:'#7b5cd6', roles:COB_SOLO_ADMIN, conZona:true },
   { id:'efectivo',     ico:'💵', n:'Cobros en efectivo',  d:'Clientes que avisaron que tienen el efectivo listo para retirar.', color:'#2d8a4f' },
   { id:'planillas',    ico:'📋', n:'Planillas de rendición', d:'Las rendiciones de cobranzas que te envían los vendedores, por día.', color:'#b5802b' },
   { id:'tareas',       ico:'✅', n:'Tareas del equipo',   d:'Qué tiene que hacer cada una del equipo y qué quedó hecho.',      color:'#3b6fa0', roles:COB_SOLO_ADMIN },
@@ -85,7 +86,7 @@ function cobTablero() {
           <div class="ico" style="background:#1f447f1a">💳</div>
           <h3>Revisión de cobranzas</h3><p>Pagos que ya pasó el vendedor: cruzarlos con el banco y aceptarlos o rechazarlos.</p>
           <span class="cb-chip">Abrir</span>${cobRevisionAdentro() ? '</button>' : '</a>'}` : ''}
-      ${COB_SECCIONES.map(s => {
+      ${COB_SECCIONES.filter(cobVe).map(s => {
         const chip = cobChip(s.id);
         return `<button class="cb-card" style="border-top-color:${s.color}" onclick="cobAbrir('${s.id}')">
           <div class="ico" style="background:${s.color}1a">${s.ico}</div>
@@ -107,6 +108,10 @@ const cobEsTesoreria = () => String((COB_RESUMEN && COB_RESUMEN.rol) || '').toLo
 // `roles` = solo para esos roles; `arriba` = va pegada al Tablero (la Revisión de
 // cobranzas de Mónica) y no en "Equipo y lo mío". Dirección no las usa.
 const cobRol = () => String((COB_RESUMEN && COB_RESUMEN.rol) || '').toLowerCase();
+// Qué secciones ve cada uno: las de su rol, y las marcadas conZona si su usuario tiene
+// zona (Romina ve lo mismo que Mónica más Reclamos). Lo usan el menú, el tablero y el
+// arranque por #seccion, así los tres muestran lo mismo.
+const cobVe = s => !s.roles || s.roles.includes(cobRol()) || (!!s.conZona && !!(COB_RESUMEN && COB_RESUMEN.zona));
 const cobExtra = () => (Array.isArray(window.COB_EXTRA) ? window.COB_EXTRA : [])
   .filter(s => !s.roles || s.roles.includes(cobRol()));
 const cobRevisionAdentro = () => cobExtra().some(s => s.id === 'revision');
@@ -118,7 +123,7 @@ function cobNav() {
   nav.innerHTML = `<button class="sb-item ${COB_VISTA==='tablero'?'on':''}" onclick="cobTablero()"><span class="i">🏠</span> Tablero</button>` +
     (cobEsTesoreria() && !cobRevisionAdentro() ? `<a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">💳</span> Revisión de cobranzas</a>` : '') +
     extra.filter(s => s.arriba).map(boton).join('') +
-    COB_SECCIONES.filter(s => !s.roles || s.roles.includes(cobRol())).map(boton).join('') +
+    COB_SECCIONES.filter(cobVe).map(boton).join('') +
     (abajo.length ? `<div class="sb-grupo">Equipo y lo mío</div>` + abajo.map(boton).join('') : '');
 }
 
@@ -1188,6 +1193,6 @@ async function montarCobranzas() {
   // Si se llegó con #seccion (desde un aviso o un enlace), se abre esa sección.
   // Si no, la sección con la que arranca cada rol (window.COB_INICIO, ej. tesorería → revisión).
   const pedida = (location.hash || '').slice(1) || ((window.COB_INICIO || {})[cobRol()] || '');
-  if (pedida && (COB_SECCIONES.some(s => s.id === pedida) || cobExtra().some(s => s.id === pedida))) cobAbrir(pedida);
+  if (pedida && (COB_SECCIONES.some(s => s.id === pedida && cobVe(s)) || cobExtra().some(s => s.id === pedida))) cobAbrir(pedida);
   else cobTablero();
 }
