@@ -214,13 +214,13 @@
           <datalist id="plCodigos"></datalist>
           <input id="plRazon" placeholder="Razón social (se completa sola)" readonly>
           <input id="plFactura" placeholder="Factura(s) — elegilas abajo" readonly>
-          <input id="plImporte" type="number" inputmode="decimal" placeholder="Importe">
-          <input id="plEfectivo" type="number" inputmode="decimal" placeholder="Efectivo">
-          <input id="plCheques" type="number" inputmode="decimal" placeholder="Cheques">
-          <input id="plReten" type="number" inputmode="decimal" placeholder="Retenciones">
-          <input id="plTransf" type="number" inputmode="decimal" placeholder="Transf / Merc Pago">
-          <input id="plTarjeta" type="number" inputmode="decimal" placeholder="Tarjeta">
-          <input id="plEcheq" type="number" inputmode="decimal" placeholder="E-cheq">
+          <input id="plImporte" type="number" inputmode="decimal" placeholder="Importe" autocomplete="off" name="pl-imp" data-lpignore="true" data-form-type="other">
+          <input id="plEfectivo" type="number" inputmode="decimal" placeholder="Efectivo" autocomplete="off" name="pl-efe" data-lpignore="true" data-form-type="other">
+          <input id="plCheques" type="number" inputmode="decimal" placeholder="Cheques" autocomplete="off" name="pl-che" data-lpignore="true" data-form-type="other">
+          <input id="plReten" type="number" inputmode="decimal" placeholder="Retenciones" autocomplete="off" name="pl-ret" data-lpignore="true" data-form-type="other">
+          <input id="plTransf" type="number" inputmode="decimal" placeholder="Transf / Merc Pago" autocomplete="off" name="pl-tra" data-lpignore="true" data-form-type="other">
+          <input id="plTarjeta" type="number" inputmode="decimal" placeholder="Tarjeta" autocomplete="off" name="pl-tar" data-lpignore="true" data-form-type="other">
+          <input id="plEcheq" type="number" inputmode="decimal" placeholder="E-cheq" autocomplete="off" name="pl-ech" data-lpignore="true" data-form-type="other">
           <input id="plFechaPago" type="date" title="Fecha del pago">
           <button class="btn-ok" id="plAdd" onclick="agregarPlanilla()">＋ Agregar fila</button>
         </div>
@@ -466,6 +466,13 @@
     };
     aviso("");
     if(!campos.codigo && !campos.razon_social && !campos.factura){ aviso("Cargá el código del cliente."); return; }
+    // Red de seguridad: si el total de pagos quedó MAYOR al importe de las facturas,
+    // avisar (puede ser un monto cargado mal, como un autocompletado del navegador).
+    const sumPagos=["efectivo","cheques","retenciones","transferencia","tarjeta","echeq"].reduce((a,k)=>a+(Number(campos[k])||0),0);
+    const imp=Number(campos.importe)||0;
+    if(imp>0 && sumPagos>imp*1.02){
+      if(!confirm("Ojo: el total de pagos ($"+Math.round(sumPagos).toLocaleString("es-AR")+") es MAYOR que el importe de la/s factura/s ($"+Math.round(imp).toLocaleString("es-AR")+").\n\nRevisá que el monto no se haya cargado mal. ¿Agregar igual?")) return;
+    }
     const btn=g("plAdd"), antes=btn.textContent; btn.disabled=true; btn.textContent="Guardando…";
     try{
       const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"agregar", ...campos }) });
