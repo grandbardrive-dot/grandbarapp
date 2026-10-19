@@ -76,8 +76,8 @@ function cobTablero() {
     <div class="head"><div>
       <h1>Cobranzas${COB_RESUMEN.zona ? ' · ' + cesc(COB_RESUMEN.zona) : ''}</h1>
       <div class="head-sub">${COB_RESUMEN.zona
-        ? 'Cuenta corriente, comprobantes y reclamos de los clientes de ' + cesc(COB_RESUMEN.zona) + ', más las tareas del equipo.'
-        : 'Cuenta corriente, comprobantes y reclamos, más las tareas del equipo.'}</div>
+        ? 'Cuenta corriente, comprobantes y reclamos de los clientes de ' + cesc(COB_RESUMEN.zona) + '.'
+        : 'Cuenta corriente, comprobantes y reclamos' + (COB_SECCIONES.some(s => s.id === 'tareas' && cobVe(s)) ? ', más las tareas del equipo.' : '.')}</div>
     </div></div>
     <div class="cb-cards">
       ${cobEsTesoreria() ? (cobRevisionAdentro()
@@ -970,7 +970,7 @@ function recPintarDetalle(d) {
           <button class="cb-b" type="button" onclick="document.getElementById('r-file').click()">📎 Adjuntar</button>
           <span id="r-adj-nom" style="font-size:12px;color:var(--muted,#777)"></span>
           <span style="flex:1"></span>
-          <button class="btn-gold" id="r-send" type="button" onclick="recResponder('${r.id}')" style="padding:9px 18px">Enviar respuesta</button>
+          <button class="cb-b ok" id="r-send" type="button" onclick="recResponder('${r.id}')" style="padding:9px 18px;background:var(--green,#2f6f5e);border-color:var(--green,#2f6f5e);color:#fff">Enviar respuesta</button>
         </div>
       </div>
       <div class="pd-acts" style="margin-top:14px">
@@ -1184,6 +1184,8 @@ async function montarCobranzas() {
   await cobCargarResumen();
   // Con zona (Romina, San Luis), que se vea debajo del nombre.
   if (quien && COB_RESUMEN.zona) quien.textContent = (s.nombre || '') + ' · ' + COB_RESUMEN.zona;
+  // La guía de San Luis (guia-cobranzas-sl.html), en el menú solo para esa zona.
+  const guia = cq('cob-guia'); if (guia && COB_RESUMEN.zona === 'San Luis') guia.style.display = '';
   _cobrosPendVistos = Number((COB_RESUMEN && COB_RESUMEN.cobrosPend) || 0); // base, para no sonar al entrar
   if (COB_RESUMEN._error) {
     cobNav();

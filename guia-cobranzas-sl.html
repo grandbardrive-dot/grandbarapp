@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f447f">
+<title>Guía de Cobranzas · San Luis · GrandBar</title>
+<meta name="description" content="Manual del panel de Cobranzas para la administración de San Luis: revisión de pagos contra el banco, clientes, supervisión, cobros en efectivo, planillas de rendición y reclamos.">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  /* Mismo estilo de manual impreso que las guías de vendedores y supervisores
+     (25/09/2026): logo y azul de GrandBar, títulos en Oswald, texto en Source Sans 3
+     y capturas reales del panel con los datos difuminados. Acá las capturas son de
+     compu, porque el panel de Cobranzas se usa en la compu. */
+  :root {
+    --papel: #efebe2; --hoja: #fffdf8; --tinta: #1c2733; --gris: #5b6670; --linea: #dcd5c6;
+    --azul: #1f447f; --azul-2: #2b5aa3; --oro: #9c7220;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body { margin: 0; background: var(--papel); color: var(--tinta); font-family: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 18px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  a { color: var(--azul-2); }
+  b, strong { font-weight: 700; }
+  .barra { position: sticky; top: 0; z-index: 10; background: rgba(255,253,248,.96); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border-bottom: 1px solid var(--linea); }
+  .barra-in { max-width: 960px; margin: 0 auto; padding: 8px 20px; display: flex; align-items: center; gap: 16px; }
+  .barra img { height: 28px; width: auto; display: block; }
+  .barra .esp { flex: 1; }
+  .barra a.lnk { font-family: 'Oswald', sans-serif; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; color: var(--azul); text-decoration: none; }
+  .barra a.lnk.portal { color: #fff; background: var(--azul); padding: 6px 12px; border-radius: 6px; }
+  .hoja { max-width: 960px; margin: 0 auto; background: var(--hoja); box-shadow: 0 0 0 1px var(--linea); }
+  .portada { padding: 44px 48px 36px; border-bottom: 3px double var(--linea); }
+  .portada img { width: 190px; height: auto; display: block; margin: 0 0 30px; }
+  .rotulo { font-family: 'Oswald', sans-serif; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; font-size: 13px; color: var(--oro); }
+  .portada h1 { font-family: 'Oswald', sans-serif; font-weight: 600; text-transform: uppercase; color: var(--azul); font-size: clamp(36px, 7.4vw, 58px); line-height: 1.02; letter-spacing: .005em; margin: 10px 0 18px; }
+  .portada p { max-width: 36em; margin: 0 0 24px; color: #36414b; font-size: 19px; }
+  .ficha { display: flex; flex-wrap: wrap; gap: 6px 30px; font-size: 14.5px; color: var(--gris); border-top: 1px solid var(--linea); padding-top: 14px; }
+  .ficha b { color: var(--tinta); font-weight: 600; }
+  .indice { padding: 30px 48px 34px; border-bottom: 1px solid var(--linea); scroll-margin-top: 50px; }
+  .partes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 44px; margin-top: 6px; }
+  .parte h3 { font-family: 'Oswald', sans-serif; font-weight: 500; font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--azul); margin: 16px 0 6px; }
+  .parte ol { list-style: none; margin: 0; padding: 0; }
+  .parte li a { display: flex; gap: 12px; align-items: baseline; padding: 3px 0; font-size: 16.5px; color: var(--tinta); text-decoration: none; }
+  .parte li a:hover .t { text-decoration: underline; }
+  .parte li .n { font-family: 'Oswald', sans-serif; color: var(--azul-2); font-size: 14px; min-width: 20px; }
+  .seccion { padding: 42px 48px 40px; border-bottom: 1px solid var(--linea); scroll-margin-top: 50px; }
+  .cab { display: grid; grid-template-columns: auto 1fr; gap: 0 18px; align-items: end; border-bottom: 2px solid var(--tinta); padding-bottom: 12px; margin: 6px 0 20px; }
+  .cab .num { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 70px; line-height: .82; color: transparent; -webkit-text-stroke: 1.6px var(--azul); }
+  .cab h2 { font-family: 'Oswald', sans-serif; font-weight: 600; text-transform: uppercase; color: var(--azul); font-size: 32px; line-height: 1.05; margin: 3px 0 0; }
+  .lede { font-size: 20px; color: #36414b; margin: 0 0 18px; max-width: 40em; }
+  .seccion p { margin: 0 0 14px; max-width: 46em; }
+  .texto { max-width: 46em; }
+  .dos-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 36px; }
+  h3.sub { font-family: 'Oswald', sans-serif; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; font-size: 17px; color: var(--tinta); margin: 26px 0 8px; }
+  /* Captura de compu: pantalla con un marco fino y las marcas numeradas encima. */
+  figure { margin: 26px 0 0; }
+  .pantalla { position: relative; border: 8px solid #141d27; border-radius: 12px; background: #141d27; }
+  .pantalla img { display: block; width: 100%; height: auto; border-radius: 4px; }
+  .marca { position: absolute; transform: translate(-50%, -50%); width: 28px; height: 28px; border-radius: 50%; background: var(--azul); color: #fff; font: 600 14px/28px 'Oswald', sans-serif; text-align: center; box-shadow: 0 0 0 3px #fff; }
+  figcaption { font-size: 14px; color: var(--gris); margin-top: 12px; line-height: 1.45; }
+  figcaption b { color: var(--tinta); font-weight: 600; }
+  ol.claves { list-style: none; margin: 0; padding: 0; counter-reset: c; max-width: 46em; }
+  ol.claves li { counter-increment: c; display: grid; grid-template-columns: 30px 1fr; gap: 8px; padding: 9px 0; border-top: 1px solid var(--linea); }
+  ol.claves li:last-child { border-bottom: 1px solid var(--linea); }
+  ol.claves li::before { content: counter(c); width: 24px; height: 24px; border-radius: 50%; background: var(--azul); color: #fff; font: 600 13px/24px 'Oswald', sans-serif; text-align: center; margin-top: 3px; }
+  ol.pasos { margin: 0 0 14px; padding: 0; list-style: none; counter-reset: p; max-width: 46em; }
+  ol.pasos li { counter-increment: p; position: relative; padding-left: 34px; margin: 0 0 12px; }
+  ol.pasos li::before { content: counter(p) "."; position: absolute; left: 0; top: -1px; font-family: 'Oswald', sans-serif; font-weight: 600; color: var(--azul); font-size: 20px; }
+  ul.lista { margin: 0 0 14px; padding-left: 20px; max-width: 46em; }
+  ul.lista li { margin-bottom: 7px; }
+  dl.ref { margin: 0; max-width: 46em; }
+  dl.ref dt { font-weight: 700; margin-top: 12px; }
+  dl.ref dt:first-child { margin-top: 0; }
+  dl.ref dd { margin: 2px 0 0; color: #36414b; }
+  .ui { font-weight: 600; }
+  .boton { display: inline-block; font-weight: 700; font-size: .8em; padding: 0 9px; border-radius: 6px; background: #0d2230; color: #fff; white-space: nowrap; line-height: 1.75; vertical-align: 1px; }
+  .boton.verde { background: #2f6f5e; color: #fff; }
+  .boton.claro { background: #fff; color: #1c2733; box-shadow: inset 0 0 0 1.5px var(--linea); }
+  .boton.rojo { background: #fff; color: #b5482d; box-shadow: inset 0 0 0 1.5px #e6c3b8; }
+  .boton.azul { background: #2f5fd0; color: #fff; }
+  .boton.violeta { background: #6b5bd0; color: #fff; }
+  .estado { display: inline-block; font-size: .78em; font-weight: 700; padding: 0 8px; border-radius: 999px; line-height: 1.7; white-space: nowrap; }
+  .e-amb { background: #f8efd6; color: #8a6412; } .e-ver { background: #e3efe9; color: #245647; } .e-roj { background: #f7e1da; color: #a9442b; }
+  .nota { border-left: 3px solid var(--oro); padding: 2px 0 2px 16px; margin: 22px 0 0; max-width: 46em; }
+  .nota p { margin: 2px 0 0; }
+  .circuito { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 8px 0 18px; border: 1px solid var(--linea); }
+  .circuito > div { padding: 14px 16px; border-right: 1px solid var(--linea); }
+  .circuito > div:last-child { border-right: 0; background: #f4f1ea; }
+  .circuito .q { font-family: 'Oswald', sans-serif; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; font-size: 13px; color: var(--oro); }
+  .circuito .t { font-weight: 700; margin: 2px 0 4px; }
+  .circuito p { font-size: 15.5px; margin: 0; color: #36414b; }
+  .arriba { display: inline-block; margin-top: 22px; font-family: 'Oswald', sans-serif; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; font-size: 12.5px; color: var(--gris); text-decoration: none; }
+  details.faq { border-top: 1px solid var(--linea); max-width: 46em; }
+  details.faq:last-of-type { border-bottom: 1px solid var(--linea); }
+  details.faq summary { cursor: pointer; list-style: none; padding: 13px 0; font-weight: 600; display: flex; justify-content: space-between; gap: 16px; }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::after { content: '+'; font-family: 'Oswald', sans-serif; color: var(--azul); font-size: 20px; line-height: 1.2; }
+  details.faq[open] summary::after { content: '–'; }
+  details.faq p { margin: 0 0 14px; color: #36414b; }
+  .pie { padding: 18px 48px 26px; font-size: 13.5px; color: var(--gris); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  @media (max-width: 760px) {
+    body { font-size: 17px; }
+    .barra-in { padding: 8px 16px; gap: 12px; }
+    .portada, .indice, .seccion, .pie { padding-left: 22px; padding-right: 22px; }
+    .partes, .dos-col, .circuito { grid-template-columns: 1fr; }
+    .circuito > div { border-right: 0; border-bottom: 1px solid var(--linea); }
+    .cab .num { font-size: 56px; }
+    .cab h2 { font-size: 27px; }
+    .lede { font-size: 19px; }
+    .marca { width: 22px; height: 22px; font-size: 12px; line-height: 22px; }
+    .pantalla { border-width: 5px; }
+  }
+  @media print {
+    .barra, .arriba { display: none !important; }
+    body { background: #fff; }
+    .hoja { box-shadow: none; }
+    figure { break-inside: avoid-page; }
+    .pantalla, .marca, .boton, .estado { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<header class="barra">
+  <div class="barra-in">
+    <a href="#indice"><img src="assets/guia-supervisores/logo-grandbar.png" alt="GrandBar Distribuciones" width="235" height="78"></a>
+    <span class="esp"></span>
+    <a class="lnk" href="#indice">Índice</a>
+    <a class="lnk portal" href="https://portalgrandbar.com" target="_blank" rel="noopener">Abrir el portal</a>
+  </div>
+</header>
+
+<div class="hoja">
+
+  <section class="portada">
+    <img src="assets/guia-supervisores/logo-grandbar.png" alt="GrandBar Distribuciones" width="235" height="78">
+    <div class="rotulo">Portal GrandBar · Manual de uso</div>
+    <h1>Guía de Cobranzas · San Luis</h1>
+    <p>Cómo usar el panel de Cobranzas del Portal GrandBar desde la administración de San Luis: revisar los pagos contra el banco, seguir la cuenta de cada cliente, los cobros en efectivo, las planillas de los vendedores y los reclamos, pantalla por pantalla.</p>
+    <div class="ficha">
+      <span><b>Para</b> Romina, administración San Luis</span>
+      <span><b>Versión</b> octubre 2026</span>
+      <span><b>Ayuda</b> WhatsApp +54 9 261 245-2651</span>
+    </div>
+  </section>
+
+  <nav class="indice" id="indice" aria-label="Contenido">
+    <div class="rotulo">Contenido</div>
+    <div class="partes">
+      <div class="parte">
+        <h3>I. Empezar</h3>
+        <ol>
+          <li><a href="#s01"><span class="n">01</span><span class="t">Entrar al portal</span></a></li>
+          <li><a href="#s02"><span class="n">02</span><span class="t">El panel: menú, tablero y avisos</span></a></li>
+        </ol>
+        <h3>II. Cobranzas</h3>
+        <ol>
+          <li><a href="#s03"><span class="n">03</span><span class="t">El camino de un pago</span></a></li>
+          <li><a href="#s04"><span class="n">04</span><span class="t">Revisión de cobranzas</span></a></li>
+          <li><a href="#s05"><span class="n">05</span><span class="t">Supervisión de cobranzas</span></a></li>
+          <li><a href="#s06"><span class="n">06</span><span class="t">Cobros en efectivo</span></a></li>
+          <li><a href="#s07"><span class="n">07</span><span class="t">Planillas de rendición</span></a></li>
+        </ol>
+      </div>
+      <div class="parte">
+        <h3>III. Clientes</h3>
+        <ol>
+          <li><a href="#s08"><span class="n">08</span><span class="t">Clientes</span></a></li>
+          <li><a href="#s09"><span class="n">09</span><span class="t">La ficha del cliente</span></a></li>
+        </ol>
+        <h3>IV. Reclamos</h3>
+        <ol>
+          <li><a href="#s10"><span class="n">10</span><span class="t">Reclamos</span></a></li>
+          <li><a href="#s11"><span class="n">11</span><span class="t">Responder un reclamo</span></a></li>
+        </ol>
+        <h3>V. Ayuda</h3>
+        <ol>
+          <li><a href="#s12"><span class="n">12</span><span class="t">Ayuda y preguntas frecuentes</span></a></li>
+        </ol>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===================== I. EMPEZAR ===================== -->
+  <section class="seccion" id="s01">
+    <div class="rotulo">Parte I · Empezar</div>
+    <div class="cab"><span class="num">01</span><h2>Entrar al portal</h2></div>
+    <p class="lede">Con tu email de GrandBar y tu contraseña. Entrás directo a tu panel de Cobranzas.</p>
+    <ol class="pasos">
+      <li>Abrí <a href="https://portalgrandbar.com" target="_blank" rel="noopener"><b>portalgrandbar.com</b></a> en el navegador de la compu.</li>
+      <li>En <span class="ui">Email</span> escribí <b>administracionsl@grandbar.com.ar</b>.</li>
+      <li>Escribí tu contraseña. El ojo del costado la muestra, para que veas si está bien escrita.</li>
+      <li>Tocá <span class="boton azul">Ingresar</span>. Entrás directo a la <span class="ui">Revisión de cobranzas</span>, que es lo que vas a usar todos los días (sección 4).</li>
+    </ol>
+    <div class="nota">
+      <div class="rotulo">Si te olvidaste la contraseña</div>
+      <p>Escribí tu email y tocá <span class="ui">¿Olvidaste tu contraseña?</span>. Se abre WhatsApp con soporte, con el pedido ya escrito, y te la restablecen.</p>
+    </div>
+    <div class="nota">
+      <div class="rotulo">Una cuenta por navegador</div>
+      <p>El navegador guarda una sola sesión del portal. Si en otra pestaña alguien entra con otra cuenta, arriba aparece un aviso para actualizar. Para tener dos cuentas abiertas a la vez, usá otro perfil de Chrome o una ventana de incógnito.</p>
+    </div>
+    <figure>
+      <div class="pantalla"><img src="assets/guia-cobranzas-sl/01-ingreso.jpg" alt="Pantalla de ingreso del Portal GrandBar" width="1280" height="820"></div>
+      <figcaption><b>Figura 1</b> · La pantalla de ingreso de portalgrandbar.com.</figcaption>
+    </figure>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s02">
+    <div class="rotulo">Parte I · Empezar</div>
+    <div class="cab"><span class="num">02</span><h2>El panel: menú, tablero y avisos</h2></div>
+    <p class="lede">Todo tu trabajo está en un solo panel, con el menú siempre a la izquierda.</p>
+    <ol class="claves">
+      <li><span>El menú. <span class="ui">Tablero</span> te muestra todo de un vistazo; las demás opciones son las secciones de esta guía.</span></li>
+      <li><span>Tu nombre y tu zona: <b>Romina · San Luis</b>. En todo el panel ves solo lo de San Luis (abajo, qué quiere decir eso).</span></li>
+      <li><span>Cada tarjeta del tablero abre su sección y dice cómo viene: comprobantes sin confirmar, reclamos abiertos, cobros en efectivo pendientes. En rojo, lo que espera algo.</span></li>
+      <li><span>La campanita. El número rojo cuenta los avisos nuevos y se actualiza solo cada minuto. Ahí te llega cada reclamo nuevo de San Luis (sección 10).</span></li>
+    </ol>
+    <figure>
+      <div class="pantalla">
+        <img src="assets/guia-cobranzas-sl/02-tablero.jpg" alt="Tablero del panel de Cobranzas San Luis" width="1280" height="820" loading="lazy">
+        <span class="marca" style="top:26.2%;left:17.8%">1</span>
+        <span class="marca" style="top:14.8%;left:12.3%">2</span>
+        <span class="marca" style="top:38.8%;left:84.8%">3</span>
+        <span class="marca" style="top:3.7%;left:94%">4</span>
+      </div>
+      <figcaption><b>Figura 2</b> · El tablero. Los números de las tarjetas son de ejemplo.</figcaption>
+    </figure>
+    <h3 class="sub">Qué es "San Luis" en el panel</h3>
+    <p>Son los clientes que en el sistema de la empresa (CUBO) están en el equipo <b>SL</b> o <b>MAY SL</b>: los de los vendedores 006, 010, 017, 041 y 043, y los mayoristas 008 y 032. Sus pagos, reclamos, cobros en efectivo y planillas son los que te aparecen a vos. Lo de Mendoza lo sigue viendo Mónica.</p>
+    <p>Si un cliente que es de San Luis no te aparece, fijate en CUBO en qué equipo está cargado: el panel sigue lo que dice CUBO y se actualiza solo cada hora.</p>
+    <h3 class="sub">Soporte y cerrar sesión</h3>
+    <dl class="ref">
+      <dt>Soporte</dt><dd>Abajo del menú. Abre WhatsApp con el equipo de sistemas, para cualquier problema con el portal.</dd>
+      <dt>Cerrar sesión</dt><dd>Abajo de todo en el menú. Hacelo siempre que uses una compu que no sea la tuya.</dd>
+    </dl>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <!-- ===================== II. COBRANZAS ===================== -->
+  <section class="seccion" id="s03">
+    <div class="rotulo">Parte II · Cobranzas</div>
+    <div class="cab"><span class="num">03</span><h2>El camino de un pago</h2></div>
+    <p class="lede">Un pago pasa por tres manos antes de cerrarse. Vos sos la última.</p>
+    <div class="circuito">
+      <div><div class="q">1 · El cliente</div><div class="t">Sube el comprobante</div><p>Desde su Portal del Cliente (portalclientegrandbar.com) informa la transferencia y adjunta el comprobante.</p></div>
+      <div><div class="q">2 · El vendedor</div><div class="t">Lo carga en Conquer</div><p>Lo ve en su pantalla de Cobranzas, lo carga en Conquer y lo marca como procesado.</p></div>
+      <div><div class="q">3 · Vos</div><div class="t">Lo cruzás con el banco</div><p>Te aparece en Revisión de cobranzas: lo comparás con el extracto del banco y lo aceptás o lo rechazás.</p></div>
+    </div>
+    <p>El cliente ve en su portal en qué paso está su pago, hasta que queda <span class="estado e-ver">Aceptado</span> o <span class="estado e-roj">Rechazado</span>, que es lo que decidís vos.</p>
+    <div class="nota">
+      <div class="rotulo">Aceptar no baja la deuda</div>
+      <p>Aceptar un pago confirma que la plata entró. La deuda del cliente baja cuando el pago está cargado en el sistema de la empresa: el portal se actualiza con el sistema cada hora. Por eso un cliente puede seguir viendo deuda un rato después de que aceptaste su pago.</p>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s04">
+    <div class="rotulo">Parte II · Cobranzas</div>
+    <div class="cab"><span class="num">04</span><h2>Revisión de cobranzas</h2></div>
+    <p class="lede">Los pagos de clientes de San Luis que el vendedor ya cargó en Conquer y esperan tu revisión contra el banco.</p>
+    <ol class="claves">
+      <li><span><span class="boton">Subir extracto</span>: subí el extracto del banco del día, en CSV. El panel toma solo los créditos (las transferencias que entraron) y busca solo con qué pago coincide cada uno. Si subís dos veces el mismo extracto, no se duplica nada.</span></li>
+      <li><span>Cada pago por revisar: el cliente con su código, el monto, el concepto y qué vendedor lo procesó. <span class="boton claro">Ver comprobante</span> abre lo que subió el cliente.</span></li>
+      <li><span>Si hay una transferencia del banco por el <b>mismo monto exacto</b>, aparece en verde con el nombre, la fecha y el documento de quien transfirió. Si es la correcta, tocá <span class="boton verde">Aceptar con esta</span>: el pago queda aceptado y esa transferencia queda usada.</span></li>
+      <li><span>Las otras opciones del pago: <span class="boton">Analizar con IA</span>, <span class="boton verde">Aceptar igual</span> y <span class="boton rojo">Rechazar</span> (abajo, qué hace cada una).</span></li>
+      <li><span>El <span class="ui">Historial</span>: los pagos que ya se cerraron, con quién los cerró. Más abajo, los <span class="ui">Recibos</span> que se emitieron a los clientes.</span></li>
+    </ol>
+    <figure>
+      <div class="pantalla">
+        <img src="assets/guia-cobranzas-sl/03-revision.jpg" alt="Revisión de cobranzas" width="1280" height="820" loading="lazy">
+        <span class="marca" style="top:19.5%;left:95.6%">1</span>
+        <span class="marca" style="top:37.8%;left:22.6%">2</span>
+        <span class="marca" style="top:48.2%;left:22.6%">3</span>
+        <span class="marca" style="top:55.4%;left:22.6%">4</span>
+        <span class="marca" style="top:66%;left:22.3%">5</span>
+      </div>
+      <figcaption><b>Figura 3</b> · Revisión de cobranzas, con un pago por revisar que coincide con una transferencia del banco. Los datos están difuminados.</figcaption>
+    </figure>
+    <h3 class="sub">Antes de aceptar</h3>
+    <ul class="lista">
+      <li>La coincidencia se busca solo por el monto. Antes de tocar <span class="ui">Aceptar con esta</span>, mirá que el nombre y la fecha de la transferencia sean de ese cliente.</li>
+      <li><span class="boton">Analizar con IA</span> lee el comprobante que subió el cliente y te muestra el monto que dice, la fecha, el banco, el titular y el número de operación. Si el monto no coincide con el que informó el cliente, o algo no se lee bien, lo marca como <b>Revisar</b>.</li>
+      <li>Si no aparece la coincidencia pero lo verificaste a mano en el banco, usá <span class="boton verde">Aceptar igual</span>.</li>
+      <li>Si el cliente pagó una parte con su saldo a favor, el pago lo dice en verde ("Usó saldo a favor"): el monto transferido puede ser menor que el de las facturas.</li>
+    </ul>
+    <h3 class="sub">Rechazar</h3>
+    <p><span class="boton rojo">Rechazar</span> cuando la plata no entró o el comprobante no corresponde. El cliente lo ve como rechazado en su portal. Si ese pago usaba saldo a favor, el saldo vuelve a quedar disponible para el cliente.</p>
+    <div class="nota">
+      <div class="rotulo">Se cierra una sola vez</div>
+      <p>Aceptar y rechazar no se pueden deshacer desde el panel. Si te equivocaste, escribile a soporte con el cliente y el monto.</p>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s05">
+    <div class="rotulo">Parte II · Cobranzas</div>
+    <div class="cab"><span class="num">05</span><h2>Supervisión de cobranzas</h2></div>
+    <p class="lede">Cómo viene el camino de los pagos de San Luis: dónde se frenan y cuánto tarda cada paso.</p>
+    <ol class="claves">
+      <li><span>El período: los últimos 7, 30 o 90 días.</span></li>
+      <li><span>Los números: cuántos comprobantes entraron, cuántos están frenados en el vendedor, cuántos te esperan a vos, y cuánto tardan en promedio el vendedor y tesorería.</span></li>
+      <li><span>Más abajo, las tablas: en qué estado está cada uno, <b>los que están trabados</b> (quién lo tiene y hace cuántos días), quién los cerró en tesorería y qué vendedor los confirmó.</span></li>
+    </ol>
+    <figure>
+      <div class="pantalla">
+        <img src="assets/guia-cobranzas-sl/06-supervision.jpg" alt="Supervisión de cobranzas" width="1280" height="820" loading="lazy">
+        <span class="marca" style="top:20%;left:21%">1</span>
+        <span class="marca" style="top:31%;left:21%">2</span>
+        <span class="marca" style="top:73.3%;left:21%">3</span>
+      </div>
+      <figcaption><b>Figura 4</b> · Supervisión de cobranzas. Los números están difuminados.</figcaption>
+    </figure>
+    <p style="margin-top:18px">Sirve para ver, por ejemplo, qué vendedor tiene comprobantes sin cargar en Conquer desde hace días: con eso le podés avisar antes de que el cliente reclame.</p>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s06">
+    <div class="rotulo">Parte II · Cobranzas</div>
+    <div class="cab"><span class="num">06</span><h2>Cobros en efectivo</h2></div>
+    <p class="lede">Los clientes de San Luis que avisaron desde su portal que tienen el efectivo listo para que lo pasen a buscar.</p>
+    <ol class="claves">
+      <li><span>Cada aviso: el cliente, el código, el vendedor, cuándo avisó, el monto y las facturas que quiere pagar.</span></li>
+      <li><span><span class="boton claro">WhatsApp</span> abre una conversación con el cliente. Cuando se retiró la plata, tocá <span class="boton verde">Cobrado</span>; si no va, <span class="boton rojo">Cancelar</span>.</span></li>
+      <li><span>Abajo quedan los <span class="ui">Ya resueltos</span>, cobrados o cancelados.</span></li>
+    </ol>
+    <figure>
+      <div class="pantalla">
+        <img src="assets/guia-cobranzas-sl/09-efectivo.jpg" alt="Cobros en efectivo" width="1280" height="820" loading="lazy">
+        <span class="marca" style="top:24.4%;left:21%">1</span>
+        <span class="marca" style="top:40.4%;left:21%">2</span>
+        <span class="marca" style="top:49.1%;left:21%">3</span>
+      </div>
+      <figcaption><b>Figura 5</b> · Cobros en efectivo, con un aviso pendiente y uno ya cobrado. Los datos están difuminados.</figcaption>
+    </figure>
+    <p style="margin-top:18px">La lista se actualiza sola cuando avisa un cliente. Si estás en otra sección, aparece un puntito al lado de <span class="ui">Cobros en efectivo</span> en el menú.</p>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s07">
+    <div class="rotulo">Parte II · Cobranzas</div>
+    <div class="cab"><span class="num">07</span><h2>Planillas de rendición</h2></div>
+    <p class="lede">Las rendiciones de cobranzas que te mandan los vendedores de San Luis, una por vendedor y por día.</p>
+    <p>Cada planilla dice el vendedor, el día, cuándo la mandó, cuántas filas tiene y el total por medio de pago (efectivo, cheques, retenciones, transferencia o Mercado Pago, tarjeta y e-cheq). Tocala para ver el detalle.</p>
+    <figure>
+      <div class="pantalla"><img src="assets/guia-cobranzas-sl/10-planillas.jpg" alt="Lista de planillas de rendición" width="1280" height="820" loading="lazy"></div>
+      <figcaption><b>Figura 6</b> · La lista de planillas. Los datos están difuminados.</figcaption>
+    </figure>
+    <h3 class="sub">El detalle de una planilla</h3>
+    <ol class="claves">
+      <li><span>Cada fila es un cobro: el cliente, la factura, el importe y cómo se pagó, con el comprobante y la recepción para ver. Si una transferencia o un cheque tiene varios importes, aparece el total con la cantidad entre paréntesis; pasá el mouse por encima para ver el detalle.</span></li>
+      <li><span><span class="ui">Observaciones</span>: escribí lo que haga falta en esa fila (por ejemplo, que falta una retención). Se guarda al salir del recuadro.</span></li>
+      <li><span><span class="ui">Procesado</span>: tildalo a medida que vas pasando cada fila. Debajo queda tu nombre y la fila se pinta de verde. Las que quedan sin tildar son las que te faltan.</span></li>
+    </ol>
+    <figure>
+      <div class="pantalla">
+        <img src="assets/guia-cobranzas-sl/11-planilla.jpg" alt="Detalle de una planilla de rendición" width="1280" height="820" loading="lazy">
+        <span class="marca" style="top:31%;left:21%">1</span>
+        <span class="marca" style="top:31%;left:75.6%">2</span>
+        <span class="marca" style="top:30.2%;left:97.6%">3</span>
+      </div>
+      <figcaption><b>Figura 7</b> · El detalle de una planilla, corrido a la derecha: las tres primeras filas ya están procesadas. Los datos están difuminados.</figcaption>
+    </figure>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <!-- ===================== III. CLIENTES ===================== -->
+  <section class="seccion" id="s08">
+    <div class="rotulo">Parte III · Clientes</div>
+    <div class="cab"><span class="num">08</span><h2>Clientes</h2></div>
+    <p class="lede">La cuenta corriente de cada cliente de San Luis, con los que más deben primero.</p>
+    <ol class="claves">
+      <li><span>El buscador: escribí el código o parte del nombre y apretá Enter.</span></li>
+      <li><span><span class="boton claro">Solo con deuda vencida</span> deja solo a los que tienen algo vencido. Tocalo de nuevo para ver a todos.</span></li>
+      <li><span>La lista: código, cliente, vendedor, equipo (SL o MAY SL), saldo y deuda vencida. Se ven de a 50; abajo están los botones para pasar de página.</span></li>
+      <li><span><span class="boton claro">Ver</span> abre la ficha del cliente (sección 9).</span></li>
+    </ol>
+    <figure>
+      <div class="pantalla">
+        <img src="assets/guia-cobranzas-sl/04-clientes.jpg" alt="Lista de clientes" width="1280" height="820" loading="lazy">
+        <span class="marca" style="top:21.6%;left:21%">1</span>
+        <span class="marca" style="top:27.7%;left:21%">2</span>
+        <span class="marca" style="top:34.2%;left:21%">3</span>
+        <span class="marca" style="top:40.4%;left:97.6%">4</span>
+      </div>
+      <figcaption><b>Figura 8</b> · Clientes. Los datos están difuminados.</figcaption>
+    </figure>
+    <div class="nota">
+      <div class="rotulo">Saldo y deuda vencida</div>
+      <p>El <b>saldo</b> es lo que el cliente debe en total, ya descontado su saldo a favor. La <b>deuda vencida</b> son todas sus facturas vencidas, sin descontar el saldo a favor, porque el cliente lo usa cuando quiere. Por eso a veces la vencida es más alta que el saldo. Es la misma cuenta en todos los paneles de la empresa.</p>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s09">
+    <div class="rotulo">Parte III · Clientes</div>
+    <div class="cab"><span class="num">09</span><h2>La ficha del cliente</h2></div>
+    <p class="lede">Todo lo de un cliente en una pantalla: su cuenta, sus facturas, lo que subió y lo que reclamó.</p>
+    <ol class="claves">
+      <li><span><span class="boton claro">Escribirle por WhatsApp</span> abre una conversación con el cliente. <span class="boton claro">Bloquear la cuenta</span> no le deja hacer pedidos desde su portal hasta que lo des de alta con <span class="boton claro">Dar de alta</span>; puede seguir entrando para ver su cuenta y pagar, y en Conquer no cambia nada.</span></li>
+      <li><span>Los números: saldo, deuda vencida, cuántas facturas tiene impagas y si su cuenta del portal está habilitada o bloqueada.</span></li>
+      <li><span>Las facturas: comprobante, fecha, vencimiento, importe y saldo. Las vencidas con saldo aparecen en rojo, con una señal de alerta.</span></li>
+    </ol>
+    <figure>
+      <div class="pantalla">
+        <img src="assets/guia-cobranzas-sl/05-ficha.jpg" alt="Ficha de un cliente" width="1280" height="820" loading="lazy">
+        <span class="marca" style="top:18.8%;left:21%">1</span>
+        <span class="marca" style="top:31%;left:21%">2</span>
+        <span class="marca" style="top:46%;left:21%">3</span>
+      </div>
+      <figcaption><b>Figura 9</b> · La ficha de un cliente. Los datos están difuminados.</figcaption>
+    </figure>
+    <p style="margin-top:18px">Más abajo en la ficha están los <b>comprobantes que subió</b> el cliente (con su estado y quién lo cerró) y sus <b>reclamos</b>; <span class="ui">Abrir</span> te lleva a la conversación del reclamo (sección 11).</p>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <!-- ===================== IV. RECLAMOS ===================== -->
+  <section class="seccion" id="s10">
+    <div class="rotulo">Parte IV · Reclamos</div>
+    <div class="cab"><span class="num">10</span><h2>Reclamos</h2></div>
+    <p class="lede">Los reclamos que abren los clientes de San Luis desde su portal, cada uno con su propio chat.</p>
+    <p>El cliente entra a <span class="ui">Reclamos</span> en su Portal del Cliente, toca <span class="ui">Nuevo reclamo</span>, pone el asunto y cuenta qué pasó. El reclamo queda con un número de caso y te aparece acá.</p>
+    <ol class="claves">
+      <li><span><span class="ui">Activá los avisos en este dispositivo</span>: tocá <span class="boton violeta">Activar</span> y aceptá el permiso del navegador. Desde ahí, cada reclamo nuevo te llega como notificación a la compu (o al celular, si lo activás también ahí), aunque no tengas el portal abierto. Se hace una vez por dispositivo.</span></li>
+      <li><span>El estado de cada reclamo: <span class="estado e-roj">Abierto</span> (nadie lo tomó), <span class="estado e-roj">En curso</span> (ya le respondiste) o <span class="estado e-ver">Resuelto</span>.</span></li>
+      <li><span><span class="boton claro">Ver conversación</span> abre el chat (sección 11). Desde la lista también podés marcarlo resuelto, ponerlo en curso o reabrirlo.</span></li>
+    </ol>
+    <figure>
+      <div class="pantalla">
+        <img src="assets/guia-cobranzas-sl/07-reclamos.jpg" alt="Lista de reclamos" width="1280" height="820" loading="lazy">
+        <span class="marca" style="top:22.7%;left:21%">1</span>
+        <span class="marca" style="top:33%;left:98%">2</span>
+        <span class="marca" style="top:40.7%;left:21%">3</span>
+      </div>
+      <figcaption><b>Figura 10</b> · Reclamos, con el aviso para activar las notificaciones. Los datos están difuminados.</figcaption>
+    </figure>
+    <h3 class="sub">Cómo te enterás de un reclamo nuevo</h3>
+    <p>Cada 10 minutos el portal revisa si un cliente de San Luis abrió un reclamo o respondió en uno que ya tenía. Si pasó, te avisa en la <b>campanita</b> ("Reclamo nuevo" o "Respondió en el reclamo", con el número y el cliente) y, si los activaste, con una <b>notificación</b>. Tocá el aviso para ir directo a Reclamos.</p>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <section class="seccion" id="s11">
+    <div class="rotulo">Parte IV · Reclamos</div>
+    <div class="cab"><span class="num">11</span><h2>Responder un reclamo</h2></div>
+    <p class="lede">Lo que le escribís acá, el cliente lo ve en su portal, en el mismo reclamo.</p>
+    <ol class="claves">
+      <li><span>La conversación: lo que escribió <b>el cliente</b> y lo que respondimos <b>nosotros</b>, con la fecha. Si mandó un archivo, <span class="boton claro">Ver adjunto</span> lo abre.</span></li>
+      <li><span>Escribí la respuesta en el recuadro.</span></li>
+      <li><span><span class="boton claro">Adjuntar</span> suma una foto o un PDF de hasta 5 MB. <span class="boton verde">Enviar respuesta</span> la manda. Si el reclamo estaba abierto, pasa solo a <span class="estado e-roj">En curso</span>.</span></li>
+      <li><span>Cuando quedó solucionado, <span class="boton claro">Marcar resuelto</span>. Si hace falta, se puede reabrir.</span></li>
+    </ol>
+    <figure>
+      <div class="pantalla">
+        <img src="assets/guia-cobranzas-sl/08-reclamo.jpg" alt="Conversación de un reclamo" width="1280" height="820" loading="lazy">
+        <span class="marca" style="top:23%;left:21%">1</span>
+        <span class="marca" style="top:69.3%;left:21%">2</span>
+        <span class="marca" style="top:77.8%;left:21%">3</span>
+        <span class="marca" style="top:84%;left:21%">4</span>
+      </div>
+      <figcaption><b>Figura 11</b> · La conversación de un reclamo. Los datos están difuminados.</figcaption>
+    </figure>
+    <div class="nota">
+      <div class="rotulo">Se actualiza solo</div>
+      <p>Si el cliente escribe mientras tenés la conversación abierta, su mensaje aparece solo, y lo que estabas escribiendo no se pierde. Si el cliente reabre un reclamo resuelto desde su portal, vuelve a <b>Abierto</b>.</p>
+    </div>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <!-- ===================== V. AYUDA ===================== -->
+  <section class="seccion" id="s12">
+    <div class="rotulo">Parte V · Ayuda</div>
+    <div class="cab"><span class="num">12</span><h2>Ayuda y preguntas frecuentes</h2></div>
+    <p class="lede">Para cualquier problema con el portal, tocá <span class="ui">Soporte</span> abajo del menú: abre WhatsApp con el equipo de sistemas (+54 9 261 245-2651).</p>
+
+    <details class="faq">
+      <summary>¿Por qué no veo clientes de Mendoza?</summary>
+      <p>Tu usuario es de San Luis: el panel te muestra solo los clientes que en CUBO están en el equipo SL o MAY SL. Lo de Mendoza lo ve Mónica.</p>
+    </details>
+    <details class="faq">
+      <summary>Un cliente de San Luis no me aparece.</summary>
+      <p>Fijate en CUBO a qué equipo está asignado. Si está en otro equipo, para el panel es de Mendoza. Cuando lo corrijan en CUBO, aparece solo en la hora siguiente.</p>
+    </details>
+    <details class="faq">
+      <summary>Acepté un pago y la deuda del cliente no bajó.</summary>
+      <p>Es normal. Aceptar confirma que la plata entró; la deuda baja cuando el pago está cargado en el sistema de la empresa, y el portal se actualiza con el sistema cada hora.</p>
+    </details>
+    <details class="faq">
+      <summary>No aparece la coincidencia con el banco.</summary>
+      <p>Revisá que hayas subido el extracto del día en el que entró la transferencia. La coincidencia se busca por el monto exacto: si el cliente transfirió otro monto, no va a aparecer. Si lo verificaste a mano, usá Aceptar igual.</p>
+    </details>
+    <details class="faq">
+      <summary>Me equivoqué al aceptar o rechazar un pago.</summary>
+      <p>Desde el panel no se puede deshacer. Escribile a soporte con el cliente y el monto.</p>
+    </details>
+    <details class="faq">
+      <summary>No me llegan los avisos de reclamos.</summary>
+      <p>La campanita los muestra siempre que tengas el portal abierto. Para que te lleguen con el portal cerrado, tenés que tocar Activar en Reclamos y aceptar el permiso del navegador, en cada compu o celular. Si el navegador tiene las notificaciones bloqueadas para el portal, el botón no aparece: habilitalas en la configuración del navegador.</p>
+    </details>
+    <details class="faq">
+      <summary>¿Lo que hago lo ve el cliente?</summary>
+      <p>Sí: si aceptás o rechazás un pago, el cliente ve el estado en su portal; si respondés un reclamo, ve tu respuesta en el mismo reclamo. Lo demás (observaciones de las planillas, Supervisión) es solo interno.</p>
+    </details>
+    <a class="arriba" href="#indice">↑ Índice</a>
+  </section>
+
+  <div class="pie">
+    <span>GrandBar Distribuciones · Guía de Cobranzas · San Luis</span>
+    <span>Octubre 2026</span>
+  </div>
+</div>
+</body>
+</html>

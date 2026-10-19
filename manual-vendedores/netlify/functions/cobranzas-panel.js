@@ -176,6 +176,11 @@ exports.handler = async (event) => {
       // Moni marca una fila de la planilla de rendición como procesada y/o deja observaciones.
       if (b.accion === 'planilla-marcar') {
         if (!b.id) return json(400, { error: 'Falta la fila.' });
+        // Con zona, la fila tiene que ser de una planilla de un vendedor de esa zona.
+        if (Z) {
+          const fila = (await leer('planilla_cobranzas?select=vendedor&id=eq.' + encodeURIComponent(b.id)))[0];
+          if (fila && !Z.vendOk(fila.vendedor)) return fuera();
+        }
         const campos = {};
         if ('procesado' in b) {
           campos.procesado = !!b.procesado;
