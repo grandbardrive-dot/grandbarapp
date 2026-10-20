@@ -75,6 +75,16 @@ const PRESET_CAMPARI = {
   tipos: ['restaurante', 'bar', 'disco', 'evento'],
   marcas: ['Aperol', 'Campari', 'Cynar', 'Cinzano', 'Skyy', 'Bulldog', 'Wild Turkey', 'Old Smuggler', 'Espolón', '1800', 'Cuervo', 'Appleton', 'Frangelico', 'Grand Marnier', 'Averna', 'Cazalis', 'Reserva San Juan'],
 };
+// Pernod Ricard (20/10/2026, Tomás Muñoz): en CUBO es el proveedor 01 de spirits (0201).
+// Mumm (0110) y Etchart/Cafayate (0108) vienen de otros proveedores de CUBO: no van.
+// Las seis primeras marcas son las "foco" de las oportunidades.
+const PRESET_PERNOD = {
+  marca: 'Pernod Ricard', prefijos: ['0201'], planillas_campari: false, region: 'mendoza',
+  tipos: ['restaurante', 'bar', 'disco', 'evento'],
+  marcas: ['Absolut', 'Havana Club', 'Beefeater', 'Chivas', 'Jameson', "Ballantine's", 'Malibu', 'Ramazzotti', 'Lillet', 'Monkey 47', 'Malfy', 'The Glenlivet',
+    'Wyborowa', 'Orloff', 'Cusenier', 'Tia Maria', 'Tia Creamy', 'Ricard', 'Blenders', 'Hiram Walker', 'Doble V', 'Buhero Negro', 'Capri', 'Aberlour', 'Longmorn', 'Scapa', 'The Deacon', 'Brighton', 'Padilla', 'TX'],
+};
+const PRESETS = [{ k: 'campari', n: 'Campari', p: PRESET_CAMPARI }, { k: 'pernod', n: 'Pernod Ricard', p: PRESET_PERNOD }];
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const texto = (v, max) => { const s = String(v == null ? '' : v).trim().slice(0, max); return s || null; };
@@ -177,7 +187,8 @@ function armarSecciones(P) {
 const CACHE = new Map();
 // Cómo figura cada marca en la descripción de CUBO cuando se escribe distinto
 // ("Vodka Sky Raspberry": Skyy). Se busca al principio de una palabra.
-const ALIAS_MARCA = { skyy: ['sky'], espolon: ['espolon'], 'reserva san juan': ['san juan'], 'old smuggler': ['smuggler'] };
+const ALIAS_MARCA = { skyy: ['sky'], espolon: ['espolon'], 'reserva san juan': ['san juan'], 'old smuggler': ['smuggler'],
+  'ballantine s': ['ballantine'], 'havana club': ['havana'], 'the glenlivet': ['glenlivet'] };
 const marcaDe = (desc, marcas) => {
   const d = ' ' + nrm(desc).replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ') + ' ';
   for (const m of marcas) {
@@ -437,7 +448,7 @@ exports.handler = async (event) => {
           hub('kaf_pedidos_materiales?usuario_id=in.(' + ids.join(',') + ')&estado=eq.enviado&select=usuario_id&limit=2000'),
         ]) : [[], [], [], [], []];
         return json(200, {
-          hoy, mes, preset: PRESET_CAMPARI, secciones: SECCIONES,
+          hoy, mes, preset: PRESET_CAMPARI, presets: PRESETS, secciones: SECCIONES,
           kafs: users.map(u => {
             const vs = visitas.filter(x => x.usuario_id === u.id);
             return {

@@ -157,7 +157,7 @@
     el.innerHTML = `${!SEL.perfil ? '<div class="aviso">Este KAF todavía no tiene el panel armado. Completá esto y guardá: recién ahí ve sus clientes.</div>' : ''}
       <div class="bloque" style="margin-top:0"><h4>Marca y clientes</h4>
         <div class="dos"><label class="campo"><span>Marca</span><input id="a-marca" maxlength="60" value="${esc(P.marca || '')}" placeholder="Ej. Campari"></label>
-          <label class="campo"><span>&nbsp;</span><button class="btn claro" type="button" id="a-preset">Usar lo sugerido para Campari</button></label></div>
+          <label class="campo"><span>Cargar lo sugerido para</span><div style="display:flex;gap:8px"><select id="a-preset-k" style="flex:1">${(D.presets || [{ k: 'campari', n: 'Campari', p: D.preset }]).map(x => `<option value="${esc(x.k)}" ${String(P.marca || '').toLowerCase() === x.n.toLowerCase() ? 'selected' : ''}>${esc(x.n)}</option>`).join('')}</select><button class="btn claro" type="button" id="a-preset">Cargar</button></div></label></div>
         <label class="campo"><span>Códigos de artículo de la marca en CUBO (primeros 4 dígitos, separados por coma)</span><input id="a-pref" value="${esc((P.prefijos || []).join(', '))}" placeholder="0204, 0253"></label>
         <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 12px">El código de CUBO es rubro + proveedor + línea: 0204 = spirits de Campari, 0253 = Cinzano. Con esto se leen las compras de cada cliente.</p>
         <label class="campo"><span>Marcas que se siguen (en este orden; se buscan en el nombre del artículo)</span><textarea id="a-marcas" style="min-height:64px">${esc((P.marcas || []).join(', '))}</textarea></label>
@@ -178,7 +178,7 @@
       </div>
       <div class="acts" style="justify-content:flex-start;margin-top:14px"><button class="btn ok" id="a-ok">Guardar el panel</button>${P.updated_by ? `<span style="font-size:12.5px;color:var(--muted);align-self:center">Último cambio: ${esc(P.updated_by)} el ${fecha(P.updated_at)}</span>` : ''}</div>`;
     el.querySelector('#a-preset').onclick = () => {
-      const p = D.preset || {};
+      const k = $('a-preset-k').value, p = ((D.presets || []).find(x => x.k === k) || { p: D.preset || {} }).p;
       $('a-marca').value = p.marca || ''; $('a-pref').value = (p.prefijos || []).join(', '); $('a-marcas').value = (p.marcas || []).join(', ');
       el.querySelectorAll('[data-tipo]').forEach(i => { i.checked = (p.tipos || []).includes(i.value); });
       $('a-region').value = p.region || ''; $('a-camp').checked = !!p.planillas_campari;
