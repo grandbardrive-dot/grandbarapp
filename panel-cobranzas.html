@@ -55,7 +55,7 @@
   const cobMarco = (src, titulo) => { cq('cob').innerHTML = `<iframe class="cob-marco" src="${src}" title="${titulo}"></iframe>`; };
   window.COB_HASH = true;
   window.COB_EXTRA = [
-    { id:'revision',      ico:'💳', n:'Revisión de cobranzas', roles:['tesoreria'], arriba:true, abrir: () => cobMarco('/cobranzas-tesoreria.html?embed=1', 'Revisión de cobranzas') },
+    { id:'revision',      ico:'💳', n:'Revisión de cobranzas', roles:['tesoreria','administracion','admin','desarrollo','diseno'], arriba:true, abrir: () => cobMarco('/cobranzas-tesoreria.html?embed=1', 'Revisión de cobranzas') },
     { id:'agenda-equipo', ico:'📅', n:'Agenda del equipo', roles:['administracion','admin','desarrollo','diseno'], abrir: () => eqAgenda() },
     { id:'mi-agenda',     ico:'🗓️', n:'Mi agenda',         roles:['administracion','admin','desarrollo','diseno'], abrir: () => cobMarco('/mi-agenda.html?embed=1', 'Mi agenda') },
     { id:'reportes',      ico:'📊', n:'Mis reportes', roles:['administracion'], abrir: () => cobMarco('/mis-reportes.html?embed=1', 'Mis reportes') },
