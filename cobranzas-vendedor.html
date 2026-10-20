@@ -121,6 +121,12 @@
     .pl-file.vacio{background:#fff;border-color:var(--line);color:var(--muted)}
     .pl-del{background:#fff;border:1px solid var(--line);color:var(--coral);border-radius:8px;padding:5px 9px;font:inherit;font-size:13px;cursor:pointer}
     @media(max-width:820px){ .plan-add{grid-template-columns:1fr 1fr} .plan-add #plAdd{grid-column:1/-1} }
+    .pl-multi{display:flex;gap:4px;min-width:0}
+    .pl-multi input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13.5px;background:#fff}
+    .pl-mas{flex:none;width:34px;border:1px solid var(--green-d);background:var(--green-soft);color:var(--green-d);border-radius:9px;font-size:18px;font-weight:800;cursor:pointer;line-height:1}
+    .pl-chips{font-size:12.5px;margin:2px 0 6px}
+    .pl-chip{display:inline-block;background:var(--green-soft);border:1px solid #bfe3d2;border-radius:999px;padding:2px 9px;margin:2px;font-weight:700;color:var(--green-d)}
+    .pl-chip a{color:var(--coral);cursor:pointer;margin-left:4px;font-weight:800}
     .plan-hint{font-size:12px;color:var(--muted);margin:-6px 0 14px}
     .plan-hint code{background:#eef1f4;border-radius:4px;padding:1px 5px;font-size:11.5px}
     .plan-hint b{color:var(--ink)}
@@ -219,15 +225,16 @@
           <input id="plFactura" placeholder="Factura(s) — elegilas abajo" readonly>
           <input id="plImporte" type="number" inputmode="decimal" placeholder="Importe" autocomplete="off" name="pl-imp" data-lpignore="true" data-form-type="other">
           <input id="plEfectivo" type="number" inputmode="decimal" placeholder="Efectivo" autocomplete="off" name="pl-efe" data-lpignore="true" data-form-type="other">
-          <input id="plCheques" type="text" inputmode="decimal" placeholder="Cheques (100000+50000)" autocomplete="off" name="pl-che" data-lpignore="true" data-form-type="other" oninput="plHintMulti()">
+          <div class="pl-multi"><input id="plCheques" type="number" inputmode="decimal" placeholder="Cheques" autocomplete="off" name="pl-che" data-lpignore="true" data-form-type="other"><button type="button" class="pl-mas" onclick="plMas('Cheques')" title="Agregar otro cheque">＋</button></div>
           <input id="plReten" type="number" inputmode="decimal" placeholder="Retenciones" autocomplete="off" name="pl-ret" data-lpignore="true" data-form-type="other">
-          <input id="plTransf" type="text" inputmode="decimal" placeholder="Transf/MP (100000+50000)" autocomplete="off" name="pl-tra" data-lpignore="true" data-form-type="other" oninput="plHintMulti()">
+          <div class="pl-multi"><input id="plTransf" type="number" inputmode="decimal" placeholder="Transf/MP" autocomplete="off" name="pl-tra" data-lpignore="true" data-form-type="other"><button type="button" class="pl-mas" onclick="plMas('Transf')" title="Agregar otra transferencia">＋</button></div>
           <input id="plTarjeta" type="number" inputmode="decimal" placeholder="Tarjeta" autocomplete="off" name="pl-tar" data-lpignore="true" data-form-type="other">
           <input id="plEcheq" type="number" inputmode="decimal" placeholder="E-cheq" autocomplete="off" name="pl-ech" data-lpignore="true" data-form-type="other">
           <input id="plFechaPago" type="date" title="Fecha del pago">
           <button class="btn-ok" id="plAdd" onclick="agregarPlanilla()">＋ Agregar fila</button>
         </div>
-        <div class="plan-hint">💡 En <b>Transferencia</b> y <b>Cheques</b> podés sumar varios importes con <b>+</b> (ej: <code>100000+50000</code>) cuando pagan en varias. <span id="plMultiHint"></span></div>
+        <div class="plan-hint">💡 Si pagan en <b>varias transferencias</b> (o varios cheques): escribí un importe y tocá <b>＋</b> al lado del campo para agregarlo; repetí con el siguiente.</div>
+        <div id="plChips"></div>
         <div id="plFacturas" class="plan-fact"></div>
 
         <div class="plan-wrap">
@@ -330,21 +337,36 @@
   // ── PLANILLA DE RENDICIÓN DE COBRANZAS ──────────────────────────────────────
   const hoyISO = () => { const d=new Date(), z=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate()); };
   const plN = v => (Number(v)||0) ? fmtMoney(v) : "";
-  // Transferencia/Cheques: aceptan varios importes sumados con + (o coma / espacio).
-  const parseMontos = s => {
-    const list = String(s||"").split(/[+,;\s]+/).map(x=>Number(String(x).replace(/[^\d.]/g,""))).filter(x=>isFinite(x)&&x>0);
-    return { list, sum: list.reduce((a,x)=>a+x,0) };
-  };
-  function plHintMulti(){
-    const el=document.getElementById("plMultiHint"); if(!el) return;
-    const t=parseMontos((document.getElementById("plTransf")||{}).value), c=parseMontos((document.getElementById("plCheques")||{}).value);
-    const bits=[];
-    if(t.list.length>1) bits.push("Transferencia: "+t.list.length+" importes = "+fmtMoney(t.sum));
-    if(c.list.length>1) bits.push("Cheques: "+c.list.length+" importes = "+fmtMoney(c.sum));
-    el.textContent = bits.length ? ("→ "+bits.join(" · ")) : "";
-    el.style.fontWeight="700"; el.style.color="var(--green-d)";
+  // Transferencias/Cheques con varios importes: el botón ＋ los va agregando (chips),
+  // sin tener que escribir ningún signo (el teclado del celu es solo números).
+  let _plList = { Transf: [], Cheques: [] };
+  const plInput = f => document.getElementById(f==='Transf' ? 'plTransf' : 'plCheques');
+  const plNum = inp => Number(String((inp&&inp.value)||'').replace(/[^\d.]/g,'')) || 0;
+  function plMas(field){
+    const inp = plInput(field), v = plNum(inp);
+    if(!(v>0)){ if(inp) inp.focus(); return; }
+    _plList[field].push(v);
+    if(inp){ inp.value=''; inp.focus(); }
+    plRenderChips();
   }
-  window.plHintMulti=plHintMulti;
+  window.plMas = plMas;
+  function plQuitarChip(field, i){ _plList[field].splice(i,1); plRenderChips(); }
+  window.plQuitarChip = plQuitarChip;
+  function plRenderChips(){
+    const box=document.getElementById('plChips'); if(!box) return;
+    const render=(field,label)=>{
+      const list=_plList[field]; if(!list.length) return '';
+      const total=list.reduce((a,x)=>a+x,0);
+      return `<div class="pl-chips"><b>${label} agregadas:</b> ${list.map((x,i)=>`<span class="pl-chip">${fmtMoney(x)} <a onclick="plQuitarChip('${field}',${i})">✕</a></span>`).join(' ')} <b>= ${fmtMoney(total)}</b></div>`;
+    };
+    box.innerHTML = render('Transf','Transferencias') + render('Cheques','Cheques');
+  }
+  // Total de una columna = lo agregado con ＋ (lista) + lo que quedó escrito en el campo.
+  function plTotalCampo(field){
+    const list = _plList[field].slice();
+    const cur = plNum(plInput(field)); if(cur>0) list.push(cur);
+    return { list, sum: list.reduce((a,x)=>a+x,0) };
+  }
   let _planIni = false, _plSubir = null, _plFacts = [], _plSelFact = {};
   function llenarClientesDatalist(){
     const dl=document.getElementById("plCodigos"); if(!dl) return;
@@ -480,7 +502,7 @@
   async function agregarPlanilla(){
     const err=document.getElementById("plErr"), aviso=t=>{ if(err){ err.textContent=t; err.style.display=t?"block":"none"; } };
     const g=id=>document.getElementById(id);
-    const tP=parseMontos(g("plTransf").value), cP=parseMontos(g("plCheques").value);  // varios importes
+    const tP=plTotalCampo('Transf'), cP=plTotalCampo('Cheques');  // chips (＋) + lo escrito en el campo
     const campos={
       fecha_rendicion:(g("plFecha")||{}).value||hoyISO(),
       codigo:(g("plCodigo").value||"").trim(),
@@ -508,7 +530,7 @@
       const j=await r.json();
       if(!j.ok){ aviso("No se pudo guardar: "+(j.error||"error")); btn.disabled=false; btn.textContent=antes; return; }
       ["plCodigo","plRazon","plFactura","plImporte","plEfectivo","plCheques","plReten","plTransf","plTarjeta","plEcheq"].forEach(id=>{ g(id).value=""; });
-      document.getElementById("plFacturas").innerHTML=""; _plFacts=[]; _plSelFact={}; plHintMulti();
+      document.getElementById("plFacturas").innerHTML=""; _plFacts=[]; _plSelFact={}; _plList={Transf:[],Cheques:[]}; plRenderChips();
       btn.disabled=false; btn.textContent=antes;
       cargarPlanilla(); g("plCodigo").focus();
     }catch(e){ aviso("Error de conexión: "+(e.message||e)); btn.disabled=false; btn.textContent=antes; }
