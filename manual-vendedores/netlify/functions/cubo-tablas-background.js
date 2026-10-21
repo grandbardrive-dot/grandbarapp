@@ -3,12 +3,11 @@
 //  Prueba si el ERP deja leer caja, cheques, proveedores y órdenes de compra, para
 //  dejar de depender de las planillas que Administración carga a mano en Drive.
 //  Solo lectura. Guarda SOLO nombres de tablas, nombres de columnas y cantidad de
-//  filas (ningún dato) en tmp_cubo_tablas del Portal. Se dispara con una clave de un
-//  solo uso (acá queda solo su hash) y se borra apenas se lee el resultado.
+//  filas (ningún dato) en tmp_cubo_tablas del Portal. Corre UNA vez y solo si en esa
+//  tabla hay una fila tipo 'orden' (la carga Desarrollo desde la base); la consume al
+//  arrancar. Se borra apenas se lee el resultado.
 //  Env: AIKON_*, HUB_SERVICE_ROLE.
 // ============================================================
-const crypto = require('crypto');
-const CLAVE_SHA = '2f51f4ef219c70b80887e096271ef57fae4aaee4b3fc58ade5952f465ea2df16';
 const HUB_URL = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 
 const TABLAS = [
@@ -49,9 +48,14 @@ function forma(r) {
 }
 
 exports.handler = async (event) => {
-  const k = String(((event && event.queryStringParameters) || {}).k || '');
-  if (crypto.createHash('sha256').update(k).digest('hex') !== CLAVE_SHA) return;
   const srole = process.env.HUB_SERVICE_ROLE;
+  if (!srole) return;
+  // Solo si hay una orden pendiente, y se consume (una sola corrida).
+  const cab = { apikey: srole, Authorization: 'Bearer ' + srole };
+  const ord = await fetch(HUB_URL + '/rest/v1/tmp_cubo_tablas?tipo=eq.orden&select=id&limit=1', { headers: cab }).then(r => (r.ok ? r.json() : [])).catch(() => []);
+  if (!Array.isArray(ord) || !ord.length) return;
+  const del = await fetch(HUB_URL + '/rest/v1/tmp_cubo_tablas?id=eq.' + ord[0].id, { method: 'DELETE', headers: Object.assign({ Prefer: 'return=representation' }, cab) }).then(r => (r.ok ? r.json() : [])).catch(() => []);
+  if (!Array.isArray(del) || !del.length) return;   // otra corrida la tomó primero
   const guardar = fila => fetch(HUB_URL + '/rest/v1/tmp_cubo_tablas', { method: 'POST', headers: { apikey: srole, Authorization: 'Bearer ' + srole, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(fila) }).catch(() => {});
 
   const cuenta = process.env.AIKON_CUENTA;
