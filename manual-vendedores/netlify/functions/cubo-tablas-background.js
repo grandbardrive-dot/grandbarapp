@@ -11,6 +11,8 @@
 const HUB_URL = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 
 const TABLAS = [
+  // control (sabemos que existe) y la lista de tablas del sistema
+  'CLIENTES', 'INFORMATION_SCHEMA.TABLES', 'sys.tables',
   // caja, bancos y valores
   'CAJAS', 'CAJA', 'MOVCAJA', 'MOVCAJAS', 'MOVIMIENTOSCAJA', 'TESORERIA', 'VALORES', 'CHEQUES', 'CHEQUESTERCEROS', 'CHEQUESPROPIOS',
   'CARTERA', 'CARTERAVALORES', 'BANCOS', 'CUENTASBANCARIAS', 'MOVBANCOS', 'CUPONES', 'TARJETAS',
@@ -22,8 +24,8 @@ const TABLAS = [
   // contabilidad
   'ASIENTOS', 'MAYOR', 'LIBROMAYOR', 'PLANCUENTAS', 'CUENTASCONTABLES', 'MOVCONTABLES',
 ];
-const METODOS = ['ListarSaldosProveedores', 'ListarProveedores', 'ListarCheques', 'ListarValores', 'ListarCajas', 'ListarMovimientosCaja',
-  'ListarOrdenesCompra', 'ListarComprobantesCompra', 'ListarCuentasCorrientes', 'ListarOrdenesPago'];
+// La primera vuelta: todos dieron 404 salvo ListarProveedores, que tardó más de 25 s.
+const METODOS = ['ListarProveedores'];
 
 async function aikon(url, body, ms) {
   const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), ms || 25000);
@@ -40,9 +42,12 @@ async function aikon(url, body, ms) {
 function forma(r) {
   if (!r.j) return { existe: false, filas: null, columnas: null, nota: r.err || ('http ' + r.st + ' ' + (r.raw || '')).slice(0, 160) };
   const j = r.j;
-  const lista = Array.isArray(j.lista) ? j.lista : Array.isArray(j.retorno) ? j.retorno : Array.isArray(j) ? j : null;
-  if (lista) return { existe: true, filas: lista.length, columnas: lista[0] && typeof lista[0] === 'object' ? Object.keys(lista[0]).slice(0, 80) : [], nota: null };
+  // DtTabla responde { resultado, data } (21/10/2026).
+  const lista = Array.isArray(j.data) ? j.data : Array.isArray(j.lista) ? j.lista : Array.isArray(j.retorno) ? j.retorno : Array.isArray(j) ? j : null;
+  const res = j.resultado != null ? ('resultado: ' + JSON.stringify(j.resultado)).slice(0, 160) : null;
+  if (lista) return { existe: true, filas: lista.length, columnas: lista[0] && typeof lista[0] === 'object' ? Object.keys(lista[0]).slice(0, 80) : [], nota: res };
   // Error del ERP: el mensaje dice si la tabla no existe (sin datos).
+  if (res) return { existe: false, filas: null, columnas: Object.keys(j).slice(0, 20), nota: res };
   const msg = [j.mensaje, j.Mensaje, j.error, j.Error, j.estado && j.estado.mensaje].filter(Boolean).join(' ').slice(0, 160) || ('claves: ' + Object.keys(j).join(',')).slice(0, 160);
   return { existe: false, filas: null, columnas: Object.keys(j).slice(0, 20), nota: msg };
 }
@@ -84,14 +89,20 @@ exports.handler = async (event) => {
   }
   // 2) Métodos del WebApi.
   for (const m of METODOS) {
-    const r = await aikon(urlCuenta + '/IS3/' + m, { cuenta, token: ctx[0].token }, 25000);
+    const r = await aikon(urlCuenta + '/IS3/' + m, { cuenta, token: ctx[0].token }, 60000);
     const fo = forma(r);
     await guardar(Object.assign({ empresa: ctx[0].empresa, tipo: 'metodo', nombre: m, ms: r.ms }, fo, { nota: (fo.nota || '') + (r.st && r.st !== 200 ? ' [http ' + r.st + ']' : '') || null }));
   }
   // 3) Tablas crudas (DtTabla), una por vez para no cargar el ERP.
   for (const t of TABLAS) {
     const r = await aikon(urlCuenta + '/IS3/DtTabla', { cuenta, token: ctx[0].token, tabla: t }, 25000);
-    await guardar(Object.assign({ empresa: ctx[0].empresa, tipo: 'tabla', nombre: t, ms: r.ms }, forma(r)));
+    const fo = forma(r);
+    // La lista de tablas del sistema: se guardan SOLO los nombres de las tablas.
+    if (/tables/i.test(t) && r.j && Array.isArray(r.j.data)) {
+      const nombres = r.j.data.map(x => x && (x.TABLE_NAME || x.name || x.NAME)).filter(Boolean).map(String).sort();
+      fo.columnas = nombres.slice(0, 3000);
+    }
+    await guardar(Object.assign({ empresa: ctx[0].empresa, tipo: 'tabla', nombre: t, ms: r.ms }, fo));
   }
   await guardar({ tipo: 'fin', nombre: 'listo' });
 };
