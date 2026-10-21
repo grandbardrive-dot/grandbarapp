@@ -1124,17 +1124,39 @@ async function cobPlanillas() {
     const d = await cobApi('?que=planillas');
     const filas = d.filas || [];
     if (!filas.length) { cq('pla-lista').innerHTML = `<div class="pv-vacio">Todavía no te enviaron ninguna planilla.</div>`; return; }
-    cq('pla-lista').innerHTML = filas.map(e => {
+    const lbl = { efectivo: 'Efectivo', cheques: 'Cheques', retenciones: 'Retenc.', transferencia: 'Transf/MP', tarjeta: 'Tarjeta', echeq: 'E-cheq' };
+    const completa = e => (e.filas > 0 && (e.procesadas || 0) >= e.filas);   // todas procesadas
+    const card = e => {
       const t = e.totales || {};
-      const lbl = { efectivo: 'Efectivo', cheques: 'Cheques', retenciones: 'Retenc.', transferencia: 'Transf/MP', tarjeta: 'Tarjeta', echeq: 'E-cheq' };
       const tot = Object.keys(lbl).filter(k => Number(t[k]) > 0).map(k => `${lbl[k]}: <b>${cnum(t[k])}</b>`).join(' · ');
-      return `<article class="hh" style="cursor:pointer" onclick="cobPlanillaDet('${cesc(String(e.vendedor))}','${cesc(String(e.fecha_rendicion))}')">
+      const ok = completa(e), col = ok ? '#1f8a4c' : '#d0402e';
+      const chip = ok
+        ? `<span class="cb-chip" style="background:#e7f1ea;color:#1f6b3d">✓ Procesada</span>`
+        : `<span class="cb-chip" style="background:#fde8e6;color:#b23120">⏳ ${e.procesadas || 0}/${e.filas} procesadas</span>`;
+      return `<article class="hh" style="cursor:pointer;border-left:5px solid ${col}" onclick="cobPlanillaDet('${cesc(String(e.vendedor))}','${cesc(String(e.fecha_rendicion))}')">
         <div class="hh-top"><span class="hh-ico">📋</span>
-          <div class="hh-nom">${cesc(e.vendedor_nombre || ('Vendedor ' + e.vendedor))} · ${cfec(e.fecha_rendicion)}</div>
-          <span class="cb-chip ok">${e.filas} fila${e.filas === 1 ? '' : 's'}</span></div>
-        <div class="hh-desc">Enviada ${cfec(e.enviada_at)} · Importe total: <b>${cnum(t.importe || 0)}</b></div>
+          <div class="hh-nom">${cesc(e.vendedor_nombre || ('Vendedor ' + e.vendedor))}</div>${chip}</div>
+        <div class="hh-desc">${e.filas} fila${e.filas === 1 ? '' : 's'} · Importe total: <b>${cnum(t.importe || 0)}</b></div>
         ${tot ? `<div class="hh-desc">${tot}</div>` : ''}</article>`;
-    }).join('');
+    };
+    // Agrupar por FECHA DE RENDICIÓN: la de hoy abierta, las anteriores "archivadas" (colapsadas).
+    const hoy = (() => { const t = new Date(), z = n => String(n).padStart(2, '0'); return t.getFullYear() + '-' + z(t.getMonth() + 1) + '-' + z(t.getDate()); })();
+    const porFecha = {}; filas.forEach(e => { (porFecha[e.fecha_rendicion] = porFecha[e.fecha_rendicion] || []).push(e); });
+    const fechas = Object.keys(porFecha).sort().reverse();
+    let html = '';
+    for (const f of fechas) {
+      const grupo = porFecha[f], cards = grupo.map(card).join('');
+      const pend = grupo.filter(e => !completa(e)).length;
+      if (f === hoy || (fechas.length === 1)) {
+        html += `<div style="font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:4px 0 8px">${f === hoy ? 'Hoy · ' : ''}${cfec(f)}</div>${cards}`;
+      } else {
+        const estado = pend ? `<b style="color:#b23120">${pend} con pendientes</b>` : `<span style="color:#1f6b3d">todas procesadas ✓</span>`;
+        html += `<details class="pla-arch" style="margin:6px 0;border:1px solid var(--line,#e6e6e6);border-radius:12px;overflow:hidden">
+          <summary style="cursor:pointer;padding:12px 14px;font-weight:700;list-style:none;background:var(--cream,#f5f1e8)">📁 ${cfec(f)} · ${grupo.length} planilla${grupo.length > 1 ? 's' : ''} · ${estado}</summary>
+          <div style="padding:10px 12px">${cards}</div></details>`;
+      }
+    }
+    cq('pla-lista').innerHTML = html;
   } catch (e) { cq('pla-lista').innerHTML = cerror(e.message); }
 }
 

@@ -309,8 +309,14 @@ exports.handler = async (event) => {
 
     // Planillas de rendición que envían los vendedores (lista de envíos).
     if (que === 'planillas') {
-      const filas = await leer('planilla_envios?select=*&order=enviada_at.desc&limit=' + (Z ? 1000 : 400));
-      return json(200, { filas: Z ? filas.filter(x => Z.vendOk(x.vendedor)).slice(0, 400) : filas });
+      let filas = await leer('planilla_envios?select=*&order=enviada_at.desc&limit=' + (Z ? 1000 : 400));
+      if (Z) filas = filas.filter(x => Z.vendOk(x.vendedor)).slice(0, 400);
+      // Cuántas filas marcó Moni como procesadas en cada planilla (para el verde/rojo).
+      const proc = await leerTodo('planilla_cobranzas?select=vendedor,fecha_rendicion&procesado=eq.true', 50000);
+      const pc = {};
+      (Array.isArray(proc) ? proc : []).forEach(r => { const k = r.vendedor + '|' + r.fecha_rendicion; pc[k] = (pc[k] || 0) + 1; });
+      filas = filas.map(e => ({ ...e, procesadas: pc[e.vendedor + '|' + e.fecha_rendicion] || 0 }));
+      return json(200, { filas });
     }
     // Detalle de una planilla (filas + envío) de un vendedor y día.
     if (que === 'planilla-det') {
