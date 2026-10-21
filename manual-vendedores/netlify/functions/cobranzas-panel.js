@@ -531,13 +531,36 @@ exports.handler = async (event) => {
         if (c.interactive) { const i = c.interactive; return (i.button_reply && i.button_reply.title) || (i.list_reply && i.list_reply.title) || '[respuesta]'; }
         if (c.reaction) return c.reaction.emoji ? ('Reaccionó con ' + c.reaction.emoji) : 'Quitó su reacción';
         if (c.image) return '📷 Imagen'; if (c.document) return '📎 ' + ((c.document && c.document.filename) || 'Documento'); if (c.audio) return '🎤 Audio'; if (c.video) return '🎬 Video';
+        if (Array.isArray(c.contacts) && c.contacts.length) return '👤 Contacto: ' + c.contacts.map(k => (k.name && k.name.formatted_name) || ((k.phones && k.phones[0] && k.phones[0].phone) || 'sin nombre')).join(', ');
+        if (c.location) return '📍 Ubicación' + (c.location.name ? ': ' + c.location.name : '');
+        if (c.sticker) return 'Sticker';
         return '[' + (c.type || 'mensaje') + ']';
+      };
+      // Contacto que compartió el cliente (21/10/2026): nombre, teléfonos y vCard, para
+      // poder escribirle, guardarlo o abrir la ficha si el número ya es de un cliente.
+      const contactosDe = c => {
+        if (!c || !Array.isArray(c.contacts) || !c.contacts.length) return null;
+        return c.contacts.map(k => ({
+          nombre: (k.name && k.name.formatted_name) || null,
+          empresa: (k.org && k.org.company) || null,
+          telefonos: (k.phones || []).map(p => {
+            const info = dir[last10(p.wa_id || p.phone)] || null;
+            const cliente = info && info.codigo && (!Z || Z.codOk(info.codigo)) ? { nombre: info.nombre, codigo: info.codigo } : null;
+            return { numero: p.phone || p.wa_id || null, wa: p.wa_id ? soloDig(p.wa_id) : null, tipo: p.type || null, cliente };
+          }),
+          emails: (k.emails || []).map(m => m && m.email).filter(Boolean),
+          vcard: typeof k.vcard === 'string' ? k.vcard.slice(0, 4000) : null,
+        }));
+      };
+      const ubicacionDe = c => {
+        const l = c && c.location; if (!l || l.latitude == null || l.longitude == null) return null;
+        return { lat: Number(l.latitude), lng: Number(l.longitude), nombre: l.name || null, direccion: l.address || null };
       };
       // Archivo (imagen/documento) que mandó el cliente. Si el webhook ya lo guardó
       // en el bucket (_media_url), se linkea directo; si no, se baja con wa-media por id.
       const mediaDe = c => {
         if (!c || typeof c !== 'object') return null;
-        const o = c.image ? { tipo: 'image', d: c.image } : c.document ? { tipo: 'document', d: c.document } : c.audio ? { tipo: 'audio', d: c.audio } : c.video ? { tipo: 'video', d: c.video } : null;
+        const o = c.image ? { tipo: 'image', d: c.image } : c.document ? { tipo: 'document', d: c.document } : c.audio ? { tipo: 'audio', d: c.audio } : c.video ? { tipo: 'video', d: c.video } : c.sticker ? { tipo: 'image', d: c.sticker } : null;
         if (!o) return null;
         return { id: (o.d && o.d.id) || null, tipo: o.tipo, mime: (o.d && o.d.mime_type) || null, filename: (o.d && o.d.filename) || 'comprobante', url: c._media_url || null };
       };
@@ -555,7 +578,7 @@ exports.handler = async (event) => {
         const c = conv.get(k);
         if (e.tipo === 'message') {
           const fecha = tsDe(e.crudo, e.created_at);
-          c.mensajes.push({ dir: 'in', texto: textoDe(e.crudo), fecha, media: mediaDe(e.crudo) });
+          c.mensajes.push({ dir: 'in', texto: textoDe(e.crudo), fecha, media: mediaDe(e.crudo), contactos: contactosDe(e.crudo), ubicacion: ubicacionDe(e.crudo) });
           c.entrantes++;
           if (!c.ultimaFecha || fecha > c.ultimaFecha) { c.ultimaFecha = fecha; c.ultimoTexto = textoDe(e.crudo); }
         } else if (e.tipo === 'saliente') {

@@ -610,6 +610,7 @@ function waLista() {
 function waBurbujas(msgs) {
   if (!msgs.length) return `<div class="wa-empty"><div>Este cliente todavía no respondió. Acá van a aparecer sus mensajes.</div></div>`;
   let out = '', dia = '';
+  _waContactos = [];
   for (const m of msgs) {
     const d = m.fecha ? new Date(m.fecha) : null;
     const diaTxt = d && !isNaN(d) ? d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
@@ -630,9 +631,52 @@ function waBurbujas(msgs) {
           : `<button type="button" class="wa-media-btn" style="${st}" onclick="waVerMedia('${mm.id}','${encodeURIComponent(mm.filename || 'comprobante')}',this)">${label}</button>`;
       }
     }
-    out += `<div class="wa-msg ${m.dir === 'in' ? 'in' : 'out'}">${cesc(m.texto || '')}${media}<div class="h">${hora}</div></div>`;
+    if (m.ubicacion) {
+      const u = m.ubicacion, q = encodeURIComponent(u.lat + ',' + u.lng);
+      media += `${u.direccion ? `<div style="font-size:12.5px;color:#54656f;margin-top:3px">${cesc(u.direccion)}</div>` : ''}<a class="wa-media-btn" style="margin-top:7px;display:inline-flex;align-items:center;gap:6px;background:#1f8a4c;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:700;text-decoration:none" href="https://www.google.com/maps?q=${q}" target="_blank" rel="noopener">📍 Ver en el mapa</a>`;
+    }
+    const cuerpo = m.contactos && m.contactos.length ? m.contactos.map(waTarjetaContacto).join('') : cesc(m.texto || '');
+    out += `<div class="wa-msg ${m.dir === 'in' ? 'in' : 'out'}">${cuerpo}${media}<div class="h">${hora}</div></div>`;
   }
   return out;
+}
+
+// Contacto que compartió el cliente (21/10/2026): tarjeta con nombre y número para
+// escribirle, copiar el número o guardarlo (.vcf). Si el número ya es de un cliente, lo dice.
+let _waContactos = [];
+function waTarjetaContacto(k, n) {
+  const i = _waContactos.push(k) - 1;
+  const tels = k.telefonos || [];
+  const nom = k.nombre || (tels[0] && tels[0].numero) || 'Contacto';
+  const b = 'display:inline-flex;align-items:center;background:#fff;color:#1f8a4c;border:1px solid #1f8a4c;border-radius:8px;padding:5px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none';
+  const filas = tels.map((t, j) => `<div style="margin-top:8px">`
+    + `<div style="font-size:13.5px;font-weight:600">${cesc(t.numero || '')}${t.tipo ? ` <span style="color:#667781;font-size:11px;font-weight:400">${cesc(t.tipo)}</span>` : ''}</div>`
+    + (t.cliente ? `<div style="font-size:11.5px;color:#667781">Es cliente: ${cesc(t.cliente.nombre || '')} · Cód. ${cesc(t.cliente.codigo)}</div>` : '')
+    + `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:5px">`
+    + (t.wa ? `<a style="${b}" href="https://wa.me/${cesc(t.wa)}" target="_blank" rel="noopener">Escribirle por WhatsApp</a>` : '')
+    + `<button type="button" style="${b}" onclick="waCopiarNumero(${i},${j},this)">Copiar número</button></div></div>`).join('');
+  return `<div style="white-space:normal;min-width:220px${n ? ';border-top:1px solid #e9edef;margin-top:8px;padding-top:8px' : ''}">`
+    + `<div style="display:flex;align-items:center;gap:9px"><div class="wa-av" style="width:34px;height:34px;font-size:13px;background:var(--navy,#1F447F)">${cesc(waIniciales(nom))}</div>`
+    + `<div style="min-width:0"><div style="font-weight:700">${cesc(nom)}</div><div style="font-size:11.5px;color:#667781">${k.empresa ? cesc(k.empresa) + ' · ' : ''}Contacto compartido</div></div></div>`
+    + (filas || `<div style="font-size:12.5px;color:#667781;margin-top:6px">El contacto vino sin número.</div>`)
+    + ((k.emails || []).length ? `<div style="font-size:12.5px;margin-top:6px">${k.emails.map(cesc).join(' · ')}</div>` : '')
+    + (k.vcard ? `<button type="button" style="${b};margin-top:8px" onclick="waGuardarContacto(${i})">Guardar contacto</button>` : '')
+    + `</div>`;
+}
+function waCopiarNumero(i, j, btn) {
+  const t = ((_waContactos[i] || {}).telefonos || [])[j]; if (!t) return;
+  const num = t.numero || t.wa || '';
+  const listo = () => { if (btn) { btn.textContent = 'Copiado'; setTimeout(() => { btn.textContent = 'Copiar número'; }, 1500); } };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(num).then(listo, () => prompt('Copiá el número:', num));
+  else prompt('Copiá el número:', num);
+}
+function waGuardarContacto(i) {
+  const k = _waContactos[i]; if (!k || !k.vcard) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([k.vcard], { type: 'text/vcard' }));
+  a.download = String(k.nombre || 'contacto').replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.vcf';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
 // Audio viejo (sin URL guardada): lo baja con wa-media y lo reproduce ahí mismo.
