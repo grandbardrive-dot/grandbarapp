@@ -1149,7 +1149,11 @@ async function cobPlanillaDet(vendedor, fecha) {
     const nProc = filas.filter(f => f.procesado).length;
     const money = v => (Number(v) || 0) ? cnum(v) : '';
     // Transferencia/cheques con varios importes: muestra el total + el desglose en tooltip.
-    const mDet = (val, det) => { const v = money(val); if (Array.isArray(det) && det.length > 1) return `<span title="${det.map(x => cnum(x)).join(' + ')}" style="border-bottom:1px dotted #999;cursor:help">${v} <span style="font-size:10px;color:var(--muted)">(${det.length})</span></span>`; return v; };
+    const mDet = (val, det) => {
+      const v = money(val);
+      if (Array.isArray(det) && det.length > 1) return `<div style="font-weight:700">${v}</div><div style="font-size:10.5px;color:var(--muted);font-weight:400;white-space:normal;line-height:1.35;max-width:150px;margin-left:auto">${det.map(x => cnum(x)).join(' + ')}</div>`;
+      return v;
+    };
     const arch = u => u ? `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : '<span style="color:var(--muted)">—</span>';
     // Comprobantes: pueden ser varios por fila.
     const archComp = f => { const arr = (f.comprobante_url ? [{ url: f.comprobante_url }] : []).concat(Array.isArray(f.comprobantes) ? f.comprobantes : []); return arr.length ? arr.map((c, i) => `<a class="cb-b" href="${cesc(c.url)}" target="_blank" rel="noopener" style="margin:1px">👁${arr.length > 1 ? (' ' + (i + 1)) : ''}</a>`).join(' ') : '<span style="color:var(--muted)">—</span>'; };
