@@ -77,7 +77,11 @@ exports.handler = async (event) => {
       const ya = new Set(dias.map(isoDe));
       const faltan = await rpc('ventas_dias_sin_monto', { p_desde: process.env.VENTAS_DESDE || '2025-01-01', p_lim: Number(process.env.VENTAS_RELLENO_DIAS || 10) });
       for (const f of faltan) if (!ya.has(f.fecha)) dias.push(new Date(f.fecha + 'T12:00:00Z'));
-    } catch (e) { console.error('sync-ventas-background relleno:', (e && e.message) || e); }
+    } catch (e) {
+      // El relleno es opcional y se reintenta en 20 minutos: no marca la corrida como fallida
+      // (21/10/2026: ya no quedan días por rellenar y la consulta a veces tarda de más → avisos falsos).
+      console.warn('sync-ventas-background relleno:', (e && e.message) || e);
+    }
   }
   // Modo automático: también HOY (parcial), primero, para que Dirección vea el día en curso.
   const hoyART = new Date(Date.now() - 3 * 3600 * 1000);
