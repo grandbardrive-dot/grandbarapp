@@ -36,6 +36,31 @@ function fechasDelMes(fechaISO, frecuencia) {
   return out;
 }
 
+// "2026-10" -> "2026-09"
+function mesAntes(mes) {
+  let [y, m] = String(mes).split('-').map(Number);
+  m--; if (m < 1) { m = 12; y--; }
+  return y + '-' + String(m).padStart(2, '0');
+}
+
+// Copia de la agenda (22/10/2026): lleva las fechas de un cliente del mes anterior
+// al mes `mes`, al mismo día de la semana y a la misma semana del mes (el 2.º martes
+// pasa al 2.º martes). Si el mes nuevo no tiene 5.ª semana, va a la última; los
+// semanales suman la 5.ª semana si el mes nuevo la tiene. Sin fechas repetidas.
+function fechasCopiadas(fechas, mes, semanal) {
+  const [y, m] = mes.split('-').map(Number);
+  const dias = new Date(Date.UTC(y, m, 0)).getUTCDate(), dow1 = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+  const set = new Set(fechas.map(iso => {
+    const d0 = new Date(String(iso).slice(0, 10) + 'T12:00:00Z');
+    let d = 1 + ((d0.getUTCDay() - dow1 + 7) % 7) + (Math.ceil(d0.getUTCDate() / 7) - 1) * 7;
+    if (d > dias) d -= 7;
+    return d;
+  }));
+  if (semanal) [...set].forEach(d => { if (d > 21 && d + 7 <= dias) set.add(d + 7); });
+  return [...set].sort((a, b) => a - b).map(d => mes + '-' + String(d).padStart(2, '0'));
+}
+const hoyAR = () => new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);
+
 // Cruce con el manual: visitas registradas (con cronómetro) por un vendedor en un rango.
 // Devuelve un mapa "codigo|YYYY-MM-DD" -> { duracion } (matchea por código crudo y numérico).
 async function visitasManual(codVend, desdeISO, hastaISO) {
@@ -186,6 +211,43 @@ exports.handler = async (event) => {
         if (!b.cliente_codigo || !b.mes) return json(400, { error: 'Faltan datos.' });
         await sb('agenda_plan?vendedor=eq.' + encodeURIComponent(vend) + '&mes=eq.' + encodeURIComponent(b.mes) + '&cliente_codigo=eq.' + encodeURIComponent(b.cliente_codigo) + '&estado=eq.pendiente', { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
         return json(200, { ok: true });
+      }
+
+      // Copiar la agenda del mes anterior al mes que está viendo (ver fechasCopiadas).
+      // No toca a los clientes que ya ubicó en el mes nuevo, saltea los días que
+      // ya pasaron y los clientes que ya no son de su cartera.
+      // Con previa:true solo cuenta, para que el vendedor confirme antes.
+      if (b.accion === 'copiar-mes') {
+        if (String(perfil.codigo_vendedor) !== vend) return json(403, { error: 'Solo el vendedor arma su plan.' });
+        const mes = String(b.mes || '');
+        if (!/^\d{4}-\d{2}$/.test(mes)) return json(400, { error: 'Falta el mes.' });
+        const ant = mesAntes(mes), hoy = hoyAR();
+        const ev = encodeURIComponent(vend);
+        const [antes, ya, cart, frec] = await Promise.all([
+          traerTodo(sb, 'agenda_plan?vendedor=eq.' + ev + '&mes=eq.' + ant + '&select=fecha,cliente_codigo,cliente_nombre&order=fecha.asc'),
+          traerTodo(sb, 'agenda_plan?vendedor=eq.' + ev + '&mes=eq.' + mes + '&select=cliente_codigo'),
+          traerTodo(cob, 'cuentas_cubo?vendedor=eq.' + ev + '&select=codigo,nombre', 5000),
+          traerTodo(sb, 'agenda_frecuencia?vendedor=eq.' + ev + '&select=cliente_codigo,frecuencia'),
+        ]);
+        const nomCart = {}; cart.forEach(c => { nomCart[String(c.codigo)] = c.nombre; });
+        const frecDe = {}; frec.forEach(f => { frecDe[String(f.cliente_codigo)] = f.frecuencia; });
+        const yaSet = new Set(ya.map(r => String(r.cliente_codigo)));
+        const porCli = {};
+        antes.forEach(r => { const k = String(r.cliente_codigo); (porCli[k] = porCli[k] || { nombre: r.cliente_nombre, fechas: [] }).fechas.push(String(r.fecha).slice(0, 10)); });
+        let yaUbicados = 0, fuera = 0, pasados = 0;
+        const filas = [];
+        for (const [cod, c] of Object.entries(porCli)) {
+          if (yaSet.has(cod)) { yaUbicados++; continue; }
+          if (cart.length && !(cod in nomCart)) { fuera++; continue; }
+          const fechas = fechasCopiadas(c.fechas, mes, frecDe[cod] === 'semanal').filter(f => f >= hoy);
+          if (!fechas.length) { pasados++; continue; }
+          fechas.forEach(f => filas.push({ vendedor: vend, mes, fecha: f, cliente_codigo: cod, cliente_nombre: nomCart[cod] || c.nombre || null, estado: 'pendiente' }));
+        }
+        const resumen = { desde: ant, clientes: new Set(filas.map(f => f.cliente_codigo)).size, visitas: filas.length, total_antes: Object.keys(porCli).length, ya_ubicados: yaUbicados, fuera_cartera: fuera, pasados };
+        if (b.previa || !filas.length) return json(200, { ok: true, previa: true, ...resumen });
+        const r = await sb('agenda_plan', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filas) });
+        if (!r.ok) return json(502, { error: 'No pude copiar la agenda: ' + (await r.text()).slice(0, 150) });
+        return json(200, { ok: true, ...resumen });
       }
 
       if (b.accion === 'enviar') {
@@ -343,7 +405,14 @@ exports.handler = async (event) => {
       const mv = visitaDia(mman, p.cliente_codigo, p.fecha);
       return mv ? { ...p, estado: 'visitado', duracion_min: mv.duracion } : p;
     });
-    return json(200, { vendedor: vend, mes, plan, envio, frecuencias: (frec || []).length, es_propia: String(perfil.codigo_vendedor) === String(vend), puede_editar: String(perfil.codigo_vendedor) === String(vend) });
+    // Clientes del mes anterior que todavía no están en este y tienen algún día por
+    // delante: si hay, se ofrece el botón "Copiar agenda del mes pasado".
+    const enEste = new Set(plan.map(p => String(p.cliente_codigo)));
+    const antRows = await traerTodo(sb, 'agenda_plan?vendedor=eq.' + encodeURIComponent(vend) + '&mes=eq.' + mesAntes(mes) + '&select=cliente_codigo,fecha');
+    const fAnt = {}; antRows.forEach(p => { const c = String(p.cliente_codigo); if (!enEste.has(c)) (fAnt[c] = fAnt[c] || []).push(p.fecha); });
+    const semanal = new Set((Array.isArray(frec) ? frec : []).filter(f => f.frecuencia === 'semanal').map(f => String(f.cliente_codigo))), hoy = hoyAR();
+    const porCopiar = Object.entries(fAnt).filter(([c, fs]) => fechasCopiadas(fs, mes, semanal.has(c)).some(f => f >= hoy)).length;
+    return json(200, { vendedor: vend, mes, plan, envio, frecuencias: (frec || []).length, por_copiar: porCopiar, es_propia: String(perfil.codigo_vendedor) === String(vend), puede_editar: String(perfil.codigo_vendedor) === String(vend) });
   } catch (e) {
     return json(500, { error: (e && e.message) || String(e) });
   }

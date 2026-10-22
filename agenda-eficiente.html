@@ -124,6 +124,7 @@
     <div class="pane" id="pMes">
       <div class="hint"><b>Paso 2.</b> Ubicá cada cliente <b>una sola vez</b>: elegís el día y, según su frecuencia, se repite solo en el mes (semanal cada 7 días, quincenal cada 15). Lo que ya ubicaste desaparece de la lista. Cuando termines, mandásela al supervisor en <b>Envío</b>.</div>
       <div class="mnav"><button id="mPrev">‹</button><div class="lbl" id="mLbl">—</div><button id="mNext">›</button></div>
+      <button class="btn gold" id="btnCopiar" style="display:none;margin-bottom:14px">📋 Copiar agenda del mes pasado</button>
 
       <!-- Progreso -->
       <div class="card" style="padding:12px 14px">
@@ -188,6 +189,16 @@
       <div class="mnav" style="margin-bottom:8px"><button id="dovPrev">‹</button><div class="lbl" id="dovLbl" style="min-width:130px;font-size:14px">—</div><button id="dovNext">›</button></div>
       <div class="cal" id="dovCalH"></div>
       <div class="cal" id="dovCal" style="margin-top:5px"></div>
+    </div>
+  </div>
+
+  <!-- Modal copiar la agenda del mes pasado -->
+  <div class="ov" id="cov">
+    <div class="sheet">
+      <h3 id="covTit">Copiar agenda del mes pasado</h3>
+      <div class="s">Cada cliente queda el mismo día de la semana y en la misma semana del mes (el 2.º martes pasa al 2.º martes). Los semanales suman la 5.ª semana si este mes la tiene.</div>
+      <div id="covRes" style="font-size:13.5px;line-height:1.5"></div>
+      <button class="btn gold" id="covSave" style="margin-top:14px">Copiar</button>
     </div>
   </div>
 
@@ -276,9 +287,52 @@ async function cargarPlan(){
     const r=await fetch(FN+'?vista=plan&mes='+MES,{headers:{Authorization:'Bearer '+TOKEN}});
     const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
     PLAN=d.plan||[]; ENVIO=d.envio||{estado:'borrador'};
+    $('btnCopiar').style.display=(d.puede_editar && d.por_copiar>0)?'':'none';
     pintaCal(); pintaEnv(); pintaProgreso(); pintaUbicar();
   }catch(e){ toast(e.message,true); }
 }
+
+// ---- Copiar la agenda del mes pasado (22/10/2026) ----
+// Primero pide la cuenta (previa) y la muestra para confirmar; después copia.
+const nomMes=mes=>MESES[Number(String(mes).slice(5,7))-1];
+async function copiarMes(previa){
+  const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({accion:'copiar-mes',mes:MES,previa})});
+  const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); return d;
+}
+const plural=(n,s,p)=>n+' '+(n===1?s:p);
+$('btnCopiar').onclick=async()=>{
+  const b=$('btnCopiar'); b.disabled=true;
+  try{
+    const d=await copiarMes(true), ant=nomMes(d.desde), act=nomMes(MES);
+    if(!d.visitas){
+      toast(!d.total_antes?'En '+ant+' no tenías agenda armada.'
+        : d.ya_ubicados===d.total_antes?'Ya ubicaste en '+act+' a todos los clientes de '+ant+'.'
+        : 'No queda nada para copiar de '+ant+'.',true);
+      return;
+    }
+    const li=[];
+    li.push('<b>'+plural(d.clientes,'cliente','clientes')+' · '+plural(d.visitas,'visita','visitas')+'</b> nuevas en '+act+'.');
+    if(d.ya_ubicados) li.push(plural(d.ya_ubicados,'cliente que ya ubicaste','clientes que ya ubicaste')+' en '+act+' quedan como están.');
+    if(MES===new Date().toISOString().slice(0,7)) li.push('Los días de '+act+' que ya pasaron no se copian'+(d.pasados?' ('+plural(d.pasados,'cliente queda','clientes quedan')+' afuera)':'')+'.');
+    if(d.fuera_cartera) li.push(plural(d.fuera_cartera,'cliente ya no está','clientes ya no están')+' en tu cartera y no se copian.');
+    if(ENVIO.estado==='enviada'||ENVIO.estado==='aprobada') li.push('Tu supervisor ya tenía la agenda de '+act+': después volvé a mandársela en <b>Envío</b>.');
+    else li.push('Después revisala y mandásela a tu supervisor en <b>Envío</b>.');
+    $('covTit').textContent='Copiar la agenda de '+ant+' a '+act;
+    $('covRes').innerHTML=li.map(x=>'<div style="margin-bottom:6px">'+x+'</div>').join('');
+    $('covSave').textContent='Copiar '+plural(d.visitas,'visita','visitas');
+    $('cov').classList.add('open');
+  }catch(e){ toast(e.message||'No se pudo',true); } finally{ b.disabled=false; }
+};
+$('cov').onclick=e=>{ if(e.target.id==='cov') $('cov').classList.remove('open'); };
+$('covSave').onclick=async()=>{
+  $('covSave').disabled=true;
+  try{
+    const d=await copiarMes(false);
+    $('cov').classList.remove('open');
+    toast('Copiada: '+plural(d.visitas,'visita','visitas')+' de '+plural(d.clientes,'cliente','clientes')+' ✓');
+    await cargarPlan();
+  }catch(e){ toast(e.message||'No se pudo',true); } finally{ $('covSave').disabled=false; }
+};
 
 // ---- Progreso + "Clientes por ubicar" (la lista que se achica al ubicar) ----
 let ubFrec='';
