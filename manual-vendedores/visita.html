@@ -1523,6 +1523,12 @@ body { background:transparent !important; }
     <div class="historial-label">Visitas anteriores</div>
     <div id="hist-list"><div class="hist-empty">Cargando…</div></div>
 
+    <!-- Facturas del cliente (cuenta corriente) + descarga, como en el portal del cliente -->
+    <details class="fact-vend" style="margin-top:8px;border:1px solid var(--border,#e6e6e6);border-radius:14px;overflow:hidden;background:var(--surface,#fff)" ontoggle="if(this.open) cargarFacturasVend()">
+      <summary style="cursor:pointer;padding:12px 14px;font-weight:700;list-style:none;display:flex;align-items:center;gap:8px">📄 Facturas del cliente <span style="margin-left:auto;color:#8a8a8a;font-size:12px">ver / descargar</span></summary>
+      <div id="fv-body" style="padding:6px 14px 12px"><div style="color:#888;font-size:13px">Tocá para ver las facturas con saldo.</div></div>
+    </details>
+
     <!-- Programas Satélites — solo autoservicio, por defecto cerrado -->
     <div class="ficha-acord" id="satelites-ficha" style="display:none">
       <button class="ficha-acord-btn" onclick="toggleAcord('satelites-acord','satelites-chev')">
@@ -6993,6 +6999,52 @@ body { background:transparent !important; }
       return (data && data.session && data.session.access_token) || null;
     } catch (e) { return null; }
   }
+
+  // ── Facturas del cliente (cuenta corriente) + descarga ──────────────────────
+  let _fvCargado = false;
+  const _fvEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const _fvMoney = n => '$ ' + Math.round(Number(n) || 0).toLocaleString('es-AR');
+  async function cargarFacturasVend() {
+    if (_fvCargado) return;
+    const body = document.getElementById('fv-body'); if (!body) return;
+    const cod = String((cliente && (cliente.codigo_cliente || cliente.codigo)) || '').trim();
+    if (!cod) { body.innerHTML = '<div style="color:#b23120;font-size:13px">No tengo el código del cliente.</div>'; return; }
+    body.innerHTML = '<div style="color:#888;font-size:13px">Buscando facturas…</div>';
+    try {
+      const token = await _hubToken();
+      if (!token) { body.innerHTML = '<div style="color:#b23120;font-size:13px">Volvé a iniciar sesión.</div>'; return; }
+      const r = await fetch('/.netlify/functions/planilla-cobranzas?que=facturas&codigo=' + encodeURIComponent(cod), { headers: { Authorization: 'Bearer ' + token } });
+      const j = await r.json();
+      if (j && j.ajeno) { body.innerHTML = '<div style="color:#b23120;font-size:13px">Este cliente no figura en tu cartera.</div>'; return; }
+      const facturas = (j && j.facturas) || [];
+      if (!facturas.length) { _fvCargado = true; body.innerHTML = '<div style="color:#888;font-size:13px">Este cliente no tiene facturas con saldo.</div>'; return; }
+      _fvCargado = true;
+      body.innerHTML = facturas.map(f => {
+        const fFecha = f.vencimiento ? new Date(f.vencimiento + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid #eee">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13.5px">${_fvEsc(f.tipo || '')} ${_fvEsc(f.numero || '')}</div>
+            <div style="font-size:11.5px;color:#888">${fFecha ? ('vence ' + fFecha + ' · ') : ''}saldo ${_fvMoney(f.saldo)}</div>
+          </div>
+          <button type="button" onclick="descargarFacturaVend('${_fvEsc(f.tipo || 'FAC')}','${_fvEsc(f.numero || '')}')" style="background:#1f447f;color:#fff;border:none;border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap">📄 Descargar</button>
+        </div>`;
+      }).join('');
+    } catch (e) { body.innerHTML = '<div style="color:#b23120;font-size:13px">No pude traer las facturas.</div>'; }
+  }
+  window.cargarFacturasVend = cargarFacturasVend;
+  async function descargarFacturaVend(tipo, numero) {
+    const cod = String((cliente && (cliente.codigo_cliente || cliente.codigo)) || '').trim();
+    const w = window.open('', '_blank');
+    if (w) w.document.write('<p style="font-family:sans-serif;padding:26px">Generando la factura…</p>');
+    try {
+      const token = await _hubToken();
+      if (!token) { if (w) w.document.body.innerHTML = '<p style="font-family:sans-serif;padding:26px">Volvé a iniciar sesión.</p>'; return; }
+      const r = await fetch('/.netlify/functions/factura-vendedor?tipo=' + encodeURIComponent(tipo || 'FAC') + '&numero=' + encodeURIComponent(numero || '') + '&codigo=' + encodeURIComponent(cod), { headers: { Authorization: 'Bearer ' + token } });
+      const htmlTxt = await r.text();
+      if (w) { w.document.open(); w.document.write(htmlTxt); w.document.close(); }
+    } catch (e) { if (w) w.document.body.innerHTML = '<p style="font-family:sans-serif;padding:26px">No se pudo generar la factura.</p>'; }
+  }
+  window.descargarFacturaVend = descargarFacturaVend;
   // Arma el archivo a mandar: la placa con el logo si ya se compuso, si no la original.
   async function _evidPreparar() {
     try {
