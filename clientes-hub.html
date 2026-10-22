@@ -541,14 +541,30 @@
       if(!fs.length && !cr.length){ cuerpo.innerHTML = '<div class="v pend">Sin facturas con saldo.</div>'; return; }
       // Botón de descarga: las NC/ND son comprobantes descargables; el anticipo (ANT) no.
       const btnDesc = (tipo, numero) => '<button onclick="descargarFacturaCli(\'' + _e(tipo||'FAC') + '\',\'' + _e(numero||'') + '\',\'' + _e(cod) + '\')" style="background:#1f447f;color:#fff;border:none;border-radius:9px;padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">📄 Descargar</button>';
+      // Notas de crédito aplicadas, agrupadas por la factura que acreditan.
+      const ncrDe = {};
+      ((j && j.notas_credito) || []).forEach(n=>{ const k = String(n.factura_ref||'').trim(); if(k){ (ncrDe[k]=ncrDe[k]||[]).push(n); } });
+      const ncrSub = (numero) => {
+        const list = ncrDe[String(numero||'').trim()] || []; if(!list.length) return '';
+        return list.map(n=>{
+          const det = Array.isArray(n.detalle) ? n.detalle : [];
+          const items = det.map(d=> _e(d.d||'') + (d.c?(' ×'+d.c):'')).filter(Boolean).slice(0,6).join(' · ');
+          return '<div style="margin-left:14px;padding:6px 0;border-top:1px dashed var(--line,#eee);display:flex;align-items:center;gap:8px">'
+            + '<div style="flex:1;min-width:0"><div style="font-size:12px;color:#1f7a3d;font-weight:700">💳 NC aplicada: ' + _e(n.tipo||'NCR') + ' ' + _e(n.numero||'') + ' · ' + fmtMoney(n.total) + '</div>'
+            + (items ? ('<div style="font-size:11px;color:var(--muted,#888)">' + items + '</div>') : '') + '</div>'
+            + btnDesc(n.tipo||'NCR', n.numero) + '</div>';
+        }).join('');
+      };
       let html = '';
       if(fs.length){
         html += fs.map(f=>{
           const venc = f.vencimiento ? fmtFecha(f.vencimiento) : '';
-          return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line,#eee)">'
+          return '<div style="padding:8px 0;border-top:1px solid var(--line,#eee)">'
+            + '<div style="display:flex;align-items:center;gap:10px">'
             + '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">' + _e(f.tipo||'') + ' ' + _e(f.numero||'') + '</div>'
             + '<div style="font-size:11.5px;color:var(--muted,#888)">' + (venc ? ('vence ' + venc + ' · ') : '') + 'saldo ' + fmtMoney(f.saldo) + '</div></div>'
-            + btnDesc(f.tipo||'FAC', f.numero) + '</div>';
+            + btnDesc(f.tipo||'FAC', f.numero) + '</div>'
+            + ncrSub(f.numero) + '</div>';
         }).join('');
       }
       if(cr.length){

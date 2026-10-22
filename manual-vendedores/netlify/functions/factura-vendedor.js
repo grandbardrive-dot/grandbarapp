@@ -284,15 +284,20 @@ exports.handler = async (event) => {
     if (!cc) return err(404, 'No encontré ese cliente.');
     if (!amplio && String(cc.vendedor || '') !== String(codVend || '')) return err(403, 'Ese cliente no es de tu cartera.');
 
-    // Modo lista: facturas con saldo + saldo a favor (notas de crédito / anticipos),
-    // separados, para mostrarlos en la ficha del vendedor (JSON).
+    // Modo lista: facturas con saldo + saldo a favor (notas de crédito / anticipos) +
+    // las notas de crédito aplicadas (tabla notas_credito, linkeadas a su factura).
     if (esLista) {
-      const rows = await (await cob('facturas?codigo=eq.' + encodeURIComponent(cod) + '&saldo=neq.0&select=numero,tipo,fecha,vencimiento,importe,saldo&order=vencimiento.asc.nullslast&limit=400')).json();
-      const arr = Array.isArray(rows) ? rows : [];
-      const facturas = arr.filter(f => (Number(f.saldo) || 0) > 0);
-      const creditos = arr.filter(f => (Number(f.saldo) || 0) < 0)
+      const [rowsR, ncrR] = await Promise.all([
+        cob('facturas?codigo=eq.' + encodeURIComponent(cod) + '&saldo=neq.0&select=numero,tipo,fecha,vencimiento,importe,saldo&order=vencimiento.asc.nullslast&limit=400'),
+        cob('notas_credito?codigo=eq.' + encodeURIComponent(cod) + '&select=numero,tipo,fecha,total,factura_ref,detalle&order=fecha.desc.nullslast&limit=200'),
+      ]);
+      const rowsJson = rowsR.ok ? await rowsR.json() : [];
+      const rows = Array.isArray(rowsJson) ? rowsJson : [];
+      const facturas = rows.filter(f => (Number(f.saldo) || 0) > 0);
+      const creditos = rows.filter(f => (Number(f.saldo) || 0) < 0)
         .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
-      return resp(200, { razon_social: cc.nombre || null, facturas, creditos });
+      const notas = ncrR.ok ? await ncrR.json() : [];
+      return resp(200, { razon_social: cc.nombre || null, facturas, creditos, notas_credito: Array.isArray(notas) ? notas : [] });
     }
 
     // Modo descarga.
