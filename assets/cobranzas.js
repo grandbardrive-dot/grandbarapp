@@ -1143,16 +1143,24 @@ async function cobPlanillas() {
     const hoy = (() => { const t = new Date(), z = n => String(n).padStart(2, '0'); return t.getFullYear() + '-' + z(t.getMonth() + 1) + '-' + z(t.getDate()); })();
     const porFecha = {}; filas.forEach(e => { (porFecha[e.fecha_rendicion] = porFecha[e.fecha_rendicion] || []).push(e); });
     const fechas = Object.keys(porFecha).sort().reverse();
+    // Total del día (22/10/2026, pedido para Mónica): suma de todas las planillas de esa
+    // fecha por medio de pago. Retenciones y tarjeta solo aparecen si hubo.
+    const totalDia = grupo => {
+      const s = {};
+      grupo.forEach(e => { const t = e.totales || {}; Object.keys(lbl).forEach(k => { s[k] = (s[k] || 0) + (Number(t[k]) || 0); }); });
+      const medios = ['efectivo', 'transferencia', 'echeq', 'cheques'].concat(['retenciones', 'tarjeta'].filter(k => s[k] > 0));
+      return `<div style="font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink,#1d2a3a);margin-top:5px">Total del día: ${medios.map(k => `<span style="white-space:nowrap">${lbl[k]} <b>${cnum(s[k])}</b></span>`).join(' · ')}</div>`;
+    };
     let html = '';
     for (const f of fechas) {
       const grupo = porFecha[f], cards = grupo.map(card).join('');
       const pend = grupo.filter(e => !completa(e)).length;
       if (f === hoy || (fechas.length === 1)) {
-        html += `<div style="font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:4px 0 8px">${f === hoy ? 'Hoy · ' : ''}${cfec(f)}</div>${cards}`;
+        html += `<div style="font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:4px 0 8px">${f === hoy ? 'Hoy · ' : ''}${cfec(f)}${totalDia(grupo)}</div>${cards}`;
       } else {
         const estado = pend ? `<b style="color:#b23120">${pend} con pendientes</b>` : `<span style="color:#1f6b3d">todas procesadas ✓</span>`;
         html += `<details class="pla-arch" style="margin:6px 0;border:1px solid var(--line,#e6e6e6);border-radius:12px;overflow:hidden">
-          <summary style="cursor:pointer;padding:12px 14px;font-weight:700;list-style:none;background:var(--cream,#f5f1e8)">📁 ${cfec(f)} · ${grupo.length} planilla${grupo.length > 1 ? 's' : ''} · ${estado}</summary>
+          <summary style="cursor:pointer;padding:12px 14px;font-weight:700;list-style:none;background:var(--cream,#f5f1e8)">📁 ${cfec(f)} · ${grupo.length} planilla${grupo.length > 1 ? 's' : ''} · ${estado}${totalDia(grupo)}</summary>
           <div style="padding:10px 12px">${cards}</div></details>`;
       }
     }
