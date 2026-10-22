@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrandBar Hub — Evidencias</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Evidencias del vendedor (22/10/2026): escribe qué acción cerró, de qué proveedor, en
+       qué cliente y cuándo, con fotos y videos. Le llega a Trade Marketing (Juan Pablo,
+       trade-evidencias.html) y al proveedor si tiene usuario en el portal. Función
+       acciones-evidencias (tabla y carpeta privadas). -->
+  <style>
+    :root{
+      --navy:#0d2238; --navy-2:#14304c; --cream:#f5f1e8; --card:#ffffff;
+      --ink:#1b2a32; --muted:#7a8891; --line:#e9e3d6; --line-2:#efe9dc;
+      --gold:#c9a13b; --gold-d:#a9852a; --gold-soft:#f7efda;
+      --green:#2f6f5e; --green-d:#245647; --green-soft:#e7f1ea;
+      --coral:#d0603e;
+      --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    }
+    *{box-sizing:border-box} html,body{margin:0;height:100%}
+    body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    .app{display:flex;min-height:100vh}
+    .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+    .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+    .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+    .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+    .sb-nav{display:flex;flex-direction:column;gap:3px}
+    .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+    .sb-nav a:hover{background:var(--navy-2);color:#fff}
+    .sb-nav a.active{background:var(--gold);color:#2a2007;font-weight:600}
+    .sb-nav svg{width:19px;height:19px;flex:none;opacity:.9}
+    .sb-foot{margin-top:auto;padding-top:16px}
+    .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px}
+    .sb-user .av{width:36px;height:36px;border-radius:50%;background:var(--gold);display:grid;place-items:center;font-weight:700;color:var(--navy)}
+    .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+    .main{flex:1;min-width:0}
+    .content{padding:26px 30px 60px;max-width:960px;margin:0 auto}
+    .head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+    .head h1{font-size:24px;margin:0 0 4px;font-weight:800}
+    .head p{margin:0;color:var(--muted);font-size:14px;max-width:60ch;line-height:1.5}
+    .ev-btn{background:var(--gold);color:#241a06;border:0;border-radius:11px;padding:12px 18px;font:inherit;font-weight:800;font-size:14.5px;cursor:pointer;white-space:nowrap}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 16px}
+    .vacio{text-align:center;color:var(--muted);padding:28px 10px;font-size:14px;line-height:1.5}
+    .ev-it{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line-2)}
+    .ev-it:first-child{border-top:0}
+    .ev-it img,.ev-it .sinfoto{width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--line-2);display:flex;align-items:center;justify-content:center;color:var(--navy);font-size:22px}
+    .ev-it .a{font-weight:700;font-size:14.5px}
+    .ev-it .m{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.45}
+    .ev-it .m a{color:var(--navy);text-decoration:underline}
+    .ev-est{font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap}
+    .ev-nueva{background:#f8efd6;color:#8a6412} .ev-revisada{background:var(--green-soft);color:var(--green-d)}
+    .ev-borrar{display:block;margin-top:6px;background:none;border:0;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:0;margin-left:auto}
+    .ev-ov{position:fixed;inset:0;background:rgba(13,34,56,.55);display:none;align-items:flex-end;justify-content:center;z-index:9950}
+    .ev-ov.open{display:flex}
+    .ev-sheet{background:#fff;width:100%;max-width:540px;max-height:94vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 18px 22px}
+    @media(min-width:640px){ .ev-ov{align-items:center} .ev-sheet{border-radius:18px} }
+    .ev-sheet h3{margin:0 0 4px;font-size:18px} .ev-sheet .s{font-size:13px;color:var(--muted);margin-bottom:6px;line-height:1.45}
+    .ev-sheet label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:12px 0 5px}
+    .ev-sheet select,.ev-sheet input,.ev-sheet textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:inherit;font-size:15px;background:#fff;color:var(--ink)}
+    .ev-sheet textarea{min-height:64px;resize:vertical}
+    .ev-prev{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+    .ev-prev .ft{position:relative}
+    .ev-prev img{width:72px;height:72px;object-fit:cover;border-radius:9px;display:block}
+    .ev-prev .x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:var(--navy);color:#fff;font-size:13px;line-height:22px;cursor:pointer;padding:0}
+    .ev-vid{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);margin-top:6px;background:var(--cream);border-radius:9px;padding:8px 10px}
+    .ev-vid button{margin-left:auto;background:none;border:0;color:var(--muted);text-decoration:underline;font:inherit;font-size:12.5px;cursor:pointer}
+    .ev-nota{font-size:12px;color:var(--muted);margin-top:5px}
+    .ev-acts{display:flex;gap:8px;margin-top:16px}
+    .ev-acts button{flex:1;border:0;border-radius:11px;padding:13px;font:inherit;font-weight:800;font-size:14.5px;cursor:pointer}
+    .ev-acts .no{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)} .ev-acts .si{background:var(--green);color:#fff}
+    .ev-acts .si:disabled{opacity:.6}
+    .ev-msg{font-size:13px;color:var(--coral);margin-top:10px;min-height:18px}
+    @media(max-width:820px){ .sidebar{display:none} .content{padding:16px} .head h1{font-size:21px} .ev-btn{width:100%} }
+  </style>
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+<script>try{var v=localStorage.getItem('gb_es_sup'),t=JSON.parse(localStorage.getItem('sb-xqhyemccbwmzxqzkrtwa-auth-token')||'null'),u=t&&(t.user||(t.currentSession||{}).user);if(v&&u&&v===u.id)document.documentElement.classList.add('gb-sup')}catch(e){}</script>
+<style>.gb-sup .sb-nav{visibility:hidden}</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav"></nav>
+    <div class="sb-foot"><div class="sb-user"><div class="av" id="av">V</div><div><div class="t" id="uName">Vendedor</div><div class="s">Vendedor</div></div></div></div>
+  </aside>
+  <div class="main"><div class="content">
+    <div class="head">
+      <div><h1>Evidencias</h1><p>Cargá cada acción que cerraste: qué acción, de qué proveedor, en qué cliente y cuándo, con fotos o videos. Le llega a Trade Marketing y al proveedor.</p></div>
+      <button class="ev-btn" id="evNueva" type="button">+ Cargar evidencia</button>
+    </div>
+    <div class="card" id="lista"><div class="vacio">Cargando…</div></div>
+  </div></div>
+</div>
+
+<div class="ev-ov" id="evOv">
+  <div class="ev-sheet" role="dialog" aria-modal="true" aria-labelledby="evTit">
+    <h3 id="evTit">Cargar evidencia</h3>
+    <div class="s">Fotos del punto de venta o videos cortos. Al menos una de las dos.</div>
+    <label for="evAccion">Acción que cerraste</label>
+    <input id="evAccion" maxlength="200" placeholder="Ej. Exhibidor de Aperol en la barra" autocomplete="off">
+    <label for="evProveedor">Proveedor</label>
+    <input id="evProveedor" list="evProveedores" maxlength="120" placeholder="Elegí o escribí el proveedor" autocomplete="off">
+    <datalist id="evProveedores"></datalist>
+    <label for="evCliente">Cliente</label>
+    <input id="evCliente" list="evClientes" maxlength="200" placeholder="Buscá por nombre o código" autocomplete="off">
+    <datalist id="evClientes"></datalist>
+    <label for="evFecha">Fecha en que la cerraste</label>
+    <input id="evFecha" type="date">
+    <label for="evFotos">Fotos (hasta 4)</label>
+    <input id="evFotos" type="file" accept="image/*" multiple>
+    <div class="ev-prev" id="evPrev"></div>
+    <label for="evVideo">Videos (hasta 2, de 60 segundos y 50 MB cada uno)</label>
+    <input id="evVideo" type="file" accept="video/*">
+    <div id="evVids"></div>
+    <label for="evComentario">Comentario (opcional)</label>
+    <textarea id="evComentario" maxlength="500" placeholder="Algo que tengan que saber"></textarea>
+    <div class="ev-msg" id="evMsg"></div>
+    <div class="ev-acts"><button class="no" id="evCancel" type="button">Cancelar</button><button class="si" id="evEnviar" type="button">Enviar evidencia</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supervisor-nav.js"></script>
+<script>
+(function () {
+  const FN = '/.netlify/functions/acciones-evidencias';
+  const HUB = { url: 'https://xqhyemccbwmzxqzkrtwa.supabase.co', key: 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const urlOk = u => (typeof u === 'string' && u.indexOf(HUB.url + '/storage/') === 0 ? u : '');
+  const fFecha = d => { const p = String(d || '').slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : ''; };
+  const hoy = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const TIPO = { libre: '', campania: 'Campaña', plan: 'Plan', fecha: 'Fecha especial', vino_mesa: 'Sobre la mesa', puntera: 'Puntera', volumen: 'Acción de volumen', degustacion: 'Degustación' };
+  const hub = supabase.createClient(HUB.url, HUB.key);
+  let MIAS = null, CLIENTES = [], FOTOS = [], VIDEOS = [], BLOQUEO = null;   // VIDEOS: [{ file, path? }]
+
+  async function token() { const { data: { session } } = await hub.auth.getSession(); return session ? session.access_token : null; }
+  async function api(body, q) {
+    const t = await token();
+    if (!t) { location.href = 'index.html'; throw new Error('Tu sesión se cerró.'); }
+    const r = await fetch(FN + (q || ''), body ? { method: 'POST', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : { headers: { Authorization: 'Bearer ' + t } });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || ('Error ' + r.status));
+    return d;
+  }
+
+  function pintar() {
+    const el = $('lista');
+    if (BLOQUEO) { el.innerHTML = '<div class="vacio">' + esc(BLOQUEO) + '</div>'; return; }
+    if (MIAS === null) { el.innerHTML = '<div class="vacio">Cargando…</div>'; return; }
+    if (!MIAS.length) { el.innerHTML = '<div class="vacio">Todavía no cargaste evidencias. Tocá "Cargar evidencia" para la primera.</div>'; return; }
+    el.innerHTML = MIAS.map(e => {
+      const f = (e.fotos_url || []).map(urlOk).filter(Boolean), v = (e.videos_url || []).map(urlOk).filter(Boolean);
+      const prov = e.proveedor_empresa || e.proveedor;
+      const tipo = TIPO[e.tipo];
+      return '<div class="ev-it">'
+        + (f[0] ? '<a href="' + esc(f[0]) + '" target="_blank" rel="noopener"><img src="' + esc(f[0]) + '" alt="" loading="lazy"></a>'
+          : v[0] ? '<a class="sinfoto" href="' + esc(v[0]) + '" target="_blank" rel="noopener" aria-label="Ver video">▶</a>' : '<span class="sinfoto"></span>')
+        + '<div><div class="a">' + esc(e.accion_titulo) + '</div>'
+        + '<div class="m">' + [prov, e.cliente_nombre, e.fecha_cierre ? 'cerrada el ' + fFecha(e.fecha_cierre) : '', tipo].filter(Boolean).map(esc).join(' · ') + '</div>'
+        + '<div class="m">' + [f.length ? f.length + (f.length === 1 ? ' foto' : ' fotos') : '']
+          .concat(v.map((u, i) => '<a href="' + esc(u) + '" target="_blank" rel="noopener">ver video' + (v.length > 1 ? ' ' + (i + 1) : '') + '</a>'))
+          .concat(['cargada el ' + fFecha(String(e.created_at).slice(0, 10))]).filter(Boolean).join(' · ') + '</div></div>'
+        + '<div style="text-align:right"><span class="ev-est ev-' + esc(e.estado) + '">' + (e.estado === 'revisada' ? 'Revisada' : 'Enviada') + '</span>'
+        + (e.estado !== 'revisada' ? '<button class="ev-borrar" data-borrar="' + esc(e.id) + '" type="button">Borrar</button>' : '') + '</div></div>';
+    }).join('');
+  }
+  $('lista').onclick = async ev => {
+    const b = ev.target.closest('[data-borrar]'); if (!b) return;
+    if (!confirm('¿Borrar esta evidencia? Todavía no la revisaron.')) return;
+    try { await api({ accion: 'borrar', id: b.dataset.borrar }); MIAS = MIAS.filter(e => String(e.id) !== String(b.dataset.borrar)); pintar(); }
+    catch (e) { alert(e.message); }
+  };
+
+  // ── Formulario ─────────────────────────────────────────────────────────────
+  function abrir() {
+    ['evAccion', 'evProveedor', 'evCliente', 'evComentario'].forEach(id => { $(id).value = ''; });
+    $('evFecha').value = hoy(); $('evFecha').max = hoy();
+    $('evFotos').value = ''; $('evVideo').value = ''; FOTOS = []; VIDEOS = []; pintarArchivos();
+    $('evMsg').textContent = ''; $('evOv').classList.add('open');
+    setTimeout(() => $('evAccion').focus(), 50);
+  }
+  const cerrar = () => $('evOv').classList.remove('open');
+  $('evNueva').onclick = () => { if (BLOQUEO) { alert(BLOQUEO); return; } abrir(); };
+  $('evCancel').onclick = cerrar;
+  $('evOv').onclick = ev => { if (ev.target.id === 'evOv') cerrar(); };
+
+  function pintarArchivos() {
+    $('evPrev').innerHTML = FOTOS.map((u, i) => '<div class="ft"><img src="' + u + '" alt=""><button class="x" type="button" data-qf="' + i + '" aria-label="Sacar foto">×</button></div>').join('');
+    $('evVids').innerHTML = VIDEOS.map((v, i) => '<div class="ev-vid">▶ ' + esc(v.info) + '<button type="button" data-qv="' + i + '">Sacar</button></div>').join('')
+      + (VIDEOS.length < 2 ? '' : '<div class="ev-nota">Ya tenés los 2 videos.</div>');
+    $('evVideo').disabled = VIDEOS.length >= 2;
+    $('evFotos').disabled = FOTOS.length >= 4;
+  }
+  $('evPrev').onclick = ev => { const b = ev.target.closest('[data-qf]'); if (b) { FOTOS.splice(Number(b.dataset.qf), 1); pintarArchivos(); } };
+  $('evVids').onclick = ev => { const b = ev.target.closest('[data-qv]'); if (b) { VIDEOS.splice(Number(b.dataset.qv), 1); pintarArchivos(); } };
+
+  // Las fotos se achican en el celular antes de mandarlas (1400 px, JPG, menos de 1 MB).
+  function achicar(file) {
+    return new Promise((ok, ko) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        let q = 0.82, out = c.toDataURL('image/jpeg', q);
+        while (out.length > 1.0e6 && q > 0.4) { q -= 0.1; out = c.toDataURL('image/jpeg', q); }   // 4 fotos entran en un envío
+        ok(out);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); ko(new Error('No se pudo leer una de las fotos.')); };
+      img.src = url;
+    });
+  }
+  $('evFotos').onchange = async () => {
+    const lugar = 4 - FOTOS.length, files = Array.from($('evFotos').files || []);
+    $('evMsg').textContent = files.length > lugar ? 'Se toman ' + lugar + (lugar === 1 ? ' foto' : ' fotos') + ': el máximo es 4.' : '';
+    try { FOTOS = FOTOS.concat(await Promise.all(files.slice(0, lugar).map(achicar))); }
+    catch (e) { $('evMsg').textContent = e.message; }
+    $('evFotos').value = ''; pintarArchivos();
+  };
+
+  // El video no se achica: se controla el largo y el peso antes de subirlo.
+  const MAX_VIDEO = 50 * 1024 * 1024, MAX_SEG = 60;
+  const TIPOS = { mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', '3gp': 'video/3gpp' };
+  const tipoVideo = f => (Object.values(TIPOS).includes(f.type) ? f.type : TIPOS[(f.name.split('.').pop() || '').toLowerCase()]) || '';
+  const duracion = f => new Promise(ok => {
+    const v = document.createElement('video'), url = URL.createObjectURL(f);
+    let listo = false;
+    const fin = d => { if (listo) return; listo = true; URL.revokeObjectURL(url); ok(d); };
+    v.preload = 'metadata'; v.onloadedmetadata = () => fin(v.duration); v.onerror = () => fin(null);
+    setTimeout(() => fin(null), 8000); v.src = url;
+  });
+  const mb = n => (n / 1048576).toFixed(1).replace('.', ',') + ' MB';
+  $('evVideo').onchange = async () => {
+    const f = ($('evVideo').files || [])[0]; $('evVideo').value = '';
+    $('evMsg').textContent = '';
+    if (!f) return;
+    if (!tipoVideo(f)) { $('evMsg').textContent = 'Ese formato de video no se acepta. Grabalo con la cámara del celular.'; return; }
+    if (f.size > MAX_VIDEO) { $('evMsg').textContent = 'El video pesa ' + mb(f.size) + ' y el máximo es 50 MB. Grabá uno más corto.'; return; }
+    const d = await duracion(f);
+    if (d && isFinite(d) && d > MAX_SEG + 1) { $('evMsg').textContent = 'El video dura ' + Math.round(d) + ' segundos y el máximo es ' + MAX_SEG + '. Grabá uno más corto.'; return; }
+    VIDEOS.push({ file: f, info: (d && isFinite(d) ? Math.round(d) + ' s · ' : '') + mb(f.size) });
+    pintarArchivos();
+  };
+  // Sube cada video directo a la carpeta privada con un permiso de un solo uso.
+  async function subirVideo(v, n, btn) {
+    if (v.path) return v.path;   // ya subió en un intento anterior
+    const d = await api({ accion: 'permiso_video', tipo: tipoVideo(v.file), tamano: v.file.size });
+    if (!urlOk(d.url)) throw new Error('No se pudo preparar la subida del video.');
+    await new Promise((ok, ko) => {
+      const x = new XMLHttpRequest();
+      x.open('PUT', d.url);
+      x.setRequestHeader('Content-Type', tipoVideo(v.file));
+      x.setRequestHeader('apikey', HUB.key);
+      x.upload.onprogress = ev => { if (ev.lengthComputable) btn.textContent = 'Subiendo video' + (n ? ' ' + n : '') + '… ' + Math.round(ev.loaded / ev.total * 100) + '%'; };
+      x.onload = () => (x.status >= 200 && x.status < 300 ? ok() : ko(new Error('No se pudo subir el video (' + x.status + '). Probá de nuevo.')));
+      x.onerror = () => ko(new Error('Se cortó la conexión subiendo el video. Probá de nuevo con mejor señal.'));
+      x.send(v.file);
+    });
+    return (v.path = d.path);
+  }
+
+  $('evEnviar').onclick = async () => {
+    const msg = t => { $('evMsg').textContent = t; };
+    const accion = $('evAccion').value.trim(), proveedor = $('evProveedor').value.trim(), cli = $('evCliente').value.trim(), fecha = $('evFecha').value;
+    if (!accion) return msg('Escribí qué acción cerraste.');
+    if (!proveedor) return msg('Poné el proveedor.');
+    if (!cli) return msg('Poné el cliente.');
+    if (!fecha) return msg('Poné la fecha.');
+    if (!FOTOS.length && !VIDEOS.length) return msg('Sumá al menos una foto o un video.');
+    const c = CLIENTES.find(x => x.etiqueta === cli || x.codigo === cli);
+    const btn = $('evEnviar'); btn.disabled = true; btn.textContent = 'Enviando…'; msg('');
+    try {
+      const videos = [];
+      for (let i = 0; i < VIDEOS.length; i++) videos.push(await subirVideo(VIDEOS[i], VIDEOS.length > 1 ? i + 1 : 0, btn));
+      btn.textContent = 'Enviando…';
+      const d = await api({ accion: 'cargar_libre', accion_titulo: accion, proveedor, cliente_codigo: c ? c.codigo : null, cliente_nombre: c ? c.nombre : cli,
+        fecha_cierre: fecha, comentario: $('evComentario').value.trim(), fotos: FOTOS, videos });
+      cerrar();
+      MIAS = [d.evidencia].concat(MIAS || []); pintar();
+      alert(d.proveedor ? 'Listo: le llegó a Trade Marketing y a ' + d.proveedor + '.' : 'Listo: le llegó a Trade Marketing.');
+    } catch (e) { msg(e.message); }
+    finally { btn.disabled = false; btn.textContent = 'Enviar evidencia'; }
+  };
+
+  (async () => {
+    const { data: { session } } = await hub.auth.getSession();
+    if (!session) { location.href = 'index.html'; return; }
+    const { data: u } = await hub.from('usuarios').select('nombre,rol').eq('id', session.user.id).maybeSingle();
+    const rol = String((u && u.rol) || '').toLowerCase();
+    if (u && u.nombre) { $('uName').textContent = u.nombre; $('av').textContent = u.nombre.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(); }
+    if (rol === 'torneo') { location.replace('trade-evidencias.html'); return; }   // Trade Marketing las revisa ahí
+    if (!['ventas', 'mayorista', 'desarrollo', 'diseno'].includes(rol)) { BLOQUEO = 'La carga de evidencias es para los vendedores.'; pintar(); return; }
+    try { MIAS = (await api(null, '?vista=mias')).evidencias || []; }
+    catch (e) { BLOQUEO = 'No se pudieron leer tus evidencias: ' + e.message; }
+    pintar();
+    api(null, '?vista=opciones').then(d => { $('evProveedores').innerHTML = (d.proveedores || []).map(p => '<option value="' + esc(p) + '"></option>').join(''); }).catch(() => {});
+    // Los clientes de la cartera, para elegir el punto de venta.
+    const t = await token();
+    fetch('/.netlify/functions/cuentas-vendedor', { headers: { Authorization: 'Bearer ' + t } }).then(x => (x.ok ? x.json() : {})).then(j => {
+      CLIENTES = (j.clientes || []).filter(c => !c.oculto).map(c => ({ codigo: String(c.codigo), nombre: c.nombre || '', etiqueta: (c.nombre || '') + ' · ' + c.codigo }));
+      $('evClientes').innerHTML = CLIENTES.map(c => '<option value="' + esc(c.etiqueta) + '"></option>').join('');
+    }).catch(() => {});
+  })();
+})();
+</script>
+<script src="assets/hub-nav.js?v=8"></script>
+<script src="assets/notif.js?v=3"></script>
+<script src="assets/user-menu.js?v=1"></script>
+<script src="assets/mobile-nav.js?v=1"></script>
+<script src="/assets/cuenta-activa.js?v=1"></script>
+</body>
+</html>

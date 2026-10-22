@@ -37,6 +37,7 @@ const PANTALLAS = [
       { n:'Reporte semanal',        r:'reporte-semanal.html',               nota:'Resumen completo de la semana.' },
       { n:'Ventas',                 r:'ventas.html',                        nota:'Ventas del mes por vendedor.' },
       { n:'Torneo Doña Paula',      r:'torneo-vendedor.html',                nota:'Puntos y ranking del torneo (pestaña del panel del vendedor).' },
+      { n:'Evidencias',             r:'evidencias.html',                     nota:'El vendedor carga la acción que cerró, el proveedor, el cliente, la fecha, hasta 4 fotos y 2 videos. Le llega a Trade Marketing y al proveedor (22/10/2026).' },
       { n:'Registrar actividad',    r:'manual-vendedores/torneo-registro.html', nota:'Carga de actividad del torneo.' },
       { n:'Mi avatar',              r:'manual-vendedores/vestidor.html',    nota:'Personalización del avatar.' },
       { n:'Guía del portal de vendedores', r:'guia-vendedores.html',        nota:'Manual del portal del vendedor, pantalla por pantalla (08/10/2026). En el menú del vendedor, no en el de la tienda.' },

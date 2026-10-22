@@ -14,6 +14,8 @@
     { t:'Agenda Eficiente',       h:'agenda-eficiente.html',                svg:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/><circle cx="18" cy="6" r="3"/>' },
     { t:'Cobranzas',              h:'cobranzas-vendedor.html',              svg:'<path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>' },
     { t:'Tareas',                 h:'tareas.html',                          svg:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/>' },
+    // Evidencias de las acciones cerradas: fotos y videos para Trade Marketing y el proveedor (22/10/2026).
+    { t:'Evidencias',             h:'evidencias.html',                      svg:'<rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/>' },
     // El torneo estaba en el inicio del manual; desde el 22/09/2026 es una pestaña propia.
     { t:'Torneo Doña Paula',      h:'torneo-vendedor.html',                 svg:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>' },
     // Pedidos todavía no tiene pantalla: en vez de no hacer nada al tocarlo, avisa.

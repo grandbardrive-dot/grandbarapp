@@ -61,3 +61,13 @@ select relname, relrowsecurity as rls from pg_class where relname = 'acciones_ev
 --   proyecto del PORTAL (xqhyemccbwmzxqzkrtwa):
 --     alter table public.vinos_sobre_mesa add column if not exists requiere_evidencia boolean not null default false;
 --     alter table public.acciones_herramientas add column if not exists requiere_evidencia boolean not null default false;
+
+-- ── Evidencia libre con videos (22/10/2026) ─────────────────────────────────
+-- Sección "Evidencias" del portal del vendedor: escribe qué acción cerró, el proveedor,
+-- el cliente y la fecha, con hasta 4 fotos y 2 videos (50 MB cada uno). Los videos
+-- suben directo a la carpeta privada con un permiso de un solo uso.
+alter table public.acciones_evidencias add column if not exists videos text[] not null default '{}';
+update storage.buckets
+   set file_size_limit = 52428800,
+       allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp']
+ where id = 'acciones-evidencias';

@@ -115,6 +115,7 @@
   .fotos{display:flex;gap:6px;flex-wrap:wrap}
   .fotos a{width:78px;height:78px;border-radius:9px;overflow:hidden;background:var(--cream);display:block}
   .fotos img{width:100%;height:100%;object-fit:cover;display:block}
+  .fotos a.vid{display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--navy);text-decoration:none}
   .e-nueva{background:var(--amber-s);color:var(--amber)} .e-revisada{background:var(--green-s);color:var(--green-d)}
   .sb-cat{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#9db0ba;padding:16px 12px 6px;margin-top:6px;border-top:1px solid rgba(255,255,255,.08)}
 </style>
@@ -169,7 +170,7 @@
   const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const FN = '/.netlify/functions/acciones-evidencias';
   const ROLES = ['torneo', 'desarrollo', 'diseno'];
-  const TIPO = { campania:'Campaña', plan:'Plan', fecha:'Fecha especial', catalogo:'Catálogo', vino_mesa:'Sobre la mesa', puntera:'Puntera', volumen:'Acción de volumen', degustacion:'Degustación' };
+  const TIPO = { libre:'Cargada por el vendedor', campania:'Campaña', plan:'Plan', fecha:'Fecha especial', catalogo:'Catálogo', vino_mesa:'Sobre la mesa', puntera:'Puntera', volumen:'Acción de volumen', degustacion:'Degustación' };
   const RUBRO = { restaurante:'Restaurante', bar:'Bar', vinoteca:'Vinoteca', 'tienda de bebidas':'Tienda de bebidas', tienda_bebidas:'Tienda de bebidas', autoservicio:'Autoservicio', hotel:'Hotel', disco:'Disco', evento:'Evento', mayorista:'Mayorista' };
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -204,7 +205,7 @@
       const prov = e.proveedor_empresa || e.proveedor;
       return `<div class="ac">
         <div class="top">
-          <div class="img">${fotos[0] ? `<img src="${esc(fotos[0])}" alt="">` : '📷'}</div>
+          <div class="img">${fotos[0] ? `<img src="${esc(fotos[0])}" alt="">` : ((e.videos_url || []).length ? '▶' : '📷')}</div>
           <div style="min-width:0">
             <div class="tit">${esc(e.accion_titulo)}</div>
             <div class="prov">${esc(e.accion_condicion || '')}</div>
@@ -217,7 +218,7 @@
           ${e.fecha_cierre ? `<div class="dato"><span class="k">Se cerró</span><span>${fFecha(e.fecha_cierre)}</span></div>` : ''}
           <div class="dato"><span class="k">Evidencia</span><span>${fFecha(e.created_at)} ${fHora(e.created_at)}</span></div>
           ${e.comentario ? `<div class="det">${esc(e.comentario)}</div>` : ''}
-          <div class="fotos">${fotos.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener" title="Ver la foto ${i + 1}"><img src="${esc(u)}" alt="Foto ${i + 1}" loading="lazy"></a>`).join('')}</div>
+          <div class="fotos">${fotos.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener" title="Ver la foto ${i + 1}"><img src="${esc(u)}" alt="Foto ${i + 1}" loading="lazy"></a>`).join('')}${(e.videos_url || []).map((u, i) => `<a class="vid" href="${esc(u)}" target="_blank" rel="noopener" title="Ver el video ${i + 1}">▶ Video${(e.videos_url || []).length > 1 ? ' ' + (i + 1) : ''}</a>`).join('')}</div>
         </div>
         <div class="pie">
           <span class="estado e-${esc(e.estado)}">${e.estado === 'revisada' ? 'Revisada' : 'Nueva'}</span>

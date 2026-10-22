@@ -315,7 +315,7 @@ async function cargarEvidencias(){
         <div class="ec">Cliente: <b>${esc(e.cliente_nombre||'—')}</b>${e.cliente_codigo?' · cód. '+esc(e.cliente_codigo):''}${e.cliente_tipo?' · '+esc(TIPO_CLI[e.cliente_tipo]||e.cliente_tipo):''}</div>
         <div class="em">Cargada el <b>${fFecha(e.created_at)}</b> a las ${fHora(e.created_at)}${e.vendedor_nombre?' · vendedor: '+esc(e.vendedor_nombre):''}${e.fecha_cierre?' · la acción se cerró el '+fFecha(e.fecha_cierre+'T12:00:00'):''}</div>
         ${e.comentario?`<div class="eco">${esc(e.comentario)}</div>`:''}
-        <div class="efs">${(e.fotos_url||[]).map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener" title="Ver la foto ${i+1}"><img src="${esc(u)}" alt="Foto ${i+1}" loading="lazy"></a>`).join('')}</div>
+        <div class="efs">${(e.fotos_url||[]).map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener" title="Ver la foto ${i+1}"><img src="${esc(u)}" alt="Foto ${i+1}" loading="lazy"></a>`).join('')}${(e.videos_url||[]).map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener" title="Ver el video ${i+1}" style="display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800">▶ Video${(e.videos_url||[]).length>1?' '+(i+1):''}</a>`).join('')}</div>
       </div>
     </div>`).join('');
     }

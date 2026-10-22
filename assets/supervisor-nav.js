@@ -33,6 +33,7 @@
       { href: "planificador-ia.html",    label: "Planificador de ruta IA", short: "Ruta IA", icon: '<path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>' },
       { href: "agenda-eficiente.html",   label: "Agenda eficiente",   short: "Ag. eficiente", icon: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/><circle cx="18" cy="5" r="2"/>' },
       { href: "cobranzas-vendedor.html", label: "Cobranzas",          short: "Cobranzas", icon: '<path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>' },
+      { href: "evidencias.html",         label: "Evidencias",         short: "Evidencias", icon: '<rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/>' },
       { href: "herramientas.html",       label: "Herramientas de venta", short: "Herramientas", icon: '<path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4"/>' },
     ]},
     { titulo: "Lo mío", items: [
