@@ -1197,8 +1197,8 @@ async function cobPlanillaDet(vendedor, fecha) {
           ${td(cesc(f.codigo || ''))}
           ${td(cesc(f.razon_social || ''))}
           ${td(cesc(f.factura || ''))}
-          ${td(money(f.importe), 1)}${td(money(f.efectivo), 1)}${td(mDet(f.cheques, f.cheques_detalle), 1)}${td(money(f.retenciones), 1)}${td(mDet(f.transferencia, f.transferencia_detalle), 1)}${td(money(f.tarjeta), 1)}${td(money(f.echeq), 1)}
-          ${td(f.fecha_pago ? cfec(f.fecha_pago) : '')}${td(archComp(f))}${td(arch(f.recepcion_url))}
+          ${td(money(f.importe), 1)}${td(money(f.efectivo), 1)}${td(mDet(f.cheques, f.cheques_detalle), 1)}${td(money(f.retenciones), 1)}${td(mDet(f.transferencia, f.transferencia_detalle), 1)}${td(money(f.tarjeta), 1)}${td(mDet(f.echeq, f.echeq_detalle), 1)}
+          ${td((f.fecha_pago ? cfec(f.fecha_pago) : '') + (f.fecha_cheque ? `<div style="font-size:10.5px;color:var(--muted)">ch/e-cheq: ${cfec(f.fecha_cheque)}</div>` : ''))}${td(archComp(f))}${td(arch(f.recepcion_url))}
           <td style="padding:5px 8px"><input value="${cesc(f.observaciones || '')}" placeholder="…" ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','observaciones',this.value,this)" style="border:1px solid #d7d7d7;border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;width:160px"></td>
           <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${f.procesado ? 'checked' : ''} ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','procesado',this.checked,this)" style="width:18px;height:18px;cursor:pointer">${f.procesado && f.procesado_por ? `<div style="font-size:9.5px;color:var(--muted)">${cesc(f.procesado_por)}</div>` : ''}</td>
         </tr>`).join('') : `<tr><td colspan="15" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>

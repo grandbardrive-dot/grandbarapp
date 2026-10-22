@@ -127,6 +127,9 @@
     .pl-chips{font-size:12.5px;margin:2px 0 6px}
     .pl-chip{display:inline-block;background:var(--green-soft);border:1px solid #bfe3d2;border-radius:999px;padding:2px 9px;margin:2px;font-weight:700;color:var(--green-d)}
     .pl-chip a{color:var(--coral);cursor:pointer;margin-left:4px;font-weight:800}
+    .pl-fchip{display:flex;flex-direction:column;gap:3px}
+    .pl-fchip span{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+    .pl-fchip input{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13.5px;background:#fff;min-width:0;width:100%}
     .plan-hint{font-size:12px;color:var(--muted);margin:-6px 0 14px}
     .plan-hint code{background:#eef1f4;border-radius:4px;padding:1px 5px;font-size:11.5px}
     .plan-hint b{color:var(--ink)}
@@ -223,17 +226,18 @@
           <datalist id="plCodigos"></datalist>
           <input id="plRazon" placeholder="Razón social (se completa sola)" readonly>
           <input id="plFactura" placeholder="Factura(s) — elegilas abajo" readonly>
-          <input id="plImporte" type="number" inputmode="decimal" placeholder="Importe" autocomplete="off" name="pl-imp" data-lpignore="true" data-form-type="other">
-          <input id="plEfectivo" type="number" inputmode="decimal" placeholder="Efectivo" autocomplete="off" name="pl-efe" data-lpignore="true" data-form-type="other">
-          <div class="pl-multi"><input id="plCheques" type="number" inputmode="decimal" placeholder="Cheques" autocomplete="off" name="pl-che" data-lpignore="true" data-form-type="other"><button type="button" class="pl-mas" onclick="plMas('Cheques')" title="Agregar otro cheque">＋</button></div>
-          <input id="plReten" type="number" inputmode="decimal" placeholder="Retenciones" autocomplete="off" name="pl-ret" data-lpignore="true" data-form-type="other">
-          <div class="pl-multi"><input id="plTransf" type="number" inputmode="decimal" placeholder="Transf/MP" autocomplete="off" name="pl-tra" data-lpignore="true" data-form-type="other"><button type="button" class="pl-mas" onclick="plMas('Transf')" title="Agregar otra transferencia">＋</button></div>
-          <input id="plTarjeta" type="number" inputmode="decimal" placeholder="Tarjeta" autocomplete="off" name="pl-tar" data-lpignore="true" data-form-type="other">
-          <input id="plEcheq" type="number" inputmode="decimal" placeholder="E-cheq" autocomplete="off" name="pl-ech" data-lpignore="true" data-form-type="other">
-          <input id="plFechaPago" type="date" title="Fecha del pago">
+          <input id="plImporte" type="text" inputmode="decimal" placeholder="Importe" autocomplete="off" name="pl-imp" data-lpignore="true" data-form-type="other">
+          <input id="plEfectivo" type="text" inputmode="decimal" placeholder="Efectivo" autocomplete="off" name="pl-efe" data-lpignore="true" data-form-type="other">
+          <div class="pl-multi"><input id="plCheques" type="text" inputmode="decimal" placeholder="Cheques" autocomplete="off" name="pl-che" data-lpignore="true" data-form-type="other"><button type="button" class="pl-mas" onclick="plMas('Cheques')" title="Agregar otro cheque">＋</button></div>
+          <input id="plReten" type="text" inputmode="decimal" placeholder="Retenciones" autocomplete="off" name="pl-ret" data-lpignore="true" data-form-type="other">
+          <div class="pl-multi"><input id="plTransf" type="text" inputmode="decimal" placeholder="Transf/MP" autocomplete="off" name="pl-tra" data-lpignore="true" data-form-type="other"><button type="button" class="pl-mas" onclick="plMas('Transf')" title="Agregar otra transferencia">＋</button></div>
+          <input id="plTarjeta" type="text" inputmode="decimal" placeholder="Tarjeta" autocomplete="off" name="pl-tar" data-lpignore="true" data-form-type="other">
+          <div class="pl-multi"><input id="plEcheq" type="text" inputmode="decimal" placeholder="E-cheq" autocomplete="off" name="pl-ech" data-lpignore="true" data-form-type="other"><button type="button" class="pl-mas" onclick="plMas('Echeq')" title="Agregar otro e-cheque">＋</button></div>
+          <label class="pl-fchip"><span>Fecha de pago</span><input id="plFechaPago" type="date" title="Fecha del pago (transferencia / efectivo)"></label>
+          <label class="pl-fchip"><span>Cobro cheque / e-cheq</span><input id="plFechaCheque" type="date" title="Fecha en que se cobra el cheque o e-cheque"></label>
           <button class="btn-ok" id="plAdd" onclick="agregarPlanilla()">＋ Agregar fila</button>
         </div>
-        <div class="plan-hint">💡 Si pagan en <b>varias transferencias</b> (o varios cheques): escribí un importe y tocá <b>＋</b> al lado del campo para agregarlo; repetí con el siguiente.</div>
+        <div class="plan-hint">💡 Si pagan en <b>varias transferencias</b>, <b>varios cheques</b> o <b>varios e-cheques</b>: escribí un importe y tocá <b>＋</b> al lado del campo para agregarlo; repetí con el siguiente. Los <b>centavos</b> van con coma (ej: <code>1500,50</code>).</div>
         <div id="plChips"></div>
         <div id="plFacturas" class="plan-fact"></div>
 
@@ -249,7 +253,7 @@
             <tfoot id="plFoot"></tfoot>
           </table>
         </div>
-        <input type="file" id="plFile" accept="image/*,application/pdf" style="display:none">
+        <input type="file" id="plFile" accept="image/*,application/pdf" multiple style="display:none">
       </div>
     </div>
   </div>
@@ -339,9 +343,24 @@
   const plN = v => (Number(v)||0) ? fmtMoney(v) : "";
   // Transferencias/Cheques con varios importes: el botón ＋ los va agregando (chips),
   // sin tener que escribir ningún signo (el teclado del celu es solo números).
-  let _plList = { Transf: [], Cheques: [] };
-  const plInput = f => document.getElementById(f==='Transf' ? 'plTransf' : 'plCheques');
-  const plNum = inp => Number(String((inp&&inp.value)||'').replace(/[^\d.]/g,'')) || 0;
+  let _plList = { Transf: [], Cheques: [], Echeq: [] };
+  const plInput = f => document.getElementById(f==='Transf' ? 'plTransf' : f==='Echeq' ? 'plEcheq' : 'plCheques');
+  // Parser de importes tolerante al formato argentino: la COMA son centavos (decimal),
+  // el punto son miles. Así "1500,50" = 1500.50 y nunca se corta ni se interpreta como separador.
+  function plParse(str){
+    let s = String(str==null?'':str).trim().replace(/[^\d.,-]/g,'');
+    if(!s) return 0;
+    const hasC = s.indexOf(',')>-1, hasD = s.indexOf('.')>-1;
+    if(hasC && hasD){
+      if(s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g,'').replace(',', '.'); // 1.234.567,89 (AR)
+      else s = s.replace(/,/g,'');                                                           // 1,234,567.89 (US)
+    } else if(hasC){
+      const p = s.split(',');
+      s = (p.length===2 && p[1].length<=2) ? (p[0]+'.'+p[1]) : s.replace(/,/g,'');            // coma decimal o miles
+    }
+    const n = Number(s); return isFinite(n) ? n : 0;
+  }
+  const plNum = inp => plParse(inp && inp.value);
   function plMas(field){
     const inp = plInput(field), v = plNum(inp);
     if(!(v>0)){ if(inp) inp.focus(); return; }
@@ -359,7 +378,7 @@
       const total=list.reduce((a,x)=>a+x,0);
       return `<div class="pl-chips"><b>${label} agregadas:</b> ${list.map((x,i)=>`<span class="pl-chip">${fmtMoney(x)} <a onclick="plQuitarChip('${field}',${i})">✕</a></span>`).join(' ')} <b>= ${fmtMoney(total)}</b></div>`;
     };
-    box.innerHTML = render('Transf','Transferencias') + render('Cheques','Cheques');
+    box.innerHTML = render('Transf','Transferencias') + render('Cheques','Cheques') + render('Echeq','E-cheques');
   }
   // Total de una columna = lo agregado con ＋ (lista) + lo que quedó escrito en el campo.
   function plTotalCampo(field){
@@ -478,7 +497,7 @@
         <td class="num">${plN(f.transferencia)}</td>
         <td class="num">${plN(f.tarjeta)}</td>
         <td class="num">${plN(f.echeq)}</td>
-        <td>${f.fecha_pago?fmtFecha(f.fecha_pago):""}</td>
+        <td>${f.fecha_pago?fmtFecha(f.fecha_pago):""}${f.fecha_cheque?`<div style="font-size:11px;color:var(--muted)">ch/e-cheq: ${fmtFecha(f.fecha_cheque)}</div>`:""}</td>
         <td>${celComp(f)}</td>
         <td>${cel(f,"recepcion_url")}</td>
         <td><button class="pl-del" onclick="borrarPlanilla('${esc(String(f.id))}')" title="Borrar fila">✕</button></td>
@@ -502,18 +521,20 @@
   async function agregarPlanilla(){
     const err=document.getElementById("plErr"), aviso=t=>{ if(err){ err.textContent=t; err.style.display=t?"block":"none"; } };
     const g=id=>document.getElementById(id);
-    const tP=plTotalCampo('Transf'), cP=plTotalCampo('Cheques');  // chips (＋) + lo escrito en el campo
+    const tP=plTotalCampo('Transf'), cP=plTotalCampo('Cheques'), eP=plTotalCampo('Echeq');  // chips (＋) + lo escrito en el campo
     const campos={
       fecha_rendicion:(g("plFecha")||{}).value||hoyISO(),
       codigo:(g("plCodigo").value||"").trim(),
       razon_social:(g("plRazon").value||"").trim(),
       factura:(g("plFactura").value||"").trim(),
-      importe:g("plImporte").value, efectivo:g("plEfectivo").value,
-      cheques:cP.sum, transferencia:tP.sum,
+      importe:plParse(g("plImporte").value), efectivo:plParse(g("plEfectivo").value),
+      cheques:cP.sum, transferencia:tP.sum, echeq:eP.sum,
       cheques_detalle: cP.list.length>1 ? cP.list : null,
       transferencia_detalle: tP.list.length>1 ? tP.list : null,
-      retenciones:g("plReten").value, tarjeta:g("plTarjeta").value, echeq:g("plEcheq").value,
+      echeq_detalle: eP.list.length>1 ? eP.list : null,
+      retenciones:plParse(g("plReten").value), tarjeta:plParse(g("plTarjeta").value),
       fecha_pago:(g("plFechaPago")||{}).value||null,
+      fecha_cheque:(g("plFechaCheque")||{}).value||null,
     };
     aviso("");
     if(!campos.codigo && !campos.razon_social && !campos.factura){ aviso("Cargá el código del cliente."); return; }
@@ -529,8 +550,8 @@
       const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"agregar", ...campos }) });
       const j=await r.json();
       if(!j.ok){ aviso("No se pudo guardar: "+(j.error||"error")); btn.disabled=false; btn.textContent=antes; return; }
-      ["plCodigo","plRazon","plFactura","plImporte","plEfectivo","plCheques","plReten","plTransf","plTarjeta","plEcheq"].forEach(id=>{ g(id).value=""; });
-      document.getElementById("plFacturas").innerHTML=""; _plFacts=[]; _plSelFact={}; _plList={Transf:[],Cheques:[]}; plRenderChips();
+      ["plCodigo","plRazon","plFactura","plImporte","plEfectivo","plCheques","plReten","plTransf","plTarjeta","plEcheq","plFechaCheque"].forEach(id=>{ g(id).value=""; });
+      document.getElementById("plFacturas").innerHTML=""; _plFacts=[]; _plSelFact={}; _plList={Transf:[],Cheques:[],Echeq:[]}; plRenderChips();
       btn.disabled=false; btn.textContent=antes;
       cargarPlanilla(); g("plCodigo").focus();
     }catch(e){ aviso("Error de conexión: "+(e.message||e)); btn.disabled=false; btn.textContent=antes; }
@@ -552,16 +573,23 @@
   function subirArchivo(id, tipo){ _plSubir={id,tipo}; const f=document.getElementById("plFile"); if(f){ f.value=""; f.click(); } }
   window.subirArchivo=subirArchivo;
   async function subirArchivoElegido(ev){
-    const file=ev.target.files && ev.target.files[0]; if(!file || !_plSubir) return;
-    if(file.size>5*1024*1024){ alert("El archivo es muy grande (máx 5 MB)."); _plSubir=null; return; }
+    let files=Array.from(ev.target.files||[]); if(!files.length || !_plSubir){ _plSubir=null; return; }
+    // La recepción es un solo archivo; los comprobantes pueden ser varios (se suben de a uno).
+    if(_plSubir.tipo==="recepcion") files=files.slice(0,1);
+    const sub=_plSubir; _plSubir=null;
+    const b64De=file=>new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result).replace(/^data:[^,]*,/,"")); fr.onerror=rej; fr.readAsDataURL(file); });
+    let subidos=0;
     try{
-      const b64=await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result).replace(/^data:[^,]*,/,"")); fr.onerror=rej; fr.readAsDataURL(file); });
-      const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"subir", id:_plSubir.id, tipo:_plSubir.tipo, file_base64:b64, mime:file.type, filename:file.name }) });
-      const j=await r.json();
-      if(!j.ok){ alert("No se pudo subir: "+(j.error||"error")); return; }
-      cargarPlanilla();
-    }catch(e){ alert("Error de conexión: "+(e.message||e)); }
-    finally{ _plSubir=null; }
+      for(const file of files){
+        if(file.size>5*1024*1024){ alert(`"${file.name}" es muy grande (máx 5 MB), lo salteo.`); continue; }
+        const b64=await b64De(file);
+        const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"subir", id:sub.id, tipo:sub.tipo, file_base64:b64, mime:file.type, filename:file.name }) });
+        const j=await r.json();
+        if(!j.ok){ alert(`No se pudo subir "${file.name}": `+(j.error||"error")); continue; }
+        subidos++;
+      }
+      if(subidos) cargarPlanilla();
+    }catch(e){ alert("Error de conexión: "+(e.message||e)); if(subidos) cargarPlanilla(); }
   }
 
   async function enviarPlanilla(){

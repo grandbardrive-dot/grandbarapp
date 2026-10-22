@@ -86,6 +86,7 @@ exports.handler = async (event) => {
         ['recibo', 'razon_social', 'codigo', 'factura', 'nota'].forEach(k => { if (k in c) patch[k] = c[k] ? String(c[k]).slice(0, 200) : null; });
         MONEY.forEach(k => { if (k in c) patch[k] = num(c[k]); });
         if ('fecha_pago' in c) patch.fecha_pago = okFecha(c.fecha_pago) ? c.fecha_pago : null;
+        if ('fecha_cheque' in c) patch.fecha_cheque = okFecha(c.fecha_cheque) ? c.fecha_cheque : null;
         const r = await cob('planilla_cobranzas?id=eq.' + encodeURIComponent(b.id) + '&vendedor=eq.' + encodeURIComponent(codigo), { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(patch) });
         const filas = await r.json();
         if (!r.ok) return json(400, { error: (filas && filas.message) || 'No se pudo guardar.' });
@@ -137,7 +138,7 @@ exports.handler = async (event) => {
       const fecha = okFecha(b.fecha_rendicion) ? b.fecha_rendicion : hoyAR();
       // Transferencias y cheques pueden venir con VARIOS importes (detalle).
       const detArr = v => Array.isArray(v) ? v.map(x => num(x)).filter(x => x > 0) : null;
-      const tDet = detArr(b.transferencia_detalle), cDet = detArr(b.cheques_detalle);
+      const tDet = detArr(b.transferencia_detalle), cDet = detArr(b.cheques_detalle), eDet = detArr(b.echeq_detalle);
       const fila = {
         vendedor: codigo, fecha_rendicion: fecha,
         recibo: b.recibo ? String(b.recibo).slice(0, 60) : null,
@@ -148,10 +149,13 @@ exports.handler = async (event) => {
         cheques: (cDet && cDet.length) ? cDet.reduce((a, x) => a + x, 0) : num(b.cheques),
         retenciones: num(b.retenciones),
         transferencia: (tDet && tDet.length) ? tDet.reduce((a, x) => a + x, 0) : num(b.transferencia),
-        tarjeta: num(b.tarjeta), echeq: num(b.echeq),
+        tarjeta: num(b.tarjeta),
+        echeq: (eDet && eDet.length) ? eDet.reduce((a, x) => a + x, 0) : num(b.echeq),
         transferencia_detalle: (tDet && tDet.length) ? tDet : null,
         cheques_detalle: (cDet && cDet.length) ? cDet : null,
+        echeq_detalle: (eDet && eDet.length) ? eDet : null,
         fecha_pago: okFecha(b.fecha_pago) ? b.fecha_pago : null,
+        fecha_cheque: okFecha(b.fecha_cheque) ? b.fecha_cheque : null,
         nota: b.nota ? String(b.nota).slice(0, 300) : null,
         creado_por: user.id,
       };
