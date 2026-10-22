@@ -284,10 +284,15 @@ exports.handler = async (event) => {
     if (!cc) return err(404, 'No encontré ese cliente.');
     if (!amplio && String(cc.vendedor || '') !== String(codVend || '')) return err(403, 'Ese cliente no es de tu cartera.');
 
-    // Modo lista: devuelve las facturas con saldo (JSON) para mostrarlas en la ficha.
+    // Modo lista: facturas con saldo + saldo a favor (notas de crédito / anticipos),
+    // separados, para mostrarlos en la ficha del vendedor (JSON).
     if (esLista) {
-      const facs = await (await cob('facturas?codigo=eq.' + encodeURIComponent(cod) + '&saldo=neq.0&select=numero,tipo,fecha,vencimiento,importe,saldo&order=vencimiento.asc.nullslast&limit=300')).json();
-      return resp(200, { razon_social: cc.nombre || null, facturas: Array.isArray(facs) ? facs : [] });
+      const rows = await (await cob('facturas?codigo=eq.' + encodeURIComponent(cod) + '&saldo=neq.0&select=numero,tipo,fecha,vencimiento,importe,saldo&order=vencimiento.asc.nullslast&limit=400')).json();
+      const arr = Array.isArray(rows) ? rows : [];
+      const facturas = arr.filter(f => (Number(f.saldo) || 0) > 0);
+      const creditos = arr.filter(f => (Number(f.saldo) || 0) < 0)
+        .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
+      return resp(200, { razon_social: cc.nombre || null, facturas, creditos });
     }
 
     // Modo descarga.
