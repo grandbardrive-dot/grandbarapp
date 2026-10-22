@@ -11,7 +11,7 @@
 // ============================================================
 (function () {
   if (window.GBReportarError) return;
-  var RUIDO = /script error|resizeobserver|failed to fetch|load failed|networkerror|network error|aborterror|aborted|cancell?ed|non-error promise rejection|timeout|tiempo de espera|offline|sin conexi/i;
+  var RUIDO = /script error|resizeobserver|failed to fetch|load failed|networkerror|network error|aborterror|aborted|\bcancell?ed\b|non-error promise rejection|timeout|tiempo de espera|offline|sin conexi/i;
   var enviados = 0, vistos = {};
 
   function token() {

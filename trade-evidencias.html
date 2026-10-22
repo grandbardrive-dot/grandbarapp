@@ -120,6 +120,9 @@
   .sb-cat{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#9db0ba;padding:16px 12px 6px;margin-top:6px;border-top:1px solid rgba(255,255,255,.08)}
 </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
+<!-- ?embed=1: dentro del panel de Luciana (manual-vendedores/admin-evidencias.html), sin el menú de Trade (22/10/2026). -->
+<script>if(/[?&]embed=1\b/.test(location.search))document.documentElement.classList.add('gb-embed')</script>
+<style>.gb-embed .content{max-width:none}</style>
 </head>
 <body>
 <div class="app">
@@ -141,11 +144,12 @@
     </nav>
     <div class="sb-foot"><div class="sb-user" id="logout"><div class="av" id="av">T</div><div><div class="t" id="uName">Trade Marketing</div><div class="s">Jefe de Trade Marketing</div></div></div></div>
   </aside>
+  <script>if(document.documentElement.classList.contains('gb-embed'))document.querySelector('aside.sidebar').remove()</script>
 
   <div class="main"><div class="content">
     <div class="head">
       <h1>Evidencias de acciones</h1>
-      <p>Las fotos que cargan los vendedores de las acciones de Luciana (campañas, planes, fechas especiales, vinos sobre la mesa, punteras, volumen y degustaciones). Las cargan en la visita siguiente a la del cierre, cuando ya llegó el pedido. A cada proveedor le llegan las suyas.</p>
+      <p>Las fotos y videos que cargan los vendedores: los de las acciones de Luciana (desde la visita) y los que cargan en su sección Evidencias, con la acción, el proveedor y el cliente. A cada proveedor le llegan las suyas.</p>
     </div>
     <div class="barra">
       <div class="tabs" id="tabs">
@@ -170,6 +174,9 @@
   const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
   const FN = '/.netlify/functions/acciones-evidencias';
   const ROLES = ['torneo', 'desarrollo', 'diseno'];
+  // Luciana (compras) y Marketing las ven sin marcarlas: eso lo hace Trade Marketing (22/10/2026).
+  const LECTURA = ['compras', 'marketing'];
+  let SOLO_LECTURA = false;
   const TIPO = { libre:'Cargada por el vendedor', campania:'Campaña', plan:'Plan', fecha:'Fecha especial', catalogo:'Catálogo', vino_mesa:'Sobre la mesa', puntera:'Puntera', volumen:'Acción de volumen', degustacion:'Degustación' };
   const RUBRO = { restaurante:'Restaurante', bar:'Bar', vinoteca:'Vinoteca', 'tienda de bebidas':'Tienda de bebidas', tienda_bebidas:'Tienda de bebidas', autoservicio:'Autoservicio', hotel:'Hotel', disco:'Disco', evento:'Evento', mayorista:'Mayorista' };
   const $ = id => document.getElementById(id);
@@ -197,7 +204,7 @@
       && (!q || [e.accion_titulo, e.accion_condicion, e.cliente_nombre, e.cliente_codigo, e.comentario].join(' ').toLowerCase().includes(q)));
     $('cuenta').textContent = lista.length + (lista.length === 1 ? ' evidencia' : ' evidencias');
     if(!lista.length){
-      $('lista').innerHTML = `<div class="vacio">${EV.length ? 'No hay evidencias con ese filtro.' : 'Todavía no hay evidencias. Cuando un vendedor cargue fotos de una acción de Luciana, aparecen acá y te llega el aviso.'}</div>`;
+      $('lista').innerHTML = `<div class="vacio">${EV.length ? 'No hay evidencias con ese filtro.' : (SOLO_LECTURA ? 'Todavía no hay evidencias. Cuando un vendedor cargue fotos o videos de una acción, aparecen acá.' : 'Todavía no hay evidencias. Cuando un vendedor cargue fotos o videos de una acción, aparecen acá y te llega el aviso.')}</div>`;
       return;
     }
     $('lista').innerHTML = lista.map(e => {
@@ -223,7 +230,7 @@
         <div class="pie">
           <span class="estado e-${esc(e.estado)}">${e.estado === 'revisada' ? 'Revisada' : 'Nueva'}</span>
           <span class="hist">${e.estado === 'revisada' && e.revisado_por ? 'Revisó ' + esc(e.revisado_por) + ' el ' + fFecha(e.revisado_at) : ''}</span>
-          ${e.estado === 'revisada'
+          ${SOLO_LECTURA ? '' : e.estado === 'revisada'
             ? `<button class="btn claro" data-rev="${esc(e.id)}" data-est="nueva">Volver a nueva</button>`
             : `<button class="btn ok" data-rev="${esc(e.id)}" data-est="revisada">✓ Marcar revisada</button>`}
         </div>
@@ -263,14 +270,20 @@
     if(!session){ location.href = 'index.html'; return; }
     TOKEN = session.access_token;
     const { data:u } = await hub.from('usuarios').select('nombre,rol').eq('id', session.user.id).maybeSingle();
-    if(!u || !ROLES.includes(String(u.rol || '').toLowerCase())){ location.replace('hub.html'); return; }
-    if(u.nombre){ $('uName').textContent = u.nombre; $('av').textContent = u.nombre.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+    const rolU = String((u && u.rol) || '').toLowerCase();
+    if(LECTURA.includes(rolU)){
+      // Fuera del marco de su panel, Luciana vuelve a su panel.
+      if(!document.documentElement.classList.contains('gb-embed')){ location.replace('manual-vendedores/admin-evidencias.html'); return; }
+      SOLO_LECTURA = true;
+      document.querySelector('.head p').textContent = 'Las fotos y videos que cargan los vendedores: de tus acciones (desde la visita) y las que cargan en su sección Evidencias. Las revisa Juan Pablo Sepúlveda (Trade Marketing); a cada proveedor le llegan las suyas.';
+    } else if(!u || !ROLES.includes(rolU)){ location.replace('hub.html'); return; }
+    // Dentro del panel de Luciana no hay barra lateral (ni nombre ni avatar).
+    if(u.nombre && $('uName')){ $('uName').textContent = u.nombre; $('av').textContent = u.nombre.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
     try{ await cargar(); }catch(e){ $('lista').innerHTML = `<div class="vacio">${esc(e.message)}</div>`; }
   })();
 </script>
-<script src="assets/notif.js?v=3"></script>
+<script>if(!document.documentElement.classList.contains('gb-embed'))document.write('<script src="assets/notif.js?v=3"><\/script><script src="assets/mobile-nav.js?v=1"><\/script>')</script>
 <script src="assets/user-menu.js?v=1"></script>
-<script src="assets/mobile-nav.js?v=1"></script>
 <script src="/assets/cuenta-activa.js?v=1"></script>
 </body>
 </html>

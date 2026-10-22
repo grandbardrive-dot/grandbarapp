@@ -196,7 +196,9 @@ exports.handler = async (event) => {
 
       // Proveedor del portal que la recibe (mismo nombre, sin "Grupo", "Bodega"…).
       const provsRes = await hub('usuarios?rol=eq.proveedor&select=id,nombre,empresa,activo');
-      const pn = nrmProv(proveedor);
+      // Marcas que en la lista figuran solas pero son de un proveedor del portal.
+      const ALIAS_PROV = { absolut: 'pernod ricard' };
+      const pn = nrmProv(ALIAS_PROV[nrmProv(proveedor)] || proveedor);
       const destProv = (Array.isArray(provsRes) ? provsRes : []).filter(u => u.activo !== false).filter(u => {
         if (!pn || pn.length < 4) return false;
         const en = nrmProv(u.empresa || u.nombre);

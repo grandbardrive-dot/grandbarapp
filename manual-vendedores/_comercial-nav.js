@@ -53,6 +53,7 @@
   I.movimientos = '<path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3" stroke-linecap="round" stroke-linejoin="round"/>';
   I.sellout = '<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 13l3-3 3 3 4-5" stroke-linecap="round" stroke-linejoin="round"/>';
   I.plan11t = '<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 14l3-3 2 2 4-5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="8" r="1.6" fill="currentColor" stroke="none"/>';
+  I.evidencias = '<rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6" stroke-linejoin="round"/>';
   var GRUPOS = [
     { items: [ { h: 'admin-comercial.html', t: 'Inicio', i: 'inicio' } ] },
     { titulo: 'Campañas', items: [
@@ -62,6 +63,8 @@
       { h: 'admin-resultados.html', t: 'Resultados', s: 'Desempeño de campañas', i: 'resultados' },
       // Lo que Juan Pablo Sepúlveda (Trade Marketing) devuelve después de trabajar las acciones con los vendedores (06/10/2026).
       { h: 'admin-devoluciones.html', t: 'Devoluciones de Trade Marketing', s: 'Observaciones de los vendedores', i: 'propuestas' },
+      // Fotos y videos que cargan los vendedores de las acciones cerradas (22/10/2026).
+      { h: 'admin-evidencias.html', t: 'Evidencias de los vendedores', s: 'Fotos y videos de las acciones', i: 'evidencias' },
     ]},
     { titulo: 'Manual de vendedores', items: [
       { h: 'admin-secciones.html', t: 'Secciones', s: 'Estructura del manual', i: 'secciones' },

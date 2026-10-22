@@ -10,7 +10,7 @@
 const HUB_URL = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 // Lo que no es una falla del sistema: cortes de señal del celular, extensiones, etc.
-const RUIDO = /script error|resizeobserver|failed to fetch|load failed|networkerror|network error|aborterror|aborted|cancell?ed|non-error promise rejection|err_internet|timeout|tiempo de espera|offline|sin conexi/i;
+const RUIDO = /script error|resizeobserver|failed to fetch|load failed|networkerror|network error|aborterror|aborted|\bcancell?ed\b|non-error promise rejection|err_internet|timeout|tiempo de espera|offline|sin conexi/i;
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 
