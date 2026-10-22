@@ -59,3 +59,9 @@
 # Ver manual-vendedores/netlify/functions/reclamos-avisos-cron.js
 [functions."reclamos-avisos-cron"]
   schedule = "*/10 * * * *"
+
+# NOTAS DE CRÉDITO del ERP → tabla notas_credito, linkeadas a su factura. Una vez al día
+# dispara sync-ncr-background para los últimos días (las NCR nuevas aparecen al otro día).
+# Ver manual-vendedores/netlify/functions/sync-ncr-cron.js
+[functions."sync-ncr-cron"]
+  schedule = "35 9 * * *"
