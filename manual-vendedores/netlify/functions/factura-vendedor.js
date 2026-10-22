@@ -20,6 +20,10 @@ const A = {
   usuario: process.env.AIKON_USUARIO, pass: process.env.AIKON_PASS || '', empresa: process.env.AIKON_EMPRESA,
   managerUrl: process.env.AIKON_MANAGER_URL || 'http://aikonmanager.com/Manager/api/CuentaURL',
 };
+// El ERP tiene DOS empresas (9999 no fiscal / 0001 fiscal) y cada comprobante solo
+// aparece con el token de SU empresa. Probamos ambas, igual que sync-ventas.
+const EMPRESAS = (process.env.AIKON_EMPRESAS || `${process.env.AIKON_EMPRESA || '9999'},0001`)
+  .split(',').map(e => e.trim()).filter((e, i, a) => e && a.indexOf(e) === i);
 const EMISOR = {
   razon: 'Grandbar SA', dom: 'Cervantes 2511 C.P. (5501)', loc: 'Godoy Cruz / Mendoza',
   tel: '(0261) 4391300', email: 'administracion@grandbar.com.ar', web: 'www.grandbar.com.ar',
@@ -300,11 +304,17 @@ exports.handler = async (event) => {
     const j1 = await aikon(A.managerUrl, { Cuenta: A.cuenta, CuentaPwd: A.pwd });
     const urlCuenta = String(j1.retorno || '').replace(/\/+$/, '');
     if (!urlCuenta) return html(502, '<h3>No se pudo conectar con el sistema (CuentaUrl).</h3>');
-    const j2 = await aikon(urlCuenta + '/IS3/ObtenerToken', { cuenta: A.cuenta, usuario: A.usuario, 'contraseña': A.pass, empresa: A.empresa });
-    const tk = j2.token && j2.token.Codigo;
-    if (!tk) return html(502, '<h3>No se pudo autenticar con el sistema.</h3>');
-    const jc = await aikon(urlCuenta + '/IS3/ObtenerComprobante', { cuenta: A.cuenta, token: tk, Codigo: tipo, Sucursal, Numero, Tipo });
-    const comp = jc && jc.Comprobante;
+    // Probar las dos empresas: la factura aparece solo con el token de la suya.
+    let comp = null, huboToken = false;
+    for (const empresa of EMPRESAS) {
+      const j2 = await aikon(urlCuenta + '/IS3/ObtenerToken', { cuenta: A.cuenta, usuario: A.usuario, 'contraseña': A.pass, empresa });
+      const tk = j2.token && j2.token.Codigo;
+      if (!tk) continue;
+      huboToken = true;
+      const jc = await aikon(urlCuenta + '/IS3/ObtenerComprobante', { cuenta: A.cuenta, token: tk, Codigo: tipo, Sucursal, Numero, Tipo });
+      if (jc && jc.Comprobante) { comp = jc.Comprobante; break; }
+    }
+    if (!huboToken) return html(502, '<h3>No se pudo autenticar con el sistema.</h3>');
     if (!comp) return html(404, '<h3>No se encontró el comprobante en el sistema.</h3>');
     // Seguridad extra: el comprobante tiene que ser del cliente verificado.
     if (normCod(comp.ClienteCodigo) !== cod) return html(403, '<h3>Esa factura no corresponde al cliente.</h3>');
