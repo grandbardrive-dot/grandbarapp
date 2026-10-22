@@ -253,24 +253,43 @@ exports.handler = async (event) => {
     const service = process.env.COBRANZAS_SERVICE_ROLE;
     if (!service) return html(500, '<h3>Falta configuración (COBRANZAS_SERVICE_ROLE).</h3>');
 
-    const token = (event.headers.authorization || event.headers.Authorization || '').replace(/^Bearer\s+/i, '').trim();
-    if (!token) return html(401, '<h3>Iniciá sesión para descargar la factura.</h3>');
-    const uRes = await fetch(HUB_URL + '/auth/v1/user', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
-    if (!uRes.ok) return html(401, '<h3>Tu sesión venció. Volvé a entrar.</h3>');
-    const user = await uRes.json();
-    const pRes = await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=codigo_vendedor', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
-    const codVend = (((await pRes.json()) || [])[0] || {}).codigo_vendedor;
-    if (!codVend) return html(403, '<h3>Tu usuario no tiene código de vendedor.</h3>');
-
     const q = event.queryStringParameters || {};
-    const tipo = q.tipo || 'FAC';
-    const numero = String(q.numero || '').trim();
+    const esLista = q.que === 'lista';
+    const resp = esLista
+      ? (s, obj) => ({ statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(obj) })
+      : (s, h) => html(s, h);
+    const err = (s, msg) => resp(s, esLista ? { error: msg } : '<h3>' + msg + '</h3>');
+
+    const token = (event.headers.authorization || event.headers.Authorization || '').replace(/^Bearer\s+/i, '').trim();
+    if (!token) return err(401, 'Iniciá sesión para ver las facturas.');
+    const uRes = await fetch(HUB_URL + '/auth/v1/user', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
+    if (!uRes.ok) return err(401, 'Tu sesión venció. Volvé a entrar.');
+    const user = await uRes.json();
+    const pRes = await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=codigo_vendedor,es_supervisor,rol', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
+    const perfil = (((await pRes.json()) || [])[0] || {});
+    const codVend = perfil.codigo_vendedor;
+    const rol = String(perfil.rol || '').toLowerCase();
+    // Acceso amplio: supervisores y roles de administración/dirección ven cualquier cliente.
+    const amplio = perfil.es_supervisor === true || ['admin', 'direccion', 'desarrollo', 'diseno', 'administracion', 'tesoreria'].includes(rol);
+
     const cod = padCod(q.codigo);
-    if (!numero || !cod) return html(400, '<h3>Faltan datos de la factura.</h3>');
+    if (!cod) return err(400, 'Falta el código del cliente.');
 
     const cob = p => fetch(COB_URL + '/rest/v1/' + p, { headers: { apikey: service, Authorization: 'Bearer ' + service } });
-    const cc = (((await (await cob('cuentas_cubo?codigo=eq.' + encodeURIComponent(cod) + '&select=vendedor&limit=1')).json())) || [])[0];
-    if (!cc || String(cc.vendedor || '') !== String(codVend)) return html(403, '<h3>Ese cliente no es de tu cartera.</h3>');
+    const cc = (((await (await cob('cuentas_cubo?codigo=eq.' + encodeURIComponent(cod) + '&select=nombre,vendedor&limit=1')).json())) || [])[0];
+    if (!cc) return err(404, 'No encontré ese cliente.');
+    if (!amplio && String(cc.vendedor || '') !== String(codVend || '')) return err(403, 'Ese cliente no es de tu cartera.');
+
+    // Modo lista: devuelve las facturas con saldo (JSON) para mostrarlas en la ficha.
+    if (esLista) {
+      const facs = await (await cob('facturas?codigo=eq.' + encodeURIComponent(cod) + '&saldo=neq.0&select=numero,tipo,fecha,vencimiento,importe,saldo&order=vencimiento.asc.nullslast&limit=300')).json();
+      return resp(200, { razon_social: cc.nombre || null, facturas: Array.isArray(facs) ? facs : [] });
+    }
+
+    // Modo descarga.
+    const tipo = q.tipo || 'FAC';
+    const numero = String(q.numero || '').trim();
+    if (!numero) return err(400, 'Falta la factura.');
     const fac = (((await (await cob('facturas?codigo=eq.' + encodeURIComponent(cod) + '&numero=eq.' + encodeURIComponent(numero) + '&select=numero&limit=1')).json())) || [])[0];
     if (!fac) return html(404, '<h3>No encontré esa factura en la cuenta del cliente.</h3>');
 
