@@ -87,6 +87,11 @@ exports.handler = async (event) => {
       }
       return filas.map(f => ({ ...f, fotos_url: (f.fotos || []).map(p => url[p]).filter(Boolean), videos_url: (f.videos || []).map(p => url[p]).filter(Boolean) }));
     }
+    // Luciana (compras) también recibe el aviso de cada evidencia, y la ve en su panel (22/10/2026).
+    async function comerciales() {
+      const l = await hub('usuarios?rol=eq.compras&select=id,activo');
+      return (Array.isArray(l) ? l : []).filter(u => u.activo !== false);
+    }
     async function notificar(destId, n) {
       try { await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ destinatario_id: destId, icono: '📷', titulo: n.titulo, detalle: n.detalle, link: n.link }) }); } catch (e) {}
       try { await pushA(sb, destId, { title: '📷 ' + n.titulo, body: n.detalle, url: n.link }); } catch (e) {}
@@ -234,6 +239,7 @@ exports.handler = async (event) => {
       const trade = await hub('usuarios?rol=eq.torneo&select=id,activo');
       for (const u of (Array.isArray(trade) ? trade : []).filter(u => u.activo !== false)) await notificar(u.id, { titulo: tit, detalle: det, link: '/trade-evidencias.html' });
       for (const u of destProv) await notificar(u.id, { titulo: tit, detalle: det, link: '/manual-vendedores/proveedor.html#evidencias' });
+      for (const u of await comerciales()) await notificar(u.id, { titulo: tit, detalle: det, link: '/manual-vendedores/admin-evidencias.html' });
       return json(200, { ok: true, evidencia: (await conFotos([guardada]))[0], proveedor: empresa });
     }
 
@@ -321,6 +327,7 @@ exports.handler = async (event) => {
     const trade = await hub('usuarios?rol=eq.torneo&select=id,activo');
     for (const u of (Array.isArray(trade) ? trade : []).filter(u => u.activo !== false)) { await notificar(u.id, { titulo, detalle, link: '/trade-evidencias.html' }); avisados++; }
     for (const u of destProv) { await notificar(u.id, { titulo, detalle, link: '/manual-vendedores/proveedor.html#evidencias' }); avisados++; }
+    for (const u of await comerciales()) { await notificar(u.id, { titulo, detalle, link: '/manual-vendedores/admin-evidencias.html' }); avisados++; }
     return json(200, { ok: true, evidencia: { id: guardada.id }, proveedor: empresa, avisados });
   } catch (e) {
     return json(500, { error: e.message || String(e) });
