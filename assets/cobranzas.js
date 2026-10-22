@@ -1143,13 +1143,19 @@ async function cobPlanillas() {
     const hoy = (() => { const t = new Date(), z = n => String(n).padStart(2, '0'); return t.getFullYear() + '-' + z(t.getMonth() + 1) + '-' + z(t.getDate()); })();
     const porFecha = {}; filas.forEach(e => { (porFecha[e.fecha_rendicion] = porFecha[e.fecha_rendicion] || []).push(e); });
     const fechas = Object.keys(porFecha).sort().reverse();
-    // Total del día (22/10/2026, pedido para Mónica): suma de todas las planillas de esa
-    // fecha por medio de pago. Retenciones y tarjeta solo aparecen si hubo.
+    // Total del día (22/10/2026, pedido para Mónica): suma por medio de pago de las filas
+    // que ella ya aprobó (procesadas) en todas las planillas de esa fecha. Lo que falta
+    // aprobar no se suma: va aparte. Retenciones y tarjeta solo aparecen si hubo.
     const totalDia = grupo => {
-      const s = {};
-      grupo.forEach(e => { const t = e.totales || {}; Object.keys(lbl).forEach(k => { s[k] = (s[k] || 0) + (Number(t[k]) || 0); }); });
+      const s = {}; let faltan = 0, pend = 0;
+      grupo.forEach(e => {
+        const t = e.aprobado || {};
+        Object.keys(lbl).forEach(k => { s[k] = (s[k] || 0) + (Number(t[k]) || 0); });
+        faltan += Number(e.sinAprobar) || 0; pend += Number(e.pendiente) || 0;
+      });
       const medios = ['efectivo', 'transferencia', 'echeq', 'cheques'].concat(['retenciones', 'tarjeta'].filter(k => s[k] > 0));
-      return `<div style="font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink,#1d2a3a);margin-top:5px">Total del día: ${medios.map(k => `<span style="white-space:nowrap">${lbl[k]} <b>${cnum(s[k])}</b></span>`).join(' · ')}</div>`;
+      const resto = faltan ? `<div style="font-size:12px;font-weight:600;color:#b23120;margin-top:2px">Falta aprobar: ${faltan} fila${faltan === 1 ? '' : 's'} por <b>${cnum(pend)}</b> (no está sumado)</div>` : '';
+      return `<div style="font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink,#1d2a3a);margin-top:5px">Total aprobado del día: ${medios.map(k => `<span style="white-space:nowrap">${lbl[k]} <b>${cnum(s[k])}</b></span>`).join(' · ')}${resto}</div>`;
     };
     let html = '';
     for (const f of fechas) {

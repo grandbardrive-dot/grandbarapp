@@ -311,11 +311,20 @@ exports.handler = async (event) => {
     if (que === 'planillas') {
       let filas = await leer('planilla_envios?select=*&order=enviada_at.desc&limit=' + (Z ? 1000 : 400));
       if (Z) filas = filas.filter(x => Z.vendOk(x.vendedor)).slice(0, 400);
-      // Cuántas filas marcó Moni como procesadas en cada planilla (para el verde/rojo).
-      const proc = await leerTodo('planilla_cobranzas?select=vendedor,fecha_rendicion&procesado=eq.true', 50000);
+      // Filas actuales de cada planilla: cuántas marcó Moni como procesadas (para el verde/rojo)
+      // y cuánto suman por medio de pago. El total del día suma SOLO lo que Moni aprobó
+      // (procesado); lo demás va aparte como "falta aprobar" (22/10/2026).
+      const MEDIOS = ['efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'];
+      const desde = filas.reduce((m, e) => (!m || e.fecha_rendicion < m) ? e.fecha_rendicion : m, null);
+      const det = desde ? await leerTodo('planilla_cobranzas?select=id,vendedor,fecha_rendicion,procesado,' + MEDIOS.join(',') + '&fecha_rendicion=gte.' + desde + '&order=id', 50000) : [];
       const pc = {};
-      (Array.isArray(proc) ? proc : []).forEach(r => { const k = r.vendedor + '|' + r.fecha_rendicion; pc[k] = (pc[k] || 0) + 1; });
-      filas = filas.map(e => ({ ...e, procesadas: pc[e.vendedor + '|' + e.fecha_rendicion] || 0 }));
+      (Array.isArray(det) ? det : []).forEach(r => {
+        const k = r.vendedor + '|' + r.fecha_rendicion;
+        const a = pc[k] || (pc[k] = { procesadas: 0, sinAprobar: 0, aprobado: {}, pendiente: 0 });
+        if (r.procesado) { a.procesadas++; MEDIOS.forEach(m => { a.aprobado[m] = (a.aprobado[m] || 0) + (Number(r[m]) || 0); }); }
+        else { a.sinAprobar++; a.pendiente += MEDIOS.reduce((s, m) => s + (Number(r[m]) || 0), 0); }
+      });
+      filas = filas.map(e => { const a = pc[e.vendedor + '|' + e.fecha_rendicion] || {}; return { ...e, procesadas: a.procesadas || 0, aprobado: a.aprobado || {}, sinAprobar: a.sinAprobar || 0, pendiente: a.pendiente || 0 }; });
       return json(200, { filas });
     }
     // Detalle de una planilla (filas + envío) de un vendedor y día.
