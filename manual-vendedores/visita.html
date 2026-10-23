@@ -176,6 +176,23 @@
   .plan-chev { font-size: 13px; color: var(--text3); transition: transform .2s; flex-shrink: 0; }
   .plan-chev.open { transform: rotate(180deg); }
   .plan-body { display: none; padding: 0 12px 11px; border-top: 1px solid var(--border); }
+  /* Materiales agrupados por proveedor (23/10/2026): cada proveedor se despliega aparte */
+  .mat-grupo { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 7px; overflow: hidden; }
+  .mat-grupo > summary { list-style: none; display: flex; align-items: center; gap: 9px; padding: 11px 13px; cursor: pointer; font-size: 13.5px; font-weight: 600; }
+  .mat-grupo > summary::-webkit-details-marker { display: none; }
+  .mat-grupo .mg-chev { font-size: 15px; color: var(--text3); transition: transform .2s; width: 10px; }
+  .mat-grupo[open] .mg-chev { transform: rotate(90deg); }
+  .mat-grupo[open] > summary { border-bottom: 1px solid var(--border); }
+  .mat-grupo .mg-n { margin-left: auto; font-size: 11px; color: var(--text3); font-weight: 500; white-space: nowrap; }
+  .mat-grupo .mg-sel { font-size: 11px; font-weight: 700; color: var(--accent-text); background: var(--accent-light); border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
+  .mat-grupo .mg-body { padding: 10px 10px 3px; }
+  .mat-grupo .mg-linea { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text3); margin: 4px 2px 7px; }
+  /* En el manual de Eventos (fondo oscuro) */
+  .mat-grupo.oscuro { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.14); }
+  .mat-grupo.oscuro > summary { color: #fff; }
+  .mat-grupo.oscuro[open] > summary { border-bottom-color: rgba(255,255,255,.1); }
+  .mat-grupo.oscuro .mg-chev, .mat-grupo.oscuro .mg-n, .mat-grupo.oscuro .mg-linea { color: rgba(255,255,255,.55); }
+  .mat-grupo.oscuro .mg-sel { color: #241a06; background: var(--dorado,#c0912f); }
   .plan-body.open { display: block; }
   .plan-desc { font-size: 12px; color: var(--text2); line-height: 1.55; padding-top: 9px; margin-bottom: 9px; }
   .tags-row { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -4069,6 +4086,37 @@ body { background:transparent !important; }
   }
 
 
+  // ── Materiales agrupados por proveedor (23/10/2026) ──────────────────────────
+  // Todos en fila la lista se hacía eterna (solo Pernod tiene más de 40): cada
+  // proveedor es un desplegable cerrado con su cantidad y, adentro, por línea.
+  // `tarjeta(m)` pinta cada material; `elegidos(lista)` (opcional) cuenta los que el
+  // vendedor ya eligió de ese proveedor: si hay, el grupo arranca abierto.
+  function htmlMaterialesPorProveedor(items, provs, marcas, tarjeta, opts) {
+    opts = opts || {};
+    const OTROS = 'Otros materiales';
+    const col = new Intl.Collator('es', { sensitivity: 'base' });
+    const linea = m => marcas[m.brand_id] || '';
+    const grupos = new Map();
+    items.forEach(m => { const p = provs[m.supplier_id] || OTROS; if (!grupos.has(p)) grupos.set(p, []); grupos.get(p).push(m); });
+    return [...grupos.entries()]
+      .sort((a, b) => (a[0] === OTROS) - (b[0] === OTROS) || col.compare(a[0], b[0]))
+      .map(([prov, lista]) => {
+        // Por línea (las sin línea al final) y por nombre.
+        lista = lista.slice().sort((a, b) => (!linea(a)) - (!linea(b)) || col.compare(linea(a), linea(b)) || col.compare(a.name || '', b.name || ''));
+        const variasLineas = new Set(lista.map(linea)).size > 1;
+        let ultima = null, cuerpo = '';
+        lista.forEach(m => {
+          if (variasLineas && linea(m) !== ultima) { ultima = linea(m); cuerpo += `<div class="mg-linea">${esc(ultima || 'Otras')}</div>`; }
+          cuerpo += tarjeta(m);
+        });
+        const sel = opts.elegidos ? opts.elegidos(lista) : 0;
+        return `<details class="mat-grupo${opts.oscuro ? ' oscuro' : ''}"${sel ? ' open' : ''}>
+          <summary><span class="mg-chev">›</span><span>${esc(prov)}</span>${sel ? `<span class="mg-sel">${sel} elegido${sel > 1 ? 's' : ''}</span>` : ''}<span class="mg-n">${lista.length} material${lista.length > 1 ? 'es' : ''}</span></summary>
+          <div class="mg-body">${cuerpo}</div>
+        </details>`;
+      }).join('');
+  }
+
   // ── EVENTOS · Materiales ───────────────────────────────────────────────────
   // NO es una lista aparte: sale del stock real que maneja Luciana en su panel de
   // Materiales (tabla materials_with_stock). Solo se muestran los que ella marcó
@@ -4114,11 +4162,11 @@ body { background:transparent !important; }
 
     el.innerHTML = `
       ${personas ? `<div class="ev-nota" style="margin:0 0 10px">Para el evento de <b>${personas} personas</b> que armaste en Paquetes.</div>` : ''}
-      ${mats.map(m => {
+      ${htmlMaterialesPorProveedor(mats, provs, marcas, m => {
         const st  = stockDe(m);
         const sin = st.cls === 'sin';
         const img = m.processed_image_url || m.original_image_url;
-        const sub = [marcas[m.brand_id], provs[m.supplier_id]].filter(Boolean).join(' · ');
+        const sub = marcas[m.brand_id] || '';   // el proveedor ya es el título del grupo
         if (evMatSel[m.id] == null) evMatSel[m.id] = 0;
         const cant = evMatSel[m.id];
         return `<div class="ev-combo ${cant>0?'on':''} ${sin?'sinstock':''}" id="ev-mat-item-${m.id}">
@@ -4135,7 +4183,7 @@ body { background:transparent !important; }
             <button type="button" onclick="evMat('${m.id}',1,'${secId}')">+</button>
           </div>
         </div>`;
-      }).join('')}
+      }, { oscuro: true, elegidos: lista => lista.filter(m => (evMatSel[m.id] || 0) > 0).length })}
       <div class="ev-nota">El stock es el del depósito. Si dice "Sin stock" no lo comprometas: pedilo antes al área comercial.</div>
       <button type="button" class="esp-ac-btn" style="margin-top:10px" onclick="evGuardarMateriales('${secId}')">📋 Guardar los materiales pedidos</button>`;
   }
@@ -4154,6 +4202,17 @@ body { background:transparent !important; }
     if (s) s.textContent = nuevo;
     const card = document.getElementById('ev-mat-item-' + id);
     if (card) card.classList.toggle('on', nuevo > 0);
+    // Cuántos van elegidos de ese proveedor, en el título de su grupo.
+    const grupo = card && card.closest('.mat-grupo');
+    if (grupo) {
+      const n = grupo.querySelectorAll('.ev-combo.on').length;
+      let b = grupo.querySelector('.mg-sel');
+      if (!n) { if (b) b.remove(); }
+      else {
+        if (!b) { b = document.createElement('span'); b.className = 'mg-sel'; grupo.querySelector('.mg-n').before(b); }
+        b.textContent = n + ' elegido' + (n > 1 ? 's' : '');
+      }
+    }
   }
 
   function evGuardarMateriales(secId) {
@@ -7349,12 +7408,12 @@ body { background:transparent !important; }
       (rb.data || []).forEach(b => marcas[b.id] = b.name);
     } catch {}
     if (!items.length) { el.innerHTML = `<div class="esp-loading">Todavía no hay materiales cargados para vendedores. Podés solicitar materiales libremente abajo.</div>`; return; }
-    el.innerHTML = items.map(m => `
+    el.innerHTML = htmlMaterialesPorProveedor(items, provs, marcas, m => `
       <div class="esp-acciones-card">
         <div class="esp-ac-top">
           ${(m.processed_image_url || m.original_image_url) ? `<img class="esp-ac-img" src="${esc(m.processed_image_url || m.original_image_url)}" alt="">` : ''}
           <div class="esp-ac-info">
-            <div class="esp-ac-marca">${esc([marcas[m.brand_id], provs[m.supplier_id]].filter(Boolean).join(' · '))}</div>
+            <div class="esp-ac-marca">${esc(marcas[m.brand_id] || '')}</div>
             <div class="esp-ac-nombre">${esc(m.name)}</div>
             ${m.description ? `<div class="esp-ac-desc">${esc(m.description)}</div>` : ''}
             <div class="esp-ac-cond">${Number(m.stock_actual || 0) > 0 ? '🟢 ' + Number(m.stock_actual) + ' disponibles' : '🔴 Sin stock'}</div>
@@ -7363,7 +7422,7 @@ body { background:transparent !important; }
         <div class="esp-ac-btns">
           <button class="esp-ac-btn primary" onclick="addMatItemPrefill('${secId}','${escJs(m.name)}')">+ Solicitar</button>
         </div>
-      </div>`).join('');
+      </div>`);
   }
   function addMatItemPrefill(secId, nombre) {
     const lista = document.getElementById(`mat-items-${secId}`);
