@@ -70,6 +70,11 @@
   .in{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:14px;color:var(--ink);background:#fff;outline:none}
   .in:focus{border-color:var(--gold)}
   textarea.in{resize:vertical;min-height:62px}
+  .frubs{display:flex;flex-wrap:wrap;gap:7px}
+  .frub{border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:20px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .frub .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .frub.on{color:#fff;border-color:transparent}
+  .frub.on .dot{background:rgba(255,255,255,.85)!important}
   .drop{border:2px dashed var(--line);border-radius:12px;padding:16px;text-align:center;color:var(--muted);font-size:13px;cursor:pointer;background:#fafbfc}
   .drop img{max-height:120px;max-width:100%;border-radius:8px;margin-bottom:6px;display:block;margin-inline:auto}
   .mbtns{display:flex;gap:9px;margin-top:18px}
@@ -129,8 +134,8 @@
       <h3><span id="fTitulo">Nueva acción</span><span class="fechatag" id="fFechaTag">—</span></h3>
       <input type="hidden" id="f-id">
       <input type="date" id="f-fecha" class="in" style="margin-top:12px">
-      <span class="lab">Rubro</span>
-      <select id="f-rubro" class="in"></select>
+      <span class="lab">Rubros <span style="text-transform:none;font-weight:500;color:var(--muted)">(uno o varios)</span></span>
+      <div id="f-rubros" class="frubs"></div>
       <span class="lab">Nombre acción</span>
       <input id="f-nombre" class="in" type="text" placeholder="Ej: 2x1 en Chandon Extra Brut">
       <span class="lab">Proveedor</span>
@@ -201,8 +206,10 @@
   const RCOL=Object.fromEntries(RUBROS.map(r=>[r[0],r[2]]));
   const RLBL=Object.fromEntries(RUBROS.map(r=>[r[0],r[1]]));
   const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  // Una acción puede tener varios rubros. rubrosDe() devuelve el array siempre.
+  const rubrosDe=a=>(Array.isArray(a.rubros)&&a.rubros.length)?a.rubros:(a.rubro?[a.rubro]:[]);
 
-  let sb=null, man=null, YO='', ACC=[], FILTRO='todos', CUR=new Date(), _file=null, DETID=null;
+  let sb=null, man=null, YO='', ACC=[], FILTRO='todos', CUR=new Date(), _file=null, DETID=null, SEL_RUBROS=new Set();
 
   // Cliente para subir la placa al bucket de imágenes (proyecto Manual)
   function manClient(){
@@ -226,11 +233,19 @@
     sb = GBAuth.client;
     YO = s.nombre || (s.user && s.user.email) || 'GrandBar';
     $('me').textContent = YO;
-    // select de rubro en el form
-    $('f-rubro').innerHTML = RUBROS.map(r=>`<option value="${r[0]}">${r[1]}</option>`).join('');
     renderRubros();
     await cargar();
   })();
+
+  // Chips multi-rubro del formulario
+  function renderFormRubros(){
+    $('f-rubros').innerHTML = RUBROS.map(r=>{
+      const on = SEL_RUBROS.has(r[0]);
+      return `<button type="button" class="frub ${on?'on':''}" style="${on?`background:${r[2]}`:''}" onclick="toggleFormRubro('${r[0]}')"><span class="dot" style="background:${r[2]}"></span>${r[1]}</button>`;
+    }).join('');
+  }
+  function toggleFormRubro(k){ SEL_RUBROS.has(k)?SEL_RUBROS.delete(k):SEL_RUBROS.add(k); renderFormRubros(); }
+  window.toggleFormRubro=toggleFormRubro;
 
   function renderRubros(){
     let h=`<span class="lbl">Rubro</span>`;
@@ -263,7 +278,7 @@
     const diasMes=new Date(y,m+1,0).getDate();
     const prevDias=new Date(y,m,0).getDate();
     const hoy=ymd(new Date());
-    const vis = FILTRO==='todos' ? ACC : ACC.filter(a=>a.rubro===FILTRO);
+    const vis = FILTRO==='todos' ? ACC : ACC.filter(a=>rubrosDe(a).includes(FILTRO));
     const porDia={}; vis.forEach(a=>{ (porDia[a.fecha]=porDia[a.fecha]||[]).push(a); });
 
     let cells=[];
@@ -280,7 +295,7 @@
     let ev='';
     const MAX=3;
     evs.slice(0,MAX).forEach(a=>{
-      const c=RCOL[a.rubro]||'#546e7a';
+      const c=RCOL[(FILTRO!=='todos'&&rubrosDe(a).includes(FILTRO))?FILTRO:rubrosDe(a)[0]]||'#546e7a';
       ev+=`<div class="ev" style="background:${c}" onclick="event.stopPropagation();verDet('${a.id}')" title="${esc(a.nombre)}">${esc(a.nombre)}</div>`;
     });
     if(evs.length>MAX) ev+=`<div class="more" onclick="event.stopPropagation();verDia('${key}')">+${evs.length-MAX} más</div>`;
@@ -294,7 +309,7 @@
 
   function verDia(key){
     // al tocar "+N más": filtra al primer rubro no es útil; mostramos todos los de ese día en detalle rápido
-    const evs=ACC.filter(a=>a.fecha===key && (FILTRO==='todos'||a.rubro===FILTRO));
+    const evs=ACC.filter(a=>a.fecha===key && (FILTRO==='todos'||rubrosDe(a).includes(FILTRO)));
     if(evs.length) verDet(evs[0].id);
   }
   window.verDia=verDia;
@@ -305,7 +320,7 @@
     $('f-id').value=''; $('fTitulo').textContent='Nueva acción';
     const f = key || ymd(new Date());
     $('f-fecha').value=f; $('fFechaTag').textContent=fechaBonita(f);
-    $('f-rubro').value = FILTRO==='todos' ? 'restaurante' : FILTRO;
+    SEL_RUBROS = FILTRO!=='todos' ? new Set([FILTRO]) : new Set(); renderFormRubros();
     ['f-nombre','f-prov','f-prod','f-accion','f-desc','f-infovend'].forEach(id=>$(id).value='');
     _file=null; $('dropTxt').textContent='⬆️ Subir imagen de la placa'; $('drop').innerHTML='<div id="dropTxt">⬆️ Subir imagen de la placa</div>'; $('f-file').value='';
     $('fMsg').textContent='';
@@ -319,7 +334,7 @@
     cerrar('ovDet');
     $('f-id').value=a.id; $('fTitulo').textContent='Editar acción';
     $('f-fecha').value=a.fecha; $('fFechaTag').textContent=fechaBonita(a.fecha);
-    $('f-rubro').value=a.rubro||'restaurante';
+    SEL_RUBROS = new Set(rubrosDe(a)); renderFormRubros();
     $('f-nombre').value=a.nombre||''; $('f-prov').value=a.proveedor||''; $('f-prod').value=a.producto||'';
     $('f-accion').value=a.accion||''; $('f-desc').value=a.descripcion||''; $('f-infovend').value=a.info_vendedor||'';
     _file=null; $('f-file').value='';
@@ -350,12 +365,14 @@
     const msg=(t,c)=>{ $('fMsg').textContent=t; $('fMsg').style.color=c||'var(--muted)'; };
     if(!$('f-fecha').value){ msg('Elegí una fecha.','var(--danger)'); return; }
     if(!nombre){ msg('Poné el nombre de la acción.','var(--danger)'); return; }
+    const rubros=[...SEL_RUBROS];
+    if(!rubros.length){ msg('Elegí al menos un rubro.','var(--danger)'); return; }
     $('fGuardar').disabled=true; msg('Guardando…');
     try{
       let placa=null;
       if(_file){ msg('Subiendo placa…'); placa=await subirPlaca(); }
       const fila={
-        fecha:$('f-fecha').value, rubro:$('f-rubro').value, nombre,
+        fecha:$('f-fecha').value, rubros, rubro:rubros[0], nombre,
         proveedor:$('f-prov').value.trim()||null, producto:$('f-prod').value.trim()||null,
         accion:$('f-accion').value.trim()||null, descripcion:$('f-desc').value.trim()||null,
         info_vendedor:$('f-infovend').value.trim()||null,
@@ -378,8 +395,8 @@
   // ---- Detalle ----
   function verDet(id){
     const a=ACC.find(x=>x.id===id); if(!a) return; DETID=id;
-    const c=RCOL[a.rubro]||'#546e7a';
-    $('dRub').style.background=c; $('dRub').innerHTML=`<span class="dot" style="width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.75)"></span>${esc(RLBL[a.rubro]||a.rubro)}`;
+    $('dRub').style.cssText='background:transparent;padding:0;display:flex;flex-wrap:wrap;gap:5px';
+    $('dRub').innerHTML=rubrosDe(a).map(k=>`<span class="rub" style="background:${RCOL[k]||'#546e7a'}"><span class="dot" style="width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.75)"></span>${esc(RLBL[k]||k)}</span>`).join('');
     $('dFecha').textContent=fechaBonita(a.fecha);
     $('dNombre').textContent=a.nombre;
     const rows=[['Proveedor',a.proveedor],['Producto',a.producto],['Acción',a.accion],['Descripción',a.descripcion],['Info vendedor',a.info_vendedor]];

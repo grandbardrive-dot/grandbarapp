@@ -80,8 +80,9 @@
       if(error) throw error;
       const rows=data||[];
       if(!rows.length){ $('list').innerHTML='<div class="empty">Todavía no hay acciones publicadas.<br>Cuando salga una nueva acción, te va a aparecer acá y te llega un aviso.</div>'; return; }
+      const rubrosDe=a=>(Array.isArray(a.rubros)&&a.rubros.length)?a.rubros:(a.rubro?[a.rubro]:[]);
       $('list').innerHTML='<div class="list">'+rows.map(a=>{
-        const r=RUBROS[a.rubro]||[a.rubro,'#546e7a'];
+        const rchips=rubrosDe(a).map(k=>{const r=RUBROS[k]||[k,'#546e7a'];return `<span class="rub" style="background:${r[1]}">${esc(r[0])}</span>`;}).join(' ');
         const placa = a.placa_url
           ? `<img class="placa" src="${esc(a.placa_url)}" onclick="verImg('${esc(a.placa_url)}')" alt="Placa">`
           : `<div class="placa-ph">🏷️</div>`;
@@ -93,7 +94,7 @@
         return `<div class="ac">
           <div class="head">
             <div style="flex:1"><div class="nom">${esc(a.nombre||'Acción')}</div>${metaBits?`<div class="meta">${esc(metaBits)}</div>`:''}</div>
-            <span class="rub" style="background:${r[1]}">${esc(r[0])}</span>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end">${rchips}</div>
           </div>
           <div class="body">
             <div>${placa}</div>
