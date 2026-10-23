@@ -946,6 +946,7 @@ async function cobReclamos() {
   const zona = COB_RESUMEN.zona;
   cq('cob').innerHTML = cobCabecera('Reclamos', zona
       ? 'Reclamos de los clientes de ' + zona + '. Cuando entra uno o el cliente responde, te llega a la campanita.'
+      : cobSoloLectura() ? 'Reclamos de los clientes y su conversación. Los atiende Administración: acá se miran.'
       : 'Reclamos de clientes, con su historial.') +
     // Con zona (Romina): el aviso también puede llegar al celular o la compu (19/10/2026).
     (zona ? `<div id="pushMount" style="display:none;align-items:center;gap:12px;background:#ece9f8;border:1px solid #d4cdf0;border-radius:13px;padding:12px 15px;margin:0 0 16px"></div>` : '') +
@@ -968,9 +969,10 @@ function recPintarLista(d) {
       <div class="hh-desc">${cesc((r.cliente && (r.cliente.comercio || r.cliente.nombre)) || 'Sin cliente')}${r.factura ? ' · factura ' + cesc(r.factura) : ''} · ${cfec(r.updated_at)}</div>
       <div class="pd-acts">
         <button class="cb-b" onclick="cobReclamo('${r.id}')">Ver conversación</button>
+        ${cobSoloLectura() ? '' : `
         ${r.estado !== 'resuelto' ? `<button class="cb-b ok" onclick="cobEstadoReclamo('${r.id}','resuelto',this)">✅ Marcar resuelto</button>` : ''}
         ${r.estado === 'abierto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','en_curso',this)">▶️ En curso</button>` : ''}
-        ${r.estado === 'resuelto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','abierto',this)">↩️ Reabrir</button>` : ''}
+        ${r.estado === 'resuelto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','abierto',this)">↩️ Reabrir</button>` : ''}`}
       </div></article>`).join('');
 }
 
@@ -1011,7 +1013,8 @@ function recPintarDetalle(d) {
             <span class="pd-cuando">${cfec(m.created_at)}</span></div>
           ${m.texto ? `<div class="pd-detalle">${cesc(m.texto)}</div>` : ''}
           ${m.archivo_url ? `<div class="pd-acts"><a class="cb-b" href="${cesc(m.archivo_url)}" target="_blank" rel="noopener">📎 Ver adjunto</a></div>` : ''}
-        </article>`).join('') : `<div class="pv-vacio">Todavía no hay mensajes en este reclamo. Podés escribirle al cliente acá abajo.</div>`}
+        </article>`).join('') : `<div class="pv-vacio">Todavía no hay mensajes en este reclamo.${cobSoloLectura() ? '' : ' Podés escribirle al cliente acá abajo.'}</div>`}
+      ${cobSoloLectura() ? '' : `
       <div id="r-err" class="aviso" style="display:none;background:#fde8e8;border-color:#f3b4b4"></div>
       <div class="rec-resp" style="margin-top:16px;border-top:1px solid var(--line,#e6e6e6);padding-top:14px">
         <div style="font-weight:700;font-size:13px;margin-bottom:8px">✍️ Responderle al cliente</div>
@@ -1028,7 +1031,7 @@ function recPintarDetalle(d) {
         ${est !== 'resuelto' ? `<button class="cb-b ok" onclick="cobEstadoReclamo('${r.id}','resuelto',this)">✅ Marcar resuelto</button>` : ''}
         ${est === 'abierto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','en_curso',this)">▶️ Marcar en curso</button>` : ''}
         ${est === 'resuelto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','abierto',this)">↩️ Reabrir</button>` : ''}
-      </div>`;
+      </div>`}`;
   const ta = document.getElementById('r-resp'); if (ta && borrador) ta.value = borrador;
 }
 
