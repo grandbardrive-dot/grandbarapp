@@ -29,6 +29,15 @@
   .sec .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
   .b{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap}
   .b.otros{background:#fdecec;color:#b04a34}.b.mia{background:var(--green-s);color:var(--green-d)}
+  /* Lugares sin ninguna acción (23/10/2026, función lugares-libres) */
+  .b.libre{background:var(--gold);color:#241a06}
+  .rcard .dot.libre{background:var(--gold);color:#241a06}
+  .libres-cta{display:flex;align-items:center;gap:12px;background:var(--navy);color:#fff;border-radius:14px;padding:14px 16px;margin-bottom:16px;cursor:pointer}
+  .libres-cta .t{flex:1;font-size:13.5px;line-height:1.4;color:#c4d1d8}.libres-cta .t b{color:#fff;font-size:14.5px}
+  .libres-cta .go{flex:none;background:var(--gold);color:#241a06;border-radius:9px;padding:9px 13px;font-weight:800;font-size:13px}
+  .lib-rub{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 8px}
+  .lib-tu{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:800;color:var(--green-d);background:var(--green-s);border-radius:20px;padding:2px 8px}
+  .ov-libre{background:var(--gold-s);border:1px solid #e7d3a1;color:#6a5312;border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;margin-bottom:10px}
   .prop-btn{border:0;background:var(--gold);color:#241a06;border-radius:10px;padding:10px 14px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
   .ov{display:none;position:fixed;inset:0;background:rgba(13,34,48,.5);z-index:30;align-items:flex-end;justify-content:center}
   .ov.open{display:flex}
@@ -88,6 +97,12 @@ function toast(m,e){const t=$('toast');t.textContent=m;t.className='toast show'+
 const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
 let hub, PROV=null;
 let SECS=[], MADRES={}, HIJAS={}, PROPS={};   // por canal
+// Lugares sin ninguna acción (función lugares-libres): rubro|madre -> subsecciones libres
+// ('' = la sección entera, cuando no tiene subsecciones).
+let LIBRES=[], LIB={};
+const libKey=(r,m)=>r+'|'+m;
+function armarLib(){ LIB={}; LIBRES.forEach(l=>{ (LIB[libKey(l.rubro,l.madre)]=LIB[libKey(l.rubro,l.madre)]||[]).push(l.sub||''); }); }
+const libresDe=(r,m)=>LIB[libKey(r,m)]||[];
 let curCanal=null, curSec=null;
 
 (async()=>{
@@ -98,10 +113,12 @@ let curCanal=null, curSec=null;
   if(!perfil || perfil.rol!=='proveedor'){ location.replace('../index.html'); return; }
   PROV={empresa: perfil.empresa || perfil.nombre, nombre: perfil.nombre};
   try{
-    const [{data:secs},{data:props}]=await Promise.all([
+    const [{data:secs},{data:props},libres]=await Promise.all([
       sb.from('checklist_secciones').select('id,canal,codigo,nombre,icono,orden,parent_id').eq('zona','mendoza').eq('activa',true).order('orden'),
-      sb.from('propuestas_acciones').select('rubro,seccion,autor_empresa,estado').in('estado',['pendiente','aprobada'])
+      sb.from('propuestas_acciones').select('rubro,seccion,autor_empresa,estado').in('estado',['pendiente','aprobada']),
+      fetch('/.netlify/functions/lugares-libres',{headers:{Authorization:'Bearer '+session.access_token}}).then(r=>r.ok?r.json():null).catch(()=>null)
     ]);
+    LIBRES=(libres&&libres.lugares)||[]; armarLib();
     SECS=secs||[];
     // agrupar madres/hijas por canal
     SECS.forEach(s=>{
@@ -115,7 +132,8 @@ let curCanal=null, curSec=null;
       else if(p.autor_empresa) PROPS[k].otras.add(p.autor_empresa);
     });
     const qp=new URLSearchParams(location.search);
-    if(qp.get('rubro') && MADRES[qp.get('rubro')]){ verRubro(qp.get('rubro'), qp.get('seccion')||null); }
+    if(qp.get('rubro') && MADRES[qp.get('rubro')]){ verRubro(qp.get('rubro'), qp.get('seccion')||null, qp.get('sub')||null); }
+    else if(qp.get('libres')) verLibres();
     else verRubros();
   }catch(e){ $('view').innerHTML='<div class="empty">No se pudo cargar el manual.</div>'; }
 })();
@@ -123,13 +141,31 @@ let curCanal=null, curSec=null;
 function verRubros(){
   curCanal=null;
   const canales=ORDEN.filter(c=>MADRES[c] && MADRES[c].length);
-  $('view').innerHTML='<div class="rubros">'+canales.map(c=>{
-    const n=MADRES[c].length;
-    return `<div class="rcard" onclick="verRubro('${c}')"><div class="em">${rEm(c)}</div><div class="n">${esc(rLbl(c))}</div><div class="c">${n} secciones</div></div>`;
+  const cta=LIBRES.length?`<div class="libres-cta" onclick="verLibres()"><div class="t"><b>${LIBRES.length===1?'1 lugar sin ninguna acción':LIBRES.length+' lugares sin ninguna acción'}</b><br>Hoy el vendedor no tiene nada para ofrecer ahí. Sé el primero.</div><span class="go">Ver lugares</span></div>`:'';
+  $('view').innerHTML=cta+'<div class="rubros">'+canales.map(c=>{
+    const n=MADRES[c].length, nl=LIBRES.filter(l=>l.rubro===c).length;
+    return `<div class="rcard" onclick="verRubro('${c}')"><div class="em">${rEm(c)}</div><div class="n">${esc(rLbl(c))}</div><div class="c">${n} secciones</div>${nl?`<div class="dot libre">${nl} libre${nl>1?'s':''}</div>`:''}</div>`;
   }).join('')+'</div>';
 }
 
-function verRubro(canal, abrirSeccion){
+// Todos los lugares libres, por rubro (los de su categoría primero, como los manda la función).
+function verLibres(){
+  curCanal=null;
+  const porRubro={}; LIBRES.forEach(l=>{ (porRubro[l.rubro]=porRubro[l.rubro]||[]).push(l); });
+  const rubros=ORDEN.filter(r=>porRubro[r]);
+  $('view').innerHTML=`<button class="back-btn" onclick="verRubros()">‹ Todos los rubros</button>
+    <div class="rhead"><div class="em">📍</div><div class="n">Lugares sin ninguna acción</div></div>
+    <div style="font-size:13px;color:var(--muted);margin:-8px 0 4px">En estas secciones el vendedor hoy no tiene nada para ofrecer. Sé el primero en proponer una acción.</div>`+
+    (rubros.length?rubros.map(r=>`<div class="lib-rub">${rEm(r)} ${esc(rLbl(r))}</div>`+porRubro[r].map(l=>`<div class="sec">
+        <div class="info"><div class="nm">${esc(l.sub||l.madre)}${l.tuyo?'<span class="lib-tu">tu categoría</span>':''}</div><div class="meta">${l.sub?esc(l.madre):'Sección'}</div></div>
+        <button class="prop-btn" data-r="${esc(l.rubro)}" data-m="${esc(l.madre)}" data-s="${esc(l.sub||'')}" onclick="proponerLibre(this)">Proponer acción</button>
+      </div>`).join('')).join('')
+    :'<div class="empty">Hoy no hay lugares vacíos: todas las secciones tienen alguna acción.</div>');
+}
+function proponerLibre(b){ verRubro(b.dataset.r, b.dataset.m, b.dataset.s||null); }
+window.verLibres=verLibres; window.proponerLibre=proponerLibre;
+
+function verRubro(canal, abrirSeccion, abrirSub){
   curCanal=canal;
   const madres=(MADRES[canal]||[]).slice().sort((a,b)=>a.orden-b.orden);
   $('view').innerHTML=`<button class="back-btn" onclick="verRubros()">‹ Todos los rubros</button>
@@ -139,6 +175,8 @@ function verRubro(canal, abrirSeccion){
       const badges=[];
       if(info.mia) badges.push('<span class="b mia">✓ Ya propusiste</span>');
       if(info.otras.size) badges.push(`<span class="b otros">👀 ${info.otras.size} de otros</span>`);
+      const nl=libresDe(canal,m.nombre).length;
+      if(nl) badges.push(`<span class="b libre">${(HIJAS[m.id]||[]).length?(nl===1?'1 subsección libre':nl+' subsecciones libres'):'Libre'} · sé el primero</span>`);
       return `<div class="sec"><div class="em">${m.icono||'📄'}</div>
         <div class="info"><div class="nm">${esc(m.nombre)}</div>
           <div class="meta">${(HIJAS[m.id]||[]).length?((HIJAS[m.id]||[]).length+' subsecciones'):'Sección'}</div>
@@ -148,7 +186,7 @@ function verRubro(canal, abrirSeccion){
       </div>`;
     }).join('');
   if(abrirSeccion){
-    const m=madres.find(x=>x.nombre===abrirSeccion); if(m) abrir(m.id);
+    const m=madres.find(x=>x.nombre===abrirSeccion); if(m) abrir(m.id, abrirSub);
   }
 }
 
@@ -198,14 +236,19 @@ const CAMPO_EVIDENCIA = `
       <span><b>Pide evidencia</b><small>Cuando un vendedor cierre la acción, le manda al cliente una placa con su logo y te avisamos en qué cliente y qué día se hizo.</small></span></label>`;
 
 let curMadre=null, curTipo='accion';
-function abrir(madreId){
+function abrir(madreId, subPre){
   const m=SECS.find(s=>s.id===madreId); if(!m) return;
   curSec=m; curMadre=m;
   $('ovS').textContent=rLbl(curCanal)+' › '+m.nombre;
   const hijas=HIJAS[m.id]||[];
-  $('subWrap').innerHTML = hijas.length
-    ? `<label for="f-sub">Subsección</label><select id="f-sub" onchange="cambiarSub()"><option value="">— General (toda la sección) —</option>${hijas.map(h=>`<option value="${esc(h.nombre)}">${esc(h.nombre)}</option>`).join('')}</select>`
-    : '';
+  // Las subsecciones sin ninguna acción dicen "libre" (23/10/2026).
+  const lib=libresDe(curCanal,m.nombre);
+  const aviso=hijas.length
+    ? (lib.length?`<div class="ov-libre">${lib.length===1?'Hay una subsección':'Hay '+lib.length+' subsecciones'} sin ninguna acción: están marcadas como <b>libre</b> en la lista.</div>`:'')
+    : (lib.includes('')?'<div class="ov-libre">Esta sección no tiene ninguna acción: sé el primero.</div>':'');
+  $('subWrap').innerHTML = aviso + (hijas.length
+    ? `<label for="f-sub">Subsección</label><select id="f-sub" onchange="cambiarSub()"><option value="">— General (toda la sección) —</option>${hijas.map(h=>`<option value="${esc(h.nombre)}"${h.nombre===subPre?' selected':''}>${esc(h.nombre)}${lib.includes(h.nombre)?' · libre, sé el primero':''}</option>`).join('')}</select>`
+    : '');
   cambiarSub();
   $('ov').classList.add('open');
 }
@@ -256,6 +299,8 @@ async function enviar(){
     if(error && /pide_evidencia/.test(error.message||'')) throw new Error('todavía no se puede pedir evidencia. Desmarcá la casilla o probá más tarde.');
     if(error) throw error;
     const k=curCanal+'|'+curSec.nombre; PROPS[k]=PROPS[k]||{otras:new Set(),mia:false}; PROPS[k].mia=true;
+    // Ese lugar ya no está libre (si propuso para toda la sección, ninguna de sus subsecciones).
+    LIBRES=LIBRES.filter(l=>!(l.rubro===curCanal && l.madre===curSec.nombre && (!sub || !l.sub || l.sub===sub))); armarLib();
     $('ov').classList.remove('open');
     toast('✅ Propuesta enviada a GrandBar');
     verRubro(curCanal);

@@ -69,6 +69,25 @@
   .mat .mn{font-weight:700;font-size:13.5px;line-height:1.3}
   .mat .ms{align-self:flex-start;font-size:12px;font-weight:800;color:var(--green-d);background:var(--green-s);border-radius:20px;padding:3px 9px}
   .mat .mi{font-size:11.5px;color:var(--muted)}
+  /* Lugares del manual sin ninguna acción (23/10/2026): fila fija en Oportunidades y anuncio al entrar */
+  .alerta.libre{background:var(--gold-s);border-color:#e7d3a1;border-left-color:var(--gold-d);margin-bottom:10px}
+  .an-ov{display:none;position:fixed;inset:0;background:rgba(13,34,48,.6);z-index:120;align-items:center;justify-content:center;padding:16px}
+  .an-ov.open{display:flex}
+  .an{position:relative;background:#fff;width:100%;max-width:500px;max-height:90vh;overflow:auto;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .an-top{background:var(--navy);color:#fff;padding:22px 22px 18px}
+  .an-eb{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#241a06;background:#e7c778;border-radius:20px;padding:4px 11px}
+  .an-top h3{margin:12px 40px 6px 0;font-size:21px;line-height:1.25;font-weight:800}
+  .an-top p{margin:0;font-size:13.5px;color:#c4d1d8;line-height:1.45}
+  .an-x{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:22px;line-height:1;cursor:pointer}
+  .an-list{padding:10px 14px 2px}
+  .an-l{display:flex;align-items:center;gap:10px;padding:11px 8px;border-bottom:1px solid var(--line2);text-decoration:none;color:var(--ink);font-size:13.5px;line-height:1.35}
+  .an-l:last-child{border-bottom:0}
+  .an-l .an-tx{flex:1;min-width:0}
+  .an-l .an-tu{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:800;color:var(--green-d);background:var(--green-s);border-radius:20px;padding:2px 8px;vertical-align:1px}
+  .an-go{flex:none;font-size:12.5px;font-weight:800;color:var(--gold-d)}
+  .an-bot{display:flex;gap:10px;padding:12px 18px 18px;flex-wrap:wrap}
+  .an-btn{flex:1;min-width:180px;text-align:center;background:var(--gold);color:#241a06;border-radius:11px;padding:12px 14px;font-weight:800;font-size:14px;text-decoration:none}
+  .an-no{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:11px;padding:12px 16px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -87,6 +106,7 @@
     <div class="promo-banner" id="promoBanner" hidden></div>
 
     <h2>Oportunidades</h2>
+    <div id="libres"></div>
     <div id="alertas"><div class="empty">Buscando oportunidades…</div></div>
 
     <h2>Herramientas</h2>
@@ -113,6 +133,24 @@
 
     <h2>Mis propuestas</h2>
     <div id="props"><div class="empty">Cargando…</div></div>
+  </div>
+
+  <!-- Anuncio: lugares del manual sin ninguna acción (23/10/2026). Sale al entrar si hay
+       lugares que el proveedor todavía no vio; se cierra y no vuelve hasta que haya otros. -->
+  <div class="an-ov" id="anuncio" onclick="if(event.target===this) cerrarAnuncio()">
+    <div class="an" role="dialog" aria-modal="true" aria-labelledby="anTit">
+      <button class="an-x" type="button" onclick="cerrarAnuncio()" aria-label="Cerrar">×</button>
+      <div class="an-top">
+        <div class="an-eb">Sé el primero</div>
+        <h3 id="anTit">Hay lugares del manual sin ninguna acción</h3>
+        <p>Los vendedores pasan por estas secciones en cada visita y hoy no tienen nada para ofrecer ahí. Si cargás la primera acción, no compite con ninguna otra.</p>
+      </div>
+      <div class="an-list" id="anList"></div>
+      <div class="an-bot">
+        <a class="an-btn" id="anMas" href="proveedor-manual.html?libres=1" onclick="marcarVistos()">Ver todos los lugares</a>
+        <button class="an-no" type="button" onclick="cerrarAnuncio()">Ahora no</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal: acciones vigentes del catálogo -->
@@ -243,7 +281,7 @@ const rLbl=r=>(RUBRO[r]?RUBRO[r][1]:r);
 const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
 // Catálogo de acciones (proyecto aparte): de ahí salen las "Acciones vigentes".
 const CAT={url:"https://zlwnoqdxendsgbfvfyue.supabase.co",key:"sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4"};
-let hub, cat, PROV=null;
+let hub, cat, PROV=null, TOKEN=null, UID=null;
 const ESTADO={pendiente:['pend','⏳ Pendiente'],aprobada:['ok','✓ Aprobada'],descartada:['no','✕ Descartada'],cambios:['cam','✎ Te pidieron cambios']};
 async function salir(){ try{ await hub.auth.signOut(); }catch(e){} location.replace('../index.html'); }
 window.salir=salir;
@@ -272,9 +310,11 @@ async function cargarBanner(){
   const {data:perfil}=await hub.from('usuarios').select('nombre,rol,empresa').eq('id',session.user.id).maybeSingle();
   if(!perfil || perfil.rol!=='proveedor'){ location.replace('../index.html'); return; }
   PROV={empresa: perfil.empresa || perfil.nombre, nombre: perfil.nombre};
+  TOKEN=session.access_token; UID=session.user.id;
   $('emp').textContent=PROV.empresa;
   $('hola').textContent='Hola, '+PROV.empresa+' 👋';
   cargarBanner();
+  cargarLibres();
   cargarAlertas();
   cargarAccionesMensuales();
   cargarIncentivos();
@@ -511,6 +551,41 @@ async function cargarAccionesMensuales(){
     }).join('');
   }catch(e){ $('amList').innerHTML='<div class="empty">No se pudieron cargar tus acciones mensuales.</div>'; }
 }
+
+// ── Lugares del manual sin ninguna acción (23/10/2026) ─────────────────────────
+// Los calcula la función lugares-libres: secciones del manual de vendedores donde hoy
+// el vendedor no ve nada (ni plan, ni campaña, ni oferta del catálogo, ni propuesta).
+// Una fila fija en Oportunidades y un anuncio al entrar, que se cierra y no vuelve
+// hasta que aparezcan lugares que este proveedor todavía no vio.
+const RUBRO_PL={restaurante:'Restaurantes',bar:'Bares',vinoteca:'Vinotecas',autoservicio:'Autoservicios',tienda_bebidas:'Tiendas de bebidas',hotel:'Hoteles',disco:'Discos',evento:'Eventos',mayorista:'Mayoristas'};
+const linkLugar=l=>'proveedor-manual.html?rubro='+encodeURIComponent(l.rubro)+'&seccion='+encodeURIComponent(l.madre)+(l.sub?'&sub='+encodeURIComponent(l.sub):'');
+const lugarHtml=l=>esc(RUBRO_PL[l.rubro]||rLbl(l.rubro))+' › '+(l.sub?esc(l.madre)+' › <b>'+esc(l.sub)+'</b>':'<b>'+esc(l.madre)+'</b>');
+let LIBRES=null;
+async function cargarLibres(){
+  try{
+    const r=await fetch('/.netlify/functions/lugares-libres',{headers:{Authorization:'Bearer '+TOKEN}});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'');
+    LIBRES=d;
+    if(!d.total){ $('libres').innerHTML=''; return; }
+    $('libres').innerHTML=`<div class="alerta libre"><div class="ico">📍</div>
+      <div class="tx"><b>${d.total===1?'1 lugar del manual sin ninguna acción':d.total+' lugares del manual sin ninguna acción'}</b>${d.tuyos?' · '+d.tuyos+' son de tu categoría':''}. Sé el primero en cargar una.</div>
+      <a class="go" href="proveedor-manual.html?libres=1">Ver lugares</a></div>`;
+    const vistos=leerVistos();
+    if(d.lugares.some(l=>!vistos.has(l.id))) abrirAnuncio();
+  }catch(e){ $('libres').innerHTML=''; }
+}
+const vistosKey=()=>'gb_libres_vistos_'+(UID||'');
+function leerVistos(){ try{ return new Set(JSON.parse(localStorage.getItem(vistosKey())||'[]')); }catch(e){ return new Set(); } }
+function marcarVistos(){ try{ localStorage.setItem(vistosKey(), JSON.stringify(((LIBRES&&LIBRES.lugares)||[]).map(l=>l.id))); }catch(e){} }
+function abrirAnuncio(){
+  const d=LIBRES, top=d.lugares.slice(0,5);
+  $('anTit').textContent=d.total===1?'Hay un lugar del manual sin ninguna acción':'Hay '+d.total+' lugares del manual sin ninguna acción';
+  $('anList').innerHTML=top.map(l=>`<a class="an-l" href="${linkLugar(l)}" onclick="marcarVistos()"><span class="an-tx">${lugarHtml(l)}${l.tuyo?'<span class="an-tu">tu categoría</span>':''}</span><span class="an-go">Proponer ›</span></a>`).join('');
+  $('anMas').textContent=d.total>top.length?'Ver los '+d.total+' lugares':'Ver en el manual';
+  $('anuncio').classList.add('open');
+}
+function cerrarAnuncio(){ marcarVistos(); $('anuncio').classList.remove('open'); }
+window.cerrarAnuncio=cerrarAnuncio; window.marcarVistos=marcarVistos;
 
 // Alerta competitiva: secciones donde OTROS proveedores tienen acciones y este proveedor no.
 async function cargarAlertas(){
