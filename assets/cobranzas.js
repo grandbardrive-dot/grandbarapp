@@ -946,7 +946,7 @@ async function cobReclamos() {
   const zona = COB_RESUMEN.zona;
   cq('cob').innerHTML = cobCabecera('Reclamos', zona
       ? 'Reclamos de los clientes de ' + zona + '. Cuando entra uno o el cliente responde, te llega a la campanita.'
-      : cobSoloLectura() ? 'Reclamos de los clientes y su conversación. Los atiende Administración: acá se miran.'
+      : cobSoloLectura() ? 'Qué reclaman los clientes y cómo se están atendiendo. Tocá uno para ver la conversación.'
       : 'Reclamos de clientes, con su historial.') +
     // Con zona (Romina): el aviso también puede llegar al celular o la compu (19/10/2026).
     (zona ? `<div id="pushMount" style="display:none;align-items:center;gap:12px;background:#ece9f8;border:1px solid #d4cdf0;border-radius:13px;padding:12px 15px;margin:0 0 16px"></div>` : '') +
@@ -957,6 +957,7 @@ async function cobReclamos() {
 }
 
 function recPintarLista(d) {
+  if (cobSoloLectura()) return recVisualLista(d);
   const box = cq('r-lista'); if (!box) return;
   const firma = JSON.stringify(d.filas.map(r => [r.id, r.estado, r.updated_at]));
   if (box.dataset.firma === firma) return; // nada nuevo: no repintar
@@ -969,10 +970,9 @@ function recPintarLista(d) {
       <div class="hh-desc">${cesc((r.cliente && (r.cliente.comercio || r.cliente.nombre)) || 'Sin cliente')}${r.factura ? ' · factura ' + cesc(r.factura) : ''} · ${cfec(r.updated_at)}</div>
       <div class="pd-acts">
         <button class="cb-b" onclick="cobReclamo('${r.id}')">Ver conversación</button>
-        ${cobSoloLectura() ? '' : `
         ${r.estado !== 'resuelto' ? `<button class="cb-b ok" onclick="cobEstadoReclamo('${r.id}','resuelto',this)">✅ Marcar resuelto</button>` : ''}
         ${r.estado === 'abierto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','en_curso',this)">▶️ En curso</button>` : ''}
-        ${r.estado === 'resuelto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','abierto',this)">↩️ Reabrir</button>` : ''}`}
+        ${r.estado === 'resuelto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','abierto',this)">↩️ Reabrir</button>` : ''}
       </div></article>`).join('');
 }
 
@@ -992,6 +992,7 @@ async function recRefrescar() {
 }
 
 function recPintarDetalle(d) {
+  if (cobSoloLectura()) return recVisualDetalle(d);
   const box = cq('r-det'); if (!box) return;
   const r = d.reclamo;
   if (!r) { box.innerHTML = cerror('No encontré ese reclamo.'); return; }
@@ -1013,8 +1014,7 @@ function recPintarDetalle(d) {
             <span class="pd-cuando">${cfec(m.created_at)}</span></div>
           ${m.texto ? `<div class="pd-detalle">${cesc(m.texto)}</div>` : ''}
           ${m.archivo_url ? `<div class="pd-acts"><a class="cb-b" href="${cesc(m.archivo_url)}" target="_blank" rel="noopener">📎 Ver adjunto</a></div>` : ''}
-        </article>`).join('') : `<div class="pv-vacio">Todavía no hay mensajes en este reclamo.${cobSoloLectura() ? '' : ' Podés escribirle al cliente acá abajo.'}</div>`}
-      ${cobSoloLectura() ? '' : `
+        </article>`).join('') : `<div class="pv-vacio">Todavía no hay mensajes en este reclamo. Podés escribirle al cliente acá abajo.</div>`}
       <div id="r-err" class="aviso" style="display:none;background:#fde8e8;border-color:#f3b4b4"></div>
       <div class="rec-resp" style="margin-top:16px;border-top:1px solid var(--line,#e6e6e6);padding-top:14px">
         <div style="font-weight:700;font-size:13px;margin-bottom:8px">✍️ Responderle al cliente</div>
@@ -1031,8 +1031,80 @@ function recPintarDetalle(d) {
         ${est !== 'resuelto' ? `<button class="cb-b ok" onclick="cobEstadoReclamo('${r.id}','resuelto',this)">✅ Marcar resuelto</button>` : ''}
         ${est === 'abierto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','en_curso',this)">▶️ Marcar en curso</button>` : ''}
         ${est === 'resuelto' ? `<button class="cb-b" onclick="cobEstadoReclamo('${r.id}','abierto',this)">↩️ Reabrir</button>` : ''}
-      </div>`}`;
+      </div>`;
   const ta = document.getElementById('r-resp'); if (ta && borrador) ta.value = borrador;
+}
+
+// ── Reclamos para Dirección (23/10/2026): solo mirar, bien visual ──────────────
+// Fernando no opera: arriba los números grandes (sin resolver, resueltos, todos y
+// cuánto tardan), que también filtran; cada reclamo es una tarjeta del color de su
+// estado y, al tocarla, la conversación como un chat. Sin responder ni cambiar el
+// estado: el servidor (cobranzas-panel) tampoco se lo deja a Dirección.
+let _rvFiltro = 'abiertos', _rvFilas = [];
+const recHoras = r => { const h = (new Date(r.updated_at || r.created_at) - new Date(r.created_at || r.updated_at)) / 36e5; return isFinite(h) && h >= 0 ? h : null; };
+const recDice = h => h == null ? '—' : h < 1 ? Math.max(1, Math.round(h * 60)) + ' min' : h < 48 ? Math.round(h) + ' h' : Math.round(h / 24) + ' días';
+const recHace = f => recDice((Date.now() - new Date(f).getTime()) / 36e5);
+const recCli = r => (r.cliente && (r.cliente.comercio || r.cliente.nombre)) || 'Sin cliente';
+const recCuando = f => { const x = new Date(f); return isNaN(x) ? '' : x.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }); };
+// Clases propias (rv-…): 'rojo' ya existe en cobranzas.css y pintaba todo el texto.
+const REC_COLOR = { abierto: 'rv-rojo', en_curso: 'rv-ambar', resuelto: 'rv-verde' };
+
+function recVisualLista(d) {
+  const box = cq('r-lista'); if (!box) return;
+  const filas = d.filas || [];
+  const firma = JSON.stringify([_rvFiltro, filas.map(r => [r.id, r.estado, r.updated_at])]);
+  if (box.dataset.firma === firma) return; // nada nuevo: no repintar
+  box.dataset.firma = firma;
+  _rvFilas = filas;
+  if (!filas.length) { box.innerHTML = `<div class="pv-vacio">Todavía no hay reclamos de clientes.</div>`; return; }
+  const sin = filas.filter(r => r.estado !== 'resuelto'), res = filas.filter(r => r.estado === 'resuelto');
+  const dem = res.map(recHoras).filter(h => h != null);
+  const prom = dem.length ? dem.reduce((a, b) => a + b, 0) / dem.length : null;
+  const ver = _rvFiltro === 'abiertos' ? sin : _rvFiltro === 'resueltos' ? res : filas;
+  const tile = (n, lbl, cls, f) => `<button type="button" class="rv-tile ${cls}${_rvFiltro === f ? ' on' : ''}" onclick="recFiltro('${f}')"><b>${n}</b><span>${lbl}</span></button>`;
+  box.innerHTML = `
+    <div class="rv-tiles">
+      ${tile(sin.length, 'Sin resolver', sin.length ? 'rv-rojo' : 'rv-verde', 'abiertos')}
+      ${tile(res.length, 'Resueltos', 'rv-verde', 'resueltos')}
+      ${tile(filas.length, 'Todos', 'rv-neutro', 'todos')}
+      <div class="rv-tile rv-neutro fijo"><b>${recDice(prom)}</b><span>Tardan en resolverse, en promedio</span></div>
+    </div>
+    ${ver.length ? `<div class="rv-lista">${ver.map(r => { const est = r.estado || 'abierto'; return `
+      <button type="button" class="rv-card ${REC_COLOR[est] || 'rv-rojo'}" onclick="cobReclamo('${cesc(r.id)}')">
+        <span class="rv-cli">${cesc(recCli(r))}</span>
+        <span class="rv-asunto">${cesc(r.asunto || 'Sin asunto')}${r.factura ? ' · factura ' + cesc(r.factura) : ''}</span>
+        <span class="rv-pie"><span class="rv-est">${cesc(COB_REC_LBL[est] || est)}</span>
+          <span class="rv-cuando">${est === 'resuelto' ? 'Se resolvió en ' + recDice(recHoras(r)) : 'Abierto hace ' + recHace(r.created_at || r.updated_at)}</span>
+          <span class="rv-ver">Ver conversación ›</span></span>
+      </button>`; }).join('')}</div>`
+    : `<div class="pv-vacio">${_rvFiltro === 'abiertos' ? 'No hay reclamos sin resolver: todo al día.' : 'No hay reclamos en esta lista.'}</div>`}`;
+}
+function recFiltro(f) { _rvFiltro = f; const box = cq('r-lista'); if (box) box.dataset.firma = ''; recVisualLista({ filas: _rvFilas }); }
+
+function recVisualDetalle(d) {
+  const box = cq('r-det'); if (!box) return;
+  const r = d.reclamo;
+  if (!r) { box.innerHTML = cerror('No encontré ese reclamo.'); return; }
+  const msgs = d.mensajes || [];
+  const firma = JSON.stringify([r.estado, r.updated_at, msgs.map(m => m.id || m.created_at)]);
+  if (box.dataset.firma === firma) return; // nada nuevo: no repintar
+  box.dataset.firma = firma;
+  const est = r.estado || 'abierto';
+  box.innerHTML = `
+    <div class="rv-head ${REC_COLOR[est] || 'rv-rojo'}">
+      <span class="rv-cli">${cesc(recCli(r))}</span>
+      <span class="rv-asunto">${cesc(r.asunto || 'Reclamo')}${r.factura ? ' · factura ' + cesc(r.factura) : ''}</span>
+      <span class="rv-pie"><span class="rv-est">${cesc(COB_REC_LBL[est] || est)}</span>
+        <span class="rv-cuando">Lo abrió el ${cfec(r.created_at || r.updated_at)} · ${est === 'resuelto' ? 'se resolvió en ' + recDice(recHoras(r)) : 'hace ' + recHace(r.created_at || r.updated_at)}</span></span>
+    </div>
+    <div class="rv-chat">${msgs.length ? msgs.map(m => { const nos = m.autor === 'admin'; return `
+      <div class="rv-msg ${nos ? 'nos' : 'cli'}">
+        <div class="rv-quien">${nos ? 'GrandBar' : cesc(recCli(r))}</div>
+        ${m.texto ? `<div class="rv-texto">${cesc(m.texto)}</div>` : ''}
+        ${m.archivo_url ? `<a class="rv-adj" href="${cesc(m.archivo_url)}" target="_blank" rel="noopener">📎 Ver adjunto</a>` : ''}
+        <div class="rv-hora">${recCuando(m.created_at)}</div>
+      </div>`; }).join('') : `<div class="pv-vacio">Todavía no hay mensajes en este reclamo.</div>`}</div>
+    <div class="rv-nota">Los reclamos los atiende Administración. Desde acá se miran.</div>`;
 }
 
 // Muestra el nombre del archivo elegido para adjuntar en la respuesta del reclamo.

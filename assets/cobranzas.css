@@ -17,6 +17,46 @@
   .cb-chip.ok{background:var(--green-soft);color:var(--green)}
   .cb-chip.alerta{background:var(--red-soft);color:var(--red)}
 
+  /* Reclamos para Dirección (23/10/2026): solo mirar, bien visual (recVisualLista en cobranzas.js) */
+  .rv-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:4px 0 18px}
+  .rv-tile{display:flex;flex-direction:column;align-items:flex-start;gap:5px;background:var(--card);border:1.5px solid var(--line);
+    border-radius:16px;padding:16px 18px;font-family:inherit;text-align:left;cursor:pointer;color:var(--ink)}
+  .rv-tile b{font-size:30px;line-height:1;font-weight:800;letter-spacing:-.02em}
+  .rv-tile span{font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.3}
+  .rv-tile.rv-rojo b{color:var(--red,#c0392b)} .rv-tile.rv-verde b{color:var(--green,#2f8f6e)} .rv-tile.rv-neutro b{color:var(--navy,#0d2230)}
+  .rv-tile.on{border-color:var(--navy,#0d2230);box-shadow:inset 0 0 0 1px var(--navy,#0d2230)}
+  .rv-tile.fijo{cursor:default}
+  .rv-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .rv-card,.rv-head{display:flex;flex-direction:column;width:100%;text-align:left;font-family:inherit;color:var(--ink);background:var(--card);
+    border:1px solid var(--line);border-left:6px solid var(--line);border-radius:14px;padding:15px 16px}
+  .rv-card{cursor:pointer;transition:transform .12s,box-shadow .12s}
+  .rv-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(13,34,56,.09)}
+  .rv-card.rv-rojo,.rv-head.rv-rojo{border-left-color:var(--red,#c0392b)}
+  .rv-card.rv-ambar,.rv-head.rv-ambar{border-left-color:var(--amber,#c99a2e)}
+  .rv-card.rv-verde,.rv-head.rv-verde{border-left-color:var(--green,#2f8f6e)}
+  .rv-cli{font-size:16px;font-weight:800}
+  .rv-asunto{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .rv-pie{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:11px;font-size:12.5px}
+  .rv-est{font-weight:800;border-radius:20px;padding:3px 10px;font-size:11.5px}
+  .rv-rojo .rv-est{background:var(--red-soft,#fbeae7);color:var(--red,#c0392b)}
+  .rv-ambar .rv-est{background:var(--amber-soft,#f8efd6);color:#8a6a1e}
+  .rv-verde .rv-est{background:var(--green-soft,#e6f2ec);color:var(--green,#2f8f6e)}
+  .rv-cuando{color:var(--muted)}
+  .rv-ver{margin-left:auto;font-weight:700;color:var(--navy,#0d2230)}
+  .rv-head{margin-bottom:16px}
+  .rv-head .rv-cli{font-size:20px}
+  .rv-chat{display:flex;flex-direction:column;gap:10px;background:var(--cream,#f5f1e8);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .rv-msg{max-width:78%;border-radius:14px;padding:10px 13px;font-size:14px;line-height:1.45;box-shadow:0 1px 2px rgba(13,34,56,.06)}
+  .rv-msg.cli{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+  .rv-msg.nos{align-self:flex-end;background:var(--green-soft,#e6f2ec);border:1px solid #c9e3d6;border-bottom-right-radius:4px}
+  .rv-quien{font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:3px}
+  .rv-msg.nos .rv-quien{color:var(--green-d,#256f54)}
+  .rv-texto{white-space:pre-wrap;word-break:break-word}
+  .rv-adj{display:inline-block;margin-top:6px;font-size:12.5px;font-weight:700;color:var(--navy,#0d2230)}
+  .rv-hora{font-size:11px;color:var(--muted);margin-top:5px;text-align:right}
+  .rv-nota{font-size:12.5px;color:var(--muted);margin-top:12px;text-align:center}
+  @media (max-width:600px){ .rv-tiles{grid-template-columns:1fr 1fr} .rv-lista{grid-template-columns:1fr} .rv-msg{max-width:90%} .rv-ver{margin-left:0} }
+
   .cb-volver{display:inline-flex;align-items:center;gap:7px;background:none;border:none;font-family:inherit;
     font-size:13.5px;font-weight:700;color:var(--navy);cursor:pointer;padding:0;margin-bottom:10px}
   .cb-tabla{width:100%;border-collapse:collapse;margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}

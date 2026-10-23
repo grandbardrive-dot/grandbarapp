@@ -42,6 +42,8 @@ const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 const ROLES_OK = ['tesoreria', 'administracion', 'admin', 'desarrollo', 'diseno', 'direccion'];
+// Dirección (Fernando, rol admin) mira y no toca: ni reclamos, ni bloqueos, ni planillas (23/10/2026).
+const SOLO_MIRA = ['admin', 'direccion', 'duenio'];
 const POR_PAGINA = 50;
 
 const json = (s, b) => ({
@@ -106,6 +108,7 @@ exports.handler = async (event) => {
 
     // ══════════ ESCRITURA ══════════
     if (event.httpMethod === 'POST') {
+      if (SOLO_MIRA.includes(rol)) return json(403, { error: 'Desde el panel de Dirección se mira, no se modifica.' });
       const b = JSON.parse(event.body || '{}');
       const patch = async (tabla, filtro, campos, queEs) => {
         const r = await cob(tabla + '?' + filtro, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(campos) });

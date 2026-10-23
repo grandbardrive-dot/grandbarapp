@@ -49,6 +49,8 @@ exports.handler = async (event) => {
     };
 
     if (event.httpMethod === 'POST') {
+      // Dirección (Fernando, rol admin) mira y no toca (23/10/2026).
+      if (String(perfil.rol || '').toLowerCase() === 'admin') return json(403, { error: 'Desde el panel de Dirección se mira, no se modifica.' });
       let body = {}; try { body = JSON.parse(event.body || '{}'); } catch (e) {}
 
       if (body.accion === 'importar-banco' && Array.isArray(body.movimientos)) {
