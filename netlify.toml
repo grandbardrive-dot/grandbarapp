@@ -65,3 +65,10 @@
 # Ver manual-vendedores/netlify/functions/sync-ncr-cron.js
 [functions."sync-ncr-cron"]
   schedule = "35 9 * * *"
+
+# LUGARES LIBRES del manual: los días hábiles a las 12 (15:00 UTC) les avisa a los
+# proveedores del portal, por la campanita y el celular, si aparecieron lugares del
+# manual de vendedores sin ninguna acción que todavía no conocían ("sé el primero").
+# Ver manual-vendedores/netlify/functions/lugares-libres-cron.js
+[functions."lugares-libres-cron"]
+  schedule = "0 15 * * 1-5"

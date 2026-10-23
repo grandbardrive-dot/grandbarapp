@@ -88,6 +88,8 @@
   .an-bot{display:flex;gap:10px;padding:12px 18px 18px;flex-wrap:wrap}
   .an-btn{flex:1;min-width:180px;text-align:center;background:var(--gold);color:#241a06;border-radius:11px;padding:12px 14px;font-weight:800;font-size:14px;text-decoration:none}
   .an-no{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:11px;padding:12px 16px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+  /* Avisos al celular (23/10/2026): lo pinta /assets/push-cliente.js */
+  .push-box{display:none;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-top:14px}
 </style>
 </head>
 <body>
@@ -104,6 +106,8 @@
     <div class="hero"><h1 id="hola">Hola 👋</h1><p>Proponé acciones al manual y seguí el estado de tus propuestas.</p></div>
 
     <div class="promo-banner" id="promoBanner" hidden></div>
+    <!-- Activar los avisos en este celular o compu (lugares libres, evidencias…) -->
+    <div class="push-box" id="pushMount"></div>
 
     <h2>Oportunidades</h2>
     <div id="libres"></div>
@@ -272,6 +276,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="/assets/push-cliente.js?v=1"></script>
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -314,6 +319,7 @@ async function cargarBanner(){
   $('emp').textContent=PROV.empresa;
   $('hola').textContent='Hola, '+PROV.empresa+' 👋';
   cargarBanner();
+  if(window.pushMount) pushMount($('pushMount'));
   cargarLibres();
   cargarAlertas();
   cargarAccionesMensuales();
