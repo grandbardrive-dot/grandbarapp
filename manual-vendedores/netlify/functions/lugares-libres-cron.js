@@ -1,6 +1,6 @@
 // ============================================================
 //  GrandBar Hub · Function PROGRAMADA · lugares-libres-cron  (23/10/2026)
-//  Corre los días hábiles a las 12 (ver netlify.toml). A cada proveedor del portal le
+//  Corre los días hábiles cada 10 minutos, de 9 a 19 (ver netlify.toml). A cada proveedor del portal le
 //  avisa por la campanita y por el celular cuando aparecen lugares del manual de
 //  vendedores sin ninguna acción que todavía no le avisamos ("sé el primero").
 //  Un solo aviso por día, con el total, que lleva a "Lugares sin ninguna acción".

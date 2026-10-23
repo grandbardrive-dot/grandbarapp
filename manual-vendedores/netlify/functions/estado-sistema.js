@@ -36,8 +36,8 @@ const TAREAS = [
   { id: 'reclamos-avisos', nombre: 'Avisos de reclamos por zona',   cada: 'cada 10 minutos', maxMin: 40,     fallasSeguidas: 2 },
   { id: 'sync-productos', nombre: 'Artículos y stock del ERP',      cada: '1 vez por día',  maxMin: 26 * 60, fallasSeguidas: 1 },
   { id: 'cazar-clientes', nombre: 'Cazador de clientes',            cada: '1 vez por día',  maxMin: 26 * 60, fallasSeguidas: 1 },
-  // Solo días hábiles: del viernes al lunes pasan 72 horas sin corrida.
-  { id: 'lugares-libres', nombre: 'Avisos de lugares libres a proveedores', cada: 'los días hábiles a las 12', maxMin: 74 * 60, fallasSeguidas: 1 },
+  // Solo días hábiles de 9 a 19: del viernes a la noche al lunes a la mañana pasan unas 62 horas sin corrida.
+  { id: 'lugares-libres', nombre: 'Avisos de lugares libres a proveedores', cada: 'cada 10 minutos, días hábiles de 9 a 19', maxMin: 64 * 60, fallasSeguidas: 2 },
 ];
 const SITIOS = [
   { id: 'sitio-portal',          nombre: 'Portal (portalgrandbar.com)',               url: 'https://portalgrandbar.com/' },
