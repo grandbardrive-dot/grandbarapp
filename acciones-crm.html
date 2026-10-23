@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2238">
+<title>Acciones CRM</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="manifest" href="/manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;--gold:#c9a13b;--gold-d:#a9852a;--gold-s:#f7efda;--green:#2f8f6e;--green-d:#256f54;--green-s:#e6f2ec;--navy:#0d2238;--blue:#3f6f9c;--petroleo:#2f968e;--petroleo-s:#e3f1f0}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .top{background:var(--navy);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+  .top .b{font-weight:800;font-size:15px}.top .b .g{color:#e7c778}
+  .top a.back{color:#cdd9e0;text-decoration:none;font-size:13px}
+  .top .bell{margin-left:auto;position:relative;color:#cdd9e0;cursor:pointer}
+  .wrap{max-width:900px;margin:0 auto;padding:22px 16px 80px}
+  .hero h1{font-size:22px;margin:0 0 3px;font-weight:800}
+  .hero p{margin:0;color:var(--muted);font-size:14px}
+  .list{display:flex;flex-direction:column;gap:16px;margin-top:20px}
+  .ac{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(13,34,56,.05)}
+  .ac .head{display:flex;align-items:flex-start;gap:12px;padding:15px 17px 10px}
+  .ac .rub{font-size:10.5px;font-weight:800;color:#fff;border-radius:20px;padding:3px 10px;white-space:nowrap}
+  .ac .nom{font-weight:800;font-size:17px;line-height:1.2;flex:1}
+  .ac .meta{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .ac .body{display:grid;grid-template-columns:200px 1fr;gap:16px;padding:4px 17px 17px}
+  @media (max-width:620px){ .ac .body{grid-template-columns:1fr} }
+  .ac .placa{width:100%;border-radius:12px;border:1px solid var(--line);display:block;cursor:zoom-in}
+  .ac .placa-ph{width:100%;aspect-ratio:4/5;border-radius:12px;background:var(--cream);display:grid;place-items:center;color:#b8b0a0;font-size:30px}
+  .blk{margin-bottom:12px}
+  .blk .t{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px}
+  .blk .v{font-size:14px;line-height:1.5;white-space:pre-wrap}
+  .blk.cliente .v{background:var(--cream);border-radius:10px;padding:11px 13px;border:1px solid var(--line2)}
+  .blk.vend{background:var(--petroleo-s);border:1px solid #bfe0dc;border-radius:12px;padding:12px 14px}
+  .blk.vend .t{color:var(--green-d)}
+  .blk.vend .v{color:#1b2a32}
+  .empty{text-align:center;color:var(--muted);font-size:14px;padding:50px 16px;background:#fff;border:1px dashed var(--line);border-radius:14px;margin-top:20px}
+  .ovimg{position:fixed;inset:0;background:rgba(10,15,20,.9);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;cursor:zoom-out}
+  .ovimg.show{display:flex}.ovimg img{max-width:100%;max-height:92vh;border-radius:10px}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="b"><span class="g">Grand</span>Bar · Acciones CRM</div>
+    <a class="back" href="inicio.html">← Inicio</a>
+    <div class="bell" data-gb-bell><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg></div>
+  </div>
+  <div class="wrap">
+    <div class="hero"><h1>Acciones CRM</h1><p>Las acciones que salieron a los clientes: mirá la placa tal cual le llega y cómo cargarla en el Conquer.</p></div>
+    <div id="list"><div class="empty">Cargando…</div></div>
+  </div>
+
+  <div class="ovimg" id="ovimg" onclick="this.classList.remove('show')"><img id="ovimgI" src="" alt="Placa"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script>
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const RUBROS={restaurante:['Restaurantes','#d93025'],bar:['Bares','#e8710a'],hotel:['Hoteles','#8e24aa'],disco:['Discos','#3949ab'],evento:['Eventos','#0b8043'],vinoteca:['Vinotecas','#7b1e22'],tienda_bebidas:['Tiendas de bebidas','#039be5'],autoservicio:['Autoservicios','#f09300'],kiosco:['Kioscos','#689f38'],mayorista:['Mayoristas','#546e7a']};
+  const fFecha=d=>{ if(!d) return ''; const [a,m,dd]=String(d).split('-'); return dd+'/'+m+'/'+a.slice(2); };
+  let sb=null;
+
+  (async()=>{
+    const s = await GBAuth.requireAuth(); if(!s) return;
+    sb = GBAuth.client;
+    cargar();
+  })();
+
+  function verImg(u){ $('ovimgI').src=u; $('ovimg').classList.add('show'); }
+  window.verImg=verImg;
+
+  async function cargar(){
+    try{
+      const { data, error } = await sb.from('crm_acciones').select('*').eq('publicada',true).order('publicada_at',{ascending:false});
+      if(error) throw error;
+      const rows=data||[];
+      if(!rows.length){ $('list').innerHTML='<div class="empty">Todavía no hay acciones publicadas.<br>Cuando salga una nueva acción, te va a aparecer acá y te llega un aviso.</div>'; return; }
+      $('list').innerHTML='<div class="list">'+rows.map(a=>{
+        const r=RUBROS[a.rubro]||[a.rubro,'#546e7a'];
+        const placa = a.placa_url
+          ? `<img class="placa" src="${esc(a.placa_url)}" onclick="verImg('${esc(a.placa_url)}')" alt="Placa">`
+          : `<div class="placa-ph">🏷️</div>`;
+        const cliente = a.descripcion
+          ? `<div class="blk cliente"><div class="t">📩 Lo que le llega al cliente</div><div class="v">${esc(a.descripcion)}</div></div>` : '';
+        const info = a.info_vendedor
+          ? `<div class="blk vend"><div class="t">📋 Cómo cargarla / info para vos</div><div class="v">${esc(a.info_vendedor)}</div></div>` : '';
+        const metaBits=[a.proveedor,a.producto,a.accion].filter(Boolean).join(' · ');
+        return `<div class="ac">
+          <div class="head">
+            <div style="flex:1"><div class="nom">${esc(a.nombre||'Acción')}</div>${metaBits?`<div class="meta">${esc(metaBits)}</div>`:''}</div>
+            <span class="rub" style="background:${r[1]}">${esc(r[0])}</span>
+          </div>
+          <div class="body">
+            <div>${placa}</div>
+            <div>${cliente}${info}${(!cliente&&!info)?'<div class="meta">Sin detalle cargado.</div>':''}</div>
+          </div>
+        </div>`;
+      }).join('')+'</div>';
+    }catch(e){ $('list').innerHTML='<div class="empty">No se pudieron cargar las acciones.<br>'+esc(e.message||e)+'</div>'; }
+  }
+</script>
+<script src="assets/notif.js?v=2"></script>
+</body>
+</html>

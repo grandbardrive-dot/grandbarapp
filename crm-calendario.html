@@ -141,6 +141,12 @@
       <input id="f-accion" class="in" type="text" placeholder="Ej: Descuento 20% / combo / regalo">
       <span class="lab">Descripción</span>
       <textarea id="f-desc" class="in" placeholder="Detalle del envío, condiciones, mensaje…"></textarea>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)">
+        <span class="lab" style="color:var(--navy)">📋 Info para el vendedor</span>
+        <textarea id="f-infovend" class="in" placeholder="Cómo cargar la acción en el Conquer, condiciones, aclaraciones para el vendedor… (le llega al portal cuando se publica)"></textarea>
+      </div>
+
       <span class="lab">Placa</span>
       <div class="drop" id="drop" onclick="document.getElementById('f-file').click()">
         <div id="dropTxt">⬆️ Subir imagen de la placa</div>
@@ -161,6 +167,8 @@
       <div style="font-size:18px;font-weight:800;margin:12px 0 8px" id="dNombre"></div>
       <div id="dRows"></div>
       <div id="dPlaca"></div>
+      <div id="dPub" style="margin-top:12px"></div>
+      <div id="dPubMsg" style="font-size:12.5px;margin-top:8px"></div>
       <div class="mbtns">
         <button class="ghost" onclick="cerrar('ovDet')">Cerrar</button>
         <button class="btn" style="background:#fff;color:var(--danger);border:1px solid var(--danger);box-shadow:none" onclick="borrar()">🗑 Borrar</button>
@@ -298,7 +306,7 @@
     const f = key || ymd(new Date());
     $('f-fecha').value=f; $('fFechaTag').textContent=fechaBonita(f);
     $('f-rubro').value = FILTRO==='todos' ? 'restaurante' : FILTRO;
-    ['f-nombre','f-prov','f-prod','f-accion','f-desc'].forEach(id=>$(id).value='');
+    ['f-nombre','f-prov','f-prod','f-accion','f-desc','f-infovend'].forEach(id=>$(id).value='');
     _file=null; $('dropTxt').textContent='⬆️ Subir imagen de la placa'; $('drop').innerHTML='<div id="dropTxt">⬆️ Subir imagen de la placa</div>'; $('f-file').value='';
     $('fMsg').textContent='';
     $('f-fecha').oninput=()=>$('fFechaTag').textContent=fechaBonita($('f-fecha').value);
@@ -313,7 +321,7 @@
     $('f-fecha').value=a.fecha; $('fFechaTag').textContent=fechaBonita(a.fecha);
     $('f-rubro').value=a.rubro||'restaurante';
     $('f-nombre').value=a.nombre||''; $('f-prov').value=a.proveedor||''; $('f-prod').value=a.producto||'';
-    $('f-accion').value=a.accion||''; $('f-desc').value=a.descripcion||'';
+    $('f-accion').value=a.accion||''; $('f-desc').value=a.descripcion||''; $('f-infovend').value=a.info_vendedor||'';
     _file=null; $('f-file').value='';
     $('drop').innerHTML = a.placa_url ? `<img src="${esc(a.placa_url)}"><div id="dropTxt">Cambiar imagen</div>` : '<div id="dropTxt">⬆️ Subir imagen de la placa</div>';
     $('fMsg').textContent=''; $('f-fecha').oninput=()=>$('fFechaTag').textContent=fechaBonita($('f-fecha').value);
@@ -350,6 +358,7 @@
         fecha:$('f-fecha').value, rubro:$('f-rubro').value, nombre,
         proveedor:$('f-prov').value.trim()||null, producto:$('f-prod').value.trim()||null,
         accion:$('f-accion').value.trim()||null, descripcion:$('f-desc').value.trim()||null,
+        info_vendedor:$('f-infovend').value.trim()||null,
         updated_at:new Date().toISOString()
       };
       const id=$('f-id').value;
@@ -373,13 +382,42 @@
     $('dRub').style.background=c; $('dRub').innerHTML=`<span class="dot" style="width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.75)"></span>${esc(RLBL[a.rubro]||a.rubro)}`;
     $('dFecha').textContent=fechaBonita(a.fecha);
     $('dNombre').textContent=a.nombre;
-    const rows=[['Proveedor',a.proveedor],['Producto',a.producto],['Acción',a.accion],['Descripción',a.descripcion]];
+    const rows=[['Proveedor',a.proveedor],['Producto',a.producto],['Acción',a.accion],['Descripción',a.descripcion],['Info vendedor',a.info_vendedor]];
     $('dRows').innerHTML=rows.filter(r=>r[1]).map(r=>`<div class="row"><div class="k">${r[0]}</div><div class="v">${esc(r[1])}</div></div>`).join('')
       + `<div class="row"><div class="k">Cargó</div><div class="v">${esc(a.creado_por||'—')}</div></div>`;
     $('dPlaca').innerHTML = a.placa_url ? `<img class="placa" src="${esc(a.placa_url)}">` : '';
+    $('dPubMsg').textContent='';
+    $('dPub').innerHTML = a.publicada
+      ? `<div style="background:var(--green-s);color:var(--green-d);border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:700">✓ Publicada a los vendedores${a.publicada_at?' · '+fechaBonita(a.publicada_at.slice(0,10)):''} <button onclick="publicarAccion(true)" style="margin-left:8px;background:none;border:0;color:var(--green-d);text-decoration:underline;cursor:pointer;font:inherit">reenviar aviso</button></div>`
+      : `<button class="btn" style="width:100%;background:var(--petroleo,#2f968e)" onclick="publicarAccion(false)">📣 Publicar a vendedores</button>`;
     abrir('ovDet');
   }
   window.verDet=verDet;
+
+  // Publica la acción: la hace visible en el portal de los vendedores (Acciones CRM)
+  // y les manda una notificación a la campanita. Lo hace una Netlify Function con
+  // service role (lista los vendedores e inserta las notificaciones).
+  async function publicarAccion(reenvio){
+    if(!DETID) return;
+    const a=ACC.find(x=>x.id===DETID);
+    const msg=(t,c)=>{ $('dPubMsg').textContent=t; $('dPubMsg').style.color=c||'var(--muted)'; };
+    if(!reenvio && !confirm('¿Publicar esta acción a los vendedores? Les va a aparecer en "Acciones CRM" y les llega una notificación.')) return;
+    msg('Publicando…');
+    try{
+      const { data:{ session } } = await sb.auth.getSession();
+      const r = await fetch('/.netlify/functions/crm-publicar', {
+        method:'POST',
+        headers:{ Authorization:'Bearer '+(session&&session.access_token), 'Content-Type':'application/json' },
+        body: JSON.stringify({ accion_id: DETID })
+      });
+      const d = await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(d.error||'No se pudo publicar');
+      if(a){ a.publicada=true; a.publicada_at=new Date().toISOString(); }
+      msg('✅ Publicada. '+(d.avisados!=null?('Aviso a '+d.avisados+' vendedores.'):''),'var(--green-d)');
+      verDet(DETID);
+    }catch(e){ msg('No se pudo: '+(e.message||e),'var(--danger)'); }
+  }
+  window.publicarAccion=publicarAccion;
 
   async function borrar(){
     if(!DETID) return;
