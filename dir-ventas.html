@@ -198,12 +198,13 @@
     $('cuerpo').innerHTML=h;
     // Días que todavía no se volvieron a bajar con el vendedor de cada factura (26/10/2026):
     // ahí no se pueden sacar los vendedores que no se cuentan.
-    const incompletos=[a,an,y].filter(p=>p && p.vendedor_completo===false);
-    if(incompletos.length){
-      const n=a.dias_sin_vendedor||0;
-      $('cuerpo').insertAdjacentHTML('afterbegin','<div class="aviso">Se están volviendo a bajar de CUBO las ventas con el vendedor de cada factura'
-        +(n?' (faltan '+n+' día'+(n===1?'':'s')+' de este período)':'')+(incompletos.some(p=>p!==a)?' y de los períodos con los que se compara':'')
-        +'. Hasta que termine, esos días pueden incluir lo que facturan los vendedores que no se cuentan. Se completa solo en unas horas.</div>');
+    const n=a.vendedor_completo===false?(a.dias_sin_vendedor||0):0;
+    const comps=[an,y].filter(p=>p && p.vendedor_completo===false && p.titulo).map(p=>p.titulo);
+    if(n||comps.length){
+      const txt=(n?(n===1?'falta 1 día':'faltan '+n+' días')+' de este período':'falta')
+        +(comps.length?(n?' y parte de ':' parte de ')+comps.join(' y de '):'');
+      $('cuerpo').insertAdjacentHTML('afterbegin','<div class="aviso"><b>Carga en curso.</b> Desde hoy los vendedores que no se cuentan (Operaciones Especiales, Empleados Grandbar, etc.) se sacan según el vendedor de cada factura, y para eso se están volviendo a bajar de CUBO las ventas anteriores. '
+        +'Todavía '+esc(txt)+': en esos días las ventas de esos vendedores pueden seguir sumadas. Se completa sola, no hay que hacer nada.</div>');
     }
     $('cuerpo').querySelectorAll('[data-ver]').forEach(b=>b.onclick=()=>{ VER[b.dataset.ver]=!VER[b.dataset.ver]; pintar(); });
   }
