@@ -45,6 +45,12 @@ const fechaOk = f => /^\d{4}-\d{2}-\d{2}$/.test(String(f || ''));
 
 exports.handler = async (event) => {
   try {
+    // Control del mail (provisorio, 26/10): dice si las funciones ven la clave y qué variables
+    // parecidas hay. Solo nombres, nunca valores. Sacarlo cuando el mail salga.
+    if ((event.queryStringParameters || {}).vista === 'mail-check') {
+      const nombres = Object.keys(process.env).filter(k => /resend|mail.*key/i.test(k));
+      return json(200, { mail: !!process.env.RESEND_API_KEY, variables: nombres.map(k => JSON.stringify(k)) });
+    }
     const srole = process.env.HUB_SERVICE_ROLE;
     if (!srole) return json(500, { error: 'Falta HUB_SERVICE_ROLE' });
     const token = (event.headers.authorization || event.headers.Authorization || '').replace(/^Bearer\s+/i, '').trim();
