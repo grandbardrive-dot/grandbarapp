@@ -747,6 +747,8 @@
     }catch(e){}
     cargar();
     cargarDeuda();
+    // Un aviso puede traer directo a la planilla (cobranzas-vendedor.html#planilla, 26/10/2026).
+    if(location.hash==="#planilla") verTab("plan");
 
     // ── Actualización en vivo ───────────────────────────────────────────────
     // Cuando un cliente avisa un pago (efectivo listo o comprobante), la base de
