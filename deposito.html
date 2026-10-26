@@ -308,7 +308,7 @@
     modal(`<div class="mh"><h3>Enviar el conteo</h3><div class="sub">${SECTOR_ICO[SECTOR]} ${SECTOR_LBL[SECTOR]} · ${esc(fecha(f))}</div></div>
       <div class="mb">
         <div class="kpis" style="grid-template-columns:1fr 1fr"><div class="kpi"><div class="k">Contados</div><div class="v">${contados} <small>de ${filas0.length}</small></div></div><div class="kpi"><div class="k">Unidades</div><div class="v">${num(unidades)}</div></div></div>
-        <p style="font-size:13.5px;color:var(--muted);line-height:1.5;margin:14px 0 6px">Va el Excel por mail a administración (Brenda, Laura, Andrea, Luciana y Josefina) y les llega el aviso al Portal. Los productos sin cargar salen con 0 y su diferencia contra el sistema.</p>
+        <p style="font-size:13.5px;color:var(--muted);line-height:1.5;margin:14px 0 6px">Va el Excel por mail a Laura y a Brenda, y les llega el aviso al Portal. Los productos sin cargar salen con 0 y su diferencia contra el sistema.</p>
         <label class="opciones" style="margin-top:10px"><label><input type="checkbox" id="en-agenda" checked> Marcar en la agenda como hechos: ${esc(SEL.proveedores.length <= 3 ? SEL.proveedores.join(', ') : SEL.proveedores.length + ' proveedores')}</label></label>
         <div class="msg" id="en-msg"></div>
         <div class="acts"><button class="btn claro" type="button" onclick="cerrarModal()">Seguir contando</button><button class="btn gold" id="en-ok" type="button">Enviar</button></div>

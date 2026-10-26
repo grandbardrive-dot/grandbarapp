@@ -11,8 +11,9 @@
      grandbar-stock, con el estilo del Portal. Stock de Córdoba (se trae solo cada hora;
      "Sincronizar ahora" o subir el Listado de Stock Básico), la agenda de los lunes (Laura
      asigna proveedores), proveedores excluidos y los conteos que mandan Lucas Porro y Lucas
-     Buenanueva (con su Excel). Va dentro del panel del equipo de administración y del de
-     Brenda (?embed=1); Diseño y Desarrollo lo abren suelto. Datos: función stock. -->
+     Buenanueva (con su Excel). Lo maneja Laura, la encargada del stock (dentro del panel del
+     equipo de administración); Brenda lo ve en el suyo (?embed=1) y Diseño y Desarrollo lo
+     abren suelto. Datos: función stock. -->
 <script>if(/[?&]embed=1(&|$)/.test(location.search))document.documentElement.classList.add('gb-embed');</script>
 <link rel="stylesheet" href="assets/kaf.css?v=1">
 <link rel="stylesheet" href="assets/stock.css?v=1">
@@ -297,7 +298,7 @@
     if (!YO.esAdmin) { location.replace('deposito.html'); return; }
     $('uName').textContent = YO.nombre;
     $('av').textContent = String(YO.nombre || 'A').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-    const VOLVER = { equipo_admin: 'equipo-panel.html#stock', administracion: 'panel-cobranzas.html#stock', compras: 'manual-vendedores/admin-comercial.html' };
+    const VOLVER = { equipo_admin: 'equipo-panel.html#stock', administracion: 'panel-cobranzas.html#stock' };
     $('sb-volver').href = VOLVER[YO.rol] || 'hub.html';
     ir();
   })();

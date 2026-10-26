@@ -4,18 +4,17 @@
 //   - deposito.html: Lucas Porro (vinos) y Lucas Buenanueva (spirits), rol deposito.
 //     Cuentan el stock (Depo 1 + Local + Depo 2) por proveedor y línea, lo envían y
 //     marcan la agenda de los lunes.
-//   - deposito-admin.html: Laura y el equipo de administración, Brenda, Luciana,
-//     Diseño y Desarrollo. Estado del stock de Córdoba (sincronizar / subir Excel),
-//     agenda de los lunes, proveedores excluidos y conteos recibidos.
+//   - deposito-admin.html: Laura (la encargada del stock), Brenda, Diseño y Desarrollo.
+//     Estado del stock de Córdoba (sincronizar / subir Excel), agenda de los lunes,
+//     proveedores excluidos y conteos recibidos.
 //  Tablas en el Portal sin políticas (stock-deposito-setup.sql): todo pasa por acá.
 //
 //  GET  ?vista=yo | stock | agenda | conteos[&sector=] | conteo&id= | estado
 //  POST {accion: conteo | agenda-asignar | agenda-quitar | agenda-hecho |
 //        agenda-reiniciar | excluir | subir-stock | sincronizar | mi-sector}
 //
-//  El conteo se guarda siempre. El mail (con el Excel adjunto) sale por Resend si
-//  el Portal tiene RESEND_API_KEY; además les llega el aviso a la campanita a los
-//  que reciben el mail y tienen usuario en el Portal.
+//  El conteo se guarda siempre. El mail (con el Excel adjunto) sale por Resend a Laura
+//  y a Brenda, y a las dos les llega el aviso a la campanita (26/10/2026: antes eran 5).
 //  Env: HUB_SERVICE_ROLE, RESEND_API_KEY (mail), SYNC_SECRET (sincronizar), VAPID_* (push)
 // ============================================================
 const HUB_URL = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
@@ -24,12 +23,16 @@ const { traerTodo } = require('./_paginar');
 const { pushA } = require('./_notificar');
 
 const DEPO = ['deposito'];
-const ADMIN = ['equipo_admin', 'administracion', 'compras', 'desarrollo', 'diseno'];
+// Laura es la encargada del stock (26/10/2026): del equipo de administración, solo ella.
+// Brenda (administración) supervisa; Diseño y Desarrollo mantienen el sistema.
+const ENCARGADA = 'proveedores@grandbar.com.ar';
+const ADMIN = ['administracion', 'desarrollo', 'diseno'];
 const SECTORES = ['vinos', 'spirits'];
 const SECTOR_LBL = { vinos: 'Vinos', spirits: 'Spirits y Gaseosas' };
 // Los mismos que tenía la app de stock.
 const MAIL_DE = 'Stock GrandBar <stock@grandbar.com.ar>';
-const MAIL_PARA = ['jlemos@grandbar.com.ar', 'lgonzalez@grandbar.com.ar', 'facturacion@grandbar.com.ar', 'compras@grandbar.com.ar', 'proveedores@grandbar.com.ar'];
+// Los conteos les llegan a Laura (encargada del stock) y a Brenda (26/10/2026).
+const MAIL_PARA = [ENCARGADA, 'lgonzalez@grandbar.com.ar'];
 // Adónde lleva el aviso según el panel de cada uno.
 const LINK_ROL = { equipo_admin: '/equipo-panel.html#stock', administracion: '/panel-cobranzas.html#stock' };
 
@@ -55,8 +58,9 @@ exports.handler = async (event) => {
     const perfil = (await leer('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=nombre,rol,canal,activo,email'))[0] || {};
     if (perfil.activo === false) return json(403, { error: 'Tu usuario está desactivado.' });
     const rol = String(perfil.rol || '').toLowerCase();
-    const esDepo = DEPO.includes(rol), esAdmin = ADMIN.includes(rol);
-    if (!esDepo && !esAdmin) return json(403, { error: 'Esta sección es del depósito y de administración.' });
+    const esDepo = DEPO.includes(rol);
+    const esAdmin = ADMIN.includes(rol) || (rol === 'equipo_admin' && String(perfil.email || user.email || '').toLowerCase() === ENCARGADA);
+    if (!esDepo && !esAdmin) return json(403, { error: 'Esta sección es del depósito: la maneja Laura.' });
     // El sector de cada uno de los chicos va en usuarios.canal (vinos | spirits).
     const miSector = SECTORES.includes(String(perfil.canal || '').toLowerCase()) ? String(perfil.canal).toLowerCase() : null;
     const nombre = perfil.nombre || user.email || 'Depósito';
