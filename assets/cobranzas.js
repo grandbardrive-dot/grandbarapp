@@ -1265,6 +1265,14 @@ async function cobPlanillaDet(vendedor, fecha) {
       if (Array.isArray(det) && det.length > 1) return `<div style="font-weight:700">${v}</div><div style="font-size:10.5px;color:var(--muted);font-weight:400;white-space:normal;line-height:1.35;max-width:150px;margin-left:auto">${det.map(x => cnum(x)).join(' + ')}</div>`;
       return v;
     };
+    // Celda de monto: en solo-lectura (Dirección) muestra el número; para Moni/administración
+    // es un campo editable, para corregir cuando el vendedor se confundió y el arqueo no da.
+    const celMoney = (f, campo, det) => {
+      const raw = Number(f[campo]) || 0;
+      if (cobSoloLectura()) return det ? mDet(raw, det) : money(raw);
+      const nota = (Array.isArray(det) && det.length > 1) ? `<div style="font-size:9.5px;color:var(--muted);font-weight:400">era ${det.map(x => cnum(x)).join(' + ')}</div>` : '';
+      return `<input class="pl-money" data-col="${campo}" value="${raw ? raw : ''}" inputmode="decimal" title="Corregir ${campo}" onchange="cobPlanillaEditar('${f.id}','${campo}',this.value,this)" style="width:92px;text-align:right;border:1px solid #d7d7d7;border-radius:7px;padding:5px 7px;font:inherit;font-size:12.5px">${nota}`;
+    };
     const arch = u => u ? `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : '<span style="color:var(--muted)">—</span>';
     // Comprobantes: pueden ser varios por fila.
     const archComp = f => { const arr = (f.comprobante_url ? [{ url: f.comprobante_url }] : []).concat(Array.isArray(f.comprobantes) ? f.comprobantes : []); return arr.length ? arr.map((c, i) => `<a class="cb-b" href="${cesc(c.url)}" target="_blank" rel="noopener" style="margin:1px">👁${arr.length > 1 ? (' ' + (i + 1)) : ''}</a>`).join(' ') : '<span style="color:var(--muted)">—</span>'; };
@@ -1276,7 +1284,7 @@ async function cobPlanillaDet(vendedor, fecha) {
         <div class="head-sub">${cfec(fecha)}${env && env.enviada_at ? ' · enviada ' + cfec(env.enviada_at) : ''} · ${filas.length} fila${filas.length === 1 ? '' : 's'} · <b style="color:var(--green-d,#245647)">${nProc} procesada${nProc === 1 ? '' : 's'}</b></div></div></div>
       ${cobSoloLectura()
         ? `<div class="wa-nota" style="margin-top:4px">Las filas tildadas en <b>Procesado</b> ya las pasó tesorería; debajo del tilde figura quién.</div>`
-        : `<div class="wa-nota" style="margin-top:4px">Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Las que queden sin tildar son las que te faltan.</div>`}
+        : `<div class="wa-nota" style="margin-top:4px">Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Si un vendedor cargó mal un monto, <b>editalo directo en la celda</b> (los totales se recalculan solos). Las que queden sin tildar son las que te faltan.</div>`}
       <div style="overflow-x:auto;border:1px solid #e6e6e6;border-radius:12px;margin-top:12px">
       <table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap">
         <thead><tr style="background:#0d2238;color:#eaf0f4">
@@ -1286,14 +1294,14 @@ async function cobPlanillaDet(vendedor, fecha) {
           ${td(cesc(f.codigo || ''))}
           ${td(cesc(f.razon_social || ''))}
           ${td(cesc(f.factura || ''))}
-          ${td(money(f.importe), 1)}${td(money(f.efectivo), 1)}${td(mDet(f.cheques, f.cheques_detalle), 1)}${td(money(f.retenciones), 1)}${td(mDet(f.transferencia, f.transferencia_detalle), 1)}${td(money(f.tarjeta), 1)}${td(mDet(f.echeq, f.echeq_detalle), 1)}
+          ${td(celMoney(f, 'importe'), 1)}${td(celMoney(f, 'efectivo'), 1)}${td(celMoney(f, 'cheques', f.cheques_detalle), 1)}${td(celMoney(f, 'retenciones'), 1)}${td(celMoney(f, 'transferencia', f.transferencia_detalle), 1)}${td(celMoney(f, 'tarjeta'), 1)}${td(celMoney(f, 'echeq', f.echeq_detalle), 1)}
           ${td((f.fecha_pago ? cfec(f.fecha_pago) : '') + (f.fecha_cheque ? `<div style="font-size:10.5px;color:var(--muted)">ch/e-cheq: ${cfec(f.fecha_cheque)}</div>` : ''))}${td(archComp(f))}${td(arch(f.recepcion_url))}
           <td style="padding:5px 8px"><input value="${cesc(f.observaciones || '')}" placeholder="…" ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','observaciones',this.value,this)" style="border:1px solid #d7d7d7;border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;width:160px"></td>
           <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${f.procesado ? 'checked' : ''} ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','procesado',this.checked,this)" style="width:18px;height:18px;cursor:pointer">${f.procesado && f.procesado_por ? `<div style="font-size:9.5px;color:var(--muted)">${cesc(f.procesado_por)}</div>` : ''}</td>
         </tr>`).join('') : `<tr><td colspan="15" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
         <tfoot><tr style="background:#f7efda;font-weight:800;border-top:2px solid #c9a13b">
           <td colspan="3" style="padding:9px 11px;text-align:right">TOTALES</td>
-          ${td(cnum(t.importe), 1)}${td(cnum(t.efectivo), 1)}${td(cnum(t.cheques), 1)}${td(cnum(t.retenciones), 1)}${td(cnum(t.transferencia), 1)}${td(cnum(t.tarjeta), 1)}${td(cnum(t.echeq), 1)}
+          ${['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'].map(k => `<td id="plt-${k}" style="padding:8px 11px;text-align:right">${cnum(t[k])}</td>`).join('')}
           <td colspan="5"></td>
         </tr></tfoot>
       </table></div>`;
@@ -1314,6 +1322,33 @@ async function cobPlanillaMarcar(id, campo, valor, el) {
   } catch (e) {
     alert('No se pudo guardar: ' + (e.message || e));
     if (campo === 'procesado' && el) el.checked = !valor;
+  }
+}
+
+// Moni corrige un monto de una fila (cuando el vendedor se confundió). La coma son
+// centavos. Al guardar, recalcula los totales del pie en vivo (para que el arqueo cierre).
+function _plParseMonto(str) {
+  let s = String(str == null ? '' : str).trim().replace(/[^\d.,-]/g, '');
+  if (!s) return 0;
+  const hasC = s.indexOf(',') > -1, hasD = s.indexOf('.') > -1;
+  if (hasC && hasD) { s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, ''); }
+  else if (hasC) { const p = s.split(','); s = (p.length === 2 && p[1].length <= 2) ? (p[0] + '.' + p[1]) : s.replace(/,/g, ''); }
+  const n = Number(s); return isFinite(n) ? n : 0;
+}
+function cobPlanillaRecalcTot() {
+  const cols = ['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'];
+  const sum = {}; cols.forEach(c => sum[c] = 0);
+  document.querySelectorAll('#pla-det .pl-money').forEach(inp => { const c = inp.getAttribute('data-col'); sum[c] = (sum[c] || 0) + _plParseMonto(inp.value); });
+  cols.forEach(c => { const el = document.getElementById('plt-' + c); if (el) el.textContent = cnum(sum[c]); });
+}
+async function cobPlanillaEditar(id, campo, valor, el) {
+  const val = _plParseMonto(valor);
+  try {
+    await cobApi('', { method: 'POST', body: JSON.stringify({ accion: 'planilla-editar', id, campos: { [campo]: val } }) });
+    if (el) { el.value = val ? val : ''; const nota = el.parentNode && el.parentNode.querySelector('div'); if (nota) nota.remove(); }
+    cobPlanillaRecalcTot();
+  } catch (e) {
+    alert('No se pudo guardar la corrección: ' + (e.message || e));
   }
 }
 

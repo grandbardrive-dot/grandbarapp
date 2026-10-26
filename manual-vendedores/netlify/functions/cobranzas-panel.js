@@ -200,6 +200,30 @@ exports.handler = async (event) => {
         if (!Object.keys(campos).length) return json(400, { error: 'Nada para guardar.' });
         return patch('planilla_cobranzas', 'id=eq.' + encodeURIComponent(b.id), campos, 'Esa fila');
       }
+      // Moni/administración CORRIGE los montos de una fila (cuando el vendedor se confundió
+      // y el arqueo no da). Mismos permisos y zona que marcar. Queda registrado quién editó.
+      if (b.accion === 'planilla-editar') {
+        if (!b.id) return json(400, { error: 'Falta la fila.' });
+        const ZP = await zonaPlanillas();
+        const fila0 = (await leer('planilla_cobranzas?select=vendedor&id=eq.' + encodeURIComponent(b.id)))[0];
+        if (!fila0) return json(404, { error: 'Esa fila ya no existe.' });
+        if (ZP && !ZP.vendOk(fila0.vendedor)) return json(403, { error: 'Esa planilla es de ' + (ZP.zona === 'mendoza' ? 'San Luis: la procesa Romina.' : 'Mendoza.') });
+        const c = b.campos || {};
+        const n = v => { const x = Number(v); return isFinite(x) ? x : 0; };
+        const MONEY = ['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'];
+        const DET = { transferencia: 'transferencia_detalle', cheques: 'cheques_detalle', echeq: 'echeq_detalle' };
+        const campos = {};
+        // Al corregir el total de un medio con desglose, se borra el desglose (queda el total corregido).
+        MONEY.forEach(k => { if (k in c) { campos[k] = n(c[k]); if (DET[k]) campos[DET[k]] = null; } });
+        ['factura', 'razon_social', 'codigo'].forEach(k => { if (k in c) campos[k] = c[k] ? String(c[k]).slice(0, 200) : null; });
+        if ('fecha_pago' in c) campos.fecha_pago = /^\d{4}-\d{2}-\d{2}$/.test(c.fecha_pago) ? c.fecha_pago : null;
+        if ('fecha_cheque' in c) campos.fecha_cheque = /^\d{4}-\d{2}-\d{2}$/.test(c.fecha_cheque) ? c.fecha_cheque : null;
+        if (!Object.keys(campos).length) return json(400, { error: 'Nada para editar.' });
+        campos.editado_por = perfil.nombre || null;
+        campos.editado_at = new Date().toISOString();
+        campos.updated_at = new Date().toISOString();
+        return patch('planilla_cobranzas', 'id=eq.' + encodeURIComponent(b.id), campos, 'Esa fila');
+      }
       return json(400, { error: 'Acción desconocida: ' + b.accion });
     }
 
