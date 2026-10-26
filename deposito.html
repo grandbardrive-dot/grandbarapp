@@ -59,6 +59,14 @@
 <script>
   const { $, esc, num, SECTOR_LBL, SECTOR_ICO, hoy, fecha, fechaHora, diaLargo, toast, get, post } = STOCK;
   let YO = null, SECTOR = null, AG = null, STK = null, VISTA = '';
+  // Conteo a medio cargar que viene de la app vieja de stock (stockgrandbar…/recuperar.html,
+  // 26/10/2026): llega como #recuperar=…; se guarda enseguida (por si primero hay que iniciar
+  // sesión) y se aplica al entrar con el usuario del sector.
+  (function () {
+    const m = /#recuperar=(.+)$/.exec(location.hash); if (!m) return;
+    try { localStorage.setItem('gb_stock_recuperar', decodeURIComponent(m[1])); } catch (e) {}
+    history.replaceState(null, '', location.pathname);
+  })();
   const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
@@ -399,6 +407,24 @@
     btn.disabled = false;
   }
 
+  // Pasa el conteo recuperado al borrador de este celular y deja la planilla lista para seguir.
+  function aplicarRecuperado() {
+    const d = lsGet('gb_stock_recuperar', null);
+    if (!d || !d.borradores || !SECTOR || !d.borradores[SECTOR]) return null;   // espera a alguien de ese sector
+    const b = d.borradores[SECTOR], antes = lsGet('gb_stock_draft_' + SECTOR, null) || { values: {}, provObs: {} };
+    lsSet('gb_stock_draft_' + SECTOR, { values: Object.assign({}, antes.values || {}, b.values || {}), provObs: Object.assign({}, antes.provObs || {}, b.provObs || {}), fecha: antes.fecha || hoy() });
+    const sel = d.seleccion;
+    let provs = sel && sel.sector === SECTOR && Array.isArray(sel.proveedores) && sel.proveedores.length ? sel.proveedores : null;
+    const lineas = provs && Array.isArray(sel.lineas) ? sel.lineas : [];
+    if (!provs) {   // sin la selección: los proveedores de lo que estaba cargado
+      const cargados = new Set(Object.keys(b.values || {}));
+      provs = [...new Set(STOCK.productos(SECTOR).filter(p => cargados.has(p.sku)).map(p => p.proveedor))];
+    }
+    if (provs.length) lsSet('gb_stock_sel_' + SECTOR, { paso: 'form', proveedores: provs, lineas });
+    lsDel('gb_stock_recuperar');
+    return Object.keys(b.values || {}).length;
+  }
+
   // ── Arranque ───────────────────────────────────────────────────────────────
   (async () => {
     const { data: { session } } = await STOCK.supa().auth.getSession();
@@ -411,6 +437,8 @@
     if (YO.esAdmin) { $('sb-admin').style.display = ''; $('sb-admin-cat').style.display = ''; }
     const s = YO.sector || (YO.esAdmin ? lsGet('gb_stock_sector_ver', null) : null);
     if (s) ponerSector(s);
+    const rec = aplicarRecuperado();
+    if (rec != null) { history.replaceState(null, '', location.pathname + '#conteo'); setTimeout(() => toast('Recuperamos tu conteo de la app vieja: ' + rec + ' productos cargados'), 700); }
     ir();
   })();
   document.querySelector('[data-soporte]').addEventListener('click', () => {
