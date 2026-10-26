@@ -13,9 +13,10 @@
 //  POST {accion: conteo | agenda-asignar | agenda-quitar | agenda-hecho |
 //        agenda-reiniciar | excluir | subir-stock | sincronizar | mi-sector}
 //
-//  El conteo se guarda siempre. El mail (con el Excel adjunto) sale por Resend a Laura
-//  y a Brenda, y a las dos les llega el aviso a la campanita (26/10/2026: antes eran 5).
-//  Env: HUB_SERVICE_ROLE, RESEND_API_KEY (mail), SYNC_SECRET (sincronizar), VAPID_* (push)
+//  El conteo se guarda y a Laura y a Brenda les llega el aviso a la campanita y al celular;
+//  el Excel lo bajan desde Conteos recibidos. Sin mail: decidido el 26/10/2026 (la app de
+//  stock lo mandaba por Resend; con el aviso en el Portal alcanza).
+//  Env: HUB_SERVICE_ROLE, SYNC_SECRET (sincronizar), VAPID_* (push)
 // ============================================================
 const HUB_URL = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
@@ -29,28 +30,19 @@ const ENCARGADA = 'proveedores@grandbar.com.ar';
 const ADMIN = ['administracion', 'desarrollo', 'diseno'];
 const SECTORES = ['vinos', 'spirits'];
 const SECTOR_LBL = { vinos: 'Vinos', spirits: 'Spirits y Gaseosas' };
-// Los mismos que tenía la app de stock.
-const MAIL_DE = 'Stock GrandBar <stock@grandbar.com.ar>';
 // Los conteos les llegan a Laura (encargada del stock) y a Brenda (26/10/2026).
-const MAIL_PARA = [ENCARGADA, 'lgonzalez@grandbar.com.ar'];
+const AVISO_PARA = [ENCARGADA, 'lgonzalez@grandbar.com.ar'];
 // Adónde lleva el aviso según el panel de cada uno.
 const LINK_ROL = { equipo_admin: '/equipo-panel.html#stock', administracion: '/panel-cobranzas.html#stock' };
 
 const json = (s, b) => ({ statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) });
 const hoyAR = () => new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const txt = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
 const ent = v => { const n = Math.round(Number(v)); return isFinite(n) ? n : 0; };
 const fechaOk = f => /^\d{4}-\d{2}-\d{2}$/.test(String(f || ''));
 
 exports.handler = async (event) => {
   try {
-    // Control del mail (provisorio, 26/10): dice si las funciones ven la clave y qué variables
-    // parecidas hay. Solo nombres, nunca valores. Sacarlo cuando el mail salga.
-    if ((event.queryStringParameters || {}).vista === 'mail-check') {
-      const nombres = Object.keys(process.env).filter(k => /resend|mail.*key/i.test(k));
-      return json(200, { mail: !!process.env.RESEND_API_KEY, variables: nombres.map(k => JSON.stringify(k)) });
-    }
     const srole = process.env.HUB_SERVICE_ROLE;
     if (!srole) return json(500, { error: 'Falta HUB_SERVICE_ROLE' });
     const token = (event.headers.authorization || event.headers.Authorization || '').replace(/^Bearer\s+/i, '').trim();
@@ -113,25 +105,9 @@ exports.handler = async (event) => {
         if (!ins.ok) return json(502, { error: 'No se pudo guardar el conteo: ' + (await ins.text()).slice(0, 150) });
         const guardado = (await ins.json())[0];
 
-        // Mail con el Excel (lo arma el navegador) — igual que la app de stock.
-        let mailOk = false, mailError = null;
-        const key = process.env.RESEND_API_KEY;
-        if (!key) mailError = 'El Portal todavía no tiene la clave de mail (RESEND_API_KEY).';
-        else {
-          const payload = { from: MAIL_DE, to: MAIL_PARA, subject: '[Stock Grand Bar] ' + SECTOR_LBL[sector] + ' — ' + fecha, html: htmlMail(fila, provObs) };
-          const b64 = String(b.excel_base64 || '');
-          if (b64 && b64.length < 7e6 && /^[A-Za-z0-9+/=]+$/.test(b64)) payload.attachments = [{ filename: 'stock_' + sector + '_' + fecha + '.xlsx', content: b64 }];
-          try {
-            const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const d = await r.json().catch(() => ({}));
-            mailOk = r.ok; if (!r.ok) mailError = d.message || ('Resend respondió ' + r.status);
-          } catch (e) { mailError = 'No se pudo conectar con el servicio de mail.'; }
-        }
-        await sb('stock_conteos?id=eq.' + guardado.id, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ mail_ok: mailOk, mail_error: mailError }) });
-
-        // Campanita (y celular) a los que reciben el mail y tienen usuario en el Portal.
+        // Campanita y celular a Laura y a Brenda (el Excel lo bajan desde el Portal).
         try {
-          const dest = await leer('usuarios?email=in.(' + MAIL_PARA.map(m => '"' + m + '"').join(',') + ')&select=id,rol,activo');
+          const dest = await leer('usuarios?email=in.(' + AVISO_PARA.map(m => '"' + m + '"').join(',') + ')&select=id,rol,activo');
           const titulo = 'Conteo de stock: ' + SECTOR_LBL[sector] + ' — ' + nombre;
           const detalle = contados + ' de ' + items.length + ' productos contados · ' + unidades + ' unidades · ' + fecha.split('-').reverse().join('/');
           for (const u of dest.filter(u => u.activo !== false)) {
@@ -140,7 +116,7 @@ exports.handler = async (event) => {
             await pushA(sb, u.id, { title: '📦 ' + titulo, body: detalle, url: link, tag: 'stock-' + guardado.id });
           }
         } catch (e) { console.warn('stock: avisos', e.message); }
-        return json(200, { ok: true, id: guardado.id, mail_ok: mailOk, mail_error: mailError });
+        return json(200, { ok: true, id: guardado.id });
       }
 
       if (b.accion === 'agenda-hecho') {
@@ -235,7 +211,7 @@ exports.handler = async (event) => {
     }
 
     if (vista === 'conteos') {
-      let q = 'stock_conteos?select=id,sector,usuario_nombre,fecha,proveedores,productos,contados,unidades,mail_ok,mail_error,created_at&order=created_at.desc&limit=200';
+      let q = 'stock_conteos?select=id,sector,usuario_nombre,fecha,proveedores,productos,contados,unidades,created_at&order=created_at.desc&limit=200';
       const s = String(qp.sector || '').toLowerCase();
       if (esDepo && !esAdmin && miSector) q += '&sector=eq.' + miSector;
       else if (SECTORES.includes(s)) q += '&sector=eq.' + s;
@@ -259,58 +235,12 @@ exports.handler = async (event) => {
         leer('stock_sistema?select=actualizado_en&order=actualizado_en.desc&limit=1'),
         leer('sistema_corridas?tarea=eq.stock-sync&select=inicio,fin,ok,detalle&order=inicio.desc&limit=5'),
       ]);
-      return json(200, { filas, conStock, actualizado: ult[0] ? ult[0].actualizado_en : null, corridas, mail: !!process.env.RESEND_API_KEY });
+      return json(200, { filas, conStock, actualizado: ult[0] ? ult[0].actualizado_en : null, corridas });
     }
     return json(400, { error: 'Vista inválida.' });
   } catch (e) {
     return json(500, { error: 'No se pudo completar: ' + String((e && e.message) || e).slice(0, 200) });
   }
 };
-
-// El mail, armado acá con los datos ya limpios (antes lo armaba el navegador).
-function htmlMail(f, provObs) {
-  const lbl = SECTOR_LBL[f.sector];
-  const provLine = f.proveedores.length ? 'Proveedores: ' + f.proveedores.join(', ') : 'Proveedores: Todos';
-  const grupos = {};
-  f.items.forEach(p => { (grupos[p.proveedor || '(Sin proveedor)'] = grupos[p.proveedor || '(Sin proveedor)'] || []).push(p); });
-  const filas = Object.entries(grupos).map(([prov, items]) =>
-    `<tr><td colspan="9" style="padding:10px 10px 4px;font-weight:700;color:#0d2230;border-bottom:2px solid #e7ded0">${esc(prov)}${provObs[prov] ? `<div style="font-weight:400;color:#6d7d85;font-size:12px;margin-top:2px">📝 ${esc(provObs[prov])}</div>` : ''}</td></tr>` +
-    items.map(p => {
-      const sis = p.stock_sistema + p.promo, dif = p.total - sis;
-      const color = dif < 0 ? '#b5482d' : dif > 0 ? '#2f6f5e' : '#8a8f9a';
-      const gris = p.total === 0 && !p.obs ? 'color:#9aa3a8;' : '';
-      return `<tr style="${gris}">
-        <td style="padding:6px 10px;font-family:monospace;font-size:12px;color:#8a8f9a">${esc(p.sku)}</td>
-        <td style="padding:6px 10px">${esc(p.articulo)}${p.obs ? `<br><em style="color:#8a8f9a">${esc(p.obs)}</em>` : ''}</td>
-        <td style="padding:6px 10px;text-align:center">${sis}</td>
-        <td style="padding:6px 10px;text-align:center;color:#8a8f9a">${p.promo || ''}</td>
-        <td style="padding:6px 10px;text-align:center">${p.depo1 || ''}</td>
-        <td style="padding:6px 10px;text-align:center">${p.local || ''}</td>
-        <td style="padding:6px 10px;text-align:center">${p.depo2 || ''}</td>
-        <td style="padding:6px 10px;text-align:center;font-weight:700">${p.total}</td>
-        <td style="padding:6px 10px;text-align:center;font-weight:700;color:${color}">${dif > 0 ? '+' : ''}${dif}</td></tr>`;
-    }).join('')).join('');
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f5f1e8;font-family:Inter,'Segoe UI',Arial,sans-serif;color:#1b2a32">
-<div style="max-width:900px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e7ded0">
-  <div style="background:#0d2230;padding:20px 28px">
-    <div style="color:#c0912f;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Control de stock · Depósito</div>
-    <div style="color:#fff;font-size:22px;font-weight:800">${esc(lbl)} — ${esc(f.fecha.split('-').reverse().join('/'))}</div>
-    <div style="color:#b9c6cd;font-size:13px;margin-top:6px">${esc(f.usuario_nombre)} · ${esc(provLine)}</div>
-  </div>
-  <div style="padding:18px 28px;background:#fbf8f2;border-bottom:1px solid #e7ded0">
-    <span style="display:inline-block;margin-right:36px"><span style="font-size:11px;color:#6d7d85;text-transform:uppercase;letter-spacing:1px">Contados</span><br><b style="font-size:28px;color:#0d2230">${f.contados}</b> <span style="font-size:12px;color:#6d7d85">de ${f.productos} productos</span></span>
-    <span style="display:inline-block"><span style="font-size:11px;color:#6d7d85;text-transform:uppercase;letter-spacing:1px">Total unidades</span><br><b style="font-size:28px;color:#c0912f">${f.unidades}</b></span>
-  </div>
-  <div style="padding:18px 28px;overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr style="background:#0d2230;color:#fff">
-        <th style="padding:8px 10px;text-align:left">SKU</th><th style="padding:8px 10px;text-align:left">Descripción</th>
-        <th style="padding:8px 10px">Stock<br>sistema</th><th style="padding:8px 10px">Promo</th><th style="padding:8px 10px">Depo 1</th>
-        <th style="padding:8px 10px">Local</th><th style="padding:8px 10px">Depo 2</th><th style="padding:8px 10px">Total</th><th style="padding:8px 10px">Dif.</th>
-      </tr></thead><tbody>${filas}</tbody></table>
-  </div>
-  <div style="padding:14px 28px;background:#fbf8f2;font-size:11px;color:#8a8f9a;text-align:center">Enviado desde el Portal GrandBar · Depósito</div>
-</div></body></html>`;
-}
 
 module.exports.handler = require('./_errores').conErrores('stock', module.exports.handler);

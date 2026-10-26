@@ -11,7 +11,7 @@
      grandbar-stock, con el estilo del Portal. Stock de Córdoba (se trae solo cada hora;
      "Sincronizar ahora" o subir el Listado de Stock Básico), la agenda de los lunes (Laura
      asigna proveedores), proveedores excluidos y los conteos que mandan Lucas Porro y Lucas
-     Buenanueva (con su Excel). Lo maneja Laura, la encargada del stock (dentro del panel del
+     Buenanueva (con su Excel; sin mail desde el 26/10, les llega el aviso al Portal). Lo maneja Laura, la encargada del stock (dentro del panel del
      equipo de administración); Brenda lo ve en el suyo (?embed=1) y Diseño y Desarrollo lo
      abren suelto. Datos: función stock. -->
 <script>if(/[?&]embed=1(&|$)/.test(location.search))document.documentElement.classList.add('gb-embed');</script>
@@ -91,7 +91,6 @@
     const dot = horas == null ? 'mal' : horas <= 3 ? 'ok' : horas <= 48 ? 'viejo' : 'mal';
     const ult = (e.corridas || [])[0];
     C.innerHTML = cabeza('Stock del sistema', 'El stock de Córdoba Software contra el que se comparan los conteos. Se trae solo cada hora, de 8 a 20 hs, de lunes a sábado.') +
-      (e.mail ? '' : `<div class="aviso rojo"><b>El mail de los conteos todavía no sale.</b> Los conteos se guardan y llegan a la campanita, pero falta cargar la clave del servicio de mail (RESEND_API_KEY) en Netlify del Portal: es la misma que tiene el sitio viejo de stock.</div>`) +
       `<div class="kpis">
         <div class="kpi"><div class="k">Última actualización</div><div class="v" style="font-size:20px"><span class="estado-dot ${dot}"></span>${e.actualizado ? esc(fechaHora(e.actualizado)) : 'Nunca'}</div><div class="s">${horas == null ? 'Todavía no se cargó el stock' : horas < 1 ? 'Hace menos de una hora' : 'Hace ' + Math.round(horas) + ' h'}</div></div>
         <div class="kpi"><div class="k">Productos</div><div class="v">${num(e.filas)}</div><div class="s">${num(e.conStock)} con stock</div></div>
@@ -269,7 +268,7 @@
       `<div class="tabs" style="margin-bottom:14px">${[['', 'Todos'], ['vinos', '🍷 Vinos'], ['spirits', '🥃 Spirits']].map(([k, n]) => `<button type="button" class="${k === FILTRO ? 'on' : ''}" onclick="FILTRO='${k}';verConteos()">${n}</button>`).join('')}</div>` +
       (l.length ? l.map(c => `<div class="fila"><div class="cuerpo"><div class="tit">${SECTOR_ICO[c.sector]} ${esc(fecha(c.fecha))} · ${esc(c.usuario_nombre || '')}</div>
           <div class="sub">${c.contados} de ${c.productos} productos contados · ${num(c.unidades)} unidades<br>${esc((c.proveedores || []).slice(0, 5).join(' · '))}${(c.proveedores || []).length > 5 ? ' y ' + (c.proveedores.length - 5) + ' más' : ''}</div>
-          <div class="chips">${c.mail_ok ? '<span class="chip verde">Mail enviado</span>' : `<span class="chip ambar" title="${esc(c.mail_error || '')}">Sin mail</span>`}<span class="chip gris">Llegó ${esc(fechaHora(c.created_at))}</span></div></div>
+          <div class="chips"><span class="chip gris">Llegó ${esc(fechaHora(c.created_at))}</span></div></div>
           <div class="der" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn claro chico" type="button" onclick="verConteo(${c.id})">Ver</button><button class="btn navy chico" type="button" onclick="bajar(${c.id}, this)">Excel</button></div></div>`).join('')
         : vacio('Todavía no llegó ningún conteo.'));
   }
