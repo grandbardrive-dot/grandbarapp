@@ -1250,6 +1250,7 @@ async function cobPlanillas() {
 }
 
 async function cobPlanillaDet(vendedor, fecha) {
+  window._plaDet = { vendedor, fecha };  // para recargarla después de borrar una fila
   cq('cob').innerHTML = `<button class="cb-volver" onclick="cobPlanillas()">‹ Volver a planillas</button>
     <div id="pla-det"><div class="pv-vacio">Cargando…</div></div>`;
   try {
@@ -1284,11 +1285,11 @@ async function cobPlanillaDet(vendedor, fecha) {
         <div class="head-sub">${cfec(fecha)}${env && env.enviada_at ? ' · enviada ' + cfec(env.enviada_at) : ''} · ${filas.length} fila${filas.length === 1 ? '' : 's'} · <b style="color:var(--green-d,#245647)">${nProc} procesada${nProc === 1 ? '' : 's'}</b></div></div></div>
       ${cobSoloLectura()
         ? `<div class="wa-nota" style="margin-top:4px">Las filas tildadas en <b>Procesado</b> ya las pasó tesorería; debajo del tilde figura quién.</div>`
-        : `<div class="wa-nota" style="margin-top:4px">Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Si un vendedor cargó mal un monto, <b>editalo directo en la celda</b> (los totales se recalculan solos). Las que queden sin tildar son las que te faltan.</div>`}
+        : `<div class="wa-nota" style="margin-top:4px">Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Si un vendedor cargó mal un monto, <b>editalo directo en la celda</b> (los totales se recalculan solos); si una fila sobra (ej. cargada dos veces), eliminala con 🗑. Las que queden sin tildar son las que te faltan.</div>`}
       <div style="overflow-x:auto;border:1px solid #e6e6e6;border-radius:12px;margin-top:12px">
       <table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap">
         <thead><tr style="background:#0d2238;color:#eaf0f4">
-          ${th('Código')}${th('Razón social')}${th('Factura')}${th('Importe', 1)}${th('Efectivo', 1)}${th('Cheques', 1)}${th('Retenc.', 1)}${th('Transf/MP', 1)}${th('Tarjeta', 1)}${th('E-cheq', 1)}${th('Fecha')}${th('Comprob.')}${th('Recepción')}${th('Observaciones')}${th('Procesado')}
+          ${th('Código')}${th('Razón social')}${th('Factura')}${th('Importe', 1)}${th('Efectivo', 1)}${th('Cheques', 1)}${th('Retenc.', 1)}${th('Transf/MP', 1)}${th('Tarjeta', 1)}${th('E-cheq', 1)}${th('Fecha')}${th('Comprob.')}${th('Recepción')}${th('Observaciones')}${th('Procesado')}${cobSoloLectura() ? '' : th('')}
         </tr></thead>
         <tbody>${filas.length ? filas.map(f => `<tr style="border-top:1px solid #eee;${f.procesado ? 'background:#e7f1ea' : ''}">
           ${td(cesc(f.codigo || ''))}
@@ -1298,11 +1299,12 @@ async function cobPlanillaDet(vendedor, fecha) {
           ${td((f.fecha_pago ? cfec(f.fecha_pago) : '') + (f.fecha_cheque ? `<div style="font-size:10.5px;color:var(--muted)">ch/e-cheq: ${cfec(f.fecha_cheque)}</div>` : ''))}${td(archComp(f))}${td(arch(f.recepcion_url))}
           <td style="padding:5px 8px"><input value="${cesc(f.observaciones || '')}" placeholder="…" ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','observaciones',this.value,this)" style="border:1px solid #d7d7d7;border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;width:160px"></td>
           <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${f.procesado ? 'checked' : ''} ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','procesado',this.checked,this)" style="width:18px;height:18px;cursor:pointer">${f.procesado && f.procesado_por ? `<div style="font-size:9.5px;color:var(--muted)">${cesc(f.procesado_por)}</div>` : ''}</td>
-        </tr>`).join('') : `<tr><td colspan="15" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
+          ${cobSoloLectura() ? '' : `<td style="padding:5px 8px;text-align:center"><button type="button" title="Eliminar esta fila" onclick="cobPlanillaBorrar('${f.id}',this)" style="background:#fff;border:1px solid #e3b4a8;color:#c0392b;border-radius:7px;padding:4px 8px;cursor:pointer;font-size:13px">🗑</button></td>`}
+        </tr>`).join('') : `<tr><td colspan="16" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
         <tfoot><tr style="background:#f7efda;font-weight:800;border-top:2px solid #c9a13b">
           <td colspan="3" style="padding:9px 11px;text-align:right">TOTALES</td>
           ${['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'].map(k => `<td id="plt-${k}" style="padding:8px 11px;text-align:right">${cnum(t[k])}</td>`).join('')}
-          <td colspan="5"></td>
+          <td colspan="${cobSoloLectura() ? 5 : 6}"></td>
         </tr></tfoot>
       </table></div>`;
   } catch (e) { cq('pla-det').innerHTML = cerror(e.message); }
@@ -1349,6 +1351,23 @@ async function cobPlanillaEditar(id, campo, valor, el) {
     cobPlanillaRecalcTot();
   } catch (e) {
     alert('No se pudo guardar la corrección: ' + (e.message || e));
+  }
+}
+
+// Moni elimina una fila de la planilla (ej. cargada dos veces). Pide confirmación; el
+// servidor guarda una copia de respaldo antes de borrar. Después recarga la planilla.
+async function cobPlanillaBorrar(id, btn) {
+  const tr = btn && btn.closest('tr');
+  const desc = tr ? Array.from(tr.children).slice(0, 3).map(td => td.textContent.trim()).filter(Boolean).join(' · ') : '';
+  if (!confirm('¿Eliminar esta fila de la planilla?' + (desc ? '\n\n' + desc : '') + '\n\nQueda guardada una copia de respaldo.')) return;
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    await cobApi('', { method: 'POST', body: JSON.stringify({ accion: 'planilla-borrar', id }) });
+    const p = window._plaDet;
+    if (p) cobPlanillaDet(p.vendedor, p.fecha); else if (tr) { tr.remove(); cobPlanillaRecalcTot(); }
+  } catch (e) {
+    alert('No se pudo eliminar: ' + (e.message || e));
+    if (btn) { btn.disabled = false; btn.textContent = '🗑'; }
   }
 }
 

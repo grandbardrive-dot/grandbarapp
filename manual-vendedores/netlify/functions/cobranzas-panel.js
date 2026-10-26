@@ -202,10 +202,38 @@ exports.handler = async (event) => {
       }
       // Moni/administración CORRIGE los montos de una fila (cuando el vendedor se confundió
       // y el arqueo no da). Mismos permisos y zona que marcar. Queda registrado quién editó.
+      // El envío guarda una foto (cantidad de filas y totales) que muestra la tarjeta de la
+      // lista: al corregir o borrar una fila se vuelve a calcular desde las filas reales.
+      const recalcEnvio = async (vend, fecha) => {
+        const MONEY_P = ['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'];
+        const rows = await leer('planilla_cobranzas?select=' + MONEY_P.join(',') + '&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha));
+        const totales = {}; MONEY_P.forEach(k => { totales[k] = 0; });
+        rows.forEach(r => MONEY_P.forEach(k => { totales[k] += Number(r[k]) || 0; }));
+        await cob('planilla_envios?vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha),
+          { method: 'PATCH', body: JSON.stringify({ filas: rows.length, totales }) });
+      };
+      // Moni/administración BORRA una fila (ej. cargada dos veces). Antes de borrarla se guarda
+      // una copia completa en planilla_borradas (respaldo: qué se borró, quién y cuándo).
+      if (b.accion === 'planilla-borrar') {
+        if (!b.id) return json(400, { error: 'Falta la fila.' });
+        const ZP = await zonaPlanillas();
+        const fila0 = (await leer('planilla_cobranzas?select=*&id=eq.' + encodeURIComponent(b.id)))[0];
+        if (!fila0) return json(404, { error: 'Esa fila ya no existe.' });
+        if (ZP && !ZP.vendOk(fila0.vendedor)) return json(403, { error: 'Esa planilla es de ' + (ZP.zona === 'mendoza' ? 'San Luis: la procesa Romina.' : 'Mendoza.') });
+        const resp = await cob('planilla_borradas', { method: 'POST', body: JSON.stringify({
+          fila_id: String(fila0.id), vendedor: fila0.vendedor, fecha_rendicion: fila0.fecha_rendicion, datos: fila0, borrado_por: perfil.nombre || null }) });
+        if (!resp.ok) return json(500, { error: 'No se pudo guardar el respaldo; no borré nada.' });
+        const r = await cob('planilla_cobranzas?id=eq.' + encodeURIComponent(b.id), { method: 'DELETE', headers: { Prefer: 'return=representation' } });
+        const borradas = await r.json();
+        if (!r.ok) return json(400, { error: (borradas && borradas.message) || 'No se pudo borrar.' });
+        if (!borradas.length) return json(404, { error: 'Esa fila ya no existe.' });
+        await recalcEnvio(fila0.vendedor, fila0.fecha_rendicion);
+        return json(200, { ok: true });
+      }
       if (b.accion === 'planilla-editar') {
         if (!b.id) return json(400, { error: 'Falta la fila.' });
         const ZP = await zonaPlanillas();
-        const fila0 = (await leer('planilla_cobranzas?select=vendedor&id=eq.' + encodeURIComponent(b.id)))[0];
+        const fila0 = (await leer('planilla_cobranzas?select=vendedor,fecha_rendicion&id=eq.' + encodeURIComponent(b.id)))[0];
         if (!fila0) return json(404, { error: 'Esa fila ya no existe.' });
         if (ZP && !ZP.vendOk(fila0.vendedor)) return json(403, { error: 'Esa planilla es de ' + (ZP.zona === 'mendoza' ? 'San Luis: la procesa Romina.' : 'Mendoza.') });
         const c = b.campos || {};
@@ -222,7 +250,9 @@ exports.handler = async (event) => {
         campos.editado_por = perfil.nombre || null;
         campos.editado_at = new Date().toISOString();
         campos.updated_at = new Date().toISOString();
-        return patch('planilla_cobranzas', 'id=eq.' + encodeURIComponent(b.id), campos, 'Esa fila');
+        const res = await patch('planilla_cobranzas', 'id=eq.' + encodeURIComponent(b.id), campos, 'Esa fila');
+        if (res.statusCode === 200) await recalcEnvio(fila0.vendedor, fila0.fecha_rendicion);
+        return res;
       }
       return json(400, { error: 'Acción desconocida: ' + b.accion });
     }
