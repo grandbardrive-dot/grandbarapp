@@ -78,12 +78,11 @@
     <details class="como">
       <summary>Cómo se calculan estos números</summary>
       <ul>
-        <li><b>Venta de productos</b>: el neto sin IVA de las facturas, menos las notas de crédito, de los artículos con código. Sale de CUBO (las dos empresas) y se baja cada 20 minutos.</li>
+        <li><b>Venta de productos</b>: el neto sin IVA de las facturas, menos las notas de crédito, de <b>Vinos, Espirituosas, Cervezas, Bebidas sin alcohol y Cafés e infusiones</b>. Sale de CUBO (las dos empresas) y se baja cada 20 minutos.</li>
+        <li><b>No se cuentan</b>, igual que en la planilla "Avance Ventas" de Administración: lo que facturan <b>Operaciones Especiales, Empleados Grandbar, Gestión Administrativa, Luciana Buenanueva y Brenda Gonzalez</b>, y los tipos de producto <b>Alimentos, POP, Promos, Otros, Administración</b> y lo que no tiene código de artículo.</li>
         <li><b>Margen bruto</b>: venta neta menos el costo neto que tiene cargado CUBO para cada artículo, los dos sin IVA. El impuesto interno no entra en ninguno de los dos: el cliente lo paga aparte y se le paga al fisco.</li>
-        <li><b>Facturado sin código de artículo</b>: renglones de factura sin artículo (por ejemplo, ventas en eventos a Consumidor Final o servicios). Son venta, pero CUBO no les carga costo, así que no entran en el margen.</li>
-        <li><b>Ajustes</b>: artículos compensadores, cheques, diferencias de precio y gastos bancarios. No son venta de productos.</li>
-        <li>Las <b>notas de débito</b> (cheques rechazados) no se cuentan como venta. Por eso este total puede ser menor que el de la planilla "Avance Ventas", que sí las suma.</li>
-        <li><b>Por vendedor</b>: según la cartera de cada vendedor en CUBO (el vendedor asignado al cliente).</li>
+        <li>La planilla "Avance Ventas" muestra los montos <b>con IVA e impuestos internos</b> y suma las notas de débito (cheques rechazados); acá todo va sin impuestos y sin notas de débito, por eso los números de acá son menores.</li>
+        <li><b>Por vendedor</b>: el vendedor que figura en cada factura, como en la planilla.</li>
         <li>Las comparaciones son contra los mismos días del período anterior y del año pasado. El día de hoy está en curso.</li>
       </ul>
     </details>
@@ -137,11 +136,15 @@
       +'</div>';
   }
 
+  // Lo que no se cuenta (los filtros de la planilla "Avance Ventas"): vendedores y tipos de producto.
   function otros(a){
-    if(!a.sin_codigo && !a.ajustes) return '';
-    return '<div class="otros">Además se facturaron <b>'+$M(a.sin_codigo)+'</b> sin código de artículo (eventos, servicios)'
-      +(a.ajustes?' y <b>'+$M(a.ajustes)+'</b> de ajustes':'')+': no entran en el margen porque CUBO no les carga costo. '
-      +'Total facturado neto del período: <b title="'+$full(a.facturado)+'">'+$M(a.facturado)+'</b>.</div>';
+    const fv=(a.fuera_vendedores||[]).filter(x=>x.venta), ft=(a.fuera_tipos||[]).filter(x=>x.venta);
+    if(!fv.length && !ft.length) return '';
+    const lista=l=>l.map(x=>esc(x.nombre)+' <b title="'+$full(x.venta)+'">'+$M(x.venta)+'</b>').join(' · ');
+    return '<div class="otros">No se cuentan:'
+      +(fv.length?'<br>Vendedores: '+lista(fv):'')
+      +(ft.length?'<br>Tipos de producto: '+lista(ft):'')
+      +'<br>Total facturado neto del período, con todo: <b title="'+$full(a.facturado)+'">'+$M(a.facturado)+'</b>.</div>';
   }
 
   function grafico(a){
@@ -184,18 +187,23 @@
     h+=kpis(a,an,y)+otros(a)+grafico(a);
     const vend=(a.por_vendedor||[]).filter(v=>v.venta!=null);
     const vendCard=(!a.vendedor_completo && !vend.length)
-      ? '<div class="card"><div class="c-h"><div class="t">Por vendedor <small>según la cartera en CUBO</small></div></div><div class="vacio">Se están cargando las ventas por cliente de este período. Aparecen solas en unos minutos.</div></div>'
-      : tabla('Por vendedor','según la cartera en CUBO',vend,a.venta,mapa(an&&an.por_vendedor,'codigo'),'codigo',
+      ? '<div class="card"><div class="c-h"><div class="t">Por vendedor <small>el de cada factura</small></div></div><div class="vacio">Se están cargando las ventas por vendedor de este período. Aparecen solas en unos minutos.</div></div>'
+      : tabla('Por vendedor','el de cada factura',vend,a.venta,mapa(an&&an.por_vendedor,'codigo'),'codigo',
           f=>f.clientes?'<span class="sub">'+num(f.clientes)+' clientes con compras</span>':'','vend',12);
-    h+='<div class="g-2">'+tabla('Por rubro','',a.por_rubro||[],a.venta,mapa(an&&an.por_rubro,'nombre'),'nombre')+vendCard+'</div>';
+    h+='<div class="g-2">'+tabla('Por tipo de producto','',a.por_rubro||[],a.venta,mapa(an&&an.por_rubro,'nombre'),'nombre')+vendCard+'</div>';
     h+='<div class="g-2">'+tabla('Por proveedor','código de CUBO y sus líneas',a.por_proveedor||[],a.venta,mapa(an&&an.por_proveedor,'codigo'),'codigo',
           f=>'<span class="sub">Código '+esc(f.codigo)+' · '+num(f.unidades)+' unidades</span>','prov',12)
       +tabla('Productos más vendidos','',(a.por_producto||[]),a.venta,null,'sku',
           f=>'<span class="sub">'+esc(f.linea||'')+' · '+num(f.unidades)+' u.</span>','prod',12)+'</div>';
     $('cuerpo').innerHTML=h;
-    if(!a.vendedor_completo && vend.length){
-      const c=$('cuerpo').querySelectorAll('.g-2 .card')[1];
-      if(c) c.insertAdjacentHTML('afterbegin','<div class="aviso">Se están completando las ventas por cliente de días anteriores: por vendedor puede faltar algo hasta que termine la carga.</div>');
+    // Días que todavía no se volvieron a bajar con el vendedor de cada factura (26/10/2026):
+    // ahí no se pueden sacar los vendedores que no se cuentan.
+    const incompletos=[a,an,y].filter(p=>p && p.vendedor_completo===false);
+    if(incompletos.length){
+      const n=a.dias_sin_vendedor||0;
+      $('cuerpo').insertAdjacentHTML('afterbegin','<div class="aviso">Se están volviendo a bajar de CUBO las ventas con el vendedor de cada factura'
+        +(n?' (faltan '+n+' día'+(n===1?'':'s')+' de este período)':'')+(incompletos.some(p=>p!==a)?' y de los períodos con los que se compara':'')
+        +'. Hasta que termine, esos días pueden incluir lo que facturan los vendedores que no se cuentan. Se completa solo en unas horas.</div>');
     }
     $('cuerpo').querySelectorAll('[data-ver]').forEach(b=>b.onclick=()=>{ VER[b.dataset.ver]=!VER[b.dataset.ver]; pintar(); });
   }

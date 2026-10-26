@@ -1,4 +1,6 @@
 -- Ventas y margen del panel de Dirección (14/10/2026).
+-- OJO (26/10/2026): dir_ventas y dir_es_producto se reemplazaron con los filtros de la planilla
+-- "Avance Ventas" (vendedores y tipos de producto que no se cuentan): ver dir-ventas-filtros.sql.
 -- YA APLICADO en el proyecto del MANUAL (fzaxwuuodseyyinveknn), migraciones
 -- "dir_ventas_resumen", "dir_ventas_v2_productos", "dir_ventas_v3_rapida" y
 -- "ventas_sync_helpers". Queda acá como registro.

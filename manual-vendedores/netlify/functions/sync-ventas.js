@@ -73,12 +73,22 @@ async function enTandas(items, tam, fn) {
   for (let i = 0; i < items.length; i += tam) await Promise.all(items.slice(i, i + tam).map(fn));
 }
 
+// Vendedor de la factura: código de 3 dígitos ("044") y nombre, del comprobante o de la cabecera.
+// Sin código: '?' (así ventas_cliente.vendedor = '' queda solo para los días que falta volver a bajar).
+const escalar = (v) => (v != null && typeof v !== 'object' && String(v).trim() !== '' ? String(v).trim() : null);
+function vendedorDe(comp, cab) {
+  const de = (...ks) => { for (const o of [comp, cab]) for (const k of ks) { const v = escalar(o && o[k]); if (v) return v; } return null; };
+  const cod = de('VendedorCodigo', 'CodigoVendedor', 'Vendedor', 'VendedorId');
+  const nombre = de('VendedorNombre', 'NombreVendedor');
+  return { codigo: cod ? (/^\d+$/.test(cod) ? cod.padStart(3, '0') : cod) : '?', nombre };
+}
+
 // opts.parcial (14/10/2026): el día de HOY, que se vuelve a bajar en cada corrida para el
 // panel de Dirección. No deja fila "v2" en ventas_sync_log: mañana se baja completo como "ayer".
 async function sincronizarDia(ctxs, fechaStr, opts = {}) {
   const agg = new Map();
-  const aggCli = new Map();   // cliente|sku|fecha -> { u: unidades, imp: venta neta, cst: costo neto } (11T / 6 meses / ventas por vendedor)
-  let renglones = 0, totalUtiles = 0;
+  const aggCli = new Map();   // cliente|sku|fecha|vendedor -> { u: unidades, imp: venta neta, cst: costo neto, vn: nombre del vendedor } (11T / 6 meses / ventas por vendedor)
+  let renglones = 0, totalUtiles = 0, camposVend = null;
   const porEmpresa = {};
   for (const ctx of ctxs) {
   const { urlCuenta, cuenta, token } = ctx;
@@ -100,6 +110,10 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
     const fISO = netDateToISO(c.FechaEmision) || ddmmToISO(fechaStr);
     const signo = /^NC/i.test(String(c.Codigo || '')) ? -1 : 1;
     const clienteCod = String(c.ClienteCodigo == null ? '' : c.ClienteCodigo).trim();
+    // Vendedor de la factura (26/10/2026): Dirección filtra por él, como la planilla "Avance
+    // Ventas" (no por el de la cartera del cliente).
+    const vend = vendedorDe(comp, c);
+    if (!camposVend) camposVend = Object.keys(comp).concat(Object.keys(c)).filter((k) => /vend/i.test(k));
     for (const r of det) {
       const sku = String(val(r, 'Articulo', 'ArticuloCodigo') || '').trim();
       if (!sku) continue;
@@ -118,8 +132,8 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
       // Costo PLENO = (costo neto + impuesto interno) con IVA. Venta comparada = neto con IVA.
       const costoPlenoLinea = (costoNetoLinea + impInt) * factor;
       if (clienteCod) {
-        const ck = clienteCod + '|' + sku + '|' + fISO;
-        const o = aggCli.get(ck) || { u: 0, imp: 0, cst: 0 };
+        const ck = clienteCod + '|' + sku + '|' + fISO + '|' + vend.codigo;
+        const o = aggCli.get(ck) || { u: 0, imp: 0, cst: 0, vn: vend.nombre };
         o.u += cant * signo; o.imp += netoLinea * signo; o.cst += costoNetoLinea * signo;
         aggCli.set(ck, o);
       }
@@ -166,7 +180,7 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
   if (!delc.ok && delc.status !== 404) throw new Error('DELETE cliente día ' + fISO + ': ' + (await delc.text()).slice(0, 120));
   // Con venta y costo netos (sin IVA) por cliente: así el panel de Dirección suma ventas y
   // margen por vendedor con los mismos números que el total (14/10/2026).
-  const filasCli = [...aggCli.entries()].map(([k, o]) => { const p = k.split('|'); return { cliente_codigo: p[0], sku: p[1], fecha: p[2], unidades: Math.round(o.u * 100) / 100, importe: Math.round(o.imp), costo: Math.round(o.cst) }; }).filter((x) => x.unidades !== 0 || x.importe !== 0);
+  const filasCli = [...aggCli.entries()].map(([k, o]) => { const p = k.split('|'); return { cliente_codigo: p[0], sku: p[1], fecha: p[2], vendedor: p[3], vendedor_nombre: o.vn, unidades: Math.round(o.u * 100) / 100, importe: Math.round(o.imp), costo: Math.round(o.cst) }; }).filter((x) => x.unidades !== 0 || x.importe !== 0);
   for (let i = 0; i < filasCli.length; i += 500) {
     const ins = await sb('ventas_cliente', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filasCli.slice(i, i + 500)) });
     if (!ins.ok) throw new Error('INSERT cliente día ' + fISO + ': ' + (await ins.text()).slice(0, 160));
@@ -177,7 +191,7 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
   try {
     await sb('ventas_sync_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({
       desde: fISO, hasta: fISO, comprobantes: totalUtiles, renglones, skus: filas.length, ok: true,
-      detalle: `v2 ${Object.entries(porEmpresa).map(([e, n]) => e + ':' + n).join(' ')}`,
+      detalle: `v2 ${Object.entries(porEmpresa).map(([e, n]) => e + ':' + n).join(' ')} vend:${(camposVend || []).join(',') || '-'}`,
     }) });
   } catch (e) { /* el log no frena la sync */ }
   return res;
