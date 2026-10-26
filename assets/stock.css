@@ -1,0 +1,105 @@
+/* Stock del depósito (deposito.html y deposito-admin.html), 26/10/2026.
+   La base es la de los paneles del Portal (kaf.css); acá va lo propio del conteo. */
+
+/* Elegir proveedores / líneas */
+.sel-lista{display:flex;flex-direction:column;gap:6px}
+.sel-item{display:flex;align-items:center;gap:12px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:11px 14px;cursor:pointer;font:inherit;color:inherit;text-align:left;width:100%}
+.sel-item:hover{border-color:var(--gold)}
+.sel-item .ck{width:22px;height:22px;border-radius:7px;border:2px solid #c9b98f;flex:none;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.sel-item.on{border-color:var(--navy);background:var(--blue-s)}
+.sel-item.on .ck{background:var(--navy);border-color:var(--navy)}
+.sel-item .nm{flex:1;min-width:0;font-weight:600;font-size:14.5px}
+.sel-item .ct{font-size:12px;color:var(--muted);white-space:nowrap}
+.sel-grupo{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:16px 2px 6px}
+.sel-pie{position:sticky;bottom:0;background:var(--cream);border-top:1px solid var(--line);padding:12px 0 10px;margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.sel-pie .cuenta{margin:0;text-align:center}
+
+/* Planilla de conteo */
+.cf-head{position:sticky;top:0;z-index:20;background:var(--cream);padding:4px 0 10px;margin:0 0 6px;border-bottom:1px solid var(--line)}
+.cf-top{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.cf-top h1{font-size:20px;margin:0;font-weight:800}
+.cf-top .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.cf-fecha{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.cf-fecha input{border:1px solid var(--line);border-radius:9px;padding:6px 8px;font:inherit;font-size:13px;background:#fff}
+.cf-buscar{position:relative;margin-top:10px}
+.cf-buscar input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:11px 38px 11px 12px;font:inherit;font-size:15px;background:#fff}
+.cf-buscar input:focus{outline:none;border-color:var(--gold)}
+.cf-buscar button{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:16px;color:var(--muted);cursor:pointer;padding:6px 8px}
+.cf-prog{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:9px}
+.cf-prog b{color:var(--ink)}
+.cf-grupo{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--navy);margin:18px 2px 8px;display:flex;align-items:center;gap:8px}
+.cf-grupo::after{content:"";flex:1;height:1px;background:var(--line)}
+.cf-fila{background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 12px;margin-bottom:7px}
+.cf-fila.con{border-color:#b9d6c9;background:#f6fbf8}
+.cf-main{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.cf-info{flex:1;min-width:190px}
+.cf-info b{display:block;font-size:14.5px;line-height:1.3}
+.cf-info span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;font-family:ui-monospace,Menlo,monospace}
+.cf-ctrl{display:flex;gap:6px;align-items:flex-end}
+.cf-ctrl label{display:flex;flex-direction:column;align-items:center;gap:3px}
+.cf-ctrl label span,.cf-tot span{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.cf-ctrl input{width:58px;height:42px;border:1.5px solid var(--line);border-radius:10px;text-align:center;font:inherit;font-size:17px;font-weight:700;background:#fff;color:var(--ink);-moz-appearance:textfield}
+.cf-ctrl input::-webkit-outer-spin-button,.cf-ctrl input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.cf-ctrl input:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px var(--blue-s)}
+.cf-tot{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:48px}
+.cf-tot b{height:42px;display:grid;place-items:center;font-size:18px;font-weight:800;color:var(--navy)}
+.cf-obs-b{width:38px;height:42px;border-radius:10px;border:1.5px dashed var(--line);background:#fff;font-size:16px;color:var(--muted);cursor:pointer;flex:none}
+.cf-obs-b.si{border-style:solid;border-color:var(--gold);color:var(--gold-d);background:var(--gold-s)}
+.cf-obs{width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px;resize:vertical;min-height:54px}
+.cf-obs.oculto{display:none}
+.cf-provobs{width:100%;border:1.5px dashed var(--line);border-radius:11px;padding:9px 11px;font:inherit;font-size:13.5px;background:transparent;resize:vertical;min-height:46px;margin:2px 0 6px}
+.cf-provobs.si{border-style:solid;border-color:var(--gold);background:var(--gold-s)}
+.cf-pie{position:fixed;bottom:0;left:250px;right:0;z-index:30;background:var(--cream);border-top:1px solid var(--line);padding:12px 20px}
+.cf-pie .btn{max-width:640px;margin:0 auto;display:flex}
+
+/* Agenda de los lunes */
+.ag-vel{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+.ses{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.ses.prox{border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
+.ses-h{display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer}
+.ses-n{width:34px;height:34px;border-radius:10px;background:var(--cream);display:grid;place-items:center;font-weight:800;color:var(--navy);flex:none}
+.ses.prox .ses-n{background:var(--navy);color:#fff}
+.ses-i{flex:1;min-width:0}
+.ses-i b{display:block;font-size:15px}
+.ses-i span{font-size:12.5px;color:var(--muted)}
+.ses-b{display:none;padding:0 15px 14px}
+.ses.abierta .ses-b{display:block}
+.carga{height:6px;background:var(--line2);border-radius:99px;overflow:hidden;margin:0 0 10px}
+.carga i{display:block;height:100%;background:var(--green);border-radius:99px}
+.carga i.lleno{background:var(--gold)}
+.ag-prov{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line2)}
+.ag-prov .nm{flex:1;min-width:0;font-weight:600;font-size:14px}
+.ag-prov .mt{font-size:12px;color:var(--muted);white-space:nowrap}
+.ag-prov.hecho .nm{text-decoration:line-through;color:var(--muted)}
+.ag-ck{width:34px;height:34px;border-radius:10px;border:2px solid #c9b98f;background:#fff;cursor:pointer;font-size:15px;font-weight:800;color:#fff;flex:none}
+.ag-prov.hecho .ag-ck{background:var(--green);border-color:var(--green)}
+
+/* Administración */
+.cal-mes{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:18px 2px 8px}
+.cal-fila{display:flex;align-items:flex-start;gap:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:6px}
+.cal-fila.hoy{box-shadow:inset 0 0 0 2px var(--navy)}
+.cal-fila.pasado .cal-d{color:var(--muted)}
+.cal-d{width:96px;flex:none;font-weight:700;font-size:13.5px;padding-top:4px}
+.cal-chips{flex:1;display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.cal-chips .chip{cursor:pointer;font-size:12px;padding:4px 9px}
+.cal-chips .ninguno{font-size:12.5px;color:var(--muted);padding-top:4px}
+.cal-chips .chip.verde::after,.cal-chips .chip.oro::after{content:" ✕";opacity:.6}
+.prov-fila{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:6px}
+.prov-fila .nm{flex:1;min-width:0;font-weight:600;font-size:14px}
+.prov-fila.fuera .nm{color:var(--muted);text-decoration:line-through}
+.prov-fila .ct{font-size:12px;color:var(--muted)}
+.subir{display:block;border:2px dashed var(--line);border-radius:14px;background:#fff;padding:22px;text-align:center;cursor:pointer;color:var(--muted);font-size:14px}
+.subir:hover,.subir.encima{border-color:var(--gold);color:var(--ink)}
+.subir input{display:none}
+.estado-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#bbb;margin-right:6px}
+.estado-dot.ok{background:var(--green)}.estado-dot.viejo{background:var(--gold)}.estado-dot.mal{background:var(--danger)}
+.solo-embed .content{padding-top:18px}
+
+@media(max-width:900px){
+  .gb-has-mtop .cf-head{top:48px}
+  .cf-pie{left:0;padding:14px 12px 12px}
+  .cf-ctrl input{width:54px}
+  .cf-info{min-width:100%}
+  .cf-ctrl{width:100%;justify-content:space-between}
+  .cal-d{width:72px;font-size:12.5px}
+}

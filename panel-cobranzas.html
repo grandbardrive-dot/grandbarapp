@@ -58,6 +58,8 @@
     { id:'revision',      ico:'💳', n:'Revisión de cobranzas', roles:['tesoreria','administracion','admin','desarrollo','diseno'], arriba:true, abrir: () => cobMarco('/cobranzas-tesoreria.html?embed=1', 'Revisión de cobranzas') },
     { id:'agenda-equipo', ico:'📅', n:'Agenda del equipo', roles:['administracion','admin','desarrollo','diseno'], abrir: () => eqAgenda() },
     { id:'mi-agenda',     ico:'🗓️', n:'Mi agenda',         roles:['administracion','admin','desarrollo','diseno'], abrir: () => cobMarco('/mi-agenda.html?embed=1', 'Mi agenda') },
+    // Stock del depósito (26/10/2026): los conteos de Lucas Porro y Lucas Buenanueva, la agenda de los lunes y el stock de Córdoba.
+    { id:'stock',         ico:'🧮', n:'Stock del depósito', roles:['administracion','desarrollo','diseno'], abrir: () => cobMarco('/deposito-admin.html?embed=1', 'Stock del depósito') },
     { id:'reportes',      ico:'📊', n:'Mis reportes', roles:['administracion'], abrir: () => cobMarco('/mis-reportes.html?embed=1', 'Mis reportes') },
     // Mi asistente (10/10/2026): Brenda lo va educando mientras trabaja. Ver asistente.html.
     { id:'asistente',     ico:'📝', n:'Mi asistente', roles:['administracion'], abrir: () => cobMarco('/asistente.html?embed=1', 'Mi asistente') },

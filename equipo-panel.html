@@ -61,6 +61,7 @@
       <a class="sb-item" href="#tareas" data-v="tareas"><span class="i">✅</span> Mis tareas</a>
       <a class="sb-item" href="#agenda" data-v="agenda"><span class="i">📅</span> Agenda del equipo</a>
       <a class="sb-item" href="#mi-agenda" data-v="mi-agenda"><span class="i">🗓️</span> Mi agenda</a>
+      <a class="sb-item" href="#stock" data-v="stock"><span class="i">🧮</span> Stock del depósito</a>
       <a class="sb-item" href="#materiales" data-v="materiales" id="ep-mat-nav" style="display:none"><span class="i">📦</span> Pedidos de materiales <span id="ep-mat-n" style="margin-left:auto;font-size:11px;font-weight:800;background:rgba(255,255,255,.16);border-radius:999px;padding:1px 7px;display:none"></span></a>
     </nav>
     <div class="sb-spacer"></div>
@@ -175,6 +176,12 @@
     if (v === 'mi-agenda') {
       main.classList.add('sin-pad');
       main.innerHTML = '<iframe class="ep-marco" src="/mi-agenda.html?embed=1" title="Mi agenda"></iframe>';
+      return;
+    }
+    // Stock del depósito (26/10/2026): agenda de los lunes que asigna Laura y los conteos de los chicos.
+    if (v === 'stock') {
+      main.classList.add('sin-pad');
+      main.innerHTML = '<iframe class="ep-marco" src="/deposito-admin.html?embed=1" title="Stock del depósito"></iframe>';
       return;
     }
     main.classList.remove('sin-pad');

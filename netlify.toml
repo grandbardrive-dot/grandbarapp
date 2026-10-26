@@ -73,3 +73,9 @@
 # Ver manual-vendedores/netlify/functions/lugares-libres-cron.js
 [functions."lugares-libres-cron"]
   schedule = "*/10 12-21 * * 1-5"
+
+# STOCK DEL DEPÓSITO: cada hora de 8 a 20 hs de Argentina (11 a 23 UTC), lunes a sábado,
+# trae el stock de Córdoba a stock_sistema (antes lo hacía la app aparte grandbar-stock).
+# Ver manual-vendedores/netlify/functions/stock-sync-cron.js
+[functions."stock-sync-cron"]
+  schedule = "0 11-23 * * 1-6"

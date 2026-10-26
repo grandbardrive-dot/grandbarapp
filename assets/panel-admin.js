@@ -21,6 +21,7 @@ const PANEL_HERRAMIENTAS = [
   { i:'🤝', n:'Compromisos',       r:'manual-vendedores/admin.html?tab=compromisos' },
   { i:'📍', n:'Visitas',           r:'manual-vendedores/admin.html?tab=visitas' },
   { i:'⬆️', n:'Importar clientes', r:'manual-vendedores/admin-importar.html' },
+  { i:'🧮', n:'Stock del depósito', r:'deposito-admin.html' },
 ];
 
 const PANEL_VISTAS = [
@@ -546,7 +547,7 @@ const US_ROLES = [
   { k:'administracion', n:'Administración',  d:'Cobranzas y cuenta corriente.' },
   { k:'tesoreria',      n:'Tesorería',       d:'Revisión de cobranzas, reclamos y cuenta corriente. Con región San Luis ve solo lo de San Luis (Romina); sin región, todo (Mónica).' },
   { k:'equipo_admin',   n:'Equipo de administración', d:'Sebastián, Andrea, Laura y Kathy: sus tareas (las asigna Brenda), la agenda del equipo y la propia.' },
-  { k:'deposito',       n:'Depósito',        d:'Stock, vencimientos, materiales.' },
+  { k:'deposito',       n:'Depósito',        d:'Lucas Porro y Lucas Buenanueva: cuentan el stock del depósito y marcan la agenda de los lunes (deposito.html). En Canal va "vinos" o "spirits"; si queda vacío, lo eligen la primera vez que entran.' },
   { k:'mayorista',      n:'Mayorista',       d:'Tienda (Mza Distribución): panel de vendedor sin ruta ni agenda eficiente. Necesita código de vendedor.' },
   { k:'reportes',       n:'Reportes',        d:'Solo dashboards.' },
   { k:'torneo',         n:'Trade Marketing', d:'Juan Pablo Sepúlveda, jefe de Trade Marketing: evidencias del Torneo Doña Paula, devoluciones de las acciones de Luciana y los paneles KAF.' },
