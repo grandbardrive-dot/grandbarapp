@@ -466,6 +466,7 @@
     const tot=sel.reduce((a,f)=>a+(Number(f.saldo)||0),0);
     document.getElementById("plImporte").value = tot ? Math.round(tot*100)/100 : "";
   }
+  let RINDE="Moni";
   async function cargarPlanilla(){
     const body=document.getElementById("plBody"), foot=document.getElementById("plFoot"); if(!body) return;
     const fecha=(document.getElementById("plFecha")||{}).value || hoyISO();
@@ -476,8 +477,10 @@
       if(j.error){ body.innerHTML=`<tr><td colspan="14" style="padding:20px;color:var(--coral)">${esc(j.error)}</td></tr>`; return; }
       const filas=j.filas||[];
       const est=document.getElementById("plEnvEstado"), btn=document.getElementById("plEnviar");
-      if(j.envio && j.envio.enviada_at){ est.className="plan-env ok"; est.textContent="✓ Enviada a Moni el "+new Date(j.envio.enviada_at).toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+". Si cargás o cambiás filas, reenviala."; if(btn) btn.textContent="📤 Reenviar a Moni"; }
-      else { est.className="plan-env"; est.textContent="Cuando termines de cargar, tocá \"Enviar a Moni\"."; if(btn) btn.textContent="📤 Enviar a Moni"; }
+      // A quién le rinde: los de San Luis a Romina, el resto a Moni (lo dice la función, 26/10/2026).
+      if(j.rinde) RINDE=j.rinde;
+      if(j.envio && j.envio.enviada_at){ est.className="plan-env ok"; est.textContent="✓ Enviada a "+RINDE+" el "+new Date(j.envio.enviada_at).toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+". Si cargás o cambiás filas, reenviala."; if(btn) btn.textContent="📤 Reenviar a "+RINDE; }
+      else { est.className="plan-env"; est.textContent="Cuando termines de cargar, tocá \"Enviar a "+RINDE+"\"."; if(btn) btn.textContent="📤 Enviar a "+RINDE; }
       if(!filas.length){ body.innerHTML=`<tr><td colspan="14" style="text-align:center;padding:24px;color:var(--muted)">📋 No cargaste filas para este día. Agregá la primera arriba.</td></tr>`; foot.innerHTML=""; return; }
       const cel = (f,campo) => { const u=f[campo]; return u ? `<a class="pl-file" href="${esc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : `<button class="pl-file vacio" onclick="subirArchivo('${esc(String(f.id))}','${campo==='recepcion_url'?'recepcion':'comprobante'}')">📎 Cargar</button>`; };
       // Comprobantes: pueden ser VARIOS por fila.
@@ -594,14 +597,14 @@
 
   async function enviarPlanilla(){
     const fecha=(document.getElementById("plFecha")||{}).value || hoyISO();
-    if(!confirm("¿Enviar la planilla de este día a Moni? Podés seguir agregando filas y reenviarla.")) return;
+    if(!confirm("¿Enviar la planilla de este día a "+RINDE+"? Podés seguir agregando filas y reenviarla.")) return;
     const btn=document.getElementById("plEnviar"), antes=btn.textContent; btn.disabled=true; btn.textContent="Enviando…";
     try{
       const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify({ accion:"enviar", fecha }) });
       const j=await r.json();
       btn.disabled=false; btn.textContent=antes;
       if(!j.ok){ alert("No se pudo enviar: "+(j.error||"error")); return; }
-      cargarPlanilla(); alert("✓ Planilla enviada a Moni.");
+      cargarPlanilla(); alert("✓ Planilla enviada a "+RINDE+".");
     }catch(e){ btn.disabled=false; btn.textContent=antes; alert("Error de conexión: "+(e.message||e)); }
   }
   window.enviarPlanilla=enviarPlanilla;
