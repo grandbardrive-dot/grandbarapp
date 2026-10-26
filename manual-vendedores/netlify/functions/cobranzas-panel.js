@@ -105,6 +105,11 @@ exports.handler = async (event) => {
     // escritura se controla (no se puede tocar un cliente de la otra zona).
     const Z = await armarZona(zonaDe(perfil), leerTodo);
     const fuera = () => json(403, { error: 'Eso no es de ' + Z.nombre + '.' });
+    // Planillas de rendición (26/10/2026): las de los vendedores de San Luis las procesa solo
+    // Romina. Tesorería sin región (Mónica) ve las de Mendoza; Brenda, Dirección y Desarrollo,
+    // todas. Se arma solo cuando se piden planillas (leer la cartera entera tarda).
+    let _zp;
+    const zonaPlanillas = async () => (_zp !== undefined ? _zp : (_zp = Z || (rol === 'tesoreria' ? await armarZona('mendoza', leerTodo) : null)));
 
     // ══════════ ESCRITURA ══════════
     if (event.httpMethod === 'POST') {
@@ -180,9 +185,10 @@ exports.handler = async (event) => {
       if (b.accion === 'planilla-marcar') {
         if (!b.id) return json(400, { error: 'Falta la fila.' });
         // Con zona, la fila tiene que ser de una planilla de un vendedor de esa zona.
-        if (Z) {
+        const ZP = await zonaPlanillas();
+        if (ZP) {
           const fila = (await leer('planilla_cobranzas?select=vendedor&id=eq.' + encodeURIComponent(b.id)))[0];
-          if (fila && !Z.vendOk(fila.vendedor)) return fuera();
+          if (fila && !ZP.vendOk(fila.vendedor)) return json(403, { error: 'Esa planilla es de ' + (ZP.zona === 'mendoza' ? 'San Luis: la procesa Romina.' : 'Mendoza.') });
         }
         const campos = {};
         if ('procesado' in b) {
@@ -312,8 +318,9 @@ exports.handler = async (event) => {
 
     // Planillas de rendición que envían los vendedores (lista de envíos).
     if (que === 'planillas') {
-      let filas = await leer('planilla_envios?select=*&order=enviada_at.desc&limit=' + (Z ? 1000 : 400));
-      if (Z) filas = filas.filter(x => Z.vendOk(x.vendedor)).slice(0, 400);
+      const ZP = await zonaPlanillas();
+      let filas = await leer('planilla_envios?select=*&order=enviada_at.desc&limit=' + (ZP ? 1000 : 400));
+      if (ZP) filas = filas.filter(x => ZP.vendOk(x.vendedor)).slice(0, 400);
       // Filas actuales de cada planilla: cuántas marcó Moni como procesadas (para el verde/rojo)
       // y cuánto suman por medio de pago. El total del día suma SOLO lo que Moni aprobó
       // (procesado); lo demás va aparte como "falta aprobar" (22/10/2026).
@@ -334,7 +341,8 @@ exports.handler = async (event) => {
     if (que === 'planilla-det') {
       const vend = p.vendedor, fecha = p.fecha;
       if (!vend || !fecha) return json(400, { error: 'Falta el vendedor o la fecha.' });
-      if (Z && !Z.vendOk(vend)) return fuera();
+      const ZP = await zonaPlanillas();
+      if (ZP && !ZP.vendOk(vend)) return json(403, { error: 'Esa planilla es de ' + (ZP.zona === 'mendoza' ? 'San Luis: la procesa Romina.' : 'Mendoza.') });
       const [filas, env] = await Promise.all([
         leer('planilla_cobranzas?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha) + '&order=created_at.asc'),
         leer('planilla_envios?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha)),
