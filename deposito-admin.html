@@ -296,10 +296,13 @@
     if (!session) { location.replace('index.html'); return; }
     try { YO = await get('yo'); } catch (e) { $('contenido').innerHTML = vacio(esc(e.message)); return; }
     if (!YO.esAdmin) { location.replace('deposito.html'); return; }
-    $('uName').textContent = YO.nombre;
-    $('av').textContent = String(YO.nombre || 'A').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-    const VOLVER = { equipo_admin: 'equipo-panel.html#stock', administracion: 'panel-cobranzas.html#stock' };
-    $('sb-volver').href = VOLVER[YO.rol] || 'hub.html';
+    // Embebido (panel de Laura o de Brenda) no hay menú lateral: esos datos van solo si está.
+    if (!EMBED) {
+      $('uName').textContent = YO.nombre;
+      $('av').textContent = String(YO.nombre || 'A').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+      const VOLVER = { equipo_admin: 'equipo-panel.html#stock', administracion: 'panel-cobranzas.html#stock' };
+      $('sb-volver').href = VOLVER[YO.rol] || 'hub.html';
+    }
     ir();
   })();
 </script>
