@@ -73,12 +73,14 @@ exports.handler = async (event) => {
     dias = await diasPendientes();
     // Relleno de a poco (14/10/2026): días viejos sin venta/costo por cliente, para que el
     // panel de Dirección tenga ventas por vendedor. Hasta 10 por corrida, los más nuevos primero.
-    // Desde el 26/10/2026 también los días sin el vendedor de cada factura (Dirección filtra por él).
+    // Desde el 26/10/2026 también los días sin el vendedor de cada factura (Dirección filtra por él),
+    // y desde el 27/10/2026 los días sin percepciones (la "Venta total" de Dirección, como la
+    // planilla). Para eso pasó de 10 a 24 días por corrida (~30 s cada uno, entra en los 13 min).
     try {
       const ya = new Set(dias.map(isoDe));
-      const args = { p_desde: process.env.VENTAS_DESDE || '2025-01-01', p_lim: Number(process.env.VENTAS_RELLENO_DIAS || 10) };
-      const faltan = (await rpc('ventas_dias_sin_monto', args)).concat(await rpc('ventas_dias_sin_vendedor', args))
-        .sort((a, b) => (a.fecha < b.fecha ? 1 : -1)).slice(0, args.p_lim);
+      const args = { p_desde: process.env.VENTAS_DESDE || '2025-01-01', p_lim: Number(process.env.VENTAS_RELLENO_DIAS || 24) };
+      const faltan = (await rpc('ventas_dias_sin_monto', args)).concat(await rpc('ventas_dias_sin_vendedor', args), await rpc('ventas_dias_sin_percep', args))
+        .sort((a, b) => (a.fecha < b.fecha ? 1 : -1)).filter((f, i, l) => !i || f.fecha !== l[i - 1].fecha).slice(0, args.p_lim);
       for (const f of faltan) if (!ya.has(f.fecha)) { ya.add(f.fecha); dias.push(new Date(f.fecha + 'T12:00:00Z')); }
     } catch (e) {
       // El relleno es opcional y se reintenta en 20 minutos: no marca la corrida como fallida

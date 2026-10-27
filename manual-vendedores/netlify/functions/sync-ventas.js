@@ -87,8 +87,9 @@ function vendedorDe(comp, cab) {
 // panel de Dirección. No deja fila "v2" en ventas_sync_log: mañana se baja completo como "ayer".
 async function sincronizarDia(ctxs, fechaStr, opts = {}) {
   const agg = new Map();
-  const aggCli = new Map();   // cliente|sku|fecha|vendedor -> { u: unidades, imp: venta neta, cst: costo neto, vn: nombre del vendedor } (11T / 6 meses / ventas por vendedor)
+  const aggCli = new Map();   // cliente|sku|fecha|vendedor -> { u: unidades, imp: venta neta, cst: costo neto, per: percepciones, vn: nombre del vendedor } (11T / 6 meses / ventas por vendedor)
   let renglones = 0, totalUtiles = 0, camposVend = null;
+  const percDia = { iva: 0, iibb: 0 };
   const porEmpresa = {};
   for (const ctx of ctxs) {
   const { urlCuenta, cuenta, token } = ctx;
@@ -114,6 +115,11 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
     // Ventas" (no por el de la cartera del cliente).
     const vend = vendedorDe(comp, c);
     if (!camposVend) camposVend = Object.keys(comp).concat(Object.keys(c)).filter((k) => /vend/i.test(k));
+    // Percepciones de IVA e IIBB (27/10/2026): vienen en la cabecera y se reparten entre los
+    // renglones según su neto, como el "Monto" de la planilla "Avance Ventas" (Dirección).
+    const pIva = Math.abs(num(val(comp, 'TotalPercepIVA'))), pIibb = Math.abs(num(val(comp, 'TotalPercepIIBB')));
+    const netoComp = (pIva || pIibb) ? det.reduce((s, r) => s + Math.abs(num(val(r, 'TotalNeto', 'ImporteUni', 'Total'))), 0) : 0;
+    percDia.iva += pIva * signo; percDia.iibb += pIibb * signo;
     for (const r of det) {
       const sku = String(val(r, 'Articulo', 'ArticuloCodigo') || '').trim();
       if (!sku) continue;
@@ -133,8 +139,9 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
       const costoPlenoLinea = (costoNetoLinea + impInt) * factor;
       if (clienteCod) {
         const ck = clienteCod + '|' + sku + '|' + fISO + '|' + vend.codigo;
-        const o = aggCli.get(ck) || { u: 0, imp: 0, cst: 0, vn: vend.nombre };
+        const o = aggCli.get(ck) || { u: 0, imp: 0, cst: 0, per: 0, vn: vend.nombre };
         o.u += cant * signo; o.imp += netoLinea * signo; o.cst += costoNetoLinea * signo;
+        if (netoComp > 0) o.per += (pIva + pIibb) * (netoLinea / netoComp) * signo;
         aggCli.set(ck, o);
       }
 
@@ -180,7 +187,7 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
   if (!delc.ok && delc.status !== 404) throw new Error('DELETE cliente día ' + fISO + ': ' + (await delc.text()).slice(0, 120));
   // Con venta y costo netos (sin IVA) por cliente: así el panel de Dirección suma ventas y
   // margen por vendedor con los mismos números que el total (14/10/2026).
-  const filasCli = [...aggCli.entries()].map(([k, o]) => { const p = k.split('|'); return { cliente_codigo: p[0], sku: p[1], fecha: p[2], vendedor: p[3], vendedor_nombre: o.vn, unidades: Math.round(o.u * 100) / 100, importe: Math.round(o.imp), costo: Math.round(o.cst) }; }).filter((x) => x.unidades !== 0 || x.importe !== 0);
+  const filasCli = [...aggCli.entries()].map(([k, o]) => { const p = k.split('|'); return { cliente_codigo: p[0], sku: p[1], fecha: p[2], vendedor: p[3], vendedor_nombre: o.vn, unidades: Math.round(o.u * 100) / 100, importe: Math.round(o.imp), costo: Math.round(o.cst), percep: Math.round(o.per * 100) / 100 }; }).filter((x) => x.unidades !== 0 || x.importe !== 0);
   for (let i = 0; i < filasCli.length; i += 500) {
     const ins = await sb('ventas_cliente', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filasCli.slice(i, i + 500)) });
     if (!ins.ok) throw new Error('INSERT cliente día ' + fISO + ': ' + (await ins.text()).slice(0, 160));
@@ -191,7 +198,7 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
   try {
     await sb('ventas_sync_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({
       desde: fISO, hasta: fISO, comprobantes: totalUtiles, renglones, skus: filas.length, ok: true,
-      detalle: `v2 ${Object.entries(porEmpresa).map(([e, n]) => e + ':' + n).join(' ')} vend:${(camposVend || []).join(',') || '-'}`,
+      detalle: `v2 ${Object.entries(porEmpresa).map(([e, n]) => e + ':' + n).join(' ')} vend:${(camposVend || []).join(',') || '-'} perc:iva=${Math.round(percDia.iva)},iibb=${Math.round(percDia.iibb)}`,
     }) });
   } catch (e) { /* el log no frena la sync */ }
   return res;

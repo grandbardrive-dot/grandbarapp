@@ -72,3 +72,19 @@ $$;
 -- Brutos (3% del neto en algunos clientes): da ~1,3% más. El año tarda ~1 s.
 -- En la pantalla: "Venta total con IVA", "Venta de productos NETO" y "Rentabilidad Neta" (antes
 -- "margen bruto"; en la base sigue llamándose margen).
+
+-- 27/10/2026 (más tarde), a pedido del usuario "que dé igual que la planilla": se suman las
+-- PERCEPCIONES (IVA + IIBB). Migraciones "ventas_cliente_percepciones" y
+-- "dir_ventas_total_con_percepciones":
+alter table public.ventas_cliente add column if not exists percep numeric;   -- null = día sin volver a bajar
+create index if not exists vc_sin_percep on public.ventas_cliente (fecha) where percep is null;
+create or replace function public.ventas_dias_sin_percep(p_desde date, p_lim integer)
+returns table(fecha date) language sql stable set search_path to 'public' as $$
+  select distinct fecha from ventas_cliente
+   where percep is null and fecha >= p_desde
+   order by fecha desc limit greatest(1, least(p_lim, 60))
+$$;
+-- sync-ventas reparte TotalPercepIVA + TotalPercepIIBB de la cabecera entre los renglones según
+-- su neto; sync-ventas-background rellena los días con percep null (24 por corrida).
+-- dir_ventas: total = neto × (con IVA + interno)/neto del artículo + percep; devuelve además
+-- percepciones y dias_sin_percep (la pantalla no compara el total mientras falten días).

@@ -16,7 +16,8 @@
   Ventas y rentabilidad (14/10/2026). Todo sale de CUBO: sync-ventas baja las facturas y notas
   de crédito cada 20 minutos (también las del día) y la función dir-ventas las suma.
   Venta NETO = sin IVA. Rentabilidad neta (antes "margen bruto") = venta neta − costo neto,
-  solo productos con código. Venta total (27/10/2026) = la misma venta con IVA e impuesto interno.
+  solo productos con código. Venta total (27/10/2026) = la misma venta con IVA, impuesto interno y
+  percepciones (IVA e IIBB), como el "Monto" de la planilla "Avance Ventas".
 -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/dir.css" />
@@ -80,11 +81,11 @@
     <details class="como">
       <summary>Cómo se calculan estos números</summary>
       <ul>
-        <li><b>Venta total con IVA</b>: la misma venta de productos, con el IVA y los impuestos internos de cada artículo.</li>
+        <li><b>Venta total con impuestos</b>: la misma venta de productos con el IVA, los impuestos internos y las percepciones de IVA e Ingresos Brutos de cada factura. Es el "Monto" de la planilla "Avance Ventas" con sus filtros, así que da igual que la planilla (que llega hasta ayer; acá también está lo de hoy).</li>
         <li><b>Venta de productos NETO</b>: el neto sin IVA de las facturas, menos las notas de crédito, de <b>Vinos, Espirituosas, Cervezas, Bebidas sin alcohol y Cafés e infusiones</b>. Sale de CUBO (las dos empresas) y se baja cada 20 minutos.</li>
         <li><b>No se cuentan</b>, igual que en la planilla "Avance Ventas" de Administración: lo que facturan <b>Operaciones Especiales, Empleados Grandbar, Gestión Administrativa, Luciana Buenanueva y Brenda Gonzalez</b>, y los tipos de producto <b>Alimentos, POP, Promos, Otros, Administración</b> y lo que no tiene código de artículo.</li>
         <li><b>Rentabilidad Neta</b>: venta neta menos el costo neto que tiene cargado CUBO para cada artículo, los dos sin IVA. El impuesto interno no entra en ninguno de los dos: el cliente lo paga aparte y se le paga al fisco.</li>
-        <li>La planilla "Avance Ventas" muestra los montos con IVA, impuestos internos y además las <b>percepciones de Ingresos Brutos</b> que se les cobran a algunos clientes, y suma las notas de débito (cheques rechazados). La Venta total de acá no lleva percepciones ni notas de débito: por eso la planilla da un poco más (en octubre, cerca de 1,3%).</li>
+        <li>Las percepciones no son venta: son impuestos que se le cobran al cliente y se le pagan al fisco. Por eso la venta NETO y la rentabilidad no las incluyen.</li>
         <li><b>Por vendedor</b>: el vendedor que figura en cada factura, como en la planilla.</li>
         <li>Las comparaciones son contra los mismos días del período anterior y del año pasado. El día de hoy está en curso.</li>
       </ul>
@@ -131,8 +132,12 @@
   function kpis(a,an,y){
     const ma=pct(a.margen,a.venta), mn=an?pct(an.margen,an.venta):null, my=y?pct(y.margen,y.venta):null;
     const cmp=(fa,fb,fy)=>(an?'vs '+esc(an.titulo)+': '+fb+'<br>':'')+(y?'vs '+esc(y.titulo)+': '+fy:'');
+    // El total se compara solo si los dos períodos ya tienen las percepciones (se están volviendo a bajar desde el 27/10/2026).
+    const vTot=(x,p)=>!p?'':(x.dias_sin_percep>0||p.dias_sin_percep>0?'<span>cargando</span>':varia(x.total,p.total));
     return '<div class="k4">'
-      +'<div class="kv tot"><div class="l">Venta total con IVA</div><div class="v" title="'+$full(a.total)+'">'+$M(a.total)+'</div><div class="c">'+cmp(0,varia(a.total,an&&an.total),varia(a.total,y&&y.total))+'</div></div>'
+      +'<div class="kv tot"><div class="l">Venta total con impuestos</div><div class="v" title="'+$full(a.total)+'">'+$M(a.total)+'</div><div class="c">'
+        +(a.dias_sin_percep>0?'Se están sumando las percepciones: '+(a.dias_sin_percep===1?'falta 1 día':'faltan '+a.dias_sin_percep+' días')+'.<br>':'')
+        +cmp(0,vTot(a,an),vTot(a,y))+'</div></div>'
       +'<div class="kv"><div class="l">Venta de productos NETO</div><div class="v" title="'+$full(a.venta)+'">'+$M(a.venta)+'</div><div class="c">'+cmp(0,varia(a.venta,an&&an.venta),varia(a.venta,y&&y.venta))+'</div></div>'
       +'<div class="kv"><div class="l">Rentabilidad Neta</div><div class="v" title="'+$full(a.margen)+'">'+$M(a.margen)+'</div><div class="c">'+cmp(0,varia(a.margen,an&&an.margen),varia(a.margen,y&&y.margen))+'</div></div>'
       +'<div class="kv"><div class="l">Rentabilidad sobre la venta</div><div class="v">'+fp(ma)+'</div><div class="c">'+cmp(0,puntos(ma,mn),puntos(ma,my))+'</div></div>'
