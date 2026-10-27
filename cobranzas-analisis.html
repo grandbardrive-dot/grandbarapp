@@ -204,11 +204,21 @@
     if (eq === 'SL') return RUB_OFF.test(rubro) ? 'OFF' : RUB_ON.test(rubro) ? 'ON' : 'Sin clasificar';
     return 'Otros';
   }
+  // Equipo de ventas real (Josefina, 27/10/2026). San Luis es un solo equipo que atiende ON y OFF.
+  // Los demás códigos del Manual son mayoristas o cuentas del sistema (Gestión Judicial, Incobrables…).
+  const VEND_EQUIPO = {
+    '041': ['San Luis', 'ON y OFF'], '006': ['San Luis', 'ON y OFF'], '043': ['San Luis', 'ON y OFF'], '017': ['San Luis', 'ON y OFF'],
+    '029': ['Mendoza', 'ON'], '039': ['Mendoza', 'ON'], '007': ['Mendoza', 'ON'], '025': ['Mendoza', 'ON'], '005': ['Mendoza', 'ON'],
+    '027': ['Mendoza', 'OFF'], '015': ['Mendoza', 'OFF'], '011': ['Mendoza', 'OFF'], '024': ['Mendoza', 'OFF'],
+    '031': ['Mendoza', 'Mayorista'], '014': ['Mendoza', 'Mayorista'], '008': ['San Luis', 'Mayorista'], '032': ['San Luis', 'Mayorista'],
+  };
+  const GRUPOS_V = [['ventas-sl', 'San Luis'], ['ventas-on', 'Mendoza · ON'], ['ventas-off', 'Mendoza · OFF'], ['may', 'Mayoristas'], ['otros', 'Otras cuentas (no son vendedores)']];
+  const grupoDe = v => v.tipo === 'otros' ? 'otros' : v.tipo === 'may' ? 'may' : v.zona === 'San Luis' ? 'ventas-sl' : v.canal === 'ON' ? 'ventas-on' : 'ventas-off';
   const tagCanal = c => '<span class="tag ' + (c === 'ON' ? 'on' : c === 'OFF' ? 'off' : c === 'Mayorista' ? 'may' : '') + '" title="' + (c === 'Mixto' ? 'Atiende clientes ON y OFF' : c === 'Sin clasificar' ? 'Cliente de San Luis sin rubro cargado' : '') + '">' + esc(c) + '</span>';
 
   // ── Estado ──
   const S = { d: null, f: { per: '30', desde: '', hasta: '', zona: '', canal: '', vend: '', q: '' },
-    sort: { v: { k: 'venc', d: -1 }, c: { k: 'venc', d: -1 } }, pag: 0, ver: 'todos', vistas: {} };
+    sort: { v: { k: 'venc', d: -1 }, c: { k: 'venc', d: -1 } }, pag: 0, ver: 'todos', vAlc: 'ventas', vistas: {} };
   let token = null;
 
   // ── Tooltip (los nombres van como texto, nunca como HTML) ──
@@ -373,6 +383,13 @@
     const sinCartera = cod => { if (!cod || V[cod]) return; const v = vend(cod); v.zona = (j.vend[cod] && /luis/i.test(j.vend[cod].z)) ? 'San Luis' : 'Mendoza'; v.canal = '—'; };
     Object.keys(j.vend || {}).forEach(k => sinCartera(padV(k)));
     ev.pl.forEach(p => sinCartera(p.vend));
+    // Zona y canal del vendedor: los del equipo real; las otras cuentas quedan como "Otros".
+    Object.values(V).forEach(v => {
+      const e = VEND_EQUIPO[v.cod];
+      if (e) { v.zona = e[0]; v.canal = e[1]; v.tipo = e[1] === 'Mayorista' ? 'may' : 'ventas'; }
+      else { v.tipo = 'otros'; v.canal = 'Otros'; }
+      v.grupo = grupoDe(v);
+    });
     const envDe = {}; ev.en.forEach(e => { envDe[e.vend + '|' + e.fecha] = e.t; });
     return { C, V, ev, envDe, generado: j.generado, zonaForzada: j.zona, we: j.we || [] };
   }
@@ -408,8 +425,7 @@
     if (qN()) return false;
     const v = vendEv && S.d.V[vendEv];
     if (!v) return false;
-    if (S.f.zona && v.zona !== S.f.zona) return false;
-    if (S.f.canal && !(v.cc && v.cc[S.f.canal]) && v.canal !== S.f.canal) return false;
+    if (!vendPasa(v, false)) return false;
     if (S.f.vend && vendEv !== S.f.vend) return false;
     return true;
   }
@@ -505,7 +521,7 @@
         <div class="card"><h3>Embudo de adopción</h3><div class="cd">De la cartera a los que lo usan todas las semanas</div><div class="chart" id="ch-funnel"></div></div>
         <div class="card"><h3>Último ingreso</h3><div class="cd">Hace cuánto entró cada cliente por última vez</div><div class="chart" id="ch-rec"></div></div>
         <div class="card"><h3>Adopción por canal</h3><div class="cd">% de la cartera que ya entró al portal</div><div class="chart" id="ch-adc"></div></div>
-        <div class="card"><h3>Adopción por vendedor</h3><div class="cd">% de su cartera que ya entró (los 12 con más clientes en la selección)</div><div class="chart" id="ch-adv"></div></div>
+        <div class="card"><h3>Adopción por vendedor</h3><div class="cd">Equipo de ventas: % de su cartera que ya entró al portal</div><div class="chart" id="ch-adv"></div></div>
       </div></section>`;
   }
   function pintarPortal(X) {
@@ -521,8 +537,9 @@
     const grupo = (key) => { const g = {}; cl.forEach(c => { const k = key(c); const o = g[k] = g[k] || { n: 0, e: 0 }; o.n++; if (c.ult) o.e++; }); return g; };
     const gc = grupo(c => c.canal);
     barrasH(document.getElementById('ch-adc'), ['ON', 'OFF', 'Mayorista', 'Sin clasificar', 'Otros'].filter(k => gc[k]).map(k => ({ label: k, v: pct(gc[k].e, gc[k].n), txt: pct(gc[k].e, gc[k].n) + '%', sub: nf(gc[k].e) + ' de ' + nf(gc[k].n) + ' clientes' })), { max: 100 });
+    // Solo el equipo de ventas (los mayoristas y las cuentas del sistema distorsionan la comparación).
     const gv = grupo(c => c.vend || '—');
-    const vs = Object.entries(gv).filter(([k]) => k !== '—').sort((a, b) => b[1].n - a[1].n).slice(0, 12);
+    const vs = Object.entries(gv).filter(([k]) => S.d.V[k] && S.d.V[k].tipo === 'ventas').sort((a, b) => b[1].n - a[1].n);
     barrasH(document.getElementById('ch-adv'), vs.map(([k, o]) => ({ label: (S.d.V[k] ? S.d.V[k].nom : k), v: pct(o.e, o.n), txt: pct(o.e, o.n) + '%', sub: nf(o.e) + ' de ' + nf(o.n) + ' clientes' })), { max: 100, lab: 170 });
   }
 
@@ -554,8 +571,13 @@
 
   // ── Vendedores ──
   // ¿El vendedor entra en la selección? (zona/canal: los de su cartera o los del Manual).
-  const vendPasa = (v, conVend) => (!S.f.zona || (v.zc && v.zc[S.f.zona]) || v.zona === S.f.zona)
-    && (!S.f.canal || (v.cc && v.cc[S.f.canal]) || v.canal === S.f.canal) && (!conVend || !S.f.vend || v.cod === S.f.vend);
+  // San Luis atiende ON y OFF; las cuentas que no son vendedores se miran por su cartera.
+  const canalVend = (v, c) => v.canal === 'ON y OFF' ? (c === 'ON' || c === 'OFF' || c === 'Sin clasificar') : (v.canal === c || (v.tipo === 'otros' && !!(v.cc && v.cc[c])));
+  const vendPasa = (v, conVend) => (!S.f.zona || v.zona === S.f.zona || (v.tipo === 'otros' && !!(v.zc && v.zc[S.f.zona])))
+    && (!S.f.canal || canalVend(v, S.f.canal)) && (!conVend || !S.f.vend || v.cod === S.f.vend);
+  // Qué cuentas muestra la tabla: el equipo de ventas (por defecto), + mayoristas, o todas.
+  const tipoDe = cod => (S.d.V[cod] && S.d.V[cod].tipo) || 'otros';
+  const alcanceOk = cod => S.vAlc === 'todos' || cod === S.f.vend || tipoDe(cod) === 'ventas' || (S.vAlc === 'may' && tipoDe(cod) === 'may');
   function filasVendedores(X) {
     const now = ahora(), M = {};
     const get = v => (M[v] = M[v] || { cod: v, nom: S.d.V[v] ? S.d.V[v].nom : 'Vendedor ' + v, zona: S.d.V[v] ? S.d.V[v].zona : '', canal: S.d.V[v] ? S.d.V[v].canal : '',
@@ -571,7 +593,7 @@
     X.ef.forEach(x => { if (x.estado !== 'pendiente') return; const v = vDe(x.cod, x.vend); if (v) get(v).efPend++; });
     X.reP.forEach(x => { const v = vDe(x.cod); if (v) get(v).re++; });
     X.waP.forEach(x => { const v = vDe(x.cod); if (!v) return; const o = get(v); o.wa++; if (x.rd) o.waLe++; });
-    return Object.values(M).map(o => ({ ...o, pv: pct(o.venc, o.saldo), pe: pct(o.entro, o.n), pp: pct(o.proc, o.filas), med: median(o.coT), nd: o.dias.size, pwa: pct(o.waLe, o.wa) }));
+    return Object.values(M).filter(o => alcanceOk(o.cod)).map(o => ({ ...o, pv: pct(o.venc, o.saldo), pe: pct(o.entro, o.n), pp: pct(o.proc, o.filas), med: median(o.coT), nd: o.dias.size, pwa: pct(o.waLe, o.wa) }));
   }
   const COLS_V = [
     ['nom', 'Vendedor', 0], ['zona', 'Zona', 0], ['canal', 'Canal', 0], ['n', 'Cuentas', 1], ['saldo', 'Saldo', 1], ['venc', 'Vencido', 1], ['pv', '% venc.', 1],
@@ -593,9 +615,13 @@
   }
   function ordenar(arr, s) { return arr.sort((a, b) => { let x = a[s.k], y = b[s.k]; if (x == null) x = -Infinity; if (y == null) y = -Infinity; if (s.k === 'pe') { x = pct(a.entro, a.n); y = pct(b.entro, b.n); } return (typeof x === 'string' ? x.localeCompare(y) : x - y) * s.d; }); }
   function secVendedores() {
-    return `<section class="sec" id="s-vendedores"><h2>Vendedores</h2><p class="d">Su cartera hoy y lo que hicieron en el período. Tocá una columna para ordenar; tocá un vendedor para ver sus clientes.</p><div class="tw" id="tb-vend"></div></section>`;
+    return `<section class="sec" id="s-vendedores"><h2>Vendedores</h2><p class="d">Su cartera hoy y lo que hicieron en el período. Tocá una columna para ordenar; tocá un vendedor para ver sus clientes.</p>
+      <div class="tbar"><select id="v-alc">
+        <option value="ventas">Equipo de ventas</option><option value="may">Equipo de ventas + mayoristas</option><option value="todos">Todas las cuentas (incluye Gestión Judicial, Incobrables…)</option>
+      </select></div><div class="tw" id="tb-vend"></div></section>`;
   }
   function pintarVendedores(X) {
+    const sel = document.getElementById('v-alc'); if (sel) sel.value = S.vAlc;
     const rows = ordenar(filasVendedores(X), S.sort.v); S.vendRows = rows;
     const th = COLS_V.map(([k, l, n], i) => `<th class="${n ? 'n' : ''}${i === 0 ? ' first' : ''}" data-sv="${k}">${l}${S.sort.v.k === k ? `<span class="ar">${S.sort.v.d < 0 ? '▼' : '▲'}</span>` : ''}</th>`).join('');
     const tb = rows.map(o => `<tr class="clic" data-vend="${esc(o.cod)}">${COLS_V.map(([k, , n], i) => `<td class="${n ? 'n' : ''}${i === 0 ? ' first' : ''}">${celV(o, k)}</td>`).join('')}</tr>`).join('');
@@ -788,9 +814,12 @@
   // ── Eventos de la interfaz ──
   function llenarVendedores() {
     const sel = document.getElementById('f-vend'), cur = S.f.vend;
-    // Vendedores con al menos un cliente de esa zona / ese canal (o de esa zona en el Manual).
+    // Agrupados como el equipo real: San Luis, Mendoza ON, Mendoza OFF, mayoristas y otras cuentas.
     const vs = Object.values(S.d.V).filter(v => vendPasa(v, false)).sort((a, b) => a.nom.localeCompare(b.nom));
-    sel.innerHTML = '<option value="">Todos</option>' + vs.map(v => `<option value="${esc(v.cod)}">${esc(v.nom)} (${esc(v.cod)})</option>`).join('');
+    sel.innerHTML = '<option value="">Todos</option>' + GRUPOS_V.map(([g, nombre]) => {
+      const de = vs.filter(v => v.grupo === g);
+      return de.length ? `<optgroup label="${esc(nombre)}">` + de.map(v => `<option value="${esc(v.cod)}">${esc(v.nom)} (${esc(v.cod)})</option>`).join('') + '</optgroup>' : '';
+    }).join('');
     sel.value = vs.some(v => v.cod === cur) ? cur : ''; S.f.vend = sel.value;
   }
   document.getElementById('f-per').addEventListener('click', e => {
@@ -811,7 +840,10 @@
     const vr = e.target.closest('tr[data-vend]'); if (vr) { S.f.vend = vr.dataset.vend; llenarVendedores(); document.getElementById('f-vend').value = S.f.vend; S.pag = 0; render(); document.getElementById('s-clientes').scrollIntoView({ behavior: 'smooth' }); return; }
     const cr = e.target.closest('tr[data-cod]'); if (cr && S.d.C[cr.dataset.cod]) ficha(cr.dataset.cod);
   });
-  app.addEventListener('change', e => { if (e.target.id === 'c-ver') { S.ver = e.target.value; S.pag = 0; pintarClientes(S.X); } });
+  app.addEventListener('change', e => {
+    if (e.target.id === 'c-ver') { S.ver = e.target.value; S.pag = 0; pintarClientes(S.X); }
+    if (e.target.id === 'v-alc') { S.vAlc = e.target.value; pintarVendedores(S.X); }
+  });
   let tr_; addEventListener('resize', () => { clearTimeout(tr_); tr_ = setTimeout(() => { if (S.X) { pintarActividad(S.X); pintarPortal(S.X); pintarPlanillas(S.X); pintarWA(S.X); } }, 200); });
 
   // ── Carga ──
