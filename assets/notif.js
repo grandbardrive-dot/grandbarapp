@@ -19,28 +19,42 @@
   function sonidoGracioso() {
     try {
       unlock(); if (!actx) return;
-      var t0 = actx.currentTime;
-      // "Cuack cuack" de pato: sawtooth pasado por un filtro pasa-banda que barre
-      // (hace la vocal del pato) + tono que baja de golpe. Dos cuacks seguidos.
-      function cuack(start, dur, f1, f2, vol) {
-        var o = actx.createOscillator();
-        o.type = 'sawtooth';
-        o.frequency.setValueAtTime(f1, start);
-        o.frequency.exponentialRampToValueAtTime(f2, start + dur);
-        var bp = actx.createBiquadFilter();
-        bp.type = 'bandpass'; bp.Q.value = 7;
-        bp.frequency.setValueAtTime(800, start);
-        bp.frequency.linearRampToValueAtTime(1700, start + dur * 0.45);
-        bp.frequency.linearRampToValueAtTime(650, start + dur);
-        var g = actx.createGain();
-        g.gain.setValueAtTime(0.0001, start);
-        g.gain.exponentialRampToValueAtTime(vol, start + 0.025);
-        g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-        o.connect(bp); bp.connect(g); g.connect(actx.destination);
-        o.start(start); o.stop(start + dur + 0.03);
+      var t = actx.currentTime, dur = 1.0;
+      // Grito de mujer (sintetizado): cuerda vocal (sawtooth) aguda con vibrato y el
+      // tono que sube y tiembla, pasada por formantes de "aaah", + aire (ruido).
+      var o = actx.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(700, t);
+      o.frequency.linearRampToValueAtTime(1150, t + 0.14);
+      o.frequency.linearRampToValueAtTime(980, t + 0.5);
+      o.frequency.linearRampToValueAtTime(1080, t + 0.8);
+      o.frequency.linearRampToValueAtTime(620, t + dur);
+      var vib = actx.createOscillator(), vibg = actx.createGain();
+      vib.frequency.value = 12; vibg.gain.value = 40; vib.connect(vibg); vibg.connect(o.frequency);
+      function formante(freq, q, gain) {
+        var f = actx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+        var g = actx.createGain(); g.gain.value = gain; f.connect(g); return { f: f, g: g };
       }
-      cuack(t0, 0.17, 320, 150, 0.5);          // cuack
-      cuack(t0 + 0.23, 0.22, 340, 140, 0.55);   // cuaaack (el segundo más largo)
+      var F1 = formante(850, 8, 1.0), F2 = formante(1300, 10, 0.85), F3 = formante(2900, 12, 0.6);
+      // Aire / aspereza del grito
+      var len = Math.floor(actx.sampleRate * dur);
+      var nb = actx.createBuffer(1, len, actx.sampleRate), ch = nb.getChannelData(0);
+      for (var i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+      var noise = actx.createBufferSource(); noise.buffer = nb;
+      var nbp = actx.createBiquadFilter(); nbp.type = 'bandpass'; nbp.frequency.value = 2000; nbp.Q.value = 2;
+      var ng = actx.createGain(); ng.gain.value = 0.22;
+      // Envolvente fuerte: entra de golpe, se sostiene y cae
+      var master = actx.createGain();
+      master.gain.setValueAtTime(0.0001, t);
+      master.gain.exponentialRampToValueAtTime(0.9, t + 0.06);
+      master.gain.setValueAtTime(0.9, t + 0.72);
+      master.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(F1.f); o.connect(F2.f); o.connect(F3.f);
+      F1.g.connect(master); F2.g.connect(master); F3.g.connect(master);
+      noise.connect(nbp); nbp.connect(ng); ng.connect(master);
+      master.connect(actx.destination);
+      o.start(t); vib.start(t); noise.start(t);
+      o.stop(t + dur + 0.05); vib.stop(t + dur + 0.05); noise.stop(t + dur + 0.05);
     } catch (e) {}
   }
   window.GBNotifSonido = sonidoGracioso; // para probarlo desde la consola
