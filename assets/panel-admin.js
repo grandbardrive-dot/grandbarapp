@@ -71,6 +71,7 @@ function montarPanel(cfg) {
       <a class="sb-item" href="mi-agenda.html"><span class="i">📅</span> Mi agenda</a>
       <a class="sb-item" href="crm-calendario.html"><span class="i">🗓️</span> Calendario CRM</a>
       <a class="sb-item" href="presupuestos.html"><span class="i">🧾</span> Presupuestos</a>
+      ${/josefina/i.test(cfg.persona) ? '' : '<a class="sb-item" href="tareas-nahuel.html"><span class="i">📋</span> Tareas de Josefina</a>'}
       <a class="sb-item" href="${otro.r}"><span class="i">${otro.i}</span> ${otro.n}</a>
       <a class="sb-item" href="hub.html"><span class="i">←</span> Volver al Hub</a>
       <div class="sb-pie">Los paneles de Diseño y Desarrollo tienen exactamente lo mismo: cambia el nombre, nada más.</div>
