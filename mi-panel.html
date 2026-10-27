@@ -103,6 +103,7 @@
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="assets/supabase-config.js"></script>
 <script src="assets/auth.js"></script>
+<script src="assets/notif.js?v=3"></script>
 <script src="assets/presupuestos.js"></script>
 <script>
   const $=id=>document.getElementById(id);
@@ -187,17 +188,33 @@
     finally{ $('t-add').disabled=false; }
   }
   window.agregar=agregar;
+  const NAHUEL_ID='0627218c-cb7a-4d88-bb5c-4090cf11d28e';
   async function avisarNahuel(titulo, prioridad){
+    const emoji = prioridad==='alta'?'🔴':(prioridad==='baja'?'🔵':'🟡');
+    const quien = (YO||'Josefina').split(/\s+/)[0];
+    // 1) Notificación directa a la campanita de Nahuel (dispara el sonido de su lado)
+    try{
+      await sb.from('notificaciones').insert({
+        destinatario_id: NAHUEL_ID,
+        icono: '✅',
+        titulo: 'Nueva tarea de '+quien,
+        detalle: emoji+' '+titulo,
+        link: 'tareas-nahuel.html',
+        ref: 'tarea-'+Date.now()
+      });
+    }catch(e){ /* la tarea igual quedó guardada */ }
+    // 2) Confirmación para vos: escuchás el sonido al asignar
+    try{ if(window.GBNotifSonido) window.GBNotifSonido(); }catch(e){}
+    // 3) Push al celu de Nahuel (best-effort, por el servidor)
     try{
       const { data } = await sb.auth.getSession();
       const tok = data && data.session && data.session.access_token;
-      if(!tok) return;
-      await fetch('/.netlify/functions/tarea-nahuel', {
+      if(tok) fetch('/.netlify/functions/tarea-nahuel', {
         method:'POST',
         headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+tok },
         body: JSON.stringify({ titulo, prioridad })
-      });
-    }catch(e){ /* si falla el aviso, la tarea igual quedó guardada */ }
+      }).catch(()=>{});
+    }catch(e){}
   }
   async function marcar(id,estado){
     const campos={estado, hecha_at: estado==='hecha'? new Date().toISOString() : null};

@@ -45,20 +45,9 @@ exports.handler = async (event) => {
     const quien = (perfil.nombre || 'Josefina').split(/\s+/)[0];
     const emoji = prioridad === 'alta' ? '🔴' : (prioridad === 'baja' ? '🔵' : '🟡');
 
-    // Notificación en la campanita de Nahuel
-    try {
-      await sb('notificaciones', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({
-        destinatario_id: NAHUEL,
-        icono: '✅',
-        titulo: 'Nueva tarea de ' + quien,
-        detalle: emoji + ' ' + titulo,
-        link: LINK,
-        ref: 'tarea-' + Date.now(),
-      }) });
-    } catch (e) {}
-
-    // Push al celu (si tiene suscripción). tag 'tarea-nahuel' para que el Hub le
-    // ponga el sonido gracioso al recibirla.
+    // La campanita (tabla notificaciones) la inserta mi-panel.html directo, para no
+    // duplicar. Acá SOLO mandamos el push al celu.
+    // Push al celu (si tiene suscripción). tag 'tarea-nahuel'.
     let push = 0;
     try { push = await pushA(sb, NAHUEL, { title: '✅ Nueva tarea de ' + quien, body: emoji + ' ' + titulo, url: LINK, tag: 'tarea-nahuel' }); } catch (e) {}
 
