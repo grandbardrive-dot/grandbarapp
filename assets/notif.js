@@ -51,6 +51,18 @@
   function esTarea(x) { return x && ((x.link && String(x.link).indexOf('tareas-nahuel') >= 0) || /^Nueva tarea/i.test(String(x.titulo || ''))); }
   var lastTopId; // undefined en la primera carga (no suena por notis viejas)
 
+  // Aviso del navegador (suena y se ve aunque la pestaña esté de fondo). Necesita
+  // permiso una sola vez; se lo pedimos cuando abre la campanita.
+  function pedirPermiso() { try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {} }
+  function avisoNavegador(x) {
+    try {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      var n = new Notification(String(x.titulo || 'Nueva tarea'), { body: String(x.detalle || ''), tag: x.id || 'tarea', renotify: true });
+      n.onclick = function () { try { window.focus(); location.href = x.link || 'tareas-nahuel.html'; } catch (e) {} };
+    } catch (e) {}
+  }
+  function avisarTarea(x) { sonidoGracioso(); avisoNavegador(x); }
+
   var c = supabase.createClient(HUB.url, HUB.key);
   c.auth.getSession().then(function (r) {
     var s = r.data.session; if (!s) return;
@@ -99,7 +111,7 @@
       var abierto = panel.style.display === 'block';
       if (!abierto) ubicar();
       panel.style.display = abierto ? 'none' : 'block';
-      if (!abierto) { render(); var top = items[0] ? String(items[0].ts || '') : new Date().toISOString(); localStorage.setItem('gb_notif_seen', top); badge(); }
+      if (!abierto) { pedirPermiso(); render(); var top = items[0] ? String(items[0].ts || '') : new Date().toISOString(); localStorage.setItem('gb_notif_seen', top); badge(); }
     });
     document.addEventListener('click', function (e) { if (panel.style.display === 'block' && !panel.contains(e.target) && !bell.contains(e.target)) panel.style.display = 'none'; });
   }
@@ -142,7 +154,7 @@
         if (lastTopId === undefined) { lastTopId = topId; }        // primera carga: no suena
         else if (topId && topId !== lastTopId) {                   // llegó algo nuevo
           lastTopId = topId;
-          if (esTarea(top)) sonidoGracioso();
+          if (esTarea(top)) avisarTarea(top);
         }
         render(); badge();
       });
