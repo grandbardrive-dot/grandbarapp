@@ -19,37 +19,34 @@
   function sonidoGracioso() {
     try {
       unlock(); if (!actx) return;
-      var t = actx.currentTime;
-      // Boing: tono que cae y rebota, con vibrato
-      var o = actx.createOscillator(), g = actx.createGain();
-      o.type = 'sine';
-      o.frequency.setValueAtTime(600, t);
-      o.frequency.exponentialRampToValueAtTime(170, t + 0.18);
-      o.frequency.exponentialRampToValueAtTime(330, t + 0.34);
-      var lfo = actx.createOscillator(), lg = actx.createGain();
-      lfo.frequency.value = 15; lg.gain.value = 45; lfo.connect(lg); lg.connect(o.frequency);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.38, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
-      o.connect(g); g.connect(actx.destination);
-      o.start(t); lfo.start(t); o.stop(t + 0.42); lfo.stop(t + 0.42);
-      // Silbato que sube (slide whistle) al final
-      var s = actx.createOscillator(), sg = actx.createGain();
-      s.type = 'sine';
-      s.frequency.setValueAtTime(500, t + 0.34);
-      s.frequency.exponentialRampToValueAtTime(1600, t + 0.6);
-      sg.gain.setValueAtTime(0.0001, t + 0.34);
-      sg.gain.exponentialRampToValueAtTime(0.28, t + 0.38);
-      sg.gain.exponentialRampToValueAtTime(0.0001, t + 0.62);
-      s.connect(sg); sg.connect(actx.destination);
-      s.start(t + 0.34); s.stop(t + 0.64);
+      var t0 = actx.currentTime;
+      // "Cuack cuack" de pato: sawtooth pasado por un filtro pasa-banda que barre
+      // (hace la vocal del pato) + tono que baja de golpe. Dos cuacks seguidos.
+      function cuack(start, dur, f1, f2, vol) {
+        var o = actx.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(f1, start);
+        o.frequency.exponentialRampToValueAtTime(f2, start + dur);
+        var bp = actx.createBiquadFilter();
+        bp.type = 'bandpass'; bp.Q.value = 7;
+        bp.frequency.setValueAtTime(800, start);
+        bp.frequency.linearRampToValueAtTime(1700, start + dur * 0.45);
+        bp.frequency.linearRampToValueAtTime(650, start + dur);
+        var g = actx.createGain();
+        g.gain.setValueAtTime(0.0001, start);
+        g.gain.exponentialRampToValueAtTime(vol, start + 0.025);
+        g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+        o.connect(bp); bp.connect(g); g.connect(actx.destination);
+        o.start(start); o.stop(start + dur + 0.03);
+      }
+      cuack(t0, 0.17, 320, 150, 0.5);          // cuack
+      cuack(t0 + 0.23, 0.22, 340, 140, 0.55);   // cuaaack (el segundo más largo)
     } catch (e) {}
   }
   window.GBNotifSonido = sonidoGracioso; // para probarlo desde la consola
 
   // ¿La notificación nueva es una tarea? (así el sonido gracioso suena para las tareas)
   function esTarea(x) { return x && ((x.link && String(x.link).indexOf('tareas-nahuel') >= 0) || /^Nueva tarea/i.test(String(x.titulo || ''))); }
-  var lastTopId; // undefined en la primera carga (no suena por notis viejas)
 
   // Aviso del navegador (suena y se ve aunque la pestaña esté de fondo). Necesita
   // permiso una sola vez; se lo pedimos cuando abre la campanita.
@@ -150,11 +147,14 @@
       .then(function (d) {
         items = d.notificaciones || [];
         var top = items[0] || null;
-        var topId = top ? top.id : null;
-        if (lastTopId === undefined) { lastTopId = topId; }        // primera carga: no suena
-        else if (topId && topId !== lastTopId) {                   // llegó algo nuevo
-          lastTopId = topId;
-          if (esTarea(top)) avisarTarea(top);
+        // Suena y avisa UNA sola vez por tarea, aunque Nahuel abra el Hub DESPUÉS de
+        // que se la asignaron (antes solo sonaba si ya tenía la pestaña abierta).
+        if (top && esTarea(top) && top.id) {
+          var rang = ''; try { rang = localStorage.getItem('gb_tarea_rang') || ''; } catch (e) {}
+          if (top.id !== rang) {
+            try { localStorage.setItem('gb_tarea_rang', top.id); } catch (e) {}
+            avisarTarea(top);
+          }
         }
         render(); badge();
       });
