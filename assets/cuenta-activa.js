@@ -105,3 +105,10 @@
   var s = document.createElement('script'); s.src = '/assets/reporte-errores.js?v=1'; s.async = true;
   (document.head || document.documentElement).appendChild(s);
 })();
+
+// Avisos emergentes para vendedores (27/10/2026): ver assets/avisos.js.
+(function () {
+  if (document.querySelector('script[src*="/assets/avisos.js"]')) return;
+  var s = document.createElement('script'); s.src = '/assets/avisos.js?v=1'; s.async = true;
+  (document.head || document.documentElement).appendChild(s);
+})();
