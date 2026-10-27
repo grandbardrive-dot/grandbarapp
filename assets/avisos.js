@@ -9,7 +9,7 @@
       // 27/10/2026: sumamos 10 clientes de cada uno a la app de cobranzas (bienvenida + lunes).
       id: 'cobranzas-10-clientes-2610',
       hasta: '2026-10-31',                       // inclusive, hora de Argentina
-      vendedores: ['041', '043', '017', '024', '007'],
+      vendedores: ['041', '043', '017', '024', '007', '027'],
       icono: '💳',
       titulo: '¡Sumamos 10 de tus clientes a la app de cobranzas!',
       texto: 'Revisá <b>todos los días</b> si tenés pagos por cargar.',
