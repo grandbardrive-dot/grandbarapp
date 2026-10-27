@@ -73,8 +73,13 @@
       <a class="tile" href="reunion-proveedor.html"><div class="ic">🎯</div><div><div class="tn">Reunión de proveedor</div><div class="ts">Sellout, marcas, acciones y pendientes</div></div></a>
       <a class="tile" href="crm-calendario.html"><div class="ic">🗓️</div><div><div class="tn">CRM · Calendario</div><div class="ts">Acciones por rubro · compartido con Nahuel, Sepúlveda y Luciana</div></div></a>
       <a class="tile" href="mi-agenda.html"><div class="ic">📅</div><div><div class="tn">Mi agenda</div><div class="ts">Tus eventos y reuniones</div></div></a>
+      <button class="tile" type="button" onclick="document.getElementById('presupuestos').scrollIntoView({behavior:'smooth'})"><div class="ic">🧾</div><div><div class="tn">Presupuestos</div><div class="ts">Marketing · compartido con Nahuel, Sepúlveda y Fernando</div></div></button>
       <button class="tile" type="button" onclick="document.getElementById('tareas').scrollIntoView({behavior:'smooth'})"><div class="ic">✅</div><div><div class="tn">Tareas para Nahuel</div><div class="ts">Asignale y seguí el estado</div></div></button>
     </div>
+
+    <h2 id="presupuestos">Marketing · Presupuestos</h2>
+    <p style="margin:-4px 0 14px;color:var(--muted);font-size:13.5px">Cargá cada presupuesto con su foto, el link al proveedor y el estado. Cuando te lo pasen, entrá en <b>Editar</b> y sumale el mínimo de compra y los costos. Lo ven Nahuel, Sepúlveda y Fernando.</p>
+    <div id="presupuestos-app"></div>
 
     <h2 id="tareas">Tareas para Nahuel</h2>
     <div class="form">
@@ -98,6 +103,7 @@
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="assets/supabase-config.js"></script>
 <script src="assets/auth.js"></script>
+<script src="assets/presupuestos.js"></script>
 <script>
   const $=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -114,6 +120,7 @@
     YO = s.nombre || (s.user && s.user.email) || 'Josefina';
     $('me').textContent = YO;
     $('hola').textContent = 'Hola, ' + (YO.split(/\s+/)[0]) + ' 👋';
+    try{ GBPresupuestos.init({ sb, yo:YO, mount:'#presupuestos-app' }); }catch(e){}
     cargar();
   })();
 

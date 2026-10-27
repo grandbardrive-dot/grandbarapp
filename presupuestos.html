@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2238">
+<title>GrandBar — Presupuestos</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="manifest" href="/manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;--gold:#c9a13b;--gold-d:#a9852a;--gold-s:#f7efda;--green:#2f8f6e;--green-d:#256f54;--green-s:#e6f2ec;--danger:#c0603e;--danger-s:#fbe9e4;--amber:#c99a2e;--amber-s:#f8efd6;--navy:#0d2238;--blue:#3f6f9c}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .top{background:var(--navy);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+  .top .b{font-weight:800;font-size:15px}.top .b .g{color:#e7c778}
+  .top a.volver{color:#cdd9e0;text-decoration:none;font-size:12.5px;font-weight:700}
+  .top .me{margin-left:auto;font-size:12.5px;color:#b9c6cd}
+  .wrap{max-width:980px;margin:0 auto;padding:22px 16px 70px}
+  .hero h1{font-size:23px;margin:0 0 3px;font-weight:800}
+  .hero p{margin:0 0 18px;color:var(--muted);font-size:14px}
+  .btn{border:0;border-radius:11px;background:var(--navy);color:#fff;font:inherit;font-weight:800;font-size:14.5px;padding:12px 18px;cursor:pointer}
+  .btn:disabled{opacity:.5;cursor:default}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="b"><span class="g">Grand</span>Bar</div>
+    <a class="volver" id="volver" href="hub.html">← Volver</a>
+    <div class="me" id="me">—</div>
+  </div>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Presupuestos</h1>
+      <p>Buzón compartido de Marketing: cada presupuesto con su foto, el link al proveedor, el estado y las condiciones (mínimo de compra y costos). Lo ven y editan Josefina, Nahuel, Sepúlveda y Fernando.</p>
+    </div>
+    <div id="presupuestos-app"></div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/presupuestos.js"></script>
+<script>
+  (async()=>{
+    const s = await GBAuth.requireAuth(); if(!s) return;
+    const PANEL = { diseno:'mi-panel.html', desarrollo:'panel-desarrollo.html',
+                    torneo:'trade-acciones.html', direccion:'direccion.html', admin:'direccion.html' };
+    const rol = String(s.role || '').toLowerCase();
+    if(!s.demo && !PANEL[rol]){
+      document.querySelector('.wrap').innerHTML = '<div style="text-align:center;color:var(--muted);padding:60px 16px">Los presupuestos son del equipo de Marketing (Diseño, Desarrollo, Trade y Dirección).<br><a href="hub.html" style="color:var(--gold-d);font-weight:700">Volver al Hub</a></div>';
+      return;
+    }
+    if(PANEL[rol]) document.getElementById('volver').href = PANEL[rol];
+    const sb = GBAuth.client;
+    const YO = s.nombre || (s.user && s.user.email) || 'GrandBar';
+    document.getElementById('me').textContent = YO;
+    GBPresupuestos.init({ sb, yo:YO, mount:'#presupuestos-app' });
+  })();
+</script>
+</body>
+</html>
