@@ -4,7 +4,8 @@
 //   Los números salen de CUBO (sync-ventas, cada 20 min, también el día de hoy) y los
 //   suma la base con dir_ventas(desde, hasta) — ver dir-ventas-setup.sql:
 //   - Venta de productos = neto sin IVA de facturas menos notas de crédito.
-//   - Margen bruto = venta neta − costo neto (sin IVA), solo productos con código.
+//   - Rentabilidad neta (antes "margen bruto") = venta neta − costo neto (sin IVA), solo productos con código.
+//   - Venta total (27/10/2026) = la misma venta con IVA e impuesto interno.
 //   - Aparte: lo facturado sin código de artículo (eventos, servicios: sin costo en CUBO)
 //     y los ajustes (rubros 06 y 14). Las notas de débito (cheques rechazados) no son venta.
 //   GET ?periodo=hoy|semana|mes|mes_anterior|anio  (o ?desde=AAAA-MM-DD&hasta=AAAA-MM-DD)
@@ -92,7 +93,7 @@ async function resumen(r) {
   return d;
 }
 // Para comparar alcanza con los totales (sin las listas largas).
-const soloTotales = d => d && ({ desde: d.desde, hasta: d.hasta, venta: d.venta, costo: d.costo, margen: d.margen, unidades: d.unidades,
+const soloTotales = d => d && ({ desde: d.desde, hasta: d.hasta, venta: d.venta, costo: d.costo, margen: d.margen, unidades: d.unidades, total: d.total,
   facturado: d.facturado, sin_codigo: d.sin_codigo, dias: d.dias, por_rubro: d.por_rubro,
   por_proveedor: (d.por_proveedor || []).map(x => ({ codigo: x.codigo, venta: x.venta, margen: x.margen })),
   por_vendedor: (d.por_vendedor || []).map(x => ({ codigo: x.codigo, nombre: x.nombre, venta: x.venta, margen: x.margen })),

@@ -63,3 +63,12 @@ $$;
 
 -- Probar sin la pantalla:
 --   select public.dir_ventas(date_trunc('month', current_date)::date, current_date);
+
+-- 27/10/2026, migración "dir_ventas_total_con_iva": dir_ventas devuelve también 'total' = la
+-- venta de productos (mismos filtros) con IVA e impuesto interno. ventas_cliente guarda solo el
+-- neto: a cada artículo se le aplica su proporción (importe_iva + imp_interno) / importe del
+-- período, sacada de ventas_articulos (da lo mismo que sumar ventas_articulos directo: $36 de
+-- diferencia en octubre). La planilla "Avance Ventas" además suma percepciones de Ingresos
+-- Brutos (3% del neto en algunos clientes): da ~1,3% más. El año tarda ~1 s.
+-- En la pantalla: "Venta total con IVA", "Venta de productos NETO" y "Rentabilidad Neta" (antes
+-- "margen bruto"; en la base sigue llamándose margen).

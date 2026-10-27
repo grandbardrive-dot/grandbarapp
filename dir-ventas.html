@@ -11,11 +11,12 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>GrandBar Hub — Ventas y margen</title>
+<title>GrandBar Hub — Ventas y rentabilidad</title>
 <!--
-  Ventas y margen (14/10/2026). Todo sale de CUBO: sync-ventas baja las facturas y notas
+  Ventas y rentabilidad (14/10/2026). Todo sale de CUBO: sync-ventas baja las facturas y notas
   de crédito cada 20 minutos (también las del día) y la función dir-ventas las suma.
-  Venta = neto sin IVA. Margen bruto = venta neta − costo neto, solo productos con código.
+  Venta NETO = sin IVA. Rentabilidad neta (antes "margen bruto") = venta neta − costo neto,
+  solo productos con código. Venta total (27/10/2026) = la misma venta con IVA e impuesto interno.
 -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/dir.css" />
@@ -26,7 +27,7 @@
   .estado{font-size:11.5px;color:var(--muted);margin:2px 0 14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
   .estado .pt{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
   .estado .pt.viejo{background:var(--amber)}
-  .k4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+  .k4{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px}
   .kv{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
   .kv .l{font-size:11.5px;color:var(--muted);font-weight:600}
   .kv .v{font-size:24px;font-weight:800;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums}
@@ -52,7 +53,8 @@
   details.como summary{cursor:pointer;font-weight:700}
   details.como ul{margin:8px 0 2px 18px;padding:0}
   .ver{font-size:12px;font-weight:700;color:var(--green-d);cursor:pointer;background:none;border:0;font-family:inherit;padding:6px 0 0}
-  @media(max-width:1180px){ .k4{grid-template-columns:1fr 1fr} }
+  @media(max-width:1380px){ .k4{grid-template-columns:repeat(3,1fr)} }
+  @media(max-width:900px){ .k4{grid-template-columns:1fr 1fr} .k4 .kv.tot{grid-column:1/-1} }
   @media(max-width:560px){ .k4{grid-template-columns:1fr} .kv .v{font-size:21px} table.t .opc{display:none} }
 </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
@@ -64,7 +66,7 @@
 
     <div class="dhead">
       <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>
-      <div><h1>Ventas y margen</h1><div class="sub">Lo facturado en CUBO, sin IVA. Se actualiza cada 20 minutos, también el día de hoy.</div></div>
+      <div><h1>Ventas y rentabilidad</h1><div class="sub">Lo facturado en CUBO. Se actualiza cada 20 minutos, también el día de hoy.</div></div>
       <span class="sp"></span>
       <div class="ic-btn" title="Novedades"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg></div>
       <div class="per" id="per">
@@ -78,10 +80,11 @@
     <details class="como">
       <summary>Cómo se calculan estos números</summary>
       <ul>
-        <li><b>Venta de productos</b>: el neto sin IVA de las facturas, menos las notas de crédito, de <b>Vinos, Espirituosas, Cervezas, Bebidas sin alcohol y Cafés e infusiones</b>. Sale de CUBO (las dos empresas) y se baja cada 20 minutos.</li>
+        <li><b>Venta total con IVA</b>: la misma venta de productos, con el IVA y los impuestos internos de cada artículo.</li>
+        <li><b>Venta de productos NETO</b>: el neto sin IVA de las facturas, menos las notas de crédito, de <b>Vinos, Espirituosas, Cervezas, Bebidas sin alcohol y Cafés e infusiones</b>. Sale de CUBO (las dos empresas) y se baja cada 20 minutos.</li>
         <li><b>No se cuentan</b>, igual que en la planilla "Avance Ventas" de Administración: lo que facturan <b>Operaciones Especiales, Empleados Grandbar, Gestión Administrativa, Luciana Buenanueva y Brenda Gonzalez</b>, y los tipos de producto <b>Alimentos, POP, Promos, Otros, Administración</b> y lo que no tiene código de artículo.</li>
-        <li><b>Margen bruto</b>: venta neta menos el costo neto que tiene cargado CUBO para cada artículo, los dos sin IVA. El impuesto interno no entra en ninguno de los dos: el cliente lo paga aparte y se le paga al fisco.</li>
-        <li>La planilla "Avance Ventas" muestra los montos <b>con IVA e impuestos internos</b> y suma las notas de débito (cheques rechazados); acá todo va sin impuestos y sin notas de débito, por eso los números de acá son menores.</li>
+        <li><b>Rentabilidad Neta</b>: venta neta menos el costo neto que tiene cargado CUBO para cada artículo, los dos sin IVA. El impuesto interno no entra en ninguno de los dos: el cliente lo paga aparte y se le paga al fisco.</li>
+        <li>La planilla "Avance Ventas" muestra los montos con IVA, impuestos internos y además las <b>percepciones de Ingresos Brutos</b> que se les cobran a algunos clientes, y suma las notas de débito (cheques rechazados). La Venta total de acá no lleva percepciones ni notas de débito: por eso la planilla da un poco más (en octubre, cerca de 1,3%).</li>
         <li><b>Por vendedor</b>: el vendedor que figura en cada factura, como en la planilla.</li>
         <li>Las comparaciones son contra los mismos días del período anterior y del año pasado. El día de hoy está en curso.</li>
       </ul>
@@ -129,9 +132,10 @@
     const ma=pct(a.margen,a.venta), mn=an?pct(an.margen,an.venta):null, my=y?pct(y.margen,y.venta):null;
     const cmp=(fa,fb,fy)=>(an?'vs '+esc(an.titulo)+': '+fb+'<br>':'')+(y?'vs '+esc(y.titulo)+': '+fy:'');
     return '<div class="k4">'
-      +'<div class="kv"><div class="l">Venta de productos</div><div class="v" title="'+$full(a.venta)+'">'+$M(a.venta)+'</div><div class="c">'+cmp(0,varia(a.venta,an&&an.venta),varia(a.venta,y&&y.venta))+'</div></div>'
-      +'<div class="kv"><div class="l">Margen bruto</div><div class="v" title="'+$full(a.margen)+'">'+$M(a.margen)+'</div><div class="c">'+cmp(0,varia(a.margen,an&&an.margen),varia(a.margen,y&&y.margen))+'</div></div>'
-      +'<div class="kv"><div class="l">Margen sobre la venta</div><div class="v">'+fp(ma)+'</div><div class="c">'+cmp(0,puntos(ma,mn),puntos(ma,my))+'</div></div>'
+      +'<div class="kv tot"><div class="l">Venta total con IVA</div><div class="v" title="'+$full(a.total)+'">'+$M(a.total)+'</div><div class="c">'+cmp(0,varia(a.total,an&&an.total),varia(a.total,y&&y.total))+'</div></div>'
+      +'<div class="kv"><div class="l">Venta de productos NETO</div><div class="v" title="'+$full(a.venta)+'">'+$M(a.venta)+'</div><div class="c">'+cmp(0,varia(a.venta,an&&an.venta),varia(a.venta,y&&y.venta))+'</div></div>'
+      +'<div class="kv"><div class="l">Rentabilidad Neta</div><div class="v" title="'+$full(a.margen)+'">'+$M(a.margen)+'</div><div class="c">'+cmp(0,varia(a.margen,an&&an.margen),varia(a.margen,y&&y.margen))+'</div></div>'
+      +'<div class="kv"><div class="l">Rentabilidad sobre la venta</div><div class="v">'+fp(ma)+'</div><div class="c">'+cmp(0,puntos(ma,mn),puntos(ma,my))+'</div></div>'
       +'<div class="kv"><div class="l">Unidades vendidas</div><div class="v">'+num(a.unidades)+'</div><div class="c">'+cmp(0,varia(a.unidades,an&&an.unidades),varia(a.unidades,y&&y.unidades))+'</div></div>'
       +'</div>';
   }
@@ -155,13 +159,13 @@
     const max=Math.max(...pts.map(p=>p.v),1);
     const hoyK=new Date(Date.now()-3*3600*1000).toISOString().slice(0,10);
     const paso=Math.ceil(pts.length/16);
-    return '<div class="card" style="margin-bottom:16px"><div class="c-h"><div class="t">Venta y margen '+(pts[0].k.length>7?'por día':'por mes')+'</div></div>'
-      +'<div class="chart">'+pts.map(p=>'<div class="b'+(p.k===hoyK?' hoy':'')+'" style="height:'+Math.max(1,p.v/max*100)+'%" title="'+esc(p.l)+': venta '+$full(p.v)+' · margen '+$full(p.m)+(p.v>0?' ('+fp(pct(p.m,p.v))+')':'')+(p.k===hoyK?' · hoy, en curso':'')+'"><i style="height:'+(p.v>0?Math.max(0,p.m/p.v*100):0)+'%"></i></div>').join('')+'</div>'
+    return '<div class="card" style="margin-bottom:16px"><div class="c-h"><div class="t">Venta y rentabilidad '+(pts[0].k.length>7?'por día':'por mes')+'</div></div>'
+      +'<div class="chart">'+pts.map(p=>'<div class="b'+(p.k===hoyK?' hoy':'')+'" style="height:'+Math.max(1,p.v/max*100)+'%" title="'+esc(p.l)+': venta '+$full(p.v)+' · rentabilidad '+$full(p.m)+(p.v>0?' ('+fp(pct(p.m,p.v))+')':'')+(p.k===hoyK?' · hoy, en curso':'')+'"><i style="height:'+(p.v>0?Math.max(0,p.m/p.v*100):0)+'%"></i></div>').join('')+'</div>'
       +'<div class="chart-x">'+pts.map((p,i)=>'<span>'+(i%paso===0?esc(p.l):'')+'</span>').join('')+'</div>'
-      +'<div class="ley"><span><i style="background:var(--navy)"></i>Venta</span><span><i style="background:var(--gold)"></i>Parte que es margen</span></div></div>';
+      +'<div class="ley"><span><i style="background:var(--navy)"></i>Venta</span><span><i style="background:var(--gold)"></i>Parte que es rentabilidad</span></div></div>';
   }
 
-  // Tabla genérica: filas con nombre, venta, margen y la variación contra el período anterior.
+  // Tabla genérica: filas con nombre, venta, rentabilidad y la variación contra el período anterior.
   function tabla(titulo, sub, filas, total, mapaAnt, clave, extra, verKey, max){
     if(!filas.length) return '<div class="card"><div class="c-h"><div class="t">'+titulo+'</div></div><div class="vacio">Sin ventas en el período.</div></div>';
     const lim=verKey&&!VER[verKey]?max:filas.length;
@@ -174,7 +178,7 @@
         +(mapaAnt?'<td class="n opc">'+varia(f.venta||0,ant!=null?ant:null)+'</td>':'')+'</tr>';
     }).join('');
     return '<div class="card"><div class="c-h"><div class="t">'+titulo+(sub?' <small>'+sub+'</small>':'')+'</div></div>'
-      +'<table class="t"><thead><tr><th></th><th class="n">Venta</th><th class="n">Margen</th>'+(mapaAnt?'<th class="n opc">vs anterior</th>':'')+'</tr></thead><tbody>'+rows+'</tbody></table>'
+      +'<table class="t"><thead><tr><th></th><th class="n">Venta</th><th class="n">Rentabilidad</th>'+(mapaAnt?'<th class="n opc">vs anterior</th>':'')+'</tr></thead><tbody>'+rows+'</tbody></table>'
       +(verKey&&filas.length>max?'<button class="ver" data-ver="'+verKey+'">'+(VER[verKey]?'Ver menos':'Ver los '+filas.length)+'</button>':'')+'</div>';
   }
 
