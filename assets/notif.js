@@ -9,10 +9,52 @@
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); };
   var TOKEN = null, items = [];
 
+  // ---- Sonido gracioso para cuando entra una tarea nueva ----------------
+  // "Boing" de dibujito + silbato que sube. Se arma con WebAudio (sin archivo).
+  // El navegador necesita un toque/clic antes de dejar sonar: se desbloquea solo
+  // con la primera interacción del usuario en el Hub.
+  var actx = null;
+  function unlock() { try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) {} }
+  ['click', 'keydown', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, unlock, { passive: true }); });
+  function sonidoGracioso() {
+    try {
+      unlock(); if (!actx) return;
+      var t = actx.currentTime;
+      // Boing: tono que cae y rebota, con vibrato
+      var o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(600, t);
+      o.frequency.exponentialRampToValueAtTime(170, t + 0.18);
+      o.frequency.exponentialRampToValueAtTime(330, t + 0.34);
+      var lfo = actx.createOscillator(), lg = actx.createGain();
+      lfo.frequency.value = 15; lg.gain.value = 45; lfo.connect(lg); lg.connect(o.frequency);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.38, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+      o.connect(g); g.connect(actx.destination);
+      o.start(t); lfo.start(t); o.stop(t + 0.42); lfo.stop(t + 0.42);
+      // Silbato que sube (slide whistle) al final
+      var s = actx.createOscillator(), sg = actx.createGain();
+      s.type = 'sine';
+      s.frequency.setValueAtTime(500, t + 0.34);
+      s.frequency.exponentialRampToValueAtTime(1600, t + 0.6);
+      sg.gain.setValueAtTime(0.0001, t + 0.34);
+      sg.gain.exponentialRampToValueAtTime(0.28, t + 0.38);
+      sg.gain.exponentialRampToValueAtTime(0.0001, t + 0.62);
+      s.connect(sg); sg.connect(actx.destination);
+      s.start(t + 0.34); s.stop(t + 0.64);
+    } catch (e) {}
+  }
+  window.GBNotifSonido = sonidoGracioso; // para probarlo desde la consola
+
+  // ¿La notificación nueva es una tarea? (así el sonido gracioso suena para las tareas)
+  function esTarea(x) { return x && ((x.link && String(x.link).indexOf('tareas-nahuel') >= 0) || /^Nueva tarea/i.test(String(x.titulo || ''))); }
+  var lastTopId; // undefined en la primera carga (no suena por notis viejas)
+
   var c = supabase.createClient(HUB.url, HUB.key);
   c.auth.getSession().then(function (r) {
     var s = r.data.session; if (!s) return;
-    TOKEN = s.access_token; build(); load(); setInterval(load, 60000);
+    TOKEN = s.access_token; build(); load(); setInterval(load, 20000);
   });
 
   var bell, dot, panel;
@@ -93,6 +135,16 @@
   function load() {
     fetch('/.netlify/functions/notificaciones', { headers: { Authorization: 'Bearer ' + TOKEN } })
       .then(function (r) { return r.ok ? r.json() : { notificaciones: [] }; })
-      .then(function (d) { items = d.notificaciones || []; render(); badge(); });
+      .then(function (d) {
+        items = d.notificaciones || [];
+        var top = items[0] || null;
+        var topId = top ? top.id : null;
+        if (lastTopId === undefined) { lastTopId = topId; }        // primera carga: no suena
+        else if (topId && topId !== lastTopId) {                   // llegó algo nuevo
+          lastTopId = topId;
+          if (esTarea(top)) sonidoGracioso();
+        }
+        render(); badge();
+      });
   }
 })();

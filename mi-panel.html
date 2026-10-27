@@ -177,14 +177,28 @@
       const fila={ titulo:tit, detalle:($('t-det').value||'').trim()||null, prioridad:$('t-pri').value, fecha_limite:$('t-fec').value||null, estado:'pendiente', creado_por:YO };
       const { error } = await sb.from('tareas_para_nahuel').insert(fila);
       if(error) throw error;
+      // Avisarle a Nahuel: campanita + push al celu (con sonido gracioso del lado del Hub)
+      avisarNahuel(fila.titulo, fila.prioridad);
       $('t-tit').value=''; $('t-det').value=''; $('t-fec').value=''; $('t-pri').value='media';
-      msg('✅ Asignada a Nahuel.','var(--green-d)');
+      msg('✅ Asignada a Nahuel (le llega el aviso).','var(--green-d)');
       setTimeout(()=>{ $('t-msg').textContent=''; },1600);
       cargar();
     }catch(e){ msg('No se pudo: '+(e.message||e),'var(--danger)'); }
     finally{ $('t-add').disabled=false; }
   }
   window.agregar=agregar;
+  async function avisarNahuel(titulo, prioridad){
+    try{
+      const { data } = await sb.auth.getSession();
+      const tok = data && data.session && data.session.access_token;
+      if(!tok) return;
+      await fetch('/.netlify/functions/tarea-nahuel', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+tok },
+        body: JSON.stringify({ titulo, prioridad })
+      });
+    }catch(e){ /* si falla el aviso, la tarea igual quedó guardada */ }
+  }
   async function marcar(id,estado){
     const campos={estado, hecha_at: estado==='hecha'? new Date().toISOString() : null};
     const { error } = await sb.from('tareas_para_nahuel').update(campos).eq('id',id);
