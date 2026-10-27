@@ -189,7 +189,10 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
   if (!delc.ok && delc.status !== 404) throw new Error('DELETE cliente día ' + fISO + ': ' + (await delc.text()).slice(0, 120));
   // Con venta y costo netos (sin IVA) por cliente: así el panel de Dirección suma ventas y
   // margen por vendedor con los mismos números que el total (14/10/2026).
-  const filasCli = [...aggCli.entries()].map(([k, o]) => { const p = k.split('|'); return { cliente_codigo: p[0], sku: p[1], fecha: p[2], vendedor: p[3], vendedor_nombre: o.vn, unidades: Math.round(o.u * 100) / 100, importe: Math.round(o.imp), costo: Math.round(o.cst), percep: Math.round(o.per * 100) / 100 }; }).filter((x) => x.unidades !== 0 || x.importe !== 0);
+  const filasCli = [...aggCli.entries()].map(([k, o]) => { const p = k.split('|'); return { cliente_codigo: p[0], sku: p[1], fecha: p[2], vendedor: p[3], vendedor_nombre: o.vn, unidades: Math.round(o.u * 100) / 100, importe: Math.round(o.imp), costo: Math.round(o.cst), percep: Math.round(o.per * 100) / 100 }; })
+    // También los renglones que quedan en 0 unidades y $0 pero con percepción: una factura anulada
+    // con NC y vuelta a hacer deja solo la percepción (1/10/2026: $1,9 M que faltaban contra la planilla).
+    .filter((x) => x.unidades !== 0 || x.importe !== 0 || x.percep !== 0);
   for (let i = 0; i < filasCli.length; i += 500) {
     const ins = await sb('ventas_cliente', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(filasCli.slice(i, i + 500)) });
     if (!ins.ok) throw new Error('INSERT cliente día ' + fISO + ': ' + (await ins.text()).slice(0, 160));
