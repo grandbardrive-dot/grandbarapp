@@ -1153,6 +1153,35 @@
   }
   .ficha-acord-body.open { display: block; }
 
+  /* ── Lo que dicen sus compras (27/10/2026) ── */
+  .cmp-meta { font-size: 11px; font-weight: 700; }
+  .cmp-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .cmp-kpi { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 9px; min-width: 0; }
+  .cmp-kpi .k { font-size: 9.5px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; }
+  .cmp-kpi .v { font-size: 16px; font-weight: 800; color: var(--text); margin-top: 2px; white-space: nowrap; }
+  .cmp-kpi .s { font-size: 10.5px; color: var(--text2); margin-top: 1px; line-height: 1.3; }
+  .cmp-up { color: var(--green); font-weight: 700; }
+  .cmp-down { color: var(--accent); font-weight: 700; }
+  .cmp-alerta { background: var(--accent-light); color: var(--accent-text); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.4; margin-bottom: 9px; }
+  .cmp-tit { font-size: 11px; font-weight: 700; color: var(--azul); text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 4px; }
+  .cmp-sub { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .cmp-tipo { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .cmp-tipo:last-child { border-bottom: none; }
+  .cmp-tipo .n { flex: 1; color: var(--text); }
+  .cmp-tipo .m { font-weight: 700; color: var(--text); }
+  .cmp-tipo .p { width: 52px; text-align: right; font-size: 11.5px; }
+  .cmp-li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .cmp-li:last-child { border-bottom: none; }
+  .cmp-li .t { flex: 1; min-width: 0; }
+  .cmp-li b { display: block; font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.25; }
+  .cmp-li span { display: block; font-size: 11px; color: var(--text2); margin-top: 2px; line-height: 1.35; }
+  .cmp-btn { flex-shrink: 0; border: 1.5px solid var(--azul); background: var(--surface); color: var(--azul); border-radius: 999px;
+             padding: 6px 11px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .cmp-btn:disabled { border-color: var(--green); color: var(--green); cursor: default; }
+  .cmp-nota { font-size: 10.5px; color: var(--text3); margin-top: 10px; line-height: 1.4; }
+  .cmp-mas { display: block; width: 100%; margin-top: 6px; padding: 7px; border: 1px dashed var(--border-strong); border-radius: 8px;
+             background: none; color: var(--azul); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
   /* ── Acuerdos Campari ── */
   .acuerdos-section { margin-top: 0; padding-top: 0; border-top: none; }
   .acuerdos-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
@@ -1545,6 +1574,17 @@ body { background:transparent !important; }
       <summary style="cursor:pointer;padding:12px 14px;font-weight:700;list-style:none;display:flex;align-items:center;gap:8px">📄 Facturas del cliente <span style="margin-left:auto;color:#8a8a8a;font-size:12px">ver / descargar</span></summary>
       <div id="fv-body" style="padding:6px 14px 12px"><div style="color:#888;font-size:13px">Tocá para ver las facturas con saldo.</div></div>
     </details>
+
+    <!-- Lo que dicen sus compras (27/10/2026): sale de lo facturado en CUBO (cliente_inteligencia).
+         Abierto de entrada: es lo primero que conviene mirar antes de entrar al local. -->
+    <div class="ficha-acord" id="compras-ficha" style="display:none">
+      <button class="ficha-acord-btn" onclick="toggleAcord('compras-acord','compras-chev')">
+        <span class="ficha-acord-title">📊 Lo que dicen sus compras</span>
+        <div class="ficha-acord-meta" id="compras-meta"></div>
+        <span class="ficha-acord-chev open" id="compras-chev">▼</span>
+      </button>
+      <div class="ficha-acord-body open" id="compras-acord"><div id="compras-det"></div></div>
+    </div>
 
     <!-- Programas Satélites — solo autoservicio, por defecto cerrado -->
     <div class="ficha-acord" id="satelites-ficha" style="display:none">
@@ -2871,6 +2911,90 @@ body { background:transparent !important; }
     if (chev) chev.classList.toggle('open', open);
   }
 
+  // ── LO QUE DICEN SUS COMPRAS (27/10/2026) ─────────────────────────────────
+  // cliente_inteligencia (base del Manual): lo facturado en CUBO en los últimos 2 años, lo
+  // que dejó de comprar y lo que compran los clientes parecidos (mismo rubro y zona) y este
+  // no. Solo productos que cuentan (vinos, espirituosas, cervezas, sin alcohol, cafés) y,
+  // en las sugerencias, solo lo que tiene stock.
+  const CMP_RUBRO = { vinoteca: 'otras vinotecas', restaurante: 'otros restaurantes', bar: 'otros bares', autoservicio: 'otros autoservicios',
+                      disco: 'otras discos', hotel: 'otros hoteles', 'tienda de bebidas': 'otras tiendas de bebidas' };
+  const CMP_ZONA = { mendoza: 'Mendoza', sanluis: 'San Luis' };
+  let _cmp = null;
+  const _cmpTodo = { d: false, p: false }, _cmpOfrecidos = new Set();   // listas abiertas / ya en el carrito
+  const cmp$ = n => { n = Number(n) || 0; const a = Math.abs(n), s = n < 0 ? '−' : '';
+    if (a >= 1e6) return s + '$' + (a / 1e6).toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' M';
+    if (a >= 1e3) return s + '$' + Math.round(a / 1e3).toLocaleString('es-AR') + ' mil';
+    return s + '$' + Math.round(a).toLocaleString('es-AR'); };
+  const cmpVar = (a, b) => { if (!b) return ''; const p = (a - b) / Math.abs(b) * 100;
+    return `<span class="${p >= 0 ? 'cmp-up' : 'cmp-down'}">${p >= 0 ? '▲' : '▼'} ${Math.round(Math.abs(p)).toLocaleString('es-AR')}%</span>`; };
+  const cmpFecha = s => { const p = String(s).slice(0, 10).split('-'); return p[2] + '/' + p[1] + (p[0] !== String(new Date().getFullYear()) ? '/' + p[0].slice(2) : ''); };
+  const cmpHace = n => n === 0 ? 'hoy' : n === 1 ? 'ayer' : 'hace ' + n + ' días';
+
+  async function cargarComprasCliente() {
+    if (!document.getElementById('compras-ficha') || !cliente || !cliente.codigo_cliente) return;
+    try {
+      const { data, error } = await sb.rpc('cliente_inteligencia', { p_codigo: String(cliente.codigo_cliente) });
+      if (error) throw error;
+      _cmp = data;
+      renderComprasCliente();
+    } catch (e) { console.warn('cliente_inteligencia:', (e && e.message) || e); }
+  }
+
+  function renderComprasCliente() {
+    const d = _cmp, box = document.getElementById('compras-ficha'), det = document.getElementById('compras-det'), meta = document.getElementById('compras-meta');
+    if (!d || !box || !det) return;
+    box.style.display = '';
+    if (!d.venta_12m && !d.venta_12m_anterior) {
+      meta.innerHTML = '';
+      det.innerHTML = '<div class="cmp-nota" style="margin-top:0">No tiene compras de productos en CUBO en los últimos dos años.</div>';
+      return;
+    }
+    // Frenado: hace más del doble de lo que suele tardar entre compras (y más de un mes), o
+    // más de 3 meses si en el año compró una vez o ninguna.
+    const frenado = d.dias_sin_comprar != null && (d.cada_dias ? d.dias_sin_comprar > Math.max(30, 2 * d.cada_dias) : d.dias_sin_comprar > 90);
+    meta.innerHTML = frenado ? `<span class="cmp-meta cmp-down">Sin compras ${cmpHace(d.dias_sin_comprar)}</span>`
+      : (d.venta_90_anterior ? `<span class="cmp-meta">${cmpVar(d.venta_90, d.venta_90_anterior)}</span>` : '');
+    let h = frenado ? `<div class="cmp-alerta">${d.cada_dias ? 'Suele comprar cada ~' + d.cada_dias + ' días y la' : 'La'} última compra fue ${cmpHace(d.dias_sin_comprar)} (${cmpFecha(d.ultima_compra)}).</div>` : '';
+    h += '<div class="cmp-kpis">'
+      + `<div class="cmp-kpi"><div class="k">Últimos 90 días</div><div class="v">${cmp$(d.venta_90)}</div><div class="s">${d.venta_90_anterior ? cmpVar(d.venta_90, d.venta_90_anterior) + ' vs. año pasado' : 'hace un año no compraba'}</div></div>`
+      + `<div class="cmp-kpi"><div class="k">Compra</div><div class="v">${d.cada_dias ? 'cada ~' + d.cada_dias + ' d' : d.pedidos_12m ? d.pedidos_12m + ' vez' : '—'}</div><div class="s">${d.ultima_compra ? 'última: ' + cmpHace(d.dias_sin_comprar) : ''}</div></div>`
+      + `<div class="cmp-kpi"><div class="k">Pedido promedio</div><div class="v">${d.ticket_promedio ? cmp$(d.ticket_promedio) : '—'}</div><div class="s">${d.pedidos_12m || 0} pedido${d.pedidos_12m === 1 ? '' : 's'} en 12 meses</div></div>`
+      + '</div>';
+    const tipos = d.por_tipo || [];
+    if (tipos.length) h += '<div class="cmp-tit">Últimos 12 meses, por tipo</div>'
+      + tipos.map(t => `<div class="cmp-tipo"><span class="n">${esc(t.nombre)}</span><span class="m">${cmp$(t.venta_12m)}</span><span class="p">${t.venta_12m_anterior ? cmpVar(t.venta_12m, t.venta_12m_anterior) : '<span class="cmp-up">nuevo</span>'}</span></div>`).join('');
+    // Cada lista muestra 4 y "Ver los N" abre el resto.
+    const lista = (k, items, linea) => items.slice(0, _cmpTodo[k] ? items.length : 4).map((p, i) =>
+        `<div class="cmp-li"><div class="t"><b>${esc(p.nombre)}</b><span>${linea(p)}</span></div>`
+        + (_cmpOfrecidos.has(k + p.sku) ? '<button type="button" class="cmp-btn" disabled>✓ En el carrito</button>'
+                                         : `<button type="button" class="cmp-btn" onclick="cmpOfrecer('${k}',${i},this)">+ Ofrecer</button>`) + '</div>').join('')
+      + (items.length > 4 ? `<button type="button" class="cmp-mas" onclick="cmpVerMas('${k}')">${_cmpTodo[k] ? 'Ver menos' : 'Ver los ' + items.length}</button>` : '');
+    const dejo = d.dejo_de_comprar || [];
+    if (dejo.length) h += '<div class="cmp-tit">Dejó de comprar</div><div class="cmp-sub">Lo compraba seguido y hace mucho que no lo pide. Hay stock.</div>'
+      + lista('d', dejo, p => `Lo compraba cada ~${p.cada} días (${p.veces} veces) · la última, ${cmpFecha(p.ultima)}, ${cmpHace(p.dias_sin)}`);
+    const par = d.compran_los_parecidos || [];
+    if (par.length) {
+      const quienes = (CMP_RUBRO[d.tipo] || 'otros clientes del mismo rubro') + (CMP_ZONA[d.zona] ? ' de ' + CMP_ZONA[d.zona] : '');
+      h += `<div class="cmp-tit">Lo compran ${esc(quienes)}</div><div class="cmp-sub">De los ${d.pares} que compraron en los últimos 4 meses. Este cliente no lo compró en un año y medio. Hay stock.</div>`
+        + lista('p', par, p => `Lo compran ${p.clientes} (${p.pct}%) · unas ${Number(p.unidades_prom || 0).toLocaleString('es-AR')} u. cada uno en 4 meses`);
+    }
+    h += '<div class="cmp-nota">Lo facturado en CUBO, sin IVA: vinos, espirituosas, cervezas, bebidas sin alcohol y cafés. Se actualiza cada 20 minutos.</div>';
+    det.innerHTML = h;
+  }
+
+  function cmpVerMas(k) { _cmpTodo[k] = !_cmpTodo[k]; renderComprasCliente(); }
+
+  // "+ Ofrecer": queda en el carrito como Presentada (después se cambia a Aceptada o se saca).
+  function cmpOfrecer(tipo, i, btn) {
+    const p = _cmp && (tipo === 'd' ? _cmp.dejo_de_comprar : _cmp.compran_los_parecidos)[i];
+    if (!p) return;
+    const cant = tipo === 'd' && p.veces ? Math.max(1, Math.round((p.unidades || 0) / p.veces)) : 1;
+    cartAdd(tipo === 'd' ? 'Recuperar productos' : 'Productos nuevos para el cliente', p.nombre, 'Presentada', cant, 'unidades');
+    _cmpOfrecidos.add(tipo + p.sku);
+    if (btn) { btn.textContent = '✓ En el carrito'; btn.disabled = true; }
+    showToast(`🛒 Presentada: ${p.nombre}`, 'success');
+  }
+
   // ── Registrar callbacks para acciones mensuales seleccionables ────────────
   // Se llama después de que _acciones-render.js ya esté disponible (init)
   function initAccionesCallbacks() {
@@ -2916,6 +3040,7 @@ body { background:transparent !important; }
     if (cliente.direccion) document.getElementById('fc-dir').textContent = '📍 ' + cliente.direccion;
     renderFichaWhatsapp();
     cargarDatosClienteExtra();
+    cargarComprasCliente();
     // Bloque "Carta del cliente": ahora vive en la ficha, debajo del WhatsApp.
     // Se muestra con el mismo alcance que antes (checklists que tienen la sección s0).
     // Dónde tiene sentido: en el ON, restaurantes y bares tienen CARTA; en el OFF, las

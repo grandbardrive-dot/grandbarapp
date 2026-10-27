@@ -1,0 +1,19 @@
+-- "Lo que dicen sus compras" en la visita (visita.html, 27/10/2026).
+-- YA APLICADO en el proyecto del MANUAL (fzaxwuuodseyyinveknn), migraciones
+-- "cliente_inteligencia" y "cliente_inteligencia_v2". Queda acá como registro.
+-- El cuerpo completo: select pg_get_functiondef('public.cliente_inteligencia(text)'::regprocedure);
+--
+-- cliente_inteligencia(p_codigo) → jsonb, de ventas_cliente (lo facturado en CUBO), solo
+-- productos que cuentan (dir_es_producto: vinos, espirituosas, cervezas, sin alcohol, cafés),
+-- montos netos sin IVA:
+--   * venta_90 / venta_90_anterior (mismos 90 días del año pasado), venta_12m / venta_12m_anterior,
+--     ultima_compra, dias_sin_comprar, pedidos_12m (días con compra), cada_dias, ticket_promedio.
+--   * por_tipo: últimos 12 meses contra los 12 anteriores, por tipo de producto.
+--   * dejo_de_comprar (hasta 8): lo compró 3 veces o más en 18 meses y hace más del doble de lo
+--     que solía tardar (y más de 45 días) que no lo compra. Solo con stock (productos_grandbar.stock):
+--     lo sin stock suelen ser presentaciones reemplazadas (las de 750 ml).
+--   * compran_los_parecidos (hasta 8): lo compran al menos 3 clientes activos del mismo rubro
+--     (clientes.tipo) y zona del vendedor (vendedores.zona) en los últimos 4 meses, este no lo
+--     compró en 18 meses y hay stock. No se calcula para 'otros', 'mayorista' ni 'evento'.
+--     pares = cuántos de esos clientes compraron en los 4 meses.
+-- Tarda ~0,1–0,3 s (la primera vez, en frío, ~1,4 s).
