@@ -56,6 +56,8 @@
   window.COB_HASH = true;
   window.COB_EXTRA = [
     { id:'revision',      ico:'💳', n:'Revisión de cobranzas', roles:['tesoreria','administracion','admin','desarrollo','diseno'], arriba:true, abrir: () => cobMarco('/cobranzas-tesoreria.html?embed=1', 'Revisión de cobranzas') },
+    // Análisis (27/10/2026): tablero de datos de toda la cobranza, ver cobranzas-analisis.html.
+    { id:'analisis',      ico:'📈', n:'Análisis', roles:['tesoreria','administracion','admin','desarrollo','diseno'], arriba:true, abrir: () => cobMarco('/cobranzas-analisis.html?embed=1', 'Análisis de cobranzas') },
     { id:'agenda-equipo', ico:'📅', n:'Agenda del equipo', roles:['administracion','admin','desarrollo','diseno'], abrir: () => eqAgenda() },
     { id:'mi-agenda',     ico:'🗓️', n:'Mi agenda',         roles:['administracion','admin','desarrollo','diseno'], abrir: () => cobMarco('/mi-agenda.html?embed=1', 'Mi agenda') },
     // Stock del depósito (26/10/2026): los conteos de Lucas Porro y Lucas Buenanueva, la agenda de los lunes y el stock de Córdoba.

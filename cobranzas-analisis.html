@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<meta name="theme-color" content="#0d2238">
+<title>GrandBar — Análisis de Cobranzas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Marca del Portal + tokens de los gráficos (paleta validada contra la tarjeta blanca). */
+  :root{
+    --navy:#0d2238; --navy-2:#14304c; --gold:#c9a13b; --gold-d:#a9852a; --gold-soft:#f7efda;
+    --cream:#f5f1e8; --card:#ffffff; --ink:#1b2a32; --ink-2:#52514e; --muted:#7a8891; --line:#e9e3d6; --line-2:#efe9dc;
+    --grid:#e1e0d9; --axis:#c3c2b7; --axis-ink:#898781;
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
+    --good:#0ca30c; --good-ink:#006300; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+    --o1:#0d366b; --o2:#1c5cab; --o3:#2a78d6; --o4:#5598e7; --o5:#86b6ef;
+    --font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1320px;margin:0 auto;padding:22px 24px 70px}
+  .embed .wrap{padding:16px 18px 50px}
+  .top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  .top h1{margin:0;font-size:24px;font-weight:800;color:var(--navy)}
+  .top .sub{color:var(--muted);font-size:13px;margin-top:3px}
+  .volver{color:var(--muted);font-size:13px;text-decoration:none;display:inline-block;margin-bottom:6px}
+  .embed .volver{display:none}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:13px;font-weight:700;border-radius:10px;padding:8px 13px;cursor:pointer}
+  .btn:hover{border-color:var(--gold)}
+  .btn.primary{background:var(--navy);border-color:var(--navy);color:#fff}
+
+  /* Filtros: una sola fila arriba de todo, todo lo de abajo responde a esta selección. */
+  .filtros{position:sticky;top:0;z-index:20;background:var(--cream);padding:10px 0 12px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;border-bottom:1px solid var(--line)}
+  .f{display:flex;flex-direction:column;gap:4px}
+  .f label{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .f select,.f input{font:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--card);color:var(--ink);min-width:0}
+  .seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{border:0;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--ink-2);padding:8px 11px;cursor:pointer;border-right:1px solid var(--line-2)}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--navy);color:#fff}
+  .custom{display:none;gap:6px}
+  .custom.on{display:flex}
+  .f-q input{min-width:210px}
+  .chips-nav{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 4px}
+  .chips-nav a{font-size:12.5px;font-weight:700;color:var(--ink-2);text-decoration:none;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+  .chips-nav a:hover{border-color:var(--gold)}
+  .nota-zona{font-size:12.5px;color:#7a5a12;background:var(--gold-soft);border:1px solid #e5d3a3;border-radius:10px;padding:8px 12px;margin-top:10px;display:none}
+
+  .sec{margin-top:26px;scroll-margin-top:90px}
+  .sec > h2{font-size:17px;font-weight:800;color:var(--navy);margin:0 0 4px}
+  .sec > .d{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+  .grid{display:grid;gap:12px}
+  .g4{grid-template-columns:repeat(4,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:repeat(2,1fr)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+  .card h3{margin:0 0 2px;font-size:13.5px;font-weight:800;color:var(--ink)}
+  .card .cd{font-size:11.5px;color:var(--muted);margin-bottom:10px}
+  .tile .k{font-size:11.5px;font-weight:700;color:var(--muted)}
+  .tile .v{font-size:24px;font-weight:800;margin-top:4px;color:var(--ink)}
+  .tile .s{font-size:12px;color:var(--ink-2);margin-top:3px}
+  .tile .s b{color:var(--ink)}
+  .tile .grp{font-size:10.5px;font-weight:800;color:var(--gold-d);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .estado{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700}
+  .estado i{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin:2px 0 8px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:12px;height:10px;border-radius:2px;display:inline-block}
+  .legend i.ln{height:2px;width:14px;border-radius:2px}
+  .chart{width:100%;position:relative}
+  .chart svg{display:block;width:100%;overflow:visible}
+  .vacio{color:var(--muted);font-size:13px;padding:22px 4px;text-align:center}
+  .toggle-tabla{font-size:12px;color:var(--ink-2);background:none;border:0;font:inherit;font-weight:700;cursor:pointer;text-decoration:underline;padding:0;margin-top:6px}
+
+  /* Tablas */
+  .tw{overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);max-height:620px}
+  table.t{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+  table.t th{position:sticky;top:0;background:var(--navy);color:#eaf0f4;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:700;padding:9px 10px;text-align:left;white-space:nowrap;cursor:pointer;user-select:none;z-index:2}
+  table.t th.n,table.t td.n{text-align:right;font-variant-numeric:tabular-nums}
+  table.t th .ar{opacity:.7;margin-left:3px}
+  table.t td{padding:8px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+  table.t tbody tr:hover td{background:#faf7f0}
+  table.t tbody tr.clic{cursor:pointer}
+  table.t td.first,table.t th.first{position:sticky;left:0;background:inherit;z-index:1}
+  table.t th.first{z-index:3;background:var(--navy)}
+  table.t tbody td.first{background:var(--card)}
+  table.t tbody tr:hover td.first{background:#faf7f0}
+  .mut{color:var(--muted)} .rojo{color:var(--crit);font-weight:700} .ok{color:var(--good-ink);font-weight:700}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;border-radius:6px;padding:2px 7px;background:#eef1f4;color:var(--ink-2)}
+  .tag.on{background:#e6eefa;color:#1c5cab} .tag.off{background:#fdeee6;color:#a8461b} .tag.may{background:#f2eafc;color:#5a46b8}
+  .tbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .tbar select,.tbar input{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:var(--card)}
+  .pag{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:8px;font-size:12.5px;color:var(--muted)}
+  .minibar{display:inline-block;height:8px;border-radius:0 4px 4px 0;background:var(--s1);vertical-align:middle;margin-right:6px}
+
+  /* Grilla de uso de planillas (vendedor × día) */
+  .heat{border-collapse:separate;border-spacing:2px;font-size:11px}
+  .heat th{font-weight:700;color:var(--axis-ink);padding:2px 3px;white-space:nowrap}
+  .heat th.v{text-align:left;color:var(--ink);font-size:12px;padding-right:8px;position:sticky;left:0;background:var(--card)}
+  .heat td{width:26px;min-width:26px;height:24px;border-radius:4px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;cursor:default}
+  .heat td.z{background:#f3f1ec}
+  .heat td.tot{background:none;color:var(--ink-2);text-align:right;padding-left:8px;width:auto}
+
+  /* Tooltip */
+  #tt{position:fixed;z-index:9999;pointer-events:none;background:#fff;border:1px solid rgba(11,11,11,.12);border-radius:10px;box-shadow:0 10px 30px -10px rgba(0,0,0,.35);padding:9px 11px;font-size:12px;min-width:150px;display:none}
+  #tt .tt-t{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px}
+  #tt .tt-r{display:flex;align-items:center;gap:8px;margin:2px 0}
+  #tt .tt-r i{width:12px;height:2px;border-radius:2px;flex:none}
+  #tt .tt-r b{font-size:13px;color:var(--ink)}
+  #tt .tt-r span{color:var(--ink-2)}
+
+  /* Ficha del cliente */
+  #drawer{position:fixed;inset:0;z-index:50;display:none}
+  #drawer.on{display:block}
+  #drawer .bg{position:absolute;inset:0;background:rgba(13,34,56,.45)}
+  #drawer .pn{position:absolute;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--cream);overflow:auto;padding:20px 20px 40px;box-shadow:-20px 0 40px -20px rgba(0,0,0,.4)}
+  .tl{list-style:none;margin:0;padding:0}
+  .tl li{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2);font-size:13px}
+  .tl li .w{flex:none;width:118px;color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tl li .ico{flex:none;width:20px;text-align:center}
+
+  .cargando{opacity:.45;transition:opacity .2s}
+  .err{background:#fde8e6;border:1px solid #f1b9b0;color:#96371f;border-radius:12px;padding:14px;margin-top:16px}
+  @media (max-width:1050px){ .g4{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:1fr 1fr} }
+  @media (max-width:700px){ .g4,.g3,.g2{grid-template-columns:1fr} .wrap{padding:14px 12px 60px} .f-q input{min-width:0;width:100%} .f-q{flex:1 1 100%}
+    .filtros{position:static} .top .btn{font-size:12px;padding:7px 10px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="volver" href="/hub.html">‹ Volver al Portal</a>
+  <div class="top">
+    <div>
+      <h1>📈 Análisis de Cobranzas</h1>
+      <div class="sub" id="sub">Cargando datos…</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="b-csv-v">⬇ Vendedores (CSV)</button>
+      <button class="btn" id="b-csv-c">⬇ Clientes (CSV)</button>
+      <button class="btn primary" id="b-act">↻ Actualizar</button>
+    </div>
+  </div>
+
+  <div class="filtros" id="filtros">
+    <div class="f"><label>Período</label>
+      <div class="seg" id="f-per">
+        <button data-v="7">7 días</button><button data-v="30" class="on">30 días</button><button data-v="90">90 días</button><button data-v="todo">Todo</button><button data-v="custom">Elegir…</button>
+      </div>
+    </div>
+    <div class="f custom" id="f-custom"><label>Desde / hasta</label>
+      <div style="display:flex;gap:6px"><input type="date" id="f-desde"><input type="date" id="f-hasta"></div>
+    </div>
+    <div class="f"><label>Zona</label>
+      <select id="f-zona"><option value="">Todas</option><option>Mendoza</option><option>San Luis</option></select></div>
+    <div class="f"><label>Canal</label>
+      <select id="f-canal"><option value="">Todos</option><option>ON</option><option>OFF</option><option>Mayorista</option><option value="Sin clasificar">Sin clasificar (SL)</option><option>Otros</option></select></div>
+    <div class="f"><label>Vendedor</label><select id="f-vend"><option value="">Todos</option></select></div>
+    <div class="f f-q"><label>Cliente</label><input id="f-q" type="search" placeholder="Buscar por nombre o código…"></div>
+  </div>
+  <div class="nota-zona" id="nota-zona"></div>
+
+  <nav class="chips-nav">
+    <a href="#s-resumen">Resumen</a><a href="#s-actividad">Actividad</a><a href="#s-portal">Uso del portal</a><a href="#s-flujos">Tiempos de los flujos</a>
+    <a href="#s-vendedores">Vendedores</a><a href="#s-clientes">Clientes</a><a href="#s-planillas">Planillas</a><a href="#s-reclamos">Reclamos</a><a href="#s-wa">WhatsApp</a>
+  </nav>
+
+  <div id="app"></div>
+</div>
+
+<div id="tt"></div>
+<div id="drawer"><div class="bg" id="dr-bg"></div><div class="pn" id="dr-pn"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  const HUB = { url: 'https://xqhyemccbwmzxqzkrtwa.supabase.co', key: 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
+  if (/[?&]embed=1/.test(location.search)) document.body.classList.add('embed');
+
+  // ── Formatos ────────────────────────────────────────────────
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const nf = (n, d = 0) => (Number(n) || 0).toLocaleString('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const $ = n => '$ ' + nf(Math.round(Number(n) || 0));
+  const $c = n => { const v = Math.abs(Number(n) || 0), s = n < 0 ? '−' : ''; if (v >= 1e9) return s + '$ ' + nf(v / 1e9, 1) + ' mil M'; if (v >= 1e6) return s + '$ ' + nf(v / 1e6, 1) + ' M'; if (v >= 1e3) return s + '$ ' + nf(v / 1e3, 0) + ' mil'; return s + '$ ' + nf(v); };
+  const pct = (a, b) => b ? Math.round(a * 100 / b) : 0;
+  const dur = s => { if (s == null || !isFinite(s)) return '—'; s = Math.max(0, s); if (s < 3600) return nf(Math.max(1, Math.round(s / 60))) + ' min'; if (s < 48 * 3600) return nf(s / 3600, 1) + ' h'; return nf(s / 86400, 1) + ' días'; };
+  const TZ = 'America/Argentina/Mendoza';
+  const diaKey = t => new Date(t * 1000).toLocaleDateString('en-CA', { timeZone: TZ });
+  const fDia = t => t ? new Date(t * 1000).toLocaleDateString('es-AR', { timeZone: TZ, day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
+  const fDiaH = t => t ? new Date(t * 1000).toLocaleString('es-AR', { timeZone: TZ, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+  const dkLabel = k => { const [y, m, d] = k.split('-'); return d + '/' + m; };
+  const dig = v => String(v == null ? '' : v).replace(/\D/g, '');
+  const padV = v => { const d = dig(v); return d ? d.padStart(3, '0') : ''; };
+  const median = a => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const p90 = a => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.ceil(s.length * 0.9) - 1)]; };
+  const ahora = () => Math.round(Date.now() / 1000);
+
+  // ── Canal y zona (reglas del sistema, ver cobranzas-analisis.js) ──
+  const ZONA_SL = new Set(['SL', 'MAY SL']);
+  const zonaDe = eq => ZONA_SL.has(eq) ? 'San Luis' : 'Mendoza';
+  const RUB_ON = /bar|restaur|cafet|hotel|disco|event|cater|sal[oó]n|finca/i, RUB_OFF = /vinot|tienda de bebidas|autoserv|kiosc|almac|s[uú]per|despensa/i;
+  function canalDe(eq, rubro) {
+    if (eq === 'ON') return 'ON'; if (eq === 'OFF') return 'OFF';
+    if (eq === 'MAY MDZ' || eq === 'MAY SL') return 'Mayorista';
+    if (eq === 'SL') return RUB_OFF.test(rubro) ? 'OFF' : RUB_ON.test(rubro) ? 'ON' : 'Sin clasificar';
+    return 'Otros';
+  }
+  const tagCanal = c => '<span class="tag ' + (c === 'ON' ? 'on' : c === 'OFF' ? 'off' : c === 'Mayorista' ? 'may' : '') + '" title="' + (c === 'Mixto' ? 'Atiende clientes ON y OFF' : c === 'Sin clasificar' ? 'Cliente de San Luis sin rubro cargado' : '') + '">' + esc(c) + '</span>';
+
+  // ── Estado ──
+  const S = { d: null, f: { per: '30', desde: '', hasta: '', zona: '', canal: '', vend: '', q: '' },
+    sort: { v: { k: 'venc', d: -1 }, c: { k: 'venc', d: -1 } }, pag: 0, ver: 'todos', vistas: {} };
+  let token = null;
+
+  // ── Tooltip (los nombres van como texto, nunca como HTML) ──
+  const TT = document.getElementById('tt');
+  function tip(ev, titulo, filas) {
+    TT.textContent = '';
+    if (titulo) { const t = document.createElement('div'); t.className = 'tt-t'; t.textContent = titulo; TT.appendChild(t); }
+    filas.forEach(f => {
+      const r = document.createElement('div'); r.className = 'tt-r';
+      if (f.color) { const i = document.createElement('i'); i.style.background = f.color; r.appendChild(i); }
+      const b = document.createElement('b'); b.textContent = f.valor; r.appendChild(b);
+      if (f.label) { const s = document.createElement('span'); s.textContent = f.label; r.appendChild(s); }
+      TT.appendChild(r);
+    });
+    TT.style.display = 'block';
+    const w = TT.offsetWidth, h = TT.offsetHeight;
+    let x = ev.clientX + 14, y = ev.clientY + 14;
+    if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+    if (y + h > innerHeight - 8) y = ev.clientY - h - 14;
+    TT.style.left = x + 'px'; TT.style.top = y + 'px';
+  }
+  const tipOff = () => { TT.style.display = 'none'; };
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const _cv = document.createElement('canvas').getContext('2d');
+  const medir = (t, px = 12) => { _cv.font = px + 'px Inter, system-ui, sans-serif'; return _cv.measureText(String(t)).width; };
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  // Barra con la punta redondeada (4px) y la base recta.
+  function pathBarH(x, y, w, h, r = 4) { if (w <= 0) return ''; r = Math.min(r, w, h / 2); return `M${x},${y}h${w - r}a${r},${r} 0 0 1 ${r},${r}v${h - 2 * r}a${r},${r} 0 0 1 ${-r},${r}h${-(w - r)}z`; }
+  function pathBarV(x, y, w, h, r = 4) { if (h <= 0) return ''; r = Math.min(r, h, w / 2); return `M${x},${y + h}v${-(h - r)}a${r},${r} 0 0 1 ${r},${-r}h${w - 2 * r}a${r},${r} 0 0 1 ${r},${r}v${h - r}z`; }
+  // Escala del eje con números redondos: paso de 1/2/2,5/5 × 10^k y tope múltiplo del paso.
+  function escala(v) {
+    if (!(v > 0)) return { top: 1, paso: 1, n: 1 };
+    const crudo = v / 4, p = Math.pow(10, Math.floor(Math.log10(crudo))), m = crudo / p;
+    let paso = (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
+    if (paso < 1) paso = 1;                          // contamos cosas: nada de 0,5
+    const n = Math.max(1, Math.ceil(v / paso));
+    return { top: paso * n, paso, n };
+  }
+
+  // Barras horizontales de UNA serie (o rampa ordinal en el embudo). Valor en la punta.
+  function barrasH(el, items, o = {}) {
+    el.textContent = '';
+    if (!items.length) { el.innerHTML = '<div class="vacio">Sin datos para esta selección.</div>'; return; }
+    // Ancho de la columna de nombres medido con el texto real (que ninguna etiqueta quede cortada).
+    const W = Math.max(280, el.clientWidth), fila = 30, bh = 16, H = items.length * fila + 4;
+    const lab = Math.min(Math.max(...items.map(i => medir(i.label))) + 24, W * 0.52, o.lab || 220);
+    const max = o.max || Math.max(...items.map(i => i.v)) || 1, area = W - lab - 92;
+    const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img', 'aria-label': o.titulo || '' }, el);
+    items.forEach((it, i) => {
+      const y = i * fila + (fila - bh) / 2, w = Math.max(it.v > 0 ? 2 : 0, area * it.v / max);
+      const tl = sv('text', { x: lab - 10, y: y + bh / 2 + 4, 'text-anchor': 'end', 'font-size': 12, fill: css('--ink-2') }, svg); tl.textContent = it.label;
+      sv('line', { x1: lab, x2: lab, y1: i * fila + 3, y2: (i + 1) * fila - 3, stroke: css('--axis'), 'stroke-width': 1 }, svg);
+      const p = sv('path', { d: pathBarH(lab, y, w, bh), fill: it.color || o.color || css('--s1') }, svg);
+      const tv = sv('text', { x: lab + w + 6, y: y + bh / 2 + 4, 'font-size': 12, 'font-weight': 700, fill: css('--ink') }, svg); tv.textContent = it.txt;
+      const hit = sv('rect', { x: 0, y: i * fila, width: W, height: fila, fill: 'transparent' }, svg);
+      hit.addEventListener('pointermove', e => { p.setAttribute('opacity', '.8'); tip(e, it.label, [{ valor: it.txt, label: it.sub || '' }]); });
+      hit.addEventListener('pointerleave', () => { p.removeAttribute('opacity'); tipOff(); });
+    });
+  }
+
+  // Columnas apiladas por fecha. Hueco de 2px entre segmentos; tooltip con todas las series.
+  function columnas(el, series, datos, o = {}) {
+    el.textContent = '';
+    const tot = datos.map(d => series.reduce((s, k) => s + (d.v[k.k] || 0), 0));
+    if (!datos.length || !tot.some(Boolean)) { el.innerHTML = '<div class="vacio">Sin actividad en este período.</div>'; return; }
+    const W = Math.max(300, el.clientWidth), H = o.h || 230, ml = 36, mb = 26, mt = 8, pw = W - ml - 6, ph = H - mb - mt;
+    const E = escala(Math.max(...tot)), max = E.top, band = pw / datos.length, cw = Math.max(3, Math.min(24, band * 0.62));
+    const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img', 'aria-label': o.titulo || '' }, el);
+    for (let g = 0; g <= E.n; g++) {
+      const y = mt + ph - ph * g / E.n;
+      sv('line', { x1: ml, x2: W - 6, y1: y, y2: y, stroke: g ? css('--grid') : css('--axis'), 'stroke-width': 1 }, svg);
+      const t = sv('text', { x: ml - 6, y: y + 4, 'text-anchor': 'end', 'font-size': 10.5, fill: css('--axis-ink') }, svg); t.textContent = nf(E.paso * g, E.paso % 1 ? 1 : 0);
+    }
+    const cada = Math.ceil(datos.length / Math.max(1, Math.floor(pw / 46)));
+    datos.forEach((d, i) => {
+      const x = ml + band * i + (band - cw) / 2; let yb = mt + ph;
+      const visibles = series.filter(k => d.v[k.k] > 0);
+      visibles.forEach((k, j) => {
+        let h = ph * d.v[k.k] / max; const gap = j > 0 ? 2 : 0; h = Math.max(1, h - gap);
+        const top = j === visibles.length - 1;
+        sv('path', { d: top ? pathBarV(x, yb - gap - h, cw, h) : `M${x},${yb - gap - h}h${cw}v${h}h${-cw}z`, fill: k.color }, svg);
+        yb -= h + gap;
+      });
+      if (i % cada === 0) { const t = sv('text', { x: x + cw / 2, y: H - 8, 'text-anchor': 'middle', 'font-size': 10.5, fill: css('--axis-ink') }, svg); t.textContent = d.label; }
+      const hit = sv('rect', { x: ml + band * i, y: mt, width: band, height: ph, fill: 'transparent' }, svg);
+      hit.addEventListener('pointermove', e => tip(e, d.titulo || d.label, series.map(k => ({ color: k.color, valor: nf(d.v[k.k] || 0), label: k.label })).concat([{ valor: nf(tot[i]), label: 'en total' }])));
+      hit.addEventListener('pointerleave', tipOff);
+    });
+  }
+
+  // Líneas con cruz de lectura (busca la fecha más cercana) y punto con aro de 2px.
+  function lineas(el, series, datos, o = {}) {
+    el.textContent = '';
+    if (!datos.length || !datos.some(d => series.some(k => d.v[k.k] > 0))) { el.innerHTML = '<div class="vacio">Sin mensajes en este período.</div>'; return; }
+    const W = Math.max(300, el.clientWidth), H = o.h || 220, ml = 36, mr = 64, mb = 26, mt = 10, pw = W - ml - mr, ph = H - mb - mt;
+    const E = escala(Math.max(...datos.flatMap(d => series.map(k => d.v[k.k] || 0)))), max = E.top;
+    const X = i => ml + (datos.length === 1 ? pw / 2 : pw * i / (datos.length - 1)), Y = v => mt + ph - ph * v / max;
+    const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img', 'aria-label': o.titulo || '' }, el);
+    for (let g = 0; g <= E.n; g++) {
+      const y = mt + ph - ph * g / E.n;
+      sv('line', { x1: ml, x2: ml + pw, y1: y, y2: y, stroke: g ? css('--grid') : css('--axis'), 'stroke-width': 1 }, svg);
+      const t = sv('text', { x: ml - 6, y: y + 4, 'text-anchor': 'end', 'font-size': 10.5, fill: css('--axis-ink') }, svg); t.textContent = nf(E.paso * g, E.paso % 1 ? 1 : 0);
+    }
+    const cada = Math.ceil(datos.length / Math.max(1, Math.floor(pw / 46)));
+    datos.forEach((d, i) => { if (i % cada === 0) { const t = sv('text', { x: X(i), y: H - 8, 'text-anchor': 'middle', 'font-size': 10.5, fill: css('--axis-ink') }, svg); t.textContent = d.label; } });
+    const finales = [];
+    series.forEach(k => {
+      sv('path', { d: datos.map((d, i) => (i ? 'L' : 'M') + X(i) + ',' + Y(d.v[k.k] || 0)).join(''), fill: 'none', stroke: k.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
+      finales.push({ k, y: Y(datos[datos.length - 1].v[k.k] || 0) });
+    });
+    // Rótulo al final de cada línea (si dos chocan, queda la leyenda + el tooltip).
+    finales.sort((a, b) => a.y - b.y); let ult = -99;
+    finales.forEach(f => { if (f.y - ult < 13) return; ult = f.y; const t = sv('text', { x: ml + pw + 6, y: f.y + 4, 'font-size': 11, fill: css('--ink-2') }, svg); t.textContent = f.k.label; });
+    const cruz = sv('line', { y1: mt, y2: mt + ph, stroke: css('--axis-ink'), 'stroke-width': 1, opacity: 0 }, svg);
+    const dots = series.map(k => sv('circle', { r: 4, fill: k.color, stroke: '#fff', 'stroke-width': 2, opacity: 0 }, svg));
+    const hit = sv('rect', { x: ml, y: mt, width: pw, height: ph, fill: 'transparent' }, svg);
+    hit.addEventListener('pointermove', e => {
+      const r = svg.getBoundingClientRect(), mx = (e.clientX - r.left) * W / r.width;
+      const i = Math.max(0, Math.min(datos.length - 1, Math.round((mx - ml) / (datos.length === 1 ? 1 : pw / (datos.length - 1)))));
+      cruz.setAttribute('x1', X(i)); cruz.setAttribute('x2', X(i)); cruz.setAttribute('opacity', 1);
+      series.forEach((k, j) => { dots[j].setAttribute('cx', X(i)); dots[j].setAttribute('cy', Y(datos[i].v[k.k] || 0)); dots[j].setAttribute('opacity', 1); });
+      tip(e, datos[i].titulo || datos[i].label, series.map(k => ({ color: k.color, valor: nf(datos[i].v[k.k] || 0), label: k.label })));
+    });
+    hit.addEventListener('pointerleave', () => { cruz.setAttribute('opacity', 0); dots.forEach(d => d.setAttribute('opacity', 0)); tipOff(); });
+  }
+  const leyenda = (series, linea) => '<div class="legend">' + series.map(k => '<span><i class="' + (linea ? 'ln' : '') + '" style="background:' + k.color + '"></i>' + esc(k.label) + '</span>').join('') + '</div>';
+  // Vista de tabla de un gráfico (la identidad nunca depende solo del color).
+  function tablaDe(series, datos) {
+    return '<div class="tw" style="max-height:260px;margin-top:8px"><table class="t"><thead><tr><th>Fecha</th>' + series.map(k => '<th class="n">' + esc(k.label) + '</th>').join('') + '</tr></thead><tbody>' +
+      datos.map(d => '<tr><td>' + esc(d.titulo || d.label) + '</td>' + series.map(k => '<td class="n">' + nf(d.v[k.k] || 0) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
+  }
+
+  // ── Preparar los datos crudos del servidor ──
+  function preparar(j) {
+    const C = {};                                   // código → cliente
+    j.cu.forEach(r => { const [cod, nom, vend, eq, rub, saldo, venc, q] = r; C[cod] = { cod, nom, vend: padV(vend), eq, rub, saldo, venc, q: !!q, canal: canalDe(eq, rub), zona: zonaDe(eq), alta: null, ult: null, tieneUsr: false }; });
+    j.po.forEach(([cod, alta, ult]) => { const c = C[cod]; if (c) { c.tieneUsr = true; c.alta = alta; c.ult = ult; } });
+    // Vendedor: su zona y su canal = los de la mayoría de su cartera.
+    const V = {};
+    const vend = cod => (V[cod] = V[cod] || { cod, nom: (j.vend[cod] && j.vend[cod].n) || ('Vendedor ' + cod), zc: {}, cc: {} });
+    Object.values(C).forEach(c => { if (!c.vend || c.q) return; const v = vend(c.vend); v.zc[c.zona] = (v.zc[c.zona] || 0) + 1; v.cc[c.canal] = (v.cc[c.canal] || 0) + 1; });
+    const top = o => Object.entries(o).sort((a, b) => b[1] - a[1])[0];
+    // Canal del vendedor: el de su cartera si al menos 2 de cada 3 clientes son de ese canal; si no, "Mixto".
+    Object.values(V).forEach(v => {
+      v.zona = (top(v.zc) || ['Mendoza'])[0];
+      const t = top(v.cc), n = Object.values(v.cc).reduce((s, x) => s + x, 0);
+      v.canal = !t ? 'Otros' : (t[1] / n >= 0.65 ? t[0] : 'Mixto');
+    });
+    const ev = { co: [], ef: [], re: [], pl: [], en: [], bo: [], nc: [], wa: [], wi: [] };
+    j.co.forEach(([cod, ven, estado, monto, t0, tp, tr]) => ev.co.push({ cod, vend: padV(ven), estado, monto, t0, tp, tr }));
+    j.ef.forEach(([cod, ven, estado, monto, t0, tc]) => ev.ef.push({ cod, vend: padV(ven), estado, monto, t0, tc }));
+    j.re.forEach(([cod, nro, asunto, estado, t0, t1, tres, nmsg]) => ev.re.push({ cod, nro, asunto, estado, t0, t1, tres, nmsg }));
+    j.pl.forEach(([ven, fecha, cod, imp, efe, che, ret, tra, tar, ech, t0, proc, tp, edit]) => ev.pl.push({ vend: padV(ven), fecha, cod, imp, efe, che, ret, tra, tar, ech, t0, proc: !!proc, tp, edit: !!edit }));
+    j.en.forEach(([ven, fecha, t, filas]) => ev.en.push({ vend: padV(ven), fecha, t, filas }));
+    j.bo.forEach(([ven, fecha, t]) => ev.bo.push({ vend: padV(ven), fecha, t }));
+    j.nc.forEach(([cod, ven, estado, monto, t0, ta]) => ev.nc.push({ cod, vend: padV(ven), estado, monto, t0, ta }));
+    j.wa.forEach(([cod, k, t, dl, rd, f]) => ev.wa.push({ cod, k, t, dl, rd, f: !!f }));
+    j.wi.forEach(([cod, t]) => ev.wi.push({ cod, t }));
+    // Todos los vendedores del Manual aparecen, aunque no tengan cartera asignada ni movimientos
+    // (también los que solo rindieron planillas). Su zona sale del Manual.
+    const sinCartera = cod => { if (!cod || V[cod]) return; const v = vend(cod); v.zona = (j.vend[cod] && /luis/i.test(j.vend[cod].z)) ? 'San Luis' : 'Mendoza'; v.canal = '—'; };
+    Object.keys(j.vend || {}).forEach(k => sinCartera(padV(k)));
+    ev.pl.forEach(p => sinCartera(p.vend));
+    const envDe = {}; ev.en.forEach(e => { envDe[e.vend + '|' + e.fecha] = e.t; });
+    return { C, V, ev, envDe, generado: j.generado, zonaForzada: j.zona, we: j.we || [] };
+  }
+
+  // ── Filtros ──
+  function rango() {
+    const f = S.f, hoy = ahora();
+    if (f.per === 'todo') return [0, hoy + 86400];
+    if (f.per === 'custom') {
+      const a = f.desde ? Date.parse(f.desde + 'T00:00:00-03:00') / 1000 : 0;
+      const b = f.hasta ? Date.parse(f.hasta + 'T23:59:59-03:00') / 1000 : hoy;
+      return [a, b];
+    }
+    return [hoy - Number(f.per) * 86400, hoy + 60];
+  }
+  const qN = () => S.f.q.trim().toLowerCase();
+  // ¿El cliente entra en la selección (zona, canal, vendedor y búsqueda)?
+  // sinVend: no mirar el vendedor de la cartera (en las planillas manda el que rindió).
+  function cliOk(c, sinVend) {
+    const f = S.f, q = qN();
+    if (f.zona && c.zona !== f.zona) return false;
+    if (f.canal && c.canal !== f.canal) return false;
+    if (f.vend && !sinVend && c.vend !== f.vend) return false;
+    if (q && !(c.nom.toLowerCase().includes(q) || c.cod.includes(q) || c.cod.replace(/^0+/, '').startsWith(q.replace(/^0+/, '')))) return false;
+    return true;
+  }
+  const hayFiltro = () => !!(S.f.zona || S.f.canal || S.f.vend || qN());
+  // Un evento entra si su cliente entra; sin cliente conocido, se mira el vendedor del evento.
+  function evOk(cod, vendEv, sinVend) {
+    const c = cod && S.d.C[cod];
+    if (c) return cliOk(c, sinVend);
+    if (!hayFiltro()) return true;
+    if (qN()) return false;
+    const v = vendEv && S.d.V[vendEv];
+    if (!v) return false;
+    if (S.f.zona && v.zona !== S.f.zona) return false;
+    if (S.f.canal && !(v.cc && v.cc[S.f.canal]) && v.canal !== S.f.canal) return false;
+    if (S.f.vend && vendEv !== S.f.vend) return false;
+    return true;
+  }
+  const enRango = (t, [a, b]) => t != null && t >= a && t <= b;
+  const fechaEnRango = (iso, [a, b]) => { if (!iso) return false; const t = Date.parse(iso + 'T12:00:00-03:00') / 1000; return t >= a - 43200 && t <= b + 43200; };
+
+  // ── Cálculo de todo lo filtrado ──
+  function calcular() {
+    const d = S.d, R = rango(), ev = d.ev;
+    const clientes = Object.values(d.C).filter(c => !c.q && cliOk(c));
+    const co = ev.co.filter(x => evOk(x.cod, x.vend)), coP = co.filter(x => enRango(x.t0, R));
+    const ef = ev.ef.filter(x => evOk(x.cod, x.vend)), efP = ef.filter(x => enRango(x.t0, R));
+    const re = ev.re.filter(x => evOk(x.cod)), reP = re.filter(x => enRango(x.t0, R));
+    const pl = ev.pl.filter(x => evOk(x.cod, x.vend, true) && (!S.f.vend || x.vend === S.f.vend)), plP = pl.filter(x => fechaEnRango(x.fecha, R));
+    const boP = ev.bo.filter(x => evOk(null, x.vend) && fechaEnRango(x.fecha, R));
+    const enP = ev.en.filter(x => evOk(null, x.vend) && fechaEnRango(x.fecha, R));
+    const nc = ev.nc.filter(x => evOk(x.cod, x.vend)), ncP = nc.filter(x => enRango(x.t0, R));
+    const wa = ev.wa.filter(x => evOk(x.cod)), waP = wa.filter(x => enRango(x.t, R));
+    const wiP = ev.wi.filter(x => evOk(x.cod) && enRango(x.t, R));
+    return { R, clientes, co, coP, ef, efP, re, reP, pl, plP, boP, enP, nc, ncP, wa, waP, wiP };
+  }
+
+  // ── Render ──
+  const app = document.getElementById('app');
+  function render() {
+    if (!S.d) return;
+    const X = calcular(); S.X = X;
+    app.innerHTML = secResumen(X) + secActividad() + secPortal(X) + secFlujos(X) + secVendedores() + secClientes() + secPlanillas() + secReclamos(X) + secWA(X);
+    pintarActividad(X); pintarPortal(X); pintarVendedores(X); pintarClientes(X); pintarPlanillas(X); pintarWA(X);
+  }
+
+  const tile = (grp, k, v, s) => `<div class="card tile">${grp ? `<div class="grp">${grp}</div>` : ''}<div class="k">${k}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ''}</div>`;
+  function secResumen(X) {
+    const cl = X.clientes, saldo = cl.reduce((s, c) => s + c.saldo, 0), venc = cl.reduce((s, c) => s + Math.max(0, c.venc), 0);
+    const conVenc = cl.filter(c => c.venc > 0).length, usr = cl.filter(c => c.tieneUsr).length, entro = cl.filter(c => c.ult).length;
+    const a30 = cl.filter(c => c.ult && c.ult > ahora() - 30 * 86400).length;
+    const coPend = X.co.filter(x => x.estado === 'pendiente').length, coMonto = X.coP.reduce((s, x) => s + x.monto, 0);
+    const plMonto = X.plP.reduce((s, x) => s + x.imp, 0), plProc = X.plP.filter(x => x.proc).length;
+    const efPend = X.ef.filter(x => x.estado === 'pendiente');
+    const reAb = X.re.filter(x => x.estado !== 'resuelto').length, reResp = median(X.reP.filter(x => x.t1).map(x => x.t1 - x.t0));
+    const waEnt = X.waP.filter(x => x.dl || x.rd).length, waLe = X.waP.filter(x => x.rd).length, waF = X.waP.filter(x => x.f).length;
+    const ncMonto = X.ncP.reduce((s, x) => s + x.monto, 0);
+    return `<section class="sec" id="s-resumen"><h2>Resumen</h2><p class="d">La cartera y el uso del portal son la foto de hoy; lo demás cuenta lo que pasó en el período elegido.</p>
+      <div class="grid g4">
+        ${tile('Cartera', 'Cuentas en la selección', nf(cl.length), `<b>${nf(conVenc)}</b> con deuda vencida`)}
+        ${tile('Cartera', 'Saldo total', $c(saldo), `Vencido <b>${$c(venc)}</b> · ${pct(venc, saldo)}% del saldo`)}
+        ${tile('Portal de clientes', 'Ya entraron al portal', nf(entro) + ' <span style="font-size:15px;color:var(--muted)">/ ' + nf(cl.length) + '</span>', `${pct(entro, cl.length)}% de la cartera · <b>${nf(usr)}</b> tienen usuario`)}
+        ${tile('Portal de clientes', 'Activos últimos 30 días', nf(a30), `${pct(a30, entro)}% de los que alguna vez entraron`)}
+        ${tile('Comprobantes', 'Subidos en el período', nf(X.coP.length), `${$c(coMonto)} · <b>${nf(coPend)}</b> pendientes hoy`)}
+        ${tile('Planillas de rendición', 'Filas rendidas en el período', nf(X.plP.length), `${$c(plMonto)} · <b>${pct(plProc, X.plP.length)}%</b> procesado`)}
+        ${tile('Efectivo', 'Avisos de efectivo listo', nf(X.efP.length), `<b>${nf(efPend.length)}</b> sin retirar hoy (${$c(efPend.reduce((s, x) => s + x.monto, 0))})`)}
+        ${tile('Reclamos', 'Abiertos en el período', nf(X.reP.length), `<b>${nf(reAb)}</b> sin resolver · 1ª respuesta ${dur(reResp)}`)}
+        ${tile('WhatsApp', 'Mensajes enviados', nf(X.waP.length), `Entregados ${pct(waEnt, X.waP.length)}% · leídos <b>${pct(waLe, X.waP.length)}%</b>${waF ? ` · <span class="rojo">${nf(waF)} fallidos</span>` : ''}`)}
+        ${tile('WhatsApp', 'Respuestas de clientes', nf(X.wiP.length), 'Mensajes que llegaron a la bandeja')}
+        ${tile('Saldo a favor', 'Notas de crédito usadas', nf(X.ncP.length), `${$c(ncMonto)} aplicados a facturas`)}
+        ${tile('Planillas de rendición', 'Correcciones de tesorería', nf(X.plP.filter(x => x.edit).length + X.boP.length), `<b>${nf(X.plP.filter(x => x.edit).length)}</b> filas editadas · <b>${nf(X.boP.length)}</b> borradas`)}
+      </div></section>`;
+  }
+
+  // Actividad diaria (o semanal si el período es largo).
+  const SER_ACT = () => [
+    { k: 'co', label: 'Comprobantes', color: css('--s1') }, { k: 'pl', label: 'Filas de planilla', color: css('--s2') },
+    { k: 'ef', label: 'Avisos de efectivo', color: css('--s3') }, { k: 're', label: 'Reclamos', color: css('--s4') }, { k: 'nc', label: 'NC usadas', color: css('--s5') }];
+  function buckets(R, items) {
+    const [a, b] = R, hoy = ahora(), desde = a > 0 ? a : Math.min(...items.filter(x => x != null), hoy - 30 * 86400), hasta = Math.min(b, hoy);
+    const dias = Math.ceil((hasta - desde) / 86400) + 1, semanal = dias > 62, out = [], idx = {};
+    for (let t = desde; t <= hasta + 86399; t += 86400) {
+      const k = diaKey(t); let key = k, label = dkLabel(k), titulo = new Date(k + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+      if (semanal) { const dt = new Date(k + 'T12:00:00'); const lunes = new Date(dt); lunes.setDate(dt.getDate() - ((dt.getDay() + 6) % 7)); key = lunes.toISOString().slice(0, 10); label = dkLabel(key); titulo = 'Semana del ' + dkLabel(key); }
+      if (idx[key] == null) { idx[key] = out.length; out.push({ key, label, titulo, v: {} }); }
+    }
+    const put = (t, k, n = 1) => { if (t == null) return; let key = diaKey(t); if (semanal) { const dt = new Date(key + 'T12:00:00'); dt.setDate(dt.getDate() - ((dt.getDay() + 6) % 7)); key = dt.toISOString().slice(0, 10); } const i = idx[key]; if (i != null) out[i].v[k] = (out[i].v[k] || 0) + n; };
+    return { out, put, semanal };
+  }
+  function secActividad() {
+    return `<section class="sec" id="s-actividad"><h2>Actividad en el tiempo</h2><p class="d">Qué se movió cada día: comprobantes subidos por clientes, filas de planilla rendidas por vendedores, avisos de efectivo, reclamos y notas de crédito usadas.</p>
+      <div class="card"><div id="leg-act"></div><div class="chart" id="ch-act"></div><button class="toggle-tabla" data-tabla="act">Ver como tabla</button><div id="tb-act"></div></div></section>`;
+  }
+  function pintarActividad(X) {
+    const ser = SER_ACT();
+    const todas = [].concat(X.coP.map(x => x.t0), X.plP.map(x => x.t0), X.efP.map(x => x.t0), X.reP.map(x => x.t0), X.ncP.map(x => x.t0));
+    const B = buckets(X.R, todas);
+    X.coP.forEach(x => B.put(x.t0, 'co')); X.plP.forEach(x => B.put(x.t0, 'pl')); X.efP.forEach(x => B.put(x.t0, 'ef')); X.reP.forEach(x => B.put(x.t0, 're')); X.ncP.forEach(x => B.put(x.t0, 'nc'));
+    document.getElementById('leg-act').innerHTML = leyenda(ser);
+    columnas(document.getElementById('ch-act'), ser, B.out, { titulo: 'Actividad por ' + (B.semanal ? 'semana' : 'día') });
+    S.vistas.act = () => tablaDe(ser, B.out);
+    if (S.vistas.actOn) document.getElementById('tb-act').innerHTML = S.vistas.act();
+  }
+
+  function secPortal() {
+    return `<section class="sec" id="s-portal"><h2>Uso del portal de clientes</h2><p class="d">Cuántos clientes de la selección tienen usuario, cuántos entraron alguna vez y cuántos lo usan seguido (último ingreso).</p>
+      <div class="grid g2">
+        <div class="card"><h3>Embudo de adopción</h3><div class="cd">De la cartera a los que lo usan todas las semanas</div><div class="chart" id="ch-funnel"></div></div>
+        <div class="card"><h3>Último ingreso</h3><div class="cd">Hace cuánto entró cada cliente por última vez</div><div class="chart" id="ch-rec"></div></div>
+        <div class="card"><h3>Adopción por canal</h3><div class="cd">% de la cartera que ya entró al portal</div><div class="chart" id="ch-adc"></div></div>
+        <div class="card"><h3>Adopción por vendedor</h3><div class="cd">% de su cartera que ya entró (los 12 con más clientes en la selección)</div><div class="chart" id="ch-adv"></div></div>
+      </div></section>`;
+  }
+  function pintarPortal(X) {
+    const cl = X.clientes, now = ahora();
+    const usr = cl.filter(c => c.tieneUsr).length, entro = cl.filter(c => c.ult).length, a30 = cl.filter(c => c.ult > now - 30 * 86400).length, a7 = cl.filter(c => c.ult > now - 7 * 86400).length;
+    const etapas = [['Cuentas en cartera', cl.length, '--o1'], ['Con usuario del portal', usr, '--o2'], ['Entraron alguna vez', entro, '--o3'], ['Activos últimos 30 días', a30, '--o4'], ['Activos últimos 7 días', a7, '--o5']];
+    barrasH(document.getElementById('ch-funnel'), etapas.map(([l, v, c]) => ({ label: l, v, color: css(c), txt: nf(v) + ' · ' + pct(v, cl.length) + '%', sub: pct(v, cl.length) + '% de la cartera' })), { max: cl.length || 1, titulo: 'Embudo de adopción' });
+    const b = [['Últimos 7 días', 0, 7], ['8 a 30 días', 7, 30], ['31 a 90 días', 30, 90], ['Más de 90 días', 90, 1e5]];
+    const rec = b.map(([l, a, z]) => ({ label: l, v: cl.filter(c => c.ult && c.ult <= now - a * 86400 && c.ult > now - z * 86400).length }));
+    rec.push({ label: 'Tiene usuario, nunca entró', v: cl.filter(c => c.tieneUsr && !c.ult).length });
+    rec.push({ label: 'Sin usuario', v: cl.filter(c => !c.tieneUsr).length });
+    barrasH(document.getElementById('ch-rec'), rec.map(r => ({ ...r, txt: nf(r.v), sub: pct(r.v, cl.length) + '% de la cartera' })), { titulo: 'Último ingreso' });
+    const grupo = (key) => { const g = {}; cl.forEach(c => { const k = key(c); const o = g[k] = g[k] || { n: 0, e: 0 }; o.n++; if (c.ult) o.e++; }); return g; };
+    const gc = grupo(c => c.canal);
+    barrasH(document.getElementById('ch-adc'), ['ON', 'OFF', 'Mayorista', 'Sin clasificar', 'Otros'].filter(k => gc[k]).map(k => ({ label: k, v: pct(gc[k].e, gc[k].n), txt: pct(gc[k].e, gc[k].n) + '%', sub: nf(gc[k].e) + ' de ' + nf(gc[k].n) + ' clientes' })), { max: 100 });
+    const gv = grupo(c => c.vend || '—');
+    const vs = Object.entries(gv).filter(([k]) => k !== '—').sort((a, b) => b[1].n - a[1].n).slice(0, 12);
+    barrasH(document.getElementById('ch-adv'), vs.map(([k, o]) => ({ label: (S.d.V[k] ? S.d.V[k].nom : k), v: pct(o.e, o.n), txt: pct(o.e, o.n) + '%', sub: nf(o.e) + ' de ' + nf(o.n) + ' clientes' })), { max: 100, lab: 170 });
+  }
+
+  // Tiempos de cada etapa de los flujos (eventos que arrancaron en el período).
+  function secFlujos(X) {
+    const envDe = S.d.envDe;
+    const F = [
+      ['💳', 'Comprobante', 'El cliente lo sube → el vendedor lo procesa', X.coP.filter(x => x.tp).map(x => x.tp - x.t0), X.coP.filter(x => !x.tp && x.estado === 'pendiente').length],
+      ['💳', 'Comprobante', 'Procesado → tesorería lo revisa', X.coP.filter(x => x.tp && x.tr).map(x => x.tr - x.tp), X.coP.filter(x => x.tp && !x.tr).length],
+      ['💳', 'Comprobante', 'Circuito completo (subida → revisado)', X.coP.filter(x => x.tr).map(x => x.tr - x.t0), null],
+      ['📋', 'Planilla', 'El vendedor carga la fila → envía la planilla', X.plP.map(x => { const e = envDe[x.vend + '|' + x.fecha]; return e && e >= x.t0 ? e - x.t0 : null; }).filter(v => v != null), X.plP.filter(x => !envDe[x.vend + '|' + x.fecha]).length],
+      ['📋', 'Planilla', 'Fila cargada → tesorería la procesa', X.plP.filter(x => x.tp).map(x => x.tp - x.t0), X.plP.filter(x => !x.proc).length],
+      ['💵', 'Efectivo', 'El cliente avisa → se retira', X.efP.filter(x => x.tc).map(x => x.tc - x.t0), X.efP.filter(x => x.estado === 'pendiente').length],
+      ['🗣️', 'Reclamo', 'Se abre → primera respuesta', X.reP.filter(x => x.t1).map(x => x.t1 - x.t0), X.reP.filter(x => !x.t1).length],
+      ['🗣️', 'Reclamo', 'Se abre → resuelto', X.reP.filter(x => x.tres).map(x => x.tres - x.t0), X.reP.filter(x => !x.tres).length],
+      ['💚', 'Saldo a favor', 'Uso de la NC → aplicada en el sistema', X.ncP.filter(x => x.ta).map(x => x.ta - x.t0), X.ncP.filter(x => !x.ta).length],
+      ['💬', 'WhatsApp', 'Mensaje enviado → leído', X.waP.filter(x => x.rd).map(x => x.rd - x.t), X.waP.filter(x => !x.rd && !x.f).length],
+    ];
+    const meds = F.map(f => median(f[3]) || 0), mx = Math.max(...meds, 1);
+    const filas = F.map((f, i) => {
+      const m = median(f[3]), p = p90(f[3]), w = m ? Math.max(3, 160 * m / mx) : 0;
+      return `<tr><td class="first">${f[0]} <b>${f[1]}</b> <span class="mut">· ${f[2]}</span></td>
+        <td class="n"><span class="minibar" style="width:${w}px"></span><b>${dur(m)}</b></td><td class="n">${dur(p)}</td><td class="n">${nf(f[3].length)}</td>
+        <td class="n">${f[4] == null ? '<span class="mut">—</span>' : f[4] ? `<span class="estado"><i style="background:var(--warn)"></i>${nf(f[4])} en espera</span>` : '<span class="estado ok"><i style="background:var(--good)"></i>al día</span>'}</td></tr>`;
+    }).join('');
+    return `<section class="sec" id="s-flujos"><h2>Tiempos de los flujos</h2><p class="d">Cuánto tarda cada etapa. <b>Mediana</b> = el caso típico; <b>p90</b> = 9 de cada 10 casos tardan menos que eso (marca los que se demoran). Cuenta los casos que arrancaron en el período.</p>
+      <div class="tw"><table class="t"><thead><tr><th class="first">Etapa</th><th class="n">Mediana</th><th class="n">p90</th><th class="n">Casos</th><th class="n">Pendientes</th></tr></thead><tbody>${filas}</tbody></table></div></section>`;
+  }
+
+  // ── Vendedores ──
+  // ¿El vendedor entra en la selección? (zona/canal: los de su cartera o los del Manual).
+  const vendPasa = (v, conVend) => (!S.f.zona || (v.zc && v.zc[S.f.zona]) || v.zona === S.f.zona)
+    && (!S.f.canal || (v.cc && v.cc[S.f.canal]) || v.canal === S.f.canal) && (!conVend || !S.f.vend || v.cod === S.f.vend);
+  function filasVendedores(X) {
+    const now = ahora(), M = {};
+    const get = v => (M[v] = M[v] || { cod: v, nom: S.d.V[v] ? S.d.V[v].nom : 'Vendedor ' + v, zona: S.d.V[v] ? S.d.V[v].zona : '', canal: S.d.V[v] ? S.d.V[v].canal : '',
+      n: 0, saldo: 0, venc: 0, usr: 0, entro: 0, a30: 0, co: 0, coT: [], dias: new Set(), env: 0, filas: 0, rend: 0, proc: 0, edit: 0, borr: 0, efPend: 0, re: 0, wa: 0, waLe: 0 });
+    // Todos los vendedores de la selección, aunque estén en cero (si se busca un cliente, solo los suyos).
+    if (!qN()) Object.values(S.d.V).forEach(v => { if (vendPasa(v, true)) get(v.cod); });
+    X.clientes.forEach(c => { if (!c.vend) return; const o = get(c.vend); o.n++; o.saldo += c.saldo; o.venc += Math.max(0, c.venc); if (c.tieneUsr) o.usr++; if (c.ult) o.entro++; if (c.ult > now - 30 * 86400) o.a30++; });
+    const vDe = (cod, vend) => (S.d.C[cod] && S.d.C[cod].vend) || vend;
+    X.coP.forEach(x => { const v = vDe(x.cod, x.vend); if (!v) return; const o = get(v); o.co++; if (x.tp) o.coT.push(x.tp - x.t0); });
+    X.plP.forEach(x => { if (!x.vend) return; const o = get(x.vend); o.filas++; o.rend += x.imp; if (x.proc) o.proc++; if (x.edit) o.edit++; o.dias.add(x.fecha); });
+    X.enP.forEach(x => { if (x.vend) get(x.vend).env++; });
+    X.boP.forEach(x => { if (x.vend) get(x.vend).borr++; });
+    X.ef.forEach(x => { if (x.estado !== 'pendiente') return; const v = vDe(x.cod, x.vend); if (v) get(v).efPend++; });
+    X.reP.forEach(x => { const v = vDe(x.cod); if (v) get(v).re++; });
+    X.waP.forEach(x => { const v = vDe(x.cod); if (!v) return; const o = get(v); o.wa++; if (x.rd) o.waLe++; });
+    return Object.values(M).map(o => ({ ...o, pv: pct(o.venc, o.saldo), pe: pct(o.entro, o.n), pp: pct(o.proc, o.filas), med: median(o.coT), nd: o.dias.size, pwa: pct(o.waLe, o.wa) }));
+  }
+  const COLS_V = [
+    ['nom', 'Vendedor', 0], ['zona', 'Zona', 0], ['canal', 'Canal', 0], ['n', 'Cuentas', 1], ['saldo', 'Saldo', 1], ['venc', 'Vencido', 1], ['pv', '% venc.', 1],
+    ['pe', 'Entraron al portal', 1], ['a30', 'Activos 30d', 1], ['co', 'Comprob.', 1], ['med', 'Procesa comprob. en', 1],
+    ['nd', 'Días con planilla', 1], ['filas', 'Filas', 1], ['rend', '$ rendido', 1], ['pp', '% procesado', 1], ['edit', 'Correcciones', 1], ['efPend', 'Efectivo sin retirar', 1], ['re', 'Reclamos', 1], ['pwa', 'WA leídos', 1]];
+  function celV(o, k) {
+    switch (k) {
+      case 'nom': return `<b>${esc(o.nom)}</b> <span class="mut">${esc(o.cod)}</span>`;
+      case 'canal': return o.canal ? tagCanal(o.canal) : '';
+      case 'saldo': case 'rend': return $(o[k]);
+      case 'venc': return o.venc > 0 ? `<span class="rojo">${$(o.venc)}</span>` : '<span class="mut">—</span>';
+      case 'pv': case 'pp': case 'pwa': return (k === 'pp' && !o.filas) || (k === 'pwa' && !o.wa) ? '<span class="mut">—</span>' : o[k] + '%';
+      case 'pe': return o.n ? `${pct(o.entro, o.n)}% <span class="mut">(${nf(o.entro)}/${nf(o.n)})</span>` : '<span class="mut">—</span>';
+      case 'med': return o.med == null ? '<span class="mut">—</span>' : dur(o.med);
+      case 'edit': return (o.edit + o.borr) ? `${nf(o.edit)} ed. · ${nf(o.borr)} borr.` : '<span class="mut">0</span>';
+      case 'efPend': return o.efPend ? `<span class="estado"><i style="background:var(--warn)"></i>${nf(o.efPend)}</span>` : '<span class="mut">0</span>';
+      default: return typeof o[k] === 'number' ? nf(o[k]) : esc(o[k]);
+    }
+  }
+  function ordenar(arr, s) { return arr.sort((a, b) => { let x = a[s.k], y = b[s.k]; if (x == null) x = -Infinity; if (y == null) y = -Infinity; if (s.k === 'pe') { x = pct(a.entro, a.n); y = pct(b.entro, b.n); } return (typeof x === 'string' ? x.localeCompare(y) : x - y) * s.d; }); }
+  function secVendedores() {
+    return `<section class="sec" id="s-vendedores"><h2>Vendedores</h2><p class="d">Su cartera hoy y lo que hicieron en el período. Tocá una columna para ordenar; tocá un vendedor para ver sus clientes.</p><div class="tw" id="tb-vend"></div></section>`;
+  }
+  function pintarVendedores(X) {
+    const rows = ordenar(filasVendedores(X), S.sort.v); S.vendRows = rows;
+    const th = COLS_V.map(([k, l, n], i) => `<th class="${n ? 'n' : ''}${i === 0 ? ' first' : ''}" data-sv="${k}">${l}${S.sort.v.k === k ? `<span class="ar">${S.sort.v.d < 0 ? '▼' : '▲'}</span>` : ''}</th>`).join('');
+    const tb = rows.map(o => `<tr class="clic" data-vend="${esc(o.cod)}">${COLS_V.map(([k, , n], i) => `<td class="${n ? 'n' : ''}${i === 0 ? ' first' : ''}">${celV(o, k)}</td>`).join('')}</tr>`).join('');
+    document.getElementById('tb-vend').innerHTML = rows.length ? `<table class="t"><thead><tr>${th}</tr></thead><tbody>${tb}</tbody></table>` : '<div class="vacio">Ningún vendedor en esta selección.</div>';
+  }
+
+  // ── Clientes ──
+  function filasClientes(X) {
+    const A = {};
+    const get = cod => (A[cod] = A[cod] || { co: 0, pl: 0, plM: 0, re: 0, wa: 0, waLe: 0, wi: 0, ef: 0, nc: 0, ult: 0 });
+    const marca = (cod, t) => { const a = get(cod); if (t && t > a.ult) a.ult = t; return a; };
+    X.coP.forEach(x => { if (x.cod) marca(x.cod, x.t0).co++; });
+    X.plP.forEach(x => { if (x.cod) { const a = marca(x.cod, x.t0); a.pl++; a.plM += x.imp; } });
+    X.reP.forEach(x => { if (x.cod) marca(x.cod, x.t0).re++; });
+    X.waP.forEach(x => { if (!x.cod) return; const a = get(x.cod); a.wa++; if (x.rd) a.waLe++; });
+    X.wiP.forEach(x => { if (x.cod) marca(x.cod, x.t).wi++; });
+    X.efP.forEach(x => { if (x.cod) marca(x.cod, x.t0).ef++; });
+    X.ncP.forEach(x => { if (x.cod) marca(x.cod, x.t0).nc++; });
+    return X.clientes.map(c => { const a = A[c.cod] || {}; const ult = Math.max(a.ult || 0, c.ult || 0); return { c, cod: c.cod, nom: c.nom, vend: c.vend, canal: c.canal, zona: c.zona, saldo: c.saldo, venc: Math.max(0, c.venc), ultIng: c.ult || 0, co: a.co || 0, pl: a.pl || 0, plM: a.plM || 0, re: a.re || 0, wa: a.wa || 0, waLe: a.waLe || 0, wi: a.wi || 0, ef: a.ef || 0, nc: a.nc || 0, act: (a.co || 0) + (a.pl || 0) + (a.re || 0) + (a.wi || 0) + (a.ef || 0) + (a.nc || 0), ult }; });
+  }
+  const COLS_C = [['nom', 'Cliente', 0], ['vend', 'Vendedor', 0], ['canal', 'Canal', 0], ['zona', 'Zona', 0], ['saldo', 'Saldo', 1], ['venc', 'Vencido', 1], ['ultIng', 'Último ingreso al portal', 1],
+    ['co', 'Comprob.', 1], ['plM', 'Rendido en planillas', 1], ['ef', 'Avisos efectivo', 1], ['re', 'Reclamos', 1], ['waLe', 'WA leídos', 1], ['wi', 'Le escribió', 1], ['ult', 'Última actividad', 1]];
+  function celC(r, k) {
+    switch (k) {
+      case 'nom': return `<b>${esc(r.nom)}</b> <span class="mut">${esc(r.cod)}</span>`;
+      case 'vend': return r.vend ? esc(S.d.V[r.vend] ? S.d.V[r.vend].nom : r.vend) : '<span class="mut">—</span>';
+      case 'canal': return tagCanal(r.canal);
+      case 'zona': return esc(r.zona);
+      case 'saldo': return r.saldo < 0 ? `<span class="ok">${$(r.saldo)}</span>` : $(r.saldo);
+      case 'venc': return r.venc > 0 ? `<span class="rojo">${$(r.venc)}</span>` : '<span class="mut">—</span>';
+      case 'ultIng': return r.ultIng ? fDia(r.ultIng) : (r.c.tieneUsr ? '<span class="mut">nunca entró</span>' : '<span class="mut">sin usuario</span>');
+      case 'plM': return r.pl ? `${$(r.plM)} <span class="mut">(${r.pl})</span>` : '<span class="mut">—</span>';
+      case 'waLe': return r.wa ? `${nf(r.waLe)}/${nf(r.wa)}` : '<span class="mut">—</span>';
+      case 'ult': return r.ult ? fDia(r.ult) : '<span class="mut">—</span>';
+      default: return r[k] ? nf(r[k]) : '<span class="mut">0</span>';
+    }
+  }
+  const POR_PAG = 50;
+  function secClientes() {
+    return `<section class="sec" id="s-clientes"><h2>Clientes</h2><p class="d">Cada cliente de la selección con su deuda de hoy y lo que hizo en el período. Tocá uno para ver su historia completa.</p>
+      <div class="tbar"><select id="c-ver">
+        <option value="todos">Todos</option><option value="act">Con actividad en el período</option><option value="venc">Con deuda vencida</option>
+        <option value="nunca">Tienen usuario y nunca entraron</option><option value="sinusr">Sin usuario del portal</option><option value="activos">Entraron en los últimos 30 días</option>
+      </select><span class="mut" id="c-cuenta" style="font-size:12.5px"></span></div>
+      <div class="tw" id="tb-cli"></div><div class="pag" id="c-pag"></div></section>`;
+  }
+  function pintarClientes(X) {
+    const sel = document.getElementById('c-ver'); sel.value = S.ver;
+    let rows = filasClientes(X);
+    const now = ahora();
+    if (S.ver === 'act') rows = rows.filter(r => r.act > 0);
+    if (S.ver === 'venc') rows = rows.filter(r => r.venc > 0);
+    if (S.ver === 'nunca') rows = rows.filter(r => r.c.tieneUsr && !r.c.ult);
+    if (S.ver === 'sinusr') rows = rows.filter(r => !r.c.tieneUsr);
+    if (S.ver === 'activos') rows = rows.filter(r => r.c.ult > now - 30 * 86400);
+    rows = ordenar(rows, S.sort.c); S.cliRows = rows;
+    const pags = Math.max(1, Math.ceil(rows.length / POR_PAG)); if (S.pag >= pags) S.pag = 0;
+    const vis = rows.slice(S.pag * POR_PAG, (S.pag + 1) * POR_PAG);
+    document.getElementById('c-cuenta').textContent = nf(rows.length) + ' clientes';
+    const th = COLS_C.map(([k, l, n], i) => `<th class="${n ? 'n' : ''}${i === 0 ? ' first' : ''}" data-sc="${k}">${l}${S.sort.c.k === k ? `<span class="ar">${S.sort.c.d < 0 ? '▼' : '▲'}</span>` : ''}</th>`).join('');
+    document.getElementById('tb-cli').innerHTML = vis.length ? `<table class="t"><thead><tr>${th}</tr></thead><tbody>${vis.map(r => `<tr class="clic" data-cod="${esc(r.cod)}">${COLS_C.map(([k, , n], i) => `<td class="${n ? 'n' : ''}${i === 0 ? ' first' : ''}">${celC(r, k)}</td>`).join('')}</tr>`).join('')}</tbody></table>` : '<div class="vacio">Ningún cliente con esos filtros.</div>';
+    document.getElementById('c-pag').innerHTML = pags > 1 ? `<button class="btn" data-pag="-1" ${S.pag ? '' : 'disabled'}>‹</button> Página ${S.pag + 1} de ${pags} <button class="btn" data-pag="1" ${S.pag < pags - 1 ? '' : 'disabled'}>›</button>` : '';
+  }
+
+  // ── Planillas ──
+  function secPlanillas() {
+    return `<section class="sec" id="s-planillas"><h2>Planillas de rendición</h2><p class="d">Quién usa las planillas y cuánto: cada casillero es un día; el número son las filas que cargó ese vendedor (más oscuro = más filas). Gris = no rindió ese día.</p>
+      <div class="card" style="overflow:auto"><div id="heat"></div></div>
+      <div class="grid g2" style="margin-top:12px">
+        <div class="card"><h3>Con qué pagan los clientes</h3><div class="cd">Montos rendidos en las planillas del período, por medio de pago</div><div class="chart" id="ch-medios"></div></div>
+        <div class="card"><h3>Estado de lo rendido</h3><div class="cd">Filas del período según tesorería</div><div class="chart" id="ch-plest"></div></div>
+      </div></section>`;
+  }
+  const SEQ = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b'];
+  function pintarPlanillas(X) {
+    const R = X.R, hoy = ahora(), desde = R[0] > 0 ? R[0] : Math.min(...X.plP.map(x => Date.parse(x.fecha + 'T12:00:00-03:00') / 1000), hoy), hasta = Math.min(R[1], hoy);
+    const dias = []; for (let t = desde; t <= hasta + 86399; t += 86400) { const k = diaKey(t); if (!dias.includes(k)) dias.push(k); }
+    const ventana = dias.slice(-45);                  // como mucho 45 días a la vista
+    const cnt = {}, monto = {}, vends = {};
+    X.plP.forEach(x => { if (!ventana.includes(x.fecha)) return; const k = x.vend + '|' + x.fecha; cnt[k] = (cnt[k] || 0) + 1; monto[k] = (monto[k] || 0) + x.imp; vends[x.vend] = (vends[x.vend] || 0) + 1; });
+    const envDe = S.d.envDe, max = Math.max(1, ...Object.values(cnt));
+    const lista = Object.keys(vends).sort((a, b) => vends[b] - vends[a]);
+    const el = document.getElementById('heat');
+    if (!lista.length) { el.innerHTML = '<div class="vacio">Nadie rindió planillas en esta selección y período.</div>'; }
+    else {
+      let h = '<table class="heat"><thead><tr><th class="v"></th>' + ventana.map(k => `<th>${dkLabel(k).split('/')[0]}</th>`).join('') + '<th>Total</th></tr></thead><tbody>';
+      lista.forEach(v => {
+        h += `<tr><th class="v">${esc(S.d.V[v] ? S.d.V[v].nom : 'Vendedor ' + v)}</th>`;
+        ventana.forEach(k => {
+          const n = cnt[v + '|' + k] || 0;
+          if (!n) { h += `<td class="z" data-h="${esc(v)}|${k}"></td>`; return; }
+          const i = Math.min(SEQ.length - 1, Math.floor((n / max) * (SEQ.length - 1) + 0.5)), osc = i >= 3;
+          h += `<td style="background:${SEQ[i]};color:${osc ? '#fff' : '#0b0b0b'}" data-h="${esc(v)}|${k}">${n}</td>`;
+        });
+        h += `<td class="tot">${nf(vends[v])}</td></tr>`;
+      });
+      el.innerHTML = h + '</tbody></table>';
+      el.querySelectorAll('td[data-h]').forEach(td => {
+        const [v, k] = td.dataset.h.split('|'), n = cnt[v + '|' + k] || 0, env = envDe[v + '|' + k];
+        td.addEventListener('pointermove', e => tip(e, (S.d.V[v] ? S.d.V[v].nom : v) + ' · ' + dkLabel(k), n ? [{ valor: nf(n), label: 'filas' }, { valor: $(monto[v + '|' + k]), label: 'rendido' }, { valor: env ? 'Enviada ' + fDiaH(env) : 'No la envió', label: '' }] : [{ valor: 'No rindió', label: '' }]));
+        td.addEventListener('pointerleave', tipOff);
+      });
+    }
+    const med = [['efe', 'Efectivo'], ['tra', 'Transferencia / MP'], ['che', 'Cheques'], ['ech', 'E-cheq'], ['tar', 'Tarjeta'], ['ret', 'Retenciones']]
+      .map(([k, l]) => ({ label: l, v: X.plP.reduce((s, x) => s + (x[k] || 0), 0) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v);
+    const totM = med.reduce((s, x) => s + x.v, 0);
+    barrasH(document.getElementById('ch-medios'), med.map(m => ({ ...m, txt: $c(m.v), sub: pct(m.v, totM) + '% del total rendido' })), { titulo: 'Medios de pago' });
+    const proc = X.plP.filter(x => x.proc).length, ed = X.plP.filter(x => x.edit).length;
+    barrasH(document.getElementById('ch-plest'), [
+      { label: 'Procesadas', v: proc, color: css('--good'), txt: nf(proc), sub: pct(proc, X.plP.length) + '% de las filas' },
+      { label: 'Sin procesar', v: X.plP.length - proc, color: css('--warn'), txt: nf(X.plP.length - proc), sub: 'Le faltan a tesorería' },
+      { label: 'Corregidas por tesorería', v: ed, color: css('--serious'), txt: nf(ed), sub: 'El vendedor cargó mal un monto' },
+      { label: 'Borradas', v: X.boP.length, color: css('--crit'), txt: nf(X.boP.length), sub: 'Filas eliminadas (ej. cargadas dos veces)' },
+    ], { titulo: 'Estado de lo rendido' });
+  }
+
+  // ── Reclamos ──
+  function secReclamos(X) {
+    const rows = X.reP.slice().sort((a, b) => b.t0 - a.t0);
+    const tb = rows.map(r => { const c = S.d.C[r.cod]; return `<tr class="${c ? 'clic' : ''}" data-cod="${esc(r.cod)}"><td class="first"><b>#${esc(r.nro)}</b></td><td>${c ? esc(c.nom) : '<span class="mut">' + esc(r.cod || '—') + '</span>'}</td><td>${esc(r.asunto) || '<span class="mut">—</span>'}</td>
+      <td>${r.estado === 'resuelto' ? '<span class="estado ok"><i style="background:var(--good)"></i>resuelto</span>' : '<span class="estado"><i style="background:var(--warn)"></i>' + esc(r.estado.replace('_', ' ')) + '</span>'}</td>
+      <td class="n">${fDiaH(r.t0)}</td><td class="n">${r.t1 ? dur(r.t1 - r.t0) : '<span class="rojo">sin respuesta</span>'}</td><td class="n">${r.tres ? dur(r.tres - r.t0) : '<span class="mut">—</span>'}</td><td class="n">${nf(r.nmsg)}</td></tr>`; }).join('');
+    return `<section class="sec" id="s-reclamos"><h2>Reclamos</h2><p class="d">Los que se abrieron en el período, con cuánto tardamos en responder y en resolver.</p>
+      <div class="tw">${rows.length ? `<table class="t"><thead><tr><th class="first">N°</th><th>Cliente</th><th>Asunto</th><th>Estado</th><th class="n">Abierto</th><th class="n">1ª respuesta</th><th class="n">Resuelto en</th><th class="n">Mensajes</th></tr></thead><tbody>${tb}</tbody></table>` : '<div class="vacio">No hubo reclamos en este período.</div>'}</div></section>`;
+  }
+
+  // ── WhatsApp ──
+  const SER_WA = () => [{ k: 'env', label: 'Enviados', color: css('--s1') }, { k: 'lei', label: 'Leídos', color: css('--s2') }, { k: 'rec', label: 'Respuestas', color: css('--s3') }];
+  function secWA(X) {
+    const tipos = [['recordatorio', 'Estado de cuenta (lunes)'], ['plantilla', 'Plantillas (bienvenida, avisos)'], ['numero', 'Número de cliente'], ['enviado', 'Mensajes manuales del chat']];
+    const filas = tipos.map(([k, l]) => { const a = X.waP.filter(x => x.k === k); if (!a.length) return ''; const e = a.filter(x => x.dl || x.rd).length, r = a.filter(x => x.rd).length, f = a.filter(x => x.f).length;
+      return `<tr><td class="first"><b>${l}</b></td><td class="n">${nf(a.length)}</td><td class="n">${pct(e, a.length)}%</td><td class="n">${pct(r, a.length)}%</td><td class="n">${f ? `<span class="rojo">${nf(f)}</span>` : '<span class="mut">0</span>'}</td><td class="n">${dur(median(a.filter(x => x.rd).map(x => x.rd - x.t)))}</td></tr>`; }).join('');
+    const err = S.d.we.length ? '<div style="margin-top:10px;font-size:12px;color:var(--muted)"><b style="color:var(--ink-2)">Motivos de los fallidos (histórico):</b> ' + S.d.we.map(([t, n]) => esc(t) + ' (' + n + ')').join(' · ') + '</div>' : '';
+    return `<section class="sec" id="s-wa"><h2>WhatsApp</h2><p class="d">Mensajes que salieron por el número de GrandBar y cuántos se leyeron; respuestas = mensajes que mandaron los clientes.</p>
+      <div class="card"><div id="leg-wa"></div><div class="chart" id="ch-wa"></div><button class="toggle-tabla" data-tabla="wa">Ver como tabla</button><div id="tb-wa"></div></div>
+      <div class="tw" style="margin-top:12px">${filas ? `<table class="t"><thead><tr><th class="first">Tipo de mensaje</th><th class="n">Enviados</th><th class="n">Entregados</th><th class="n">Leídos</th><th class="n">Fallidos</th><th class="n">Se leen en</th></tr></thead><tbody>${filas}</tbody></table>` : '<div class="vacio">Sin mensajes en el período.</div>'}</div>${err}</section>`;
+  }
+  function pintarWA(X) {
+    const ser = SER_WA();
+    const B = buckets(X.R, X.waP.map(x => x.t).concat(X.wiP.map(x => x.t)));
+    X.waP.forEach(x => { B.put(x.t, 'env'); if (x.rd) B.put(x.t, 'lei'); }); X.wiP.forEach(x => B.put(x.t, 'rec'));
+    document.getElementById('leg-wa').innerHTML = leyenda(ser, true);
+    lineas(document.getElementById('ch-wa'), ser, B.out, { titulo: 'WhatsApp por ' + (B.semanal ? 'semana' : 'día') });
+    S.vistas.wa = () => tablaDe(ser, B.out);
+    if (S.vistas.waOn) document.getElementById('tb-wa').innerHTML = S.vistas.wa();
+  }
+
+  // ── Ficha del cliente: toda su historia ──
+  function ficha(cod) {
+    const c = S.d.C[cod]; if (!c) return;
+    const ev = S.d.ev, it = [];
+    if (c.alta) it.push([c.alta, '🔑', 'Se le creó el usuario del portal']);
+    if (c.ult) it.push([c.ult, '👤', 'Último ingreso al portal']);
+    ev.co.filter(x => x.cod === cod).forEach(x => { it.push([x.t0, '💳', `Subió un comprobante por ${$(x.monto)} <span class="mut">(${esc(x.estado)})</span>`]); if (x.tp) it.push([x.tp, '✔️', 'El vendedor procesó el comprobante (' + dur(x.tp - x.t0) + ')']); if (x.tr) it.push([x.tr, '🏦', 'Tesorería revisó el comprobante']); });
+    ev.pl.filter(x => x.cod === cod).forEach(x => { const m = [['efe', 'efectivo'], ['tra', 'transf.'], ['che', 'cheques'], ['ech', 'e-cheq'], ['tar', 'tarjeta'], ['ret', 'retenc.']].filter(([k]) => x[k] > 0).map(([k, l]) => l + ' ' + $c(x[k])).join(', ');
+      it.push([x.t0, '📋', `Rendido en planilla del ${dkLabel(x.fecha)} por ${esc(S.d.V[x.vend] ? S.d.V[x.vend].nom : x.vend)}: <b>${$(x.imp)}</b>${m ? ' <span class="mut">(' + m + ')</span>' : ''}${x.proc ? ' · procesado' : ''}${x.edit ? ' · <span class="rojo">corregido por tesorería</span>' : ''}`]); });
+    ev.ef.filter(x => x.cod === cod).forEach(x => { it.push([x.t0, '💵', `Avisó efectivo listo por ${$(x.monto)}`]); if (x.tc) it.push([x.tc, '💵', 'Se retiró el efectivo (' + dur(x.tc - x.t0) + ')']); });
+    ev.re.filter(x => x.cod === cod).forEach(x => { it.push([x.t0, '🗣️', `Abrió el reclamo #${esc(x.nro)}: ${esc(x.asunto)}`]); if (x.t1) it.push([x.t1, '↩️', `Le respondimos el reclamo #${esc(x.nro)} (${dur(x.t1 - x.t0)})`]); if (x.tres) it.push([x.tres, '✅', `Reclamo #${esc(x.nro)} resuelto`]); });
+    ev.nc.filter(x => x.cod === cod).forEach(x => { it.push([x.t0, '💚', `Usó saldo a favor por ${$(x.monto)}`]); });
+    const NOM = { recordatorio: 'Estado de cuenta', plantilla: 'Plantilla', numero: 'Número de cliente', enviado: 'Mensaje del chat' };
+    ev.wa.filter(x => x.cod === cod).forEach(x => it.push([x.t, '💬', `WhatsApp enviado: ${NOM[x.k] || esc(x.k)}${x.f ? ' · <span class="rojo">no llegó</span>' : x.rd ? ' · leído' : x.dl ? ' · entregado' : ''}`]));
+    ev.wi.filter(x => x.cod === cod).forEach(x => it.push([x.t, '📩', 'Nos escribió por WhatsApp']));
+    it.sort((a, b) => b[0] - a[0]);
+    const v = S.d.V[c.vend];
+    document.getElementById('dr-pn').innerHTML = `<button class="btn" id="dr-x" style="float:right">✕</button>
+      <div class="mut" style="font-size:12px;font-weight:700">${esc(c.cod)} · ${esc(v ? v.nom : c.vend || 'sin vendedor')}</div>
+      <h2 style="margin:4px 0 6px;font-size:20px;color:var(--navy)">${esc(c.nom)}</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${tagCanal(c.canal)} <span class="tag">${esc(c.zona)}</span> ${c.rub ? `<span class="tag">${esc(c.rub)}</span>` : ''}</div>
+      <div class="grid g3" style="margin-bottom:14px">${tile('', 'Saldo', $(c.saldo))}${tile('', 'Vencido', c.venc > 0 ? `<span class="rojo">${$(c.venc)}</span>` : '—')}${tile('', 'Portal', c.ult ? fDia(c.ult) : c.tieneUsr ? 'Nunca entró' : 'Sin usuario')}</div>
+      <div class="card"><h3>Historia</h3><div class="cd">${nf(it.length)} movimientos registrados</div>
+      ${it.length ? '<ul class="tl">' + it.slice(0, 150).map(([t, i, txt]) => `<li><span class="w">${fDiaH(t)}</span><span class="ico">${i}</span><span>${txt}</span></li>`).join('') + '</ul>' : '<div class="vacio">Todavía no hay movimientos de este cliente.</div>'}</div>`;
+    document.getElementById('drawer').classList.add('on');
+    document.getElementById('dr-x').onclick = cerrarFicha;
+  }
+  const cerrarFicha = () => document.getElementById('drawer').classList.remove('on');
+  document.getElementById('dr-bg').onclick = cerrarFicha;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarFicha(); });
+
+  // ── CSV ──
+  function csv(nombre, cab, filas) {
+    const q = v => { const s = String(v == null ? '' : v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const txt = '﻿' + [cab].concat(filas).map(r => r.map(q).join(';')).join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' })); a.download = nombre; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+  document.getElementById('b-csv-v').onclick = () => { if (!S.vendRows) return; csv('vendedores-cobranzas.csv', ['Código', 'Vendedor', 'Zona', 'Canal', 'Cuentas', 'Saldo', 'Vencido', '% vencido', 'Entraron al portal', 'Activos 30d', 'Comprobantes', 'Procesa comprob. (horas)', 'Días con planilla', 'Filas', '$ rendido', '% procesado', 'Filas editadas', 'Filas borradas', 'Efectivo sin retirar', 'Reclamos', '% WA leídos'],
+    S.vendRows.map(o => [o.cod, o.nom, o.zona, o.canal, o.n, Math.round(o.saldo), Math.round(o.venc), o.pv, o.entro, o.a30, o.co, o.med == null ? '' : (o.med / 3600).toFixed(1).replace('.', ','), o.nd, o.filas, Math.round(o.rend), o.pp, o.edit, o.borr, o.efPend, o.re, o.pwa])); };
+  document.getElementById('b-csv-c').onclick = () => { if (!S.cliRows) return; csv('clientes-cobranzas.csv', ['Código', 'Cliente', 'Vendedor', 'Canal', 'Zona', 'Saldo', 'Vencido', 'Usuario portal', 'Último ingreso', 'Comprobantes', 'Filas planilla', '$ rendido', 'Avisos efectivo', 'Reclamos', 'WA enviados', 'WA leídos', 'Le escribió', 'NC usadas'],
+    S.cliRows.map(r => [r.cod, r.nom, S.d.V[r.vend] ? S.d.V[r.vend].nom : r.vend, r.canal, r.zona, Math.round(r.saldo), Math.round(r.venc), r.c.tieneUsr ? 'sí' : 'no', r.ultIng ? fDia(r.ultIng) : '', r.co, r.pl, Math.round(r.plM), r.ef, r.re, r.wa, r.waLe, r.wi, r.nc])); };
+
+  // ── Eventos de la interfaz ──
+  function llenarVendedores() {
+    const sel = document.getElementById('f-vend'), cur = S.f.vend;
+    // Vendedores con al menos un cliente de esa zona / ese canal (o de esa zona en el Manual).
+    const vs = Object.values(S.d.V).filter(v => vendPasa(v, false)).sort((a, b) => a.nom.localeCompare(b.nom));
+    sel.innerHTML = '<option value="">Todos</option>' + vs.map(v => `<option value="${esc(v.cod)}">${esc(v.nom)} (${esc(v.cod)})</option>`).join('');
+    sel.value = vs.some(v => v.cod === cur) ? cur : ''; S.f.vend = sel.value;
+  }
+  document.getElementById('f-per').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.f.per = b.dataset.v; document.querySelectorAll('#f-per button').forEach(x => x.classList.toggle('on', x === b));
+    document.getElementById('f-custom').classList.toggle('on', S.f.per === 'custom'); S.pag = 0; render();
+  });
+  ['f-desde', 'f-hasta'].forEach(id => document.getElementById(id).addEventListener('change', e => { S.f[id === 'f-desde' ? 'desde' : 'hasta'] = e.target.value; render(); }));
+  document.getElementById('f-zona').addEventListener('change', e => { S.f.zona = e.target.value; llenarVendedores(); S.pag = 0; render(); });
+  document.getElementById('f-canal').addEventListener('change', e => { S.f.canal = e.target.value; llenarVendedores(); S.pag = 0; render(); });
+  document.getElementById('f-vend').addEventListener('change', e => { S.f.vend = e.target.value; S.pag = 0; render(); });
+  let tq; document.getElementById('f-q').addEventListener('input', e => { clearTimeout(tq); tq = setTimeout(() => { S.f.q = e.target.value; S.pag = 0; render(); }, 250); });
+  app.addEventListener('click', e => {
+    const sv_ = e.target.closest('[data-sv]'); if (sv_) { const k = sv_.dataset.sv; S.sort.v = { k, d: S.sort.v.k === k ? -S.sort.v.d : -1 }; pintarVendedores(S.X); return; }
+    const sc = e.target.closest('[data-sc]'); if (sc) { const k = sc.dataset.sc; S.sort.c = { k, d: S.sort.c.k === k ? -S.sort.c.d : -1 }; S.pag = 0; pintarClientes(S.X); return; }
+    const pg = e.target.closest('[data-pag]'); if (pg) { S.pag += Number(pg.dataset.pag); pintarClientes(S.X); return; }
+    const tv = e.target.closest('[data-tabla]'); if (tv) { const k = tv.dataset.tabla, on = !S.vistas[k + 'On']; S.vistas[k + 'On'] = on; document.getElementById('tb-' + k).innerHTML = on ? S.vistas[k]() : ''; tv.textContent = on ? 'Ocultar tabla' : 'Ver como tabla'; return; }
+    const vr = e.target.closest('tr[data-vend]'); if (vr) { S.f.vend = vr.dataset.vend; llenarVendedores(); document.getElementById('f-vend').value = S.f.vend; S.pag = 0; render(); document.getElementById('s-clientes').scrollIntoView({ behavior: 'smooth' }); return; }
+    const cr = e.target.closest('tr[data-cod]'); if (cr && S.d.C[cr.dataset.cod]) ficha(cr.dataset.cod);
+  });
+  app.addEventListener('change', e => { if (e.target.id === 'c-ver') { S.ver = e.target.value; S.pag = 0; pintarClientes(S.X); } });
+  let tr_; addEventListener('resize', () => { clearTimeout(tr_); tr_ = setTimeout(() => { if (S.X) { pintarActividad(S.X); pintarPortal(S.X); pintarPlanillas(S.X); pintarWA(S.X); } }, 200); });
+
+  // ── Carga ──
+  async function cargar() {
+    const sub = document.getElementById('sub');
+    if (S.d) app.classList.add('cargando');
+    try {
+      const r = await fetch('/.netlify/functions/cobranzas-analisis', { headers: { Authorization: 'Bearer ' + token } });
+      const j = await r.json();
+      if (!r.ok || j.error) throw new Error(j.error || ('Error ' + r.status));
+      S.d = preparar(j);
+      if (S.d.zonaForzada) {
+        const z = S.d.zonaForzada === 'san_luis' ? 'San Luis' : 'Mendoza';
+        S.f.zona = z; const zs = document.getElementById('f-zona'); zs.value = z; zs.disabled = true;
+        const nz = document.getElementById('nota-zona'); nz.style.display = 'block'; nz.textContent = 'Ves solo lo de ' + z + ' (tu usuario es de esa zona).';
+      }
+      llenarVendedores();
+      sub.textContent = 'Datos al ' + new Date(S.d.generado).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' · ' + nf(Object.keys(S.d.C).length) + ' cuentas · deuda vencida como la guarda el sistema';
+      render();
+    } catch (e) {
+      app.innerHTML = '<div class="err">No pude cargar el análisis: ' + esc(e.message || e) + '</div>';
+      sub.textContent = '';
+    } finally { app.classList.remove('cargando'); }
+  }
+  document.getElementById('b-act').onclick = cargar;
+
+  (async function init() {
+    if (!window.supabase) { app.innerHTML = '<div class="err">No cargó la librería de sesión. Recargá la página.</div>'; return; }
+    const hub = supabase.createClient(HUB.url, HUB.key);
+    const { data: { session } } = await hub.auth.getSession();
+    if (!session) { location.href = '/index.html'; return; }
+    token = session.access_token;
+    cargar();
+  })();
+})();
+</script>
+<script src="/assets/cuenta-activa.js?v=1"></script>
+</body>
+</html>

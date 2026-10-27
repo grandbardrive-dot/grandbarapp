@@ -70,6 +70,10 @@
     var abrir = window.cobAbrir;
     window.cobAbrir = function (id) { return OCULTAS.indexOf(id) > -1 ? cobTablero() : abrir(id); };
     // El subtítulo del tablero habla de tareas, que acá no están.
+    // Análisis (27/10/2026): el tablero de datos de la cobranza, adentro del panel.
+    window.COB_EXTRA = [{ id: 'analisis', ico: '📈', n: 'Análisis', arriba: true, abrir: function () {
+      document.getElementById('cob').innerHTML = '<iframe src="/cobranzas-analisis.html?embed=1" title="Análisis de cobranzas" style="display:block;width:100%;height:calc(100vh - 150px);min-height:600px;border:0;background:transparent"></iframe>';
+    } }];
     var tablero = window.cobTablero;
     window.cobTablero = function () {
       tablero();
