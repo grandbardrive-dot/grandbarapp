@@ -79,7 +79,10 @@ exports.handler = async (event) => {
     try {
       const ya = new Set(dias.map(isoDe));
       const args = { p_desde: process.env.VENTAS_DESDE || '2025-01-01', p_lim: Number(process.env.VENTAS_RELLENO_DIAS || 24) };
-      const faltan = (await rpc('ventas_dias_sin_monto', args)).concat(await rpc('ventas_dias_sin_vendedor', args), await rpc('ventas_dias_sin_percep', args))
+      // Cada lista por separado: si una tarda de más, las otras siguen (27/10/2026: "sin monto"
+      // pasaba los 3 s y se caía todo el relleno).
+      const lista = (fn) => rpc(fn, args).catch((e) => { console.warn('sync-ventas-background', fn, (e && e.message) || e); return []; });
+      const faltan = (await lista('ventas_dias_sin_monto')).concat(await lista('ventas_dias_sin_vendedor'), await lista('ventas_dias_sin_percep'))
         .sort((a, b) => (a.fecha < b.fecha ? 1 : -1)).filter((f, i, l) => !i || f.fecha !== l[i - 1].fecha).slice(0, args.p_lim);
       for (const f of faltan) if (!ya.has(f.fecha)) { ya.add(f.fecha); dias.push(new Date(f.fecha + 'T12:00:00Z')); }
     } catch (e) {
