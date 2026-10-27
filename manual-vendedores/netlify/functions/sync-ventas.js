@@ -52,6 +52,9 @@ function netDateToISO(s) { const m = String(s || '').match(/\/Date\((\d+)/); if 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const val = (o, ...keys) => { for (const k of keys) { if (o && o[k] != null && String(o[k]).trim() !== '') return o[k]; } return null; };
 
+// DIAGNÓSTICO TEMPORAL (27/10/2026): clientes donde la planilla y las percepciones no coinciden.
+const DIAG_CLI = ['09819', '03536', '08731', '01637', '04456'];
+
 const EMPRESAS = (process.env.AIKON_EMPRESAS || `${process.env.AIKON_EMPRESA || '9999'},0001`)
   .split(',').map((e) => e.trim()).filter((e, i, a) => e && a.indexOf(e) === i);
 
@@ -90,6 +93,7 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
   const aggCli = new Map();   // cliente|sku|fecha|vendedor -> { u: unidades, imp: venta neta, cst: costo neto, per: percepciones, vn: nombre del vendedor } (11T / 6 meses / ventas por vendedor)
   let renglones = 0, totalUtiles = 0, camposVend = null;
   const percDia = { iva: 0, iibb: 0 };
+  const diag = [];   // DIAGNÓSTICO TEMPORAL (27/10/2026), ver abajo
   const porEmpresa = {};
   for (const ctx of ctxs) {
   const { urlCuenta, cuenta, token } = ctx;
@@ -120,6 +124,13 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
     const pIva = Math.abs(num(val(comp, 'TotalPercepIVA'))), pIibb = Math.abs(num(val(comp, 'TotalPercepIIBB')));
     const netoComp = (pIva || pIibb) ? det.reduce((s, r) => s + Math.abs(num(val(r, 'TotalNeto', 'ImporteUni', 'Total'))), 0) : 0;
     percDia.iva += pIva * signo; percDia.iibb += pIibb * signo;
+    // DIAGNÓSTICO TEMPORAL (27/10/2026): campos de impuestos de la cabecera y los renglones, para ver
+    // cómo arma la planilla el "Monto" con percepciones. Solo nombres de campo y números. Se saca después.
+    if ((pIva || pIibb) && (DIAG_CLI.includes(clienteCod) ? diag.length < 6 : diag.length < 1)) {
+      const sc = (o, re) => Object.fromEntries(Object.entries(o || {}).filter(([k, v]) => re.test(k) && (v == null || typeof v !== 'object')));
+      diag.push({ cli: clienteCod, cod: c.Codigo, cab: sc(comp, /percep|perc|iibb|total|neto|iva|imp|cond|alic|grav/i),
+        ren: det.slice(0, 3).map((r) => sc(r, /percep|perc|iibb|total|neto|iva|imp|bonif|desc|cant|precio|alic/i)) });
+    }
     for (const r of det) {
       const sku = String(val(r, 'Articulo', 'ArticuloCodigo') || '').trim();
       if (!sku) continue;
@@ -198,7 +209,7 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
   try {
     await sb('ventas_sync_log', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({
       desde: fISO, hasta: fISO, comprobantes: totalUtiles, renglones, skus: filas.length, ok: true,
-      detalle: `v2 ${Object.entries(porEmpresa).map(([e, n]) => e + ':' + n).join(' ')} vend:${(camposVend || []).join(',') || '-'} perc:iva=${Math.round(percDia.iva)},iibb=${Math.round(percDia.iibb)}`,
+      detalle: `v2 ${Object.entries(porEmpresa).map(([e, n]) => e + ':' + n).join(' ')} vend:${(camposVend || []).join(',') || '-'} perc:iva=${Math.round(percDia.iva)},iibb=${Math.round(percDia.iibb)}${diag.length ? ' diag:' + JSON.stringify(diag).slice(0, 6000) : ''}`,
     }) });
   } catch (e) { /* el log no frena la sync */ }
   return res;
