@@ -17,7 +17,7 @@
   de crédito cada 20 minutos (también las del día) y la función dir-ventas las suma.
   Venta NETO = sin IVA. Rentabilidad neta (antes "margen bruto") = venta neta − costo neto,
   solo productos con código. Venta total (27/10/2026) = la misma venta con IVA, impuesto interno y
-  percepciones (IVA e IIBB), como el "Monto" de la planilla "Avance Ventas".
+  percepción de IVA (la de IIBB no), como el "Monto" de la planilla "Avance Ventas".
 -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/dir.css" />
@@ -81,7 +81,7 @@
     <details class="como">
       <summary>Cómo se calculan estos números</summary>
       <ul>
-        <li><b>Venta total con impuestos</b>: la misma venta de productos con el IVA, los impuestos internos y las percepciones de IVA e Ingresos Brutos de cada factura. Es el "Monto" de la planilla "Avance Ventas" con sus filtros, así que da igual que la planilla (que llega hasta ayer; acá también está lo de hoy).</li>
+        <li><b>Venta total con impuestos</b>: la misma venta de productos con el IVA, los impuestos internos y la percepción de IVA de cada factura (la de Ingresos Brutos no, igual que en la planilla). Es el "Monto" de la planilla "Avance Ventas" con sus filtros, así que da igual que la planilla (que llega hasta ayer; acá también está lo de hoy).</li>
         <li><b>Venta de productos NETO</b>: el neto sin IVA de las facturas, menos las notas de crédito, de <b>Vinos, Espirituosas, Cervezas, Bebidas sin alcohol y Cafés e infusiones</b>. Sale de CUBO (las dos empresas) y se baja cada 20 minutos.</li>
         <li><b>No se cuentan</b>, igual que en la planilla "Avance Ventas" de Administración: lo que facturan <b>Operaciones Especiales, Empleados Grandbar, Gestión Administrativa, Luciana Buenanueva y Brenda Gonzalez</b>, y los tipos de producto <b>Alimentos, POP, Promos, Otros, Administración</b> y lo que no tiene código de artículo.</li>
         <li><b>Rentabilidad Neta</b>: venta neta menos el costo neto que tiene cargado CUBO para cada artículo, los dos sin IVA. El impuesto interno no entra en ninguno de los dos: el cliente lo paga aparte y se le paga al fisco.</li>

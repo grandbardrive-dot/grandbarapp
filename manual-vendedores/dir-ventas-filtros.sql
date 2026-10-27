@@ -88,3 +88,9 @@ $$;
 -- su neto; sync-ventas-background rellena los días con percep null (24 por corrida).
 -- dir_ventas: total = neto × (con IVA + interno)/neto del artículo + percep; devuelve además
 -- percepciones y dias_sin_percep (la pantalla no compara el total mientras falten días).
+
+-- CORRECCIÓN (27/10/2026, misma mañana): la planilla suma SOLO la percepción de IVA, no la de
+-- IIBB. Comprobado día por día del 8 al 26/10: lo que la planilla suma de más es la percepción
+-- de IVA de CUBO (19/10: 777.742 contra 777.741) y lo que sobraba era justo la de IIBB. Desde
+-- ahí ventas_cliente.percep = percepción de IVA; el log del día dice "percep=iva". Los días
+-- bajados antes con IVA + IIBB se pusieron en null para que se vuelvan a bajar.

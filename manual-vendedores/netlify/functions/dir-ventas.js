@@ -5,8 +5,8 @@
 //   suma la base con dir_ventas(desde, hasta) — ver dir-ventas-setup.sql:
 //   - Venta de productos = neto sin IVA de facturas menos notas de crédito.
 //   - Rentabilidad neta (antes "margen bruto") = venta neta − costo neto (sin IVA), solo productos con código.
-//   - Venta total (27/10/2026) = la misma venta con IVA, impuesto interno y percepciones (IVA e
-//     IIBB), como el "Monto" de la planilla "Avance Ventas".
+//   - Venta total (27/10/2026) = la misma venta con IVA, impuesto interno y percepción de IVA
+//     (la de IIBB no), como el "Monto" de la planilla "Avance Ventas".
 //   - Aparte: lo facturado sin código de artículo (eventos, servicios: sin costo en CUBO)
 //     y los ajustes (rubros 06 y 14). Las notas de débito (cheques rechazados) no son venta.
 //   GET ?periodo=hoy|semana|mes|mes_anterior|anio  (o ?desde=AAAA-MM-DD&hasta=AAAA-MM-DD)
