@@ -347,7 +347,7 @@ exports.handler = async (event) => {
       if (cli && cli.id) {
         const id = encodeURIComponent(cli.id);
         [comprobantes, reclamos] = await Promise.all([
-          leer('comprobantes?select=id,concepto,archivo_url,monto,fecha_pago,estado,tipo,factura,created_at,procesado_por,revisado_por'
+          leer('comprobantes?select=id,concepto,archivo_url,archivos,monto,fecha_pago,estado,tipo,factura,created_at,procesado_por,revisado_por'
              + '&cliente_id=eq.' + id + '&order=created_at.desc&limit=20'),
           leer('reclamos?select=id,asunto,factura,estado,updated_at&cliente_id=eq.' + id + '&order=updated_at.desc&limit=20'),
         ]);

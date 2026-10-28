@@ -102,7 +102,7 @@ exports.handler = async (event) => {
     // últimos 300 mezclados con los cerrados, y cuando el historial pasara de 300
     // los pendientes más viejos iban a desaparecer de la lista sin aviso.
     // "revisado" es el estado del circuito anterior: el cliente lo ve como aceptado.
-    const campos = 'id,cliente_id,concepto,archivo_url,monto,fecha_pago,estado,procesado_por,procesado_at,revisado_por,created_at,nc_aplicada,nc_creditos,total_facturas';
+    const campos = 'id,cliente_id,concepto,archivo_url,archivos,monto,fecha_pago,estado,procesado_por,procesado_at,revisado_por,created_at,nc_aplicada,nc_creditos,total_facturas';
     const enZona = arr => (Array.isArray(arr) ? arr : []).filter(c => !Z || Z.cliOk(c.cliente_id));
     const pendientes = enZona(await traerTodo(cob, 'comprobantes?tipo=eq.cliente&estado=eq.procesado&select=' + campos + '&order=created_at.asc', 5000));
     const cerr = await cob('comprobantes?tipo=eq.cliente&estado=in.(aceptado,rechazado,revisado)&select=' + campos + '&order=created_at.desc&limit=' + (Z ? 1000 : 300));
@@ -130,7 +130,7 @@ exports.handler = async (event) => {
 
     const por_revisar = [], historial = [];
     (Array.isArray(comps) ? comps : []).forEach(c => {
-      const base = { id: c.id, cliente: nombreDe(c.cliente_id), vendedor: vendedorDe(c.cliente_id) || c.procesado_por || null, codigo: (cmap[c.cliente_id] || {}).codigo_cubo || null, concepto: c.concepto, monto: c.monto, fecha_pago: c.fecha_pago, estado: c.estado, comprobante_url: c.archivo_url, procesado_por: c.procesado_por, procesado_at: c.procesado_at, revisado_por: c.revisado_por, subido: c.created_at, nc_aplicada: c.nc_aplicada, nc_creditos: c.nc_creditos, total_facturas: c.total_facturas };
+      const base = { id: c.id, cliente: nombreDe(c.cliente_id), vendedor: vendedorDe(c.cliente_id) || c.procesado_por || null, codigo: (cmap[c.cliente_id] || {}).codigo_cubo || null, concepto: c.concepto, monto: c.monto, fecha_pago: c.fecha_pago, estado: c.estado, comprobante_url: c.archivo_url, archivos: (Array.isArray(c.archivos) && c.archivos.length) ? c.archivos : (c.archivo_url ? [c.archivo_url] : []), procesado_por: c.procesado_por, procesado_at: c.procesado_at, revisado_por: c.revisado_por, subido: c.created_at, nc_aplicada: c.nc_aplicada, nc_creditos: c.nc_creditos, total_facturas: c.total_facturas };
       if (c.estado === 'procesado') {
         const monto = c.monto != null ? Math.round(Number(c.monto)) : null;
         base.matches = (monto != null ? (byMonto[monto] || []) : []).slice(0, 3).map(m => ({ id: m.id, nombre: m.nombre, documento: m.documento, credito: m.credito, fecha: m.fecha }));

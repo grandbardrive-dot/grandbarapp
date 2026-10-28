@@ -266,7 +266,7 @@ async function cobFicha(codigo) {
             <td class="num">${cnum(x.monto)}</td>
             <td class="${x.estado === 'rechazado' ? 'rojo' : ''}">${cesc(COMP_LBL[x.estado] || x.estado || '—')}</td>
             <td>${cesc(x.revisado_por || '—')}</td>
-            <td>${x.archivo_url ? `<a class="cb-b" href="${cesc(x.archivo_url)}" target="_blank" rel="noopener">📎 Ver</a>` : ''}</td>
+            <td>${(Array.isArray(x.archivos) && x.archivos.length ? x.archivos : (x.archivo_url ? [x.archivo_url] : [])).map((u, i, a) => `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener" style="margin:1px">📎 ${a.length > 1 ? (i + 1) : 'Ver'}</a>`).join(' ')}</td>
           </tr>`).join('')}</tbody>
         </table>` : `<div class="pv-vacio">${f ? 'Este cliente no subió ningún comprobante.' : 'No tiene ficha en el portal de clientes, así que no puede subir comprobantes.'}</div>`}
 

@@ -308,7 +308,7 @@
         </div>
         <div class="acts">
           <span class="chip-e ${e.cls}">${esc(e.t)}</span>
-          ${x.comprobante_url?`<a class="btn btn-ghost" href="${esc(x.comprobante_url)}" target="_blank" rel="noopener">Ver</a>`:""}
+          ${(x.archivos&&x.archivos.length?x.archivos:(x.comprobante_url?[x.comprobante_url]:[])).map((u,i,a)=>`<a class="btn btn-ghost" href="${esc(u)}" target="_blank" rel="noopener">${a.length>1?`Ver ${i+1}`:"Ver"}</a>`).join("")}
           ${x.estado==="pendiente"?`<button class="btn btn-ok" onclick="procesar('${encodeURIComponent(String(x.id)).replace(/'/g,"%27")}', this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>Marcar procesado</button>`:""}
         </div>
       </div>`;
