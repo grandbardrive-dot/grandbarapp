@@ -1194,13 +1194,29 @@ async function cobEfectivoRefrescar() {
 }
 
 // ── Planillas de rendición (las que envían los vendedores) ─
+// Buscador por N° de planilla o vendedor (29/10/2026): el N° lo cargan Mónica y Romina en el
+// detalle. Lo buscado queda guardado para volver del detalle a la misma búsqueda.
 async function cobPlanillas() {
+  const q = window._plaBuscar || '';
   cq('cob').innerHTML = cobCabecera('Planillas de rendición', 'Las rendiciones de cobranzas que te envían los vendedores. Entrá a una para ver el detalle y los comprobantes.') +
+    `<div style="margin:0 0 12px"><input id="pla-buscar" type="search" value="${cesc(q)}" placeholder="Buscar por N° de planilla o vendedor…" oninput="cobPlanillasBuscar(this.value)" autocomplete="off"
+      style="width:100%;max-width:420px;border:1px solid var(--line,#ddd);border-radius:10px;padding:9px 12px;font:inherit;font-size:14px;background:var(--card,#fff)"></div>` +
     `<div id="pla-lista"><div class="pv-vacio">Cargando…</div></div>`;
+  cobPlanillasLista();
+}
+let _plaT = null;
+function cobPlanillasBuscar(v) {
+  window._plaBuscar = String(v || '').trim();
+  clearTimeout(_plaT); _plaT = setTimeout(cobPlanillasLista, 350);
+}
+async function cobPlanillasLista() {
+  const q = window._plaBuscar || '';
+  if (!cq('pla-lista')) return;
   try {
-    const d = await cobApi('?que=planillas');
+    const d = await cobApi('?que=planillas' + (q ? '&buscar=' + encodeURIComponent(q) : ''));
+    if ((window._plaBuscar || '') !== q) return;   // mientras buscaba, escribieron otra cosa
     const filas = d.filas || [];
-    if (!filas.length) { cq('pla-lista').innerHTML = `<div class="pv-vacio">Todavía no te enviaron ninguna planilla.</div>`; return; }
+    if (!filas.length) { cq('pla-lista').innerHTML = `<div class="pv-vacio">${q ? 'No hay planillas con "' + cesc(q) + '" en el N° ni en el vendedor.' : 'Todavía no te enviaron ninguna planilla.'}</div>`; return; }
     const lbl = { efectivo: 'Efectivo', cheques: 'Cheques', retenciones: 'Retenc.', transferencia: 'Transf/MP', tarjeta: 'Tarjeta', echeq: 'E-cheq' };
     const completa = e => (e.filas > 0 && (e.procesadas || 0) >= e.filas);   // todas procesadas
     const card = e => {
@@ -1210,10 +1226,13 @@ async function cobPlanillas() {
       const chip = ok
         ? `<span class="cb-chip" style="background:#e7f1ea;color:#1f6b3d">✓ Procesada</span>`
         : `<span class="cb-chip" style="background:#fde8e6;color:#b23120">⏳ ${e.procesadas || 0}/${e.filas} procesadas</span>`;
+      const nro = e.numero
+        ? `<span class="cb-chip" style="background:#eef3fb;color:#1f447f">N° ${cesc(e.numero)}</span>`
+        : (cobSoloLectura() ? '' : `<span class="cb-chip" style="background:#f1f1f1;color:#777">Sin N°</span>`);
       return `<article class="hh" style="cursor:pointer;border-left:5px solid ${col}" onclick="cobPlanillaDet('${cesc(String(e.vendedor))}','${cesc(String(e.fecha_rendicion))}')">
         <div class="hh-top"><span class="hh-ico">📋</span>
-          <div class="hh-nom">${cesc(e.vendedor_nombre || ('Vendedor ' + e.vendedor))}</div>${chip}</div>
-        <div class="hh-desc">${e.filas} fila${e.filas === 1 ? '' : 's'} · Importe total: <b>${cnum(t.importe || 0)}</b></div>
+          <div class="hh-nom">${cesc(e.vendedor_nombre || ('Vendedor ' + e.vendedor))}</div>${nro}${chip}</div>
+        <div class="hh-desc">${q ? cfec(e.fecha_rendicion) + ' · ' : ''}${e.filas} fila${e.filas === 1 ? '' : 's'} · Importe total: <b>${cnum(t.importe || 0)}</b></div>
         ${tot ? `<div class="hh-desc">${tot}</div>` : ''}</article>`;
     };
     // Agrupar por FECHA DE RENDICIÓN: la de hoy abierta, las anteriores "archivadas" (colapsadas).
@@ -1234,6 +1253,11 @@ async function cobPlanillas() {
       const resto = faltan ? `<div style="font-size:12px;font-weight:600;color:#b23120;margin-top:2px">Falta aprobar: ${faltan} fila${faltan === 1 ? '' : 's'} por <b>${cnum(pend)}</b> (no está sumado)</div>` : '';
       return `<div style="font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink,#1d2a3a);margin-top:5px">Total aprobado del día: ${medios.map(k => `<span style="white-space:nowrap">${lbl[k]} <b>${cnum(s[k])}</b></span>`).join(' · ')}${resto}</div>`;
     };
+    // Buscando: todas las que coinciden, una debajo de la otra (sin agrupar ni archivar).
+    if (q) {
+      cq('pla-lista').innerHTML = `<div style="font-size:12.5px;color:var(--muted);margin:0 0 8px">${filas.length} planilla${filas.length === 1 ? '' : 's'} con "${cesc(q)}"</div>` + filas.map(card).join('');
+      return;
+    }
     let html = '';
     for (const f of fechas) {
       const grupo = porFecha[f], cards = grupo.map(card).join('');
@@ -1284,7 +1308,13 @@ async function cobPlanillaDet(vendedor, fecha) {
     const td = (v, r) => `<td style="padding:8px 11px;text-align:${r ? 'right' : 'left'}">${v}</td>`;
     cq('pla-det').innerHTML = `
       <div class="head"><div><h1>Rendición · ${cesc(nomVend)}</h1>
-        <div class="head-sub">${cfec(fecha)}${env && env.enviada_at ? ' · enviada ' + cfec(env.enviada_at) : ''} · ${filas.length} fila${filas.length === 1 ? '' : 's'} · <b style="color:var(--green-d,#245647)">${nProc} procesada${nProc === 1 ? '' : 's'}</b></div></div></div>
+        <div class="head-sub">${cfec(fecha)}${env && env.enviada_at ? ' · enviada ' + cfec(env.enviada_at) : ''}${cobSoloLectura() && env && env.numero ? ' · N° ' + cesc(env.numero) : ''} · ${filas.length} fila${filas.length === 1 ? '' : 's'} · <b style="color:var(--green-d,#245647)">${nProc} procesada${nProc === 1 ? '' : 's'}</b></div></div></div>
+      ${!cobSoloLectura() && env ? `<div style="display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;margin:10px 0 2px">
+        <label for="pla-num" style="font-weight:700;font-size:13px">N° de planilla</label>
+        <input id="pla-num" value="${cesc(env.numero || '')}" maxlength="40" placeholder="Escribí el número" autocomplete="off" onchange="cobPlanillaNumero(this)"
+          style="border:1px solid #d7d7d7;border-radius:8px;padding:7px 10px;font:inherit;font-size:14px;width:180px">
+        <span id="pla-num-est" style="font-size:12px;color:var(--muted)">${env.numero && env.numero_por ? 'Cargado por ' + cesc(env.numero_por) : 'Sirve para buscar la planilla después.'}</span>
+      </div>` : ''}
       ${cobSoloLectura()
         ? `<div class="wa-nota" style="margin-top:4px">Las filas tildadas en <b>Procesado</b> ya las pasó tesorería; debajo del tilde figura quién.</div>`
         : `<div class="wa-nota" style="margin-top:4px">Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Si un vendedor cargó mal un monto, <b>editalo directo en la celda</b> (los totales se recalculan solos); si una fila sobra (ej. cargada dos veces), eliminala con 🗑. Las que queden sin tildar son las que te faltan.</div>`}
@@ -1310,6 +1340,28 @@ async function cobPlanillaDet(vendedor, fecha) {
         </tr></tfoot>
       </table></div>`;
   } catch (e) { cq('pla-det').innerHTML = cerror(e.message); }
+}
+
+// Mónica / Romina cargan el N° de la planilla (29/10/2026). Si otra planilla ya tiene ese
+// número se avisa, pero se guarda igual.
+async function cobPlanillaNumero(el) {
+  const p = window._plaDet || {}, est = cq('pla-num-est');
+  const numero = String(el.value || '').trim();
+  if (est) { est.style.color = 'var(--muted)'; est.textContent = 'Guardando…'; }
+  try {
+    const d = await cobApi('', { method: 'POST', body: JSON.stringify({ accion: 'planilla-numero', vendedor: p.vendedor, fecha: p.fecha, numero }) });
+    el.value = d.numero || '';
+    if (!est) return;
+    if (d.repetida) {
+      est.style.color = '#b23120';
+      est.textContent = 'Guardado. Ojo: el N° ' + numero + ' ya lo tiene la planilla de ' + (d.repetida.vendedor_nombre || ('Vendedor ' + d.repetida.vendedor)) + ' del ' + cfec(d.repetida.fecha_rendicion) + '.';
+    } else {
+      est.style.color = 'var(--green-d,#245647)';
+      est.textContent = d.numero ? '✓ Guardado' : 'Se borró el número.';
+    }
+  } catch (e) {
+    if (est) { est.style.color = '#b23120'; est.textContent = 'No se pudo guardar: ' + (e.message || e); }
+  }
 }
 
 // Moni marca una fila como procesada / deja observaciones (en el detalle de la planilla).

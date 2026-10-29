@@ -214,6 +214,27 @@ exports.handler = async (event) => {
       };
       // Moni/administración BORRA una fila (ej. cargada dos veces). Antes de borrarla se guarda
       // una copia completa en planilla_borradas (respaldo: qué se borró, quién y cuándo).
+      // N° de planilla (29/10/2026): lo cargan Mónica y Romina para después buscarla por ese
+      // número. Va en el envío (una planilla = vendedor + fecha). Vacío = se borra.
+      if (b.accion === 'planilla-numero') {
+        const vend = String(b.vendedor || '').trim(), fecha = String(b.fecha || '').trim();
+        if (!vend || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return json(400, { error: 'Falta el vendedor o la fecha de la planilla.' });
+        const ZP = await zonaPlanillas();
+        if (ZP && !ZP.vendOk(vend)) return json(403, { error: 'Esa planilla es de ' + (ZP.zona === 'mendoza' ? 'San Luis: la procesa Romina.' : 'Mendoza.') });
+        const numero = String(b.numero == null ? '' : b.numero).trim().slice(0, 40) || null;
+        // Si ya hay otra planilla con ese número, se avisa (no se bloquea: puede ser a propósito).
+        let repetida = null;
+        if (numero) {
+          const otras = await leer('planilla_envios?select=vendedor,vendedor_nombre,fecha_rendicion&numero=ilike.' + encodeURIComponent(numero.replace(/[%*_]/g, '')) + '&limit=5');
+          repetida = otras.find(o => !(String(o.vendedor) === vend && String(o.fecha_rendicion) === fecha)) || null;
+        }
+        const r = await cob('planilla_envios?vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha),
+          { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ numero, numero_por: numero ? (perfil.nombre || null) : null, numero_at: numero ? new Date().toISOString() : null }) });
+        const filas = await r.json();
+        if (!r.ok) return json(400, { error: (filas && filas.message) || 'No se pudo guardar el número.' });
+        if (!filas.length) return json(404, { error: 'Esa planilla todavía no fue enviada.' });
+        return json(200, { ok: true, numero, repetida });
+      }
       if (b.accion === 'planilla-borrar') {
         if (!b.id) return json(400, { error: 'Falta la fila.' });
         const ZP = await zonaPlanillas();
@@ -373,7 +394,10 @@ exports.handler = async (event) => {
     // Planillas de rendición que envían los vendedores (lista de envíos).
     if (que === 'planillas') {
       const ZP = await zonaPlanillas();
-      let filas = await leer('planilla_envios?select=*&order=enviada_at.desc&limit=' + (ZP ? 1000 : 400));
+      // Búsqueda (29/10/2026): por N° de planilla o por vendedor, en todas las fechas.
+      const q = String(p.buscar || '').replace(/[^\p{L}\p{N} .\/-]/gu, '').trim().slice(0, 40);
+      const filtroQ = q ? '&or=(numero.ilike.*' + encodeURIComponent(q) + '*,vendedor_nombre.ilike.*' + encodeURIComponent(q) + '*)' : '';
+      let filas = await leer('planilla_envios?select=*' + filtroQ + '&order=enviada_at.desc&limit=' + (ZP ? 1000 : 400));
       if (ZP) filas = filas.filter(x => ZP.vendOk(x.vendedor)).slice(0, 400);
       // Filas actuales de cada planilla: cuántas marcó Moni como procesadas (para el verde/rojo)
       // y cuánto suman por medio de pago. El total del día suma SOLO lo que Moni aprobó
