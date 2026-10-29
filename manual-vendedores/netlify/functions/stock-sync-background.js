@@ -19,6 +19,9 @@ exports.handler = async (event) => {
   try {
     const r = await sincronizarStock();
     console.log('stock-sync (' + origen + ') OK', JSON.stringify(r));
+    // San Luis (29/10/2026): si falló, Mendoza igual quedó guardado, pero la corrida se
+    // anota como fallida con el motivo (lo ven Romina, Estado del sistema y n8n).
+    if (r && r.sanLuis && r.sanLuis.error) console.error('San Luis: ' + r.sanLuis.error);
   } catch (e) {
     console.error('stock-sync (' + origen + ') ERROR:', (e && e.message) || String(e));
   }
