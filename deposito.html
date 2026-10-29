@@ -18,7 +18,10 @@
      Spirits y Gaseosas (rol deposito; el sector va en usuarios.canal). Eligen proveedores
      y líneas, cargan Depo 1 + Local + Depo 2 por SKU y lo envían: se guarda y a Laura y a
      Brenda les llega el aviso al Portal, con el Excel para bajar (sin mail desde el 26/10). También la agenda de los lunes.
-     Administración lo maneja en deposito-admin.html. Datos: función stock (assets/stock-comun.js). -->
+     Administración lo maneja en deposito-admin.html. Datos: función stock (assets/stock-comun.js).
+     29/10/2026: también San Luis. Cristian (rol deposito + región San Luis) cuenta los dos
+     sectores, contra el stock del depósito de San Luis, y los conteos le llegan a Romina. -->
+<!-- (ver stock-deposito-sanluis.sql) -->
 <link rel="stylesheet" href="assets/kaf.css?v=1">
 <link rel="stylesheet" href="assets/stock.css?v=1">
 <link rel="stylesheet" href="assets/mobile.css?v=3">
@@ -55,7 +58,7 @@
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="assets/stock-productos.js?v=1"></script>
-<script src="assets/stock-comun.js?v=1"></script>
+<script src="assets/stock-comun.js?v=2"></script>
 <script>
   const { $, esc, num, SECTOR_LBL, SECTOR_ICO, hoy, fecha, fechaHora, diaLargo, toast, get, post } = STOCK;
   let YO = null, SECTOR = null, AG = null, STK = null, VISTA = '';
@@ -71,7 +74,12 @@
   const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
   // En este celular: la selección del conteo en curso y lo cargado sin enviar (por sector).
-  const K_SEL = () => 'gb_stock_sel_' + SECTOR, K_DRAFT = () => 'gb_stock_draft_' + SECTOR, K_VEL = 'gb_stock_vel';
+  // San Luis guarda aparte (sl_), así lo de un depósito no se mezcla con el otro.
+  const kDep = () => STOCK.dep() === 'san_luis' ? 'sl_' : '';
+  const K_SEL = () => 'gb_stock_sel_' + kDep() + SECTOR, K_DRAFT = () => 'gb_stock_draft_' + kDep() + SECTOR, K_VEL = 'gb_stock_vel';
+  // A quién le llega el conteo: "A Laura y a Brenda les…" (Mendoza) o "A Romina le…" (San Luis).
+  const avisoA = () => { const a = String((YO && YO.avisoA) || 'administración'); return { a: 'A ' + a.replace(/ y /g, ' y a '), le: / y /.test(a) ? 'les' : 'le' }; };
+  const enSL = () => STOCK.dep() === 'san_luis';
   const primerNombre = n => String(n || '').trim().split(/\s+/)[0] || '';
   const cabeza = (t, p) => `<div class="head"><div><h1>${esc(t)}</h1>${p ? `<p>${p}</p>` : ''}</div></div>`;
   const vacio = m => `<div class="vacio">${m}</div>`;
@@ -103,25 +111,39 @@
   }
   window.addEventListener('hashchange', ir);
 
-  // Elegir el sector: los chicos una sola vez (queda en su usuario); administración, cuando quiera.
+  // Elegir el sector: los chicos de Mendoza una sola vez (queda en su usuario); el de San Luis
+  // (cuenta los dos) y administración, cuando quieran.
+  const eligeCadaVez = () => YO.esAdmin || YO.ambos;
   function elegirSector(C) {
-    C.innerHTML = cabeza('¿Qué contás?', YO.esDepo ? 'Elegilo una vez: queda guardado en tu usuario.' : 'Elegí qué sector querés ver.') +
+    C.innerHTML = cabeza('¿Qué contás?', YO.ambos ? 'Elegí el sector que vas a contar. Después lo cambiás desde arriba.' : YO.esDepo && !YO.esAdmin ? 'Elegilo una vez: queda guardado en tu usuario.' : 'Elegí qué sector querés ver.') +
       `<div class="kaf-cards">${['vinos', 'spirits'].map(s => `<button class="kaf-card" type="button" data-s="${s}"><b>${SECTOR_ICO[s]} ${SECTOR_LBL[s]}</b><span>${s === 'vinos' ? 'Bodegas y vinos' : 'Spirits, aperitivos y gaseosas'}</span></button>`).join('')}</div>`;
     C.querySelectorAll('[data-s]').forEach(b => b.onclick = async () => {
       const s = b.dataset.s;
-      if (YO.esDepo && !YO.esAdmin) { try { await post({ accion: 'mi-sector', sector: s }); } catch (e) { return toast(e.message, true); } }
+      if (!eligeCadaVez()) { try { await post({ accion: 'mi-sector', sector: s }); } catch (e) { return toast(e.message, true); } }
       else lsSet('gb_stock_sector_ver', s);
       ponerSector(s); ir();
     });
   }
   function ponerSector(s) {
     SECTOR = s; AG = null;
-    $('sb-sector').textContent = SECTOR_ICO[s] + ' ' + SECTOR_LBL[s];
-    document.title = 'GrandBar — Depósito · ' + SECTOR_LBL[s];
+    $('sb-sector').textContent = SECTOR_ICO[s] + ' ' + SECTOR_LBL[s] + (enSL() ? ' · San Luis' : '');
+    document.title = 'GrandBar — Depósito' + (enSL() ? ' San Luis' : '') + ' · ' + SECTOR_LBL[s];
   }
-  // Administración puede pasar de un sector al otro desde el inicio.
-  const cambioSector = () => YO.esAdmin
-    ? `<div class="tabs" style="margin-bottom:14px">${['vinos', 'spirits'].map(s => `<button type="button" class="${s === SECTOR ? 'on' : ''}" onclick="lsSet('gb_stock_sector_ver','${s}');ponerSector('${s}');ir()">${SECTOR_ICO[s]} ${SECTOR_LBL[s]}</button>`).join('')}</div>` : '';
+  // Pasar al otro depósito (solo quien maneja los dos: Brenda, Diseño y Desarrollo).
+  function ponerDep(d) {
+    lsSet('gb_stock_dep_ver', d); STOCK.setDep(d); STK = null; AG = null;
+    if (SECTOR) ponerSector(SECTOR);
+    ir();
+  }
+  // Administración y el de San Luis pasan de un sector al otro desde arriba; quien maneja
+  // los dos depósitos, también de depósito.
+  const cambioSector = () => {
+    const deps = (YO.depositos || []).length > 1
+      ? `<div class="tabs" style="margin-bottom:8px">${YO.depositos.map(d => `<button type="button" class="${d === STOCK.dep() ? 'on' : ''}" onclick="ponerDep('${d}')">Depósito ${esc(STOCK.DEP_LBL[d])}</button>`).join('')}</div>` : '';
+    const secs = eligeCadaVez()
+      ? `<div class="tabs" style="margin-bottom:14px">${['vinos', 'spirits'].map(s => `<button type="button" class="${s === SECTOR ? 'on' : ''}" onclick="lsSet('gb_stock_sector_ver','${s}');ponerSector('${s}');ir()">${SECTOR_ICO[s]} ${SECTOR_LBL[s]}</button>`).join('')}</div>` : '';
+    return deps + secs;
+  };
 
   // ── Inicio ─────────────────────────────────────────────────────────────────
   async function verInicio(C) {
@@ -308,7 +330,7 @@
     modal(`<div class="mh"><h3>Enviar el conteo</h3><div class="sub">${SECTOR_ICO[SECTOR]} ${SECTOR_LBL[SECTOR]} · ${esc(fecha(f))}</div></div>
       <div class="mb">
         <div class="kpis" style="grid-template-columns:1fr 1fr"><div class="kpi"><div class="k">Contados</div><div class="v">${contados} <small>de ${filas0.length}</small></div></div><div class="kpi"><div class="k">Unidades</div><div class="v">${num(unidades)}</div></div></div>
-        <p style="font-size:13.5px;color:var(--muted);line-height:1.5;margin:14px 0 6px">A Laura y a Brenda les llega el aviso al Portal y desde ahí bajan el Excel. Los productos sin cargar salen con 0 y su diferencia contra el sistema.</p>
+        <p style="font-size:13.5px;color:var(--muted);line-height:1.5;margin:14px 0 6px">${esc(avisoA().a)} ${avisoA().le} llega el aviso al Portal y desde ahí ${avisoA().le === 'les' ? 'bajan' : 'baja'} el Excel. Los productos sin cargar salen con 0 y su diferencia contra el sistema${enSL() ? ' de San Luis' : ''}.</p>
         <label class="opciones" style="margin-top:10px"><label><input type="checkbox" id="en-agenda" checked> Marcar en la agenda como hechos: ${esc(SEL.proveedores.length <= 3 ? SEL.proveedores.join(', ') : SEL.proveedores.length + ' proveedores')}</label></label>
         <div class="msg" id="en-msg"></div>
         <div class="acts"><button class="btn claro" type="button" onclick="cerrarModal()">Seguir contando</button><button class="btn gold" id="en-ok" type="button">Enviar</button></div>
@@ -324,7 +346,7 @@
       // El stock del sistema, fresco al momento de enviar.
       try { await cargarStock(); } catch (e) { /* si no hay conexión, el que ya estaba */ }
       const todos = STOCK.filas(delConteo(), DRAFT.values, (STK && STK.stock) || {}, !!(STK && STK.filas));
-      try { x = STOCK.excel({ sector: SECTOR, usuario: YO.nombre, fecha: f, proveedores: SEL.proveedores, todos, provObs: DRAFT.provObs }); } catch (e) { console.warn('excel', e); }
+      try { x = STOCK.excel({ sector: SECTOR, usuario: YO.nombre, fecha: f, proveedores: SEL.proveedores, todos, provObs: DRAFT.provObs, deposito: STOCK.dep() }); } catch (e) { console.warn('excel', e); }
       const r = await post({ accion: 'conteo', sector: SECTOR, fecha: f, proveedores: SEL.proveedores, lineas: SEL.lineas, items: todos, prov_obs: DRAFT.provObs });
       if ($('en-agenda') && $('en-agenda').checked) {
         for (const p of SEL.proveedores) { try { await post({ accion: 'agenda-hecho', sector: SECTOR, proveedor: p, hecho: true }); } catch (e) {} }
@@ -333,7 +355,7 @@
       lsDel(K_DRAFT()); lsDel(K_SEL()); SEL = null; DRAFT = null;
       window._ultimoExcel = x;
       modal(`<div class="mh"><h3>✓ Conteo enviado</h3><div class="sub">${SECTOR_LBL[SECTOR]} · ${esc(fecha(f))}</div></div><div class="mb">
-        <p style="margin:0 0 10px">Se guardó y a Laura y a Brenda ya les llegó el aviso al Portal.</p>
+        <p style="margin:0 0 10px">Se guardó y ${esc(avisoA().a.replace(/^A /, 'a '))} ya ${avisoA().le} llegó el aviso al Portal.</p>
         <div class="acts"><button class="btn claro" type="button" ${x ? '' : 'disabled'} onclick="STOCK.descargar(window._ultimoExcel.base64, window._ultimoExcel.nombre)">Descargar Excel</button>
           <button class="btn gold" type="button" onclick="cerrarModal();location.hash='#inicio'">Listo</button></div></div>`);
     } catch (e) {
@@ -409,6 +431,7 @@
   // Pasa el conteo recuperado al borrador de este celular y deja la planilla lista para seguir.
   function aplicarRecuperado() {
     const d = lsGet('gb_stock_recuperar', null);
+    if (enSL()) return null;   // la app vieja era solo de Mendoza
     if (!d || !d.borradores || !SECTOR || !d.borradores[SECTOR]) return null;   // espera a alguien de ese sector
     const b = d.borradores[SECTOR], antes = lsGet('gb_stock_draft_' + SECTOR, null) || { values: {}, provObs: {} };
     lsSet('gb_stock_draft_' + SECTOR, { values: Object.assign({}, antes.values || {}, b.values || {}), provObs: Object.assign({}, antes.provObs || {}, b.provObs || {}), fecha: antes.fecha || hoy() });
@@ -430,11 +453,14 @@
     if (!session) { location.replace('index.html'); return; }
     try { YO = await get('yo'); }
     catch (e) { $('contenido').innerHTML = vacio(esc(e.message)); return; }
+    // Depósito: el suyo; quien maneja los dos, el último que miró.
+    const depVer = lsGet('gb_stock_dep_ver', null);
+    STOCK.setDep((YO.depositos || []).length > 1 && (YO.depositos || []).includes(depVer) ? depVer : YO.deposito);
     $('uName').textContent = YO.nombre;
-    $('uRol').textContent = YO.esDepo ? 'Depósito' : 'Administración';
+    $('uRol').textContent = YO.esDepo ? 'Depósito' + (enSL() ? ' San Luis' : '') : 'Administración';
     $('av').textContent = String(YO.nombre || 'D').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
     if (YO.esAdmin) { $('sb-admin').style.display = ''; $('sb-admin-cat').style.display = ''; }
-    const s = YO.sector || (YO.esAdmin ? lsGet('gb_stock_sector_ver', null) : null);
+    const s = YO.sector || (eligeCadaVez() ? lsGet('gb_stock_sector_ver', null) : null);
     if (s) ponerSector(s);
     const rec = aplicarRecuperado();
     if (rec != null) { history.replaceState(null, '', location.pathname + '#conteo'); setTimeout(() => toast('Recuperamos tu conteo de la app vieja: ' + rec + ' productos cargados'), 700); }

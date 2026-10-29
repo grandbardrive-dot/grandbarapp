@@ -6,6 +6,8 @@
 //  ahora dentro del Portal. La usan stock-sync-background (cada hora, ver
 //  stock-sync-cron) y el botón "Sincronizar ahora" de deposito-admin.html.
 //  El "_" evita que Netlify lo publique como función.
+//  29/10/2026: también San Luis (depósito de Cristian), desde DtTabla STOCK, depósito
+//  02. stock_sistema guarda un número por depósito (mendoza | san_luis) y artículo.
 //
 //  Cuidados que ya traía:
 //   - Upsert por SKU, sin borrar antes: si algo falla, la tabla no queda vacía.
@@ -78,8 +80,9 @@ const PREF_VINOS = new Set(['01', '11', '12', '13', '14', '15', '16', '17', '18'
 const PREF_SPIRITS = new Set(['02', '03', '04', '05', '07', '08']);
 const sectorDe = sku => PREF_VINOS.has(sku.slice(0, 2)) ? 'vinos' : PREF_SPIRITS.has(sku.slice(0, 2)) ? 'spirits' : null;
 
-async function leerStock() {
-  const { urlCuenta, cuenta, token } = await login();
+// ── Mendoza: DtTabla ARTICULO, st_stock (= depósito 01 de Córdoba) ────────────
+async function leerStock(ses) {
+  const { urlCuenta, cuenta, token } = ses;
   const probadas = [];
   for (const tabla of ['ARTICULO', 'ARTICULOS']) {
     let j;
@@ -106,28 +109,49 @@ async function leerStock() {
   throw new Error('Córdoba no devolvió artículos con stock. Probadas: ' + probadas.join(' | '));
 }
 
-async function sincronizarStock() {
-  const k = process.env.HUB_SERVICE_ROLE;
-  if (!k) throw new Error('Falta HUB_SERVICE_ROLE.');
-  const sb = (p, o = {}) => fetch(HUB_URL + '/rest/v1/' + p, { ...o, headers: { apikey: k, Authorization: 'Bearer ' + k, 'Content-Type': 'application/json', ...(o.headers || {}) } });
-
-  const l = await leerStock();
-  const conStock = l.rows.filter(r => r.stock > 0).length;
-  if (!l.rows.length || !conStock) throw new Error('Córdoba devolvió ' + l.total + ' artículos pero ninguno con stock: no se tocó la tabla.');
-
-  const ahora = new Date().toISOString();
-  for (let i = 0; i < l.rows.length; i += 500) {
-    const r = await sb('stock_sistema?on_conflict=sku', {
-      method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify(l.rows.slice(i, i + 500).map(x => ({ ...x, actualizado_en: ahora }))),
-    });
-    if (!r.ok) throw new Error('stock_sistema (lote ' + (i / 500 + 1) + '): ' + (await r.text()).slice(0, 200));
+// ── San Luis: DtTabla STOCK (de_codigo, ar_codigo, st_stock), depósito 02 ─────
+// 29/10/2026: STOCK trae una fila por depósito y artículo. El 01 coincide con
+// ARTICULO.st_stock (Mendoza); el 02 es el otro depósito grande (~2500 artículos con
+// stock, sin las bodegas boutique de Mendoza): San Luis. Si resultara otro código,
+// se cambia acá. Ojo: también existe un depósito "2" (sin cero), chico; no es este.
+const DEP_SAN_LUIS = '02';
+async function leerSanLuis(ses, nombres) {
+  const { urlCuenta, cuenta, token } = ses;
+  const j = await aikon(urlCuenta + '/IS3/DtTabla', { cuenta, token, tabla: 'STOCK' }, 90000);
+  const arr = listaDe(j) || listaDe(j && j.resultado) || [];
+  if (!arr.length) throw new Error('Córdoba no devolvió la tabla STOCK.');
+  const porSku = new Map();
+  let filas = 0;
+  for (const it of arr) {
+    if (String(it.de_codigo == null ? '' : it.de_codigo).trim() !== DEP_SAN_LUIS) continue;
+    filas++;
+    const c = extraer(it);
+    if (!c || c.stock === null) continue;
+    const sector = sectorDe(c.sku);
+    if (!sector) continue;
+    const prev = porSku.get(c.sku);
+    if (prev) prev.stock += c.stock;
+    else porSku.set(c.sku, { sku: c.sku, stock: c.stock, articulo: nombres.get(c.sku) || null, sector });
   }
-  // Los que tenían stock y Córdoba ya no devuelve → 0.
-  const nuevos = new Set(l.rows.map(r => r.sku));
+  return { filas, rows: [...porSku.values()].map(r => ({ ...r, stock: Math.round(r.stock) })) };
+}
+
+// Guarda el stock de un depósito: upsert por depósito+SKU y en 0 los que tenían stock
+// y Córdoba ya no devuelve. Si todo vino en 0, no toca nada.
+async function guardarDeposito(sb, deposito, rows, ahora) {
+  const conStock = rows.filter(r => r.stock > 0).length;
+  if (!rows.length || !conStock) throw new Error(deposito + ': Córdoba devolvió ' + rows.length + ' artículos pero ninguno con stock: no se tocó.');
+  for (let i = 0; i < rows.length; i += 500) {
+    const r = await sb('stock_sistema?on_conflict=deposito,sku', {
+      method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(rows.slice(i, i + 500).map(x => ({ ...x, deposito, actualizado_en: ahora }))),
+    });
+    if (!r.ok) throw new Error(deposito + ' (lote ' + (i / 500 + 1) + '): ' + (await r.text()).slice(0, 200));
+  }
+  const nuevos = new Set(rows.map(r => r.sku));
   let antes = [];
   for (let desde = 0; ; desde += 1000) {
-    const r = await sb('stock_sistema?select=sku&stock=neq.0&order=sku', { headers: { 'Range-Unit': 'items', Range: desde + '-' + (desde + 999) } });
+    const r = await sb('stock_sistema?select=sku&deposito=eq.' + deposito + '&stock=neq.0&order=sku', { headers: { 'Range-Unit': 'items', Range: desde + '-' + (desde + 999) } });
     if (!r.ok) break;
     const lote = await r.json();
     antes = antes.concat(lote.map(x => x.sku));
@@ -135,15 +159,38 @@ async function sincronizarStock() {
   }
   const ausentes = antes.filter(s => !nuevos.has(s));
   for (let i = 0; i < ausentes.length; i += 150) {
-    await sb('stock_sistema?sku=in.(' + ausentes.slice(i, i + 150).map(s => '"' + s + '"').join(',') + ')', {
+    await sb('stock_sistema?deposito=eq.' + deposito + '&sku=in.(' + ausentes.slice(i, i + 150).map(s => '"' + s + '"').join(',') + ')', {
       method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ stock: 0, actualizado_en: ahora }),
     });
   }
+  return { actualizados: rows.length, conStock, ausentesEnCero: ausentes.length };
+}
+
+async function sincronizarStock() {
+  const k = process.env.HUB_SERVICE_ROLE;
+  if (!k) throw new Error('Falta HUB_SERVICE_ROLE.');
+  const sb = (p, o = {}) => fetch(HUB_URL + '/rest/v1/' + p, { ...o, headers: { apikey: k, Authorization: 'Bearer ' + k, 'Content-Type': 'application/json', ...(o.headers || {}) } });
+
+  const ses = await login();
+  const ahora = new Date().toISOString();
+
+  // Mendoza, como siempre. Si falla, falla la corrida.
+  const l = await leerStock(ses);
+  const mza = await guardarDeposito(sb, 'mendoza', l.rows, ahora);
+
+  // San Luis: si falla, Mendoza ya quedó guardado y el error va en el resultado.
+  let sl;
+  try {
+    const nombres = new Map(l.rows.map(r => [r.sku, r.articulo]));
+    const s = await leerSanLuis(ses, nombres);
+    sl = { filas: s.filas, ...(await guardarDeposito(sb, 'san_luis', s.rows, ahora)) };
+  } catch (e) { sl = { error: String((e && e.message) || e).slice(0, 200) }; }
+
   return {
-    tabla: l.tabla, articulos: l.total, actualizados: l.rows.length, conStock,
+    tabla: l.tabla, articulos: l.total, actualizados: mza.actualizados, conStock: mza.conStock,
     vinos: l.rows.filter(r => r.sector === 'vinos').length, spirits: l.rows.filter(r => r.sector === 'spirits').length,
-    omitidos: l.omitidos, ausentesEnCero: ausentes.length, timestamp: ahora,
+    omitidos: l.omitidos, ausentesEnCero: mza.ausentesEnCero, sanLuis: sl, timestamp: ahora,
   };
 }
 
-module.exports = { sincronizarStock };
+module.exports = { sincronizarStock, DEP_SAN_LUIS };

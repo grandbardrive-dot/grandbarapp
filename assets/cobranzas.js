@@ -117,8 +117,10 @@ const cobVe = s => !s.roles || s.roles.includes(cobRol()) || (!!s.conZona && !!(
 const cobVeId = id => COB_SECCIONES.some(s => s.id === id && cobVe(s));
 // Dirección (dir-cobranzas.html) mira sin operar: sin WhatsApp ni tildes en planillas.
 const cobSoloLectura = () => !!window.COB_SOLO_LECTURA;
+// `zona` = también la ve quien tiene esa zona (29/10/2026: el stock del depósito de San
+// Luis para Romina, que es tesorería como Mónica pero con zona San Luis).
 const cobExtra = () => (Array.isArray(window.COB_EXTRA) ? window.COB_EXTRA : [])
-  .filter(s => !s.roles || s.roles.includes(cobRol()));
+  .filter(s => !s.roles || s.roles.includes(cobRol()) || (!!s.zona && !!COB_RESUMEN && COB_RESUMEN.zona === s.zona));
 const cobRevisionAdentro = () => cobExtra().some(s => s.id === 'revision');
 
 function cobNav() {
