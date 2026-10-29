@@ -124,6 +124,26 @@ exports.handler = async (event) => {
       }
       return out(limpio(res, ses.token));
     }
+    if (modo === 'deps') {
+      // DtTabla STOCK: una fila por depósito y artículo (de_codigo, ar_codigo, st_stock).
+      const r = await aikon(ses.urlCuenta + '/IS3/DtTabla', { cuenta: ses.cuenta, token: ses.token, tabla: 'STOCK' }, 90000);
+      const arr = arrDe(r.j);
+      const art = await stockDe(ses);
+      const deps = {};
+      for (const it of arr) {
+        const d = String(it.de_codigo);
+        const x = deps[d] || (deps[d] = { filas: 0, conStock: 0, negativos: 0, unidades: 0, muestra: {} });
+        const n = Number(it.st_stock) || 0;
+        x.filas++; if (n > 0) x.conStock++; if (n < 0) x.negativos++; x.unidades += n;
+        const s = sku8(it.ar_codigo);
+        if (SKUS.includes(s)) x.muestra[s] = n;
+      }
+      // ¿ARTICULO.st_stock = suma de depósitos o uno solo?
+      const suma = {}; arr.forEach(it => { const s = sku8(it.ar_codigo); if (SKUS.includes(s)) suma[s] = (suma[s] || 0) + (Number(it.st_stock) || 0); });
+      res.filas = arr.length; res.columnas = arr[0] ? Object.keys(arr[0]) : [];
+      res.depositos = deps; res.sumaDepositos = suma; res.articuloStStock = art.muestra;
+      return out(limpio(res, ses.token));
+    }
     return out({ ...res, error: 'modo inválido' });
   } catch (e) {
     return out({ ...res, error: String((e && e.message) || e).slice(0, 200) });
