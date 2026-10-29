@@ -13,7 +13,10 @@
      asigna proveedores), proveedores excluidos y los conteos que mandan Lucas Porro y Lucas
      Buenanueva (con su Excel; sin mail desde el 26/10, les llega el aviso al Portal). Lo maneja Laura, la encargada del stock (dentro del panel del
      equipo de administración); Brenda lo ve en el suyo (?embed=1) y Diseño y Desarrollo lo
-     abren suelto. Datos: función stock. -->
+     abren suelto. Datos: función stock.
+     29/10/2026: también San Luis. Romina (tesorería de San Luis) lo tiene en su panel de
+     Cobranzas y ve solo San Luis (stock del depósito 02 de Córdoba, agenda y los conteos de
+     Cristian); Laura solo Mendoza; Brenda, Diseño y Desarrollo pasan de uno al otro. -->
 <script>if(/[?&]embed=1(&|$)/.test(location.search))document.documentElement.classList.add('gb-embed');</script>
 <link rel="stylesheet" href="assets/kaf.css?v=1">
 <link rel="stylesheet" href="assets/stock.css?v=1">
@@ -50,7 +53,7 @@
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="assets/stock-productos.js?v=1"></script>
-<script src="assets/stock-comun.js?v=1"></script>
+<script src="assets/stock-comun.js?v=2"></script>
 <script>
   const { $, esc, num, SECTOR_LBL, SECTOR_ICO, hoy, isoLocal, fecha, fechaHora, toast, get, post } = STOCK;
   const EMBED = document.documentElement.classList.contains('gb-embed');
@@ -62,9 +65,14 @@
   function cerrarModal() { $('ov').classList.remove('open'); }
   $('ov').addEventListener('click', e => { if (e.target.id === 'ov') cerrarModal(); });
   const VISTAS = [['stock', 'Stock del sistema'], ['agenda', 'Agenda de los lunes'], ['proveedores', 'Proveedores'], ['conteos', 'Conteos recibidos']];
+  const enSL = () => STOCK.dep() === 'san_luis';
+  // Quien maneja los dos depósitos (Brenda, Diseño y Desarrollo) pasa de uno al otro arriba.
+  const tabsDep = () => YO && (YO.depositos || []).length > 1
+    ? `<div class="tabs" style="margin-bottom:12px">${YO.depositos.map(d => `<button type="button" class="${d === STOCK.dep() ? 'on' : ''}" onclick="ponerDep('${d}')">Depósito ${esc(STOCK.DEP_LBL[d])}</button>`).join('')}</div>` : '';
+  function ponerDep(d) { try { localStorage.setItem('gb_stock_dep_ver', JSON.stringify(d)); } catch (e) {} STOCK.setDep(d); AG = null; ir(); }
   // Embebido no hay menú lateral: las secciones van como pestañas arriba.
-  const cabeza = (t, p) => (EMBED ? `<div class="tabs" style="margin-bottom:16px">${VISTAS.map(([k, n]) => `<button type="button" class="${k === VISTA ? 'on' : ''}" onclick="location.hash='#${k}'">${n}</button>`).join('')}</div>` : '')
-    + `<div class="head"><div><h1>${esc(t)}</h1>${p ? `<p>${p}</p>` : ''}</div></div>`;
+  const cabeza = (t, p) => tabsDep() + (EMBED ? `<div class="tabs" style="margin-bottom:16px">${VISTAS.map(([k, n]) => `<button type="button" class="${k === VISTA ? 'on' : ''}" onclick="location.hash='#${k}'">${n}</button>`).join('')}</div>` : '')
+    + `<div class="head"><div><h1>${esc(t)}${enSL() ? ' <small style="font-weight:600;color:var(--muted)">· San Luis</small>' : ''}</h1>${p ? `<p>${p}</p>` : ''}</div></div>`;
   const tabsSector = fn => `<div class="tabs" style="margin-bottom:14px">${['vinos', 'spirits'].map(s => `<button type="button" class="${s === SECTOR ? 'on' : ''}" onclick="SECTOR='${s}';${fn}()">${SECTOR_ICO[s]} ${SECTOR_LBL[s]}</button>`).join('')}</div>`;
 
   async function ir() {
@@ -85,12 +93,13 @@
   // ── Stock del sistema ──────────────────────────────────────────────────────
   async function verStock() {
     const C = $('contenido');
-    C.innerHTML = cabeza('Stock del sistema', 'El stock de Córdoba Software contra el que se comparan los conteos. Se trae solo cada hora, de 8 a 20 hs, de lunes a sábado.') + vacio('Cargando…');
+    const SUB = 'El stock de Córdoba Software' + (enSL() ? ' del depósito de San Luis' : '') + ' contra el que se comparan los conteos. Se trae solo cada hora, de 8 a 20 hs, de lunes a sábado.';
+    C.innerHTML = cabeza('Stock del sistema', SUB) + vacio('Cargando…');
     const e = await get('estado');
     const horas = e.actualizado ? (Date.now() - new Date(e.actualizado).getTime()) / 36e5 : null;
     const dot = horas == null ? 'mal' : horas <= 3 ? 'ok' : horas <= 48 ? 'viejo' : 'mal';
     const ult = (e.corridas || [])[0];
-    C.innerHTML = cabeza('Stock del sistema', 'El stock de Córdoba Software contra el que se comparan los conteos. Se trae solo cada hora, de 8 a 20 hs, de lunes a sábado.') +
+    C.innerHTML = cabeza('Stock del sistema', SUB) +
       `<div class="kpis">
         <div class="kpi"><div class="k">Última actualización</div><div class="v" style="font-size:20px"><span class="estado-dot ${dot}"></span>${e.actualizado ? esc(fechaHora(e.actualizado)) : 'Nunca'}</div><div class="s">${horas == null ? 'Todavía no se cargó el stock' : horas < 1 ? 'Hace menos de una hora' : 'Hace ' + Math.round(horas) + ' h'}</div></div>
         <div class="kpi"><div class="k">Productos</div><div class="v">${num(e.filas)}</div><div class="s">${num(e.conStock)} con stock</div></div>
@@ -98,7 +107,7 @@
       </div>
       <div style="margin:16px 0 6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn gold" id="st-sync" type="button">Sincronizar ahora</button><span class="cuenta" id="st-msg" style="margin:0"></span></div>
       <h2>O subir el Listado de Stock Básico <small>si Córdoba no responde</small></h2>
-      <div class="ayuda">El Excel que se exporta de Córdoba Software: código del artículo en la columna A y unidades en la C (desde la fila 5). Se actualizan solo los productos que conoce el depósito.</div>
+      <div class="ayuda">El Excel que se exporta de Córdoba Software: código del artículo en la columna A y unidades en la C (desde la fila 5). Se actualizan solo los productos que conoce el depósito.${enSL() ? ' <b>Ojo: se guarda como el stock de San Luis</b>, así que tiene que ser el listado de ese depósito.' : ''}</div>
       <label class="subir" id="st-zona"><input type="file" id="st-file" accept=".xlsx,.xls"><b>Elegir o arrastrar el archivo</b><br><span id="st-nom">Listado de Stock Básico (.xlsx)</span></label>
       <div id="st-res"></div>` +
       ((e.corridas || []).length > 1 ? `<h2>Últimas sincronizaciones</h2>` + e.corridas.map(c => `<div class="fila"><div class="cuerpo"><div class="tit">${esc(fechaHora(c.inicio))}</div>${c.detalle ? `<div class="sub">${esc(String(c.detalle).slice(0, 200))}</div>` : ''}</div><div class="der">${c.ok ? '<span class="chip verde">Bien</span>' : '<span class="chip rojo">Falló</span>'}</div></div>`).join('') : '');
@@ -177,7 +186,7 @@
   const provsAgenda = s => STOCK.proveedores(s, new Set([...excluidosDe(s)].concat(s === 'vinos' ? [...STOCK.INACTIVAS_VINOS] : [])));
   async function verAgenda() {
     const C = $('contenido');
-    const t = 'Agenda de los lunes', p = 'Qué proveedor se cuenta cada lunes. Tocá <b>+</b> para asignar uno a un día (si ya estaba en otro, se mueve) y tocá un proveedor para sacarlo. En verde, los que los chicos marcaron como hechos.';
+    const t = 'Agenda de los lunes', p = 'Qué proveedor se cuenta cada lunes. Tocá <b>+</b> para asignar uno a un día (si ya estaba en otro, se mueve) y tocá un proveedor para sacarlo. En verde, los que ' + (enSL() ? 'Cristian marcó' : 'los chicos marcaron') + ' como hechos.';
     if (!AG) { C.innerHTML = cabeza(t, p) + vacio('Cargando…'); AG = await get('agenda'); }
     const hoyS = hoy(), porFecha = {};
     AG.registro.filter(r => r.sector === SECTOR).forEach(r => { (porFecha[r.fecha] = porFecha[r.fecha] || []).push(r); });
@@ -260,7 +269,7 @@
   let FILTRO = '';
   async function verConteos() {
     const C = $('contenido');
-    const t = 'Conteos recibidos', p = 'Lo que mandan Lucas Porro (vinos) y Lucas Buenanueva (spirits). Cada conteo trae su Excel con la diferencia contra el stock del sistema.';
+    const t = 'Conteos recibidos', p = (enSL() ? 'Lo que manda Cristian desde el depósito de San Luis (vinos y spirits).' : 'Lo que mandan Lucas Porro (vinos) y Lucas Buenanueva (spirits).') + ' Cada conteo trae su Excel con la diferencia contra el stock del sistema.';
     C.innerHTML = cabeza(t, p) + vacio('Cargando…');
     const d = await get('conteos', FILTRO ? { sector: FILTRO } : {});
     const l = d.conteos || [];
@@ -295,11 +304,14 @@
     if (!session) { location.replace('index.html'); return; }
     try { YO = await get('yo'); } catch (e) { $('contenido').innerHTML = vacio(esc(e.message)); return; }
     if (!YO.esAdmin) { location.replace('deposito.html'); return; }
+    // Depósito: el suyo (Laura, Mendoza; Romina, San Luis); quien maneja los dos, el último que miró.
+    let depVer = null; try { depVer = JSON.parse(localStorage.getItem('gb_stock_dep_ver') || 'null'); } catch (e) {}
+    STOCK.setDep((YO.depositos || []).includes(depVer) ? depVer : YO.deposito);
     // Embebido (panel de Laura o de Brenda) no hay menú lateral: esos datos van solo si está.
     if (!EMBED) {
       $('uName').textContent = YO.nombre;
       $('av').textContent = String(YO.nombre || 'A').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-      const VOLVER = { equipo_admin: 'equipo-panel.html#stock', administracion: 'panel-cobranzas.html#stock' };
+      const VOLVER = { equipo_admin: 'equipo-panel.html#stock', administracion: 'panel-cobranzas.html#stock', tesoreria: 'panel-cobranzas.html#stock' };
       $('sb-volver').href = VOLVER[YO.rol] || 'hub.html';
     }
     ir();

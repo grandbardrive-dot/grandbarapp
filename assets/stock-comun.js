@@ -22,11 +22,17 @@ window.STOCK = (function () {
   const diaLargo = v => { const s = aDate(v).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }); return s.charAt(0).toUpperCase() + s.slice(1); };
 
   function toast(m, err) { const t = $('toast'); if (!t) return alert(m); t.textContent = m; t.className = 'toast show' + (err ? ' err' : ''); clearTimeout(t._h); t._h = setTimeout(() => { t.className = 'toast'; }, 3400); }
+  // Depósito (29/10/2026): Mendoza o San Luis. Va en cada pedido; la función igual decide
+  // (el que cuenta usa el de su región; administración, uno de los que maneja).
+  const DEP_LBL = { mendoza: 'Mendoza', san_luis: 'San Luis' };
+  let DEP = null;
+  const setDep = d => { DEP = d || null; };
+  const dep = () => DEP;
   async function token() { const { data: { session } } = await supa().auth.getSession(); return session ? session.access_token : null; }
   async function get(vista, extra) {
     const t = await token();
     if (!t) { location.href = '/index.html'; throw new Error('Tu sesión se cerró.'); }
-    const r = await fetch(FN + '?' + new URLSearchParams(Object.assign({ vista }, extra || {})), { headers: { Authorization: 'Bearer ' + t } });
+    const r = await fetch(FN + '?' + new URLSearchParams(Object.assign({ vista }, DEP ? { deposito: DEP } : {}, extra || {})), { headers: { Authorization: 'Bearer ' + t } });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || ('Error ' + r.status));
     return d;
@@ -34,7 +40,7 @@ window.STOCK = (function () {
   async function post(body) {
     const t = await token();
     if (!t) { location.href = '/index.html'; throw new Error('Tu sesión se cerró.'); }
-    const r = await fetch(FN, { method: 'POST', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const r = await fetch(FN, { method: 'POST', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign(DEP ? { deposito: DEP } : {}, body)) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || ('Error ' + r.status));
     return d;
@@ -83,11 +89,12 @@ window.STOCK = (function () {
   }
 
   // ── Excel (xlsx-js-style): igual al que mandaba la app de stock ───────────────
-  function excel({ sector, usuario, fecha: f, proveedores: provs, todos, provObs }) {
+  function excel({ sector, usuario, fecha: f, proveedores: provs, todos, provObs, deposito }) {
     const wb = XLSX.utils.book_new();
+    const sl = (deposito || DEP) === 'san_luis';   // Mendoza queda como siempre
     const datos = todos.map(p => [p.sku, p.articulo, p.stock_sistema + p.promo, p.promo, p.depo1, p.local, p.depo2, p.total, p.total - (p.stock_sistema + p.promo), (provObs || {})[p.proveedor] || '']);
     const ws = XLSX.utils.aoa_to_sheet([
-      [`${SECTOR_LBL[sector]} — ${usuario} — ${f}`],
+      [`${sl ? 'San Luis — ' : ''}${SECTOR_LBL[sector]} — ${usuario} — ${f}`],
       ['Proveedores: ' + (provs && provs.length ? provs.join(', ') : 'Todos')],
       [],
       ['SKU', 'Descripción', 'Stock Sistema', 'Promo', 'Depo 1', 'Local', 'Depo 2', 'Total', 'Diferencia', 'Obs. Proveedor'],
@@ -103,7 +110,7 @@ window.STOCK = (function () {
       if (ws['I' + fila]) ws['I' + fila].s = dif < 0 ? { font: { bold: true, color: { rgb: 'B5482D' } } } : dif > 0 ? { font: { bold: true, color: { rgb: '2F6F5E' } } } : {};
     });
     XLSX.utils.book_append_sheet(wb, ws, 'Stock');
-    return { base64: XLSX.write(wb, { bookType: 'xlsx', type: 'base64' }), nombre: `stock_${sector}_${f}.xlsx` };
+    return { base64: XLSX.write(wb, { bookType: 'xlsx', type: 'base64' }), nombre: `stock_${sl ? 'sanluis_' : ''}${sector}_${f}.xlsx` };
   }
   function descargar(b64, nombre) {
     const bin = atob(b64), arr = new Uint8Array(bin.length);
@@ -114,7 +121,7 @@ window.STOCK = (function () {
   }
   // Excel de un conteo guardado (stock_conteos.items).
   function excelDeConteo(c) {
-    const x = excel({ sector: c.sector, usuario: c.usuario_nombre || '', fecha: c.fecha, proveedores: c.proveedores || [], todos: c.items || [], provObs: c.prov_obs || {} });
+    const x = excel({ sector: c.sector, usuario: c.usuario_nombre || '', fecha: c.fecha, proveedores: c.proveedores || [], todos: c.items || [], provObs: c.prov_obs || {}, deposito: c.deposito || 'mendoza' });
     descargar(x.base64, x.nombre);
   }
 
@@ -168,6 +175,6 @@ window.STOCK = (function () {
   }
   const horas = min => min < 60 ? min + ' min' : Math.floor(min / 60) + ' h' + (min % 60 ? ' ' + (min % 60) + ' min' : '');
 
-  return { supa, $, esc, num, SECTOR_LBL, SECTOR_ICO, hoy, isoLocal, fecha, fechaHora, diaLargo, toast, get, post,
+  return { supa, $, esc, num, SECTOR_LBL, SECTOR_ICO, DEP_LBL, setDep, dep, hoy, isoLocal, fecha, fechaHora, diaLargo, toast, get, post,
     productos, esPromo, proveedores, lineas, filas, excel, descargar, excelDeConteo, agenda, horas, INACTIVAS_VINOS, SESION_MIN };
 })();
