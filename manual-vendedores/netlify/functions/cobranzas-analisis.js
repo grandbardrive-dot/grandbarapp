@@ -80,8 +80,13 @@ exports.handler = async (event) => {
       }
       return out;
     };
+    // Última vez que cada cliente USÓ la app (29/10/2026): si dejó la sesión abierta y volvió
+    // otro día, la app renueva el token y eso cuenta, aunque no haya vuelto a iniciar sesión.
+    // Sale de portal_ultima_actividad() (cobranzas-ultima-actividad.sql); si todavía no está
+    // creada, la lista viene vacía y queda el último inicio de sesión, como antes.
+    const actividadPortal = async () => { try { return await leerTodo('rpc/portal_ultima_actividad?select=user_id,ultima&order=user_id'); } catch (_) { return []; } };
 
-    const [cuentas, fichas, comp, cobros, recl, recMsg, pla, env, borr, nc, wa, users, quit, vends] = await Promise.all([
+    const [cuentas, fichas, comp, cobros, recl, recMsg, pla, env, borr, nc, wa, users, quit, vends, act] = await Promise.all([
       leerTodo('cuentas_cubo?select=codigo,nombre,vendedor,equipo,rubro,saldo,vencida,telefono&order=codigo'),
       leerTodo('clientes?select=id,codigo_cubo,whatsapp&order=id'),
       leerTodo('comprobantes?select=cliente_id,vendedor,estado,monto,created_at,procesado_at,revisado_at&order=created_at'),
@@ -96,6 +101,7 @@ exports.handler = async (event) => {
       usuariosPortal(),
       man('clientes_estado?select=codigo&activo=eq.false'),
       man('vendedores?select=codigo,nombre,zona'),
+      actividadPortal(),
     ]);
 
     // ── Índices ──
@@ -119,8 +125,13 @@ exports.handler = async (event) => {
       String(c.rubro || '').trim(), n2(c.saldo), n2(c.vencida), quitados.has(sinCeros(c.codigo)) ? 1 : 0,
     ]);
 
+    // Último ingreso = lo más reciente entre el último inicio de sesión y la última vez que
+    // la sesión estuvo activa (ver actividadPortal).
+    const ultAct = {};
+    (Array.isArray(act) ? act : []).forEach(a => { if (a && a.user_id) ultAct[a.user_id] = ts(a.ultima); });
+    const ultimoUso = u => { const a = ts(u.last_sign_in_at), b = ultAct[u.id] || null; return (a || b) ? Math.max(a || 0, b || 0) : null; };
     const po = users.filter(u => u && typeof u.email === 'string' && u.email.endsWith('@grandbar.cuenta'))
-      .map(u => [padCod(u.email.split('@')[0]), ts(u.created_at), ts(u.last_sign_in_at)])
+      .map(u => [padCod(u.email.split('@')[0]), ts(u.created_at), ultimoUso(u)])
       .filter(r => r[0] && okCod(r[0]));
 
     const co = comp.map(x => [codDeFicha[String(x.cliente_id)] || '', String(x.vendedor || ''), x.estado || '', n2(x.monto), ts(x.created_at), ts(x.procesado_at), ts(x.revisado_at)])
