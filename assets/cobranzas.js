@@ -1300,6 +1300,14 @@ async function cobPlanillaDet(vendedor, fecha) {
       const nota = (Array.isArray(det) && det.length > 1) ? `<div style="font-size:9.5px;color:var(--muted);font-weight:400">era ${det.map(x => cnum(x)).join(' + ')}</div>` : '';
       return `<input class="pl-money" data-col="${campo}" value="${raw ? raw : ''}" inputmode="decimal" title="Corregir ${campo}" onchange="cobPlanillaEditar('${f.id}','${campo}',this.value,this)" style="width:92px;text-align:right;border:1px solid #d7d7d7;border-radius:7px;padding:5px 7px;font:inherit;font-size:12.5px">${nota}`;
     };
+    // Cada e-cheq con su fecha de cobro (filas desde el 30/10/2026; las viejas traen una sola
+    // fecha_cheque para cheques y e-cheqs).
+    const tieneEchF = f => Array.isArray(f.echeq_fechas) && f.echeq_fechas.length > 0;
+    const echFechas = f => {
+      if (!tieneEchF(f)) return '';
+      const fe = f.echeq_fechas, det = Array.isArray(f.echeq_detalle) && f.echeq_detalle.length === fe.length ? f.echeq_detalle : (fe.length === 1 ? [f.echeq] : null);
+      return `<div style="font-size:10.5px;color:var(--muted);font-weight:400;white-space:nowrap;line-height:1.4;margin-top:2px">${fe.map((d, i) => (det ? cnum(det[i]) + ' · ' : '') + 'cobra ' + (d ? cfec(d) : '—')).join('<br>')}</div>`;
+    };
     const arch = u => u ? `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : '<span style="color:var(--muted)">—</span>';
     // Comprobantes: pueden ser varios por fila.
     const archComp = f => { const arr = (f.comprobante_url ? [{ url: f.comprobante_url }] : []).concat(Array.isArray(f.comprobantes) ? f.comprobantes : []); return arr.length ? arr.map((c, i) => `<a class="cb-b" href="${cesc(c.url)}" target="_blank" rel="noopener" style="margin:1px">👁${arr.length > 1 ? (' ' + (i + 1)) : ''}</a>`).join(' ') : '<span style="color:var(--muted)">—</span>'; };
@@ -1327,8 +1335,8 @@ async function cobPlanillaDet(vendedor, fecha) {
           ${td(cesc(f.codigo || ''))}
           ${td(cesc(f.razon_social || ''))}
           ${td(cesc(f.factura || ''))}
-          ${td(celMoney(f, 'importe'), 1)}${td(celMoney(f, 'efectivo'), 1)}${td(celMoney(f, 'cheques', f.cheques_detalle), 1)}${td(celMoney(f, 'retenciones'), 1)}${td(celMoney(f, 'transferencia', f.transferencia_detalle), 1)}${td(celMoney(f, 'tarjeta'), 1)}${td(celMoney(f, 'echeq', f.echeq_detalle), 1)}
-          ${td((f.fecha_pago ? cfec(f.fecha_pago) : '') + (f.fecha_cheque ? `<div style="font-size:10.5px;color:var(--muted)">ch/e-cheq: ${cfec(f.fecha_cheque)}</div>` : ''))}${td(archComp(f))}${td(arch(f.recepcion_url))}
+          ${td(celMoney(f, 'importe'), 1)}${td(celMoney(f, 'efectivo'), 1)}${td(celMoney(f, 'cheques', f.cheques_detalle), 1)}${td(celMoney(f, 'retenciones'), 1)}${td(celMoney(f, 'transferencia', f.transferencia_detalle), 1)}${td(celMoney(f, 'tarjeta'), 1)}${td(celMoney(f, 'echeq', f.echeq_detalle) + echFechas(f), 1)}
+          ${td((f.fecha_pago ? cfec(f.fecha_pago) : '') + (f.fecha_cheque ? `<div style="font-size:10.5px;color:var(--muted)">${tieneEchF(f) ? 'cheque' : 'ch/e-cheq'}: ${cfec(f.fecha_cheque)}</div>` : ''))}${td(archComp(f))}${td(arch(f.recepcion_url))}
           <td style="padding:5px 8px"><input value="${cesc(f.observaciones || '')}" placeholder="…" ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','observaciones',this.value,this)" style="border:1px solid #d7d7d7;border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;width:160px"></td>
           <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${f.procesado ? 'checked' : ''} ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','procesado',this.checked,this)" style="width:18px;height:18px;cursor:pointer">${f.procesado && f.procesado_por ? `<div style="font-size:9.5px;color:var(--muted)">${cesc(f.procesado_por)}</div>` : ''}</td>
           ${cobSoloLectura() ? '' : `<td style="padding:5px 8px;text-align:center"><button type="button" title="Eliminar esta fila" onclick="cobPlanillaBorrar('${f.id}',this)" style="background:#fff;border:1px solid #e3b4a8;color:#c0392b;border-radius:7px;padding:4px 8px;cursor:pointer;font-size:13px">🗑</button></td>`}

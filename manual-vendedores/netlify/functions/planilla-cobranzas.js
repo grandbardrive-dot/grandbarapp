@@ -2,7 +2,8 @@
 //  GrandBar Hub · Function · planilla-cobranzas
 //  Planilla de RENDICIÓN DE COBRANZAS del vendedor logueado (réplica de la de papel):
 //  recibo, razón social, factura, importe y el detalle por medio (efectivo, cheques,
-//  retenciones, transferencia/MercPago, e-cheq), fecha, + dos archivos por fila
+//  retenciones, transferencia/MercPago, e-cheq: cada e-cheq con su fecha de cobro en
+//  echeq_fechas, desde el 30/10/2026), fecha, + dos archivos por fila
 //  (comprobante de WhatsApp y recepción). Se completa por día y se ENVÍA a Moni.
 //
 //  Se identifica por SU token del Hub → usuarios.codigo_vendedor. Todo filtra por él.
@@ -139,6 +140,8 @@ exports.handler = async (event) => {
       // Transferencias y cheques pueden venir con VARIOS importes (detalle).
       const detArr = v => Array.isArray(v) ? v.map(x => num(x)).filter(x => x > 0) : null;
       const tDet = detArr(b.transferencia_detalle), cDet = detArr(b.cheques_detalle), eDet = detArr(b.echeq_detalle);
+      // Fecha de cobro de cada e-cheq (30/10/2026), en el mismo orden que los importes.
+      const eFech = Array.isArray(b.echeq_fechas) ? b.echeq_fechas.slice(0, 30).map(x => (okFecha(x) ? x : null)) : null;
       const fila = {
         vendedor: codigo, fecha_rendicion: fecha,
         recibo: b.recibo ? String(b.recibo).slice(0, 60) : null,
@@ -154,6 +157,7 @@ exports.handler = async (event) => {
         transferencia_detalle: (tDet && tDet.length) ? tDet : null,
         cheques_detalle: (cDet && cDet.length) ? cDet : null,
         echeq_detalle: (eDet && eDet.length) ? eDet : null,
+        echeq_fechas: (eFech && eFech.some(Boolean)) ? eFech : null,
         fecha_pago: okFecha(b.fecha_pago) ? b.fecha_pago : null,
         fecha_cheque: okFecha(b.fecha_cheque) ? b.fecha_cheque : null,
         nota: b.nota ? String(b.nota).slice(0, 300) : null,
