@@ -14,7 +14,7 @@
 //   Equipos (30/10/2026): a qué equipo va cada vendedor, según su usuario del Portal:
 //   ON (canal on), OFF Mendoza (canal off), San Luis (región san_luis) y Mayoristas y otros
 //   (rol mayorista y los códigos sin usuario: Mayorista Mendoza, Mercado Libre…).
-//   Solo Dirección (y Diseño/Desarrollo, que mantienen el sistema).
+//   Solo Dirección (y Diseño/Desarrollo, que mantienen el sistema), más los mails de VEN_MAILS.
 //   Env: HUB_SERVICE_ROLE
 // ============================================================
 
@@ -25,6 +25,9 @@ const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const MAN_URL = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_KEY = process.env.MANUAL_SERVICE_ROLE || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 const ROLES = ['direccion', 'admin', 'duenio', 'desarrollo', 'diseno'];
+// Fuera de Dirección, puede MIRAR Ventas solo quien esté acá, por el mail de su cuenta (no se cambia
+// desde el Portal): Sebastián, de Administración, la ve en su panel (30/10/2026, pedido del usuario).
+const VEN_MAILS = ['sbertoldi@grandbar.com.ar'];
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 
@@ -133,7 +136,8 @@ exports.handler = async (event) => {
     const user = await uRes.json();
     const pRes = await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=rol,activo', { headers: { apikey: srole, Authorization: 'Bearer ' + srole } });
     const perfil = (pRes.ok ? await pRes.json() : [])[0] || {};
-    if (perfil.activo === false || !ROLES.includes(String(perfil.rol || '').toLowerCase())) return json(403, { error: 'Solo Dirección.' });
+    const habilitado = ROLES.includes(String(perfil.rol || '').toLowerCase()) || VEN_MAILS.includes(String(user.email || '').trim().toLowerCase());
+    if (perfil.activo === false || !habilitado) return json(403, { error: 'Solo Dirección.' });
 
     const qp = event.queryStringParameters || {};
     const P = periodos(qp.periodo || 'mes', qp.desde, qp.hasta);

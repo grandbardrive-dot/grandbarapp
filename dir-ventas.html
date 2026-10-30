@@ -21,7 +21,12 @@
 -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/dir.css" />
+<!-- ?embed=1 (30/10/2026): se muestra dentro del panel de otra persona (Sebastián, en el del equipo
+     de administración), sin el menú de Dirección. -->
+<script>if(/[?&]embed=1(&|$)/.test(location.search))document.documentElement.classList.add('gb-embed');</script>
 <style>
+  .gb-embed .sb, .gb-embed #gb-mtop, .gb-embed #gb-mobile-overlay, .gb-embed #mfab-btn{display:none!important}
+  .gb-embed body.gb-has-mtop{padding-top:0!important}
   .per{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:3px;flex-wrap:wrap}
   .per button{border:0;background:none;font:inherit;font-size:12.5px;font-weight:700;color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer}
   .per button.on{background:var(--navy);color:#fff}
