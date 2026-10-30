@@ -1306,7 +1306,7 @@ async function cobPlanillaDet(vendedor, fecha) {
     const echFechas = f => {
       if (!tieneEchF(f)) return '';
       const fe = f.echeq_fechas, det = Array.isArray(f.echeq_detalle) && f.echeq_detalle.length === fe.length ? f.echeq_detalle : (fe.length === 1 ? [f.echeq] : null);
-      return `<div style="font-size:10.5px;color:var(--muted);font-weight:400;white-space:nowrap;line-height:1.4;margin-top:2px">${fe.map((d, i) => (det ? cnum(det[i]) + ' · ' : '') + 'cobra ' + (d ? cfec(d) : '—')).join('<br>')}</div>`;
+      return `<div style="font-size:10.5px;color:var(--muted);font-weight:400;white-space:nowrap;line-height:1.4;margin-top:2px">${fe.map((d, i) => (det ? cnum(det[i]) + ' · ' : '') + 'se cobra el ' + (d ? cfec(d) : '—')).join('<br>')}</div>`;
     };
     const arch = u => u ? `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : '<span style="color:var(--muted)">—</span>';
     // Comprobantes: pueden ser varios por fila.

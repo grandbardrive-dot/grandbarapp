@@ -127,9 +127,14 @@
     .pl-chips{font-size:12.5px;margin:2px 0 6px}
     .pl-chip{display:inline-block;background:var(--green-soft);border:1px solid #bfe3d2;border-radius:999px;padding:2px 9px;margin:2px;font-weight:700;color:var(--green-d)}
     .pl-chip a{color:var(--coral);cursor:pointer;margin-left:4px;font-weight:800}
-    .pl-ech{grid-column:span 2}
-    .pl-ech .pl-ech-l{flex:none;align-self:center;font-size:11px;font-weight:700;color:var(--muted)}
-    .pl-ech input[type=date]{flex:0 1 150px}
+    /* E-cheq: monto + fecha de cobro con su título arriba, como las fechas (30/10/2026).
+       Ocupa 3 columnas: en 2 el monto quedaba aplastado y no se leía. */
+    .pl-ech{grid-column:span 3;display:flex;align-items:flex-end;gap:6px;min-width:0}
+    .pl-ech .pl-fchip{min-width:0}
+    .pl-ech .pl-ech-monto{flex:1 1 90px}
+    .pl-ech .pl-ech-fecha{flex:0 0 140px}
+    .pl-ech .pl-fchip input,.pl-ech .pl-mas{height:38px;box-sizing:border-box}
+    @media(max-width:820px){ .pl-ech{grid-column:1/-1} }
     .pl-fchip{display:flex;flex-direction:column;gap:3px}
     .pl-fchip span{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
     .pl-fchip input{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13.5px;background:#fff;min-width:0;width:100%}
@@ -236,7 +241,7 @@
           <div class="pl-multi"><input id="plTransf" type="text" inputmode="decimal" placeholder="Transf/MP" autocomplete="off" name="pl-tra" data-lpignore="true" data-form-type="other"><button type="button" class="pl-mas" onclick="plMas('Transf')" title="Agregar otra transferencia">＋</button></div>
           <input id="plTarjeta" type="text" inputmode="decimal" placeholder="Tarjeta" autocomplete="off" name="pl-tar" data-lpignore="true" data-form-type="other">
           <!-- Cada e-cheq con SU fecha de cobro (30/10/2026): monto + fecha + ＋ -->
-          <div class="pl-multi pl-ech"><input id="plEcheq" type="text" inputmode="decimal" placeholder="E-cheq" autocomplete="off" name="pl-ech" data-lpignore="true" data-form-type="other"><span class="pl-ech-l">cobra</span><input id="plEcheqFecha" type="date" title="Fecha de cobro de este e-cheq" aria-label="Fecha de cobro de este e-cheq"><button type="button" class="pl-mas" onclick="plMas('Echeq')" title="Agregar otro e-cheque">＋</button></div>
+          <div class="pl-ech"><label class="pl-fchip pl-ech-monto"><span>E-cheq · monto</span><input id="plEcheq" type="text" inputmode="decimal" placeholder="Importe" autocomplete="off" name="pl-ech" data-lpignore="true" data-form-type="other"></label><label class="pl-fchip pl-ech-fecha"><span>E-cheq · se cobra el</span><input id="plEcheqFecha" type="date" title="Fecha de cobro de este e-cheq" aria-label="Fecha de cobro de este e-cheq"></label><button type="button" class="pl-mas" onclick="plMas('Echeq')" title="Agregar otro e-cheque">＋</button></div>
           <label class="pl-fchip"><span>Fecha de pago</span><input id="plFechaPago" type="date" title="Fecha del pago (transferencia / efectivo)"></label>
           <label class="pl-fchip"><span>Cobro cheque</span><input id="plFechaCheque" type="date" title="Fecha en que se cobra el cheque"></label>
           <button class="btn-ok" id="plAdd" onclick="agregarPlanilla()">＋ Agregar fila</button>
@@ -396,7 +401,7 @@
     const render=(field,label)=>{
       const list=_plList[field]; if(!list.length) return '';
       const total=list.reduce((a,x)=>a+x,0);
-      const fecha=i=>field==='Echeq'&&_plEchF[i]?` · cobra ${fmtFecha(_plEchF[i])}`:'';
+      const fecha=i=>field==='Echeq'&&_plEchF[i]?` · se cobra el ${fmtFecha(_plEchF[i])}`:'';
       return `<div class="pl-chips"><b>${label} agregadas:</b> ${list.map((x,i)=>`<span class="pl-chip">${fmtMoney(x)}${fecha(i)} <a onclick="plQuitarChip('${field}',${i})">✕</a></span>`).join(' ')} <b>= ${fmtMoney(total)}</b></div>`;
     };
     box.innerHTML = render('Transf','Transferencias') + render('Cheques','Cheques') + render('Echeq','E-cheques');
@@ -493,7 +498,7 @@
   function plEchFechasHtml(f){
     if(!plTieneEchF(f)) return "";
     const fe=f.echeq_fechas, det=Array.isArray(f.echeq_detalle)&&f.echeq_detalle.length===fe.length ? f.echeq_detalle : (fe.length===1 ? [f.echeq] : null);
-    return `<div style="font-size:11px;color:var(--muted);font-weight:400;line-height:1.4">${fe.map((d,i)=>(det?fmtMoney(det[i])+" · ":"")+"cobra "+(d?fmtFecha(d):"—")).join("<br>")}</div>`;
+    return `<div style="font-size:11px;color:var(--muted);font-weight:400;line-height:1.4">${fe.map((d,i)=>(det?fmtMoney(det[i])+" · ":"")+"se cobra el "+(d?fmtFecha(d):"—")).join("<br>")}</div>`;
   }
   async function cargarPlanilla(){
     const body=document.getElementById("plBody"), foot=document.getElementById("plFoot"); if(!body) return;
