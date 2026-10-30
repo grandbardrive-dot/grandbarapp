@@ -37,14 +37,6 @@
   table.t td b{white-space:nowrap}
   .otros{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:12.5px;color:var(--ink);margin-bottom:16px;line-height:1.5}
   .otros b{font-variant-numeric:tabular-nums}
-  .chart{position:relative;height:190px;display:flex;align-items:flex-end;gap:3px;padding:8px 0 0;border-bottom:1px solid var(--line-2)}
-  .chart .b{flex:1;min-width:2px;background:var(--navy);border-radius:3px 3px 0 0;position:relative}
-  .chart .b i{position:absolute;left:0;right:0;bottom:0;background:var(--gold);border-radius:0 0 0 0}
-  .chart .b.hoy{background:#46606e}
-  .chart-x{display:flex;gap:3px;font-size:10px;color:var(--muted);margin-top:4px}
-  .chart-x span{flex:1;text-align:center;min-width:2px;overflow:hidden;white-space:nowrap}
-  .ley{display:flex;gap:14px;font-size:11.5px;color:var(--muted);margin-top:8px}
-  .ley i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
   table.t td.n, table.t th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   table.t td .sub{display:block;font-size:10.5px;color:var(--muted);font-weight:500}
   .bar{height:5px;background:#eee7d8;border-radius:3px;margin-top:4px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--navy)}
@@ -122,10 +114,8 @@
     const t=(p>=0?'▲ ':'▼ ')+Math.abs(p).toLocaleString('es-AR',{maximumFractionDigits:1})+'%'; return '<b class="'+(p>=0?'up':'down')+'">'+t+'</b>'; };
   const puntos=(pa,pb)=>{ if(pa==null||pb==null) return '<span>—</span>'; const d=pa-pb;
     return '<b class="'+(d>=0?'up':'down')+'">'+(d>=0?'+':'−')+Math.abs(d).toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1})+' pts</b>'; };
-  const fCorta=s=>{ const p=String(s).slice(0,10).split('-'); return p[2]+'/'+p[1]; };
   const fLarga=s=>{ const p=String(s).slice(0,10).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
   const hora=s=>new Date(s).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Argentina/Buenos_Aires'});
-  const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
   function rango(r){ return r.desde===r.hasta?fLarga(r.desde):fLarga(r.desde)+' al '+fLarga(r.hasta); }
 
@@ -156,20 +146,6 @@
       +'<br>Total facturado neto del período, con todo: <b title="'+$full(a.facturado)+'">'+$M(a.facturado)+'</b>.</div>';
   }
 
-  function grafico(a){
-    let pts=(a.por_dia||[]).map(d=>({k:d.fecha,l:fCorta(d.fecha),v:d.venta,m:d.margen}));
-    if(pts.length<2) return '';
-    // Más de dos meses de días: por mes, para que se lea.
-    if(pts.length>62){ const g=new Map(); pts.forEach(p=>{ const k=p.k.slice(0,7); const o=g.get(k)||{k,l:MES[+k.slice(5,7)-1],v:0,m:0}; o.v+=p.v; o.m+=p.m; g.set(k,o); }); pts=[...g.values()]; }
-    const max=Math.max(...pts.map(p=>p.v),1);
-    const hoyK=new Date(Date.now()-3*3600*1000).toISOString().slice(0,10);
-    const paso=Math.ceil(pts.length/16);
-    return '<div class="card" style="margin-bottom:16px"><div class="c-h"><div class="t">Venta y rentabilidad '+(pts[0].k.length>7?'por día':'por mes')+'</div></div>'
-      +'<div class="chart">'+pts.map(p=>'<div class="b'+(p.k===hoyK?' hoy':'')+'" style="height:'+Math.max(1,p.v/max*100)+'%" title="'+esc(p.l)+': venta '+$full(p.v)+' · rentabilidad '+$full(p.m)+(p.v>0?' ('+fp(pct(p.m,p.v))+')':'')+(p.k===hoyK?' · hoy, en curso':'')+'"><i style="height:'+(p.v>0?Math.max(0,p.m/p.v*100):0)+'%"></i></div>').join('')+'</div>'
-      +'<div class="chart-x">'+pts.map((p,i)=>'<span>'+(i%paso===0?esc(p.l):'')+'</span>').join('')+'</div>'
-      +'<div class="ley"><span><i style="background:var(--navy)"></i>Venta</span><span><i style="background:var(--gold)"></i>Parte que es rentabilidad</span></div></div>';
-  }
-
   // Tabla genérica: filas con nombre, venta, rentabilidad y la variación contra el período anterior.
   function tabla(titulo, sub, filas, total, mapaAnt, clave, extra, verKey, max){
     if(!filas.length) return '<div class="card"><div class="c-h"><div class="t">'+titulo+'</div></div><div class="vacio">Sin ventas en el período.</div></div>';
@@ -193,7 +169,8 @@
     const mapa=(lista,k)=>lista?new Map(lista.map(x=>[x[k],x.venta])):null;
     let h='<div class="estado" style="margin:-6px 0 12px">'+esc(D.titulo)+': '+rango(a)+'</div>';
     if(!a.venta && !a.facturado){ $('cuerpo').innerHTML=h+'<div class="card vacio">Todavía no hay ventas cargadas en este período.</div>'; return; }
-    h+=kpis(a,an,y)+otros(a)+grafico(a);
+    // Sin el gráfico de venta y rentabilidad por día: Fernando no lo quiere en su panel (30/10/2026).
+    h+=kpis(a,an,y)+otros(a);
     const vend=(a.por_vendedor||[]).filter(v=>v.venta!=null);
     const vendCard=(!a.vendedor_completo && !vend.length)
       ? '<div class="card"><div class="c-h"><div class="t">Por vendedor <small>el de cada factura</small></div></div><div class="vacio">Se están cargando las ventas por vendedor de este período. Aparecen solas en unos minutos.</div></div>'
