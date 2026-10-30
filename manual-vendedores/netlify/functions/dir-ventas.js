@@ -98,11 +98,27 @@ async function resumen(r) {
   if (!res.ok) throw new Error('dir_ventas ' + res.status + ' ' + JSON.stringify(d).slice(0, 200));
   return d;
 }
-// Para comparar alcanza con los totales (sin las listas largas).
+// Venta y unidades de los artículos más vendidos del período, en otro período (30/10/2026):
+// así los "Productos más vendidos" se comparan contra el mes y el año anterior aunque en ese
+// período no hayan estado entre los primeros. Si falla, la pantalla muestra raya.
+async function ventasSkus(r, skus) {
+  if (!r || !skus.length) return [];
+  try {
+    const res = await fetch(MAN_URL + '/rest/v1/rpc/dir_ventas_skus', {
+      method: 'POST',
+      headers: { apikey: MAN_KEY, Authorization: 'Bearer ' + MAN_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_desde: r.desde, p_hasta: r.hasta, p_skus: skus }),
+    });
+    const d = await res.json().catch(() => []);
+    return res.ok && Array.isArray(d) ? d : [];
+  } catch (e) { return []; }
+}
+// Para comparar alcanza con los totales (sin las listas largas). Con unidades, para comparar
+// plata y unidades contra el mes y el año anterior (30/10/2026).
 const soloTotales = d => d && ({ desde: d.desde, hasta: d.hasta, venta: d.venta, costo: d.costo, margen: d.margen, unidades: d.unidades, total: d.total, dias_sin_percep: d.dias_sin_percep,
   facturado: d.facturado, sin_codigo: d.sin_codigo, dias: d.dias, por_rubro: d.por_rubro,
-  por_proveedor: (d.por_proveedor || []).map(x => ({ codigo: x.codigo, venta: x.venta, margen: x.margen })),
-  por_vendedor: (d.por_vendedor || []).map(x => ({ codigo: x.codigo, nombre: x.nombre, venta: x.venta, margen: x.margen })),
+  por_proveedor: (d.por_proveedor || []).map(x => ({ codigo: x.codigo, venta: x.venta, margen: x.margen, unidades: x.unidades })),
+  por_vendedor: (d.por_vendedor || []).map(x => ({ codigo: x.codigo, nombre: x.nombre, venta: x.venta, margen: x.margen, unidades: x.unidades, clientes: x.clientes })),
   vendedor_completo: d.vendedor_completo });
 
 exports.handler = async (event) => {
@@ -142,11 +158,13 @@ exports.handler = async (event) => {
     const [actual, anterior, anio, sync, equipos] = await Promise.all([
       resumen(P.actual), P.anterior ? resumen(P.anterior) : null, P.anio ? resumen(P.anio) : null, syncP, equiposP,
     ]);
+    const skus = (actual.por_producto || []).map(x => x.sku).filter(Boolean);
+    const [prodAnt, prodAnio] = await Promise.all([anterior ? ventasSkus(P.anterior, skus) : [], anio ? ventasSkus(P.anio, skus) : []]);
     return json(200, {
       periodo: qp.periodo || 'mes', titulo: P.titulo,
       actual,
-      anterior: anterior ? { ...soloTotales(anterior), titulo: P.anterior.titulo } : null,
-      anio: anio ? { ...soloTotales(anio), titulo: P.anio.titulo } : null,
+      anterior: anterior ? { ...soloTotales(anterior), por_producto: prodAnt, titulo: P.anterior.titulo } : null,
+      anio: anio ? { ...soloTotales(anio), por_producto: prodAnio, titulo: P.anio.titulo } : null,
       generado: new Date().toISOString(),
       sync,
       equipos,

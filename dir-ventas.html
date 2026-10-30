@@ -54,7 +54,10 @@
   .eq-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
   table.t td.gana{background:var(--green-soft);font-weight:800}
   table.t td.gana:after{content:" ✓";color:var(--green-d)}
-  .vs .tw{overflow-x:auto}
+  .vs .tw, .tw2{overflow-x:auto}
+  .tw2 table.t{width:100%}
+  .g-2>*, .solo>*{min-width:0}
+  .tw2 table.t td .sub b{font-size:10.5px}
   .vs table.t{width:100%}
   .vs table.t th, .vs table.t td{white-space:normal}
   .vs table.t td.n{white-space:nowrap}
@@ -168,11 +171,15 @@
   const equipoDe=cod=>{ const e=((D&&D.equipos)||{})[String(cod==null?'':cod).trim()]; return e?e.e:'otros'; };
   const esSup=cod=>{ const e=((D&&D.equipos)||{})[String(cod==null?'':cod).trim()]; return !!(e&&e.sup); };
   function sumarEquipos(lista){
-    const t={}; EQUIPOS.forEach(e=>{ t[e.k]={venta:0,margen:0,clientes:0,filas:[]}; });
+    const t={}; EQUIPOS.forEach(e=>{ t[e.k]={venta:0,margen:0,unidades:0,clientes:0,filas:[]}; });
     (lista||[]).forEach(v=>{ if(v.venta==null) return; const o=t[equipoDe(v.codigo)];
-      o.venta+=Number(v.venta)||0; o.margen+=Number(v.margen)||0; o.clientes+=Number(v.clientes)||0; o.filas.push(v); });
+      o.venta+=Number(v.venta)||0; o.margen+=Number(v.margen)||0; o.unidades+=Number(v.unidades)||0; o.clientes+=Number(v.clientes)||0; o.filas.push(v); });
     return t;
   }
+  // Rótulos de las comparaciones (30/10/2026): "vs mes anterior" y "vs año anterior" en el
+  // período "Este mes"; en los otros períodos, el que corresponda.
+  const etqAnt=()=>({hoy:'vs mismo día sem. pasada',semana:'vs semana anterior',mes:'vs mes anterior',mes_anterior:'vs mes anterior'}[PER]||'vs período anterior');
+  const ETQ_ANIO='vs año anterior';
   // Cuadro de comparación: en cada renglón se marca con ✓ al equipo que va mejor.
   function versus(a,an,y){
     const A=sumarEquipos(a.por_vendedor), on=A.on, off=A.off;
@@ -187,13 +194,18 @@
       return '<tr><td>'+rot+'</td><td class="n'+(g==='on'?' gana':'')+'">'+vOn+'</td><td class="n'+(g==='off'?' gana':'')+'">'+vOff+'</td></tr>';
     };
     const supDe=o=>{ const s=o.filas.find(f=>esSup(f.codigo)); return s?esc(s.nombre):''; };
-    let rows=fila('Venta NETO','<span title="'+$full(on.venta)+'">'+$M(on.venta)+'</span>','<span title="'+$full(off.venta)+'">'+$M(off.venta)+'</span>',on.venta,off.venta)
-      +fila('Rentabilidad Neta',$M(on.margen),$M(off.margen),on.margen,off.margen)
-      +fila('Rentabilidad sobre la venta',fp(pct(on.margen,on.venta)),fp(pct(off.margen,off.venta)),pct(on.margen,on.venta),pct(off.margen,off.venta));
     const cOnN=nOk?crec(on.venta,N.on.venta):null, cOffN=nOk?crec(off.venta,N.off.venta):null;
     const cOnY=yOk?crec(on.venta,Y.on.venta):null, cOffY=yOk?crec(off.venta,Y.off.venta):null;
-    if(N) rows+=fila('Venta vs '+esc(an.titulo),nOk?varia(on.venta,N.on.venta):'<span>cargando</span>',nOk?varia(off.venta,N.off.venta):'<span>cargando</span>',cOnN,cOffN);
-    if(Y) rows+=fila('Venta vs '+esc(y.titulo),yOk?varia(on.venta,Y.on.venta):'<span>cargando</span>',yOk?varia(off.venta,Y.off.venta):'<span>cargando</span>',cOnY,cOffY);
+    const carg='<span>cargando</span>';
+    // Plata y unidades, cada una contra el mes y el año anterior (30/10/2026).
+    let rows=fila('Venta NETO (plata)','<span title="'+$full(on.venta)+'">'+$M(on.venta)+'</span>','<span title="'+$full(off.venta)+'">'+$M(off.venta)+'</span>',on.venta,off.venta);
+    if(N) rows+=fila('Plata '+etqAnt(),nOk?varia(on.venta,N.on.venta):carg,nOk?varia(off.venta,N.off.venta):carg,cOnN,cOffN);
+    if(Y) rows+=fila('Plata '+ETQ_ANIO,yOk?varia(on.venta,Y.on.venta):carg,yOk?varia(off.venta,Y.off.venta):carg,cOnY,cOffY);
+    rows+=fila('Unidades vendidas',num(on.unidades),num(off.unidades),on.unidades,off.unidades);
+    if(N) rows+=fila('Unidades '+etqAnt(),nOk?varia(on.unidades,N.on.unidades):carg,nOk?varia(off.unidades,N.off.unidades):carg,nOk?crec(on.unidades,N.on.unidades):null,nOk?crec(off.unidades,N.off.unidades):null);
+    if(Y) rows+=fila('Unidades '+ETQ_ANIO,yOk?varia(on.unidades,Y.on.unidades):carg,yOk?varia(off.unidades,Y.off.unidades):carg,yOk?crec(on.unidades,Y.on.unidades):null,yOk?crec(off.unidades,Y.off.unidades):null);
+    rows+=fila('Rentabilidad Neta',$M(on.margen),$M(off.margen),on.margen,off.margen)
+      +fila('Rentabilidad sobre la venta',fp(pct(on.margen,on.venta)),fp(pct(off.margen,off.venta)),pct(on.margen,on.venta),pct(off.margen,off.venta));
     rows+=fila('Vendedores con ventas',num(on.filas.length),num(off.filas.length),null,null)
       +fila('Venta promedio por vendedor',$M(prom(on)),$M(prom(off)),prom(on),prom(off))
       +fila('Clientes con compras',num(on.clientes),num(off.clientes),on.clientes,off.clientes);
@@ -213,36 +225,47 @@
       +'<div class="vs-res">'+res+'</div></div>';
   }
   // Un equipo con sus vendedores (el % es sobre la venta del equipo).
-  function tablaEquipo(e,o,an){
+  function tablaEquipo(e,o){
     const sup=o.filas.find(f=>esSup(f.codigo));
     const n=o.filas.length, quien=e.k==='otros'?(n===1?'cuenta':'cuentas'):(n===1?'vendedor':'vendedores');
-    const sub=$M(o.venta)+' · '+n+' '+quien+(sup?' · supervisa '+esc(sup.nombre):'');
-    return tabla('<i class="eq-dot" style="background:'+e.c+'"></i>'+e.n,sub,o.filas,o.venta,
-      an?new Map((an.por_vendedor||[]).map(x=>[x.codigo,x.venta])):null,'codigo',
+    const sub=$M(o.venta)+' · '+num(o.unidades)+' u. · '+n+' '+quien+(sup?' · supervisa '+esc(sup.nombre):'');
+    return tabla('<i class="eq-dot" style="background:'+e.c+'"></i>'+e.n,sub,o.filas,o.venta,'por_vendedor','codigo',
       f=>'<span class="sub">'+(esSup(f.codigo)?'Supervisor · ':'')+(f.clientes?num(f.clientes)+' clientes con compras':'')+'</span>','eq_'+e.k,12,'del equipo');
   }
 
-  // Tabla genérica: filas con nombre, venta, rentabilidad y la variación contra el período anterior.
-  function tabla(titulo, sub, filas, total, mapaAnt, clave, extra, verKey, max, etqTotal){
+  // Tabla genérica (30/10/2026): en cada fila la plata y las unidades, cada una con "vs mes
+  // anterior" y "vs año anterior", y la rentabilidad. lista = el nombre de la lista del período
+  // anterior y del año pasado con la que se compara (por_vendedor, por_rubro…); null = sin comparar.
+  function tabla(titulo, sub, filas, total, lista, clave, extra, verKey, max, etqTotal){
     if(!filas.length) return '<div class="card"><div class="c-h"><div class="t">'+titulo+'</div></div><div class="vacio">Sin ventas en el período.</div></div>';
+    const an=D.anterior, y=D.anio;
+    // Las ventas por vendedor de un período que todavía se está bajando no se comparan.
+    const okP=p=>p && !(lista==='por_vendedor' && p.vendedor_completo===false);
+    const mapaDe=p=>okP(p)&&lista&&Array.isArray(p[lista])?new Map(p[lista].map(x=>[x[clave],x])):null;
+    const mAn=mapaDe(an), mY=mapaDe(y);
+    const comp=(f,campo)=>{
+      const prev=(m)=>{ const x=m.get(f[clave]); return x?Number(x[campo])||0:0; };
+      let s='';
+      if(lista&&an) s+='<span class="sub">'+etqAnt()+' '+(mAn?varia(Number(f[campo])||0,prev(mAn)):'<span>cargando</span>')+'</span>';
+      if(lista&&y) s+='<span class="sub">'+ETQ_ANIO+' '+(mY?varia(Number(f[campo])||0,prev(mY)):'<span>cargando</span>')+'</span>';
+      return s;
+    };
     const lim=verKey&&!VER[verKey]?max:filas.length;
     const topV=Math.max(...filas.map(f=>f.venta||0),1);
-    const rows=filas.slice(0,lim).map(f=>{
-      const ant=mapaAnt?mapaAnt.get(f[clave]):null;
-      return '<tr><td>'+esc(f.nombre)+(extra?extra(f):'')+'<div class="bar"><i style="width:'+Math.max(0,(f.venta||0)/topV*100)+'%"></i></div></td>'
-        +'<td class="n" title="'+$full(f.venta)+'">'+$M(f.venta)+'<span class="sub">'+fp(pct(f.venta,total))+' '+(etqTotal||'del total')+'</span></td>'
-        +'<td class="n" title="'+$full(f.margen)+'">'+$M(f.margen)+'<span class="sub">'+fp(pct(f.margen,f.venta))+'</span></td>'
-        +(mapaAnt?'<td class="n opc">'+varia(f.venta||0,ant!=null?ant:null)+'</td>':'')+'</tr>';
-    }).join('');
+    const rows=filas.slice(0,lim).map(f=>
+      '<tr><td>'+esc(f.nombre)+(extra?extra(f):'')+'<div class="bar"><i style="width:'+Math.max(0,(f.venta||0)/topV*100)+'%"></i></div></td>'
+        +'<td class="n" title="'+$full(f.venta)+'">'+$M(f.venta)+'<span class="sub">'+fp(pct(f.venta,total))+' '+(etqTotal||'del total')+'</span>'+comp(f,'venta')+'</td>'
+        +'<td class="n">'+num(f.unidades)+' u.'+comp(f,'unidades')+'</td>'
+        +'<td class="n" title="'+$full(f.margen)+'">'+$M(f.margen)+'<span class="sub">'+fp(pct(f.margen,f.venta))+'</span></td></tr>'
+    ).join('');
     return '<div class="card"><div class="c-h"><div class="t">'+titulo+(sub?' <small>'+sub+'</small>':'')+'</div></div>'
-      +'<table class="t"><thead><tr><th></th><th class="n">Venta</th><th class="n">Rentabilidad</th>'+(mapaAnt?'<th class="n opc">vs anterior</th>':'')+'</tr></thead><tbody>'+rows+'</tbody></table>'
+      +'<div class="tw2"><table class="t"><thead><tr><th></th><th class="n">Plata</th><th class="n">Unidades</th><th class="n">Rentabilidad</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
       +(verKey&&filas.length>max?'<button class="ver" data-ver="'+verKey+'">'+(VER[verKey]?'Ver menos':'Ver los '+filas.length)+'</button>':'')+'</div>';
   }
 
   function pintar(){
     if(!D) return;
     const a=D.actual, an=D.anterior, y=D.anio;
-    const mapa=(lista,k)=>lista?new Map(lista.map(x=>[x[k],x.venta])):null;
     let h='<div class="estado" style="margin:-6px 0 12px">'+esc(D.titulo)+': '+rango(a)+'</div>';
     if(!a.venta && !a.facturado){ $('cuerpo').innerHTML=h+'<div class="card vacio">Todavía no hay ventas cargadas en este período.</div>'; return; }
     // Sin el gráfico de venta y rentabilidad por día: Fernando no lo quiere en su panel (30/10/2026).
@@ -252,16 +275,16 @@
     if(!a.vendedor_completo && !vend.length){
       h+='<div class="card solo"><div class="c-h"><div class="t">Por equipo y vendedor <small>el de cada factura</small></div></div><div class="vacio">Se están cargando las ventas por vendedor de este período. Aparecen solas en unos minutos.</div></div>';
     } else {
-      const EQ=sumarEquipos(vend), card=k=>tablaEquipo(EQUIPOS.find(e=>e.k===k),EQ[k],an);
+      const EQ=sumarEquipos(vend), card=k=>tablaEquipo(EQUIPOS.find(e=>e.k===k),EQ[k]);
       h+=versus(a,an,y);
       h+='<div class="g-2">'+card('on')+card('off')+'</div>';
       h+='<div class="g-2">'+card('sl')+card('otros')+'</div>';
     }
-    h+='<div class="g-2">'+tabla('Por tipo de producto','',a.por_rubro||[],a.venta,mapa(an&&an.por_rubro,'nombre'),'nombre')
-      +tabla('Por proveedor','código de CUBO y sus líneas',a.por_proveedor||[],a.venta,mapa(an&&an.por_proveedor,'codigo'),'codigo',
-          f=>'<span class="sub">Código '+esc(f.codigo)+' · '+num(f.unidades)+' unidades</span>','prov',12)+'</div>';
-    h+='<div class="solo">'+tabla('Productos más vendidos','',(a.por_producto||[]),a.venta,null,'sku',
-          f=>'<span class="sub">'+esc(f.linea||'')+' · '+num(f.unidades)+' u.</span>','prod',12)+'</div>';
+    h+='<div class="g-2">'+tabla('Por tipo de producto','',a.por_rubro||[],a.venta,'por_rubro','nombre')
+      +tabla('Por proveedor','código de CUBO y sus líneas',a.por_proveedor||[],a.venta,'por_proveedor','codigo',
+          f=>'<span class="sub">Código '+esc(f.codigo)+'</span>','prov',12)+'</div>';
+    h+='<div class="solo">'+tabla('Productos más vendidos','',(a.por_producto||[]),a.venta,'por_producto','sku',
+          f=>'<span class="sub">'+esc(f.linea||'')+'</span>','prod',12)+'</div>';
     $('cuerpo').innerHTML=h;
     // Días que todavía no se volvieron a bajar con el vendedor de cada factura (26/10/2026):
     // ahí no se pueden sacar los vendedores que no se cuentan.
