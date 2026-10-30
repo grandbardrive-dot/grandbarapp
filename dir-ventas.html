@@ -46,6 +46,21 @@
   details.como summary{cursor:pointer;font-weight:700}
   details.como ul{margin:8px 0 2px 18px;padding:0}
   .ver{font-size:12px;font-weight:700;color:var(--green-d);cursor:pointer;background:none;border:0;font-family:inherit;padding:6px 0 0}
+  /* Equipo ON frente a equipo OFF (30/10/2026). ON en azul, OFF en dorado. */
+  .vs{margin-bottom:16px}
+  .vs-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--line-2);margin:2px 0 6px}
+  .vs-bar i{display:block;height:100%}
+  .vs-lab{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700;margin-bottom:12px}
+  .eq-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+  table.t td.gana{background:var(--green-soft);font-weight:800}
+  table.t td.gana:after{content:" ✓";color:var(--green-d)}
+  .vs .tw{overflow-x:auto}
+  .vs table.t{width:100%}
+  .vs table.t th, .vs table.t td{white-space:normal}
+  .vs table.t td.n{white-space:nowrap}
+  .vs-res{font-size:13px;line-height:1.6;margin-top:12px;padding-top:10px;border-top:1px solid var(--line-2)}
+  .vs-res p{margin:0 0 4px}
+  .solo{margin-bottom:16px}
   @media(max-width:1380px){ .k4{grid-template-columns:repeat(3,1fr)} }
   @media(max-width:900px){ .k4{grid-template-columns:1fr 1fr} .k4 .kv.tot{grid-column:1/-1} }
   @media(max-width:560px){ .k4{grid-template-columns:1fr} .kv .v{font-size:21px} table.t .opc{display:none} }
@@ -79,6 +94,7 @@
         <li><b>Rentabilidad Neta</b>: venta neta menos el costo neto que tiene cargado CUBO para cada artículo, los dos sin IVA. El impuesto interno no entra en ninguno de los dos: el cliente lo paga aparte y se le paga al fisco.</li>
         <li>Las percepciones no son venta: son impuestos que se le cobran al cliente y se le pagan al fisco. Por eso la venta NETO y la rentabilidad no las incluyen.</li>
         <li><b>Por vendedor</b>: el vendedor que figura en cada factura, como en la planilla.</li>
+        <li><b>Equipos</b>: cada vendedor va al equipo que tiene cargado en el Portal. <b>ON</b> y <b>OFF</b> son los de Mendoza y se comparan cara a cara; <b>San Luis</b> va aparte; los mayoristas, Mercado Libre y las cuentas sin vendedor van en <b>Mayoristas y otros</b>. En la comparación, el ✓ marca qué equipo va mejor en cada renglón.</li>
         <li>Las comparaciones son contra los mismos días del período anterior y del año pasado. El día de hoy está en curso.</li>
       </ul>
     </details>
@@ -146,15 +162,75 @@
       +'<br>Total facturado neto del período, con todo: <b title="'+$full(a.facturado)+'">'+$M(a.facturado)+'</b>.</div>';
   }
 
+  // ── Equipos (30/10/2026): ON frente a OFF Mendoza; San Luis aparte; mayoristas y otros abajo.
+  // El equipo de cada vendedor lo manda la función (canal y región de su usuario del Portal).
+  const EQUIPOS=[{k:'on',n:'Equipo ON',c:'var(--navy)'},{k:'off',n:'Equipo OFF',c:'var(--gold)',z:'Mendoza'},{k:'sl',n:'San Luis',c:'var(--teal)'},{k:'otros',n:'Mayoristas y otros',c:'var(--muted)'}];
+  const equipoDe=cod=>{ const e=((D&&D.equipos)||{})[String(cod==null?'':cod).trim()]; return e?e.e:'otros'; };
+  const esSup=cod=>{ const e=((D&&D.equipos)||{})[String(cod==null?'':cod).trim()]; return !!(e&&e.sup); };
+  function sumarEquipos(lista){
+    const t={}; EQUIPOS.forEach(e=>{ t[e.k]={venta:0,margen:0,clientes:0,filas:[]}; });
+    (lista||[]).forEach(v=>{ if(v.venta==null) return; const o=t[equipoDe(v.codigo)];
+      o.venta+=Number(v.venta)||0; o.margen+=Number(v.margen)||0; o.clientes+=Number(v.clientes)||0; o.filas.push(v); });
+    return t;
+  }
+  // Cuadro de comparación: en cada renglón se marca con ✓ al equipo que va mejor.
+  function versus(a,an,y){
+    const A=sumarEquipos(a.por_vendedor), on=A.on, off=A.off;
+    if(!on.venta && !off.venta) return '';
+    const N=an?sumarEquipos(an.por_vendedor):null, Y=y?sumarEquipos(y.por_vendedor):null;
+    const nOk=N && an.vendedor_completo!==false, yOk=Y && y.vendedor_completo!==false;
+    const crec=(x,b)=>b>0?(x-b)/Math.abs(b)*100:null;
+    const prom=o=>o.filas.length?o.venta/o.filas.length:0;
+    const tot=on.venta+off.venta, pOn=tot>0?on.venta/tot*100:50;
+    const fila=(rot,vOn,vOff,nOn,nOff)=>{
+      const g=(nOn!=null&&nOff!=null&&nOn!==nOff)?(nOn>nOff?'on':'off'):'';
+      return '<tr><td>'+rot+'</td><td class="n'+(g==='on'?' gana':'')+'">'+vOn+'</td><td class="n'+(g==='off'?' gana':'')+'">'+vOff+'</td></tr>';
+    };
+    const supDe=o=>{ const s=o.filas.find(f=>esSup(f.codigo)); return s?esc(s.nombre):''; };
+    let rows=fila('Venta NETO','<span title="'+$full(on.venta)+'">'+$M(on.venta)+'</span>','<span title="'+$full(off.venta)+'">'+$M(off.venta)+'</span>',on.venta,off.venta)
+      +fila('Rentabilidad Neta',$M(on.margen),$M(off.margen),on.margen,off.margen)
+      +fila('Rentabilidad sobre la venta',fp(pct(on.margen,on.venta)),fp(pct(off.margen,off.venta)),pct(on.margen,on.venta),pct(off.margen,off.venta));
+    const cOnN=nOk?crec(on.venta,N.on.venta):null, cOffN=nOk?crec(off.venta,N.off.venta):null;
+    const cOnY=yOk?crec(on.venta,Y.on.venta):null, cOffY=yOk?crec(off.venta,Y.off.venta):null;
+    if(N) rows+=fila('Venta vs '+esc(an.titulo),nOk?varia(on.venta,N.on.venta):'<span>cargando</span>',nOk?varia(off.venta,N.off.venta):'<span>cargando</span>',cOnN,cOffN);
+    if(Y) rows+=fila('Venta vs '+esc(y.titulo),yOk?varia(on.venta,Y.on.venta):'<span>cargando</span>',yOk?varia(off.venta,Y.off.venta):'<span>cargando</span>',cOnY,cOffY);
+    rows+=fila('Vendedores con ventas',num(on.filas.length),num(off.filas.length),null,null)
+      +fila('Venta promedio por vendedor',$M(prom(on)),$M(prom(off)),prom(on),prom(off))
+      +fila('Clientes con compras',num(on.clientes),num(off.clientes),on.clientes,off.clientes);
+    // Conclusión en palabras.
+    const fs=x=>(x>0?'+':'')+fp(x);
+    const lider=on.venta>=off.venta?'ON':'OFF', dif=Math.abs(on.venta-off.venta), menor=Math.min(on.venta,off.venta);
+    let res='<p>En este período vende más el <b>equipo '+lider+'</b>: '+$M(dif)+' más'+(menor>0?' ('+fp(dif/menor*100)+' más)':'')+'.</p>';
+    if(cOnN!=null&&cOffN!=null) res+='<p>Contra '+esc(an.titulo)+' le va mejor al <b>equipo '+(cOnN>=cOffN?'ON':'OFF')+'</b> ('+fs(cOnN)+' el ON y '+fs(cOffN)+' el OFF).</p>';
+    if(cOnY!=null&&cOffY!=null) res+='<p>Contra '+esc(y.titulo)+' le va mejor al <b>equipo '+(cOnY>=cOffY?'ON':'OFF')+'</b> ('+fs(cOnY)+' el ON y '+fs(cOffY)+' el OFF).</p>';
+    const pmOn=pct(on.margen,on.venta), pmOff=pct(off.margen,off.venta);
+    if(pmOn!=null&&pmOff!=null&&Math.abs(pmOn-pmOff)>=0.1) res+='<p>Más rentable por cada peso vendido: <b>equipo '+(pmOn>pmOff?'ON':'OFF')+'</b> ('+fp(pmOn)+' contra '+fp(pmOff)+').</p>';
+    const sOn=supDe(on), sOff=supDe(off);
+    return '<div class="card vs"><div class="c-h"><div class="t">Equipo ON frente a equipo OFF <small>Mendoza · San Luis va aparte</small></div></div>'
+      +'<div class="vs-bar"><i style="width:'+pOn+'%;background:var(--navy)"></i><i style="width:'+(100-pOn)+'%;background:var(--gold)"></i></div>'
+      +'<div class="vs-lab"><span><i class="eq-dot" style="background:var(--navy)"></i>ON '+fp(pOn)+' de la venta de los dos</span><span><i class="eq-dot" style="background:var(--gold)"></i>OFF '+fp(100-pOn)+'</span></div>'
+      +'<div class="tw"><table class="t"><thead><tr><th></th><th class="n">Equipo ON'+(sOn?'<span class="sub" style="text-transform:none;display:block">supervisa '+sOn+'</span>':'')+'</th><th class="n">Equipo OFF'+(sOff?'<span class="sub" style="text-transform:none;display:block">supervisa '+sOff+'</span>':'')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +'<div class="vs-res">'+res+'</div></div>';
+  }
+  // Un equipo con sus vendedores (el % es sobre la venta del equipo).
+  function tablaEquipo(e,o,an){
+    const sup=o.filas.find(f=>esSup(f.codigo));
+    const n=o.filas.length, quien=e.k==='otros'?(n===1?'cuenta':'cuentas'):(n===1?'vendedor':'vendedores');
+    const sub=$M(o.venta)+' · '+n+' '+quien+(sup?' · supervisa '+esc(sup.nombre):'');
+    return tabla('<i class="eq-dot" style="background:'+e.c+'"></i>'+e.n,sub,o.filas,o.venta,
+      an?new Map((an.por_vendedor||[]).map(x=>[x.codigo,x.venta])):null,'codigo',
+      f=>'<span class="sub">'+(esSup(f.codigo)?'Supervisor · ':'')+(f.clientes?num(f.clientes)+' clientes con compras':'')+'</span>','eq_'+e.k,12,'del equipo');
+  }
+
   // Tabla genérica: filas con nombre, venta, rentabilidad y la variación contra el período anterior.
-  function tabla(titulo, sub, filas, total, mapaAnt, clave, extra, verKey, max){
+  function tabla(titulo, sub, filas, total, mapaAnt, clave, extra, verKey, max, etqTotal){
     if(!filas.length) return '<div class="card"><div class="c-h"><div class="t">'+titulo+'</div></div><div class="vacio">Sin ventas en el período.</div></div>';
     const lim=verKey&&!VER[verKey]?max:filas.length;
     const topV=Math.max(...filas.map(f=>f.venta||0),1);
     const rows=filas.slice(0,lim).map(f=>{
       const ant=mapaAnt?mapaAnt.get(f[clave]):null;
       return '<tr><td>'+esc(f.nombre)+(extra?extra(f):'')+'<div class="bar"><i style="width:'+Math.max(0,(f.venta||0)/topV*100)+'%"></i></div></td>'
-        +'<td class="n" title="'+$full(f.venta)+'">'+$M(f.venta)+'<span class="sub">'+fp(pct(f.venta,total))+' del total</span></td>'
+        +'<td class="n" title="'+$full(f.venta)+'">'+$M(f.venta)+'<span class="sub">'+fp(pct(f.venta,total))+' '+(etqTotal||'del total')+'</span></td>'
         +'<td class="n" title="'+$full(f.margen)+'">'+$M(f.margen)+'<span class="sub">'+fp(pct(f.margen,f.venta))+'</span></td>'
         +(mapaAnt?'<td class="n opc">'+varia(f.venta||0,ant!=null?ant:null)+'</td>':'')+'</tr>';
     }).join('');
@@ -171,15 +247,20 @@
     if(!a.venta && !a.facturado){ $('cuerpo').innerHTML=h+'<div class="card vacio">Todavía no hay ventas cargadas en este período.</div>'; return; }
     // Sin el gráfico de venta y rentabilidad por día: Fernando no lo quiere en su panel (30/10/2026).
     h+=kpis(a,an,y)+otros(a);
+    // Vendedores por equipo (30/10/2026): primero ON frente a OFF, después cada equipo.
     const vend=(a.por_vendedor||[]).filter(v=>v.venta!=null);
-    const vendCard=(!a.vendedor_completo && !vend.length)
-      ? '<div class="card"><div class="c-h"><div class="t">Por vendedor <small>el de cada factura</small></div></div><div class="vacio">Se están cargando las ventas por vendedor de este período. Aparecen solas en unos minutos.</div></div>'
-      : tabla('Por vendedor','el de cada factura',vend,a.venta,mapa(an&&an.por_vendedor,'codigo'),'codigo',
-          f=>f.clientes?'<span class="sub">'+num(f.clientes)+' clientes con compras</span>':'','vend',12);
-    h+='<div class="g-2">'+tabla('Por tipo de producto','',a.por_rubro||[],a.venta,mapa(an&&an.por_rubro,'nombre'),'nombre')+vendCard+'</div>';
-    h+='<div class="g-2">'+tabla('Por proveedor','código de CUBO y sus líneas',a.por_proveedor||[],a.venta,mapa(an&&an.por_proveedor,'codigo'),'codigo',
-          f=>'<span class="sub">Código '+esc(f.codigo)+' · '+num(f.unidades)+' unidades</span>','prov',12)
-      +tabla('Productos más vendidos','',(a.por_producto||[]),a.venta,null,'sku',
+    if(!a.vendedor_completo && !vend.length){
+      h+='<div class="card solo"><div class="c-h"><div class="t">Por equipo y vendedor <small>el de cada factura</small></div></div><div class="vacio">Se están cargando las ventas por vendedor de este período. Aparecen solas en unos minutos.</div></div>';
+    } else {
+      const EQ=sumarEquipos(vend), card=k=>tablaEquipo(EQUIPOS.find(e=>e.k===k),EQ[k],an);
+      h+=versus(a,an,y);
+      h+='<div class="g-2">'+card('on')+card('off')+'</div>';
+      h+='<div class="g-2">'+card('sl')+card('otros')+'</div>';
+    }
+    h+='<div class="g-2">'+tabla('Por tipo de producto','',a.por_rubro||[],a.venta,mapa(an&&an.por_rubro,'nombre'),'nombre')
+      +tabla('Por proveedor','código de CUBO y sus líneas',a.por_proveedor||[],a.venta,mapa(an&&an.por_proveedor,'codigo'),'codigo',
+          f=>'<span class="sub">Código '+esc(f.codigo)+' · '+num(f.unidades)+' unidades</span>','prov',12)+'</div>';
+    h+='<div class="solo">'+tabla('Productos más vendidos','',(a.por_producto||[]),a.venta,null,'sku',
           f=>'<span class="sub">'+esc(f.linea||'')+' · '+num(f.unidades)+' u.</span>','prod',12)+'</div>';
     $('cuerpo').innerHTML=h;
     // Días que todavía no se volvieron a bajar con el vendedor de cada factura (26/10/2026):

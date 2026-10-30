@@ -11,9 +11,14 @@
 //     y los ajustes (rubros 06 y 14). Las notas de débito (cheques rechazados) no son venta.
 //   GET ?periodo=hoy|semana|mes|mes_anterior|anio  (o ?desde=AAAA-MM-DD&hasta=AAAA-MM-DD)
 //   Devuelve el período, el período anterior equivalente y el mismo del año pasado.
+//   Equipos (30/10/2026): a qué equipo va cada vendedor, según su usuario del Portal:
+//   ON (canal on), OFF Mendoza (canal off), San Luis (región san_luis) y Mayoristas y otros
+//   (rol mayorista y los códigos sin usuario: Mayorista Mendoza, Mercado Libre…).
 //   Solo Dirección (y Diseño/Desarrollo, que mantienen el sistema).
 //   Env: HUB_SERVICE_ROLE
 // ============================================================
+
+const { regionDe } = require('./_equipo');
 
 const HUB_URL = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
@@ -121,8 +126,21 @@ exports.handler = async (event) => {
     // que la carga "se demoró" aunque anduviera bien (19/10/2026).
     const syncP = fetch(HUB_URL + '/rest/v1/sistema_corridas?tarea=eq.sync-ventas&ok=eq.true&select=fin&order=inicio.desc&limit=1',
       { headers: { apikey: srole, Authorization: 'Bearer ' + srole } }).then(r => r.ok ? r.json() : []).then(a => (a && a[0] && a[0].fin) || null).catch(() => null);
-    const [actual, anterior, anio, sync] = await Promise.all([
-      resumen(P.actual), P.anterior ? resumen(P.anterior) : null, P.anio ? resumen(P.anio) : null, syncP,
+    // Equipo de cada código de vendedor. San Luis va primero (ahí hay vendedores marcados OFF);
+    // los mayoristas y las cuentas sin usuario quedan en "otros".
+    const equiposP = fetch(HUB_URL + '/rest/v1/usuarios?codigo_vendedor=not.is.null&select=codigo_vendedor,nombre,rol,canal,region,es_supervisor,activo',
+      { headers: { apikey: srole, Authorization: 'Bearer ' + srole } }).then(r => r.ok ? r.json() : []).then(us => {
+        const eq = {};
+        (Array.isArray(us) ? us : []).forEach(u => {
+          const cod = String(u.codigo_vendedor || '').trim(), rol = String(u.rol || '').toLowerCase(), canal = String(u.canal || '').toLowerCase();
+          if (!cod) return;
+          const e = rol !== 'ventas' ? 'otros' : regionDe(u) === 'san_luis' ? 'sl' : canal === 'on' ? 'on' : canal === 'off' ? 'off' : 'otros';
+          eq[cod] = { e, sup: !!u.es_supervisor };
+        });
+        return eq;
+      }).catch(() => ({}));
+    const [actual, anterior, anio, sync, equipos] = await Promise.all([
+      resumen(P.actual), P.anterior ? resumen(P.anterior) : null, P.anio ? resumen(P.anio) : null, syncP, equiposP,
     ]);
     return json(200, {
       periodo: qp.periodo || 'mes', titulo: P.titulo,
@@ -131,6 +149,7 @@ exports.handler = async (event) => {
       anio: anio ? { ...soloTotales(anio), titulo: P.anio.titulo } : null,
       generado: new Date().toISOString(),
       sync,
+      equipos,
     });
   } catch (e) {
     return json(500, { error: 'No se pudieron calcular las ventas.', detalle: String((e && e.message) || e).slice(0, 200) });
