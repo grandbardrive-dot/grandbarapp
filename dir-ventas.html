@@ -197,10 +197,10 @@
     const cOnN=nOk?crec(on.venta,N.on.venta):null, cOffN=nOk?crec(off.venta,N.off.venta):null;
     const cOnY=yOk?crec(on.venta,Y.on.venta):null, cOffY=yOk?crec(off.venta,Y.off.venta):null;
     const carg='<span>cargando</span>';
-    // Plata y unidades, cada una contra el mes y el año anterior (30/10/2026).
-    let rows=fila('Venta NETO (plata)','<span title="'+$full(on.venta)+'">'+$M(on.venta)+'</span>','<span title="'+$full(off.venta)+'">'+$M(off.venta)+'</span>',on.venta,off.venta);
-    if(N) rows+=fila('Plata '+etqAnt(),nOk?varia(on.venta,N.on.venta):carg,nOk?varia(off.venta,N.off.venta):carg,cOnN,cOffN);
-    if(Y) rows+=fila('Plata '+ETQ_ANIO,yOk?varia(on.venta,Y.on.venta):carg,yOk?varia(off.venta,Y.off.venta):carg,cOnY,cOffY);
+    // Venta y unidades, cada una contra el mes y el año anterior (30/10/2026). Dice "Venta", no "Plata" (pedido del usuario).
+    let rows=fila('Venta NETO','<span title="'+$full(on.venta)+'">'+$M(on.venta)+'</span>','<span title="'+$full(off.venta)+'">'+$M(off.venta)+'</span>',on.venta,off.venta);
+    if(N) rows+=fila('Venta '+etqAnt(),nOk?varia(on.venta,N.on.venta):carg,nOk?varia(off.venta,N.off.venta):carg,cOnN,cOffN);
+    if(Y) rows+=fila('Venta '+ETQ_ANIO,yOk?varia(on.venta,Y.on.venta):carg,yOk?varia(off.venta,Y.off.venta):carg,cOnY,cOffY);
     rows+=fila('Unidades vendidas',num(on.unidades),num(off.unidades),on.unidades,off.unidades);
     if(N) rows+=fila('Unidades '+etqAnt(),nOk?varia(on.unidades,N.on.unidades):carg,nOk?varia(off.unidades,N.off.unidades):carg,nOk?crec(on.unidades,N.on.unidades):null,nOk?crec(off.unidades,N.off.unidades):null);
     if(Y) rows+=fila('Unidades '+ETQ_ANIO,yOk?varia(on.unidades,Y.on.unidades):carg,yOk?varia(off.unidades,Y.off.unidades):carg,yOk?crec(on.unidades,Y.on.unidades):null,yOk?crec(off.unidades,Y.off.unidades):null);
@@ -233,7 +233,7 @@
       f=>'<span class="sub">'+(esSup(f.codigo)?'Supervisor · ':'')+(f.clientes?num(f.clientes)+' clientes con compras':'')+'</span>','eq_'+e.k,12,'del equipo');
   }
 
-  // Tabla genérica (30/10/2026): en cada fila la plata y las unidades, cada una con "vs mes
+  // Tabla genérica (30/10/2026): en cada fila la venta y las unidades, cada una con "vs mes
   // anterior" y "vs año anterior", y la rentabilidad. lista = el nombre de la lista del período
   // anterior y del año pasado con la que se compara (por_vendedor, por_rubro…); null = sin comparar.
   function tabla(titulo, sub, filas, total, lista, clave, extra, verKey, max, etqTotal){
@@ -259,7 +259,7 @@
         +'<td class="n" title="'+$full(f.margen)+'">'+$M(f.margen)+'<span class="sub">'+fp(pct(f.margen,f.venta))+'</span></td></tr>'
     ).join('');
     return '<div class="card"><div class="c-h"><div class="t">'+titulo+(sub?' <small>'+sub+'</small>':'')+'</div></div>'
-      +'<div class="tw2"><table class="t"><thead><tr><th></th><th class="n">Plata</th><th class="n">Unidades</th><th class="n">Rentabilidad</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +'<div class="tw2"><table class="t"><thead><tr><th></th><th class="n">Venta</th><th class="n">Unidades</th><th class="n">Rentabilidad</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
       +(verKey&&filas.length>max?'<button class="ver" data-ver="'+verKey+'">'+(VER[verKey]?'Ver menos':'Ver los '+filas.length)+'</button>':'')+'</div>';
   }
 
