@@ -14,10 +14,13 @@
 //  POST { accion:'borrar', id }
 //  POST { accion:'subir', id, tipo:'comprobante'|'recepcion', file_base64, mime, filename }
 //  POST { accion:'enviar', fecha }         → la manda al panel de Moni
+//  GET  ?que=historial                     → planillas enviadas (suyas; supervisor + equipo)
+//  GET  ?que=historial-det&vendedor=&fecha= → detalle de una (solo mirar)
 //
 //  Env: COBRANZAS_SERVICE_ROLE = service_role de qpaoyfubyaloyhepatlm
 // ============================================================
 
+const { regionDe } = require('./_equipo.js');
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
@@ -50,7 +53,7 @@ exports.handler = async (event) => {
     if (!uRes.ok) return json(401, { error: 'Sesión inválida o vencida.' });
     const user = await uRes.json();
 
-    const pRes = await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=codigo_vendedor,nombre', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
+    const pRes = await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=codigo_vendedor,nombre,es_supervisor,canal,region', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
     const perfil = ((await pRes.json()) || [])[0] || {};
     const codigo = perfil.codigo_vendedor;
     if (!codigo) return json(200, { fecha: hoyAR(), filas: [], totales: {}, sinCodigo: true });
@@ -183,6 +186,65 @@ exports.handler = async (event) => {
       const fR = await cob('facturas?codigo=eq.' + encodeURIComponent(cc.codigo) + '&saldo=neq.0&select=numero,tipo,fecha,vencimiento,importe,saldo&order=vencimiento.asc.nullslast&limit=300');
       const facturas = fR.ok ? await fR.json() : [];
       return json(200, { codigo: cc.codigo, razon_social: cc.nombre || null, facturas: Array.isArray(facturas) ? facturas : [] });
+    }
+
+    // ── Historial de planillas enviadas (02/11/2026) ──
+    // Lo mismo que ve Moni en su panel, pero el vendedor solo las suyas y el supervisor
+    // las suyas + las de su equipo (misma regla de equipo que supervisor-equipo: vendedores
+    // de su región y canal). Solo mirar: procesar, corregir y numerar lo hace tesorería.
+    if (q.que === 'historial' || q.que === 'historial-det') {
+      const equipo = [{ codigo: String(codigo), nombre: perfil.nombre || null }];
+      if (perfil.es_supervisor) {
+        const hubKey = process.env.HUB_SERVICE_ROLE;
+        const eqR = await fetch(HUB_URL + '/rest/v1/usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region',
+          { headers: { apikey: hubKey || HUB_ANON, Authorization: 'Bearer ' + (hubKey || token) } });
+        const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
+        (eqR.ok ? await eqR.json() : []).forEach(u => {
+          if (!u.codigo_vendedor || String(u.codigo_vendedor) === String(codigo)) return;
+          if (preg && regionDe(u) !== preg) return;
+          const uc = String(u.canal || '').toLowerCase();
+          if (pc && pc !== 'ambos' && uc !== 'ambos' && pc !== uc) return;
+          equipo.push({ codigo: String(u.codigo_vendedor), nombre: u.nombre || null });
+        });
+      }
+      const codigos = equipo.map(e => e.codigo);
+      const inCods = 'vendedor=in.(' + codigos.map(c => '"' + c.replace(/"/g, '') + '"').join(',') + ')';
+
+      if (q.que === 'historial-det') {
+        const vend = String(q.vendedor || ''), fecha = q.fecha;
+        if (!codigos.includes(vend) || !okFecha(fecha)) return json(403, { error: 'Esa planilla no es tuya ni de tu equipo.' });
+        const [fr2, er2] = await Promise.all([
+          cob('planilla_cobranzas?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + fecha + '&order=created_at.asc'),
+          cob('planilla_envios?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + fecha),
+        ]);
+        return json(200, { filas: fr2.ok ? await fr2.json() : [], envio: (er2.ok ? await er2.json() : [])[0] || null });
+      }
+
+      const er3 = await cob('planilla_envios?select=*&' + inCods + '&order=enviada_at.desc&limit=400');
+      let envios = er3.ok ? await er3.json() : [];
+      // Igual que el panel de Moni: cuántas filas ya procesó tesorería y cuánto suma lo aprobado.
+      const MEDIOS = ['efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'];
+      const desde = envios.reduce((m, e) => (!m || e.fecha_rendicion < m) ? e.fecha_rendicion : m, null);
+      const det = [];
+      if (desde) {
+        for (let i = 0; i < 50; i++) {
+          const r = await cob('planilla_cobranzas?select=id,vendedor,fecha_rendicion,procesado,' + MEDIOS.join(',') + '&' + inCods + '&fecha_rendicion=gte.' + desde + '&order=id',
+            { headers: { 'Range-Unit': 'items', Range: (i * 1000) + '-' + (i * 1000 + 999) } });
+          const lote = r.ok ? await r.json() : [];
+          if (!Array.isArray(lote) || !lote.length) break;
+          det.push(...lote);
+          if (lote.length < 1000) break;
+        }
+      }
+      const pc2 = {};
+      det.forEach(r => {
+        const k = r.vendedor + '|' + r.fecha_rendicion;
+        const a = pc2[k] || (pc2[k] = { procesadas: 0, sinAprobar: 0, aprobado: {}, pendiente: 0 });
+        if (r.procesado) { a.procesadas++; MEDIOS.forEach(m => { a.aprobado[m] = (a.aprobado[m] || 0) + (Number(r[m]) || 0); }); }
+        else { a.sinAprobar++; a.pendiente += MEDIOS.reduce((s, m) => s + (Number(r[m]) || 0), 0); }
+      });
+      envios = envios.map(e => { const a = pc2[e.vendedor + '|' + e.fecha_rendicion] || {}; return { ...e, procesadas: a.procesadas || 0, aprobado: a.aprobado || {}, sinAprobar: a.sinAprobar || 0, pendiente: a.pendiente || 0 }; });
+      return json(200, { filas: envios, equipo, supervisor: !!perfil.es_supervisor });
     }
 
     // GET: filas del día pedido + totales + si ya fue enviada.
