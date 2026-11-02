@@ -14,13 +14,12 @@
 //  POST { accion:'borrar', id }
 //  POST { accion:'subir', id, tipo:'comprobante'|'recepcion', file_base64, mime, filename }
 //  POST { accion:'enviar', fecha }         → la manda al panel de Moni
-//  GET  ?que=historial                     → planillas enviadas (suyas; supervisor + equipo)
+//  GET  ?que=historial                     → planillas enviadas (solo las suyas)
 //  GET  ?que=historial-det&vendedor=&fecha= → detalle de una (solo mirar)
 //
 //  Env: COBRANZAS_SERVICE_ROLE = service_role de qpaoyfubyaloyhepatlm
 // ============================================================
 
-const { regionDe } = require('./_equipo.js');
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
@@ -189,30 +188,17 @@ exports.handler = async (event) => {
     }
 
     // ── Historial de planillas enviadas (02/11/2026) ──
-    // Lo mismo que ve Moni en su panel, pero el vendedor solo las suyas y el supervisor
-    // las suyas + las de su equipo (misma regla de equipo que supervisor-equipo: vendedores
-    // de su región y canal). Solo mirar: procesar, corregir y numerar lo hace tesorería.
+    // Lo mismo que ve Moni en su panel, pero cada uno SOLO las suyas (también los
+    // supervisores: no ven las de sus vendedores). Solo mirar: procesar, corregir y
+    // numerar lo hace tesorería.
     if (q.que === 'historial' || q.que === 'historial-det') {
       const equipo = [{ codigo: String(codigo), nombre: perfil.nombre || null }];
-      if (perfil.es_supervisor) {
-        const hubKey = process.env.HUB_SERVICE_ROLE;
-        const eqR = await fetch(HUB_URL + '/rest/v1/usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region',
-          { headers: { apikey: hubKey || HUB_ANON, Authorization: 'Bearer ' + (hubKey || token) } });
-        const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
-        (eqR.ok ? await eqR.json() : []).forEach(u => {
-          if (!u.codigo_vendedor || String(u.codigo_vendedor) === String(codigo)) return;
-          if (preg && regionDe(u) !== preg) return;
-          const uc = String(u.canal || '').toLowerCase();
-          if (pc && pc !== 'ambos' && uc !== 'ambos' && pc !== uc) return;
-          equipo.push({ codigo: String(u.codigo_vendedor), nombre: u.nombre || null });
-        });
-      }
       const codigos = equipo.map(e => e.codigo);
       const inCods = 'vendedor=in.(' + codigos.map(c => '"' + c.replace(/"/g, '') + '"').join(',') + ')';
 
       if (q.que === 'historial-det') {
         const vend = String(q.vendedor || ''), fecha = q.fecha;
-        if (!codigos.includes(vend) || !okFecha(fecha)) return json(403, { error: 'Esa planilla no es tuya ni de tu equipo.' });
+        if (!codigos.includes(vend) || !okFecha(fecha)) return json(403, { error: 'Esa planilla no es tuya.' });
         const [fr2, er2] = await Promise.all([
           cob('planilla_cobranzas?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + fecha + '&order=created_at.asc'),
           cob('planilla_envios?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + fecha),
@@ -244,7 +230,7 @@ exports.handler = async (event) => {
         else { a.sinAprobar++; a.pendiente += MEDIOS.reduce((s, m) => s + (Number(r[m]) || 0), 0); }
       });
       envios = envios.map(e => { const a = pc2[e.vendedor + '|' + e.fecha_rendicion] || {}; return { ...e, procesadas: a.procesadas || 0, aprobado: a.aprobado || {}, sinAprobar: a.sinAprobar || 0, pendiente: a.pendiente || 0 }; });
-      return json(200, { filas: envios, equipo, supervisor: !!perfil.es_supervisor });
+      return json(200, { filas: envios, equipo, supervisor: false });
     }
 
     // GET: filas del día pedido + totales + si ya fue enviada.
