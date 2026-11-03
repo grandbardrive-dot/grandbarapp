@@ -83,7 +83,7 @@ function numeroDe(c) {
 // Un día en todas las empresas. Si una empresa falla, el día no se marca como bajado.
 async function procesarDia(ctxs, d) {
   const fechaStr = fmtDDMMYYYY(d);
-  const filas = [], porEmpresa = {};
+  const filas = [], porEmpresa = {}, listas = [];
   for (const ctx of ctxs) {
     const jl = await aikon(ctx.urlCuenta + '/IS3/ListarComprobantes', { cuenta: ctx.cuenta, token: ctx.token, FechaDesde: fechaStr, FechaHasta: fechaStr }, 40000);
     // Sin lista = error del ERP (un día sin ventas devuelve lista: []).
@@ -91,6 +91,7 @@ async function procesarDia(ctxs, d) {
     const lista = Array.isArray(jl.lista) ? jl.lista : jl;
     const sirven = lista.filter(c => /^(FA|NC|ND)/i.test(String(c.Codigo || '')));
     porEmpresa[ctx.empresa] = sirven.length;
+    listas.push(sirven.map(c => numeroDe(c) + '|' + c.Codigo).sort().join(','));
     for (const c of sirven) {
       const numero = numeroDe(c), codigo = padCod(c.ClienteCodigo);
       if (!numero || !codigo) continue;
@@ -106,6 +107,13 @@ async function procesarDia(ctxs, d) {
         actualizado: new Date().toISOString(),
       });
     }
+  }
+  // CUBO a veces devuelve la MISMA lista con el token de las dos empresas (visto en el log de
+  // sync-ventas: "9999:201 0001:201"). Usan sucursales distintas, así que es un error: el día no
+  // se guarda ni se marca, y se vuelve a pedir en la próxima corrida.
+  if (listas.length > 1 && listas[0] && listas.every(l => l === listas[0])) {
+    console.warn(`sync-comprobantes: ${fechaStr} las dos empresas devolvieron la misma lista (${porEmpresa[ctxs[0].empresa]}); se reintenta.`);
+    return null;
   }
   // Una misma clave dos veces en el lote hace fallar el upsert: queda la última.
   const unicas = [...new Map(filas.map(f => [f.numero + '|' + f.tipo, f])).values()];
@@ -140,15 +148,16 @@ exports.handler = async (event) => {
       if (!hechos.has(iso(d))) dias.push(d);
     }
 
-    let n = 0, comprobantes = 0;
+    let n = 0, comprobantes = 0, repetidas = 0;
     for (const d of dias) {
       if (Date.now() - t0 > BUDGET_MS) break;
-      comprobantes += await procesarDia(ctxs, d);
+      const r = await procesarDia(ctxs, d);
+      if (r == null) repetidas++; else comprobantes += r;
       n++;
     }
     const faltan = dias.length - n;
-    console.log('sync-comprobantes OK', JSON.stringify({ dias: n, comprobantes, faltan, ms: Date.now() - t0 }));
-    return { statusCode: 200, body: JSON.stringify({ ok: true, dias: n, comprobantes, faltan }) };
+    console.log('sync-comprobantes OK', JSON.stringify({ dias: n, comprobantes, repetidas, faltan, ms: Date.now() - t0 }));
+    return { statusCode: 200, body: JSON.stringify({ ok: true, dias: n, comprobantes, repetidas, faltan }) };
   } catch (e) {
     console.error('sync-comprobantes ERROR:', (e && e.message) || String(e));
     return { statusCode: 500, body: JSON.stringify({ error: (e && e.message) || String(e) }) };
