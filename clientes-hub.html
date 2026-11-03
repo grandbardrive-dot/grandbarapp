@@ -249,7 +249,8 @@
     return saldoMap[cod] || saldoMap[cod.replace(/^0+/,"")] || null;
   }
 
-  function fmtFecha(iso){ if(!iso) return null; const d=new Date(iso); return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+  // Una fecha sola ('2026-10-28') se lee al mediodía local: como medianoche UTC salía el día anterior en Argentina.
+  function fmtFecha(iso){ if(!iso) return null; const d=new Date(/^\d{4}-\d{2}-\d{2}$/.test(String(iso)) ? iso+'T12:00:00' : iso); return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 
   // Estado de los filtros/orden de la barra.
   let fDeuda='todos', fDim='', _dimKey='tipo', orden='az', verOcultos=false;
