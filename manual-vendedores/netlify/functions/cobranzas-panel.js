@@ -31,6 +31,10 @@
 //  Zona (19/10/2026): un usuario con región en su perfil ve solo esa zona
 //  (Romina, administración de San Luis = tesorería + región san_luis). Sin
 //  región se ve todo, como siempre. Ver _zona-cobranzas.js.
+//
+//  Rol reclamos (03/11/2026): Agostina cubre a Brenda solo en Reclamos. Lee el
+//  resumen (solo reclamos abiertos) y los reclamos, y puede responder y cambiar
+//  el estado; cualquier otra lectura o acción le devuelve 403.
 // ============================================================
 
 const { zonaDe, armarZona } = require('./_zona-cobranzas');
@@ -41,7 +45,10 @@ const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 // El manual: de acá salen los NOMBRES de los vendedores (comprobantes guarda el código).
 const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
-const ROLES_OK = ['tesoreria', 'administracion', 'admin', 'desarrollo', 'diseno', 'direccion'];
+const ROLES_OK = ['tesoreria', 'administracion', 'admin', 'desarrollo', 'diseno', 'direccion', 'reclamos'];
+// Rol reclamos (03/11/2026): Agostina, que cubre a Brenda, tiene solo Reclamos. Ahí hace lo
+// mismo que Brenda (ver, responder, cambiar el estado); el resto del panel no se le sirve.
+const SOLO_RECLAMOS_ACC = ['reclamo-estado', 'reclamo-responder'];
 // Dirección (Fernando, rol admin) mira y no toca: ni reclamos, ni bloqueos, ni planillas (23/10/2026).
 const SOLO_MIRA = ['admin', 'direccion', 'duenio'];
 const POR_PAGINA = 50;
@@ -115,6 +122,7 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'POST') {
       if (SOLO_MIRA.includes(rol)) return json(403, { error: 'Desde el panel de Dirección se mira, no se modifica.' });
       const b = JSON.parse(event.body || '{}');
+      if (rol === 'reclamos' && !SOLO_RECLAMOS_ACC.includes(b.accion)) return json(403, { error: 'Tu usuario tiene solo la sección Reclamos.' });
       const patch = async (tabla, filtro, campos, queEs) => {
         const r = await cob(tabla + '?' + filtro, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(campos) });
         const filas = await r.json();
@@ -281,6 +289,17 @@ exports.handler = async (event) => {
     // ══════════ LECTURA ══════════
     const p = event.queryStringParameters || {};
     const que = p.que || 'resumen';
+
+    // Rol reclamos: del resumen, solo los reclamos abiertos; de las lecturas, solo Reclamos.
+    if (rol === 'reclamos') {
+      if (que === 'resumen') {
+        const reclAbiertos = Z
+          ? (await leerTodo('reclamos?select=codigo,cliente_id&estado=eq.abierto&order=id')).filter(Z.filaOk).length
+          : await contar('reclamos', 'estado=eq.abierto');
+        return json(200, { rol, nombre: perfil.nombre, zona: Z ? Z.nombre : undefined, reclAbiertos });
+      }
+      if (que !== 'reclamos') return json(403, { error: 'Tu usuario tiene solo la sección Reclamos.' });
+    }
 
     // Deuda de cada cliente del portal para decidir bloqueos. Sale de cuentas_cubo,
     // que la sincronización actualiza cada hora con la misma regla que ve el cliente

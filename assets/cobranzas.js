@@ -70,6 +70,7 @@ function cobChip(id) {
 }
 
 function cobTablero() {
+  if (cobSolo()) return cobAbrir(cobSolo()[0]);
   COB_VISTA = 'tablero'; cobNav();
   if (window.COB_HASH && location.hash) history.replaceState(null, '', location.pathname);
   cq('cob').innerHTML = `
@@ -111,7 +112,15 @@ const cobRol = () => String((COB_RESUMEN && COB_RESUMEN.rol) || '').toLowerCase(
 // Qué secciones ve cada uno: las de su rol, y las marcadas conZona si su usuario tiene
 // zona (Romina ve lo mismo que Mónica más Reclamos). Lo usan el menú, el tablero y el
 // arranque por #seccion, así los tres muestran lo mismo.
-const cobVe = s => !s.roles || s.roles.includes(cobRol()) || (!!s.conZona && !!(COB_RESUMEN && COB_RESUMEN.zona));
+// Roles que tienen solo algunas secciones, sin Tablero (03/11/2026: Agostina, rol reclamos,
+// cubre a Brenda solo en Reclamos; el servidor tampoco le sirve otra cosa).
+const COB_SOLO = { reclamos: ['reclamos'] };
+const cobSolo = () => COB_SOLO[cobRol()] || null;
+const cobVe = s => cobSolo() ? cobSolo().includes(s.id)
+  : !s.roles || s.roles.includes(cobRol()) || (!!s.conZona && !!(COB_RESUMEN && COB_RESUMEN.zona));
+// Le llega a la campanita cada reclamo nuevo o respuesta del cliente (reclamos-avisos-cron):
+// a quien tiene zona (Romina) y al rol reclamos. Esos ven el botón para recibirlo en el celular.
+const recAvisa = () => !!(COB_RESUMEN && COB_RESUMEN.zona) || cobRol() === 'reclamos';
 // ¿Esta persona tiene esa sección? Lo usan los botones que llevan a una sección desde
 // otra (la ficha del cliente): si no la tiene en el menú, tampoco el atajo (19/10/2026).
 const cobVeId = id => COB_SECCIONES.some(s => s.id === id && cobVe(s));
@@ -127,7 +136,7 @@ function cobNav() {
   const nav = cq('cob-nav'); if (!nav) return;
   const extra = cobExtra(), boton = s => `<button class="sb-item ${COB_VISTA===s.id?'on':''}" onclick="cobAbrir('${s.id}')"><span class="i">${s.ico}</span> ${cesc(s.n)}${s.id === 'efectivo' && _cobDotEfectivo ? ' <span class="cob-dot" title="Hay un cobro en efectivo nuevo"></span>' : ''}</button>`;
   const abajo = extra.filter(s => !s.arriba);
-  nav.innerHTML = `<button class="sb-item ${COB_VISTA==='tablero'?'on':''}" onclick="cobTablero()"><span class="i">🏠</span> Tablero</button>` +
+  nav.innerHTML = (cobSolo() ? '' : `<button class="sb-item ${COB_VISTA==='tablero'?'on':''}" onclick="cobTablero()"><span class="i">🏠</span> Tablero</button>`) +
     (cobEsTesoreria() && !cobRevisionAdentro() ? `<a class="sb-item" href="cobranzas-tesoreria.html"><span class="i">💳</span> Revisión de cobranzas</a>` : '') +
     extra.filter(s => s.arriba).map(boton).join('') +
     COB_SECCIONES.filter(cobVe).map(boton).join('') +
@@ -149,7 +158,7 @@ function cobAbrir(id) {
 }
 
 const cobCabecera = (t, sub) => `
-  <button class="cb-volver" onclick="cobTablero()">‹ Volver al tablero</button>
+  ${cobSolo() ? '' : '<button class="cb-volver" onclick="cobTablero()">‹ Volver al tablero</button>'}
   <div class="head"><div><h1>${cesc(t)}</h1><div class="head-sub">${cesc(sub)}</div></div></div>`;
 
 // ── 1 · Clientes ───────────────────────────────────────────
@@ -949,11 +958,12 @@ async function cobReclamos() {
   cq('cob').innerHTML = cobCabecera('Reclamos', zona
       ? 'Reclamos de los clientes de ' + zona + '. Cuando entra uno o el cliente responde, te llega a la campanita.'
       : cobSoloLectura() ? 'Qué reclaman los clientes y cómo se están atendiendo. Tocá uno para ver la conversación.'
+      : recAvisa() ? 'Reclamos de los clientes, con su historial. Cuando entra uno o el cliente responde, te llega a la campanita.'
       : 'Reclamos de clientes, con su historial.') +
-    // Con zona (Romina): el aviso también puede llegar al celular o la compu (19/10/2026).
-    (zona ? `<div id="pushMount" style="display:none;align-items:center;gap:12px;background:#ece9f8;border:1px solid #d4cdf0;border-radius:13px;padding:12px 15px;margin:0 0 16px"></div>` : '') +
+    // Con zona (Romina) o rol reclamos: el aviso también puede llegar al celular o la compu (19/10/2026).
+    (recAvisa() ? `<div id="pushMount" style="display:none;align-items:center;gap:12px;background:#ece9f8;border:1px solid #d4cdf0;border-radius:13px;padding:12px 15px;margin:0 0 16px"></div>` : '') +
     `<div id="r-lista"><div class="pv-vacio">Cargando…</div></div>`;
-  if (zona && window.pushMount) window.pushMount(cq('pushMount'));
+  if (recAvisa() && window.pushMount) window.pushMount(cq('pushMount'));
   try { recPintarLista(await cobApi('?que=reclamos')); }
   catch (e) { cq('r-lista').innerHTML = cerror(e.message); }
 }
