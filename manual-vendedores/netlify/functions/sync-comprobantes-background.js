@@ -33,8 +33,10 @@ async function login(empresa) {
   const cuenta = process.env.AIKON_CUENTA;
   const j1 = await aikon(process.env.AIKON_MANAGER_URL || 'http://aikonmanager.com/Manager/api/CuentaURL', { Cuenta: cuenta, CuentaPwd: process.env.AIKON_CUENTA_PWD });
   const urlCuenta = String((j1 && j1.retorno) || '').replace(/\/+$/, '');
+  if (!urlCuenta) return { empresa, error: 'CuentaURL no devolvió URL: ' + JSON.stringify(j1).slice(0, 160) };
   const j2 = await aikon(urlCuenta + '/IS3/ObtenerToken', { cuenta, usuario: process.env.AIKON_USUARIO || 'CS', 'contraseña': process.env.AIKON_PASS || '', empresa });
-  return { urlCuenta, cuenta, token: j2 && j2.token && j2.token.Codigo, empresa };
+  const token = j2 && j2.token && j2.token.Codigo;
+  return { urlCuenta, cuenta, token, empresa, error: token ? null : 'ObtenerToken: ' + JSON.stringify(j2).slice(0, 160) };
 }
 
 const dd = (n) => String(n).padStart(2, '0');
@@ -124,8 +126,8 @@ exports.handler = async (event) => {
   const t0 = Date.now();
   try {
     const ctxs = await Promise.all(EMPRESAS.map(login));
-    const sinToken = ctxs.filter(c => !c.token).map(c => c.empresa);
-    if (sinToken.length) throw new Error('Sin token del ERP para la empresa ' + sinToken.join(', '));
+    const sinToken = ctxs.filter(c => !c.token);
+    if (sinToken.length) throw new Error('Sin token del ERP para la empresa ' + sinToken.map(c => c.empresa).join(', ') + ' — ' + sinToken[0].error);
 
     // Recientes siempre; después los días que falten, el más nuevo primero.
     const hoy = hoyAR(), dias = [];
