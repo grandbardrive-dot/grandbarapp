@@ -538,7 +538,8 @@
       if(j && j.error){ cuerpo.innerHTML = '<div class="v pend">' + _e(j.error) + '</div>'; return; }
       const fs = (j && j.facturas) || [];
       const cr = (j && j.creditos) || [];
-      if(!fs.length && !cr.length){ cuerpo.innerHTML = '<div class="v pend">Sin facturas con saldo.</div>'; return; }
+      const pg = (j && j.pagadas) || [];
+      if(!fs.length && !cr.length && !pg.length){ cuerpo.innerHTML = '<div class="v pend">Sin facturas con saldo ni pagadas en el último año.</div>'; return; }
       // Botón de descarga: las NC/ND son comprobantes descargables; el anticipo (ANT) no.
       const btnDesc = (tipo, numero) => '<button onclick="descargarFacturaCli(\'' + _e(tipo||'FAC') + '\',\'' + _e(numero||'') + '\',\'' + _e(cod) + '\')" style="background:#1f447f;color:#fff;border:none;border-radius:9px;padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">📄 Descargar</button>';
       // Notas de crédito aplicadas, agrupadas por la factura que acreditan.
@@ -555,7 +556,7 @@
             + btnDesc(n.tipo||'NCR', n.numero) + '</div>';
         }).join('');
       };
-      let html = '';
+      let html = fs.length ? '' : '<div style="font-size:13px;color:var(--muted,#888);padding-bottom:8px">Sin facturas con saldo.</div>';
       if(fs.length){
         html += fs.map(f=>{
           const venc = f.vencimiento ? fmtFecha(f.vencimiento) : '';
@@ -577,6 +578,20 @@
             + '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">' + _e(f.tipo||'') + ' ' + _e(f.numero||'') + '</div>'
             + '<div style="font-size:11.5px;color:#1f7a3d">' + (fecha ? (fecha + ' · ') : '') + 'a favor ' + monto + '</div></div>'
             + (descargable ? btnDesc(f.tipo||'NCR', f.numero) : '') + '</div>';
+        }).join('');
+      }
+      // Ya pagadas (03/11/2026): las emitidas del último año que no tienen saldo.
+      if(pg.length){
+        html += '<div style="margin-top:12px;padding-top:8px;border-top:2px solid var(--line,#eee);font-weight:800;font-size:12px;color:var(--muted,#888)">Ya pagadas · último año</div>';
+        html += pg.map(f=>{
+          const fecha = f.fecha ? fmtFecha(f.fecha) : '';
+          const est = f.estado === 'nueva' ? 'recién emitida' : 'pagada';
+          return '<div style="padding:8px 0;border-top:1px solid var(--line,#eee)">'
+            + '<div style="display:flex;align-items:center;gap:10px">'
+            + '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">' + _e(f.tipo||'') + ' ' + _e(f.numero||'') + '</div>'
+            + '<div style="font-size:11.5px;color:var(--muted,#888)">' + (fecha ? (fecha + ' · ') : '') + (f.total != null ? (fmtMoney(f.total) + ' · ') : '') + est + '</div></div>'
+            + btnDesc(f.tipo||'FAC', f.numero) + '</div>'
+            + ncrSub(f.numero) + '</div>';
         }).join('');
       }
       cuerpo.innerHTML = html;

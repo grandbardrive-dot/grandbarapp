@@ -1572,7 +1572,7 @@ body { background:transparent !important; }
     <!-- Facturas del cliente (cuenta corriente) + descarga, como en el portal del cliente -->
     <details class="fact-vend" style="margin-top:8px;border:1px solid var(--border,#e6e6e6);border-radius:14px;overflow:hidden;background:var(--surface,#fff)" ontoggle="if(this.open) cargarFacturasVend()">
       <summary style="cursor:pointer;padding:12px 14px;font-weight:700;list-style:none;display:flex;align-items:center;gap:8px">📄 Facturas del cliente <span style="margin-left:auto;color:#8a8a8a;font-size:12px">ver / descargar</span></summary>
-      <div id="fv-body" style="padding:6px 14px 12px"><div style="color:#888;font-size:13px">Tocá para ver las facturas con saldo.</div></div>
+      <div id="fv-body" style="padding:6px 14px 12px;max-height:420px;overflow-y:auto"><div style="color:#888;font-size:13px">Tocá para ver las facturas con saldo y las ya pagadas.</div></div>
     </details>
 
     <!-- Lo que dicen sus compras (27/10/2026): sale de lo facturado en CUBO (cliente_inteligencia).
@@ -7197,22 +7197,29 @@ body { background:transparent !important; }
     try {
       const token = await _hubToken();
       if (!token) { body.innerHTML = '<div style="color:#b23120;font-size:13px">Volvé a iniciar sesión.</div>'; return; }
-      const r = await fetch('/.netlify/functions/planilla-cobranzas?que=facturas&codigo=' + encodeURIComponent(cod), { headers: { Authorization: 'Bearer ' + token } });
+      // Misma lista que la ficha de Mis Clientes: con saldo y, desde 03/11/2026, las ya pagadas.
+      const r = await fetch('/.netlify/functions/factura-vendedor?que=lista&codigo=' + encodeURIComponent(cod), { headers: { Authorization: 'Bearer ' + token } });
       const j = await r.json();
-      if (j && j.ajeno) { body.innerHTML = '<div style="color:#b23120;font-size:13px">Este cliente no figura en tu cartera.</div>'; return; }
+      if (j && j.error) { body.innerHTML = '<div style="color:#b23120;font-size:13px">' + _fvEsc(j.error) + '</div>'; return; }
       const facturas = (j && j.facturas) || [];
-      if (!facturas.length) { _fvCargado = true; body.innerHTML = '<div style="color:#888;font-size:13px">Este cliente no tiene facturas con saldo.</div>'; return; }
+      const pagadas = (j && j.pagadas) || [];
       _fvCargado = true;
-      body.innerHTML = facturas.map(f => {
-        const fFecha = f.vencimiento ? new Date(f.vencimiento + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
-        return `<div style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid #eee">
+      if (!facturas.length && !pagadas.length) { body.innerHTML = '<div style="color:#888;font-size:13px">Este cliente no tiene facturas con saldo ni pagadas en el último año.</div>'; return; }
+      const fCorta = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
+      const fila = (f, linea) => `<div style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid #eee">
           <div style="flex:1;min-width:0">
             <div style="font-weight:700;font-size:13.5px">${_fvEsc(f.tipo || '')} ${_fvEsc(f.numero || '')}</div>
-            <div style="font-size:11.5px;color:#888">${fFecha ? ('vence ' + fFecha + ' · ') : ''}saldo ${_fvMoney(f.saldo)}</div>
+            <div style="font-size:11.5px;color:#888">${linea}</div>
           </div>
           <button type="button" onclick="descargarFacturaVend('${_fvEsc(f.tipo || 'FAC')}','${_fvEsc(f.numero || '')}')" style="background:#1f447f;color:#fff;border:none;border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap">📄 Descargar</button>
         </div>`;
-      }).join('');
+      body.innerHTML = (facturas.length
+          ? facturas.map(f => fila(f, (f.vencimiento ? ('vence ' + fCorta(f.vencimiento) + ' · ') : '') + 'saldo ' + _fvMoney(f.saldo))).join('')
+          : '<div style="color:#888;font-size:13px;padding-bottom:6px">Este cliente no tiene facturas con saldo.</div>')
+        + (pagadas.length
+          ? '<div style="margin-top:10px;padding-top:8px;border-top:2px solid #eee;font-weight:800;font-size:12px;color:#888">Ya pagadas · último año</div>'
+            + pagadas.map(f => fila(f, (f.fecha ? (fCorta(f.fecha) + ' · ') : '') + (f.total != null ? (_fvMoney(f.total) + ' · ') : '') + (f.estado === 'nueva' ? 'recién emitida' : 'pagada'))).join('')
+          : '');
     } catch (e) { body.innerHTML = '<div style="color:#b23120;font-size:13px">No pude traer las facturas.</div>'; }
   }
   window.cargarFacturasVend = cargarFacturasVend;
