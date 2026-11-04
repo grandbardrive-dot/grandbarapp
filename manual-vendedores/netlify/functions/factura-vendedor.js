@@ -4,7 +4,8 @@
 //  cliente en su portal). Autenticada por el vendedor del Hub:
 //   1) valida al vendedor (token del Hub → usuarios.codigo_vendedor)
 //   2) verifica que el cliente (codigo) sea de SU cartera (cuentas_cubo.vendedor)
-//      y que la factura (numero) sea de ese cliente (tabla facturas)
+//      y que la factura (numero) sea de ese cliente (tablas facturas, comprobantes_venta
+//      —las ya pagadas, desde 03/11/2026— o notas_credito)
 //   3) pide el comprobante a Sinergis/Aikon (igual que factura-pdf del portal) y
 //      arma el HTML listo para imprimir/guardar como PDF.
 //  GET ?tipo=FAC&numero=0005-00036374/A&codigo=07267  (&modo=pago opcional)
@@ -286,10 +287,15 @@ exports.handler = async (event) => {
 
     // Modo lista: facturas con saldo + saldo a favor (notas de crédito / anticipos) +
     // las notas de crédito aplicadas (tabla notas_credito, linkeadas a su factura).
+    // Pagadas (03/11/2026): las emitidas del último año (comprobantes_venta) que ya no
+    // están en facturas, que solo guarda las que tienen saldo.
     if (esLista) {
-      const [rowsR, ncrR] = await Promise.all([
+      const desde = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+      const [rowsR, ncrR, emiR, refR] = await Promise.all([
         cob('facturas?codigo=eq.' + encodeURIComponent(cod) + '&saldo=neq.0&select=numero,tipo,fecha,vencimiento,importe,saldo&order=vencimiento.asc.nullslast&limit=400'),
         cob('notas_credito?codigo=eq.' + encodeURIComponent(cod) + '&select=numero,tipo,fecha,total,factura_ref,detalle&order=fecha.desc.nullslast&limit=200'),
+        cob('comprobantes_venta?codigo=eq.' + encodeURIComponent(cod) + '&anulado=is.false&tipo=like.FA*&fecha=gte.' + desde + '&select=numero,tipo,fecha,total&order=fecha.desc,numero.desc&limit=120'),
+        cob('facturas?select=actualizado&order=actualizado.desc&limit=1'),
       ]);
       const rowsJson = rowsR.ok ? await rowsR.json() : [];
       const rows = Array.isArray(rowsJson) ? rowsJson : [];
@@ -297,15 +303,26 @@ exports.handler = async (event) => {
       const creditos = rows.filter(f => (Number(f.saldo) || 0) < 0)
         .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
       const notas = ncrR.ok ? await ncrR.json() : [];
-      return resp(200, { razon_social: cc.nombre || null, facturas, creditos, notas_credito: Array.isArray(notas) ? notas : [] });
+      // La lista de saldos se refresca cada hora: lo emitido desde el día del último refresco
+      // todavía puede no figurar ahí, así que no se da por pagado ('nueva').
+      const conSaldo = new Set(rows.map(f => String(f.numero || '').trim()));
+      const emitidas = emiR.ok ? await emiR.json() : [];
+      const ref = (refR.ok ? await refR.json() : [])[0];
+      const refDia = ref && ref.actualizado ? new Date(new Date(ref.actualizado).getTime() - 3 * 3600e3).toISOString().slice(0, 10) : null;
+      const pagadas = (Array.isArray(emitidas) ? emitidas : [])
+        .filter(f => !conSaldo.has(String(f.numero || '').trim()))
+        .map(f => ({ ...f, estado: refDia && f.fecha < refDia ? 'pagada' : 'nueva' }));
+      return resp(200, { razon_social: cc.nombre || null, facturas, creditos, notas_credito: Array.isArray(notas) ? notas : [], pagadas, pagadas_desde: desde });
     }
 
     // Modo descarga.
     const tipo = q.tipo || 'FAC';
     const numero = String(q.numero || '').trim();
     if (!numero) return err(400, 'Falta la factura.');
-    const fac = (((await (await cob('facturas?codigo=eq.' + encodeURIComponent(cod) + '&numero=eq.' + encodeURIComponent(numero) + '&select=numero&limit=1')).json())) || [])[0];
-    if (!fac) return html(404, '<h3>No encontré esa factura en la cuenta del cliente.</h3>');
+    // Del cliente: con saldo (facturas), ya pagada (comprobantes_venta) o nota de crédito aplicada.
+    const uno = async (tabla, filtro = '') => { const r = await cob(tabla + '?codigo=eq.' + encodeURIComponent(cod) + '&numero=eq.' + encodeURIComponent(numero) + filtro + '&select=numero&limit=1'); const j = r.ok ? await r.json() : []; return Array.isArray(j) && j.length > 0; };
+    const esDelCliente = await uno('facturas') || await uno('comprobantes_venta', '&anulado=is.false') || await uno('notas_credito');
+    if (!esDelCliente) return html(404, '<h3>No encontré esa factura en la cuenta del cliente.</h3>');
 
     const m = numero.match(/^(\d+)-(\d+)\/?\s*([A-Za-z0-9]*)$/);
     if (!m) return html(400, '<p>Número inválido.</p>');

@@ -49,10 +49,11 @@ exports.handler = async (event) => {
       body: JSON.stringify({ publicada: true, publicada_at: new Date().toISOString() }),
     });
 
-    // Destinatarios: vendedores (ventas / mayorista) + supervisores, activos
+    // Destinatarios: vendedores (ventas / mayorista) + supervisores + Trade Marketing
+    // (Juan Pablo Sepúlveda, rol torneo, desde 03/11/2026), activos
     let dests = [];
     try {
-      const rows = await (await sb('usuarios?select=id,activo&or=(rol.eq.ventas,rol.eq.mayorista,es_supervisor.eq.true)')).json();
+      const rows = await (await sb('usuarios?select=id,activo&or=(rol.eq.ventas,rol.eq.mayorista,rol.eq.torneo,es_supervisor.eq.true)')).json();
       dests = (Array.isArray(rows) ? rows : []).filter(u => u && u.id && u.activo !== false).map(u => u.id);
       dests = [...new Set(dests)];
     } catch (e) {}

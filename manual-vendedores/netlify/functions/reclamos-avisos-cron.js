@@ -11,6 +11,8 @@
 //    - el aviso al celular o la compu, si lo activó (push, igual que la agenda).
 //  Quien no tiene región (Mónica, Brenda) no recibe nada nuevo: a Brenda le sigue
 //  llegando el WhatsApp que manda el Portal del Cliente con cada reclamo.
+//  El rol reclamos (03/11/2026: Agostina, que cubre a Brenda) recibe todos los
+//  reclamos aunque no tenga región; con región, solo los de esa zona.
 //
 //  No repite: cada aviso lleva una referencia (reclamo:<id> o reclamo-msg:<id>) y la
 //  tabla no deja guardar dos veces la misma para la misma persona. Mira las últimas
@@ -36,12 +38,15 @@ exports.handler = async () => {
   const cob = (p, o = {}) => fetch(COB_URL + '/rest/v1/' + p, { ...o, headers: { apikey: cobKey, Authorization: 'Bearer ' + cobKey, 'Content-Type': 'application/json', ...(o.headers || {}) } });
   const leer = async p => { const r = await cob(p); if (!r.ok) throw new Error(p.split('?')[0] + ' ' + r.status + ' ' + (await r.text()).slice(0, 150)); return r.json(); };
 
-  // ── Quiénes reciben: tesorería o administración CON región ──
-  const ur = await hub('usuarios?rol=in.(tesoreria,administracion)&region=not.is.null&or=(activo.is.null,activo.eq.true)&select=id,nombre,region');
+  // ── Quiénes reciben: tesorería o administración CON región, y el rol reclamos ──
+  const ur = await hub('usuarios?rol=in.(tesoreria,administracion,reclamos)&or=(activo.is.null,activo.eq.true)&select=id,nombre,rol,region');
   const usuarios = ur.ok ? await ur.json() : [];
   if (!ur.ok) throw new Error('usuarios ' + ur.status);
-  const porZona = {};
-  usuarios.forEach(u => { const z = zonaDe(u); if (z) (porZona[z] = porZona[z] || []).push(u); });
+  const porZona = {};   // 'todas' = sin región (rol reclamos): recibe todo
+  usuarios.forEach(u => {
+    const z = zonaDe(u) || (u.rol === 'reclamos' ? 'todas' : null);
+    if (z) (porZona[z] = porZona[z] || []).push(u);
+  });
   if (!Object.keys(porZona).length) return json(200, { ok: true, destinatarios: 0 });
 
   // ── Lo nuevo de las últimas 24 horas ──
@@ -98,8 +103,8 @@ exports.handler = async () => {
 
   const informe = {};
   for (const [zona, users] of Object.entries(porZona)) {
-    const Z = await armarZona(zona, p => traerTodo(cob, p));
-    const deZona = eventos.filter(e => Z.filaOk(e.fila));
+    const Z = zona === 'todas' ? null : await armarZona(zona, p => traerTodo(cob, p));
+    const deZona = Z ? eventos.filter(e => Z.filaOk(e.fila)) : eventos;
     informe[zona] = { eventos: deZona.length, avisos: 0, push: 0 };
     if (!deZona.length) continue;
     for (const u of users) {

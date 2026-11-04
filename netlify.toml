@@ -66,6 +66,12 @@
 [functions."sync-ncr-cron"]
   schedule = "35 9 * * *"
 
+# FACTURAS EMITIDAS del ERP (pagadas o no) → tabla comprobantes_venta (03/11/2026). Cada 30 min
+# dispara sync-comprobantes-background: relee la última semana y completa la historia desde 2025.
+# Ver manual-vendedores/netlify/functions/sync-comprobantes-cron.js
+[functions."sync-comprobantes-cron"]
+  schedule = "12,42 * * * *"
+
 # LUGARES LIBRES del manual: los días hábiles, cada 10 min de 9 a 19 (12 a 21 UTC), les
 # avisa a los proveedores del portal, por la campanita y el celular, si aparecieron
 # lugares del manual de vendedores sin ninguna acción que todavía no conocían
