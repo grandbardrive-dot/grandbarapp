@@ -159,7 +159,12 @@ exports.handler = async (event) => {
       actualizado: new Date().toISOString(),
     };
 
-    return json(200, Object.assign(base, { planes: [plan] }));
+    // Agrupado por PROVEEDOR (cada proveedor puede tener varios planes).
+    // Por ahora Campari con el Plan 5T; se van sumando más planes/proveedores acá.
+    const proveedores = [
+      { id: 'campari', nombre: 'Campari', color: '#C8102E', planes: [plan] },
+    ];
+    return json(200, Object.assign(base, { proveedores }));
   } catch (e) {
     return json(500, { error: String((e && e.message) || e) });
   }

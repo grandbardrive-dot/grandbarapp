@@ -111,6 +111,26 @@
 
   .empty{text-align:center;color:var(--muted);padding:30px 16px;font-size:13.5px;background:#fff;border:1px dashed var(--line);border-radius:14px}
   .loading{color:var(--muted);font-size:13px;text-align:center;padding:40px}
+
+  /* Grid de tarjetas (proveedores / planes) */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+  .tcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;cursor:pointer;text-align:left;font-family:inherit;transition:box-shadow .15s,border-color .15s,transform .1s;display:flex;flex-direction:column;gap:12px;min-height:150px}
+  .tcard:hover{box-shadow:0 10px 26px -14px rgba(13,34,48,.3);border-color:var(--gold);transform:translateY(-1px)}
+  .tcard .th{display:flex;align-items:center;gap:12px}
+  .tcard .logo{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;font-weight:900;font-size:19px;color:#fff;flex:none}
+  .tcard .nm{font-weight:900;font-size:17px;line-height:1.1}
+  .tcard .sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .tcard .foot{margin-top:auto;display:flex;align-items:center;gap:8px}
+  .mini-ring{width:40px;height:40px;flex:none}
+  .tcard .pctbig{font-weight:900;font-size:20px}
+  .tcard .pl{font-size:12px;color:var(--muted)}
+  .tcard .go{margin-left:auto;color:var(--gold-d);font-weight:800;font-size:13px}
+  .badge{display:inline-block;font-size:11px;font-weight:800;color:#fff;border-radius:20px;padding:3px 10px}
+
+  .back{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 13px;font:inherit;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;margin-bottom:14px}
+  .back:hover{border-color:var(--gold)}
+  .crumb{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+  .crumb b{color:var(--ink)}
 </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
@@ -164,14 +184,22 @@
       <div class="track"><div class="fill ${clasePct(pct)}" style="width:${pct}%"></div></div></div>`;
   }
 
-  function planHTML(p){
+  let DATA=null;
+  const provOf = id => (DATA.proveedores||[]).find(x=>x.id===id);
+
+  function miniRing(pct){
+    const R=16,C=2*Math.PI*R,off=C*(1-pct/100);
+    const col=pct>=66?'var(--green-d)':(pct<=33?'var(--red)':'var(--gold-d)');
+    return `<svg class="mini-ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="${R}" fill="none" stroke="#eee7d8" stroke-width="5"/><circle cx="20" cy="20" r="${R}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 20 20)"/></svg>`;
+  }
+  function provPct(prov){ let si=0,tot=0; (prov.planes||[]).forEach(p=>{si+=p.casillerosSi||0; tot+=p.casillerosTot||0;}); return tot?Math.round(100*si/tot):0; }
+
+  function planDetailHTML(p){
     if(!p.universo){
-      return `<div class="plan"><div class="ph"><div class="logo">${esc(p.proveedor[0])}</div>
-        <div><div class="pt">${esc(p.proveedor)} · ${esc(p.nombre)}</div><div class="ps">${esc(p.detalle)}</div></div></div>
-        <div class="body"><div class="empty">Ninguno de los clientes de tu equipo está en este plan todavía.</div></div></div>`;
+      return `<div class="plan"><div class="body"><div class="empty">Ningún cliente ${DATA.alcance==='todo'?'':'de tu equipo '}está en este plan todavía.</div></div></div>`;
     }
-    const marcas = p.porMarca.map(m=>barra(m.n, m.si, m.tot, m.pct)).join('');
-    const vends = p.porVendedor.map(v=>{
+    const marcas = (p.porMarca||[]).map(m=>barra(m.n, m.si, m.tot, m.pct)).join('');
+    const vends = (p.porVendedor||[]).map(v=>{
       const cls = clasePct(v.pct);
       const clientes = p.clientes.filter(c=>c.vendedor===v.codigo).map(c=>{
         const chips = p.marcas.map(m=>`<span class="chip ${c.marcas[m.k]?'si':'no'}">${esc(m.n)}</span>`).join('');
@@ -179,44 +207,76 @@
         return `<div class="cli"><div class="cn">${esc(c.nombre)}<small>#${esc(c.codigo)}${full?'':' · faltan '+c.faltan.length}</small></div>
           ${full?'<span class="cfull">✓ Completo</span>':`<div class="chips">${chips}</div>`}</div>`;
       }).join('');
-      return `<div class="vrow" data-v="${esc(v.codigo)}">
-        <div class="vhead" onclick="this.parentNode.classList.toggle('open')">
+      return `<div class="vrow"><div class="vhead" onclick="this.parentNode.classList.toggle('open')">
           <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
           <div class="vn">${esc(v.nombre)}<div class="vmeta">${nClientes(v.clientes)} en el plan · ${v.completos} completos</div></div>
           <div class="vmini"><div class="track"><div class="fill ${cls}" style="width:${v.pct}%"></div></div></div>
-          <div class="vpct">${v.pct}%</div>
-        </div>
-        <div class="vbody">${clientes}</div>
-      </div>`;
+          <div class="vpct">${v.pct}%</div></div>
+        <div class="vbody">${clientes}</div></div>`;
     }).join('');
-    return `<div class="plan">
-      <div class="ph"><div class="logo">${esc(p.proveedor[0])}</div>
-        <div><div class="pt">${esc(p.proveedor)} · ${esc(p.nombre)}</div><div class="ps">${esc(p.detalle)}</div></div></div>
-      <div class="body">
-        <div class="hero">
-          ${ring(p.pct)}
-          <div class="heroR">
-            <div class="stat"><span class="n">${p.universo}</span><span class="l">${nClientes(p.universo).split(' ')[1]} de tu equipo en el plan</span></div>
+    return `<div class="plan"><div class="body">
+        <div class="hero">${ring(p.pct)}<div class="heroR">
+            <div class="stat"><span class="n">${p.universo}</span><span class="l">clientes en el plan</span></div>
             <div class="stat"><span class="n">${p.completos}</span><span class="l">con las 6 marcas completas</span></div>
             <div class="obj">🎯 <b>Objetivo:</b> que cada cliente tenga las <b>6 marcas</b> (${p.casillerosSi} de ${p.casillerosTot} colocaciones hechas).</div>
-          </div>
-        </div>
-        <div class="secT">Por marca</div>
-        ${marcas}
-        <div class="secT">Por vendedor <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)">· tocá para ver sus clientes</span></div>
-        ${vends}
-      </div>
-    </div>`;
+        </div></div>
+        <div class="secT">Por marca</div>${marcas}
+        <div class="secT">Por vendedor <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)">· tocá para ver sus clientes</span></div>${vends}
+      </div></div>`;
   }
 
-  function render(d){
-    const reg = d.region==='san_luis'?'San Luis':(d.region==='mendoza'?'Mendoza':'');
-    const can = d.canal==='ambos'?'ambos canales':(d.canal?String(d.canal).toUpperCase()+' Trade':'');
-    const ambito = d.alcance==='todo' ? 'Vista general · toda la empresa' : [reg,can].filter(Boolean).join(' · ');
-    $('#who').textContent = [d.nombre, ambito].filter(Boolean).join(' — ') || 'Tu equipo';
-    if(!d.planes || !d.planes.length){ $('#cont').innerHTML = '<div class="empty">Todavía no hay planes para tu equipo. Pronto vamos a ir cargando más planes de proveedores.</div>'; return; }
-    $('#cont').innerHTML = d.planes.map(planHTML).join('');
+  function provCard(prov){
+    const pct=provPct(prov), n=(prov.planes||[]).length;
+    return `<button class="tcard" onclick="irProv('${esc(prov.id)}')">
+      <div class="th"><div class="logo" style="background:${esc(prov.color||'#0d2230')}">${esc(prov.nombre[0])}</div>
+        <div><div class="nm">${esc(prov.nombre)}</div><div class="sub">${n} ${n===1?'plan':'planes'}</div></div></div>
+      <div class="foot">${miniRing(pct)}<div><div class="pctbig">${pct}%</div><div class="pl">cobertura</div></div><span class="go">Ver planes ›</span></div>
+    </button>`;
   }
+  function planCard(prov,p){
+    const sub = p.universo? `${p.universo} clientes · ${p.completos} completos` : 'sin clientes en el plan';
+    return `<button class="tcard" onclick="irPlan('${esc(prov.id)}','${esc(p.id)}')">
+      <div class="th"><div class="logo" style="background:${esc(prov.color||'#0d2230')}">${esc(prov.nombre[0])}</div>
+        <div><div class="nm">${esc(p.nombre)}</div><div class="sub">${esc(prov.nombre)}</div></div></div>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.4">${esc(p.detalle)}</div>
+      <div class="foot">${miniRing(p.pct||0)}<div><div class="pctbig">${p.pct||0}%</div><div class="pl">${esc(sub)}</div></div><span class="go">Ver ›</span></div>
+    </button>`;
+  }
+
+  function irHome(){ location.hash=''; }
+  function irProv(id){ location.hash='#'+encodeURIComponent(id); }
+  function irPlan(pid,plid){ location.hash='#'+encodeURIComponent(pid)+'/'+encodeURIComponent(plid); }
+  window.irHome=irHome; window.irProv=irProv; window.irPlan=irPlan;
+  window.addEventListener('hashchange', renderView);
+
+  function setHeader(d){
+    const reg=d.region==='san_luis'?'San Luis':(d.region==='mendoza'?'Mendoza':'');
+    const can=d.canal==='ambos'?'ambos canales':(d.canal?String(d.canal).toUpperCase()+' Trade':'');
+    const ambito=d.alcance==='todo'?'Vista general · toda la empresa':[reg,can].filter(Boolean).join(' · ');
+    $('#who').textContent=[d.nombre,ambito].filter(Boolean).join(' — ')||'Tu equipo';
+  }
+
+  function renderView(){
+    if(!DATA) return;
+    const provs=DATA.proveedores||[]; const cont=$('#cont');
+    if(!provs.length){ cont.innerHTML='<div class="empty">Todavía no hay planes cargados. Pronto vamos a ir sumando los planes de los proveedores.</div>'; return; }
+    const parts=(location.hash||'').replace(/^#/,'').split('/').filter(Boolean);
+    const prov=parts[0]?provOf(decodeURIComponent(parts[0])):null;
+    if(prov && parts[1]){
+      const p=(prov.planes||[]).find(x=>x.id===decodeURIComponent(parts[1]));
+      if(p){ cont.innerHTML=`<button class="back" onclick="irProv('${esc(prov.id)}')">‹ ${esc(prov.nombre)}</button>
+          <div class="crumb">Incentivos › <b>${esc(prov.nombre)}</b> › ${esc(p.nombre)}</div>${planDetailHTML(p)}`; window.scrollTo(0,0); return; }
+    }
+    if(prov){
+      const cards=(prov.planes||[]).map(p=>planCard(prov,p)).join('');
+      cont.innerHTML=`<button class="back" onclick="irHome()">‹ Proveedores</button>
+        <div class="crumb">Incentivos › <b>${esc(prov.nombre)}</b> · elegí un plan</div>
+        <div class="grid">${cards}</div>`; window.scrollTo(0,0); return;
+    }
+    cont.innerHTML=`<div class="grid">${provs.map(provCard).join('')}</div>`;
+  }
+
+  function render(d){ DATA=d; setHeader(d); renderView(); }
 
   async function cargar(){
     try{
