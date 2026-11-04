@@ -19,6 +19,8 @@
       { href: "supervisor-tareas.html",  label: "Tareas",             short: "Tareas",  icon: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/>' },
       { href: "clientes-hub.html?vista=equipo", label: "Clientes del equipo", short: "Clientes", icon: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/>' },
       { href: "supervisor-pedidos.html", label: "Pedidos de acción",  short: "Pedidos", icon: '<path d="M4 4h16v16H4z"/><path d="M4 9h16M9 14l2 2 4-4"/>' },
+      // Cómo va el equipo en los planes de incentivos de proveedores (arranca con Campari 5T).
+      { href: "supervisor-incentivos.html", label: "Incentivos",      short: "Incentivos", icon: '<circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"/>' },
       { href: "leads-asignar.html",      label: "Leads",              short: "Leads",   icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>' },
       // Prospectos que arma solo el agente "Cazador de clientes" cada mañana.
       { href: "prospectos.html",         label: "Prospectos",         short: "Prospectos", icon: '<path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>' },
