@@ -139,7 +139,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/auth-persist.js?v=1"></script>
-<script src="assets/supervisor-nav.js"></script>
+<script src="assets/supervisor-nav.js?v=2"></script>
 <script>
   const HUB = { url:'https://xqhyemccbwmzxqzkrtwa.supabase.co', key:'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
   const $ = s => document.querySelector(s);
@@ -212,7 +212,8 @@
   function render(d){
     const reg = d.region==='san_luis'?'San Luis':(d.region==='mendoza'?'Mendoza':'');
     const can = d.canal==='ambos'?'ambos canales':(d.canal?String(d.canal).toUpperCase()+' Trade':'');
-    $('#who').textContent = [d.nombre, [reg,can].filter(Boolean).join(' · ')].filter(Boolean).join(' — ') || 'Tu equipo';
+    const ambito = d.alcance==='todo' ? 'Vista general · toda la empresa' : [reg,can].filter(Boolean).join(' · ');
+    $('#who').textContent = [d.nombre, ambito].filter(Boolean).join(' — ') || 'Tu equipo';
     if(!d.planes || !d.planes.length){ $('#cont').innerHTML = '<div class="empty">Todavía no hay planes para tu equipo. Pronto vamos a ir cargando más planes de proveedores.</div>'; return; }
     $('#cont').innerHTML = d.planes.map(planHTML).join('');
   }

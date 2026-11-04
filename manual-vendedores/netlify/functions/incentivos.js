@@ -92,13 +92,18 @@ exports.handler = async (event) => {
     if (!uRes.ok) return json(401, { error: 'Sesión inválida' });
     const user = await uRes.json();
     const hub = (path) => fetch(HUB_URL + '/rest/v1/' + path, { headers: { apikey: hubService || HUB_ANON, Authorization: 'Bearer ' + (hubService || token) } });
-    const perfil = (await (await hub('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=nombre,canal,region,codigo_vendedor,es_supervisor')).json())[0] || {};
-    if (!perfil.es_supervisor) return json(403, { error: 'Solo para supervisores.' });
+    const perfil = (await (await hub('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=nombre,rol,canal,region,codigo_vendedor,es_supervisor')).json())[0] || {};
+    const rol = String(perfil.rol || '').toLowerCase();
+    const esSup = !!perfil.es_supervisor;
+    // Supervisores → su equipo. Marketing/Dirección/Trade → toda la empresa (panorama).
+    const VER_TODO = ['diseno', 'admin', 'direccion', 'torneo', 'compras', 'desarrollo'];
+    if (!esSup && !VER_TODO.includes(rol)) return json(403, { error: 'Solo para supervisores y Dirección/Marketing.' });
 
-    // Equipo: vendedores de la misma región + canal (o 'ambos')
+    // Equipo: supervisor = vendedores de su región + canal; el resto = todos los vendedores.
     const eq = await (await hub('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region')).json();
     const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
     const equipo = (Array.isArray(eq) ? eq : []).filter(u => {
+      if (!esSup) return true;                                // ve todo
       if (preg && regionDe(u) !== preg) return false;
       const uc = String(u.canal || '').toLowerCase();
       return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
@@ -106,7 +111,7 @@ exports.handler = async (event) => {
     const nombreDeCod = {}; equipo.forEach(v => { nombreDeCod[String(v.codigo_vendedor)] = v.nombre; });
     const codigos = equipo.map(v => String(v.codigo_vendedor));
 
-    const base = { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, generado: new Date().toISOString() };
+    const base = { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: esSup ? 'equipo' : 'todo', generado: new Date().toISOString() };
     if (!codigos.length) return json(200, Object.assign(base, { planes: [] }));
 
     const [clientes, t5] = await Promise.all([clientesDelEquipo(codigos), leer5T()]);
