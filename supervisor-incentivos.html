@@ -131,6 +131,18 @@
   .back:hover{border-color:var(--gold)}
   .crumb{font-size:12.5px;color:var(--muted);margin-bottom:12px}
   .crumb b{color:var(--ink)}
+  .corte{font-size:11.5px;color:var(--muted);margin-bottom:12px}
+  .ochips{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 2px}
+  .ochip{font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:20px}
+  .ochip.cerca{background:#f8efd6;color:#8a6a1e}
+  .ochip.promo{background:var(--green-soft);color:var(--green-d)}
+  .vlist{display:flex;flex-direction:column;gap:8px}
+  .vr{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+  .vr .vn{flex:1;min-width:0}
+  .vr .vn b{font-weight:800;font-size:14px}
+  .vr .vn small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+  .vr .vtot{font-weight:900;font-size:19px;color:var(--navy)}
+  .vr.cero{opacity:.55}
 </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
@@ -150,7 +162,7 @@
       <h1>🎯 Incentivos</h1>
       <div class="who" id="who">Cargando…</div>
     </div>
-    <div class="intro">Acá ves <b>cómo vamos en los planes de los proveedores</b> contra el objetivo global de la empresa. Entrá a un proveedor para ver sus planes y el avance producto por producto. Empezamos con la <b>Cobertura de Campari</b>.</div>
+    <div class="intro">Acá ves <b>cómo vamos en los planes de los proveedores</b> contra el objetivo global de la empresa. Entrá a un proveedor para ver sus planes y el avance en detalle. Tenés la <b>Cobertura de Campari</b> y el <b>incentivo Q4 de Pernod Ricard</b>.</div>
     <div id="cont"><div class="loading">Cargando los planes…</div></div>
   </div>
   <nav class="botnav"></nav>
@@ -194,7 +206,36 @@
   }
   function provPct(prov){ let a=0,t=0; (prov.planes||[]).forEach(p=>{a+=p.avanceTotal||0; t+=p.targetTotal||0;}); return t?Math.round(100*a/t):0; }
 
+  function fFechaCorte(s){ const a=String(s).split('-'); return a.length===3?`${a[2]}/${a[1]}/${a[0]}`:s; }
+
+  // Plan por OBJETIVOS (clientes con compra) — ej. Pernod Ricard Q4.
+  function planObjetivosHTML(p){
+    const obj=p.objetivos||[];
+    const idMap={}; obj.forEach(o=>{ idMap[o.id]=String(o.nombre||o.id).split('·')[0].trim(); });
+    const bars=obj.map(o=>{
+      const chips=[ o.cerca?`<span class="ochip cerca">${o.cerca} cerca</span>`:'', o.con_promo?`<span class="ochip promo">${o.con_promo} con promo</span>`:'' ].join('');
+      return `<div class="bar"><div class="bt"><span class="nm">${esc(o.nombre)}</span><span class="vl"><b>${o.logrado}</b>/${o.meta} · ${o.pct}%</span></div>
+        <div class="track"><div class="fill ${clasePct(o.pct)}" style="width:${o.pct}%"></div></div>
+        ${chips?`<div class="ochips">${chips}</div>`:''}</div>`;
+    }).join('');
+    const vends=(p.vendedores||[]).map(v=>{
+      const det=(v.por_objetivo||[]).filter(x=>x.logrados).map(x=>`${esc(idMap[x.id]||x.id)} ${x.logrados}`).join(' · ');
+      return `<div class="vr ${v.logrado_total?'':'cero'}"><div class="vn"><b>${esc(v.vendedor)}</b><small>${det||'sin clientes todavía'}</small></div><div class="vtot">${v.logrado_total||0}</div></div>`;
+    }).join('');
+    return `<div class="plan"><div class="body">
+        ${p.corte?`<div class="corte">📅 Actualizado al ${esc(fFechaCorte(p.corte))}</div>`:''}
+        <div class="hero">${ring(p.pct)}<div class="heroR">
+            <div class="stat"><span class="n">${p.avanceTotal}</span><span class="l">clientes logrados de ${p.targetTotal} (objetivo global)</span></div>
+            <div class="obj">🎯 <b>Objetivo global de la empresa.</b> Clientes con compra por marca y canal.</div>
+        </div></div>
+        <div class="secT">Por objetivo</div>${bars}
+        <div class="secT">Por vendedor <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)">· clientes logrados</span></div>
+        <div class="vlist">${vends}</div>
+      </div></div>`;
+  }
+
   function planDetailHTML(p){
+    if(p.objetivos) return planObjetivosHTML(p);
     const prods = (p.productos||[]);
     if(!prods.length){
       return `<div class="plan"><div class="body"><div class="empty">Todavía no hay productos cargados en este plan.</div></div></div>`;

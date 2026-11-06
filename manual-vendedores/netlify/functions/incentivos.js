@@ -2,9 +2,12 @@
 //  GrandBar Hub · Function · incentivos
 //   Planes de incentivos de proveedores vs objetivo, para supervisores
 //   y Marketing/Dirección. Objetivo GLOBAL de la empresa.
-//   Plan "Cobertura" (Campari): por producto, Target (objetivo) vs
-//   Avance (real) → % de cumplimiento. Datos de la tabla cobertura_productos
-//   (editable). Antes leía el Sheet del Plan 5T (ya no existe).
+//   Proveedores:
+//    - Campari · "Cobertura": por producto, Target vs Avance → % cumplimiento.
+//      Fuente: tabla cobertura_productos (editable).
+//    - Pernod Ricard · "Q4 2026 · Clientes con compra": por objetivo (marca×canal)
+//      meta/logrado/cerca/promo + por vendedor. Fuente: incentivos_snapshots
+//      (la escribe el script diario que corre en una PC de GrandBar contra el ERP).
 //   Env: HUB_SERVICE_ROLE (o token del usuario).
 // ============================================================
 
@@ -32,28 +35,47 @@ exports.handler = async (event) => {
     if (!esSup && !VER_TODO.includes(rol)) return json(403, { error: 'Solo para supervisores y Dirección/Marketing.' });
 
     const base = { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: 'todo', generado: new Date().toISOString() };
+    const proveedores = [];
 
-    // Plan Cobertura (objetivo global de la empresa, por producto)
-    let rows = await (await hub('cobertura_productos?select=producto,orden,color,target,avance&order=orden.asc')).json();
-    if (!Array.isArray(rows)) rows = [];
-    const productos = rows.map(r => {
-      const target = num(r.target), avance = num(r.avance);
-      return { nombre: r.producto, color: r.color || '#c79a3b', target, avance, pct: pct(avance, target) };
-    });
-    const targetTotal = productos.reduce((a, p) => a + p.target, 0);
-    const avanceTotal = productos.reduce((a, p) => a + p.avance, 0);
+    // ---- Campari · Cobertura (tabla cobertura_productos) ----
+    try {
+      let rows = await (await hub('cobertura_productos?select=producto,orden,color,target,avance&order=orden.asc')).json();
+      if (Array.isArray(rows) && rows.length) {
+        const productos = rows.map(r => {
+          const target = num(r.target), avance = num(r.avance);
+          return { nombre: r.producto, color: r.color || '#c79a3b', target, avance, pct: pct(avance, target) };
+        });
+        const targetTotal = productos.reduce((a, p) => a + p.target, 0);
+        const avanceTotal = productos.reduce((a, p) => a + p.avance, 0);
+        proveedores.push({ id: 'campari', nombre: 'Campari', color: '#C8102E', planes: [{
+          id: 'cobertura', nombre: 'Cobertura',
+          detalle: 'Objetivo global de la empresa por producto: cuánto llevamos (avance) contra el target.',
+          productos, targetTotal, avanceTotal, pct: pct(avanceTotal, targetTotal),
+        }] });
+      }
+    } catch (e) {}
 
-    const plan = {
-      id: 'cobertura', nombre: 'Cobertura',
-      detalle: 'Objetivo global de la empresa por producto: cuánto llevamos (avance) contra el target.',
-      productos,
-      targetTotal, avanceTotal,
-      pct: pct(avanceTotal, targetTotal),
-    };
-
-    const proveedores = productos.length
-      ? [{ id: 'campari', nombre: 'Campari', color: '#C8102E', planes: [plan] }]
-      : [];
+    // ---- Pernod Ricard · Q4 2026 (incentivos_snapshots) ----
+    try {
+      const snap = (await (await hub('incentivos_snapshots?incentivo=eq.PR_Q4_2026&select=corte,data,updated_at')).json())[0];
+      if (snap && snap.data) {
+        const d = snap.data;
+        const objetivos = (d.objetivos || []).map(o => ({
+          id: o.id, nombre: o.nombre, meta: num(o.meta), logrado: num(o.logrado),
+          faltan: num(o.faltan != null ? o.faltan : Math.max(0, num(o.meta) - num(o.logrado))),
+          con_promo: num(o.con_promo), cerca: num(o.cerca), pct: pct(num(o.logrado), num(o.meta)),
+        }));
+        const metaTotal = objetivos.reduce((a, o) => a + o.meta, 0);
+        const logradoTotal = objetivos.reduce((a, o) => a + o.logrado, 0);
+        const vendedores = (d.vendedores || []).slice().sort((a, b) => num(b.logrado_total) - num(a.logrado_total));
+        proveedores.push({ id: 'pernod', nombre: 'Pernod Ricard', color: '#1F447F', planes: [{
+          id: 'pr_q4', nombre: d.nombre || 'Q4 2026', detalle: d.detalle || '',
+          corte: d.corte || snap.corte,
+          objetivos, vendedores,
+          targetTotal: metaTotal, avanceTotal: logradoTotal, pct: pct(logradoTotal, metaTotal),
+        }] });
+      }
+    } catch (e) {}
 
     return json(200, Object.assign(base, { proveedores }));
   } catch (e) {
