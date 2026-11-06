@@ -150,7 +150,7 @@
       <h1>🎯 Incentivos</h1>
       <div class="who" id="who">Cargando…</div>
     </div>
-    <div class="intro">Acá ves <b>cómo va tu equipo en los planes de los proveedores</b>, en tiempo real contra el objetivo. Cada plan muestra tus vendedores y los clientes de tu cartera. Empezamos con el <b>Plan Campari 5T</b>.</div>
+    <div class="intro">Acá ves <b>cómo vamos en los planes de los proveedores</b> contra el objetivo global de la empresa. Entrá a un proveedor para ver sus planes y el avance producto por producto. Empezamos con la <b>Cobertura de Campari</b>.</div>
     <div id="cont"><div class="loading">Cargando los planes…</div></div>
   </div>
   <nav class="botnav"></nav>
@@ -176,7 +176,7 @@
         <circle cx="66" cy="66" r="${R}" fill="none" stroke="#eee7d8" stroke-width="13"/>
         <circle cx="66" cy="66" r="${R}" fill="none" stroke="${col}" stroke-width="13" stroke-linecap="round"
           stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 66 66)"/>
-      </svg><div class="pctT"><div class="big">${pct}%</div><div class="lbl">cobertura</div></div></div>`;
+      </svg><div class="pctT"><div class="big">${pct}%</div><div class="lbl">cumplimiento</div></div></div>`;
   }
 
   function barra(nm, si, tot, pct){
@@ -192,36 +192,24 @@
     const col=pct>=66?'var(--green-d)':(pct<=33?'var(--red)':'var(--gold-d)');
     return `<svg class="mini-ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="${R}" fill="none" stroke="#eee7d8" stroke-width="5"/><circle cx="20" cy="20" r="${R}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 20 20)"/></svg>`;
   }
-  function provPct(prov){ let si=0,tot=0; (prov.planes||[]).forEach(p=>{si+=p.casillerosSi||0; tot+=p.casillerosTot||0;}); return tot?Math.round(100*si/tot):0; }
+  function provPct(prov){ let a=0,t=0; (prov.planes||[]).forEach(p=>{a+=p.avanceTotal||0; t+=p.targetTotal||0;}); return t?Math.round(100*a/t):0; }
 
   function planDetailHTML(p){
-    if(!p.universo){
-      return `<div class="plan"><div class="body"><div class="empty">Ningún cliente ${DATA.alcance==='todo'?'':'de tu equipo '}está en este plan todavía.</div></div></div>`;
+    const prods = (p.productos||[]);
+    if(!prods.length){
+      return `<div class="plan"><div class="body"><div class="empty">Todavía no hay productos cargados en este plan.</div></div></div>`;
     }
-    const marcas = (p.porMarca||[]).map(m=>barra(m.n, m.si, m.tot, m.pct)).join('');
-    const vends = (p.porVendedor||[]).map(v=>{
-      const cls = clasePct(v.pct);
-      const clientes = p.clientes.filter(c=>c.vendedor===v.codigo).map(c=>{
-        const chips = p.marcas.map(m=>`<span class="chip ${c.marcas[m.k]?'si':'no'}">${esc(m.n)}</span>`).join('');
-        const full = c.faltan.length===0;
-        return `<div class="cli"><div class="cn">${esc(c.nombre)}<small>#${esc(c.codigo)}${full?'':' · faltan '+c.faltan.length}</small></div>
-          ${full?'<span class="cfull">✓ Completo</span>':`<div class="chips">${chips}</div>`}</div>`;
-      }).join('');
-      return `<div class="vrow"><div class="vhead" onclick="this.parentNode.classList.toggle('open')">
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
-          <div class="vn">${esc(v.nombre)}<div class="vmeta">${nClientes(v.clientes)} en el plan · ${v.completos} completos</div></div>
-          <div class="vmini"><div class="track"><div class="fill ${cls}" style="width:${v.pct}%"></div></div></div>
-          <div class="vpct">${v.pct}%</div></div>
-        <div class="vbody">${clientes}</div></div>`;
+    const bars = prods.map(pr=>{
+      const dot = `<span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${esc(pr.color)};margin-right:8px;vertical-align:-1px"></span>`;
+      return `<div class="bar"><div class="bt"><span class="nm">${dot}${esc(pr.nombre)}</span><span class="vl"><b>${pr.avance}</b>/${pr.target} · ${pr.pct}%</span></div>
+        <div class="track"><div class="fill" style="width:${pr.pct}%;background:${esc(pr.color)}"></div></div></div>`;
     }).join('');
     return `<div class="plan"><div class="body">
         <div class="hero">${ring(p.pct)}<div class="heroR">
-            <div class="stat"><span class="n">${p.universo}</span><span class="l">clientes en el plan</span></div>
-            <div class="stat"><span class="n">${p.completos}</span><span class="l">con las 6 marcas completas</span></div>
-            <div class="obj">🎯 <b>Objetivo:</b> que cada cliente tenga las <b>6 marcas</b> (${p.casillerosSi} de ${p.casillerosTot} colocaciones hechas).</div>
+            <div class="stat"><span class="n">${p.avanceTotal}</span><span class="l">de ${p.targetTotal} · avance total</span></div>
+            <div class="obj">🎯 <b>Objetivo global de la empresa.</b> Avance real vs target, producto por producto.</div>
         </div></div>
-        <div class="secT">Por marca</div>${marcas}
-        <div class="secT">Por vendedor <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)">· tocá para ver sus clientes</span></div>${vends}
+        <div class="secT">Por producto</div>${bars}
       </div></div>`;
   }
 
@@ -230,11 +218,11 @@
     return `<button class="tcard" onclick="irProv('${esc(prov.id)}')">
       <div class="th"><div class="logo" style="background:${esc(prov.color||'#0d2230')}">${esc(prov.nombre[0])}</div>
         <div><div class="nm">${esc(prov.nombre)}</div><div class="sub">${n} ${n===1?'plan':'planes'}</div></div></div>
-      <div class="foot">${miniRing(pct)}<div><div class="pctbig">${pct}%</div><div class="pl">cobertura</div></div><span class="go">Ver planes ›</span></div>
+      <div class="foot">${miniRing(pct)}<div><div class="pctbig">${pct}%</div><div class="pl">cumplimiento</div></div><span class="go">Ver planes ›</span></div>
     </button>`;
   }
   function planCard(prov,p){
-    const sub = p.universo? `${p.universo} clientes · ${p.completos} completos` : 'sin clientes en el plan';
+    const sub = `${p.avanceTotal||0} de ${p.targetTotal||0} · objetivo global`;
     return `<button class="tcard" onclick="irPlan('${esc(prov.id)}','${esc(p.id)}')">
       <div class="th"><div class="logo" style="background:${esc(prov.color||'#0d2230')}">${esc(prov.nombre[0])}</div>
         <div><div class="nm">${esc(p.nombre)}</div><div class="sub">${esc(prov.nombre)}</div></div></div>
