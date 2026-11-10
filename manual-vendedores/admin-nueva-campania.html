@@ -167,6 +167,15 @@
   .canal-title .canal-sub{font-weight:600;letter-spacing:0;font-size:11.5px;color:var(--ink3)}
   .canal-title .canal-line{flex:1;height:1px;background:var(--line)}
   .canal-empty{font-size:12.5px;color:var(--ink3);background:var(--surface2);border:1px dashed var(--line-2);border-radius:12px;padding:14px;margin-top:12px}
+  /* Zona (paso 3): Mendoza, San Luis o las dos */
+  .zona-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .zona-t{font-size:11.5px;font-weight:800;letter-spacing:.06em;color:var(--navy);text-transform:uppercase}
+  .zona-opc{display:flex;gap:8px;flex-wrap:wrap}
+  .zona-b{font:inherit;font-size:13.5px;font-weight:700;color:var(--ink2);background:var(--surface);border:1.5px solid var(--line-2);border-radius:10px;padding:8px 14px;cursor:pointer}
+  .zona-b.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .zona-hint{font-size:12.5px;color:var(--ink3)}
+  .canal-title .zona-tag{font-size:11px;font-weight:800;letter-spacing:.04em;padding:2px 9px;border-radius:20px;background:rgba(31,68,127,.09);color:var(--navy)}
+  .canal-title .zona-tag.sl{background:#FaF0DA;color:#9A6B0E}
 </style>
 </head>
 <body>
@@ -198,12 +207,6 @@
       <div id="rev-bloque"></div>
       <div class="stepper" id="stepper"></div>
       <div class="panel" id="panel"><div class="empty">Cargando…</div></div>
-      <!-- Segmentación: fuera de #panel (que se re-dibuja en cada paso) para no perder lo marcado. Se muestra en el paso 4. -->
-      <div class="panel" id="seg-bloque" style="margin-top:16px" hidden>
-        <div class="panel-h">¿Dónde se ve? (zona y secciones)</div>
-        <div class="panel-sub">Si no marcás nada, la campaña se ve donde corresponde, como hasta ahora.</div>
-        <div id="seg-dest"></div>
-      </div>
 
       <div class="nav">
         <button class="btn sec" id="btn-atras" onclick="atras()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M11 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>Atrás</button>
@@ -227,7 +230,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
 <script src="_trade-revision.js?v=1"></script>
-<script src="_segmentacion.js"></script>
 <script src="_admin-sidebar.js"></script>
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
@@ -317,7 +319,7 @@
   }
   // ¿Se ofrece esta ubicación para la campaña que se está armando?
   function ubicAplica(sec,madre){
-    if(st.ubicaciones.includes(sec.codigo)) return true;   // ya elegida: nunca se esconde
+    if(st.secs.has(sec.id)) return true;   // ya elegida: nunca se esconde
     if(_ubicVerTodas) return true;
     const tema=temaSeccion(sec,madre);
     if(tema==='interno') return false;
@@ -346,11 +348,12 @@
     ));
   }
   let _matVerTodos=false, _ubicVerTodas=false;
-  // Segmentación (zona + secciones): se monta una sola vez en #seg-dest
-  let SEG=null, SEG_OK=false, SEG_MAPA=null;
   let editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
   let prodPage=1, prodCat='', prodQ='';
-  const st={ proveedor:null, productos:[], canales:[], ubicaciones:[], mecanica:'', precioReg:'', precioAcc:'', fechaIni:'', fechaFin:'', materiales:[], requiereEvid:false };
+  // zonas: [] = Mendoza y San Luis · ['mendoza'] · ['sanluis'] (paso 3).
+  // secs: ids de las secciones elegidas en el paso 4, cada una de su zona (10/11/2026).
+  const st={ proveedor:null, productos:[], canales:[], ubicaciones:[], zonas:[], secs:new Set(), mecanica:'', precioReg:'', precioAcc:'', fechaIni:'', fechaFin:'', materiales:[], requiereEvid:false };
+  let SECS_ALL=[];   // todas las secciones del manual, de Mendoza y de San Luis, con su id real
 
   // Mendoza y San Luis usan los mismos códigos de sección: cada sección se muestra una
   // sola vez (la de Mendoza). Las que existen solo en San Luis se suman colgadas de la
@@ -380,7 +383,7 @@
     if(esTrade()) document.getElementById('page-sub').textContent='Completá los pasos. Cuando la mandes, le llega a Luciana para aprobar; recién ahí la ven los vendedores.';
     try{ PROV=(await sb.from('proveedores').select('*').order('nombre')).data||[]; }catch(e){}
     try{ PROD=(await sb.from('productos').select('*').order('nombre')).data||[]; }catch(e){}
-    try{ SECS=(await sb.from('checklist_secciones').select('id,codigo,nombre,canal,zona,parent_id,orden,icono,icono_bg,icono_color,activa').eq('activa',true).order('orden')).data||[]; SECS=unaPorCodigo(SECS); }catch(e){}
+    try{ SECS=(await sb.from('checklist_secciones').select('id,codigo,nombre,canal,zona,parent_id,orden,icono,icono_bg,icono_color,activa').eq('activa',true).order('orden')).data||[]; SECS_ALL=SECS; SECS=unaPorCodigo(SECS); }catch(e){}
     // Materiales que Marketing cargó y marcó como visibles para Luciana (con stock y proveedor/línea).
     try{ MAT=(await sb.from('materials_with_stock').select('id,name,processed_image_url,original_image_url,unit_type,supplier_id,brand_id,stock_actual').eq('is_active',true).eq('visible_to_luciana',true).order('name')).data||[]; }catch(e){}
     try{ (await sb.from('brands').select('id,name')).data?.forEach(b=>BRANDS[b.id]=b.name); }catch(e){}
@@ -416,7 +419,14 @@
           st.materiales= Array.isArray(row.materiales)?row.materiales.slice():[];
           st.requiereEvid = row.requiere_evidencia === true;
           st._activa   = row.activa;
-          st._seg      = { secciones: Array.isArray(row.secciones)?row.secciones.slice():[], zonas: Array.isArray(row.zonas)?row.zonas.slice():[] };
+          st.zonas     = (Array.isArray(row.zonas)?row.zonas:[]).filter(z=>z==='mendoza'||z==='sanluis');
+          if(st.zonas.length===2) st.zonas=[];
+          // Las campañas viejas se ubicaban solo por código de sección (seccion_checklist). Se
+          // muestran marcadas igual, y si no se toca el paso 4 se guardan como estaban.
+          st._legado   = !(Array.isArray(row.secciones) && row.secciones.length);
+          st.secs      = new Set(st._legado
+            ? [...visiblesIds()].filter(id=>st.ubicaciones.includes((secDe(id)||{}).codigo))
+            : row.secciones);
           document.getElementById('page-title-txt').textContent='Editar campaña';
           document.getElementById('page-sub').textContent='Modificá lo que quieras y guardá los cambios.';
           document.title='GrandBar — Editar campaña';
@@ -425,23 +435,52 @@
     }
 
     renderStepper(); renderPaso(); renderResumen();
+  }
 
-    // Segmentación: montar una vez y, si es edición, precargar lo que tenía la campaña
-    if(window.Segmentacion){
-      try{
-        SEG=await Segmentacion.montar('#seg-dest');
-        SEG_OK=!!document.querySelector('#seg-dest .seg');   // si no cargó, montar() devuelve un stub vacío
-        if(SEG_OK && st._seg) SEG.set(st._seg);
-        if(SEG_OK) SEG_MAPA=await Segmentacion.mapa();
-      }catch(e){ console.warn(e); }
-      if(paso===7) renderPaso();   // por si ya estaba en la revisión
-    }
+  // ── Zona y ubicaciones (10/11/2026) ──────────────────────────────────────────
+  // Antes el paso 4 juntaba las secciones por código (Mendoza y San Luis se veían iguales)
+  // y abajo repetía lo mismo en el bloque "¿Dónde se ve?". Ahora la zona se elige en el
+  // paso 3 y el paso 4 muestra un bloque por manual y por zona, con las secciones reales.
+  // Se guardan en secciones (uuid[]: la visita las muestra solo ahí) + zonas, y los
+  // códigos en seccion_checklist (los usan los listados y las campañas viejas).
+  const ZONA_LBL={ mendoza:'Mendoza', sanluis:'San Luis' };
+  const MANUAL_LBL={ restaurante:'Restaurantes', bar:'Bares', disco:'Discos', hotel:'Hoteles', vinoteca:'Vinotecas', tienda_bebidas:'Tiendas de bebidas', autoservicio:'Autoservicios', mayorista:'Mayorista', evento:'Eventos' };
+  const porOrd=(a,b)=>(a.orden||0)-(b.orden||0);
+  const zonaDe=s=>s.zona==='sanluis'?'sanluis':'mendoza';
+  const secDe=id=>SECS_ALL.find(s=>s.id===id);
+  const tieneSL=c=>SECS_ALL.some(s=>s.canal===c && s.zona==='sanluis');
+  // Un bloque por manual (de los canales del paso 3) y por zona. San Luis sin manual propio de
+  // ese canal usa el de Mendoza (como la visita): se muestra una sola vez para las dos.
+  function gruposUbic(){
+    const zonas=st.zonas.length?st.zonas:['mendoza','sanluis'], out=[];
+    gruposChecklist().forEach(g=>zonas.forEach(z=>{
+      const zm=(z==='sanluis' && !tieneSL(g.canal))?'mendoza':z;
+      const ya=out.find(o=>o.canal===g.canal && o.zm===zm);
+      if(ya) ya.zonas.push(z); else out.push({ ...g, zm, zonas:[z] });
+    }));
+    return out;
   }
-  // Lo elegido en el selector. Si no se pudo montar, se conserva lo que ya tenía la campaña.
-  function segValor(){
-    if(SEG && SEG_OK) return SEG.valor();
-    return st._seg ? { secciones: st._seg.secciones, zonas: st._seg.zonas } : { secciones: [], zonas: [] };
+  const madresDe=g=>SECS_ALL.filter(s=>!s.parent_id && s.canal===g.canal && zonaDe(s)===g.zm).sort(porOrd);
+  const hijasDe=m=>SECS_ALL.filter(s=>s.parent_id===m.id).sort(porOrd);
+  function visiblesIds(){
+    const ids=new Set();
+    gruposUbic().forEach(g=>madresDe(g).forEach(m=>{ const h=hijasDe(m); (h.length?h:[m]).forEach(x=>ids.add(x.id)); }));
+    return ids;
   }
+  // Lo marcado que sigue a la vista (si cambió la zona o los canales, lo de afuera no se guarda).
+  const secsElegidas=()=>{ const v=visiblesIds(); return [...st.secs].filter(id=>v.has(id)); };
+  function elegirZona(v){
+    st.zonas = v ? [v] : [];
+    // El mayorista de la otra zona no corresponde.
+    if(v==='mendoza') st.canales=st.canales.filter(c=>c!=='mayorista_sanluis');
+    if(v==='sanluis') st.canales=st.canales.filter(c=>c!=='mayorista_mendoza');
+    renderPaso(); renderResumen();
+  }
+  function subsDe(g){
+    const z=st.zonas.length===1?st.zonas[0]:'';
+    return g.subs.filter(([v])=>!(z==='mendoza'&&v==='mayorista_sanluis') && !(z==='sanluis'&&v==='mayorista_mendoza'));
+  }
+  function zonaTexto(){ return st.zonas.length===1 ? 'Solo '+ZONA_LBL[st.zonas[0]] : 'Mendoza y San Luis'; }
 
   function renderStepper(){
     document.getElementById('stepper').innerHTML=PASOS.map((p,i)=>{
@@ -471,8 +510,8 @@
       renderProdGrid();
     } else if(paso===3){
       const gruposHtml=CANAL_GRUPOS.map(g=>{
-        const total=g.subs.length, sel=g.subs.filter(([v])=>st.canales.includes(v)).length, todo=sel===total;
-        const subs=g.subs.map(([v,l])=>{ const on=st.canales.includes(v); return `<div class="chk ${on?'on':''}" onclick="toggleCanal('${v}')"><span class="box">${on?'✓':''}</span>${l}</div>`; }).join('');
+        const vs=subsDe(g), total=vs.length, sel=vs.filter(([v])=>st.canales.includes(v)).length, todo=sel===total;
+        const subs=vs.map(([v,l])=>{ const on=st.canales.includes(v); return `<div class="chk ${on?'on':''}" onclick="toggleCanal('${v}')"><span class="box">${on?'✓':''}</span>${l}</div>`; }).join('');
         return `<div class="chan-card ${sel>0?'on':''}">
           <div class="chan-head"><div class="chan-ico">${g.ico}</div>
             <div><div class="chan-name">${g.label}</div><div class="chan-desc">${g.desc}</div></div>
@@ -482,24 +521,28 @@
       el.innerHTML=`
         <div class="panel-top"><div><div class="panel-h">3. Seleccioná los canales</div><div class="panel-sub">Elegí en qué canales querés que se muestre esta campaña.</div></div>
           <div class="info-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>La campaña se mostrará en las secciones que selecciones dentro de cada canal.</div></div>
+        <div class="zona-bar"><span class="zona-t">Zona</span>
+          <div class="zona-opc">${[['','Mendoza y San Luis'],['mendoza','Solo Mendoza'],['sanluis','Solo San Luis']].map(([v,l])=>
+            `<button type="button" class="zona-b ${(st.zonas.length===1?st.zonas[0]:'')===v?'on':''}" onclick="elegirZona('${v}')">${l}</button>`).join('')}</div>
+          <span class="zona-hint">${st.zonas.length===1?`La ven solo los vendedores de ${ZONA_LBL[st.zonas[0]]}.`:'La ven los vendedores de Mendoza y de San Luis.'}</span></div>
         <div class="chan-grid">${gruposHtml}</div>
         <div class="foot-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V8l7-5 7 5v13" stroke-linecap="round" stroke-linejoin="round"/></svg>Vas a poder elegir las ubicaciones específicas dentro de cada canal en el siguiente paso.</div>`;
     } else if(paso===4){
-      const grupos=gruposChecklist();
+      const grupos=gruposUbic();
       let ocultas=0, cards='';
       if(!grupos.length){ cards='<div class="empty">Elegí al menos un canal en el paso anterior para ver sus secciones.</div>'; }
       else{
         cards=grupos.map(g=>{
-          const madres=SECS.filter(s=>!s.parent_id && s.canal===g.canal).sort((a,b)=>(a.orden||0)-(b.orden||0));
+          const madres=madresDe(g);
           const cardsCanal=madres.map(m=>{
-            const hijas=SECS.filter(s=>s.parent_id===m.id).sort((a,b)=>(a.orden||0)-(b.orden||0));
+            const hijas=hijasDe(m);
             const todos=hijas.length?hijas:[m];
             const items=todos.filter(x=>ubicAplica(x,hijas.length?m:null));
             ocultas+=todos.length-items.length;
             if(!items.length) return '';
-            const sel=items.filter(x=>st.ubicaciones.includes(x.codigo)).length;
-            const rows=items.map(x=>{ const on=st.ubicaciones.includes(x.codigo); const nom=hijas.length?x.nombre:'Toda la sección';
-              return `<div class="chk ${on?'on':''}" onclick="toggleUbic('${x.codigo}')"><span class="box">${on?'✓':''}</span>${esc(nom)}</div>`; }).join('');
+            const sel=items.filter(x=>st.secs.has(x.id)).length;
+            const rows=items.map(x=>{ const on=st.secs.has(x.id); const nom=hijas.length?x.nombre:'Toda la sección';
+              return `<div class="chk ${on?'on':''}" onclick="toggleSec('${x.id}')"><span class="box">${on?'✓':''}</span>${esc(nom)}</div>`; }).join('');
             return `<div class="sec-card"><div class="sec-head"><div class="sec-hico" style="background:${m.icono_bg||'#EAF2FB'};color:${m.icono_color||'#1F447F'}">${m.icono||'📋'}</div><div class="sec-hname">${esc(m.nombre)}</div><div class="sec-count">${sel}/${items.length}</div></div><div class="sec-body">${rows}</div></div>`;
           }).filter(Boolean).join('');
           const cuerpo = cardsCanal
@@ -508,7 +551,7 @@
                 ? 'Ninguna sección de este manual aplica a la categoría de la campaña. Va a aparecer en las <b>Acciones Mensuales</b> generales del canal.'
                 : 'Este manual todavía no tiene secciones cargadas. La campaña va a aparecer en las <b>acciones generales</b> del canal.'}</div>`;
           return `<div class="canal-group">
-            <div class="canal-title"><span>${g.ico}</span>${g.label}<span class="canal-sub">${esc(g.labels.join(' · '))}</span><span class="canal-line"></span></div>
+            <div class="canal-title"><span>${g.ico}</span>${g.label}<span class="zona-tag ${g.zonas.includes('sanluis')&&g.zonas.length===1?'sl':''}">${g.zonas.length===2?'Mendoza y San Luis':(g.zonas[0]==='sanluis'&&g.zm==='mendoza'?'San Luis (usa el manual de Mendoza)':ZONA_LBL[g.zonas[0]])}</span><span class="canal-sub">${esc(g.labels.join(' · '))}</span><span class="canal-line"></span></div>
             ${cuerpo}</div>`;
         }).join('');
       }
@@ -524,7 +567,7 @@
           <button class="cat-chip" onclick="_ubicVerTodas=!_ubicVerTodas;renderPaso()">${_ubicVerTodas?'◂ Filtrar por el proveedor':'Ver todas las secciones ▸'}</button>
         </div>` : '';
       el.innerHTML=`
-        <div class="panel-top"><div><div class="panel-h">4. ¿Dónde querés publicar este contenido?</div><div class="panel-sub">Seleccioná las secciones del manual donde querés que se muestre la campaña. Están agrupadas por canal.</div></div>
+        <div class="panel-top"><div><div class="panel-h">4. ¿Dónde querés publicar este contenido?</div><div class="panel-sub">Seleccioná las secciones del manual donde querés que se muestre la campaña. Están agrupadas por canal y por zona (${zonaTexto()}: se cambia en el paso 3).</div></div>
           <div class="info-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>Podés seleccionar una o varias ubicaciones. El contenido se muestra solo en las secciones que elijas.</div></div>
         ${barra}
         ${cards}
@@ -576,8 +619,8 @@
           ${filaRev('Productos', st.productos.map(p=>p.nombre).join(', '))}
           ${filaRev('Categoría', [...new Set(st.productos.map(p=>p.categoria).filter(Boolean))].join(', '))}
           ${filaRev('Canales', st.canales.map(c=>CANAL_LABELS[c]||c).join(', '))}
-          ${filaRev('Ubicaciones', st.ubicaciones.length? ubicNombres().join(', '):'Acciones Mensuales (general)')}
-          ${filaRev('Dónde se ve', SEG_MAPA? Segmentacion.texto(segValor(), SEG_MAPA) : 'Sin segmentar (se ve donde corresponde)')}
+          ${filaRev('Zona', zonaTexto())}
+          ${filaRev('Ubicaciones', secsElegidas().length? ubicNombres(true).join(' · '):'Acciones Mensuales (general)')}
           ${filaRev('Mecánica', st.mecanica)}
           ${filaRev('Precios', (st.precioReg||st.precioAcc)?`$${st.precioReg||'—'} → $${st.precioAcc||'—'}`:'')}
           ${filaRev('Vigencia', (st.fechaIni||st.fechaFin)?`${st.fechaIni||'—'} a ${st.fechaFin||'—'}`:'Sin límite de tiempo')}
@@ -602,7 +645,6 @@
         <div id="guardar-msg" style="margin-top:12px;font-weight:700;font-size:13px"></div>`;
     }
     // el bloque de segmentación vive fuera del panel: solo se muestra en el paso 4
-    document.getElementById('seg-bloque').hidden = paso!==4;
     // nav buttons
     document.getElementById('btn-atras').style.visibility = paso===1?'hidden':'visible';
     document.getElementById('btn-siguiente').style.display = paso===7?'none':'inline-flex';
@@ -652,10 +694,10 @@
     else st.productos.splice(i,1);
     renderProdGrid(); renderResumen(); }
   function toggleCanal(v){ const i=st.canales.indexOf(v); if(i<0)st.canales.push(v); else st.canales.splice(i,1); renderPaso(); renderResumen(); }
-  function toggleGrupoCanal(gid){ const g=CANAL_GRUPOS.find(x=>x.id===gid); const keys=g.subs.map(s=>s[0]); const todos=keys.every(k=>st.canales.includes(k));
+  function toggleGrupoCanal(gid){ const g=CANAL_GRUPOS.find(x=>x.id===gid); const keys=subsDe(g).map(s=>s[0]); const todos=keys.every(k=>st.canales.includes(k));
     if(todos) st.canales=st.canales.filter(k=>!keys.includes(k)); else keys.forEach(k=>{ if(!st.canales.includes(k))st.canales.push(k); });
     renderPaso(); renderResumen(); }
-  function toggleUbic(cod){ const i=st.ubicaciones.indexOf(cod); if(i<0)st.ubicaciones.push(cod); else st.ubicaciones.splice(i,1); renderPaso(); renderResumen(); }
+  function toggleSec(id){ if(st.secs.has(id)) st.secs.delete(id); else st.secs.add(id); st._tocoUbic=true; renderPaso(); renderResumen(); }
   function toggleMaterial(id){ const i=st.materiales.findIndex(x=>x.id===id);
     if(i<0){ const m=MAT.find(x=>x.id===id); if(m) st.materiales.push({id:m.id,name:m.name,img:m.processed_image_url||m.original_image_url||null}); }
     else st.materiales.splice(i,1);
@@ -673,7 +715,11 @@
       out.innerHTML=`<div style="background:linear-gradient(150deg,var(--navy),#16305a);color:#fff;border-radius:12px;padding:13px 15px;font-size:13px;line-height:1.5">✨ ${esc(data.idea)}</div>`;
     }catch(e){ out.innerHTML='<div style="color:var(--red);font-size:12px">No se pudo generar la idea. Reintentá.</div>'; }
   }
-  function ubicNombres(){ return st.ubicaciones.map(c=>SECS.find(s=>s.codigo===c)?.nombre).filter(Boolean); }
+  // Nombre de cada sección elegida. true: "Bares Mendoza › Vinos › Vino por copa"; 'corta': "Mendoza: Vinos › Vino por copa".
+  function ubicNombres(conZona){
+    return secsElegidas().map(id=>{ const s=secDe(id); if(!s) return null; const m=s.parent_id?secDe(s.parent_id):null;
+      return (conZona==='corta' ? (st.zonas.length===1?'':ZONA_LBL[zonaDe(s)]+': ') : conZona?(MANUAL_LBL[s.canal]||s.canal)+' '+ZONA_LBL[zonaDe(s)]+' › ':'')+(m?m.nombre+' › ':'')+s.nombre; }).filter(Boolean);
+  }
 
   function renderResumen(){
     const foto=document.getElementById('r-foto');
@@ -687,7 +733,8 @@
       ['🏷️','Proveedor', st.proveedor?.nombre],
       ['📦','Producto', st.productos.map(p=>p.nombre).join(', ')],
       ['📡','Canales', st.canales.length? st.canales.map(c=>CANAL_LABELS[c]||c).join(', '):''],
-      ['📍','Ubicaciones', st.ubicaciones.length? (ubicNombres().slice(0,2).join(', ')+(st.ubicaciones.length>2?` +${st.ubicaciones.length-2}`:'')): (algunoElegido()?'Acciones Mensuales (general)':'')],
+      ['🗺️','Zona', algunoElegido()?zonaTexto():''],
+      ['📍','Ubicaciones', secsElegidas().length? (ubicNombres('corta').slice(0,2).join(', ')+(secsElegidas().length>2?` +${secsElegidas().length-2}`:'')): (algunoElegido()?'Acciones Mensuales (general)':'')],
       ['%','Promoción', st.mecanica],
       ['🎁','Materiales', st.materiales.length? (st.materiales.length+' vinculado'+(st.materiales.length>1?'s':'')):''],
     ];
@@ -721,6 +768,11 @@
     if(!mecanica && !st.precioAcc){ msg.style.color='#c0392b';
       msg.textContent='Falta la mecánica de la promoción (ej: 3+1, 20% OFF) o, al menos, el precio accionado. Volvé al paso 5 y completá alguno de los dos.'; return; }
     msg.style.color='var(--ink2)'; msg.textContent='Guardando…';
+    // Ubicaciones: las secciones elegidas (cada una de su zona) y sus códigos. Una campaña vieja
+    // ubicada solo por código, si no se tocó el paso 4, queda como estaba.
+    const legado = st._legado && !st._tocoUbic;
+    const secsG = legado ? [] : secsElegidas();
+    const codigos = legado ? st.ubicaciones : [...new Set(secsG.map(id=>(secDe(id)||{}).codigo).filter(Boolean))];
     const row={
       proveedor: st.proveedor.nombre,
       producto: st.productos[0].nombre,
@@ -729,7 +781,7 @@
       sku: st.productos[0].sku||null,
       productos: st.productos.map(p=>({id:p.id||null,nombre:p.nombre,categoria:p.categoria||null,imagen_url:p.imagen_url||null,sku:p.sku||null})),
       aplica_a: st.canales,
-      seccion_checklist: st.ubicaciones.length? st.ubicaciones.join(','):null,
+      seccion_checklist: codigos.length? codigos.join(','):null,
       accion: mecanica,   // la columna es NOT NULL: nunca mandar null
       precio_regular: st.precioReg?Number(st.precioReg):null,
       precio_accionado: st.precioAcc?Number(st.precioAcc):null,
@@ -738,7 +790,8 @@
       materiales: st.materiales,
       requiere_evidencia: !!st.requiereEvid,
       activa: !!activa,
-      ...segValor(),   // secciones uuid[] + zonas text[] (vacío = se ve como hasta ahora)
+      secciones: secsG,   // uuid[]: la visita la muestra solo ahí (vacío = donde corresponda, como siempre)
+      zonas: st.zonas,    // [] = Mendoza y San Luis
       ...(esTrade() ? REV.camposTrade('campania') : {})
     };
     const persistir=(r)=> editId

@@ -402,6 +402,11 @@
   }
   function cambiarTab(k){ _tab=k; _limite=6; renderTabs(); renderStats(); renderTopProv(); render(); }
 
+  // Zona (10/11/2026): una campaña o plan puede ser solo de Mendoza o solo de San Luis.
+  const soloZona = a => (Array.isArray(a.zonas) && a.zonas.length===1) ? (a.zonas[0]==='sanluis'?'San Luis':'Mendoza') : '';
+  const zonaChip = a => soloZona(a) ? `<span class="chip">Solo ${soloZona(a)}</span>` : '';
+  const zonaTxt = a => soloZona(a) ? 'Solo ' + soloZona(a) : 'Mendoza y San Luis';
+
   function estadoDe(a){
     // Propuestas de Trade Marketing (10/11/2026): no se publican hasta que Luciana las aprueba.
     if(a.revision==='pendiente') return {k:'revision',txt:'Para aprobar',cls:'t-amber'};
@@ -520,7 +525,7 @@
       return `<tr style="cursor:pointer" onclick="verDetalle('${a.id}')">
         <td><div class="camp">${thumb}<div><div class="camp-n">${esc(a.producto||'—')}</div><div class="camp-t">${esc(a.accion||'Campaña')}</div>${cat}</div></div></td>
         <td>${a.proveedor?`<span class="prov">${esc(a.proveedor)}</span>`:'<span style="color:var(--ink3)">—</span>'}</td>
-        <td><div class="chips">${esPlan?'<span class="chip tipo">Plan</span>':''}${a.requiere_evidencia?'<span class="chip evid">📷 Pide evidencia</span>':''}${canales||(esPlan?'':'<span style="color:var(--ink3)">—</span>')}</div></td>
+        <td><div class="chips">${esPlan?'<span class="chip tipo">Plan</span>':''}${a.requiere_evidencia?'<span class="chip evid">📷 Pide evidencia</span>':''}${zonaChip(a)}${canales||(esPlan?'':'<span style="color:var(--ink3)">—</span>')}</div></td>
         <td><span class="vig">${vig}</span></td>
         <td><span class="estado ${e.cls}">${e.txt}</span></td>
         <td><div class="edicion">${fmt(a.created_at)}<small>por ${esc(a.revision_autor_nombre||'Luciana')}</small></div></td>
@@ -625,6 +630,7 @@
     + filaDet('Productos', prods)
     + (a.categoria?filaDet('Categoría', esc(a.categoria)):'')
     + filaDet('Canales', canales)
+    + filaDet('Zona', zonaTxt(a))
     + filaDet('Ubicaciones', ubic)
     + filaDet('Mecánica', a.accion?esc(a.accion):'<span class="muted">—</span>')
     + filaDet('Precios', precios)
@@ -662,6 +668,7 @@
     + filaDet('Condición', p.condicion?esc(p.condicion):'<span class="muted">—</span>')
     + filaDet('Líneas participantes', lineas)
     + filaDet('Canal', canales)
+    + filaDet('Zona', zonaTxt(p))
     + (p.descripcion?filaDet('Descripción', esc(p.descripcion)):'')
     + filaDet('Vigencia', vig)
     + filaDet('PDF', pdf)
