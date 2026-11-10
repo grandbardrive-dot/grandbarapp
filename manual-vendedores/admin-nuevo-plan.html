@@ -21,7 +21,7 @@
   .top-back{background:rgba(255,255,255,.14);border:none;color:#fff;width:38px;height:38px;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
   .top-t{color:#fff;font-size:17px;font-weight:800;flex:1}
   .top-cancel{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
-  .wrap{max-width:680px;margin:0 auto;padding:26px 18px 80px}
+  .wrap{max-width:860px;margin:0 auto;padding:26px 18px 80px}
   .lead{color:var(--ink2);font-size:14.5px;margin-bottom:20px;line-height:1.5}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 2px 4px rgba(31,68,127,.04),0 16px 40px rgba(31,68,127,.06)}
   .fld{margin-bottom:18px}
@@ -78,6 +78,34 @@
   label.evid-chk input{width:18px !important;height:18px;margin:2px 0 0;padding:0;flex:none;accent-color:var(--navy,var(--azul))}
   label.evid-chk b{display:block;font-size:13.5px;font-weight:800;color:var(--ink)}
   label.evid-chk small{display:block;font-size:12px;font-weight:500;color:var(--ink3);margin-top:3px;line-height:1.45}
+  /* ¿Dónde aparece? (10/11/2026): igual que el editor de campañas — zona, tipos de cliente y
+     un bloque por manual y por zona con sus secciones. */
+  .zona-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#FBF9F5;border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .zona-t,.man-t{font-size:11.5px;font-weight:800;letter-spacing:.06em;color:var(--azul);text-transform:uppercase}
+  .zona-opc{display:flex;gap:8px;flex-wrap:wrap}
+  .zona-b,.man-b{font:inherit;font-size:13.5px;font-weight:700;color:var(--ink2);background:#fff;border:1.5px solid var(--line-2);border-radius:10px;padding:8px 13px;cursor:pointer}
+  .zona-b.on,.man-b.on{background:var(--azul);border-color:var(--azul);color:#fff}
+  .man-b b{display:inline-block;min-width:18px;padding:0 5px;border-radius:20px;background:rgba(255,255,255,.25);font-size:11px;margin-left:3px}
+  .zona-hint{font-size:12.5px;color:var(--ink3)}
+  .man-t{margin:14px 0 8px}
+  .man-g{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:8px}
+  .man-gt{font-size:10.5px;font-weight:800;letter-spacing:.06em;color:var(--ink3);min-width:84px}
+  .canal-group{margin-top:18px}
+  .canal-title{display:flex;align-items:center;gap:9px;font-size:11.5px;font-weight:800;letter-spacing:.06em;color:var(--azul);text-transform:uppercase}
+  .canal-title .zona-tag{font-size:11px;letter-spacing:.04em;text-transform:none;padding:2px 9px;border-radius:20px;background:rgba(31,68,127,.09);color:var(--azul)}
+  .canal-title .zona-tag.sl{background:#FaF0DA;color:#9A6B0E}
+  .canal-title .canal-line{flex:1;height:1px;background:var(--line)}
+  .canal-empty{font-size:12.5px;color:var(--ink3);background:#FBF9F5;border:1px dashed var(--line-2);border-radius:12px;padding:14px;margin-top:12px}
+  .sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:10px}
+  .sec-card{border:1px solid var(--line);border-radius:13px;background:#fff;overflow:hidden}
+  .sec-head{display:flex;align-items:center;gap:9px;padding:10px 12px;border-bottom:1px solid var(--line);background:#FBF9F5}
+  .sec-hico{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+  .sec-hname{flex:1;font-size:11.5px;font-weight:800;letter-spacing:.04em;color:var(--azul)}
+  .sec-n{font-size:11px;font-weight:700;color:var(--ink3)}
+  .sec-body{padding:4px 12px 10px}
+  .chk{display:flex;align-items:center;gap:9px;padding:6px 0;cursor:pointer;font-size:13.5px;color:var(--ink);user-select:none}
+  .chk .box{width:18px;height:18px;border-radius:5px;border:1.6px solid var(--line-2);display:flex;align-items:center;justify-content:center;flex:none;color:#fff;font-size:11px}
+  .chk.on .box{background:var(--azul);border-color:var(--azul)}
 </style>
 </head>
 <body>
@@ -97,8 +125,8 @@
 
       <div class="fld">
         <label>¿Dónde aparece? <span class="req">*</span></label>
-        <div id="seg-dest"></div>
-        <div class="hint">Marcá una o varias secciones (el plan se muestra en todas). Elegí la zona si es solo para Mendoza o solo para San Luis.</div>
+        <div id="ubic"><div class="secbox-load">Cargando secciones…</div></div>
+        <div class="hint">Elegí la zona y los tipos de cliente, y marcá una o varias secciones: el plan se muestra en todas.</div>
       </div>
 
       <div class="fld">
@@ -161,7 +189,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
 <script src="_trade-revision.js?v=1"></script>
-<script src="_segmentacion.js"></script>
 <script>
   sessionStorage.setItem('admin_auth','1');
   if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','comercial');
@@ -174,8 +201,89 @@
   const editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
   let planPdfActual = null;   // pdf_url existente (para conservarlo si no suben otro)
 
-  // Dónde aparece el plan: zona + secciones, con el selector compartido (_segmentacion.js).
-  let SEG = null;
+  // ── Dónde aparece el plan (10/11/2026) ──────────────────────────────────────────
+  // Igual que el paso de ubicaciones del editor de campañas: zona (Mendoza y San Luis o
+  // una sola), tipos de cliente, y un bloque por manual y por zona con sus secciones reales.
+  // Antes era el selector compartido (_segmentacion.js): un árbol con todo mezclado.
+  // Guarda secciones (uuid[]) + zonas, como siempre.
+  const MANUALES = [
+    ['ON TRADE',  [['restaurante','🍽️','Restaurantes'],['bar','🍺','Bares'],['disco','🕺','Discos'],['hotel','🏨','Hoteles'],['evento','🎉','Eventos']]],
+    ['OFF TRADE', [['vinoteca','🍾','Vinotecas'],['tienda_bebidas','🏬','Tiendas de bebidas'],['autoservicio','🏪','Autoservicios']]],
+    ['MAYORISTA', [['mayorista','🛒','Mayorista']]],
+  ];
+  const MAN_INFO = {}; MANUALES.forEach(([,l]) => l.forEach(([c,i,n]) => MAN_INFO[c] = { ico:i, nombre:n }));
+  const ZONA_LBL = { mendoza:'Mendoza', sanluis:'San Luis' };
+  const UB = { secs:[], zonas:[], manuales:new Set(), marcadas:new Set() };
+  const porOrd = (a,b) => (a.orden||0) - (b.orden||0);
+  const zonaDe = s => s.zona === 'sanluis' ? 'sanluis' : 'mendoza';
+  const tieneSL = c => UB.secs.some(s => s.canal === c && s.zona === 'sanluis');
+  // San Luis sin manual propio de ese tipo de cliente usa el de Mendoza (como la visita).
+  function gruposUbic(){
+    const zonas = UB.zonas.length ? UB.zonas : ['mendoza','sanluis'], out = [];
+    MANUALES.forEach(([,l]) => l.forEach(([c]) => {
+      if(!UB.manuales.has(c)) return;
+      zonas.forEach(z => {
+        const zm = (z === 'sanluis' && !tieneSL(c)) ? 'mendoza' : z;
+        const ya = out.find(o => o.canal === c && o.zm === zm);
+        if(ya) ya.zonas.push(z); else out.push({ canal:c, zm, zonas:[z] });
+      });
+    }));
+    return out;
+  }
+  const madresDe = g => UB.secs.filter(s => !s.parent_id && s.canal === g.canal && zonaDe(s) === g.zm).sort(porOrd);
+  const hijasDe = m => UB.secs.filter(s => s.parent_id === m.id).sort(porOrd);
+  function visibles(){
+    const ids = new Set();
+    gruposUbic().forEach(g => madresDe(g).forEach(m => { const h = hijasDe(m); (h.length ? h : [m]).forEach(x => ids.add(x.id)); }));
+    return ids;
+  }
+  const escH = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function renderUbic(){
+    const cont = document.getElementById('ubic'); if(!cont) return;
+    if(!UB.secs.length){ cont.innerHTML = '<div class="canal-empty">No se pudieron cargar las secciones del manual. Recargá la página.</div>'; return; }
+    const z1 = UB.zonas.length === 1 ? UB.zonas[0] : '';
+    const vis = visibles();
+    const nMan = c => [...UB.marcadas].filter(id => vis.has(id) && (UB.secs.find(s => s.id === id) || {}).canal === c).length;
+    const grupos = gruposUbic();
+    const bloques = grupos.map(g => {
+      const info = MAN_INFO[g.canal] || { ico:'📋', nombre:g.canal };
+      const zonaTxt = g.zonas.length === 2 ? 'Mendoza y San Luis' : (g.zonas[0] === 'sanluis' && g.zm === 'mendoza' ? 'San Luis (usa el manual de Mendoza)' : ZONA_LBL[g.zonas[0]]);
+      const cards = madresDe(g).map(m => {
+        const hijas = hijasDe(m), items = hijas.length ? hijas : [m];
+        const sel = items.filter(x => UB.marcadas.has(x.id)).length;
+        const filas = items.map(x => { const on = UB.marcadas.has(x.id);
+          return `<div class="chk ${on?'on':''}" onclick="ubSec('${x.id}')"><span class="box">${on?'✓':''}</span>${escH(hijas.length ? x.nombre : 'Toda la sección')}</div>`; }).join('');
+        return `<div class="sec-card"><div class="sec-head"><div class="sec-hico" style="background:${escH(m.icono_bg||'#EAF2FB')};color:${escH(m.icono_color||'#1F447F')}">${escH(m.icono||'📋')}</div><div class="sec-hname">${escH(m.nombre)}</div><div class="sec-n">${sel}/${items.length}</div></div><div class="sec-body">${filas}</div></div>`;
+      }).join('');
+      return `<div class="canal-group"><div class="canal-title"><span>${info.ico}</span>${escH(info.nombre)}<span class="zona-tag ${g.zonas.length===1&&g.zonas[0]==='sanluis'?'sl':''}">${escH(zonaTxt)}</span><span class="canal-line"></span></div>
+        ${cards ? `<div class="sec-grid">${cards}</div>` : '<div class="canal-empty">Este manual todavía no tiene secciones cargadas.</div>'}</div>`;
+    }).join('');
+    const n = [...UB.marcadas].filter(id => vis.has(id)).length;
+    cont.innerHTML = `<div class="zona-bar"><span class="zona-t">Zona</span>
+        <div class="zona-opc">${[['','Mendoza y San Luis'],['mendoza','Solo Mendoza'],['sanluis','Solo San Luis']].map(([v,l]) =>
+          `<button type="button" class="zona-b ${z1===v?'on':''}" onclick="ubZona('${v}')">${l}</button>`).join('')}</div>
+        <span class="zona-hint">${z1 ? 'Lo ven solo los vendedores de ' + ZONA_LBL[z1] + '.' : 'Lo ven los vendedores de Mendoza y de San Luis.'}</span></div>
+      <div class="man-t">Tipos de cliente</div>
+      ${MANUALES.map(([t,l]) => `<div class="man-g"><span class="man-gt">${t}</span>${l.map(([c,i,nom]) => { const k = nMan(c);
+        return `<button type="button" class="man-b ${UB.manuales.has(c)?'on':''}" onclick="ubManual('${c}')">${i} ${nom}${k?` <b>${k}</b>`:''}</button>`; }).join('')}</div>`).join('')}
+      ${grupos.length ? bloques : '<div class="canal-empty">Elegí uno o más tipos de cliente para ver sus secciones.</div>'}
+      <div class="sec-count">${n ? n + (n > 1 ? ' secciones marcadas' : ' sección marcada') : 'Todavía no marcaste ninguna sección.'}</div>`;
+  }
+  function ubZona(v){ UB.zonas = v ? [v] : []; renderUbic(); }
+  function ubManual(c){ if(UB.manuales.has(c)) UB.manuales.delete(c); else UB.manuales.add(c); renderUbic(); }
+  function ubSec(id){ if(UB.marcadas.has(id)) UB.marcadas.delete(id); else UB.marcadas.add(id); renderUbic(); }
+  // Lo marcado que sigue a la vista (si cambió la zona o se sacó un tipo de cliente, lo de afuera no se guarda).
+  UB.valor = () => { const v = visibles(); return { secciones: [...UB.marcadas].filter(id => v.has(id)), zonas: UB.zonas.slice() }; };
+  UB.set = v => {
+    UB.zonas = ((v && v.zonas) || []).filter(z => z === 'mendoza' || z === 'sanluis'); if(UB.zonas.length === 2) UB.zonas = [];
+    UB.marcadas = new Set((v && v.secciones) || []);
+    UB.manuales = new Set([...UB.marcadas].map(id => (UB.secs.find(s => s.id === id) || {}).canal).filter(Boolean));
+    renderUbic();
+  };
+  async function montarUbic(){
+    try{ UB.secs = (await sb.from('checklist_secciones').select('id,codigo,nombre,canal,zona,parent_id,orden,icono,icono_bg,icono_color').eq('activa',true).order('orden')).data || []; }catch(e){}
+    renderUbic();
+  }
 
   // Trade Marketing (10/11/2026): Juan Pablo carga con esta misma pantalla, pero se guarda sin
   // publicar y le llega a Luciana para aprobar (_trade-revision.js).
@@ -209,7 +317,7 @@
       document.getElementById('rev-nota').value = p.revision_nota || '';
       document.getElementById('f-titulo').value    = p.nombre || '';
       const secsSel = (Array.isArray(p.secciones)&&p.secciones.length) ? p.secciones : (p.seccion_id?[p.seccion_id]:[]);
-      SEG.set({ secciones: secsSel, zonas: p.zonas || [] });
+      UB.set({ secciones: secsSel, zonas: p.zonas || [] });
       document.getElementById('f-proveedor').value = p.proveedor || '';
       document.getElementById('f-condicion').value = p.condicion || '';
       document.getElementById('f-detalle').value   = p.descripcion || '';
@@ -230,7 +338,7 @@
 
   (async function init(){
     if(REV) await REV.listo;
-    SEG = await Segmentacion.montar('#seg-dest');
+    await montarUbic();
     if(editId) await cargarPlan(editId);
     if(document.getElementById('btn-guardar')) botonesRevision();
   })();
@@ -250,7 +358,7 @@
     const msg = document.getElementById('msg');
     const btn = document.getElementById('btn-guardar');
     const titulo   = document.getElementById('f-titulo').value.trim();
-    const { secciones, zonas } = SEG ? SEG.valor() : { secciones: [], zonas: [] };
+    const { secciones, zonas } = UB.valor();
     const proveedor= document.getElementById('f-proveedor').value.trim();
     const condicion= document.getElementById('f-condicion').value.trim();
     const detalle  = document.getElementById('f-detalle').value.trim();
