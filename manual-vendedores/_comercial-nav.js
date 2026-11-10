@@ -88,8 +88,6 @@
     { titulo: 'Catálogo', items: [
       { h: 'admin-catalogo.html', t: 'Catálogo', s: 'Proveedores y productos', i: 'catalogo' },
       { h: 'admin-catalogo-clientes.html', t: 'Catálogo clientes', s: 'Catálogo público de acciones', i: 'publico' },
-      // Acciones que carga Juan Pablo Sepúlveda; se publican cuando Luciana las aprueba (10/11/2026).
-      { h: 'admin-trade-catalogo.html', t: 'Acciones de Trade Marketing', s: 'Para revisar y aprobar', i: 'propuestas' },
       { h: 'admin-comparador.html', t: 'Comparador de precios', s: 'Precios de la competencia', i: 'comparador' },
     ]},
     { titulo: 'Proveedores', items: [
@@ -165,6 +163,8 @@
 
   // Solo entra quien tiene sesión en el Portal y un rol del área. El resto
   // vuelve al Hub, que lo manda a su propio panel; sin sesión, al ingreso.
+  var PARA_TRADE = ['admin-campanias', 'admin-nueva-campania', 'admin-nuevo-plan'];
+  var EMBEBIDA = window.top !== window.self;   // dentro del panel de Trade: sin campanita propia
   function revisarAcceso() {
     try {
       if (!window.supabase || !window.supabase.createClient) return;
@@ -175,6 +175,9 @@
         return c.from('usuarios').select('rol').eq('id', s.user.id).maybeSingle().then(function (q) {
           var rol = String((q && q.data && q.data.rol) || '').toLowerCase();
           if (SOLO) { if (rol === SOLO) { pintar(); campanita(); } return; }
+          // Juan Pablo Sepúlveda (Trade Marketing) usa Campañas y planes dentro de su panel
+          // (trade-campanias.html, 10/11/2026); lo suyo queda para que Luciana lo apruebe.
+          if (rol === 'torneo' && PARA_TRADE.indexOf(sinExt(location.pathname)) >= 0) return;
           if (ROLES.indexOf(rol) < 0) location.replace('/hub.html');
         });
       }).catch(function () {});
@@ -193,6 +196,7 @@
   // revisarlas?"): ahora es la misma en todas las pantallas y lo pendiente del panel
   // aparece dentro de la lista de notificaciones.
   function campanita() {
+    if (EMBEBIDA) return;
     var bar = document.querySelector('.topbar');
     if (!bar || document.querySelector('script[src*="notif.js"]')) return;
     if (!bar.querySelector('.tb-bell')) {
@@ -218,19 +222,19 @@
       var iso = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
       var fecha = function (s) { var x = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return x ? new Date(+x[1], +x[2] - 1, +x[3]) : null; };
       var vigente = function (a) { var fi = fecha(a.fecha_inicio); return !fi || fi <= d0; };
-      // Devoluciones de Trade Marketing sin ver y acciones del catálogo que mandó Trade
-      // Marketing para revisar (viven en el Hub: se cuentan con sus funciones).
-      var sesion = window.supabase.createClient(HUB.url, HUB.key).auth.getSession();
-      var contarEn = function (fn) {
-        return sesion.then(function (s) {
-          var t = s && s.data && s.data.session && s.data.session.access_token;
-          if (!t) return 0;
-          return fetch('/.netlify/functions/' + fn + '?vista=contar', { headers: { Authorization: 'Bearer ' + t } })
-            .then(function (x) { return x.ok ? x.json() : {}; }).then(function (j) { return j.pendientes || 0; });
-        }).catch(function () { return 0; });
-      };
-      var devoluciones = contarEn('trade-devoluciones');
-      var deTrade = contarEn('trade-catalogo');
+      // Devoluciones de Trade Marketing sin ver (viven en el Hub: se cuentan con la función).
+      var devoluciones = window.supabase.createClient(HUB.url, HUB.key).auth.getSession().then(function (s) {
+        var t = s && s.data && s.data.session && s.data.session.access_token;
+        if (!t) return 0;
+        return fetch('/.netlify/functions/trade-devoluciones?vista=contar', { headers: { Authorization: 'Bearer ' + t } })
+          .then(function (x) { return x.ok ? x.json() : {}; }).then(function (j) { return j.pendientes || 0; });
+      }).catch(function () { return 0; });
+      // Campañas y planes que mandó Trade Marketing para aprobar (10/11/2026).
+      var cuenta = function (q) { return q.then(function (x) { return (x && x.count) || 0; }, function () { return 0; }); };
+      var deTrade = Promise.all([
+        cuenta(m.from('acciones_mensuales').select('id', { count: 'exact', head: true }).eq('revision', 'pendiente')),
+        cuenta(m.from('checklist_planes').select('id', { count: 'exact', head: true }).eq('revision', 'pendiente')),
+      ]).then(function (n) { return n[0] + n[1]; });
       Promise.all([
         m.from('propuestas_acciones').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente'),
         m.from('acciones_mensuales').select('*').eq('activa', true).gte('fecha_fin', iso(d0)).lte('fecha_fin', iso(d7) + 'T23:59:59'),
@@ -240,7 +244,7 @@
       ]).then(function (r) {
         var lista = [];
         var trade = r[4] || 0;
-        if (trade) lista.push({ icon: '📝', titulo: 'Tenés ' + trade + (trade > 1 ? ' acciones' : ' acción') + ' de Trade Marketing para revisar', detalle: 'Para el catálogo de clientes', link: 'admin-trade-catalogo.html' });
+        if (trade) lista.push({ icon: '📝', titulo: 'Tenés ' + trade + (trade > 1 ? ' propuestas' : ' propuesta') + ' de Trade Marketing para aprobar', detalle: 'Campañas y planes', link: 'admin-campanias.html?estado=revision' });
         var dev = r[3] || 0;
         if (dev) lista.push({ icon: '📣', titulo: 'Tenés ' + dev + (dev > 1 ? ' devoluciones' : ' devolución') + ' de Trade Marketing sin ver', detalle: 'Observaciones de los vendedores sobre tus acciones', link: 'admin-devoluciones.html' });
         var prop = (r[0] && r[0].count) || 0;

@@ -143,8 +143,15 @@
         </div>
       </div>
 
+      <div class="fld" id="fld-nota" hidden>
+        <label>Nota para Luciana <span class="opt">(opcional)</span></label>
+        <textarea id="rev-nota" class="gbr-nota" maxlength="1500" placeholder="Ej: lo negocié con el proveedor para noviembre"></textarea>
+        <div class="hint">No se publica solo: le llega a Luciana, que lo puede corregir o hacerte observaciones. Cuando lo aprueba, lo ven los vendedores.</div>
+      </div>
+
       <div class="actions">
         <button class="btn pri" id="btn-guardar" onclick="guardarPlan()">✓ Publicar plan</button>
+        <button class="btn sec" id="btn-guardar2" onclick="guardarPlan()" hidden>Guardar cambios (sigue para aprobar)</button>
         <button class="btn sec" onclick="location.href='admin-campanias.html'">Cancelar</button>
       </div>
       <div id="msg"></div>
@@ -153,6 +160,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="_trade-revision.js?v=1"></script>
 <script src="_segmentacion.js"></script>
 <script>
   sessionStorage.setItem('admin_auth','1');
@@ -169,11 +177,36 @@
   // Dónde aparece el plan: zona + secciones, con el selector compartido (_segmentacion.js).
   let SEG = null;
 
+  // Trade Marketing (10/11/2026): Juan Pablo carga con esta misma pantalla, pero se guarda sin
+  // publicar y le llega a Luciana para aprobar (_trade-revision.js).
+  const REV = window.GBRevision || null;
+  const esTrade = () => !!(REV && REV.esTrade);
+  let FILA = null;
+  function botonesRevision(){
+    const b1 = document.getElementById('btn-guardar'), b2 = document.getElementById('btn-guardar2');
+    if(esTrade()){
+      document.getElementById('fld-nota').hidden = false;
+      b1.textContent = '✓ ' + (FILA?.revision==='pendiente' ? 'Guardar cambios' : (FILA?.revision ? 'Corregir y reenviar a Luciana' : 'Enviar a Luciana'));
+      document.querySelector('.lead').textContent = 'Cargá un plan o programa para el manual. Cuando lo mandes, le llega a Luciana para aprobar; recién ahí lo ven los vendedores.';
+    } else if(REV && REV.abierta(FILA)){
+      b1.textContent = '✓ Aprobar y publicar'; b1.onclick = () => guardarPlan('aprobar');
+      b2.hidden = false;
+    }
+  }
+
   // Modo edición: precargar el plan existente
   async function cargarPlan(id){
     try{
       const { data:p } = await sb.from('checklist_planes').select('*').eq('id',id).single();
       if(!p) return;
+      // Juan Pablo solo edita lo suyo que todavía no está aprobado.
+      if(esTrade() && !REV.editable(p)){
+        document.querySelector('.wrap').innerHTML = '<div class="card" style="text-align:center;color:var(--ink2)">Este plan ya está publicado: solo Luciana lo puede cambiar.<br><br><a href="admin-campanias.html?tab=planes" style="font-weight:700;text-decoration:underline">Volver a Campañas y planes</a></div>';
+        return;
+      }
+      FILA = p;
+      if(REV) document.querySelector('.wrap').insertAdjacentHTML('afterbegin', REV.bloque(p));
+      document.getElementById('rev-nota').value = p.revision_nota || '';
       document.getElementById('f-titulo').value    = p.nombre || '';
       const secsSel = (Array.isArray(p.secciones)&&p.secciones.length) ? p.secciones : (p.seccion_id?[p.seccion_id]:[]);
       SEG.set({ secciones: secsSel, zonas: p.zonas || [] });
@@ -196,8 +229,10 @@
   }
 
   (async function init(){
+    if(REV) await REV.listo;
     SEG = await Segmentacion.montar('#seg-dest');
     if(editId) await cargarPlan(editId);
+    if(document.getElementById('btn-guardar')) botonesRevision();
   })();
 
   async function subirPDF(file){
@@ -208,7 +243,10 @@
     return sb.storage.from('Activaciones').getPublicUrl(path).data.publicUrl;
   }
 
-  async function guardarPlan(){
+  // modo 'aprobar': Luciana aprueba una propuesta de Trade (se publica con trade-campanias).
+  async function guardarPlan(modo){
+    const aprobar = modo === 'aprobar';
+    if(aprobar && !confirm('¿Aprobar el plan? Se publica en el manual y lo ven los vendedores.')) return;
     const msg = document.getElementById('msg');
     const btn = document.getElementById('btn-guardar');
     const titulo   = document.getElementById('f-titulo').value.trim();
@@ -249,11 +287,20 @@
         fecha_fin: hasta,
         pdf_url,
         requiere_evidencia: document.getElementById('f-evid').checked,
+        ...(esTrade() ? REV.camposTrade('plan') : {}),   // Trade: sin publicar y a su nombre
       };
-      const { error } = editId
-        ? await sb.from('checklist_planes').update(row).eq('id', editId)
-        : await sb.from('checklist_planes').insert(Object.assign({activo:true}, row));
+      const { data, error } = editId
+        ? await sb.from('checklist_planes').update(row).eq('id', editId).select('id')
+        : await sb.from('checklist_planes').insert(Object.assign({activo:true}, row)).select('id');
       if(error) throw error;
+      const id = editId || (data && data[0] && data[0].id);
+      if(esTrade() || aprobar){
+        if(esTrade()) await REV.api({ accion:'enviar', tipo:'plan', id, nota: document.getElementById('rev-nota').value });
+        else await REV.api({ accion:'aprobar', tipo:'plan', id });
+        msg.style.color='var(--green)'; msg.textContent = esTrade() ? '✓ Le llegó a Luciana para aprobar. Redirigiendo…' : '✓ Aprobado y publicado. Redirigiendo…';
+        setTimeout(()=>location.href='admin-campanias.html?tab=planes', 1300);
+        return;
+      }
 
       msg.style.color='var(--green)'; msg.textContent = editId ? '✓ Cambios guardados. Redirigiendo…' : '✓ Plan publicado. Redirigiendo…';
       setTimeout(()=>location.href='admin-planes.html', 1100);

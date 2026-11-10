@@ -195,6 +195,7 @@
         <button class="btn-cancel-top" onclick="cancelar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>Cancelar</button>
       </div>
 
+      <div id="rev-bloque"></div>
       <div class="stepper" id="stepper"></div>
       <div class="panel" id="panel"><div class="empty">Cargando…</div></div>
       <!-- Segmentación: fuera de #panel (que se re-dibuja en cada paso) para no perder lo marcado. Se muestra en el paso 4. -->
@@ -225,6 +226,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="_trade-revision.js?v=1"></script>
 <script src="_segmentacion.js"></script>
 <script src="_admin-sidebar.js"></script>
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
@@ -369,7 +371,13 @@
     return out;
   }
 
+  // Trade Marketing (10/11/2026): Juan Pablo carga con esta misma pantalla, pero se guarda sin
+  // publicar y le llega a Luciana para aprobar (_trade-revision.js).
+  const REV = window.GBRevision || null;
+  const esTrade = () => !!(REV && REV.esTrade);
   async function cargar(){
+    if(REV) await REV.listo;
+    if(esTrade()) document.getElementById('page-sub').textContent='Completá los pasos. Cuando la mandes, le llega a Luciana para aprobar; recién ahí la ven los vendedores.';
     try{ PROV=(await sb.from('proveedores').select('*').order('nombre')).data||[]; }catch(e){}
     try{ PROD=(await sb.from('productos').select('*').order('nombre')).data||[]; }catch(e){}
     try{ SECS=(await sb.from('checklist_secciones').select('id,codigo,nombre,canal,zona,parent_id,orden,icono,icono_bg,icono_color,activa').eq('activa',true).order('orden')).data||[]; SECS=unaPorCodigo(SECS); }catch(e){}
@@ -381,7 +389,16 @@
     if(editId){
       try{
         const {data:row}=await sb.from('acciones_mensuales').select('*').eq('id',editId).single();
+        // Juan Pablo solo edita lo suyo que todavía no está aprobado.
+        if(row && esTrade() && !REV.editable(row)){
+          document.getElementById('stepper').innerHTML='';
+          document.querySelector('.nav').style.display='none';
+          document.getElementById('panel').innerHTML='<div class="empty">Esta campaña ya está publicada: solo Luciana la puede cambiar. <a href="admin-campanias.html" style="color:var(--navy);font-weight:700;text-decoration:underline">Volver a Campañas y planes</a></div>';
+          return;
+        }
         if(row){
+          st._fila = row;
+          if(REV) document.getElementById('rev-bloque').innerHTML = REV.bloque(row);
           st.proveedor = PROV.find(p=>p.nombre===row.proveedor) || (row.proveedor?{id:null,nombre:row.proveedor}:null);
           if(Array.isArray(row.productos)&&row.productos.length){
             st.productos = row.productos.map(mp=> PROD.find(p=>(mp.id&&p.id===mp.id)||(mp.sku&&p.sku===mp.sku)||p.nombre===mp.nombre) || {id:mp.id||null,nombre:mp.nombre,categoria:mp.categoria,imagen_url:mp.imagen_url,sku:mp.sku});
@@ -567,13 +584,21 @@
           ${filaRev('Materiales', st.materiales.length? st.materiales.map(m=>m.name).join(', '):'')}
           ${filaRev('Evidencia', st.requiereEvid?'Sí: el vendedor carga fotos':'No pide')}
         </div>
+        ${esTrade() ? `<div style="margin-top:16px"><div style="font-size:12.5px;font-weight:700;color:var(--ink3);margin-bottom:6px">Nota para Luciana (opcional)</div>
+          <textarea id="rev-nota" class="gbr-nota" maxlength="1500" placeholder="Ej: la negocié con el proveedor para noviembre; tope de 10 cajas por cliente">${esc(st._fila?.revision_nota||'')}</textarea></div>` : ''}
         <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
-          ${editId
+          ${esTrade()
+            ? `<button class="btn pri" onclick="guardar(false)">✓ ${st._fila?.revision==='pendiente'?'Guardar cambios':(st._fila?.revision?'Corregir y reenviar a Luciana':'Enviar a Luciana')}</button>`
+            : (REV && REV.abierta(st._fila))
+            ? `<button class="btn pri" onclick="guardar('aprobar')">✓ Aprobar y publicar</button>
+               <button class="btn sec" onclick="guardar(false)">Guardar cambios (sigue para aprobar)</button>`
+            : editId
             ? `<button class="btn pri" onclick="guardar(st._activa!==false)">✓ Guardar cambios</button>
                <button class="btn sec" onclick="guardar(false)">Pasar a borrador</button>`
             : `<button class="btn pri" onclick="guardar(true)">✓ Publicar campaña</button>
                <button class="btn sec" onclick="guardar(false)">Guardar como borrador</button>`}
         </div>
+        ${esTrade() ? `<div style="font-size:12.5px;color:var(--ink3);margin-top:8px">No se publica sola: le llega a Luciana, que la puede corregir o hacerte observaciones. Cuando la aprueba, la ven los vendedores.</div>` : ''}
         <div id="guardar-msg" style="margin-top:12px;font-weight:700;font-size:13px"></div>`;
     }
     // el bloque de segmentación vive fuera del panel: solo se muestra en el paso 4
@@ -683,7 +708,11 @@
   function atras(){ if(paso>1){ paso--; renderPaso(); window.scrollTo({top:0,behavior:'smooth'}); } }
   function cancelar(){ if(confirm('¿Cancelar la campaña? Se pierde lo que cargaste.')) location.href='admin-campanias.html'; }
 
+  // activa: true = publicar · false = sin publicar · 'aprobar' = Luciana aprueba una propuesta de Trade
   async function guardar(activa){
+    const aprobar = activa==='aprobar';
+    if(aprobar && !confirm('¿Aprobar la campaña? Se publica en el manual y la ven los vendedores.')) return;
+    if(aprobar || esTrade()) activa=false;   // se publica al aprobarla (función trade-campanias)
     const msg=document.getElementById('guardar-msg');
     if(!st.proveedor||!st.productos.length||!st.canales.length){ msg.style.color='#c0392b'; msg.textContent='Faltan datos: proveedor, al menos un producto y al menos un canal.'; return; }
     // La mecánica es lo que el vendedor ve en la tarjeta. Puede ir vacía si al menos hay
@@ -709,20 +738,32 @@
       materiales: st.materiales,
       requiere_evidencia: !!st.requiereEvid,
       activa: !!activa,
-      ...segValor()   // secciones uuid[] + zonas text[] (vacío = se ve como hasta ahora)
+      ...segValor(),   // secciones uuid[] + zonas text[] (vacío = se ve como hasta ahora)
+      ...(esTrade() ? REV.camposTrade('campania') : {})
     };
     const persistir=(r)=> editId
-      ? sb.from('acciones_mensuales').update(r).eq('id',editId)
-      : sb.from('acciones_mensuales').insert(r);
+      ? sb.from('acciones_mensuales').update(r).eq('id',editId).select('id')
+      : sb.from('acciones_mensuales').insert(r).select('id');
     try{
-      let { error }=await persistir(row);
+      let { data, error }=await persistir(row);
       // Fallback: si todavía no existe la columna "materiales", guardar sin ella
       // (así crear/editar la acción no se rompe; el vínculo se activa al correr el SQL).
       if(error && /materiales|productos/i.test(error.message||'')){
         const { materiales, productos, ...rowLimpio }=row;
-        ({ error }=await persistir(rowLimpio));
+        ({ data, error }=await persistir(rowLimpio));
       }
       if(error) throw error;
+      const id = editId || (data && data[0] && data[0].id);
+      if(esTrade()){
+        await REV.api({ accion:'enviar', tipo:'campania', id, nota:(document.getElementById('rev-nota')||{}).value||'' });
+        msg.style.color='var(--green)'; msg.textContent='✓ Le llegó a Luciana para aprobar. Redirigiendo…';
+        setTimeout(()=>location.href='admin-campanias.html',1300); return;
+      }
+      if(aprobar){
+        await REV.api({ accion:'aprobar', tipo:'campania', id });
+        msg.style.color='var(--green)'; msg.textContent='✓ Aprobada y publicada. Redirigiendo…';
+        setTimeout(()=>location.href='admin-campanias.html',1300); return;
+      }
       msg.style.color='var(--green)'; msg.textContent = editId?'✓ Cambios guardados. Redirigiendo…':(activa?'✓ Campaña publicada. Redirigiendo…':'✓ Borrador guardado. Redirigiendo…');
       setTimeout(()=>location.href='admin-campanias.html',1100);
     }catch(e){

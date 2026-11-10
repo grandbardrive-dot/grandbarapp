@@ -271,13 +271,14 @@
         </div>
       </div>
 
+      <div id="trade-aviso"></div>
       <div class="stats" id="stats"><div class="stat"><div class="stat-name">Cargando…</div></div></div>
       <div class="tipo-tabs" id="tipo-tabs"></div>
 
       <div class="filters">
         <div class="search"><input id="buscar" type="text" placeholder="Buscar por campaña, producto o proveedor…" oninput="render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg></div>
         <div class="fsel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M7 12h10M10 19h4" stroke-linecap="round"/></svg><select id="f-canal" onchange="render()"><option value="">Todos los canales</option></select></div>
-        <div class="fsel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg><select id="f-estado" onchange="render()"><option value="">Todos los estados</option><option value="activa">Activa</option><option value="proxima">Próxima</option><option value="vencida">Vencida</option><option value="borrador">Borrador</option></select></div>
+        <div class="fsel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg><select id="f-estado" onchange="render()"><option value="">Todos los estados</option><option value="activa">Activa</option><option value="proxima">Próxima</option><option value="vencida">Vencida</option><option value="borrador">Borrador</option><option value="revision">Para aprobar (Trade)</option><option value="observada">Con observaciones (Trade)</option><option value="rechazada">No aprobadas (Trade)</option></select></div>
         <div class="fsel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke-linecap="round"/></svg><select id="f-fecha" onchange="render()"><option value="">Todas las fechas</option><option value="vigentes">Vigentes</option><option value="vencidas">Vencidas</option></select></div>
         <button class="btn-filtros" onclick="const s=document.getElementById('f-canal'); s.scrollIntoView({block:'center',behavior:'smooth'}); s.focus();"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z" stroke-linejoin="round"/></svg>Filtros</button>
       </div>
@@ -344,6 +345,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<script src="_trade-revision.js?v=1"></script>
 <script src="_admin-sidebar.js"></script>
 <script>window.addEventListener('load',function(){window.hacerSidebarResponsive&&hacerSidebarResponsive()})</script>
 <script>
@@ -401,6 +403,10 @@
   function cambiarTab(k){ _tab=k; _limite=6; renderTabs(); renderStats(); renderTopProv(); render(); }
 
   function estadoDe(a){
+    // Propuestas de Trade Marketing (10/11/2026): no se publican hasta que Luciana las aprueba.
+    if(a.revision==='pendiente') return {k:'revision',txt:'Para aprobar',cls:'t-amber'};
+    if(a.revision==='observada') return {k:'observada',txt:'Con observaciones',cls:'t-navy'};
+    if(a.revision==='rechazada') return {k:'rechazada',txt:'No aprobada',cls:'t-red'};
     if(a.pausada) return {k:'pausada',txt:'Pausada',cls:'t-amber'};
     if(!a.activa) return {k:'borrador',txt:'Borrador',cls:'t-navy'};
     const fi=a.fecha_inicio?new Date(a.fecha_inicio):null, ff=a.fecha_fin?new Date(a.fecha_fin):null;
@@ -409,7 +415,32 @@
     return {k:'activa',txt:'Activa',cls:'t-green'};
   }
 
+  // Juan Pablo Sepúlveda (Trade Marketing, 10/11/2026) ve lo mismo que Luciana dentro de su
+  // panel, pero lo que carga queda sin publicar hasta que ella lo aprueba (_trade-revision.js).
+  async function modoTrade(){
+    const R=window.GBRevision; if(!R) return;
+    await R.listo;
+    if(!R.esTrade) return;
+    document.querySelector('.page-sub').textContent='Las campañas y los planes que ven los vendedores. Lo que cargues le llega a Luciana para aprobar: recién cuando lo aprueba lo ven los vendedores.';
+    // Solo campañas y planes: las otras herramientas del manual son de Luciana.
+    document.querySelectorAll('.page-head .btn-new').forEach((b,i)=>{ if(i>1) b.style.display='none'; });
+    const rail=document.querySelector('.rail'); if(rail) rail.style.display='none';
+    document.querySelector('.main-col').style.gridTemplateColumns='1fr';
+  }
+  function renderAvisoTrade(){
+    const R=window.GBRevision, el=document.getElementById('trade-aviso'); if(!el||!R) return;
+    const todas=CAMP.concat(PLANES);
+    if(R.esTrade){
+      const mias=todas.filter(a=>a.revision_autor===R.uid), c=k=>mias.filter(a=>a.revision===k).length;
+      el.innerHTML=`<div class="gbr-aviso"><span>Lo que cargás le llega a Luciana para aprobar.${mias.length?` Tus propuestas: <b>${c('pendiente')}</b> para aprobar · <b>${c('observada')}</b> con observaciones · <b>${c('aprobada')}</b> aprobadas.`:''}</span>${c('observada')?`<a onclick="filtrarPorEstado('observada')">Ver las que tienen observaciones</a>`:''}</div>`;
+    } else {
+      const p=todas.filter(a=>a.revision==='pendiente').length;
+      el.innerHTML=p?`<div class="gbr-aviso"><span>📝 Tenés <b>${p}</b> propuesta${p>1?'s':''} de Trade Marketing para aprobar.</span><a onclick="filtrarPorEstado('revision')">Ver</a></div>`:'';
+    }
+  }
+
   async function cargar(){
+    await modoTrade();
     let secs=[];
     try{
       const [rc, rp, rs] = await Promise.all([
@@ -434,7 +465,8 @@
   }
 
   function renderStats(){
-    const b={activa:0,proxima:0,pausada:0,vencida:0,borrador:0};
+    renderAvisoTrade();
+    const b={activa:0,proxima:0,pausada:0,vencida:0,borrador:0,revision:0,observada:0,rechazada:0};
     items().forEach(a=>b[estadoDe(a).k]++);
     const cards=[
       {n:'Activas',v:b.activa,link:'Ver todas',c:'circ-green',ico:'<path d="M11 5L6 9H3v6h3l5 4V5z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',e:'activa'},
@@ -491,7 +523,7 @@
         <td><div class="chips">${esPlan?'<span class="chip tipo">Plan</span>':''}${a.requiere_evidencia?'<span class="chip evid">📷 Pide evidencia</span>':''}${canales||(esPlan?'':'<span style="color:var(--ink3)">—</span>')}</div></td>
         <td><span class="vig">${vig}</span></td>
         <td><span class="estado ${e.cls}">${e.txt}</span></td>
-        <td><div class="edicion">${fmt(a.created_at)}<small>por Luciana</small></div></td>
+        <td><div class="edicion">${fmt(a.created_at)}<small>por ${esc(a.revision_autor_nombre||'Luciana')}</small></div></td>
         <td style="text-align:right"><button class="dots" onclick="abrirMenuFila(event,'${a.id}')">⋯</button></td>
       </tr>`;
     }).join('');
@@ -534,10 +566,17 @@
     const esPlan = a._tipo==='plan';
     const pausada = esPlan ? (a.activo===false) : (a.activa===false);
     const verResultados = esPlan ? '' : `<button onclick="location.href='admin-resultados.html'">📊 Ver resultados</button>`;
+    const R=window.GBRevision;
+    // Juan Pablo: solo edita o borra lo suyo sin aprobar; el resto lo puede ver.
+    if(R && R.esTrade){
+      m.innerHTML = R.editable(a)
+        ? `<button onclick="editCamp()">✏️ Editar</button><div class="fm-sep"></div><button class="fm-del" onclick="delCamp()">🗑️ Eliminar</button>`
+        : `<button onclick="verDetalle(_menuId)">👁 Ver detalle</button>`;
+    } else
     m.innerHTML=`
       <button onclick="editCamp()">✏️ Editar</button>
       <button onclick="dupCamp()">📄 Duplicar</button>
-      <button onclick="toggleCamp()">${pausada?'▶️ Publicar':'⏸️ Pasar a borrador'}</button>
+      ${R && R.abierta(a) ? `<button onclick="verDetalle(_menuId)">📝 Revisar la propuesta</button>` : `<button onclick="toggleCamp()">${pausada?'▶️ Publicar':'⏸️ Pasar a borrador'}</button>`}
       ${verResultados}
       <div class="fm-sep"></div>
       <button class="fm-del" onclick="delCamp()">🗑️ Eliminar</button>`;
@@ -591,8 +630,9 @@
     + filaDet('Precios', precios)
     + filaDet('Vigencia', vig)
     + filaDet('Materiales', mats)
-    + filaDet('Última edición', `${fmt(a.created_at)} <span class="muted">por Luciana</span>`);
+    + filaDet('Última edición', `${fmt(a.created_at)} <span class="muted">por ${esc(a.revision_autor_nombre||'Luciana')}</span>`);
 
+    extraRevision(a);
     document.getElementById('det-overlay').classList.add('open');
   }
 
@@ -625,9 +665,21 @@
     + (p.descripcion?filaDet('Descripción', esc(p.descripcion)):'')
     + filaDet('Vigencia', vig)
     + filaDet('PDF', pdf)
-    + filaDet('Última edición', `${fmt(p.created_at)} <span class="muted">por Luciana</span>`);
+    + filaDet('Última edición', `${fmt(p.created_at)} <span class="muted">por ${esc(p.revision_autor_nombre||'Luciana')}</span>`);
 
+    extraRevision(p);
     document.getElementById('det-overlay').classList.add('open');
+  }
+  // Propuestas de Trade Marketing: quién la propuso, su nota y lo que le marcó Luciana;
+  // Luciana la aprueba (se publica), le hace observaciones o no la aprueba desde acá.
+  function extraRevision(a){
+    const R=window.GBRevision, body=document.getElementById('det-body');
+    if(!R) return;
+    if(R.esPropuesta(a)) body.insertAdjacentHTML('afterbegin', R.bloque(a));
+    R.revisar(body.querySelector('.gbr')||body, a, a._tipo==='plan'?'plan':'campania', ()=>{ refrescar(); setTimeout(cerrarDetalle, 1000); });
+    // Juan Pablo solo edita lo suyo que no está aprobado.
+    const btnEd=document.querySelector('.det-foot .det-btn.primary');
+    if(btnEd) btnEd.style.display = (R.esTrade && !R.editable(a)) ? 'none' : '';
   }
   function cerrarDetalle(){ document.getElementById('det-overlay').classList.remove('open'); _detId=null; }
   function editarDesdeDetalle(){
@@ -667,7 +719,7 @@
       const copia = soloPlan(a); copia.nombre = (a.nombre||'') + ' (copia)'; copia.activo = false;
       r = await sb.from('checklist_planes').insert(copia);
     } else {
-      const {id,created_at,_tipo,...rest}=a; rest.activa=false; // la copia queda pausada
+      const {id,created_at,_tipo,revision,revision_autor,revision_autor_nombre,revision_nota,revision_obs,revision_por,revision_at,revision_historial,...rest}=a; rest.activa=false; // la copia queda pausada
       r = await sb.from('acciones_mensuales').insert(rest);
     }
     if(r.error){alert('No se pudo duplicar: '+r.error.message);return;}
