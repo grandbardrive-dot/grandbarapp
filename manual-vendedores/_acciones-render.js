@@ -77,8 +77,9 @@
       display: inline-block;
       background: #1B4332; color: #fff;
       font-size: 12px; font-weight: 800;
-      padding: 3px 11px; border-radius: 20px;
+      padding: 3px 11px; border-radius: 14px;
       align-self: flex-start;
+      white-space: pre-line; line-height: 1.4;   /* la mecánica puede tener varios renglones (10/11/2026) */
     }
     .am-precio-wrap  { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
     .am-precio-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#9E9B96; }
@@ -219,7 +220,8 @@
     .am-modal-item-accion {
       display:inline-block; margin-top:4px;
       background:#1B4332; color:#fff; font-size:11px; font-weight:700;
-      padding:2px 10px; border-radius:20px;
+      padding:2px 10px; border-radius:12px;
+      white-space:pre-line; line-height:1.4;
     }
     .am-modal-item-precio { font-family:'DM Mono',monospace; font-size:13px; font-weight:700; color:#1F447F; margin-top:4px; }
     .am-modal-item-rm {
@@ -452,7 +454,7 @@ function _amActualizarResumen() {
       <span class="am-resumen-item-icon">${a.categoria === 'vinos' ? '🍷' : '🥃'}</span>
       <div class="am-resumen-item-info">
         <div class="am-resumen-item-nombre">${_amEsc(a.producto)}</div>
-        <div class="am-resumen-item-cond">${_amEsc(a.accion)}${a.cantidad ? ' · <b>' + a.cantidad + ' ' + (a.unidad || 'cajas') + '</b>' : ''}${a.precio_accionado ? ' · $' + Number(a.precio_accionado).toLocaleString('es-AR') : ''}</div>
+        <div class="am-resumen-item-cond">${_amEsc(String(a.accion || '').replace(/\s*\n+\s*/g, ' · '))}${a.cantidad ? ' · <b>' + a.cantidad + ' ' + (a.unidad || 'cajas') + '</b>' : ''}${a.precio_accionado ? ' · $' + Number(a.precio_accionado).toLocaleString('es-AR') : ''}</div>
       </div>
     </div>`).join('');
   });

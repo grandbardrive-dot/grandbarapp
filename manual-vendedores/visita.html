@@ -1913,7 +1913,7 @@ body { background:transparent !important; }
 <script src="_torneo-oficial.js"></script>
 <script src="_checklist-data.js?v=5"></script>
 <script src="_torneo.js"></script>
-<script src="_acciones-render.js?v=6"></script>
+<script src="_acciones-render.js?v=7"></script>
 <script src="_evidencia-accion.js?v=3"></script>
 <script src="_celebracion.js"></script>
 <script src="_disco-tools.js"></script>
@@ -3011,7 +3011,7 @@ body { background:transparent !important; }
         if (!a) return;
         const prev = cartItems.find(c => c._amId === a.id);
         if (!seleccionada) { if (prev) cartRemove(prev.id); return; }
-        const nombre = (a.producto || 'Acción') + (a.accion ? ' — ' + a.accion : '');
+        const nombre = (a.producto || 'Acción') + (a.accion ? ' — ' + String(a.accion).replace(/\s*\n+\s*/g, ' · ') : '');
         const it = prev || cartAdd('Acciones del mes', nombre, 'Aceptada', a.cantidad || 1, a.unidad || 'cajas');
         it._amId = a.id; it.cantidad = a.cantidad || 1; it.unidad = a.unidad || 'cajas';
         it.origen = { t: 'campania', id: a.id, ev: a.requiere_evidencia === true };

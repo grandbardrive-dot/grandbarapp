@@ -523,7 +523,7 @@
         : (a.categoria?`<div><span class="cat-tag">${esc(a.categoria)}</span></div>`:'');
       const vig=(a.fecha_inicio||a.fecha_fin)?`${fmt(a.fecha_inicio)}<br>– ${fmt(a.fecha_fin)}`:(esPlan?'<span style="color:var(--ink3)">Sin límite</span>':'—');
       return `<tr style="cursor:pointer" onclick="verDetalle('${a.id}')">
-        <td><div class="camp">${thumb}<div><div class="camp-n">${esc(a.producto||'—')}</div><div class="camp-t">${esc(a.accion||'Campaña')}</div>${cat}</div></div></td>
+        <td><div class="camp">${thumb}<div><div class="camp-n">${esc(a.producto||'—')}</div><div class="camp-t">${esc(String(a.accion||'Campaña').replace(/\s*\n+\s*/g,' · '))}</div>${cat}</div></div></td>
         <td>${a.proveedor?`<span class="prov">${esc(a.proveedor)}</span>`:'<span style="color:var(--ink3)">—</span>'}</td>
         <td><div class="chips">${esPlan?'<span class="chip tipo">Plan</span>':''}${a.requiere_evidencia?'<span class="chip evid">📷 Pide evidencia</span>':''}${zonaChip(a)}${canales||(esPlan?'':'<span style="color:var(--ink3)">—</span>')}</div></td>
         <td><span class="vig">${vig}</span></td>
@@ -632,7 +632,7 @@
     + filaDet('Canales', canales)
     + filaDet('Zona', zonaTxt(a))
     + filaDet('Ubicaciones', ubic)
-    + filaDet('Mecánica', a.accion?esc(a.accion):'<span class="muted">—</span>')
+    + filaDet('Mecánica', a.accion?`<span style="white-space:pre-line">${esc(a.accion)}</span>`:'<span class="muted">—</span>')
     + filaDet('Precios', precios)
     + filaDet('Vigencia', vig)
     + filaDet('Materiales', mats)

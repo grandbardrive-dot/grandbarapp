@@ -107,8 +107,9 @@
   label.evid-chk small{display:block;font-size:12px;font-weight:500;color:var(--ink3);margin-top:3px;line-height:1.45}
   @media (max-width:560px){ .form-grid{grid-template-columns:1fr} }
   .fld label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px}
-  .fld input, .fld select{width:100%;padding:11px 12px;border:1.5px solid var(--line-2);border-radius:9px;font-size:14px;font-family:inherit;outline:none;background:var(--surface)}
-  .fld input:focus,.fld select:focus{border-color:var(--navy)}
+  .fld input, .fld select, .fld textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line-2);border-radius:9px;font-size:14px;font-family:inherit;outline:none;background:var(--surface)}
+  .fld textarea{resize:vertical;min-height:76px;line-height:1.45}
+  .fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--navy)}
   .full{grid-column:1 / -1}
 
   .nav{display:flex;justify-content:space-between;margin-top:20px;gap:12px}
@@ -582,7 +583,7 @@
     } else if(paso===5){
       el.innerHTML=`<div class="panel-h">5. Configurá la promoción</div><div class="panel-sub">Definí la mecánica y los precios. Las fechas son opcionales: si las dejás vacías, la campaña queda vigente sin límite de tiempo.</div>
         <div class="form-grid">
-          <div class="fld"><label>Mecánica</label><input id="f-mec" type="text" placeholder="Ej: 3+1, 20% OFF, 2+1" value="${esc(st.mecanica)}" oninput="st.mecanica=this.value;renderResumen()"></div>
+          <div class="fld"><label>Mecánica</label><textarea id="f-mec" rows="3" placeholder="Ej: 3+1, 20% OFF, 2+1&#10;Con Enter pasás al renglón de abajo." oninput="st.mecanica=this.value;renderResumen()">${esc(st.mecanica)}</textarea></div>
           <div class="fld"><label>Precio regular ($)</label><input id="f-preg" type="number" placeholder="0" value="${esc(st.precioReg)}" oninput="st.precioReg=this.value;renderResumen()"></div>
           <div class="fld"><label>Precio accionado ($)</label><input id="f-pacc" type="number" placeholder="0" value="${esc(st.precioAcc)}" oninput="st.precioAcc=this.value;renderResumen()"></div>
           <div class="fld"><label>&nbsp;</label><div style="font-size:13px;color:var(--ink3);padding-top:11px">${pctOff()}</div></div>
@@ -659,7 +660,7 @@
   }
   function filaRev(k,v){
     const val = v ? esc(v) : '<span style="color:#c0392b">Falta</span>';
-    return `<div style="display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--line)"><span style="font-size:12.5px;color:var(--ink3);font-weight:600">${k}</span><span style="font-size:13.5px;font-weight:700;text-align:right">${val}</span></div>`;
+    return `<div style="display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--line)"><span style="font-size:12.5px;color:var(--ink3);font-weight:600">${k}</span><span style="font-size:13.5px;font-weight:700;text-align:right;white-space:pre-line">${val}</span></div>`;
   }
   function pctOff(){ const r=parseFloat(st.precioReg),a=parseFloat(st.precioAcc); if(r>0&&a>0&&a<r){ return `<b style="color:var(--green)">${Math.round((1-a/r)*100)}% OFF</b>`;} return 'El % OFF se calcula solo.'; }
 
