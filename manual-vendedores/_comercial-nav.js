@@ -88,6 +88,8 @@
     { titulo: 'Catálogo', items: [
       { h: 'admin-catalogo.html', t: 'Catálogo', s: 'Proveedores y productos', i: 'catalogo' },
       { h: 'admin-catalogo-clientes.html', t: 'Catálogo clientes', s: 'Catálogo público de acciones', i: 'publico' },
+      // Acciones que carga Juan Pablo Sepúlveda; se publican cuando Luciana las aprueba (10/11/2026).
+      { h: 'admin-trade-catalogo.html', t: 'Acciones de Trade Marketing', s: 'Para revisar y aprobar', i: 'propuestas' },
       { h: 'admin-comparador.html', t: 'Comparador de precios', s: 'Precios de la competencia', i: 'comparador' },
     ]},
     { titulo: 'Proveedores', items: [
@@ -216,20 +218,29 @@
       var iso = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
       var fecha = function (s) { var x = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return x ? new Date(+x[1], +x[2] - 1, +x[3]) : null; };
       var vigente = function (a) { var fi = fecha(a.fecha_inicio); return !fi || fi <= d0; };
-      // Devoluciones de Trade Marketing sin ver (viven en el Hub: se cuentan con la función).
-      var devoluciones = window.supabase.createClient(HUB.url, HUB.key).auth.getSession().then(function (s) {
-        var t = s && s.data && s.data.session && s.data.session.access_token;
-        if (!t) return 0;
-        return fetch('/.netlify/functions/trade-devoluciones?vista=contar', { headers: { Authorization: 'Bearer ' + t } })
-          .then(function (x) { return x.ok ? x.json() : {}; }).then(function (j) { return j.pendientes || 0; });
-      }).catch(function () { return 0; });
+      // Devoluciones de Trade Marketing sin ver y acciones del catálogo que mandó Trade
+      // Marketing para revisar (viven en el Hub: se cuentan con sus funciones).
+      var sesion = window.supabase.createClient(HUB.url, HUB.key).auth.getSession();
+      var contarEn = function (fn) {
+        return sesion.then(function (s) {
+          var t = s && s.data && s.data.session && s.data.session.access_token;
+          if (!t) return 0;
+          return fetch('/.netlify/functions/' + fn + '?vista=contar', { headers: { Authorization: 'Bearer ' + t } })
+            .then(function (x) { return x.ok ? x.json() : {}; }).then(function (j) { return j.pendientes || 0; });
+        }).catch(function () { return 0; });
+      };
+      var devoluciones = contarEn('trade-devoluciones');
+      var deTrade = contarEn('trade-catalogo');
       Promise.all([
         m.from('propuestas_acciones').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente'),
         m.from('acciones_mensuales').select('*').eq('activa', true).gte('fecha_fin', iso(d0)).lte('fecha_fin', iso(d7) + 'T23:59:59'),
         m.from('checklist_planes').select('*').gte('fecha_fin', iso(d0)).lte('fecha_fin', iso(d7) + 'T23:59:59'),
         devoluciones,
+        deTrade,
       ]).then(function (r) {
         var lista = [];
+        var trade = r[4] || 0;
+        if (trade) lista.push({ icon: '📝', titulo: 'Tenés ' + trade + (trade > 1 ? ' acciones' : ' acción') + ' de Trade Marketing para revisar', detalle: 'Para el catálogo de clientes', link: 'admin-trade-catalogo.html' });
         var dev = r[3] || 0;
         if (dev) lista.push({ icon: '📣', titulo: 'Tenés ' + dev + (dev > 1 ? ' devoluciones' : ' devolución') + ' de Trade Marketing sin ver', detalle: 'Observaciones de los vendedores sobre tus acciones', link: 'admin-devoluciones.html' });
         var prop = (r[0] && r[0].count) || 0;
