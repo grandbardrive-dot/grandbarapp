@@ -451,9 +451,15 @@
   const tieneSL=c=>SECS_ALL.some(s=>s.canal===c && s.zona==='sanluis');
   // Un bloque por manual (de los canales del paso 3) y por zona. San Luis sin manual propio de
   // ese canal usa el de Mendoza (como la visita): se muestra una sola vez para las dos.
+  // San Luis no trabaja Tiendas de bebidas (lo dijo el usuario el 10/11/2026; en CUBO hay 2 clientes
+  // de San Luis con ese tipo): no se ofrece ahí. Si una campaña ya tenía algo marcado en ese
+  // manual, se sigue mostrando para no perderlo al guardar.
+  const SIN_CANAL={ sanluis:['tienda_bebidas'] };
+  const ofrece=(c,z)=>!(SIN_CANAL[z]||[]).includes(c) || SECS_ALL.some(s=>st.secs.has(s.id) && s.canal===c && zonaDe(s)===z);
   function gruposUbic(){
     const zonas=st.zonas.length?st.zonas:['mendoza','sanluis'], out=[];
     gruposChecklist().forEach(g=>zonas.forEach(z=>{
+      if(!ofrece(g.canal,z)) return;
       const zm=(z==='sanluis' && !tieneSL(g.canal))?'mendoza':z;
       const ya=out.find(o=>o.canal===g.canal && o.zm===zm);
       if(ya) ya.zonas.push(z); else out.push({ ...g, zm, zonas:[z] });
@@ -473,12 +479,13 @@
     st.zonas = v ? [v] : [];
     // El mayorista de la otra zona no corresponde.
     if(v==='mendoza') st.canales=st.canales.filter(c=>c!=='mayorista_sanluis');
-    if(v==='sanluis') st.canales=st.canales.filter(c=>c!=='mayorista_mendoza');
+    if(v==='sanluis') st.canales=st.canales.filter(c=>c!=='mayorista_mendoza' && (c!=='tiendas_bebidas' || ofrece('tienda_bebidas','sanluis')));
     renderPaso(); renderResumen();
   }
   function subsDe(g){
     const z=st.zonas.length===1?st.zonas[0]:'';
-    return g.subs.filter(([v])=>!(z==='mendoza'&&v==='mayorista_sanluis') && !(z==='sanluis'&&v==='mayorista_mendoza'));
+    return g.subs.filter(([v])=>!(z==='mendoza'&&v==='mayorista_sanluis') && !(z==='sanluis'&&v==='mayorista_mendoza')
+      && !(z==='sanluis' && !ofrece(canalChecklistDe(v),'sanluis') && !st.canales.includes(v)));
   }
   function zonaTexto(){ return st.zonas.length===1 ? 'Solo '+ZONA_LBL[st.zonas[0]] : 'Mendoza y San Luis'; }
 

@@ -217,12 +217,18 @@
   const porOrd = (a,b) => (a.orden||0) - (b.orden||0);
   const zonaDe = s => s.zona === 'sanluis' ? 'sanluis' : 'mendoza';
   const tieneSL = c => UB.secs.some(s => s.canal === c && s.zona === 'sanluis');
+  // San Luis no trabaja Tiendas de bebidas (lo dijo el usuario el 10/11/2026): no se ofrece ahí.
+  // Si un plan ya tenía algo marcado en ese manual (dos de Peñaflor), se sigue mostrando para
+  // no perderlo al guardar.
+  const SIN_CANAL = { sanluis: ['tienda_bebidas'] };
+  const ofrece = (c, z) => !(SIN_CANAL[z] || []).includes(c) || UB.secs.some(s => UB.marcadas.has(s.id) && s.canal === c && zonaDe(s) === z);
   // San Luis sin manual propio de ese tipo de cliente usa el de Mendoza (como la visita).
   function gruposUbic(){
     const zonas = UB.zonas.length ? UB.zonas : ['mendoza','sanluis'], out = [];
     MANUALES.forEach(([,l]) => l.forEach(([c]) => {
       if(!UB.manuales.has(c)) return;
       zonas.forEach(z => {
+        if(!ofrece(c, z)) return;
         const zm = (z === 'sanluis' && !tieneSL(c)) ? 'mendoza' : z;
         const ya = out.find(o => o.canal === c && o.zm === zm);
         if(ya) ya.zonas.push(z); else out.push({ canal:c, zm, zonas:[z] });
@@ -265,6 +271,7 @@
         <span class="zona-hint">${z1 ? 'Lo ven solo los vendedores de ' + ZONA_LBL[z1] + '.' : 'Lo ven los vendedores de Mendoza y de San Luis.'}</span></div>
       <div class="man-t">Tipos de cliente</div>
       ${MANUALES.map(([t,l]) => `<div class="man-g"><span class="man-gt">${t}</span>${l.map(([c,i,nom]) => { const k = nMan(c);
+        if(z1 && !ofrece(c, z1)) return '';   // con "Solo San Luis" no aparece Tiendas de bebidas
         return `<button type="button" class="man-b ${UB.manuales.has(c)?'on':''}" onclick="ubManual('${c}')">${i} ${nom}${k?` <b>${k}</b>`:''}</button>`; }).join('')}</div>`).join('')}
       ${grupos.length ? bloques : '<div class="canal-empty">Elegí uno o más tipos de cliente para ver sus secciones.</div>'}
       <div class="sec-count">${n ? n + (n > 1 ? ' secciones marcadas' : ' sección marcada') : 'Todavía no marcaste ninguna sección.'}</div>`;
