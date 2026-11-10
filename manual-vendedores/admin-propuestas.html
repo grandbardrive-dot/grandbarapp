@@ -215,9 +215,9 @@
         <div class="hint" id="h-grupo">Elegí uno de la lista para que quede junto a los demás de ese grupo. Si lo dejás vacío, va suelto dentro del proveedor.</div>
       </div>
       <div class="fld">
-        <label>SKU <span style="text-transform:none;font-weight:400">(de Aikon · para la regla de 6 meses · opcional)</span></label>
+        <label>SKU <span style="text-transform:none;font-weight:400">(de Aikon · opcional)</span></label>
         <input type="text" id="f-sku" placeholder="Ej: 10234, 10235, 10236   (uno o varios separados por coma)" maxlength="600">
-        <div class="hint">Si el cliente ya compró este SKU en los últimos 6 meses, esta línea no se le ofrece hasta que pasen los 6 meses. Si lo dejás vacío, aparece siempre.</div>
+        <div class="hint">Para identificar el producto. La propuesta se muestra a todos los clientes de la sección, haya comprado o no (desde el 10/11/2026 ya no se esconde por las compras de los últimos 6 meses).</div>
       </div>
       <div class="fld">
         <label>¿Dónde se ve? <span style="text-transform:none;font-weight:400">(zona y secciones, opcional)</span></label>
@@ -326,7 +326,7 @@
       const filas = arr => arr.map(p => {
         const hs = hermanas(p), i = hs.findIndex(x=>x.id===p.id);
         return `<div class="prop ${p.activo===false?'off':''}">
-          <div class="prop-n">${esc(p.nombre)} ${p.activo===false?'<span class="tag off">Oculta</span>':''} ${segmentado(p)?`<span class="tag">${esc(Segmentacion.texto(p, MAPA))}</span>`:''} ${p.sku?`<span class="tag" title="Regla 6 meses por SKU" style="background:#eef6ef;color:#2f8f6e">SKU ${esc(p.sku)}</span>`:''}</div>
+          <div class="prop-n">${esc(p.nombre)} ${p.activo===false?'<span class="tag off">Oculta</span>':''} ${segmentado(p)?`<span class="tag">${esc(Segmentacion.texto(p, MAPA))}</span>`:''} ${p.sku?`<span class="tag" title="SKU de Aikon" style="background:#eef6ef;color:#2f8f6e">SKU ${esc(p.sku)}</span>`:''}</div>
           <div class="acts">
             <button class="ab" title="Subir" onclick="mover('${p.id}',-1)" ${i<=0?'disabled':''}>↑</button>
             <button class="ab" title="Bajar" onclick="mover('${p.id}',1)" ${i>=hs.length-1?'disabled':''}>↓</button>

@@ -5277,34 +5277,10 @@ body { background:transparent !important; }
     return _propTextos;
   }
 
-  // Regla de incorporación por SKU (cada 6 meses): si el cliente compró el SKU de
-  // una línea en los últimos 6 meses (ventas_cliente, negro + blanco del ERP), esa
-  // línea NO se le ofrece hasta que pasen los 6 meses. Las líneas sin SKU cargado
-  // se muestran siempre. Cruce por cliente.codigo_cliente + propuestas_incorporacion.sku.
-  // Consulta SOLO los SKU de estas propuestas (no todas las ventas): así no se corta
-  // en el tope de 1000 filas de PostgREST y es más liviano. Es el ÚNICO lugar a tocar.
-  const _splitSku = s => String(s || '').split(/[,;\s]+/).map(x => x.trim()).filter(Boolean);
-  async function filtrarPropuestasPorCliente(propuestas, clienteId) {
-    const cod = String(cliente.codigo_cliente || '').trim();
-    if (!cod) return propuestas;
-    const skusInteres = [...new Set(propuestas.flatMap(p => _splitSku(p.sku)))];
-    if (!skusInteres.length) return propuestas;   // ninguna línea tiene SKU: se ofrecen todas
-    const comprados = new Set();
-    try {
-      const desde = new Date(); desde.setMonth(desde.getMonth() - 6);
-      const d = desde.toISOString().slice(0, 10);
-      const { data } = await sb.from('ventas_cliente')
-        .select('sku').eq('cliente_codigo', cod).gt('unidades', 0).gte('fecha', d)
-        .in('sku', skusInteres);
-      (data || []).forEach(r => { if (r.sku != null) comprados.add(String(r.sku).trim()); });
-    } catch (e) { return propuestas; }            // sin ventas / error: no se filtra nada
-    if (!comprados.size) return propuestas;
-    return propuestas.filter(p => {
-      const skus = _splitSku(p.sku);
-      if (!skus.length) return true;              // sin SKU cargado: se ofrece siempre
-      return !skus.some(s => comprados.has(s));   // compró alguno en 6 meses → no se ofrece
-    });
-  }
+  // Las propuestas se muestran TODAS, a todos los clientes de la sección (10/11/2026, pedido
+  // del usuario: "no quiero que esté discriminado"). Antes se escondía la línea cuyo SKU el
+  // cliente había comprado en los últimos 6 meses y el bloque decía "A este cliente podés
+  // ofrecerle", como si detectara qué no se le ofreció.
 
   // Lista de productos con botón [+]/✓. cartLabel = sección con la que entra al carrito.
   function propListaProductos(items, cartLabel) {
@@ -5331,7 +5307,6 @@ body { background:transparent !important; }
       const uuidSec = (buscarSec(secId) || {})._uuid;
       props = (data || []).filter(p => segVa(p, uuidSec) && (segMarcado(p) || !categoria || p.categoria === categoria));
     } catch {}
-    props = await filtrarPropuestasPorCliente(props, cliente.id);
     const textosProv = await _getPropTextos();
     props.forEach(p => marcarOfrecido(p.nombre, sec));   // Mejora 3: registrar lo ofrecido
     if (!props.length) { el.innerHTML = `<div class="prop-loading">Todavía no hay propuestas de incorporación cargadas para esta sección.</div>`; return; }
@@ -5347,7 +5322,7 @@ body { background:transparent !important; }
     const provs = PROP_PROVEEDOR_ORDEN.filter(pr => porProv[pr])
       .concat(Object.keys(porProv).filter(pr => !PROP_PROVEEDOR_ORDEN.includes(pr)));
 
-    let html = `<div class="prop-head">🍷 A este cliente podés ofrecerle:</div>`;
+    let html = `<div class="prop-head">🍷 Propuestas de incorporación de esta sección:</div>`;
     provs.forEach((prov, pi) => {
       const items = porProv[prov];
       const conGrupo = items.filter(p => p.grupo && p.grupo.trim());
