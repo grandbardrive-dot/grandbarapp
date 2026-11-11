@@ -91,6 +91,10 @@
     .ev-sheet{background:#fff;width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 18px 22px}
     @media(min-width:640px){ .ev-ov{align-items:center} .ev-sheet{border-radius:18px} }
     .ev-sheet h3{margin:0 0 4px;font-size:18px} .ev-sheet .s{font-size:13px;color:var(--muted);margin-bottom:12px}
+    /* Solo lo del torneo (11/11/2026: se cargaron acá evidencias del Día de la Madre) */
+    .ev-solo{background:var(--gold-soft);border:1px solid #ecdcb2;border-left:4px solid var(--gold);border-radius:10px;padding:9px 12px;font-size:13px;line-height:1.45;color:#5b4512;margin:0 0 12px}
+    .ev-solo b{color:#3d2e0a} .ev-solo a{color:#8a6412;font-weight:700;text-decoration:underline}
+    .ev-top .ev-solo{margin:10px 0 0;max-width:56ch}
     .ev-sheet label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:12px 0 5px}
     .ev-sheet select,.ev-sheet input,.ev-sheet textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:15px;background:#fff;color:var(--ink)}
     .ev-sheet textarea{min-height:64px;resize:vertical}
@@ -277,6 +281,7 @@
 <div class="ev-ov" id="evOv"><div class="ev-sheet">
   <h3>Cargar activación</h3>
   <div class="s">Hace falta la evidencia (hasta 2 fotos y un video corto), el cliente y la fecha de activación. La revisa Juan Pablo Sepúlveda, jefe de Trade Marketing.</div>
+  <div class="ev-solo"><b>Solo activaciones del Torneo Doña Paula.</b> Las del Día de la Madre, las de las campañas del manual y las de otros proveedores van en <a href="evidencias.html">Evidencias</a>.</div>
   <label for="evLinea">Línea</label>
   <select id="evLinea"><option value="">Elegí la línea…</option></select>
   <label for="evAccion">Acción</label>
@@ -331,7 +336,8 @@
       const cont = $e('tp-cont');
       if (BLOQUEO) { cont.innerHTML = '<div class="tp-card"><h3>Mis activaciones</h3><div class="tp-vacio">' + esc(BLOQUEO) + '</div></div>'; return; }
       const cab ='<div class="tp-card"><div class="ev-top"><div><h3 style="margin:0">Mis activaciones</h3>'
-        + '<p>Cargá cada activación con sus fotos o un video corto, el cliente y la fecha. Cuando la revisen te llega el aviso a la campanita.</p></div>'
+        + '<p>Cargá cada activación con sus fotos o un video corto, el cliente y la fecha. Cuando la revisen te llega el aviso a la campanita.</p>'
+        + '<div class="ev-solo"><b>Solo activaciones del Torneo Doña Paula.</b> Las del Día de la Madre, las de las campañas del manual y las de otros proveedores van en <a href="evidencias.html">Evidencias</a>.</div></div>'
         + '<button class="ev-btn" id="evNueva" type="button">+ Cargar activación</button></div></div>';
       let lista;
       if (MIAS === null) lista = '<div class="tp-card"><div class="tp-vacio">Cargando…</div></div>';
