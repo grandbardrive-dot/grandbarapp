@@ -199,6 +199,9 @@
   });
 
   const editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
+  // "Volver a dar de alta" un plan vencido (11/11/2026): ?copiar=<id> precarga todo menos la
+  // vigencia y se guarda como un plan NUEVO (el vencido queda como estaba).
+  const copiarId = editId ? null : new URLSearchParams(location.search).get('copiar');
   let planPdfActual = null;   // pdf_url existente (para conservarlo si no suben otro)
 
   // ── Dónde aparece el plan (10/11/2026) ──────────────────────────────────────────
@@ -310,18 +313,20 @@
   }
 
   // Modo edición: precargar el plan existente
-  async function cargarPlan(id){
+  async function cargarPlan(id, copia){
     try{
       const { data:p } = await sb.from('checklist_planes').select('*').eq('id',id).single();
       if(!p) return;
-      // Juan Pablo solo edita lo suyo que todavía no está aprobado.
-      if(esTrade() && !REV.editable(p)){
+      // Juan Pablo solo edita lo suyo que todavía no está aprobado (copiar sí puede cualquiera).
+      if(!copia && esTrade() && !REV.editable(p)){
         document.querySelector('.wrap').innerHTML = '<div class="card" style="text-align:center;color:var(--ink2)">Este plan ya está publicado: solo Luciana lo puede cambiar.<br><br><a href="admin-campanias.html?tab=planes" style="font-weight:700;text-decoration:underline">Volver a Campañas y planes</a></div>';
         return;
       }
-      FILA = p;
-      if(REV) document.querySelector('.wrap').insertAdjacentHTML('afterbegin', REV.bloque(p));
-      document.getElementById('rev-nota').value = p.revision_nota || '';
+      if(!copia){
+        FILA = p;
+        if(REV) document.querySelector('.wrap').insertAdjacentHTML('afterbegin', REV.bloque(p));
+        document.getElementById('rev-nota').value = p.revision_nota || '';
+      }
       document.getElementById('f-titulo').value    = p.nombre || '';
       const secsSel = (Array.isArray(p.secciones)&&p.secciones.length) ? p.secciones : (p.seccion_id?[p.seccion_id]:[]);
       UB.set({ secciones: secsSel, zonas: p.zonas || [] });
@@ -332,11 +337,19 @@
       // Un renglón por línea. Si hay una sola, se agrega un salto final para que al
       // guardar no se parta por las comas que pueda tener adentro.
       document.getElementById('f-lineas').value = lin.join('\n') + (lin.length===1 ? '\n' : '');
-      document.getElementById('f-desde').value = p.fecha_inicio || '';
-      document.getElementById('f-hasta').value = p.fecha_fin || '';
+      document.getElementById('f-desde').value = copia ? '' : (p.fecha_inicio || '');   // la copia lleva vigencia nueva
+      document.getElementById('f-hasta').value = copia ? '' : (p.fecha_fin || '');
       document.getElementById('f-evid').checked = p.requiere_evidencia === true;
       planPdfActual = p.pdf_url || null;
       if(planPdfActual) document.getElementById('pdf-name').innerHTML = 'PDF actual cargado — elegí otro solo si querés reemplazarlo';
+      if(copia){
+        const venc = p.fecha_fin ? String(p.fecha_fin).slice(0,10).split('-').reverse().join('/') : '';
+        document.querySelector('.top-t').textContent = 'Volver a dar de alta';
+        document.querySelector('.lead').textContent = 'Copia de “' + (p.nombre || 'el plan') + '”' + (venc ? ', que venció el ' + venc : '')
+          + '. Está todo cargado igual: poné la nueva vigencia y revisá el resto. Se guarda como un plan nuevo' + (esTrade() ? ' y le llega a Luciana para aprobar.' : '.');
+        document.title = 'GrandBar — Volver a dar de alta';
+        return;
+      }
       document.querySelector('.top-t').textContent = 'Editar plan';
       document.getElementById('btn-guardar').textContent = '✓ Guardar cambios';
       document.title = 'GrandBar — Editar plan';
@@ -347,6 +360,7 @@
     if(REV) await REV.listo;
     await montarUbic();
     if(editId) await cargarPlan(editId);
+    else if(copiarId) await cargarPlan(copiarId, true);
     if(document.getElementById('btn-guardar')) botonesRevision();
   })();
 
@@ -382,7 +396,7 @@
     msg.style.color='var(--ink2)'; msg.textContent = pdfFile ? 'Subiendo PDF y guardando…' : 'Guardando…';
 
     try{
-      let pdf_url = editId ? planPdfActual : null;   // en edición, conserva el PDF si no suben otro
+      let pdf_url = (editId || copiarId) ? planPdfActual : null;   // en edición (y en la copia) conserva el PDF si no suben otro
       if(pdfFile) pdf_url = await subirPDF(pdfFile);
 
       // Con saltos de renglón: una línea por renglón (las comas quedan adentro).

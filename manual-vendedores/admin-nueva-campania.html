@@ -350,6 +350,9 @@
   }
   let _matVerTodos=false, _ubicVerTodas=false;
   let editId = new URLSearchParams(location.search).get('id');   // si viene → modo edición
+  // "Volver a dar de alta" una campaña vencida (11/11/2026): ?copiar=<id> precarga todo menos
+  // la vigencia y se guarda como una campaña NUEVA (la vencida queda con su historial).
+  const copiarId = editId ? null : new URLSearchParams(location.search).get('copiar');
   let prodPage=1, prodCat='', prodQ='';
   // zonas: [] = Mendoza y San Luis · ['mendoza'] · ['sanluis'] (paso 3).
   // secs: ids de las secciones elegidas en el paso 4, cada una de su zona (10/11/2026).
@@ -390,19 +393,21 @@
     try{ (await sb.from('brands').select('id,name')).data?.forEach(b=>BRANDS[b.id]=b.name); }catch(e){}
 
     // Modo edición: cargar la campaña y precompletar el asistente
-    if(editId){
+    if(editId || copiarId){
       try{
-        const {data:row}=await sb.from('acciones_mensuales').select('*').eq('id',editId).single();
-        // Juan Pablo solo edita lo suyo que todavía no está aprobado.
-        if(row && esTrade() && !REV.editable(row)){
+        const {data:row}=await sb.from('acciones_mensuales').select('*').eq('id',editId||copiarId).single();
+        // Juan Pablo solo edita lo suyo que todavía no está aprobado (copiar sí puede cualquiera).
+        if(row && editId && esTrade() && !REV.editable(row)){
           document.getElementById('stepper').innerHTML='';
           document.querySelector('.nav').style.display='none';
           document.getElementById('panel').innerHTML='<div class="empty">Esta campaña ya está publicada: solo Luciana la puede cambiar. <a href="admin-campanias.html" style="color:var(--navy);font-weight:700;text-decoration:underline">Volver a Campañas y planes</a></div>';
           return;
         }
         if(row){
-          st._fila = row;
-          if(REV) document.getElementById('rev-bloque').innerHTML = REV.bloque(row);
+          if(editId){
+            st._fila = row;
+            if(REV) document.getElementById('rev-bloque').innerHTML = REV.bloque(row);
+          }
           st.proveedor = PROV.find(p=>p.nombre===row.proveedor) || (row.proveedor?{id:null,nombre:row.proveedor}:null);
           if(Array.isArray(row.productos)&&row.productos.length){
             st.productos = row.productos.map(mp=> PROD.find(p=>(mp.id&&p.id===mp.id)||(mp.sku&&p.sku===mp.sku)||p.nombre===mp.nombre) || {id:mp.id||null,nombre:mp.nombre,categoria:mp.categoria,imagen_url:mp.imagen_url,sku:mp.sku});
@@ -415,8 +420,8 @@
           st.mecanica  = row.accion||'';
           st.precioReg = row.precio_regular!=null?String(row.precio_regular):'';
           st.precioAcc = row.precio_accionado!=null?String(row.precio_accionado):'';
-          st.fechaIni  = row.fecha_inicio||'';
-          st.fechaFin  = row.fecha_fin||'';
+          st.fechaIni  = copiarId ? '' : (row.fecha_inicio||'');   // la copia lleva vigencia nueva
+          st.fechaFin  = copiarId ? '' : (row.fecha_fin||'');
           st.materiales= Array.isArray(row.materiales)?row.materiales.slice():[];
           st.requiereEvid = row.requiere_evidencia === true;
           st._activa   = row.activa;
@@ -428,9 +433,17 @@
           st.secs      = new Set(st._legado
             ? [...visiblesIds()].filter(id=>st.ubicaciones.includes((secDe(id)||{}).codigo))
             : row.secciones);
-          document.getElementById('page-title-txt').textContent='Editar campaña';
-          document.getElementById('page-sub').textContent='Modificá lo que quieras y guardá los cambios.';
-          document.title='GrandBar — Editar campaña';
+          if(copiarId){
+            const venc = row.fecha_fin ? String(row.fecha_fin).slice(0,10).split('-').reverse().join('/') : '';
+            document.getElementById('page-title-txt').textContent='Volver a dar de alta';
+            document.getElementById('page-sub').textContent='Copia de “'+(row.producto||'la campaña')+'”'+(venc?', que venció el '+venc:'')+'. Está todo cargado igual: poné la nueva vigencia y revisá el resto. Se guarda como una campaña nueva'+(esTrade()?' y le llega a Luciana para aprobar.':'.');
+            document.title='GrandBar — Volver a dar de alta';
+            paso=5;   // la vigencia está en el paso 5
+          } else {
+            document.getElementById('page-title-txt').textContent='Editar campaña';
+            document.getElementById('page-sub').textContent='Modificá lo que quieras y guardá los cambios.';
+            document.title='GrandBar — Editar campaña';
+          }
         } else { editId=null; }
       }catch(e){ console.warn(e); editId=null; }
     }

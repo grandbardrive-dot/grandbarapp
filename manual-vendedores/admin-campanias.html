@@ -205,6 +205,7 @@
   .det-btn svg{width:16px;height:16px}
   .det-btn.primary{background:linear-gradient(160deg,var(--navy),var(--navy-d));color:#fff;border:none}
   .det-btn.primary svg{color:var(--gold)}
+  .det-btn.alta{background:var(--green-bg,#E7F1EC);border-color:#b9d8c7;color:var(--green,#2D6A4F)}
 </style>
 </head>
 <body>
@@ -338,6 +339,7 @@
     <div class="det-body" id="det-body"></div>
     <div class="det-foot">
       <button class="det-btn" onclick="cerrarDetalle()">Cerrar</button>
+      <button class="det-btn alta" id="det-realta" onclick="volverAlta(_detId)" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0-2.3 5.7" stroke-linecap="round"/><path d="M20 4v7h-7" stroke-linecap="round" stroke-linejoin="round"/></svg>Volver a dar de alta</button>
       <button class="det-btn primary" onclick="editarDesdeDetalle()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16z" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke-linecap="round"/></svg>Editar</button>
     </div>
   </div>
@@ -358,7 +360,10 @@
   const CANAL_DE_MANUAL={evento:'eventos',restaurante:'restaurantes',vinoteca:'vinotecas',tienda_bebidas:'tiendas_bebidas',autoservicio:'autoservicios',hotel:'hoteles',bar:'bares',disco:'discos',mayorista:'mayoristas'};
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const hoy=new Date(); hoy.setHours(0,0,0,0);
-  const fmt=d=>{if(!d)return '—';const x=new Date(d);return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear();};
+  // Una fecha sin hora ("2026-10-30") se lee como día local: new Date() la tomaba como medianoche
+  // de Londres y acá mostraba el día anterior (y la campaña figuraba Vencida en su último día).
+  const diaLocal=s=>{const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(s);};
+  const fmt=d=>{if(!d)return '—';const x=diaLocal(d);return String(x.getDate()).padStart(2,'0')+'/'+String(x.getMonth()+1).padStart(2,'0')+'/'+x.getFullYear();};
   let CAMP=[], PLANES=[], _limite=6, _tab='todo';
 
   // Los planes (checklist_planes) viven en otra tabla y hasta ahora no se veían acá:
@@ -414,7 +419,7 @@
     if(a.revision==='rechazada') return {k:'rechazada',txt:'No aprobada',cls:'t-red'};
     if(a.pausada) return {k:'pausada',txt:'Pausada',cls:'t-amber'};
     if(!a.activa) return {k:'borrador',txt:'Borrador',cls:'t-navy'};
-    const fi=a.fecha_inicio?new Date(a.fecha_inicio):null, ff=a.fecha_fin?new Date(a.fecha_fin):null;
+    const fi=a.fecha_inicio?diaLocal(a.fecha_inicio):null, ff=a.fecha_fin?diaLocal(a.fecha_fin):null;
     if(ff&&ff<hoy) return {k:'vencida',txt:'Vencida',cls:'t-red'};
     if(fi&&fi>hoy) return {k:'proxima',txt:'Próxima',cls:'t-amber'};
     return {k:'activa',txt:'Activa',cls:'t-green'};
@@ -491,7 +496,7 @@
     const badge=document.getElementById('bell-badge'), pv=porVencer();
     if(pv>0){ badge.style.display='flex'; badge.textContent=pv; }
   }
-  function porVencer(){ const l=new Date(hoy);l.setDate(l.getDate()+7); return CAMP.concat(PLANES).filter(a=>{const e=estadoDe(a);if(e.k!=='activa'||!a.fecha_fin)return false;const ff=new Date(a.fecha_fin);return ff>=hoy&&ff<=l;}).length; }
+  function porVencer(){ const l=new Date(hoy);l.setDate(l.getDate()+7); return CAMP.concat(PLANES).filter(a=>{const e=estadoDe(a);if(e.k!=='activa'||!a.fecha_fin)return false;const ff=diaLocal(a.fecha_fin);return ff>=hoy&&ff<=l;}).length; }
   function filtrarPorEstado(e){ document.getElementById('f-estado').value=e; render(); window.scrollTo({top:260,behavior:'smooth'}); }
 
   function filtradas(){
@@ -574,12 +579,14 @@
     const R=window.GBRevision;
     // Juan Pablo: solo edita o borra lo suyo sin aprobar; el resto lo puede ver.
     if(R && R.esTrade){
-      m.innerHTML = R.editable(a)
+      m.innerHTML = (R.editable(a)
         ? `<button onclick="editCamp()">✏️ Editar</button><div class="fm-sep"></div><button class="fm-del" onclick="delCamp()">🗑️ Eliminar</button>`
-        : `<button onclick="verDetalle(_menuId)">👁 Ver detalle</button>`;
+        : `<button onclick="verDetalle(_menuId)">👁 Ver detalle</button>`)
+        + (estadoDe(a).k==='vencida' ? `<button onclick="volverAlta(_menuId)">↻ Volver a dar de alta</button>` : '');
     } else
     m.innerHTML=`
       <button onclick="editCamp()">✏️ Editar</button>
+      ${estadoDe(a).k==='vencida' ? `<button onclick="volverAlta(_menuId)">↻ Volver a dar de alta</button>` : ''}
       <button onclick="dupCamp()">📄 Duplicar</button>
       ${R && R.abierta(a) ? `<button onclick="verDetalle(_menuId)">📝 Revisar la propuesta</button>` : `<button onclick="toggleCamp()">${pausada?'▶️ Publicar':'⏸️ Pasar a borrador'}</button>`}
       ${verResultados}
@@ -680,6 +687,7 @@
   // Propuestas de Trade Marketing: quién la propuso, su nota y lo que le marcó Luciana;
   // Luciana la aprueba (se publica), le hace observaciones o no la aprueba desde acá.
   function extraRevision(a){
+    document.getElementById('det-realta').style.display = estadoDe(a).k==='vencida' ? '' : 'none';
     const R=window.GBRevision, body=document.getElementById('det-body');
     if(!R) return;
     if(R.esPropuesta(a)) body.insertAdjacentHTML('afterbegin', R.bloque(a));
@@ -687,6 +695,13 @@
     // Juan Pablo solo edita lo suyo que no está aprobado.
     const btnEd=document.querySelector('.det-foot .det-btn.primary');
     if(btnEd) btnEd.style.display = (R.esTrade && !R.editable(a)) ? 'none' : '';
+  }
+  // Volver a dar de alta una campaña o plan vencido (11/11/2026): abre el editor con todo
+  // cargado menos la vigencia y se guarda como uno nuevo (el vencido queda con su historial).
+  // Si lo hace Juan Pablo, le llega a Luciana para aprobar, como todo lo que carga.
+  function volverAlta(id){
+    if(!id) return;
+    location.href = (esPlanId(id) ? 'admin-nuevo-plan.html?copiar=' : 'admin-nueva-campania.html?copiar=') + encodeURIComponent(id);
   }
   function cerrarDetalle(){ document.getElementById('det-overlay').classList.remove('open'); _detId=null; }
   function editarDesdeDetalle(){
