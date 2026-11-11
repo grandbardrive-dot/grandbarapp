@@ -163,7 +163,7 @@
 
   // Solo entra quien tiene sesión en el Portal y un rol del área. El resto
   // vuelve al Hub, que lo manda a su propio panel; sin sesión, al ingreso.
-  var PARA_TRADE = ['admin-campanias', 'admin-nueva-campania', 'admin-nuevo-plan', 'admin-secciones'];
+  var PARA_TRADE = ['admin-campanias', 'admin-nueva-campania', 'admin-nuevo-plan', 'admin-secciones', 'admin-catalogo'];
   var EMBEBIDA = window.top !== window.self;   // dentro del panel de Trade: sin campanita propia
   function revisarAcceso() {
     try {

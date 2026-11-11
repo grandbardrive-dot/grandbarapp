@@ -7,8 +7,9 @@
 //  aprueba: recién ahí lo ven los vendedores.
 //  Este script va en esas tres pantallas, después de supabase-js y antes del
 //  script de cada una. También en admin-secciones (10/11/2026: Juan Pablo organiza las
-//  secciones del manual desde trade-secciones.html; ahí los cambios van directo, sin
-//  aprobación, y solo se usa para el marco). Expone window.GBRevision:
+//  secciones del manual desde trade-secciones.html) y en admin-catalogo (11/11/2026: carga
+//  proveedores y productos desde trade-productos.html). Ahí los cambios van directo, sin
+//  aprobación, y solo se usa para el marco. Expone window.GBRevision:
 //    await GBRevision.listo          → { esTrade, esComercial, uid, nombre }
 //    GBRevision.camposTrade('campania'|'plan')  → lo que se agrega al guardar en modo Trade
 //    GBRevision.editable(fila)       → Juan Pablo puede tocar lo suyo sin aprobar
@@ -58,10 +59,11 @@
       R.esTrade = rol === 'torneo';
       R.esComercial = COMERCIAL.indexOf(rol) >= 0;
       // Juan Pablo entra siempre por su panel: si abre la pantalla suelta, se la muestra adentro.
-      // Secciones (10/11/2026) tiene su propia opción en el menú de Trade.
+      // Secciones (10/11/2026) y Proveedores y productos (11/11/2026) tienen su propia opción
+      // en el menú de Trade.
       var pag = location.pathname.split('/').pop();
-      if (R.esTrade && !embebida) location.replace(pag === 'admin-secciones.html' ? '/trade-secciones.html'
-        : '/trade-campanias.html?ir=' + encodeURIComponent(pag + location.search));
+      var PROPIAS = { 'admin-secciones.html': '/trade-secciones.html', 'admin-catalogo.html': '/trade-productos.html' };
+      if (R.esTrade && !embebida) location.replace(PROPIAS[pag] || '/trade-campanias.html?ir=' + encodeURIComponent(pag + location.search));
     } catch (e) {}
     return R;
   })();

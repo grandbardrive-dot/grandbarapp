@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Proveedores y productos</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* Proveedores y productos para Trade Marketing (11/11/2026): Juan Pablo Sepúlveda carga
+     proveedores (con su logo) y productos (con su foto) con la misma pantalla que Luciana
+     (manual-vendedores/admin-catalogo), acá adentro y sin salir de su panel. Los cambios
+     se guardan directo, como cuando los hace ella (pedido del usuario: "que pueda cargar productos igual que Luciana").
+     Mismo menú que trade-acciones.html. */
+  :root{--navy:#0d2230;--cream:#f5f1e8;--gold:#c0912f;--gold-d:#a97c22;
+    --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+  *{box-sizing:border-box} body{margin:0;font-family:var(--font);background:var(--cream);color:#1b2a32;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh;overflow-y:auto}
+  .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+  .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+  .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+  .sb-nav{display:flex;flex-direction:column;gap:3px}
+  .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+  .sb-nav a.active{background:var(--gold);color:#2a2007;font-weight:600}
+  .sb-nav svg{width:19px;height:19px;flex:none}
+  .sb-foot{margin-top:auto;padding-top:16px}
+  .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px;cursor:pointer}
+  .sb-user .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:700;color:var(--navy)}
+  .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+  .sb-cat{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#9db0ba;padding:16px 12px 6px;margin-top:6px;border-top:1px solid rgba(255,255,255,.08)}
+  .main{flex:1;min-width:0}
+  .marco{display:block;width:100%;height:100vh;border:0;background:#F4F1EA}
+  @media(max-width:900px){ .sidebar{display:none} .marco{height:calc(100vh - 48px)} }
+</style>
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav"></nav><!-- el menú lo pinta assets/trade-nav.js -->
+    <div class="sb-foot"><div class="sb-user" id="logout"><div class="av" id="av">T</div><div><div class="t" id="uName">Trade Marketing</div><div class="s">Jefe de Trade Marketing</div></div></div></div>
+  </aside>
+<script src="assets/trade-nav.js?v=2"></script>
+
+  <div class="main">
+    <iframe class="marco" id="marco" title="Proveedores y productos"></iframe>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script>
+  const HUB = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
+  const ROLES = ['torneo', 'desarrollo', 'diseno'];
+  const $ = id => document.getElementById(id);
+
+  (async () => {
+    const hub = supabase.createClient(HUB.url, HUB.key);
+    const { data:{ session } } = await hub.auth.getSession();
+    if(!session){ location.href = 'index.html'; return; }
+    const { data:u } = await hub.from('usuarios').select('nombre,rol').eq('id', session.user.id).maybeSingle();
+    if(!u || !ROLES.includes(String(u.rol || '').toLowerCase())){ location.replace('hub.html'); return; }
+    if(u.nombre){ $('uName').textContent = u.nombre; $('av').textContent = u.nombre.trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+    $('marco').src = 'manual-vendedores/admin-catalogo.html';
+  })();
+</script>
+<script src="assets/notif.js?v=6"></script>
+<script src="assets/user-menu.js?v=1"></script>
+<script src="assets/mobile-nav.js?v=1"></script>
+<script src="/assets/cuenta-activa.js?v=1"></script>
+</body>
+</html>
