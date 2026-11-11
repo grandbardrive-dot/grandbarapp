@@ -5308,21 +5308,38 @@ body { background:transparent !important; }
       props = (data || []).filter(p => segVa(p, uuidSec) && (segMarcado(p) || !categoria || p.categoria === categoria));
     } catch {}
     const textosProv = await _getPropTextos();
-    props.forEach(p => marcarOfrecido(p.nombre, sec));   // Mejora 3: registrar lo ofrecido
-    if (!props.length) { el.innerHTML = `<div class="prop-loading">Todavía no hay propuestas de incorporación cargadas para esta sección.</div>`; return; }
+    // Los planes de la sección también van en esta lista (11/11/2026, pedido del usuario: que
+    // aparezcan "todas las que estén cargadas en esa sección", no solo las propuestas; en Vinos
+    // salía Doña Paula y faltaban Casarena y Peñaflor, que son planes).
+    const planesSec = (buscarSec(secId) || {}).planes || [];
+    if (!props.length && !planesSec.length) { el.innerHTML = `<div class="prop-loading">Todavía no hay propuestas de incorporación cargadas para esta sección.</div>`; return; }
     // Si la sección ya muestra un plan de ese proveedor (con su condición real), no se
     // muestra el texto general del proveedor: en vinotecas el de Peñaflor decía "1+2"
     // al lado de planes 1+1 (auditoría 22/09/2026).
     const _normP = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
-    const provConPlan = new Set(((buscarSec(secId) || {}).planes || []).map(pl => _normP(pl.proveedor)).filter(Boolean));
+    const provConPlan = new Set(planesSec.map(pl => _normP(pl.proveedor)).filter(Boolean));
 
-    // Agrupar por proveedor
-    const porProv = {};
-    props.forEach(p => { const k = p.proveedor || 'Otros'; (porProv[k] = porProv[k] || []).push(p); });
+    // Agrupar por proveedor ("DOÑA PAULA" de las propuestas y "Doña Paula" de un plan son la misma bodega)
+    const porProv = {}, nombreProv = {};
+    const provDe = s => { const k = _normP(s || 'Otros'); return nombreProv[k] || (nombreProv[k] = s || 'Otros'); };
+    props.forEach(p => { const k = provDe(p.proveedor); (porProv[k] = porProv[k] || []).push(p); });
+    // Cada plan es un grupo de su bodega ("Peñaflor — 11T RESTAURANTES · 1+2") con sus líneas para
+    // agregar al pedido. Si la bodega ya tiene propuestas cargadas en esta sección se muestran esas
+    // (el plan está arriba, en "Planes activos"): los nombres no coinciden exacto ("CAZADOR" y
+    // "El Cazador") y quedaban productos repetidos.
+    const conPropuestas = new Set(Object.keys(porProv));
+    planesSec.forEach(pl => {
+      const k = provDe(pl.proveedor || pl.titulo);
+      if (conPropuestas.has(k)) return;
+      const grupo = (pl.titulo || 'Plan') + (pl.pill && pl.pill !== 'Plan' ? ' · ' + pl.pill : '');
+      (pl.tags && pl.tags.length ? pl.tags : [pl.titulo]).filter(Boolean)
+        .forEach(l => (porProv[k] = porProv[k] || []).push({ nombre: l, grupo }));
+    });
+    Object.values(porProv).flat().forEach(p => marcarOfrecido(p.nombre, sec));   // Mejora 3: registrar lo ofrecido
     const provs = PROP_PROVEEDOR_ORDEN.filter(pr => porProv[pr])
       .concat(Object.keys(porProv).filter(pr => !PROP_PROVEEDOR_ORDEN.includes(pr)));
 
-    let html = `<div class="prop-head">🍷 Propuestas de incorporación de esta sección:</div>`;
+    let html = `<div class="prop-head">🍷 Bodegas y productos de esta sección:</div>`;
     provs.forEach((prov, pi) => {
       const items = porProv[prov];
       const conGrupo = items.filter(p => p.grupo && p.grupo.trim());
