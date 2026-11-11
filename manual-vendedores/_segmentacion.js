@@ -113,6 +113,7 @@
     }
     const st = { secciones: new Set(), zonas: new Set(), abiertos: new Set() };
     const tieneSL = c => S.some(s => s.canal === c && s.zona === 'sanluis');
+    const SIN_SL = ['tienda_bebidas'];
     const canales = CANALES.map(k => k[0]).concat([...new Set(S.map(s => s.canal))].filter(c => !CANALES.some(k => k[0] === c)));
     const hojasDe = m => { const h = S.filter(s => s.parent_id === m.id).sort(porOrden); return h.length ? h : [m]; };
 
@@ -122,7 +123,9 @@
       const ver = st.zonas.size ? [...st.zonas] : ['mendoza', 'sanluis'];
       const out = [];
       canales.forEach(c => {
-        const zonasCanal = [...new Set(ver.map(z => (z === 'sanluis' && !tieneSL(c)) ? 'mendoza' : z))];
+        // San Luis no trabaja Tiendas de bebidas (11/11/2026): ahí no se ofrece ni se usa el de Mendoza.
+        const zonasCanal = [...new Set(ver.filter(z => !(z === 'sanluis' && SIN_SL.includes(c)))
+          .map(z => (z === 'sanluis' && !tieneSL(c)) ? 'mendoza' : z))];
         zonasCanal.forEach(z => {
           const madres = S.filter(s => s.canal === c && s.zona === z && !s.parent_id).sort(porOrden);
           if (madres.length) out.push({ c, z, madres, key: c + '|' + z });
@@ -152,7 +155,7 @@
           const hojas = g.madres.flatMap(hojasDe);
           const n = hojas.filter(h => st.secciones.has(h.id)).length;
           const [, ico, lbl] = canalInfo(g.c);
-          const zn = zonaLbl(g.z) + (g.z === 'mendoza' && !tieneSL(g.c) ? ' · también San Luis' : '');
+          const zn = zonaLbl(g.z) + (g.z === 'mendoza' && !tieneSL(g.c) && !SIN_SL.includes(g.c) ? ' · también San Luis' : '');
           return `<details class="seg-canal" data-key="${g.key}" ${st.abiertos.has(g.key) || n ? 'open' : ''}>
             <summary><span>${ico}</span><b>${esc(lbl)}</b><span class="seg-zn">${esc(zn)}</span><span class="seg-n ${n ? 'con' : ''}">${n}/${hojas.length}</span></summary>
             <div class="seg-cuerpo">

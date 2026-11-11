@@ -588,11 +588,15 @@
   const otroCanal   = () => CANALES.find(c=>c.id!==canal) || CANALES[1];
 
   const zonaActual = () => ZONAS.find(z=>z.id===zona) || ZONAS[0];
+  // San Luis no trabaja Tiendas de bebidas (11/11/2026): ese manual no se ofrece ahí. Sus
+  // secciones quedaron ocultas en la base y esos clientes ven el de Vinotecas de San Luis.
+  const SIN_CANAL={ sanluis:['tienda_bebidas'] };
+  const hayManual=(c,z)=>!(SIN_CANAL[z]||[]).includes(c);
 
   function renderTabs(){
     document.getElementById('zona-tabs').innerHTML = ZONAS.map(z=>
       `<button class="zona-tab ${z.id===zona?'on':''}" onclick="cambiarZona('${z.id}')">${z.ico} ${esc(z.label)}</button>`).join('');
-    document.getElementById('canal-tabs').innerHTML = CANALES.map(c=>
+    document.getElementById('canal-tabs').innerHTML = CANALES.filter(c=>hayManual(c.id,zona)).map(c=>
       `<button class="canal-tab ${c.id===canal?'on':''}" onclick="cambiarCanal('${c.id}')">${c.ico} ${esc(c.label)}</button>`).join('');
     const a=canalActual(), z=zonaActual();
     const otraZona = ZONAS.find(x=>x.id!==zona);
@@ -601,7 +605,7 @@
        Lo que hagas acá no toca el de ${esc(otraZona.label)} ni el de los otros rubros — cada combinación tiene sus propias secciones.</div>`;
   }
   function cambiarCanal(c){ canal=c; document.getElementById('lista').innerHTML='<div class="empty">Cargando…</div>'; cargar(); }
-  function cambiarZona(z){ zona=z; document.getElementById('lista').innerHTML='<div class="empty">Cargando…</div>'; cargar(); }
+  function cambiarZona(z){ zona=z; if(!hayManual(canal,zona)) canal='vinoteca'; document.getElementById('lista').innerHTML='<div class="empty">Cargando…</div>'; cargar(); }
 
   // Copia el ARMADO del manual de Mendoza a la zona actual: secciones madre, sus
   // subsecciones y sus ítems. Solo la estructura y los textos de arranque; después
@@ -689,8 +693,9 @@
     const arbol = document.getElementById('cp-arbol');
     const c = document.getElementById('cp-canal').value, z = document.getElementById('cp-zona').value;
     const token = ++_cpToken;
-    if(c === canal && z === zona){
-      info.textContent = 'Ese es el manual que estás editando. Elegí otro rubro u otra zona.';
+    if((c === canal && z === zona) || !hayManual(c, z)){
+      info.textContent = hayManual(c, z) ? 'Ese es el manual que estás editando. Elegí otro rubro u otra zona.'
+        : 'San Luis no tiene manual de Tiendas de bebidas. Elegí otro rubro u otra zona.';
       arbol.innerHTML = '<div style="color:var(--ink3);padding:6px 2px">—</div>';
       document.getElementById('cp-cuenta').textContent = '';
       btn.disabled = true;
@@ -964,7 +969,7 @@
     }catch(e){ lista.innerHTML = `<div style="color:#c0392b;padding:6px 2px">No pude leer los otros manuales: ${esc(e.message||e)}</div>`; return; }
     const fila = (c, z) => {
       const v = c.id+'|'+z.id;
-      if(c.id===canal && z.id===zona) return '';
+      if((c.id===canal && z.id===zona) || !hayManual(c.id, z.id)) return '';
       const secsD = _repTodas.filter(s=>s.canal===c.id && s.zona===z.id);
       const activas = secsD.filter(s=>s.activa!==false).length;
       const igual = secsD.find(s=>!s.parent_id && nrm(s.nombre)===nrm(_repMadre.nombre));

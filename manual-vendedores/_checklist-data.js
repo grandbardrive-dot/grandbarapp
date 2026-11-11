@@ -77,9 +77,15 @@ function segVa(item, secUuid) {
   return true;
 }
 
+// Manuales que una zona no tiene, y cuál usa en su lugar. San Luis no trabaja Tiendas de
+// bebidas (lo dijo el usuario el 11/11/2026): sus secciones quedaron ocultas y los clientes
+// de San Luis con ese tipo en CUBO ven el manual de Vinotecas de San Luis. Sin esto caerían
+// en el de Tiendas de bebidas de Mendoza (ver traer() más abajo).
+const MANUAL_EN_ZONA = { sanluis: { tienda_bebidas: 'vinoteca' } };
+
 async function getChecklistDynamic(tipo, zonaPedida) {
-  const canal = manualDe(tipo);
   const zona  = zonaPedida || zonaActual();
+  const canal = (MANUAL_EN_ZONA[zona] || {})[manualDe(tipo)] || manualDe(tipo);
   const clave = canal + '|' + zona;
 
   // Devolver cache si ya se cargó
