@@ -77,15 +77,18 @@ function segVa(item, secUuid) {
   return true;
 }
 
-// Manuales que una zona no tiene, y cuál usa en su lugar. San Luis no trabaja Tiendas de
-// bebidas (lo dijo el usuario el 11/11/2026): sus secciones quedaron ocultas y los clientes
-// de San Luis con ese tipo en CUBO ven el manual de Vinotecas de San Luis. Sin esto caerían
-// en el de Tiendas de bebidas de Mendoza (ver traer() más abajo).
-const MANUAL_EN_ZONA = { sanluis: { tienda_bebidas: 'vinoteca' } };
+// San Luis no trabaja Tiendas de bebidas (lo dijo el usuario el 11/11/2026): ese manual quedó
+// oculto. Los clientes de San Luis que CUBO todavía tiene como "tienda de bebidas" son
+// autoservicios (Isabella 09918 y Don Junin 09883; Administración los va a corregir en CUBO,
+// y la sync de cada hora pisa cualquier cambio hecho acá). Se tratan como autoservicio.
+// Sin esto caerían en el manual de Tiendas de bebidas de Mendoza (ver traer() más abajo).
+function tipoEnZona(tipo, zona) {
+  return ((zona || zonaActual()) === 'sanluis' && manualDe(tipo) === 'tienda_bebidas') ? 'autoservicio' : tipo;
+}
 
 async function getChecklistDynamic(tipo, zonaPedida) {
   const zona  = zonaPedida || zonaActual();
-  const canal = (MANUAL_EN_ZONA[zona] || {})[manualDe(tipo)] || manualDe(tipo);
+  const canal = manualDe(tipoEnZona(tipo, zona));
   const clave = canal + '|' + zona;
 
   // Devolver cache si ya se cargó

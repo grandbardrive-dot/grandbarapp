@@ -312,7 +312,7 @@ body { background:transparent !important; }
 <script src="_sucursales.js"></script>
 <script src="_torneo.js"></script>
 <script src="_torneo-oficial.js"></script>
-<script src="_checklist-data.js?v=6"></script>
+<script src="_checklist-data.js?v=7"></script>
 <script src="_acciones-render.js?v=7"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
@@ -1333,7 +1333,9 @@ async function renderVisitaDetalle(visita, compromisos, torneoRegs, evidencias) 
   const { data: accionesData } = await sb.from('acciones_mensuales').select('*')
     .eq('activa', true).lte('fecha_inicio', hoyStr).gte('fecha_fin', hoyStr);
   const TCMAP = { restaurante:'restaurantes', vinoteca:'vinotecas', hotel:'hoteles', evento:'eventos', bar:'bar', disco:'discos', autoservicio:'autoservicios' };
-  const canalTipo = TCMAP[visita.clientes?.tipo] || visita.clientes?.tipo || '';
+  // En San Luis las "tienda de bebidas" de CUBO son autoservicios (tipoEnZona, _checklist-data.js).
+  const tipoCli = tipoEnZona(visita.clientes?.tipo, visita.vendedores?.zona === 'sanluis' ? 'sanluis' : 'mendoza');
+  const canalTipo = TCMAP[tipoCli] || tipoCli || '';
   const accionesFilt = (accionesData||[]).filter(a => (a.aplica_a||[]).some(x=>x===canalTipo||x==='todos'));
   const accionesSupHtml = accionesFilt.length
     ? `<div class="det-section" style="margin-bottom:10px">

@@ -1915,7 +1915,7 @@ body { background:transparent !important; }
 <script src="_avatar.js?v=2"></script>
 <script src="_sucursales.js"></script>
 <script src="_torneo-oficial.js"></script>
-<script src="_checklist-data.js?v=6"></script>
+<script src="_checklist-data.js?v=7"></script>
 <script src="_torneo.js"></script>
 <script src="_acciones-render.js?v=7"></script>
 <script src="_evidencia-accion.js?v=3"></script>
@@ -1925,6 +1925,9 @@ body { background:transparent !important; }
   const vendedor = JSON.parse(sessionStorage.getItem('vendedor') || 'null');
   const cliente  = JSON.parse(sessionStorage.getItem('cliente')  || 'null');
   if (!vendedor || !cliente) window.location.href = 'index.html';
+  // En San Luis, las "tienda de bebidas" de CUBO son autoservicios (11/11/2026, ver tipoEnZona):
+  // toda la visita (manual, campañas, torneo, ficha) las trata como tales.
+  if (cliente) cliente.tipo = tipoEnZona(cliente.tipo);
 
   let checklist;
 
@@ -4517,11 +4520,7 @@ body { background:transparent !important; }
     // Un tipo sin alias (p. ej. 'otros', que usa el manual de Restaurantes) recibe las
     // campañas del rubro del manual que está viendo (auditoría 22/09/2026).
     const rubroManual = ({ tienda_bebidas: 'tienda de bebidas' })[checklist.id] || checklist.id;
-    const propios = CANAL_ALIAS[cliente.tipo] || CANAL_ALIAS[rubroManual] || [canalBase, cliente.tipo];
-    // Si el cliente ve el manual de otro rubro (una tienda de bebidas de San Luis ve el de
-    // Vinotecas, 11/11/2026), recibe también las campañas de ese rubro.
-    return (CANAL_ALIAS[cliente.tipo] && CANAL_ALIAS[rubroManual] && rubroManual !== cliente.tipo)
-      ? [...propios, ...CANAL_ALIAS[rubroManual]] : propios;
+    return CANAL_ALIAS[cliente.tipo] || CANAL_ALIAS[rubroManual] || [canalBase, cliente.tipo];
   }
 
   // Sección "mensual" canónica de cada CATEGORÍA de producto. Una campaña de esa
