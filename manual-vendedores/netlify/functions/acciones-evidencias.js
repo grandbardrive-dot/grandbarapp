@@ -77,13 +77,21 @@ exports.handler = async (event) => {
     const rol = String(perfil.rol || '').toLowerCase();
 
     // Links temporales (1 hora) para ver las fotos: la carpeta es privada.
+    // Fotos guardadas en otra carpeta privada: el camino empieza con "<prefijo>:" (11/11/2026: tres
+    // evidencias del Día de la Madre que se habían cargado en el Torneo Doña Paula se pasaron acá
+    // y sus fotos siguen en la carpeta del torneo).
+    const OTRAS = { 'torneo:': 'torneo-evidencias' };
     async function conFotos(filas) {
       const paths = [].concat(...filas.map(f => (f.fotos || []).concat(f.videos || [])));
-      const url = {};
-      if (paths.length) {
-        const r = await st('object/sign/' + BUCKET, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresIn: 3600, paths }) });
+      const url = {}, porCarpeta = {};
+      paths.forEach(p => {
+        const pre = Object.keys(OTRAS).find(k => String(p).startsWith(k)) || '';
+        (porCarpeta[pre] = porCarpeta[pre] || []).push(pre ? String(p).slice(pre.length) : p);
+      });
+      for (const [pre, ps] of Object.entries(porCarpeta)) {
+        const r = await st('object/sign/' + (pre ? OTRAS[pre] : BUCKET), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresIn: 3600, paths: ps }) });
         const lista = r.ok ? await r.json() : [];
-        (Array.isArray(lista) ? lista : []).forEach(x => { if (x && x.signedURL) url[x.path] = HUB_URL + '/storage/v1' + x.signedURL; });
+        (Array.isArray(lista) ? lista : []).forEach(x => { if (x && x.signedURL) url[pre + x.path] = HUB_URL + '/storage/v1' + x.signedURL; });
       }
       return filas.map(f => ({ ...f, fotos_url: (f.fotos || []).map(p => url[p]).filter(Boolean), videos_url: (f.videos || []).map(p => url[p]).filter(Boolean) }));
     }
