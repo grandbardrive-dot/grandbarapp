@@ -396,7 +396,10 @@
       const canalDeSeccion = {}; (rs.data||[]).forEach(s => canalDeSeccion[s.id] = s.canal);
       planes = (rp.data||[]).map(p => normalizarPlan(p, canalDeSeccion));
     }catch(e){ console.warn(e); }
-    CAMPANAS = camp.concat(planes)
+    // Volver a dar de alta (11/11/2026): la vencida que ya tiene su nueva versión no cuenta más
+    // (vuelve si Luciana no aprueba la nueva). Mismo criterio que admin-campanias.
+    const reemplazadas = new Set(camp.concat(planes).filter(x => x.realta_de && x.revision !== 'rechazada').map(x => x.realta_de));
+    CAMPANAS = camp.concat(planes).filter(a => !reemplazadas.has(a.id))
       .sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
     try{ const rpp = await sb.from('propuestas_acciones').select('id',{count:'exact',head:true}).eq('estado','pendiente'); PROP_PEND = rpp.count||0; }catch(e){ PROP_PEND = 0; }
     renderStats();

@@ -813,6 +813,9 @@
       activa: !!activa,
       secciones: secsG,   // uuid[]: la visita la muestra solo ahí (vacío = donde corresponda, como siempre)
       zonas: st.zonas,    // [] = Mendoza y San Luis
+      // Volver a dar de alta: la nueva recuerda de qué vencida salió y la lista deja de mostrar
+      // la vencida (salvo que Luciana no apruebe la nueva).
+      ...(copiarId ? { realta_de: copiarId } : {}),
       ...(esTrade() ? REV.camposTrade('campania') : {})
     };
     const persistir=(r)=> editId

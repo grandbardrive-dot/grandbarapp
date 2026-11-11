@@ -313,7 +313,7 @@
     // están en la base del Portal; se leen las visibles.
     const hubLect = supabase.createClient(HUB.url, HUB.key, { auth:{ persistSession:false } });
     try{ MAPA = await Segmentacion.mapa(); }catch(e){ MAPA = null; }
-    const [camps, planes, fechas, catal, provs, vinosMesa, herr] = await Promise.all([
+    const [campsTodas, planesTodos, fechas, catal, provs, vinosMesa, herr, realtas] = await Promise.all([
       todas(man, 'acciones_mensuales', q => q.eq('activa', true).or('aplica_a.is.null,aplica_a.not.cs.{prueba_zzz}')),   // sin las de prueba (canal prueba_zzz)
       todas(man, 'checklist_planes', q => q),
       todas(man, 'acciones_fechas', q => q.eq('activa', true)),
@@ -322,7 +322,13 @@
       todas(hubLect, 'vinos_sobre_mesa', q => q.eq('activo', true)),
       // Si la tabla todavía no está creada (falta acciones-herramientas-setup.sql), el resto se ve igual.
       todas(hubLect, 'acciones_herramientas', q => q.eq('activo', true)).catch(e => { console.warn('acciones_herramientas:', e && e.message); return []; }),
+      // Campañas que vuelven a dar de alta una vencida (también las que esperan aprobación).
+      todas(man, 'acciones_mensuales', q => q.not('realta_de', 'is', null)).catch(() => []),
     ]);
+    // Volver a dar de alta (11/11/2026): la vencida que ya tiene su nueva versión no se muestra
+    // (vuelve si Luciana no aprueba la nueva). Mismo criterio que admin-campanias.
+    const reemplazadas = new Set(realtas.concat(planesTodos).filter(x => x.realta_de && x.revision !== 'rechazada').map(x => x.realta_de));
+    const camps = campsTodas.filter(a => !reemplazadas.has(a.id)), planes = planesTodos.filter(p => !reemplazadas.has(p.id));
     const prov = {}; provs.forEach(p => prov[p.id] = p);
     const lista = [];
     camps.forEach(a => lista.push({ origen:'campania', id:a.id, titulo:a.producto || a.accion || 'Campaña', proveedor:a.proveedor || '',

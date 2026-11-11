@@ -416,6 +416,9 @@
         fecha_fin: hasta,
         pdf_url,
         requiere_evidencia: document.getElementById('f-evid').checked,
+        // Volver a dar de alta: el nuevo recuerda de qué vencido salió y la lista deja de mostrar
+        // el vencido (salvo que Luciana no apruebe el nuevo).
+        ...(copiarId ? { realta_de: copiarId } : {}),
         ...(esTrade() ? REV.camposTrade('plan') : {}),   // Trade: sin publicar y a su nombre
       };
       const { data, error } = editId

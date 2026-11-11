@@ -388,6 +388,12 @@
     };
   }
   const conTipo = a => (a._tipo ? a : { ...a, _tipo:'campania' });
+  // Volver a dar de alta (11/11/2026): la vencida que ya tiene su nueva versión (realta_de)
+  // deja de mostrarse. Si Luciana no aprueba la nueva (propuesta de Trade), vuelve a aparecer.
+  function sinReemplazadas(){
+    const r=new Set(CAMP.concat(PLANES).filter(x=>x.realta_de && x.revision!=='rechazada').map(x=>x.realta_de));
+    CAMP=CAMP.filter(a=>!r.has(a.id)); PLANES=PLANES.filter(a=>!r.has(a.id));
+  }
   // Lo que muestra la pestaña elegida.
   function items(){
     if(_tab==='campanias') return CAMP;
@@ -462,6 +468,7 @@
       secs=rs.data||[];
       const canalDeSeccion={}; secs.forEach(s=>canalDeSeccion[s.id]=s.canal);
       PLANES=(rp.data||[]).map(p=>normalizarPlan(p, canalDeSeccion));
+      sinReemplazadas();
     }catch(e){ console.warn(e); }
     // llenar filtro de canales con los que existan (campañas y planes)
     const canales=[...new Set(CAMP.concat(PLANES).flatMap(a=>(a.aplica_a||[]).map(grupoCanal)))];
@@ -721,6 +728,7 @@
     CAMP=(rc.data||[]).map(conTipo);
     const canalDeSeccion={}; (rs.data||[]).forEach(s=>canalDeSeccion[s.id]=s.canal);
     PLANES=(rp.data||[]).map(p=>normalizarPlan(p, canalDeSeccion));
+    sinReemplazadas();
     renderTabs(); renderStats(); renderTopProv(); render();
   }
   const esPlanId = id => PLANES.some(p=>p.id===id);
@@ -741,7 +749,7 @@
       const copia = soloPlan(a); copia.nombre = (a.nombre||'') + ' (copia)'; copia.activo = false;
       r = await sb.from('checklist_planes').insert(copia);
     } else {
-      const {id,created_at,_tipo,revision,revision_autor,revision_autor_nombre,revision_nota,revision_obs,revision_por,revision_at,revision_historial,...rest}=a; rest.activa=false; // la copia queda pausada
+      const {id,created_at,_tipo,revision,revision_autor,revision_autor_nombre,revision_nota,revision_obs,revision_por,revision_at,revision_historial,realta_de,...rest}=a; rest.activa=false; // la copia queda pausada
       r = await sb.from('acciones_mensuales').insert(rest);
     }
     if(r.error){alert('No se pudo duplicar: '+r.error.message);return;}
