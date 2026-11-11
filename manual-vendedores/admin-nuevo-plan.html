@@ -143,7 +143,13 @@
       <div class="fld">
         <label>Líneas participantes <span class="opt">(opcional)</span></label>
         <textarea id="f-lineas" placeholder="Una línea por renglón. Ej:&#10;Alma Mora&#10;Los Intocables&#10;Navarro Correas Espumantes"></textarea>
-        <div class="hint">Una por renglón, o separadas por comas si las escribís todas en un solo renglón. Se muestran como etiquetas. Vacío = todas las líneas del proveedor.</div>
+        <div class="hint">Solo nombres de líneas o productos: en la visita cada una se ofrece con el +. Una por renglón, o separadas por comas si las escribís todas en un solo renglón. Vacío = todas las líneas del proveedor.</div>
+      </div>
+
+      <div class="fld">
+        <label>Condiciones <span class="opt">(opcional)</span></label>
+        <textarea id="f-reglas" placeholder="Una por renglón. Ej:&#10;Sin compra últimos 6 meses&#10;Tope 4 cajas por línea&#10;Coordinar con 72 horas de anticipación"></textarea>
+        <div class="hint">Topes, requisitos o a quién aplica. El vendedor las ve como condiciones del plan, no como productos para ofrecer.</div>
       </div>
 
       <div class="fld">
@@ -337,6 +343,7 @@
       // Un renglón por línea. Si hay una sola, se agrega un salto final para que al
       // guardar no se parta por las comas que pueda tener adentro.
       document.getElementById('f-lineas').value = lin.join('\n') + (lin.length===1 ? '\n' : '');
+      document.getElementById('f-reglas').value = (Array.isArray(p.reglas) ? p.reglas : []).join('\n');
       document.getElementById('f-desde').value = copia ? '' : (p.fecha_inicio || '');   // la copia lleva vigencia nueva
       document.getElementById('f-hasta').value = copia ? '' : (p.fecha_fin || '');
       document.getElementById('f-evid').checked = p.requiere_evidencia === true;
@@ -403,6 +410,8 @@
       // Todo en un solo renglón: se separa por comas.
       const lineas = (/\n/.test(linTxt) ? linTxt.split('\n') : linTxt.split(','))
         .map(s=>s.trim()).filter(Boolean);
+      // Condiciones (11/11/2026): una por renglón; las comas quedan adentro ("Tope 4 cajas, 1 por PDV").
+      const reglas = document.getElementById('f-reglas').value.split('\n').map(s=>s.trim()).filter(Boolean);
       const row = {
         seccion_id: secciones[0],   // primera (compatibilidad)
         secciones: secciones,       // todas las secciones donde aparece
@@ -412,6 +421,7 @@
         condicion: condicion || null,
         descripcion: detalle || null,
         lineas_participantes: lineas,
+        reglas: reglas.length ? reglas : null,
         fecha_inicio: desde,
         fecha_fin: hasta,
         pdf_url,

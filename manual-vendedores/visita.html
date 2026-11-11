@@ -242,6 +242,9 @@
   .prop-acc-head.fijo { cursor: default; }   /* lista abierta: bodegas y grupos no se pliegan (11/11/2026) */
   .prop-acc-head.grupo.fijo { padding-bottom: 0; }
   .prop-plan-desc { font-size: 12px; color: var(--text2); line-height: 1.45; margin: 0 0 8px; white-space: pre-line; }
+  .plan-reglas { margin: 0 0 9px; padding: 7px 10px; border-left: 3px solid #c0912f; background: rgba(192,145,47,.08); border-radius: 0 6px 6px 0; font-size: 12px; line-height: 1.45; color: var(--text2); }
+  .plan-reglas b { display: block; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: #8a6a1f; margin-bottom: 2px; }
+  .plan-reglas div + div { margin-top: 2px; }
   .prop-plan-pdf { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 7px 14px; background: #1F447F; color: #fff; border-radius: 20px; font-size: 12px; font-weight: 700; text-decoration: none; -webkit-tap-highlight-color: transparent; }
   .prop-acc-grupo { margin-bottom: 7px; border-left: 3px solid var(--dorado); }
   .prop-acc-grupo:last-child { margin-bottom: 0; }
@@ -1915,7 +1918,7 @@ body { background:transparent !important; }
 <script src="_avatar.js?v=2"></script>
 <script src="_sucursales.js"></script>
 <script src="_torneo-oficial.js"></script>
-<script src="_checklist-data.js?v=7"></script>
+<script src="_checklist-data.js?v=8"></script>
 <script src="_torneo.js"></script>
 <script src="_acciones-render.js?v=7"></script>
 <script src="_evidencia-accion.js?v=3"></script>
@@ -3168,6 +3171,13 @@ body { background:transparent !important; }
     </div>`;
   }
 
+  // Condiciones de un plan ("Sin compra últimos 6 meses", "Tope 4 cajas por línea"): van aparte,
+  // no como líneas con + (11/11/2026, antes estaban cargadas en Líneas y salían como productos).
+  function planReglasHtml(p) {
+    const rs = (p && p.reglas) || [];
+    return rs.length ? `<div class="plan-reglas"><b>Condiciones</b>${rs.map(r => `<div>${esc(r)}</div>`).join('')}</div>` : '';
+  }
+
   // Contenido interno de una sección hoja (planes + ítems + widgets + obs)
   function seccionContenido(sec) {
     // Los planes se muestran también en Incorporaciones (s1), arriba del widget de
@@ -3185,6 +3195,7 @@ body { background:transparent !important; }
         </div>
         <div class="plan-body" id="pb-${sec.id}__${p.id}">
           <div class="plan-desc">${esc(p.desc)}</div>
+          ${planReglasHtml(p)}
           <div class="tags-row">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
           ${(window.GBEvid ? GBEvid.boton({ t: 'plan', id: p.id, titulo: p.titulo, prov: p.proveedor, req: p.requiere_evidencia === true }) : '')}
           ${p.pdf_url ? `<a href="${esc(p.pdf_url)}" target="_blank" rel="noopener"
@@ -5369,6 +5380,7 @@ body { background:transparent !important; }
             <div class="prop-acc-head grupo fijo"><span class="prop-grupo-title">${esc(nom + (pl.pill && pl.pill !== 'Plan' ? ' · ' + pl.pill : ''))}</span></div>
             <div class="prop-acc-body open">
               ${pl.desc ? `<div class="prop-plan-desc">${esc(pl.desc)}</div>` : ''}
+              ${planReglasHtml(pl)}
               ${lineas.length ? `<div class="prop-list">${propListaProductos(lineas.map(l => ({ nombre: l })), sec)}</div>`
                 : ((pl.tags || []).length ? `<div class="tags-row">${pl.tags.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div>` : '')}
               ${window.GBEvid ? GBEvid.boton({ t: 'plan', id: pl.id, titulo: pl.titulo, prov: pl.proveedor, req: pl.requiere_evidencia === true }) : ''}

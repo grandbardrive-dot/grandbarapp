@@ -335,7 +335,8 @@
       mecanica:a.accion || '', precioReg:a.precio_regular, precioAcc:a.precio_accionado, detalle:a.varietales || '',
       desde:a.fecha_inicio, hasta:a.fecha_fin, donde:dondeManual(a, a.aplica_a), canales:canalesManual(a, a.aplica_a), imagen:a.imagen_url }));
     planes.filter(p => p.activo !== false).forEach(p => lista.push({ origen:'plan', id:p.id, titulo:p.nombre || 'Plan', proveedor:p.proveedor || '',
-      mecanica:p.condicion || '', detalle:[p.descripcion, (p.lineas_participantes || []).length ? 'Líneas: ' + p.lineas_participantes.join(', ') : ''].filter(Boolean).join('\n'),
+      mecanica:p.condicion || '', detalle:[p.descripcion, (p.lineas_participantes || []).length ? 'Líneas: ' + p.lineas_participantes.join(', ') : '',
+        (p.reglas || []).length ? 'Condiciones: ' + p.reglas.join(' · ') : ''].filter(Boolean).join('\n'),
       desde:p.fecha_inicio, hasta:p.fecha_fin, donde:dondeManual(p, []), canales:canalesManual(p, []), imagen:null }));
     fechas.forEach(f => { const rub = (f.rubros && f.rubros.length) ? f.rubros : [f.canal];
       lista.push({ origen:'fecha', id:f.id, titulo:f.nombre || 'Fecha especial', proveedor:'',

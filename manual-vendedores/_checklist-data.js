@@ -200,6 +200,7 @@ async function getChecklistDynamic(tipo, zonaPedida) {
           .filter(Boolean).join(' · '),
         desc:      p.descripcion || '',
         tags:      p.lineas_participantes || [],
+        reglas:    p.reglas || [],   // condiciones del plan, no se ofrecen con + (11/11/2026)
         pdf_url:   p.pdf_url   || null,
         requiere_evidencia: p.requiere_evidencia === true,   // casilla de Luciana (14/10/2026)
       })),

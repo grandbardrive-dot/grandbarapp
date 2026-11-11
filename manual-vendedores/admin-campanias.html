@@ -510,7 +510,7 @@
     const q=(document.getElementById('buscar').value||'').toLowerCase().trim();
     const fc=document.getElementById('f-canal').value, fe=document.getElementById('f-estado').value, ff=document.getElementById('f-fecha').value;
     return items().filter(a=>{
-      const texto = `${a.producto||''} ${a.proveedor||''} ${a.accion||''} ${a.categoria||''} ${(a.lineas_participantes||[]).join(' ')}`;
+      const texto = `${a.producto||''} ${a.proveedor||''} ${a.accion||''} ${a.categoria||''} ${(a.lineas_participantes||[]).join(' ')} ${(a.reglas||[]).join(' ')}`;
       if(q && !texto.toLowerCase().includes(q)) return false;
       if(fc && !(a.aplica_a||[]).some(c=>grupoCanal(c)===fc || c==='todos')) return false;
       if(fe && estadoDe(a).k!==fe) return false;
@@ -681,6 +681,7 @@
     + filaDet('Proveedor', p.proveedor?esc(p.proveedor):'<span class="muted">—</span>')
     + filaDet('Condición', p.condicion?esc(p.condicion):'<span class="muted">—</span>')
     + filaDet('Líneas participantes', lineas)
+    + ((p.reglas||[]).length ? filaDet('Condiciones', p.reglas.map(r=>esc(r)).join('<br>')) : '')
     + filaDet('Canal', canales)
     + filaDet('Zona', zonaTxt(p))
     + (p.descripcion?filaDet('Descripción', esc(p.descripcion)):'')
@@ -739,7 +740,7 @@
   // Solo se guardan las columnas propias de cada tabla: los campos que agrega la
   // pantalla para poder mostrarlos juntos (_tipo, producto, activa…) no existen en
   // checklist_planes y harían fallar el insert.
-  const CAMPOS_PLAN = ['seccion_id','secciones','zonas','nombre','proveedor','condicion','descripcion','lineas_participantes','fecha_inicio','fecha_fin','activo','pdf_url'];
+  const CAMPOS_PLAN = ['seccion_id','secciones','zonas','nombre','proveedor','condicion','descripcion','lineas_participantes','reglas','fecha_inicio','fecha_fin','activo','pdf_url'];
   const soloPlan = p => CAMPOS_PLAN.reduce((o,k)=>{ if(p[k]!==undefined) o[k]=p[k]; return o; }, {});
 
   async function dupCamp(){
