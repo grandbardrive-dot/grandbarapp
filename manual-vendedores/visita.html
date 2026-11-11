@@ -241,6 +241,8 @@
   .prop-acc-body.open { display: block; }
   .prop-acc-head.fijo { cursor: default; }   /* lista abierta: bodegas y grupos no se pliegan (11/11/2026) */
   .prop-acc-head.grupo.fijo { padding-bottom: 0; }
+  .prop-plan-desc { font-size: 12px; color: var(--text2); line-height: 1.45; margin: 0 0 8px; white-space: pre-line; }
+  .prop-plan-pdf { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 7px 14px; background: #1F447F; color: #fff; border-radius: 20px; font-size: 12px; font-weight: 700; text-decoration: none; -webkit-tap-highlight-color: transparent; }
   .prop-acc-grupo { margin-bottom: 7px; border-left: 3px solid var(--dorado); }
   .prop-acc-grupo:last-child { margin-bottom: 0; }
   .prop-prov-texto { font-size: 11.5px; color: var(--text2); line-height: 1.45; background: var(--dorado-lt); border: 1px solid rgba(203,184,106,.35); border-radius: var(--radius-sm); padding: 9px 11px; margin-bottom: 10px; }
@@ -3168,7 +3170,9 @@ body { background:transparent !important; }
     // Los planes se muestran también en Incorporaciones (s1), arriba del widget de
     // propuestas: antes se ocultaban y el vendedor no veía las condiciones vigentes
     // (Nieto, Etchart, Doña Paula, Peñaflor 11T…). Auditoría 22/09/2026.
-    const planesHtml = (sec.planes && sec.planes.length && sec.id !== 'dc_eventos_mes') ? `<div class="plans-zone">
+    // En las secciones con la lista de bodegas y productos (propuestas) los planes van adentro de
+    // esa lista, en su bodega (11/11/2026): acá se veían arriba y otra vez abajo.
+    const planesHtml = (sec.planes && sec.planes.length && sec.id !== 'dc_eventos_mes' && (widgetDe(sec) || {}).tipo !== 'propuestas') ? `<div class="plans-zone">
       <div class="plans-zone-label">Planes activos</div>
       ${sec.planes.map(p=>`<div class="plan-card">
         <div class="plan-header" onclick="togglePlan('${sec.id}__${p.id}')">
@@ -5322,37 +5326,53 @@ body { background:transparent !important; }
     const provConPlan = new Set(planesSec.map(pl => _normP(pl.proveedor)).filter(Boolean));
 
     // Agrupar por proveedor ("DOÑA PAULA" de las propuestas y "Doña Paula" de un plan son la misma bodega)
-    const porProv = {}, nombreProv = {};
+    const porProv = {}, nombreProv = {}, planesDe = {};
     const provDe = s => { const k = _normP(s || 'Otros'); return nombreProv[k] || (nombreProv[k] = s || 'Otros'); };
     props.forEach(p => { const k = provDe(p.proveedor); (porProv[k] = porProv[k] || []).push(p); });
-    // Cada plan es un grupo de su bodega ("Peñaflor — 11T RESTAURANTES · 1+2") con sus líneas para
-    // agregar al pedido. Si la bodega ya tiene propuestas cargadas en esta sección se muestran esas
-    // (el plan está arriba, en "Planes activos"): los nombres no coinciden exacto ("CAZADOR" y
-    // "El Cazador") y quedaban productos repetidos.
+    // Los planes de la sección van DENTRO de su bodega (11/11/2026, "siguen estando divididos":
+    // antes se veían arriba, en "Planes activos", y otra vez acá). Cada plan muestra su condición,
+    // su descripción, la evidencia y el PDF. Sus líneas se ofrecen con el + si la bodega no tiene
+    // propuestas cargadas en esta sección; si las tiene, se muestran esas y las líneas del plan
+    // quedan como etiquetas (los nombres no coinciden exacto, "CAZADOR" y "El Cazador", y quedaban
+    // productos repetidos).
     const conPropuestas = new Set(Object.keys(porProv));
-    planesSec.forEach(pl => {
-      const k = provDe(pl.proveedor || pl.titulo);
-      if (conPropuestas.has(k)) return;
-      const grupo = (pl.titulo || 'Plan') + (pl.pill && pl.pill !== 'Plan' ? ' · ' + pl.pill : '');
-      (pl.tags && pl.tags.length ? pl.tags : [pl.titulo]).filter(Boolean)
-        .forEach(l => (porProv[k] = porProv[k] || []).push({ nombre: l, grupo }));
-    });
+    planesSec.forEach(pl => { const k = provDe(pl.proveedor || pl.titulo); (planesDe[k] = planesDe[k] || []).push(pl); });
+    const lineasPlan = (pl, prov) => conPropuestas.has(prov) ? [] : ((pl.tags && pl.tags.length) ? pl.tags : [pl.titulo]).filter(Boolean);
     Object.values(porProv).flat().forEach(p => marcarOfrecido(p.nombre, sec));   // Mejora 3: registrar lo ofrecido
-    const provs = PROP_PROVEEDOR_ORDEN.filter(pr => porProv[pr])
-      .concat(Object.keys(porProv).filter(pr => !PROP_PROVEEDOR_ORDEN.includes(pr)));
+    Object.entries(planesDe).forEach(([prov, pls]) => pls.forEach(pl => lineasPlan(pl, prov).forEach(l => marcarOfrecido(l, sec))));
+    const todos = [...new Set(Object.keys(planesDe).concat(Object.keys(porProv)))];
+    const provs = PROP_PROVEEDOR_ORDEN.filter(pr => todos.includes(pr)).concat(todos.filter(pr => !PROP_PROVEEDOR_ORDEN.includes(pr)));
 
     // Todo a la vista (11/11/2026, pedido del usuario: "que no tenga un desplegable, que aparezcan
     // todas las que estén disponibles en esa sección"): cada bodega con sus grupos y productos,
     // sin tocar nada para abrir. Antes eran desplegables cerrados por bodega y por grupo.
     let html = `<div class="prop-head">🍷 Bodegas y productos de esta sección:</div>`;
     provs.forEach(prov => {
-      const items = porProv[prov];
+      const items = porProv[prov] || [];
       const conGrupo = items.filter(p => p.grupo && p.grupo.trim());
       const sinGrupo = items.filter(p => !p.grupo || !p.grupo.trim());
 
       let inner = '';
       const textoProv = (prov in textosProv) ? textosProv[prov] : PROP_PROVEEDOR_TEXTO[prov];
       if (textoProv && !provConPlan.has(_normP(prov))) inner += `<div class="prop-prov-texto">${esc(textoProv)}</div>`;
+
+      // Planes de la bodega: "11T VTK · 1 + 1" (sin repetir el nombre de la bodega del título)
+      (planesDe[prov] || []).forEach(pl => {
+        const t = pl.titulo || 'Plan', m = t.match(/^(.+?)\s+[—–-]\s+(.+)$/);
+        const nom = m && _normP(m[1]) === _normP(prov) ? m[2] : t;
+        const lineas = lineasPlan(pl, prov);
+        inner += `
+          <div class="prop-acc prop-acc-grupo">
+            <div class="prop-acc-head grupo fijo"><span class="prop-grupo-title">${esc(nom + (pl.pill && pl.pill !== 'Plan' ? ' · ' + pl.pill : ''))}</span></div>
+            <div class="prop-acc-body open">
+              ${pl.desc ? `<div class="prop-plan-desc">${esc(pl.desc)}</div>` : ''}
+              ${lineas.length ? `<div class="prop-list">${propListaProductos(lineas.map(l => ({ nombre: l })), sec)}</div>`
+                : ((pl.tags || []).length ? `<div class="tags-row">${pl.tags.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div>` : '')}
+              ${window.GBEvid ? GBEvid.boton({ t: 'plan', id: pl.id, titulo: pl.titulo, prov: pl.proveedor, req: pl.requiere_evidencia === true }) : ''}
+              ${pl.pdf_url ? `<a class="prop-plan-pdf" href="${esc(pl.pdf_url)}" target="_blank" rel="noopener">📄 Ver plan completo</a>` : ''}
+            </div>
+          </div>`;
+      });
 
       // Proveedor CON grupos → un bloque por grupo, con su título
       if (conGrupo.length) {
