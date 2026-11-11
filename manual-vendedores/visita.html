@@ -239,6 +239,8 @@
   .prop-acc-chev.open { transform: rotate(180deg); }
   .prop-acc-body { display: none; padding: 10px 11px; }
   .prop-acc-body.open { display: block; }
+  .prop-acc-head.fijo { cursor: default; }   /* lista abierta: bodegas y grupos no se pliegan (11/11/2026) */
+  .prop-acc-head.grupo.fijo { padding-bottom: 0; }
   .prop-acc-grupo { margin-bottom: 7px; border-left: 3px solid var(--dorado); }
   .prop-acc-grupo:last-child { margin-bottom: 0; }
   .prop-prov-texto { font-size: 11.5px; color: var(--text2); line-height: 1.45; background: var(--dorado-lt); border: 1px solid rgba(203,184,106,.35); border-radius: var(--radius-sm); padding: 9px 11px; margin-bottom: 10px; }
@@ -5339,32 +5341,30 @@ body { background:transparent !important; }
     const provs = PROP_PROVEEDOR_ORDEN.filter(pr => porProv[pr])
       .concat(Object.keys(porProv).filter(pr => !PROP_PROVEEDOR_ORDEN.includes(pr)));
 
+    // Todo a la vista (11/11/2026, pedido del usuario: "que no tenga un desplegable, que aparezcan
+    // todas las que estén disponibles en esa sección"): cada bodega con sus grupos y productos,
+    // sin tocar nada para abrir. Antes eran desplegables cerrados por bodega y por grupo.
     let html = `<div class="prop-head">🍷 Bodegas y productos de esta sección:</div>`;
-    provs.forEach((prov, pi) => {
+    provs.forEach(prov => {
       const items = porProv[prov];
       const conGrupo = items.filter(p => p.grupo && p.grupo.trim());
       const sinGrupo = items.filter(p => !p.grupo || !p.grupo.trim());
-      const provBody = `prov-body-${secId}-${pi}`, provChev = `prov-chev-${secId}-${pi}`;
 
       let inner = '';
       const textoProv = (prov in textosProv) ? textosProv[prov] : PROP_PROVEEDOR_TEXTO[prov];
       if (textoProv && !provConPlan.has(_normP(prov))) inner += `<div class="prop-prov-texto">${esc(textoProv)}</div>`;
 
-      // Proveedor CON grupos → sub-desplegables por grupo
+      // Proveedor CON grupos → un bloque por grupo, con su título
       if (conGrupo.length) {
         const porGrupo = {};
         conGrupo.forEach(p => { (porGrupo[p.grupo] = porGrupo[p.grupo] || []).push(p); });
         const grupos = PROP_GRUPO_ORDEN.filter(g => porGrupo[g])
           .concat(Object.keys(porGrupo).filter(g => !PROP_GRUPO_ORDEN.includes(g)));
-        grupos.forEach((g, gi) => {
-          const gBody = `grp-body-${secId}-${pi}-${gi}`, gChev = `grp-chev-${secId}-${pi}-${gi}`;
+        grupos.forEach(g => {
           inner += `
             <div class="prop-acc prop-acc-grupo">
-              <button class="prop-acc-head grupo" onclick="toggleAsAcord('${gBody}','${gChev}')">
-                <span class="prop-grupo-title">${esc(PROP_GRUPO_LABEL[g] || g)}</span>
-                <span class="prop-acc-chev" id="${gChev}">▼</span>
-              </button>
-              <div class="prop-acc-body" id="${gBody}"><div class="prop-list">${propListaProductos(porGrupo[g], sec)}</div></div>
+              <div class="prop-acc-head grupo fijo"><span class="prop-grupo-title">${esc(PROP_GRUPO_LABEL[g] || g)}</span></div>
+              <div class="prop-acc-body open"><div class="prop-list">${propListaProductos(porGrupo[g], sec)}</div></div>
             </div>`;
         });
       }
@@ -5373,11 +5373,8 @@ body { background:transparent !important; }
 
       html += `
         <div class="prop-acc prop-acc-prov">
-          <button class="prop-acc-head prov" onclick="toggleAsAcord('${provBody}','${provChev}')">
-            <span class="prop-prov-name">${esc(prov)}</span>
-            <span class="prop-acc-chev" id="${provChev}">▼</span>
-          </button>
-          <div class="prop-acc-body" id="${provBody}">${inner}</div>
+          <div class="prop-acc-head prov fijo"><span class="prop-prov-name">${esc(prov)}</span></div>
+          <div class="prop-acc-body open">${inner}</div>
         </div>`;
     });
     el.innerHTML = html;
