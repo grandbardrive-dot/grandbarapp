@@ -224,12 +224,26 @@ select.cell-in { min-width: 90px; }
 .off-group .cell-in { width: 54px; }
 
 /* thumb + foto */
-.thumb-cell { display: flex; align-items: center; gap: 6px; }
+/* width: max-content: con foto + "cambiar" la celda se quedaba angosta y el botón
+   se montaba sobre la columna de al lado (Placa). */
+.thumb-cell { display: flex; align-items: center; gap: 6px; width: max-content; }
+.thumb-cell > * { flex: none; }
 .thumb {
   width: 40px; height: 40px; border-radius: 6px; object-fit: cover;
   border: 1px solid rgba(31, 68, 127, 0.15); background: var(--gb-crema);
 }
 .thumb.logo { object-fit: contain; }
+.thumb.ver { cursor: zoom-in; }
+.thumb.ver:hover { outline: 2px solid var(--gb-dorado); outline-offset: 1px; }
+
+/* foto de una acción en grande (12/11/2026) */
+.modal.modal-foto { max-width: 720px; }
+.foto-grande {
+  display: grid; place-items: center; background: var(--gb-crema); border-radius: 10px;
+  padding: 10px; max-height: 68vh; overflow: auto;
+}
+.foto-grande img { max-width: 100%; max-height: calc(68vh - 20px); object-fit: contain; display: block; }
+.modal-foto .actions { flex-wrap: wrap; }
 
 /* toggle activo */
 .toggle { position: relative; display: inline-block; vertical-align: middle; width: 40px; height: 22px; flex: none; }

@@ -265,6 +265,55 @@ async function exportarAccionesExcel(canalSel, provSel, provNombre) {
   window.XLSX.writeFile(wb, `Acciones - ${catLabel} - ${provLabel}.xlsx`);
 }
 
+// Foto de una acción en grande, con Descargar (12/11/2026). El storage de Supabase deja
+// leer la imagen desde el panel (CORS abierto): se baja como archivo con el nombre del
+// producto. Si eso falla, se pide al storage con ?download=, que la manda como descarga.
+const _nombreArchivo = (s) => String(s || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'foto';
+async function descargarFoto(url, nombre) {
+  const base = _nombreArchivo(nombre);
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob();
+    const ext = ((url.split('?')[0].match(/\.([a-z0-9]{2,5})$/i) || [])[1]
+      || (/svg/.test(blob.type) ? 'svg' : (blob.type.split('/')[1] || 'jpg'))).toLowerCase().replace('jpeg', 'jpg');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = base + '.' + ext;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } catch (err) {
+    window.open(url + (url.includes('?') ? '&' : '?') + 'download=' + encodeURIComponent(base), '_blank', 'noopener');
+  }
+}
+
+function verFoto(url, nombre) {
+  if (!url) return;
+  const back = el('div', { class: 'modal-back' });
+  const cerrar = () => { back.remove(); document.removeEventListener('keydown', esc); };
+  const esc = (e) => { if (e.key === 'Escape') cerrar(); };
+  document.addEventListener('keydown', esc);
+  back.addEventListener('click', (e) => { if (e.target === back) cerrar(); });
+
+  const btnBajar = el('button', { class: 'btn', type: 'button' }, '⬇ Descargar');
+  btnBajar.addEventListener('click', async () => {
+    btnBajar.disabled = true; btnBajar.textContent = 'Descargando…';
+    await descargarFoto(url, nombre);
+    btnBajar.disabled = false; btnBajar.textContent = '⬇ Descargar';
+  });
+
+  back.appendChild(el('div', { class: 'modal modal-foto' }, [
+    el('h3', {}, nombre || 'Foto'),
+    el('div', { class: 'foto-grande' }, el('img', { src: url, alt: nombre || 'Foto' })),
+    el('div', { class: 'actions' }, [
+      el('a', { class: 'btn btn-ghost', href: url, target: '_blank', rel: 'noopener' }, 'Abrir en otra pestaña'),
+      el('button', { class: 'btn btn-ghost', type: 'button', onclick: cerrar }, 'Cerrar'),
+      btnBajar,
+    ]),
+  ]));
+  document.body.appendChild(back);
+}
+
 function abrirExportarAcciones() {
   const back = el('div', { class: 'modal-back' });
   const cerrar = () => back.remove();
@@ -589,8 +638,9 @@ function filaAccion(a) {
   const toggleEv = el('label', { class: 'toggle', title: 'Muestra el cartel "Requiere evidencia" en la acción' },
     [chkEv, el('span', { class: 'track' })]);
 
-  // foto
-  const thumb = el('img', { class: 'thumb', src: a.imagen_url || '', alt: '', style: a.imagen_url ? '' : 'display:none' });
+  // foto (12/11/2026: tocándola se ve grande y se puede descargar)
+  const thumb = el('img', { class: 'thumb ver', src: a.imagen_url || '', alt: '', title: 'Ver la foto', style: a.imagen_url ? '' : 'display:none' });
+  thumb.addEventListener('click', () => verFoto(thumb.src, [a.proveedor?.nombre, a.nombre_producto].filter(Boolean).join(' - ')));
   const fileInp = el('input', { type: 'file', accept: 'image/*', class: 'hidden' });
   const btnFoto = el('button', { class: 'btn-sm btn-ghost', type: 'button' }, a.imagen_url ? 'cambiar' : 'subir');
   btnFoto.addEventListener('click', () => fileInp.click());
