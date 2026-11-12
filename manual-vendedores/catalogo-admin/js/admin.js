@@ -31,6 +31,7 @@ const state = {
   filtroCat: 'todas',
   filtroCanal: 'todos',
   filtroProv: 'todos',   // id de proveedor o 'todos'
+  filtroVer: 'todas',    // activas / inactivas / sin foto (ver VER_ACC)
   ordenAcc: leerOrdenAcc(), // cómo se listan las acciones (ver ORDENES_ACC)
 };
 
@@ -315,11 +316,25 @@ const _txt = (s) => String(s || '');
 const _alfa = (x, y) => _txt(x).localeCompare(_txt(y), 'es', { sensitivity: 'base' });
 const _nuevas = (a, b) => _txt(b.created_at).localeCompare(_txt(a.created_at));
 
+// Filtro "Mostrar" (12/11/2026, pedido: "filtrar por los activos sin foto"): para encontrar
+// las acciones que el cliente ya ve en el catálogo pero sin imagen del producto.
+const _sinFoto = (a) => !_txt(a.imagen_url).trim();
+const VER_ACC = [
+  ['todas', 'todas', () => true],
+  ['activas', 'activas', (a) => !!a.activo],
+  ['activas_sin_foto', 'activas sin foto', (a) => !!a.activo && _sinFoto(a)],
+  ['sin_foto', 'sin foto (todas)', _sinFoto],
+  ['inactivas', 'inactivas', (a) => !a.activo],
+];
+const verTexto = ([v, t, f]) => v === 'todas' ? t : `${t} (${state.acciones.filter(f).length})`;
+
 function accionesFiltradas() {
+  const ver = (VER_ACC.find(([v]) => v === state.filtroVer) || VER_ACC[0])[2];
   const filas = state.acciones.filter((a) => {
     if (state.filtroCat !== 'todas' && a.proveedor?.categoria !== state.filtroCat) return false;
     if (state.filtroCanal !== 'todos' && (a.canal || 'ambos') !== state.filtroCanal) return false;
     if (state.filtroProv !== 'todos' && a.proveedor_id !== state.filtroProv) return false;
+    if (!ver(a)) return false;
     return true;
   });
   // state.acciones queda siempre en el orden del catálogo (lo usa moverAccion); acá se
@@ -357,8 +372,13 @@ function renderAccionesTab() {
   ORDENES_ACC.forEach(([v, t]) =>
     selOrden.appendChild(el('option', { value: v, ...(state.ordenAcc === v ? { selected: '' } : {}) }, t)));
 
+  const selVer = el('select', { id: 'acc-ver', onchange: (e) => { state.filtroVer = e.target.value; refreshAcciones(); } });
+  VER_ACC.forEach((o) =>
+    selVer.appendChild(el('option', { value: o[0], ...(state.filtroVer === o[0] ? { selected: '' } : {}) }, verTexto(o))));
+
   cont.appendChild(el('div', { class: 'toolbar' }, [
     el('div', { class: 'filter' }, [el('span', {}, 'Ordenar:'), selOrden]),
+    el('div', { class: 'filter' }, [el('span', {}, 'Mostrar:'), selVer]),
     el('div', { class: 'filter' }, [el('span', {}, 'Categoría:'), selCat]),
     el('div', { class: 'filter' }, [el('span', {}, 'Canal:'), selCanal]),
     el('div', { class: 'filter' }, [el('span', {}, 'Proveedor:'), selProv]),
@@ -372,19 +392,29 @@ function renderAccionesTab() {
     'mecánica', 'info adicional', 'canal', 'dónde se ve', 'flag', 'evidencia', 'foto', 'placa', 'activo', 'orden', ''];
   const thead = el('thead', {}, el('tr', {}, cols.map((c) => el('th', {}, c))));
   const tbody = el('tbody', { id: 'acc-body' });
-  accionesFiltradas().forEach((a) => tbody.appendChild(filaAccion(a)));
+  pintarAcciones(tbody, cols.length);
 
   cont.appendChild(el('div', { class: 'table-wrap' }, el('table', { class: 'grid' }, [thead, tbody])));
-  if (accionesFiltradas().length === 0)
-    cont.appendChild(el('div', { class: 'muted', style: 'padding:14px' }, 'No hay acciones con estos filtros.'));
   return cont;
+}
+
+// Filas de la tabla, o el aviso si no hay ninguna (antes el aviso se ponía solo al abrir la
+// pestaña y no cambiaba al tocar un filtro).
+function pintarAcciones(body, nCols) {
+  const filas = accionesFiltradas();
+  filas.forEach((a) => body.appendChild(filaAccion(a)));
+  if (!filas.length) body.appendChild(el('tr', {}, el('td', { colspan: String(nCols || 19), class: 'muted', style: 'padding:14px' },
+    state.filtroVer === 'activas_sin_foto' ? 'No hay acciones activas sin foto con estos filtros.' : 'No hay acciones con estos filtros.')));
 }
 
 function refreshAcciones() {
   const body = document.getElementById('acc-body');
   if (!body) return;
   body.innerHTML = '';
-  accionesFiltradas().forEach((a) => body.appendChild(filaAccion(a)));
+  pintarAcciones(body);
+  // Los números del filtro "Mostrar" cambian al subir una foto o activar/desactivar.
+  const sel = document.getElementById('acc-ver');
+  if (sel) VER_ACC.forEach((o, i) => { if (sel.options[i]) sel.options[i].textContent = verTexto(o); });
 }
 
 async function updateAccion(id, patch, statusEl) {
