@@ -15,7 +15,7 @@ const COB_SOLO_ADMIN = ['administracion', 'admin', 'direccion', 'duenio', 'desar
 const COB_SECCIONES = [
   { id:'clientes',     ico:'👥', n:'Clientes',            d:'Buscá un cliente y mirá su cuenta corriente, facturas y datos.', color:'#e0567f' },
   { id:'comprobantes', ico:'🧾', n:'Supervisión de cobranzas', d:'Cómo vienen los comprobantes que suben los clientes: dónde se frenan y cuánto tardan.', color:'#69a531' },
-  { id:'whatsapp',     ico:'📲', n:'WhatsApp',            d:'Lo que responden los clientes y cómo llegaron los avisos. Es de lectura.', color:'#e0533c', roles:COB_SOLO_ADMIN },
+  { id:'whatsapp',     ico:'📲', n:'WhatsApp',            d:'Lo que escriben los clientes por WhatsApp, para leerlo y responderlo, y cómo llegaron los avisos.', color:'#e0533c', roles:COB_SOLO_ADMIN },
   { id:'estadisticas', ico:'📊', n:'Estadísticas',        d:'Cartera, cobranzas y comparativas del período.',                 color:'#2f6db0', roles:COB_SOLO_ADMIN },
   { id:'bloquear',     ico:'🔒', n:'Bloquear cuentas',    d:'Clientes que superaron su límite: bloqueá o dá de alta.',        color:'#d6a52b', roles:COB_SOLO_ADMIN },
   // conZona: también la ve tesorería con zona (Romina, San Luis: sus reclamos, 19/10/2026).
@@ -113,8 +113,12 @@ const cobRol = () => String((COB_RESUMEN && COB_RESUMEN.rol) || '').toLowerCase(
 // zona (Romina ve lo mismo que Mónica más Reclamos). Lo usan el menú, el tablero y el
 // arranque por #seccion, así los tres muestran lo mismo.
 // Roles que tienen solo algunas secciones, sin Tablero (03/11/2026: Agostina, rol reclamos,
-// cubre a Brenda solo en Reclamos; el servidor tampoco le sirve otra cosa).
-const COB_SOLO = { reclamos: ['reclamos'] };
+// cubre a Brenda solo en Reclamos; el servidor tampoco le sirve otra cosa). 12/11/2026: también
+// WhatsApp, igual que Brenda, para responder a los clientes.
+const COB_SOLO = { reclamos: ['reclamos', 'whatsapp'] };
+// Los envíos de WhatsApp los hacen las funciones del Portal del Cliente (grandbar-gestioncuenta),
+// que tienen su propia lista de roles: si el rol no está ahí, responden 403.
+const WA_SIN_PERMISO = 'tu usuario todavía no está habilitado en el Portal del Cliente para enviar por WhatsApp. Avisale a Desarrollo.';
 const cobSolo = () => COB_SOLO[cobRol()] || null;
 const cobVe = s => cobSolo() ? cobSolo().includes(s.id)
   : !s.roles || s.roles.includes(cobRol()) || (!!s.conZona && !!(COB_RESUMEN && COB_RESUMEN.zona));
@@ -695,7 +699,7 @@ async function waVerAudio(id, btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Cargando…'; }
   try {
     const r = await fetch('https://grandbar-gestioncuenta.netlify.app/.netlify/functions/wa-media?id=' + encodeURIComponent(id), { headers: { Authorization: 'Bearer ' + COB_TOKEN } });
-    if (!r.ok) { let m = 'No se pudo cargar el audio.'; try { const j = await r.json(); if (j && j.error) m = j.error; } catch (_) {} alert(m); if (btn) { btn.disabled = false; btn.textContent = '🎤 Escuchar audio'; } return; }
+    if (!r.ok) { let m = 'No se pudo cargar el audio.'; try { const j = await r.json(); if (j && j.error) m = j.error; } catch (_) {} if (r.status === 403) m = 'No se pudo cargar el audio: ' + WA_SIN_PERMISO; alert(m); if (btn) { btn.disabled = false; btn.textContent = '🎤 Escuchar audio'; } return; }
     const blob = await r.blob();
     const audio = document.createElement('audio');
     audio.controls = true; audio.src = URL.createObjectURL(blob);
@@ -716,6 +720,7 @@ async function waVerMedia(id, filenameEnc, btn) {
     if (!r.ok) {
       let msg = 'No se pudo abrir el archivo.';
       try { const j = await r.json(); if (j && j.error) msg = j.error; } catch (_) {}
+      if (r.status === 403) msg = 'No se pudo abrir el archivo: ' + WA_SIN_PERMISO;
       alert(msg);
       return;
     }
@@ -793,7 +798,8 @@ async function cobWaResponder(i) {
       method: 'POST', headers: { Authorization: 'Bearer ' + COB_TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({ to: c.telefono, texto }),
     });
-    const j = await r.json();
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 403) j.error = WA_SIN_PERMISO;
     if (!j.ok) {
       const fuera = /24|reengag|window|outside/i.test(j.error || '');
       aviso('No se pudo enviar: ' + (j.error || 'error') + (fuera ? ' — pasaron más de 24 hs; ahí solo se puede con una plantilla aprobada.' : ''));
@@ -827,7 +833,8 @@ async function cobWaEnviarArchivo(i, input) {
       method: 'POST', headers: { Authorization: 'Bearer ' + COB_TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({ to: c.telefono, file_base64: b64, mime: file.type, filename: file.name, caption }),
     });
-    const j = await r.json();
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 403) j.error = WA_SIN_PERMISO;
     if (!j.ok) {
       const fuera = /24|reengag|window|outside/i.test(j.error || '');
       aviso('No se pudo enviar: ' + (j.error || 'error') + (fuera ? ' — pasaron más de 24 hs; ahí solo se puede con una plantilla aprobada.' : ''));
@@ -856,7 +863,8 @@ async function cobWaReabrir(i) {
       method: 'POST', headers: { Authorization: 'Bearer ' + COB_TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({ to: c.telefono, nombre: c.cliente || 'Cliente' }),
     });
-    const j = await r.json();
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 403) j.error = WA_SIN_PERMISO;
     if (!j.ok) {
       const noAprob = /template|plantilla|does not exist|not approved|param/i.test(j.error || '');
       aviso('No se pudo enviar: ' + (j.error || 'error') + (noAprob ? ' — puede ser que la plantilla "reabrir_cuenta" todavía no esté aprobada por Meta.' : ''));

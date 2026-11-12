@@ -549,7 +549,7 @@ const US_ROLES = [
   { k:'marketing',      n:'Marketing',       d:'Materiales y catálogo de acciones.' },
   { k:'administracion', n:'Administración',  d:'Cobranzas y cuenta corriente.' },
   { k:'tesoreria',      n:'Tesorería',       d:'Revisión de cobranzas, reclamos y cuenta corriente. Con región San Luis ve solo lo de San Luis (Romina); sin región, todo (Mónica).' },
-  { k:'reclamos',       n:'Reclamos',        d:'Agostina, que cubre a Brenda: solo la sección Reclamos de Cobranzas, con lo mismo que hace Brenda ahí (ver, responder al cliente y cambiar el estado). Le llega cada reclamo a la campanita. Con región ve solo esa zona.' },
+  { k:'reclamos',       n:'Reclamos',        d:'Agostina, que cubre a Brenda: Reclamos y WhatsApp de Cobranzas, con lo mismo que hace Brenda ahí (ver, responder al cliente y cambiar el estado). Le llega cada reclamo a la campanita. Con región ve solo esa zona.' },
   { k:'equipo_admin',   n:'Equipo de administración', d:'Sebastián, Andrea, Laura y Kathy: sus tareas (las asigna Brenda), la agenda del equipo y la propia.' },
   { k:'deposito',       n:'Depósito',        d:'Lucas Porro y Lucas Buenanueva: cuentan el stock del depósito y marcan la agenda de los lunes (deposito.html). En Canal va "vinos" o "spirits"; si queda vacío, lo eligen la primera vez que entran.' },
   { k:'mayorista',      n:'Mayorista',       d:'Tienda (Mza Distribución): panel de vendedor sin ruta ni agenda eficiente. Necesita código de vendedor.' },

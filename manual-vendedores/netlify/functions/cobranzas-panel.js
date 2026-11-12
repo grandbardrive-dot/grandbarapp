@@ -34,7 +34,8 @@
 //
 //  Rol reclamos (03/11/2026): Agostina cubre a Brenda solo en Reclamos. Lee el
 //  resumen (solo reclamos abiertos) y los reclamos, y puede responder y cambiar
-//  el estado; cualquier otra lectura o acción le devuelve 403.
+//  el estado; desde el 12/11/2026 también lee la bandeja de WhatsApp. Cualquier
+//  otra lectura o acción le devuelve 403.
 // ============================================================
 
 const { zonaDe, armarZona } = require('./_zona-cobranzas');
@@ -298,7 +299,9 @@ exports.handler = async (event) => {
           : await contar('reclamos', 'estado=eq.abierto');
         return json(200, { rol, nombre: perfil.nombre, zona: Z ? Z.nombre : undefined, reclAbiertos });
       }
-      if (que !== 'reclamos') return json(403, { error: 'Tu usuario tiene solo la sección Reclamos.' });
+      // 12/11/2026: también la bandeja de WhatsApp, igual que Brenda (las respuestas salen por
+      // las funciones del Portal del Cliente, que controlan el rol por su lado).
+      if (que !== 'reclamos' && que !== 'whatsapp') return json(403, { error: 'Tu usuario tiene solo Reclamos y WhatsApp.' });
     }
 
     // Deuda de cada cliente del portal para decidir bloqueos. Sale de cuentas_cubo,
