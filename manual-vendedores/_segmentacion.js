@@ -25,6 +25,8 @@
     ['restaurante', '🍽️', 'Restaurantes'], ['bar', '🍺', 'Bares'], ['disco', '🕺', 'Discos'],
     ['hotel', '🏨', 'Hoteles'], ['vinoteca', '🍷', 'Vinotecas'], ['tienda_bebidas', '🏬', 'Tienda de Bebidas'],
     ['autoservicio', '🏪', 'Autoservicios'], ['mayorista', '🛒', 'Mayoristas'], ['evento', '🎉', 'Eventos'],
+    // Manuales de los KAF (13/11/2026): lo que se ubica acá lo ve el KAF de esa marca en su visita.
+    ['kaf_campari', '🅺', 'KAF · Campari'], ['kaf_pernod_ricard', '🅺', 'KAF · Pernod Ricard'], ['kaf_penaflor', '🅺', 'KAF · Peñaflor'],
   ];
   const ZONAS = [['mendoza', 'Mendoza'], ['sanluis', 'San Luis']];
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
@@ -113,7 +115,7 @@
     }
     const st = { secciones: new Set(), zonas: new Set(), abiertos: new Set() };
     const tieneSL = c => S.some(s => s.canal === c && s.zona === 'sanluis');
-    const SIN_SL = ['tienda_bebidas'];
+    const SIN_SL = ['tienda_bebidas', 'kaf_campari', 'kaf_pernod_ricard', 'kaf_penaflor'];   // KAF: solo Mendoza
     const canales = CANALES.map(k => k[0]).concat([...new Set(S.map(s => s.canal))].filter(c => !CANALES.some(k => k[0] === c)));
     const hojasDe = m => { const h = S.filter(s => s.parent_id === m.id).sort(porOrden); return h.length ? h : [m]; };
 

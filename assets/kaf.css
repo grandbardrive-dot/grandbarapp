@@ -165,3 +165,58 @@ h2 small{font-weight:500;color:var(--muted);font-size:12.5px;margin-left:6px}
   .fila{flex-wrap:wrap}
   .fila .der{text-align:left;width:100%}
 }
+
+/* ── App de los KAF, etapa 1 (13/11/2026): ficha, recorrido de la visita y cámara ── */
+.volver{display:inline-block;font-size:13.5px;font-weight:600;color:var(--muted);margin:0 0 10px}
+.fc-cab{display:grid;grid-template-columns:1fr minmax(220px,300px);gap:14px;margin-bottom:12px}
+.fc-id h1{font-size:24px;margin:0 0 4px;font-weight:800;letter-spacing:-.01em}
+.fc-id p{margin:0 0 6px;color:var(--muted);font-size:13.5px;line-height:1.45}
+.fc-vend{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 14px}
+.fc-vend .k{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.fc-vend .v{font-size:15px;font-weight:700;margin:2px 0 8px}
+.bloque h4 small{text-transform:none;letter-spacing:0;font-weight:600;color:var(--muted);margin-left:6px}
+.kpis.chicos{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.kpis.chicos .kpi{padding:10px 12px;border-radius:11px}
+.kpis.chicos .kpi .v{font-size:18px}
+.sub-t{font-size:13px;font-weight:700;margin:12px 0 4px}
+.acc{border-top:1px solid var(--line2);padding:9px 0}
+.acc:first-of-type{border-top:0}
+.acc-t{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:14px}
+.acc-d{font-size:13px;color:var(--ink);margin-top:3px;line-height:1.45;white-space:pre-line}
+.acc-s{font-size:12.5px;color:var(--muted);margin-top:4px}
+.acc-r{margin-top:6px;padding:6px 10px;border-left:3px solid var(--gold);background:var(--gold-s);border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.45}
+.acc-r b{display:block;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--gold-d)}
+.kv-sec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:12px}
+.kv-sec.hija{margin-left:18px}
+.kv-sec.hecha{border-color:#b9d6c9;box-shadow:inset 4px 0 0 var(--green)}
+.kv-h{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.kv-t b{display:block;font-size:16px}
+.kv-t small{display:block;font-size:13px;color:var(--muted);margin-top:3px;line-height:1.45}
+.kv-hecho{display:flex;align-items:center;gap:7px;flex:none;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;font-size:14px;font-weight:700;cursor:pointer;background:#fff}
+.kv-hecho:has(input:checked){border-color:var(--green);background:var(--green-s);color:var(--green-d)}
+.kv-hecho input{accent-color:var(--green);width:18px;height:18px}
+.kv-intro{font-size:13.5px;line-height:1.5;margin-top:8px;white-space:pre-line}
+.kv-items{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.kv-item{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line2);border-radius:10px;padding:9px 11px;font-size:14px;cursor:pointer}
+.kv-item input{accent-color:var(--green);width:18px;height:18px;margin-top:1px;flex:none}
+.kv-item small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.kv-acc{margin-top:8px}
+.kv-fotos:empty{display:none}
+.kv-fotos a{position:relative}
+.kv-fotos .quitar{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(13,34,48,.75);color:#fff;font-size:15px;line-height:1;cursor:pointer}
+.fotos a.subiendo{font-size:11px;color:var(--muted);text-align:center;padding:4px}
+.kv-foto-btn{margin-top:10px;cursor:pointer}
+.kv-foto-btn.falta{box-shadow:inset 0 0 0 1.5px var(--gold);color:var(--gold-d)}
+.kv-com{width:100%;margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:14px;resize:vertical;min-height:44px}
+.kv-pie .msg{font-size:13px;color:var(--danger);margin:0 0 8px;min-height:16px}
+.fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:55;display:none;align-items:center;gap:8px;border:0;border-radius:999px;padding:13px 18px;background:var(--navy);color:#fff;font:inherit;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px -8px rgba(0,0,0,.45)}
+.fab.on{display:inline-flex}
+.fab svg{width:20px;height:20px}
+.carro.on ~ .fab{bottom:calc(76px + env(safe-area-inset-bottom))}
+@media(max-width:900px){
+  .fc-cab{grid-template-columns:1fr}
+  .fc-id h1{font-size:21px}
+  .kv-sec.hija{margin-left:8px}
+  .kv-h{flex-direction:column}
+}
+.opciones.grilla{display:grid;grid-template-columns:1fr 1fr}

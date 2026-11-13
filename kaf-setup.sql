@@ -130,3 +130,18 @@ revoke all on public.kaf_perfiles, public.kaf_objetivos, public.kaf_objetivos_cl
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('kaf', 'kaf', false, 5242880, array['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
 on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+-- ── App de los KAF, etapa 1 (13/11/2026) — YA APLICADO (migración kaf_visita_recorrido) ──
+-- La visita guarda el recorrido del manual de la marca y el aviso al vendedor; las fotos de
+-- la visita también quedan como registros (visita_id). Tipo nuevo: 'material'.
+alter table public.kaf_visitas add column if not exists detalle jsonb;
+alter table public.kaf_visitas add column if not exists fotos text[] not null default '{}';
+alter table public.kaf_visitas add column if not exists aviso jsonb;
+alter table public.kaf_registros add column if not exists visita_id uuid references public.kaf_visitas(id) on delete set null;
+alter table public.kaf_registros drop constraint if exists kaf_registros_tipo_check;
+alter table public.kaf_registros add constraint kaf_registros_tipo_check
+  check (tipo in ('evidencia', 'perfect_serve', 'perfect_store', 'capacitacion', 'presupuesto', 'material'));
+-- En la base del MANUAL: 5 secciones por marca en checklist_secciones (canal kaf_campari,
+-- kaf_pernod_ricard, kaf_penaflor; zona mendoza): Acciones de la marca (w:kaf_acciones),
+-- Perfect Serve y Perfect Store (w:kaf_foto), Exhibidores y materiales, Capacitaciones y
+-- valor agregado. Se editan en Secciones del manual.

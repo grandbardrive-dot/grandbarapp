@@ -381,6 +381,11 @@
     { id:'disco',        label:'Discos',        ico:'🕺' },
     { id:'mayorista',    label:'Mayoristas',    ico:'🛒' },
     { id:'evento',       label:'Eventos',       ico:'🎉' },
+    // Manuales de los KAF (13/11/2026): uno por marca, solo Mendoza. Los usa kaf.html
+    // (la visita del KAF), no la del vendedor.
+    { id:'kaf_campari',       label:'KAF · Campari',       ico:'🅺' },
+    { id:'kaf_pernod_ricard', label:'KAF · Pernod Ricard', ico:'🅺' },
+    { id:'kaf_penaflor',      label:'KAF · Peñaflor',      ico:'🅺' },
   ];
   const COLORES=[
     { bg:'#EAF2FB', fg:'#1A5C9A' }, { bg:'#EAF4EE', fg:'#2D6A4F' }, { bg:'#FDF5E0', fg:'#8A5E00' },
@@ -427,6 +432,8 @@
     { v:'ev_paquetes',          t:'Eventos · Paquetes por invitados' },
     { v:'ev_combos',            t:'Eventos · Combos' },
     { v:'ev_materiales',        t:'Eventos · Materiales' },
+    { v:'w:kaf_acciones',       t:'KAF · Acciones de la marca (planes, campañas, catálogo)' },
+    { v:'w:kaf_foto',           t:'KAF · Con foto obligatoria (Perfect Serve / Perfect Store)' },
     { v:'cierre_resumen',       t:'Cierre de visita (resumen de la visita)' },
     { v:'vt_cierre',            t:'Cierre de visita (formato vinotecas)' },
     { v:'segafredo',            t:'Café Segafreddo (encabezado)' },
@@ -590,7 +597,8 @@
   const zonaActual = () => ZONAS.find(z=>z.id===zona) || ZONAS[0];
   // San Luis no trabaja Tiendas de bebidas (11/11/2026): ese manual no se ofrece ahí. Sus
   // secciones quedaron ocultas en la base y esos clientes ven el de Vinotecas de San Luis.
-  const SIN_CANAL={ sanluis:['tienda_bebidas'] };
+  // Los manuales KAF son solo de Mendoza (13/11/2026).
+  const SIN_CANAL={ sanluis:['tienda_bebidas','kaf_campari','kaf_pernod_ricard','kaf_penaflor'] };
   const hayManual=(c,z)=>!(SIN_CANAL[z]||[]).includes(c);
 
   function renderTabs(){

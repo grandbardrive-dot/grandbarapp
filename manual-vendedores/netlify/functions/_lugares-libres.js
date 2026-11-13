@@ -131,7 +131,7 @@ async function lugaresDelManual() {
   if (CACHE.data && Date.now() - CACHE.t < 10 * 60000) return CACHE.data;
   const man = p => leer(MAN_URL, MAN_KEY, p), hubA = p => leer(HUB_URL, HUB_ANON, p), cat = p => leer(CAT_URL, CAT_KEY, p);
   const [secs, planes, camp, fechas, vpc, mixes, aper, frig, incorp, mesa, herr, catAcc, catProv] = await Promise.all([
-    man('checklist_secciones?zona=eq.mendoza&activa=eq.true&select=id,canal,codigo,nombre,parent_id,especial,orden&order=orden'),
+    man('checklist_secciones?zona=eq.mendoza&activa=eq.true&canal=not.like.kaf_*&select=id,canal,codigo,nombre,parent_id,especial,orden&order=orden'),
     man('checklist_planes?activo=eq.true&select=seccion_id,secciones,zonas,fecha_inicio,fecha_fin'),
     man('acciones_mensuales?activa=eq.true&select=categoria,aplica_a,seccion_checklist,secciones,zonas,fecha_inicio,fecha_fin'),
     man('acciones_fechas?activa=eq.true&select=canal,rubros,secciones,zonas,fecha_fin'),

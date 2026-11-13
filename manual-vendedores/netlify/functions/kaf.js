@@ -55,8 +55,9 @@ const SECCIONES = [
   { k: 'presupuesto', t: 'Presupuestos', canal: 'on' },
 ];
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-const REG_TIPOS = ['evidencia', 'perfect_serve', 'perfect_store', 'capacitacion', 'presupuesto'];
-const REG_NOMBRE = { evidencia: 'Evidencia en PDV', perfect_serve: 'Perfect Serve', perfect_store: 'Perfect Store', capacitacion: 'Capacitación', presupuesto: 'Presupuesto' };
+// 'material' (13/11/2026): foto de un exhibidor o material en el punto de venta.
+const REG_TIPOS = ['evidencia', 'perfect_serve', 'perfect_store', 'capacitacion', 'presupuesto', 'material'];
+const REG_NOMBRE = { evidencia: 'Evidencia en PDV', perfect_serve: 'Perfect Serve', perfect_store: 'Perfect Store', capacitacion: 'Capacitación', presupuesto: 'Presupuesto', material: 'Exhibidor o material' };
 // Qué datos guarda cada registro: [campo, tipo, largo]. Lo demás se descarta.
 const REG_CAMPOS = {
   evidencia: [['marca', 't', 80], ['competencia', 'b'], ['calificacion', ['bien', 'mal']], ['comentario', 't', 1000]],
@@ -64,6 +65,7 @@ const REG_CAMPOS = {
   perfect_store: [['modelo_id', 'u'], ['surtido', 't', 1000], ['precios', 't', 600], ['exhibicion', 't', 400], ['cumple', ['si', 'parcial', 'no']], ['comentario', 't', 1000]],
   capacitacion: [['tema', 't', 200], ['marcas', 't', 200], ['participantes', 'n'], ['nombres', 't', 1000], ['comentario', 't', 1000]],
   presupuesto: [['concepto', 't', 200], ['monto', 'n'], ['descripcion', 't', 2000]],
+  material: [['material', 't', 160], ['marca', 't', 80], ['comentario', 't', 1000]],
 };
 const MOD_CAMPOS = {
   perfect_serve: [['trago', 't', 120], ['receta', 't', 1500], ['medida_ml', 'n'], ['cristaleria', 't', 160], ['garnish', 't', 160], ['precio_botella', 'n'], ['ml_botella', 'n'], ['precio_sugerido', 'n']],
@@ -85,6 +87,45 @@ const PRESET_PERNOD = {
     'Wyborowa', 'Orloff', 'Cusenier', 'Tia Maria', 'Tia Creamy', 'Ricard', 'Blenders', 'Hiram Walker', 'Doble V', 'Buhero Negro', 'Capri', 'Aberlour', 'Longmorn', 'Scapa', 'The Deacon', 'Brighton', 'Padilla', 'TX'],
 };
 const PRESETS = [{ k: 'campari', n: 'Campari', p: PRESET_CAMPARI }, { k: 'pernod', n: 'Pernod Ricard', p: PRESET_PERNOD }];
+
+// ── Etapa 1 de la app de los KAF (13/11/2026, minuta de la reunión con Juan Pablo) ──
+// Cada marca tiene su manual, como los rubros del vendedor: secciones en
+// checklist_secciones con canal 'kaf_<marca>' (kaf_campari, kaf_pernod_ricard,
+// kaf_penaflor), solo Mendoza. Juan Pablo y Luciana los arman en Secciones del manual
+// y ubican ahí planes y campañas. Herramientas propias: w:kaf_acciones (lo de la marca
+// para ese cliente) y w:kaf_foto (no se marca hecha sin foto).
+const CAT_URL = 'https://zlwnoqdxendsgbfvfyue.supabase.co';
+const CAT_KEY = 'sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4';
+const slug = s => nrm(s).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+const manualKaf = P => 'kaf_' + slug(P && P.marca);
+// Tipo de cliente → manual del vendedor (igual que manualDe en _checklist-data.js) y
+// → valores de aplica_a de las campañas (igual que _canalesCliente en visita.html).
+const MANUAL_VEND = { vinoteca: 'vinoteca', 'tienda de bebidas': 'tienda_bebidas', autoservicio: 'autoservicio', hotel: 'hotel', bar: 'bar', disco: 'disco', mayorista: 'mayorista', evento: 'evento' };
+const manualVend = t => MANUAL_VEND[String(t || '').toLowerCase()] || 'restaurante';
+const APLICA = {
+  restaurante: ['restaurantes', 'restaurante'], vinoteca: ['vinotecas', 'vinoteca'], 'tienda de bebidas': ['tiendas_bebidas', 'tienda_bebidas', 'tienda de bebidas'],
+  bar: ['bares', 'bar'], hotel: ['hoteles', 'hotel'], evento: ['eventos', 'evento'], disco: ['discos', 'discotecas', 'disco'],
+  autoservicio: ['autoservicios', 'autoservicio', 'kioscos'], mayorista: ['mayorista', 'mayoristas', 'mayorista_mendoza', 'mayorista_sanluis'],
+};
+const canalCatalogo = t => (t === 'mayorista' ? 'mayorista' : TIPOS_ON.includes(t) ? 'on' : 'off');
+const vigente = (ini, fin, hoy) => (!fin || String(fin).slice(0, 10) >= hoy) && (!ini || String(ini).slice(0, 10) <= hoy);
+// ¿Es de la marca del KAF? Por el proveedor ("Grupo Peñaflor" = Peñaflor); si no tiene
+// proveedor, por alguna de sus marcas en el nombre.
+function deLaMarca(P, prov, txt) {
+  const m = nrm(P.marca), p = nrm(prov);
+  if (m && p) return p.includes(m) || m.includes(p);
+  const t = ' ' + nrm(txt).replace(/[^a-z0-9 ]/g, ' ') + ' ';
+  return !p && (P.marcas || []).some(x => { const k = nrm(x).replace(/[^a-z0-9 ]/g, ' ').trim(); return k && t.includes(' ' + k + ' '); });
+}
+// De qué sección del manual sale cada registro de foto de una visita.
+const tipoRegDe = s => {
+  const n = nrm(s.nombre) + ' ' + String(s.codigo || '');
+  if (/serve/.test(n)) return 'perfect_serve';
+  if (/store/.test(n)) return 'perfect_store';
+  if (/material|exhibi/.test(n)) return 'material';
+  if (/capacitac/.test(n)) return 'capacitacion';
+  return 'evidencia';
+};
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const texto = (v, max) => { const s = String(v == null ? '' : v).trim().slice(0, max); return s || null; };
@@ -202,12 +243,13 @@ async function datosMarca(P) {
   const clave = JSON.stringify([P.prefijos, P.marcas, P.tipos, P.region, P.planillas_campari]);
   const c = CACHE.get(clave);
   if (c && Date.now() - c.t < 10 * 60000) return c.d;
-  const tipos = (P.tipos || []).filter(t => TIPOS_OK.includes(t));
   const prefs = (P.prefijos || []).filter(p => /^\d{2,6}$/.test(p));
+  // Todos los clientes de GrandBar (minuta 13/11/2026: "el KAF ve todos los clientes"), no
+  // solo los de su canal. Los tipos del perfil quedan como "Mi canal" en la lista.
   const [clientes, estados, vendedores, prods, t5, acu] = await Promise.all([
-    tipos.length ? manTodo('clientes?select=id,codigo_cliente,nombre,direccion,tipo,vendedor_id,activo,created_at&tipo=in.(' + lista(tipos) + ')&order=codigo_cliente') : [],
+    manTodo('clientes?select=id,codigo_cliente,nombre,direccion,tipo,vendedor_id,activo,created_at&order=codigo_cliente'),
     manTodo('clientes_estado?select=codigo,activo&order=codigo'),
-    man('vendedores?select=id,nombre,codigo&limit=500'),
+    man('vendedores?select=id,nombre,codigo,whatsapp&limit=500'),
     prefs.length ? manTodo('productos_grandbar?select=codigo,descripcion&or=(' + prefs.map(p => 'codigo.like.' + p + '*').join(',') + ')&order=codigo') : [],
     P.planillas_campari ? leerCSV(SHEET_5T) : null,
     P.planillas_campari ? leerCSV(SHEET_ACUERDOS) : null,
@@ -225,14 +267,30 @@ async function datosMarca(P) {
   const desc = new Map(prods.map(p => [p.codigo, p.descripcion]));
   const marcas = (P.marcas || []).length ? P.marcas : [P.marca];
 
-  // Ventas de la marca de estos clientes, de a 150 códigos por consulta.
+  // Ventas de la marca de estos clientes, de a 150 códigos por consulta. Con todos los
+  // clientes (13/11/2026) son ~13 consultas: de a 7 a la vez y sin contar filas (el conteo
+  // de las 13 juntas hacía que la base cortara por tiempo).
   const porCli = new Map();
   if (prefs.length && visibles.length) {
     const cods = visibles.map(c => String(c.codigo_cliente)).filter(esCod);
     const trozos = [];
     for (let i = 0; i < cods.length; i += 150) trozos.push(cods.slice(i, i + 150));
     const filtro = '&or=(' + prefs.map(p => 'sku.like.' + p + '*').join(',') + ')&fecha=gte.' + VENTAS_DESDE + '&order=cliente_codigo,sku,fecha';
-    const lotes = await Promise.all(trozos.map(t => manTodo('ventas_cliente?select=cliente_codigo,sku,fecha,unidades,importe&cliente_codigo=in.(' + lista(t) + ')' + filtro)));
+    const paginas = async path => {
+      const out = [];
+      for (let d = 0; d < 50000; d += 1000) {
+        const r = await fetch(MAN_URL + '/rest/v1/' + path, { headers: manCab({ Range: d + '-' + (d + 999) }) });
+        if (!r.ok) throw new Error('Manual ventas_cliente: ' + r.status);
+        const l = await r.json();
+        out.push(...l);
+        if (l.length < 1000) break;
+      }
+      return out;
+    };
+    const lotes = [];
+    for (let i = 0; i < trozos.length; i += 7) {
+      lotes.push(...await Promise.all(trozos.slice(i, i + 7).map(t => paginas('ventas_cliente?select=cliente_codigo,sku,fecha,unidades,importe&cliente_codigo=in.(' + lista(t) + ')' + filtro))));
+    }
     for (const filas of lotes) {
       for (const f of filas) {
         if (!porCli.has(f.cliente_codigo)) porCli.set(f.cliente_codigo, []);
@@ -312,6 +370,66 @@ function resumenCliente(D, P, c, conPlata) {
     c: c.codigo_cliente, n: c.nombre, d: c.direccion || '', t: c.tipo, v: v.nombre || '', vc: v.codigo || '', alta: c.created_at ? diaAR(c.created_at) : null,
     u12: Math.round(u12), u90: Math.round(u90), pu90: Math.round(pu90), ult, pri, m: porMarca, t5, acu: (D.acuerdos.get(normCod(c.codigo_cliente)) || []).length, op,
   }, conPlata ? { i12: Math.round(i12), i90: Math.round(i90), p90: Math.round(p90) } : {});
+}
+
+// ── Lo de la marca que corre para un cliente (lo mismo que ve el vendedor) ─────
+// Planes y campañas del manual del vendedor y acciones del catálogo de clientes, de
+// ese proveedor, vigentes, de la zona y del rubro del cliente. Caché de 10 minutos.
+let CACHE_ACC = { t: 0, d: null };
+async function baseAcciones() {
+  if (CACHE_ACC.d && Date.now() - CACHE_ACC.t < 10 * 60000) return CACHE_ACC.d;
+  const cat = async p => { try { const r = await fetch(CAT_URL + '/rest/v1/' + p, { headers: { apikey: CAT_KEY, Authorization: 'Bearer ' + CAT_KEY } }); return r.ok ? r.json() : []; } catch (e) { return []; } };
+  const [secs, planes, camps, catAcc, catProv] = await Promise.all([
+    manTodo('checklist_secciones?activa=eq.true&select=id,canal&order=id'),
+    manTodo('checklist_planes?activo=eq.true&select=id,nombre,proveedor,condicion,descripcion,lineas_participantes,reglas,secciones,seccion_id,zonas,fecha_inicio,fecha_fin,pdf_url&order=id'),
+    manTodo('acciones_mensuales?activa=eq.true&select=id,producto,proveedor,accion,categoria,precio_regular,precio_accionado,varietales,aplica_a,secciones,zonas,fecha_inicio,fecha_fin,imagen_url&order=id'),
+    cat('catalogo_acciones?activo=eq.true&select=id,proveedor_id,nombre_producto,mecanica,info_adicional,precio_accionado,precio_regular,porcentaje_off,canal,zonas,vigente_hasta,imagen_url&limit=3000'),
+    cat('catalogo_proveedores?select=id,nombre&limit=1000'),
+  ]);
+  const d = { canalSec: new Map(secs.map(s => [s.id, s.canal])), planes, camps, catAcc, catProv: new Map(catProv.map(p => [p.id, p.nombre])) };
+  CACHE_ACC = { t: Date.now(), d };
+  return d;
+}
+function accionesCliente(A, P, c, zona) {
+  const hoy = hoyAR(), canalVend = manualVend(c.tipo), alias = APLICA[c.tipo] || [c.tipo];
+  const zOk = x => !Array.isArray(x.zonas) || !x.zonas.length || x.zonas.includes(zona);
+  const secsDe = x => (Array.isArray(x.secciones) && x.secciones.length ? x.secciones : (x.seccion_id ? [x.seccion_id] : []));
+  // Ubicada en secciones: tiene que haber alguna del manual de ese rubro (las de los
+  // manuales KAF salen en la visita, en su sección).
+  const enRubro = s => s.some(id => A.canalSec.get(id) === canalVend);
+  const planes = A.planes.filter(p => deLaMarca(P, p.proveedor, p.nombre) && zOk(p) && vigente(p.fecha_inicio, p.fecha_fin, hoy) && (!secsDe(p).length || enRubro(secsDe(p))))
+    .map(p => ({ id: p.id, titulo: p.nombre, condicion: p.condicion || '', desc: p.descripcion || '', lineas: p.lineas_participantes || [], reglas: p.reglas || [], hasta: p.fecha_fin || null, pdf: p.pdf_url || null }));
+  const campanias = A.camps.filter(a => {
+    if (!deLaMarca(P, a.proveedor, a.producto) || !zOk(a) || !vigente(a.fecha_inicio, a.fecha_fin, hoy)) return false;
+    if (secsDe(a).length) return enRubro(secsDe(a));
+    const ap = (Array.isArray(a.aplica_a) ? a.aplica_a : String(a.aplica_a || '').split(',')).map(x => nrm(x)).filter(Boolean);
+    return !ap.length || ap.includes('todos') || ap.some(x => alias.includes(x));
+  }).map(a => ({ id: a.id, titulo: a.producto || a.accion || 'Campaña', accion: a.accion || '', detalle: a.varietales || '', regular: a.precio_regular, accionado: a.precio_accionado, hasta: a.fecha_fin || null, imagen: a.imagen_url || null }));
+  const canalCat = canalCatalogo(c.tipo);
+  const catalogo = A.catAcc.filter(x => deLaMarca(P, A.catProv.get(x.proveedor_id), x.nombre_producto) && zOk(x) && (!x.vigente_hasta || String(x.vigente_hasta).slice(0, 10) >= hoy)
+      && (x.canal === canalCat || (x.canal === 'ambos' && canalCat !== 'mayorista')))
+    .map(x => ({ id: x.id, producto: x.nombre_producto, mecanica: x.mecanica || '', info: x.info_adicional || '', regular: x.precio_regular, accionado: x.precio_accionado, off: x.porcentaje_off, hasta: x.vigente_hasta || null, imagen: x.imagen_url || null }));
+  return { planes, campanias, catalogo };
+}
+
+// Cómo compra el cliente (cliente_inteligencia, base del Manual): cada cuánto, la
+// última compra y, de las sugerencias, solo los productos de la marca. Sin montos:
+// el KAF ve unidades (los montos son de GrandBar).
+async function comoCompra(P, codigo) {
+  try {
+    const r = await fetch(MAN_URL + '/rest/v1/rpc/cliente_inteligencia', { method: 'POST', headers: manCab({ 'Content-Type': 'application/json' }), body: JSON.stringify({ p_codigo: String(codigo) }) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (!d) return null;
+    const prefs = (P.prefijos || []).filter(p => /^\d{2,6}$/.test(p));
+    const deMarca = x => prefs.some(p => String(x.sku || '').startsWith(p));
+    return {
+      cada_dias: d.cada_dias || null, ultima_compra: d.ultima_compra || null, dias_sin_comprar: d.dias_sin_comprar, pedidos_12m: d.pedidos_12m || 0,
+      dejo: (d.dejo_de_comprar || []).filter(deMarca).map(x => ({ nombre: x.nombre, cada: x.cada, veces: x.veces, ultima: x.ultima, dias_sin: x.dias_sin })),
+      parecidos: (d.compran_los_parecidos || []).filter(deMarca).map(x => ({ nombre: x.nombre, clientes: x.clientes, pct: x.pct, unidades: x.unidades_prom })),
+      pares: d.pares || 0, tipo: d.tipo || null, zona: d.zona || null,
+    };
+  } catch (e) { return null; }
 }
 
 // Clientes nuevos del mes. Marca: primera compra de la marca (desde enero 2025) en
@@ -536,6 +654,33 @@ exports.handler = async (event) => {
 
       if (!P) return json(200, { sinPerfil: true, secciones, kaf: { id: kid, nombre: usu.nombre } });
 
+      // El manual de la marca: secciones con sus tareas, y los planes y campañas que
+      // Luciana o Juan Pablo ubicaron en ellas (vigentes y de la zona).
+      if (v === 'manual') {
+        const canal = manualKaf(P), zona = P.region === 'san_luis' ? 'sanluis' : 'mendoza';
+        const q = z => man('checklist_secciones?canal=eq.' + encodeURIComponent(canal) + '&zona=eq.' + z + '&activa=eq.true&select=id,codigo,nombre,descripcion,intro,especial,parent_id,orden,pdf_url&order=orden');
+        let secs = await q(zona);
+        if (!secs.length && zona !== 'mendoza') secs = await q('mendoza');
+        if (!secs.length) return json(200, { canal, secciones: [] });
+        const ids = secs.map(s => s.id), hoy = hoyAR(), zOk = x => !Array.isArray(x.zonas) || !x.zonas.length || x.zonas.includes(zona);
+        const [items, planes, camps] = await Promise.all([
+          man('checklist_items?seccion_id=in.(' + ids.join(',') + ')&activo=eq.true&select=seccion_id,texto,descripcion,orden&order=orden&limit=2000'),
+          man('checklist_planes?activo=eq.true&or=(secciones.ov.{' + ids.join(',') + '},seccion_id.in.(' + ids.join(',') + '))&select=id,nombre,proveedor,condicion,descripcion,lineas_participantes,reglas,secciones,seccion_id,zonas,fecha_inicio,fecha_fin,pdf_url&limit=500'),
+          man('acciones_mensuales?activa=eq.true&secciones=ov.{' + ids.join(',') + '}&select=id,producto,proveedor,accion,varietales,precio_regular,precio_accionado,secciones,zonas,fecha_inicio,fecha_fin,imagen_url&limit=500'),
+        ]);
+        const deSec = (x, id) => (Array.isArray(x.secciones) && x.secciones.length ? x.secciones : [x.seccion_id]).includes(id);
+        const nodo = s => ({
+          id: s.id, codigo: s.codigo, nombre: s.nombre, descripcion: s.descripcion || '', intro: s.intro || '', especial: s.especial || '', pdf: s.pdf_url || null,
+          items: items.filter(i => i.seccion_id === s.id).map(i => ({ texto: i.texto, detalle: i.descripcion || '' })),
+          planes: planes.filter(p => deSec(p, s.id) && zOk(p) && vigente(p.fecha_inicio, p.fecha_fin, hoy))
+            .map(p => ({ id: p.id, titulo: p.nombre, proveedor: p.proveedor || '', condicion: p.condicion || '', desc: p.descripcion || '', lineas: p.lineas_participantes || [], reglas: p.reglas || [], hasta: p.fecha_fin || null, pdf: p.pdf_url || null })),
+          campanias: camps.filter(a => deSec(a, s.id) && zOk(a) && vigente(a.fecha_inicio, a.fecha_fin, hoy))
+            .map(a => ({ id: a.id, titulo: a.producto || a.accion || 'Campaña', proveedor: a.proveedor || '', accion: a.accion || '', detalle: a.varietales || '', regular: a.precio_regular, accionado: a.precio_accionado, hasta: a.fecha_fin || null, imagen: a.imagen_url || null })),
+        });
+        const madres = secs.filter(s => !s.parent_id || !ids.includes(s.parent_id));
+        return json(200, { canal, secciones: madres.map(m => Object.assign(nodo(m), { sub: secs.filter(h => h.parent_id === m.id).map(nodo) })) });
+      }
+
       if (v === 'clientes') {
         const D = await datosMarca(P);
         const mes = mesDe(hoyAR());
@@ -559,7 +704,7 @@ exports.handler = async (event) => {
         if (!esCod(qp.codigo)) return json(400, { error: 'Falta el cliente.' });
         const D = await datosMarca(P);
         const c = D.visibles.find(x => x.codigo_cliente === qp.codigo);
-        if (!c) return json(404, { error: 'Ese cliente no está en tu lista (otro canal, otra zona u oculto).' });
+        if (!c) return json(404, { error: 'Ese cliente no está en tu lista (otra zona u oculto).' });
         const r = resumenCliente(D, P, c, plata);
         // Por mes y marca, últimos 12 meses.
         const hoy = hoyAR(), meses = [];
@@ -570,12 +715,18 @@ exports.handler = async (event) => {
           const mk = marcaDe(D.desc.get(sku) || '', D.marcas);
           (tabla[mk] = tabla[mk] || {})[m] = ((tabla[mk] || {})[m] || 0) + u;
         });
-        const [vis, regs, objs] = await Promise.all([
+        const vd = D.vend.get(c.vendedor_id) || {};
+        const zonaCli = vd.codigo && SAN_LUIS_CODIGOS.has(String(vd.codigo).trim()) ? 'sanluis' : 'mendoza';
+        const [vis, regs, objs, A, compra] = await Promise.all([
           hub('kaf_visitas?usuario_id=eq.' + kid + '&cliente_codigo=eq.' + encodeURIComponent(c.codigo_cliente) + '&select=*&order=fecha.desc&limit=100'),
-          hub('kaf_registros?usuario_id=eq.' + kid + '&cliente_codigo=eq.' + encodeURIComponent(c.codigo_cliente) + '&select=id,tipo,fecha,estado,datos,created_at&order=created_at.desc&limit=100'),
+          hub('kaf_registros?usuario_id=eq.' + kid + '&cliente_codigo=eq.' + encodeURIComponent(c.codigo_cliente) + '&select=id,tipo,fecha,estado,datos,created_at,visita_id&order=created_at.desc&limit=100'),
           hub('kaf_objetivos_cliente?usuario_id=eq.' + kid + '&cliente_codigo=eq.' + encodeURIComponent(c.codigo_cliente) + '&select=*&order=mes.desc,created_at&limit=60'),
+          baseAcciones().catch(() => null),
+          comoCompra(P, c.codigo_cliente),
         ]);
-        return json(200, { cliente: r, meses, porMes: tabla, acuerdos: D.acuerdos.get(normCod(c.codigo_cliente)) || [], visitas: vis, registros: regs, objetivos: objs, marcas5t: MARCAS_5T, plata });
+        return json(200, { cliente: r, meses, porMes: tabla, acuerdos: D.acuerdos.get(normCod(c.codigo_cliente)) || [], visitas: vis, registros: regs, objetivos: objs, marcas5t: MARCAS_5T, plata,
+          vendedor: { nombre: vd.nombre || '', codigo: vd.codigo || '', whatsapp: vd.whatsapp || '' }, zona: zonaCli,
+          acciones: A ? accionesCliente(A, P, c, zonaCli) : null, compra });
       }
 
       if (v === 'visitas') {
@@ -585,6 +736,9 @@ exports.handler = async (event) => {
         // Límites del día en Argentina (UTC−3).
         const vis = await hub('kaf_visitas?usuario_id=eq.' + kid + '&fecha=gte.' + desde + 'T03:00:00Z&fecha=lt.' + sumaDias(hasta, 1) + 'T03:00:00Z&select=*&order=fecha.desc&limit=5000');
         const obj = await hub('kaf_objetivos?usuario_id=eq.' + kid + '&mes=in.(' + [...new Set([mesDe(desde), mesDe(hasta)])].join(',') + ')&select=mes,visitas_dia');
+        // Fotos del recorrido (links que vencen en una hora).
+        const url = await firmar([].concat(...vis.map(x => x.fotos || [])));
+        vis.forEach(x => { x.fotos_url = {}; (x.fotos || []).forEach(p => { if (url[p]) x.fotos_url[p] = url[p]; }); });
         return json(200, { kaf: { id: kid, nombre: usu.nombre }, desde, hasta, visitas: vis, objetivos: obj });
       }
 
@@ -747,12 +901,44 @@ exports.handler = async (event) => {
       const c = (await man('clientes?codigo_cliente=eq.' + encodeURIComponent(codigo) + '&select=codigo_cliente,nombre,tipo,vendedor_id'))[0];
       if (!c) throw new Error('No encontré el cliente.');
       const v = c.vendedor_id ? (await man('vendedores?id=eq.' + c.vendedor_id + '&select=nombre,codigo'))[0] : null;
-      return { codigo: c.codigo_cliente, nombre: c.nombre, tipo: c.tipo, vendedor: v ? v.nombre : null };
+      return { codigo: c.codigo_cliente, nombre: c.nombre, tipo: c.tipo, vendedor: v ? v.nombre : null, vendedorCodigo: v && v.codigo ? String(v.codigo).trim() : null };
+    }
+
+    // Una foto del recorrido de la visita: se sube apenas se saca (así la visita no viaja
+    // con todas las fotos juntas) y la visita después guarda las rutas.
+    if (ac === 'foto') {
+      try {
+        const [p] = await subir(user.id + '/visitas/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), [b.foto], false);
+        const url = await firmar([p]);
+        return json(200, { ok: true, path: p, url: url[p] || null });
+      } catch (e) { return json(400, { error: e.message }); }
     }
 
     if (ac === 'visita') {
       let c;
       try { c = await clienteDe(b.codigo, true); } catch (e) { return json(400, { error: e.message }); }
+      // Recorrido del manual de la marca (etapa 1, 13/11/2026). Se valida contra la base:
+      // solo secciones de su manual, solo fotos suyas de visitas, y las secciones "con foto
+      // obligatoria" (w:kaf_foto) no se pueden dar por hechas sin foto.
+      let detalle = null, fotosVis = [], secsVis = [];
+      if (Array.isArray(b.secciones)) {
+        const pref = user.id + '/visitas/';
+        const SD = new Map((await man('checklist_secciones?canal=eq.' + encodeURIComponent(manualKaf(P)) + '&select=id,codigo,nombre,especial')).map(s => [s.id, s]));
+        for (const s of b.secciones.slice(0, 40)) {
+          const sd = SD.get(s && s.id);
+          if (!sd) continue;
+          const fotos = (Array.isArray(s.fotos) ? s.fotos : []).map(String).filter(p => p.startsWith(pref) && /^[\w\/.-]+$/.test(p)).slice(0, 8);
+          const items = (Array.isArray(s.items) ? s.items : []).map(t => texto(t, 300)).filter(Boolean).slice(0, 60);
+          const hecho = s.hecho === true, comentario = texto(s.comentario, 1000);
+          if (!hecho && !fotos.length && !items.length && !comentario) continue;
+          if (hecho && sd.especial === 'w:kaf_foto' && !fotos.length) return json(400, { error: '"' + sd.nombre + '" va con foto: sacala o subila antes de guardar.' });
+          secsVis.push({ sd, fotos, items, comentario });
+          detalle = detalle || { secciones: [] };
+          detalle.secciones.push({ id: sd.id, codigo: sd.codigo, titulo: sd.nombre, hecho, items, comentario, fotos });
+          fotosVis.push(...fotos);
+        }
+        if (detalle) detalle.nota_vendedor = texto(b.nota, 1000);
+      }
       const ahora = Date.now();
       let fecha = new Date(ahora);
       if (b.cuando) {
@@ -762,18 +948,49 @@ exports.handler = async (event) => {
         if (f.getTime() < ahora - 7 * 864e5) return json(400, { error: 'Solo se pueden cargar visitas de los últimos 7 días.' });
         fecha = f;
       }
-      // Dos toques seguidos no hacen dos visitas.
-      const previa = (await hub('kaf_visitas?usuario_id=eq.' + user.id + '&cliente_codigo=eq.' + encodeURIComponent(c.codigo) + '&fecha=gte.' + new Date(fecha.getTime() - 30 * 60000).toISOString() + '&fecha=lte.' + new Date(fecha.getTime() + 30 * 60000).toISOString() + '&select=id,fecha&limit=1'))[0];
-      if (previa) return json(200, { ok: true, repetida: true, visita: previa });
-      const r = await escribir('kaf_visitas', 'POST', { usuario_id: user.id, cliente_codigo: c.codigo, cliente_nombre: c.nombre, tipo_cliente: c.tipo, vendedor: c.vendedor, fecha: fecha.toISOString(), nota: texto(b.nota, 1000) });
-      return json(200, { ok: true, visita: r[0] });
+      // Dos toques seguidos no hacen dos visitas. Si antes solo marcó que pasó y ahora carga
+      // el recorrido, se completa esa misma visita.
+      const previa = (await hub('kaf_visitas?usuario_id=eq.' + user.id + '&cliente_codigo=eq.' + encodeURIComponent(c.codigo) + '&fecha=gte.' + new Date(fecha.getTime() - 30 * 60000).toISOString() + '&fecha=lte.' + new Date(fecha.getTime() + 30 * 60000).toISOString() + '&select=id,fecha,detalle&limit=1'))[0];
+      if (previa && (!detalle || previa.detalle)) return json(200, { ok: true, repetida: true, visita: previa });
+      const fila = { detalle, fotos: fotosVis, nota: texto(b.nota, 1000) };
+      const r = previa
+        ? await escribir('kaf_visitas?id=eq.' + previa.id, 'PATCH', fila)
+        : await escribir('kaf_visitas', 'POST', Object.assign({ usuario_id: user.id, cliente_codigo: c.codigo, cliente_nombre: c.nombre, tipo_cliente: c.tipo, vendedor: c.vendedor, fecha: fecha.toISOString() }, fila));
+      const vis = r[0];
+      if (!detalle) return json(200, { ok: true, visita: vis });
+
+      // Las fotos de cada sección quedan también como registros: Juan Pablo las revisa con
+      // lo demás (Perfect Serve, Perfect Store, exhibidores…) y salen en la ficha del cliente.
+      const dia = diaAR(fecha);
+      const regs = secsVis.filter(s => s.fotos.length).map(s => ({ usuario_id: user.id, tipo: tipoRegDe(s.sd), cliente_codigo: c.codigo, cliente_nombre: c.nombre, fecha: dia,
+        datos: Object.assign({ seccion: s.sd.nombre }, s.comentario ? { comentario: s.comentario } : {}, s.items.length ? { tareas: s.items } : {}), fotos: s.fotos, estado: 'nuevo', visita_id: vis.id }));
+      if (regs.length) await escribir('kaf_registros', 'POST', regs, 'return=minimal');
+
+      const hechas = detalle.secciones.filter(s => s.hecho).map(s => s.titulo);
+      const resumen = (hechas.length ? hechas.join(', ') : 'Pasó por el punto de venta') + (fotosVis.length ? ' · ' + fotosVis.length + (fotosVis.length === 1 ? ' foto' : ' fotos') : '');
+      for (const t of await trade()) await avisar(t.id, { icono: '📍', titulo: 'Visita de ' + quien + ' a ' + c.nombre, detalle: resumen + (detalle.nota_vendedor ? ' · ' + detalle.nota_vendedor : ''), link: '/trade-kaf.html?kaf=' + user.id + '#visitas' });
+
+      // Aviso al vendedor del cliente (el KAF no carga ventas: ejecuta y le avisa).
+      const aviso = { vendedor: c.vendedor || null, a: [], campanita: false };
+      if (b.avisar !== false && c.vendedorCodigo) {
+        const us = await hub('usuarios?codigo_vendedor=eq.' + encodeURIComponent(c.vendedorCodigo) + '&activo=not.is.false&select=id').catch(() => []);
+        for (const u of us) {
+          const ok = await avisar(u.id, { icono: '📍', titulo: quien + ' (KAF ' + P.marca + ') visitó a ' + c.nombre, detalle: resumen + (detalle.nota_vendedor ? ' · Nota: ' + detalle.nota_vendedor : ''), link: '/manual-vendedores/clientes.html' });
+          aviso.a.push(u.id); aviso.campanita = aviso.campanita || ok;
+        }
+      }
+      await escribir('kaf_visitas?id=eq.' + vis.id, 'PATCH', { aviso }, 'return=minimal').catch(() => {});
+      return json(200, { ok: true, visita: Object.assign(vis, { aviso }) });
     }
     if (ac === 'borrar_visita') {
       if (!esUuid(b.id)) return json(400, { error: 'Falta la visita.' });
-      const x = (await hub('kaf_visitas?id=eq.' + b.id + '&select=id,usuario_id,registrada_at'))[0];
+      const x = (await hub('kaf_visitas?id=eq.' + b.id + '&select=id,usuario_id,registrada_at,fotos'))[0];
       if (!x || x.usuario_id !== user.id) return json(403, { error: 'Solo podés borrar tus visitas.' });
       if (Date.now() - new Date(x.registrada_at).getTime() > 24 * 3600000) return json(400, { error: 'Pasaron más de 24 horas: pedile a Trade Marketing que la saque.' });
+      // Con la visita se van sus registros de fotos y los archivos.
+      await escribir('kaf_registros?visita_id=eq.' + b.id + '&usuario_id=eq.' + user.id, 'DELETE', null, 'return=minimal');
       await escribir('kaf_visitas?id=eq.' + b.id, 'DELETE', null, 'return=minimal');
+      await borrarArchivos(x.fotos);
       return json(200, { ok: true });
     }
 
@@ -782,11 +999,12 @@ exports.handler = async (event) => {
       if (!REG_TIPOS.includes(tipo)) return json(400, { error: 'Tipo inválido.' });
       const datos = campos(REG_CAMPOS[tipo], b.datos || {});
       const archivos = Array.isArray(b.fotos) ? b.fotos.slice(0, 4) : [];
-      if (tipo === 'evidencia' && !archivos.length) return json(400, { error: 'Sumá al menos una foto.' });
+      if ((tipo === 'evidencia' || tipo === 'material') && !archivos.length) return json(400, { error: 'Sumá al menos una foto.' });
       if (tipo === 'evidencia' && !datos.calificacion) return json(400, { error: 'Marcá si la foto es de algo bien o mal ejecutado.' });
       if (tipo === 'capacitacion' && !datos.tema) return json(400, { error: 'Falta el tema de la capacitación.' });
       if (tipo === 'presupuesto' && (!datos.concepto || datos.monto == null)) return json(400, { error: 'Faltan el concepto y el monto.' });
-      if ((tipo === 'perfect_serve' && !datos.trago && !datos.modelo_id) || (tipo === 'perfect_store' && !datos.modelo_id && !datos.surtido)) return json(400, { error: 'Elegí el modelo o completá lo que viste.' });
+      // Desde el botón de la cámara alcanza con la foto (13/11/2026); sin foto hay que contar qué se vio.
+      if (!archivos.length && ((tipo === 'perfect_serve' && !datos.trago && !datos.modelo_id) || (tipo === 'perfect_store' && !datos.modelo_id && !datos.surtido))) return json(400, { error: 'Elegí el modelo, completá lo que viste o sumá una foto.' });
       let c;
       try { c = await clienteDe(b.codigo, tipo !== 'capacitacion'); } catch (e) { return json(400, { error: e.message }); }
       const fecha = /^\d{4}-\d{2}-\d{2}$/.test(b.fecha || '') && b.fecha <= hoyAR() && b.fecha >= sumaDias(hoyAR(), -60) ? b.fecha : hoyAR();
@@ -803,8 +1021,9 @@ exports.handler = async (event) => {
     }
     if (ac === 'borrar_registro') {
       if (!esUuid(b.id)) return json(400, { error: 'Falta el registro.' });
-      const x = (await hub('kaf_registros?id=eq.' + b.id + '&select=id,usuario_id,estado,fotos'))[0];
+      const x = (await hub('kaf_registros?id=eq.' + b.id + '&select=id,usuario_id,estado,fotos,visita_id'))[0];
       if (!x || x.usuario_id !== user.id) return json(403, { error: 'Solo podés borrar lo tuyo.' });
+      if (x.visita_id) return json(400, { error: 'Estas fotos son de una visita: se borran borrando la visita (Mis visitas).' });
       if (!['nuevo', 'pendiente'].includes(x.estado)) return json(400, { error: 'Ya lo revisó Trade Marketing: no se puede borrar.' });
       await escribir('kaf_registros?id=eq.' + b.id, 'DELETE', null, 'return=minimal');
       await borrarArchivos(x.fotos);

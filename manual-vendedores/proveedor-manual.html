@@ -114,7 +114,7 @@ let curCanal=null, curSec=null;
   PROV={empresa: perfil.empresa || perfil.nombre, nombre: perfil.nombre};
   try{
     const [{data:secs},{data:props},libres]=await Promise.all([
-      sb.from('checklist_secciones').select('id,canal,codigo,nombre,icono,orden,parent_id').eq('zona','mendoza').eq('activa',true).order('orden'),
+      sb.from('checklist_secciones').select('id,canal,codigo,nombre,icono,orden,parent_id').eq('zona','mendoza').eq('activa',true).not('canal','like','kaf_%').order('orden'),   // los manuales KAF no son para proveedores
       sb.from('propuestas_acciones').select('rubro,seccion,autor_empresa,estado').in('estado',['pendiente','aprobada']),
       fetch('/.netlify/functions/lugares-libres',{headers:{Authorization:'Bearer '+session.access_token}}).then(r=>r.ok?r.json():null).catch(()=>null)
     ]);

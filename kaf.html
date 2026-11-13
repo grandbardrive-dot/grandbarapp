@@ -16,7 +16,7 @@
 <!-- Panel del KAF (19/10/2026): representante de una marca en la calle (Facu Llaver,
      Campari). Lo arma Juan Pablo Sepúlveda desde trade-kaf.html: marca, secciones y
      objetivos. Datos: función kaf (assets/kaf-comun.js). -->
-<link rel="stylesheet" href="assets/kaf.css?v=1">
+<link rel="stylesheet" href="assets/kaf.css?v=2">
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
 <body>
@@ -37,11 +37,13 @@
   </div></div>
 </div>
 <div class="carro" id="carro"><span id="carro-t"></span><button class="btn gold chico" id="carro-ver" type="button">Ver pedido</button></div>
+<!-- Cámara siempre a mano (13/11/2026, minuta: "la evidencia tiene que ser muy accesible"). -->
+<button class="fab" id="fab-foto" type="button" aria-label="Cargar fotos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span>Foto</span></button>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/auth-persist.js?v=1"></script>
-<script src="assets/kaf-comun.js?v=1"></script>
+<script src="assets/kaf-comun.js?v=2"></script>
 <script>
   const { K, $, esc, num, fecha, hora, toast, get, post, secc, ventana, cerrar, picker } = KAF;
   const ICO = {
@@ -68,12 +70,22 @@
   function cabeza(t, p) { return `<div class="head"><div><h1>${esc(t)}</h1>${p ? `<p>${p}</p>` : ''}</div></div>`; }
 
   async function ir() {
-    const v = (location.hash || '#inicio').slice(1).split('?')[0];
-    VISTA = v; marcarMenu();
+    // Rutas (13/11/2026): #cliente/<código> = ficha del cliente; #visita/<código> = el recorrido.
+    const [v, arg] = (location.hash || '#inicio').slice(1).split('?')[0].split('/');
+    const enCliente = (v === 'cliente' || v === 'visita') && arg;
+    VISTA = enCliente ? 'clientes' : v; marcarMenu();
     document.body.classList.remove('gb-drawer-open');
     const C = $('contenido');
     C.parentElement.style.padding = '';
     pintarCarro();
+    // El botón de la cámara está siempre, menos dentro de la visita (ahí cada sección tiene el suyo).
+    $('fab-foto').classList.toggle('on', !!K.perfil && v !== 'visita' && v !== 'agenda');
+    window.scrollTo(0, 0);
+    if (enCliente) {
+      C.innerHTML = '<div id="vista"></div>';
+      if (v === 'visita') KAF.renderVisita($('vista'), decodeURIComponent(arg)); else KAF.abrirFicha(decodeURIComponent(arg), $('vista'));
+      return;
+    }
     if (v === 'agenda') { C.innerHTML = '<iframe class="marco" src="/mi-agenda.html?embed=1" title="Mi agenda"></iframe>'; return; }
     const S = secc(v);
     if (v !== 'inicio' && K.secciones.length && !S) { location.replace('#inicio'); return; }
@@ -85,7 +97,7 @@
     }
     const titulo = S ? S.t : v;
     const ayuda = S && S.ayuda && !KAF.REG[v] ? `<div class="ayuda">${esc(S.ayuda)}</div>` : '';
-    if (v === 'clientes') { C.innerHTML = cabeza(titulo, 'Tus clientes con su vendedor, lo que compran de la marca y las oportunidades. Tocá uno para marcar la visita.') + ayuda + '<div id="vista"></div>'; KAF.renderClientes($('vista')); return; }
+    if (v === 'clientes') { C.innerHTML = cabeza(titulo, 'Todos los clientes de GrandBar con su vendedor, lo que compran de la marca y las oportunidades. Tocá uno para ver su ficha y empezar la visita.') + ayuda + '<div id="vista"></div>'; KAF.renderClientes($('vista')); return; }
     if (v === 'visitas') { C.innerHTML = cabeza(titulo, 'Las visitas que marcaste, día por día. Juan Pablo las ve igual que vos.') + ayuda + '<div id="vista"></div>'; KAF.renderVisitas($('vista')); return; }
     if (v === 'nuevos') { C.innerHTML = cabeza(titulo, 'Clientes que empezaron a comprar este mes, con los datos de CUBO.') + ayuda + '<div id="vista"></div>'; KAF.renderNuevos($('vista')); return; }
     if (KAF.REG[v]) { C.innerHTML = cabeza(titulo, esc(KAF.REG[v].d)) + '<div id="vista"></div>'; KAF.renderRegistros($('vista'), v); return; }
@@ -196,6 +208,11 @@
     cerrar.despues = () => { if (VISTA === 'materiales') ir(); };
   }
   $('carro-ver').onclick = () => verPedido(false);
+  // Cámara: si está en la ficha de un cliente, ya viene elegido.
+  $('fab-foto').onclick = () => {
+    const f = K.ficha && K.ficha.cliente, en = /^#cliente\//.test(location.hash);
+    KAF.fotoRapida(en && f ? { c: f.c, n: f.n } : null);
+  };
 
   (async () => {
     const { data: { session } } = await KAF.supa().auth.getSession();

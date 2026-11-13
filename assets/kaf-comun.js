@@ -35,6 +35,7 @@ window.KAF = (function () {
     perfect_store: { n: 'Perfect Store', uno: 'Perfect Store', d: 'Surtido, precios y exhibición en el punto de venta contra el modelo.' },
     capacitacion: { n: 'Capacitaciones', uno: 'capacitación', d: 'Cada capacitación: dónde, de qué marcas, quiénes participaron y fotos.' },
     presupuesto: { n: 'Presupuestos', uno: 'presupuesto', d: 'Presupuestos, propuestas y evidencias de gastronomía para presupuestar. Trade Marketing los aprueba o los rechaza.' },
+    material: { n: 'Exhibidores y materiales', uno: 'foto de exhibidor o material', d: 'Fotos de los exhibidores y materiales de la marca en el punto de venta.' },
   };
   const ESTADO = { nuevo: 'Nuevo', visto: 'Visto', pendiente: 'Para aprobar', aprobado: 'Aprobado', rechazado: 'Rechazado', enviado: 'Enviado a Andrea', remito: 'Con remito', logrado: 'Logrado', no_logrado: 'No logrado' };
   const ESTADO_OBJ = { pendiente: 'Pendiente', logrado: 'Logrado', no_logrado: 'No logrado' };
@@ -99,6 +100,7 @@ window.KAF = (function () {
     return d;
   }
   const t5Cuenta = t5 => { if (!t5) return null; const ks = Object.keys(t5); return { si: ks.filter(k => t5[k]).length, tot: ks.length }; };
+  const porTipoTxt = (l, t) => num(l.filter(c => c.t === t).length);
   function chipsCliente(c) {
     const ch = [];
     if (c.u12 > 0) ch.push(`<span class="chip verde">${num(c.u12)} u. en 12 meses</span>`);
@@ -113,18 +115,25 @@ window.KAF = (function () {
     if (c.obj && c.obj.l && !c.obj.p) ch.push(`<span class="chip verde">Objetivo logrado</span>`);
     return ch.join('');
   }
-  const EST_CLI = { tab: '', filtro: '', q: '', orden: 'nombre', max: 150 };
+  // Todos los clientes de GrandBar (13/11/2026). "Mi canal" (los tipos del perfil) es la
+  // pestaña de entrada; "Todos" trae el resto, con filtro por tipo.
+  const EST_CLI = { tab: 'canal', tipo: '', vend: '', filtro: '', q: '', orden: 'nombre', max: 150 };
   async function renderClientes(el) {
     el.innerHTML = '<div class="vacio">Cargando los clientes y lo que compran de la marca… (la primera vez tarda unos segundos)</div>';
     let d;
     try { d = await clientes(); } catch (e) { el.innerHTML = `<div class="vacio">${esc(e.message)}</div>`; return; }
     if (d.sinPerfil) { el.innerHTML = sinPerfilHtml(); return; }
     const P = d.perfil || {};
-    const tipos = P.tipos || [];
+    const tipos = P.tipos || [], mio = new Set(tipos);
+    if (!tipos.length && EST_CLI.tab === 'canal') EST_CLI.tab = 'todos';
+    const vendedores = [...new Map(d.clientes.filter(c => c.vc).map(c => [c.vc, c.v])).entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1])));
+    const tiposTodos = [...new Set(d.clientes.map(c => c.t))].sort((a, b) => String(TIPO[a] || a).localeCompare(String(TIPO[b] || b)));
     const pinta = () => {
       const q = EST_CLI.q.trim().toLowerCase();
-      let l = d.clientes.filter(c => (!EST_CLI.tab || c.t === EST_CLI.tab));
+      let l = d.clientes.filter(c => EST_CLI.tab === 'canal' ? mio.has(c.t) : EST_CLI.tab === 'todos' ? (!EST_CLI.tipo || c.t === EST_CLI.tipo) : c.t === EST_CLI.tab);
+      if (EST_CLI.vend) l = l.filter(c => c.vc === EST_CLI.vend);
       const porTipo = {}; d.clientes.forEach(c => { porTipo[c.t] = (porTipo[c.t] || 0) + 1; });
+      const enCanal = d.clientes.filter(c => mio.has(c.t)).length;
       if (EST_CLI.filtro === 'baja') l = l.filter(c => (c.op || []).some(o => ['perdido', 'baja', 'dejo'].includes(o.k)));
       if (EST_CLI.filtro === 'sin') l = l.filter(c => !c.ult);
       if (EST_CLI.filtro === 'novis') l = l.filter(c => !c.visMes);
@@ -139,8 +148,10 @@ window.KAF = (function () {
         op: (a, b) => (b.op || []).length - (a.op || []).length || b.u12 - a.u12,
       }[EST_CLI.orden] || ((a, b) => a.n.localeCompare(b.n));
       l.sort(ord);
-      el.querySelector('#kc-tabs').innerHTML = `<button data-t="" class="${!EST_CLI.tab ? 'on' : ''}">Todos<span class="n">${d.clientes.length}</span></button>`
-        + tipos.map(t => `<button data-t="${esc(t)}" class="${EST_CLI.tab === t ? 'on' : ''}">${esc(TIPO[t] || t)}<span class="n">${porTipo[t] || 0}</span></button>`).join('');
+      el.querySelector('#kc-tabs').innerHTML = (tipos.length ? `<button data-t="canal" class="${EST_CLI.tab === 'canal' ? 'on' : ''}">Mi canal<span class="n">${enCanal}</span></button>` : '')
+        + (tipos.length > 1 ? tipos.map(t => `<button data-t="${esc(t)}" class="${EST_CLI.tab === t ? 'on' : ''}">${esc(TIPO[t] || t)}<span class="n">${porTipo[t] || 0}</span></button>`).join('') : '')
+        + `<button data-t="todos" class="${EST_CLI.tab === 'todos' ? 'on' : ''}">Todos los clientes<span class="n">${d.clientes.length}</span></button>`;
+      const st = el.querySelector('#kc-tipo'); st.style.display = EST_CLI.tab === 'todos' ? '' : 'none'; st.value = EST_CLI.tipo;
       el.querySelector('#kc-cuenta').textContent = l.length + (l.length === 1 ? ' cliente' : ' clientes') + ' · datos de CUBO' + (d.hayT5 ? ' y del Plan Campari 5T' : '');
       el.querySelector('#kc-lista').innerHTML = !l.length ? '<div class="vacio">No hay clientes con ese filtro.</div>'
         : l.slice(0, EST_CLI.max).map(c => `<div class="fila click" data-c="${esc(c.c)}">
@@ -159,13 +170,17 @@ window.KAF = (function () {
           <option value="novis">Sin visitar este mes</option><option value="vis">Visitados este mes</option><option value="obj">Con objetivo este mes</option>
           ${d.hayT5 ? '<option value="t5">Les falta algo del Plan 5T</option>' : ''}
         </select>
+        <select id="kc-tipo" aria-label="Tipo de cliente"><option value="">Todos los tipos</option>${tiposTodos.map(t => `<option value="${esc(t)}">${esc(TIPO[t] || t)} (${porTipoTxt(d.clientes, t)})</option>`).join('')}</select>
+        <select id="kc-vend" aria-label="Vendedor"><option value="">Todos los vendedores</option>${vendedores.map(([k, n]) => `<option value="${esc(k)}">${esc(n || k)}</option>`).join('')}</select>
         <select id="kc-orden" aria-label="Orden"><option value="nombre">Por nombre</option><option value="op">Más oportunidades</option><option value="u12">Más unidades</option><option value="sin">Más tiempo sin comprar</option></select>
         <input type="search" id="kc-q" placeholder="Buscar cliente, código o vendedor…" autocomplete="off">
         <button class="btn claro chico" id="kc-csv" title="Cuadro de oportunidades en Excel">Bajar el cuadro</button>
       </div>
       <div class="cuenta" id="kc-cuenta"></div><div id="kc-lista"></div>`;
-    el.querySelector('#kc-filtro').value = EST_CLI.filtro; el.querySelector('#kc-orden').value = EST_CLI.orden; el.querySelector('#kc-q').value = EST_CLI.q;
+    el.querySelector('#kc-filtro').value = EST_CLI.filtro; el.querySelector('#kc-orden').value = EST_CLI.orden; el.querySelector('#kc-q').value = EST_CLI.q; el.querySelector('#kc-vend').value = EST_CLI.vend;
     el.querySelector('#kc-tabs').onclick = e => { const b = e.target.closest('button[data-t]'); if (!b) return; EST_CLI.tab = b.dataset.t; EST_CLI.max = 150; pinta(); };
+    el.querySelector('#kc-tipo').onchange = e => { EST_CLI.tipo = e.target.value; EST_CLI.max = 150; pinta(); };
+    el.querySelector('#kc-vend').onchange = e => { EST_CLI.vend = e.target.value; EST_CLI.max = 150; pinta(); };
     el.querySelector('#kc-filtro').onchange = e => { EST_CLI.filtro = e.target.value; EST_CLI.max = 150; pinta(); };
     el.querySelector('#kc-orden').onchange = e => { EST_CLI.orden = e.target.value; pinta(); };
     el.querySelector('#kc-q').oninput = e => { EST_CLI.q = e.target.value; EST_CLI.max = 150; pinta(); };
@@ -180,18 +195,89 @@ window.KAF = (function () {
     pinta();
   }
 
-  // Ficha del cliente: lo que compra, 5T, acuerdos, visitas, objetivos y acciones.
-  async function abrirFicha(codigo) {
+  // ── Ficha del cliente ──────────────────────────────────────────────────────
+  // El KAF la abre como pantalla (#cliente/<código>) y de ahí empieza la visita; Trade
+  // Marketing la ve en una ventana. Vendedor, cobertura, cómo compra, lo de la marca que
+  // corre para ese cliente (planes, campañas, catálogo), oportunidades, objetivos y visitas.
+  const CMP_RUBRO = { vinoteca: 'otras vinotecas', restaurante: 'otros restaurantes', bar: 'otros bares', autoservicio: 'otros autoservicios', disco: 'otras discos', hotel: 'otros hoteles', 'tienda de bebidas': 'otras tiendas de bebidas' };
+  const hace = n => n === 0 ? 'hoy' : n === 1 ? 'ayer' : 'hace ' + num(n) + ' días';
+  function compraHtml(x, marca) {
+    if (!x) return '';
+    if (!x.ultima_compra) return `<div class="bloque"><h4>Cómo compra</h4><div style="font-size:13px;color:var(--muted)">No tiene compras a GrandBar en los últimos dos años.</div></div>`;
+    const frenado = x.dias_sin_comprar != null && (x.cada_dias ? x.dias_sin_comprar > Math.max(30, 2 * x.cada_dias) : x.dias_sin_comprar > 90);
+    const quienes = (CMP_RUBRO[x.tipo] || 'otros clientes del mismo rubro') + (x.zona === 'sanluis' ? ' de San Luis' : x.zona === 'mendoza' ? ' de Mendoza' : '');
+    return `<div class="bloque"><h4>Cómo compra</h4>
+      ${frenado ? `<div class="aviso" style="margin-bottom:10px">${x.cada_dias ? 'Suele comprar cada ~' + x.cada_dias + ' días y la' : 'La'} última compra a GrandBar fue ${hace(x.dias_sin_comprar)} (${fecha(x.ultima_compra)}).</div>` : ''}
+      <div class="kpis chicos">
+        <div class="kpi"><div class="k">Compra a GrandBar</div><div class="v">${x.cada_dias ? 'cada ~' + x.cada_dias + ' días' : x.pedidos_12m ? x.pedidos_12m + (x.pedidos_12m === 1 ? ' vez' : ' veces') + ' en el año' : '—'}</div></div>
+        <div class="kpi"><div class="k">Última compra</div><div class="v">${fecha(x.ultima_compra)}</div><div class="s">${hace(x.dias_sin_comprar)}</div></div>
+        <div class="kpi"><div class="k">Pedidos en 12 meses</div><div class="v">${num(x.pedidos_12m)}</div></div>
+      </div>
+      ${(x.dejo || []).length ? `<div class="sub-t">Dejó de comprar de ${esc(marca)}</div><ul class="ops">${x.dejo.map(p => `<li><b>${esc(p.nombre)}</b> — lo compraba cada ~${p.cada} días (${p.veces} veces); la última, ${fecha(p.ultima)}</li>`).join('')}</ul>` : ''}
+      ${(x.parecidos || []).length ? `<div class="sub-t">Lo compran ${esc(quienes)} y este no</div><ul class="ops">${x.parecidos.map(p => `<li><b>${esc(p.nombre)}</b> — lo compran ${p.clientes} de ${x.pares} (${p.pct}%), unas ${num(p.unidades)} u. cada uno en 4 meses</li>`).join('')}</ul>` : ''}
+      <div style="font-size:12px;color:var(--muted);margin-top:8px">Facturas de CUBO. En "Dejó de comprar" y "Lo compran…" van solo productos de ${esc(marca)} con stock.</div></div>`;
+  }
+  const precio = (reg, acc) => (acc ? `<b>${plata(acc)}</b>` : '') + (reg && acc && Number(reg) !== Number(acc) ? ` <s style="color:var(--muted)">${plata(reg)}</s>` : (!acc && reg ? plata(reg) : ''));
+  const hastaTxt = h => h ? 'hasta el ' + fecha(h) : '';
+  function planHtml(p) {
+    return `<div class="acc"><div class="acc-t"><b>${esc(p.titulo)}</b>${p.condicion ? `<span class="chip oro">${esc(p.condicion)}</span>` : ''}<span class="chip gris">Plan</span></div>
+      ${p.desc ? `<div class="acc-d">${esc(p.desc)}</div>` : ''}
+      ${(p.lineas || []).length ? `<div class="chips">${p.lineas.map(l => `<span class="chip">${esc(l)}</span>`).join('')}</div>` : ''}
+      ${(p.reglas || []).length ? `<div class="acc-r"><b>Condiciones</b>${p.reglas.map(r => `<div>${esc(r)}</div>`).join('')}</div>` : ''}
+      <div class="acc-s">${esc([p.proveedor, hastaTxt(p.hasta)].filter(Boolean).join(' · '))}${p.pdf ? ` · <a class="lnk" href="${esc(p.pdf)}" target="_blank" rel="noopener">Ver PDF</a>` : ''}</div></div>`;
+  }
+  function campHtml(a) {
+    return `<div class="acc"><div class="acc-t"><b>${esc(a.titulo)}</b><span class="chip gris">Campaña</span></div>
+      ${a.accion ? `<div class="acc-d">${esc(a.accion)}</div>` : ''}${a.detalle ? `<div class="acc-d">${esc(a.detalle)}</div>` : ''}
+      <div class="acc-s">${[precio(a.regular, a.accionado), esc(hastaTxt(a.hasta))].filter(Boolean).join(' · ')}</div></div>`;
+  }
+  function catHtml(x) {
+    return `<div class="acc"><div class="acc-t"><b>${esc(x.producto)}</b>${x.mecanica ? `<span class="chip oro">${esc(x.mecanica)}</span>` : ''}<span class="chip gris">Catálogo</span></div>
+      ${x.info ? `<div class="acc-d">${esc(x.info)}</div>` : ''}
+      <div class="acc-s">${[precio(x.regular, x.accionado), x.off ? esc(x.off + '% off') : '', esc(hastaTxt(x.hasta))].filter(Boolean).join(' · ')}</div></div>`;
+  }
+  function accionesHtml(A, marca, enVisita) {
+    if (!A) return enVisita ? '' : `<div class="bloque"><h4>Planes, campañas y ofertas de ${esc(marca)}</h4><div style="font-size:13px;color:var(--muted)">No se pudieron leer.</div></div>`;
+    const n = A.planes.length + A.campanias.length + A.catalogo.length;
+    const cuerpo = !n ? `<div style="font-size:13px;color:var(--muted)">No hay planes, campañas ni ofertas de ${esc(marca)} vigentes para este tipo de cliente.</div>`
+      : A.planes.map(planHtml).join('') + A.campanias.map(campHtml).join('') + A.catalogo.map(catHtml).join('');
+    return enVisita ? `<div class="kv-acc">${cuerpo}</div>`
+      : `<div class="bloque"><h4>Planes, campañas y ofertas de ${esc(marca)} <small>${n} para este cliente</small></h4>${cuerpo}
+        <div style="font-size:12px;color:var(--muted);margin-top:8px">Lo mismo que ve el vendedor: lo que cargó Luciana para este tipo de cliente y zona, y el catálogo de clientes.</div></div>`;
+  }
+  const wa = n => { const d = String(n || '').replace(/\D/g, ''); return d ? (d.startsWith('54') ? d : '549' + d.replace(/^0/, '')) : ''; };
+  function resumenVisita(v) {
+    const det = (v.detalle && v.detalle.secciones) || [];
+    const hechas = det.filter(s => s.hecho).map(s => s.titulo);
+    const nf = (v.fotos || []).length;
+    return [hechas.length ? hechas.join(', ') : (det.length ? 'Recorrido sin secciones hechas' : ''), nf ? nf + (nf === 1 ? ' foto' : ' fotos') : ''].filter(Boolean).join(' · ');
+  }
+
+  async function abrirFicha(codigo, el) {
+    if (!el && esKaf()) { cerrar.despues = null; cerrar(); location.hash = '#cliente/' + encodeURIComponent(codigo); return; }
     const c0 = K.clientes && K.clientes.clientes.find(x => x.c === codigo);
-    const mb = ventana(c0 ? c0.n : 'Cliente', c0 ? [c0.c, TIPO1[c0.t] || c0.t, c0.v ? 'Vendedor: ' + c0.v : ''].filter(Boolean).join(' · ') : '');
+    const pagina = !!el;
+    const mb = pagina ? el : ventana(c0 ? c0.n : 'Cliente', c0 ? [c0.c, TIPO1[c0.t] || c0.t, c0.v ? 'Vendedor: ' + c0.v : ''].filter(Boolean).join(' · ') : '');
+    if (pagina) mb.innerHTML = `<a class="lnk volver" href="#clientes">‹ Clientes</a><div class="vacio">Cargando el cliente…</div>`;
     let d;
-    try { d = await get('cliente', { codigo }); } catch (e) { mb.innerHTML = `<div class="vacio">${esc(e.message)}</div>`; return; }
+    try { d = await get('cliente', { codigo }); } catch (e) { mb.innerHTML = (pagina ? '<a class="lnk volver" href="#clientes">‹ Clientes</a>' : '') + `<div class="vacio">${esc(e.message)}</div>`; return; }
+    K.ficha = d;
     const c = d.cliente, P = (K.clientes && K.clientes.perfil) || K.perfil || {};
     const mes = mesDe(hoy());
     const objs = d.objetivos || [];
-    const visitaHtml = esKaf() ? `<div class="bloque"><h4>Visita</h4>
-        <button class="btn ok grande" id="kf-marcar">Marcar visita ahora</button>
-        <details style="margin-top:10px"><summary class="lnk" style="display:inline">La visita fue en otro horario o quiero dejar una nota</summary>
+    const V = d.vendedor || {}, tel = wa(V.whatsapp), t5c = t5Cuenta(c.t5);
+    const cab = pagina ? `<a class="lnk volver" href="#clientes">‹ Clientes</a>
+      <div class="fc-cab"><div class="fc-id"><h1>${esc(c.n)}</h1>
+          <p>${esc([c.c, TIPO1[c.t] || c.t, c.d].filter(Boolean).join(' · '))}</p>
+          <div class="chips">${chipsCliente(Object.assign({}, c, c0 ? { vis: c0.vis, obj: c0.obj } : {}))}</div></div>
+        <div class="fc-vend"><div class="k">Vendedor</div><div class="v">${esc(V.nombre || c.v || 'Sin vendedor')}</div>
+          ${tel ? `<a class="btn claro chico" href="https://wa.me/${esc(tel)}" target="_blank" rel="noopener">Escribirle por WhatsApp</a>` : ''}
+          ${t5c ? `<div class="k" style="margin-top:10px">Cobertura</div><div class="v">Plan 5T: ${t5c.si} de ${t5c.tot} marcas</div>` : ''}</div></div>
+      ${esKaf() ? `<button class="btn ok grande" id="kf-recorrido" style="margin:4px 0 14px">${borrador(codigo) ? 'Seguir con la visita que empezaste' : 'Empezar visita'}</button>` : ''}` : '';
+    const visitaHtml = esKaf() ? `<div class="bloque"><h4>${pagina ? 'Mis visitas a este cliente' : 'Visita'}</h4>
+        ${pagina ? '' : '<button class="btn ok grande" id="kf-marcar">Marcar visita ahora</button>'}
+        <details style="margin-top:${pagina ? 0 : 10}px"><summary class="lnk" style="display:inline">${pagina ? 'Solo marcar que pasé (sin recorrido), o en otro horario' : 'La visita fue en otro horario o quiero dejar una nota'}</summary>
+          ${pagina ? '<button class="btn navy" id="kf-marcar" style="margin-top:10px">Marcar que pasé ahora</button>' : ''}
           <div class="dos" style="margin-top:10px"><label class="campo"><span>Día y hora</span><input type="datetime-local" id="kf-cuando" max="${hoy()}T23:59"></label>
           <label class="campo"><span>Nota (opcional)</span><input id="kf-nota" maxlength="500" placeholder="Qué se habló, con quién…"></label></div>
           <button class="btn navy" id="kf-marcar2">Marcar con este horario</button>
@@ -201,7 +287,7 @@ window.KAF = (function () {
       const v = d.visitas || [];
       mb.querySelector('#kf-vis').innerHTML = !v.length ? '<div style="font-size:13px;color:var(--muted)">Todavía no hay visitas marcadas a este cliente.</div>'
         : v.slice(0, 8).map(x => `<div style="display:flex;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line2);font-size:13.5px">
-            <b style="min-width:120px">${esc(dia(x.fecha))} ${hora(x.fecha)}</b><span style="flex:1;color:var(--muted)">${esc(x.nota || '')}</span>
+            <b style="min-width:120px">${esc(dia(x.fecha))} ${hora(x.fecha)}</b><span style="flex:1;color:var(--muted)">${esc([resumenVisita(x), x.nota].filter(Boolean).join(' · '))}</span>
             ${esKaf() && Date.now() - new Date(x.registrada_at) < 864e5 ? `<button class="lnk" data-borrar-vis="${esc(x.id)}">Borrar</button>` : ''}</div>`).join('')
           + (v.length > 8 ? `<div style="font-size:12.5px;color:var(--muted);margin-top:4px">y ${v.length - 8} más</div>` : '');
     };
@@ -219,9 +305,11 @@ window.KAF = (function () {
     const marcas = c.m || [];
     const meses = d.meses || [];
     const t5 = c.t5;
-    mb.innerHTML = `${visitaHtml}
+    mb.innerHTML = `${cab}${pagina ? '' : visitaHtml}
       <div id="kf-objs">${objHtml()}</div>
       <div class="bloque"><h4>Oportunidades</h4>${c.op && c.op.length ? `<ul class="ops">${c.op.map(o => `<li>${esc(o.t)}</li>`).join('')}</ul>` : '<div style="font-size:13px;color:var(--muted)">No encontramos oportunidades con los datos de CUBO: compra seguido y de todas las marcas foco.</div>'}</div>
+      ${accionesHtml(d.acciones, P.marca || 'la marca')}
+      ${compraHtml(d.compra, P.marca || 'la marca')}
       <div class="bloque"><h4>Qué compra de ${esc(P.marca || 'la marca')} (últimos 12 meses)</h4>
         ${!marcas.length ? '<div style="font-size:13px;color:var(--muted)">No compró en los últimos 12 meses' + (c.pri ? ' (la última vez fue antes)' : ' (no hay compras desde enero 2025)') + '.</div>' : `
         <div class="tabla-wrap"><table class="tabla"><thead><tr><th>Marca</th><th class="n">Unidades</th>${d.plata ? '<th class="n">Importe</th>' : ''}<th>Última compra</th><th class="n">Meses con compra</th></tr></thead><tbody>
@@ -239,8 +327,11 @@ window.KAF = (function () {
           ${['evidencia', 'perfect_serve', 'perfect_store', 'capacitacion', 'presupuesto'].filter(secc).map(k => `<button class="btn claro" data-cargar="${k}">${esc(secc(k).t)}</button>`).join('')}
           ${secc('materiales') ? '<button class="btn claro" data-materiales>Pedir materiales</button>' : ''}</div></div>` : ''}
       ${(d.registros || []).length ? `<div class="bloque"><h4>Lo cargado en este cliente</h4>${d.registros.slice(0, 10).map(r => `<div style="display:flex;gap:8px;padding:6px 0;border-top:1px solid var(--line2);font-size:13.5px;align-items:center;flex-wrap:wrap">
-          <b>${esc((REG[r.tipo] || {}).n || r.tipo)}</b><span style="color:var(--muted)">${fecha(r.fecha)} · ${esc(resumenDatos(r))}</span><span class="estado e-${esc(r.estado)}" style="margin-left:auto">${esc(ESTADO[r.estado] || r.estado)}</span></div>`).join('')}</div>` : ''}`;
+          <b>${esc((REG[r.tipo] || {}).n || r.tipo)}</b><span style="color:var(--muted)">${fecha(r.fecha)} · ${esc(resumenDatos(r))}</span><span class="estado e-${esc(r.estado)}" style="margin-left:auto">${esc(ESTADO[r.estado] || r.estado)}</span></div>`).join('')}</div>` : ''}
+      ${pagina ? visitaHtml : ''}`;
     pintaVis();
+    const rec = mb.querySelector('#kf-recorrido');
+    if (rec) rec.onclick = () => { location.hash = '#visita/' + encodeURIComponent(codigo); };
     const marcar = async (cuando, nota, btn) => {
       btn.disabled = true;
       try {
@@ -248,7 +339,7 @@ window.KAF = (function () {
         if (r.repetida) toast('Ya estaba marcada (' + hora(r.visita.fecha) + ').');
         else { toast('Visita marcada: ' + diaLargo(isoLocal(new Date(r.visita.fecha))) + ' ' + hora(r.visita.fecha)); d.visitas = [r.visita].concat(d.visitas || []); pintaVis(); }
         if (K.clientes) { const cc = K.clientes.clientes.find(x => x.c === codigo); if (cc) { cc.vis = r.visita.fecha; cc.visMes = (cc.visMes || 0) + (r.repetida ? 0 : 1); } }
-        cerrar.despues = K.alCambiar || null;
+        if (!pagina) cerrar.despues = K.alCambiar || null;
       } catch (e) { toast(e.message, true); }
       btn.disabled = false;
     };
@@ -292,6 +383,152 @@ window.KAF = (function () {
       const bc = e.target.closest('[data-cargar]');
       if (bc) { formRegistro(bc.dataset.cargar, { c: codigo, n: c.n }); return; }
       if (e.target.closest('[data-materiales]')) { cerrar(); if (K.alPedirMateriales) K.alPedirMateriales({ c: codigo, n: c.n }); }
+    };
+  }
+
+  // ── Visita: el recorrido del manual de la marca (13/11/2026) ─────────────────
+  // Sección por sección: tareas para tildar, lo de la marca para ese cliente, fotos
+  // (se suben apenas se sacan) y un comentario. Al final, la nota para el vendedor, que
+  // recibe el aviso. Lo hecho se guarda en el celular mientras tanto: si se corta la
+  // señal o se cierra la página, al volver sigue donde quedó.
+  const BORR = cod => 'kaf_visita_v1_' + cod;
+  const borrador = cod => { try { return JSON.parse(localStorage.getItem(BORR(cod)) || 'null'); } catch (e) { return null; } };
+  const guardarBorrador = (cod, B) => { try { localStorage.setItem(BORR(cod), JSON.stringify(B)); } catch (e) {} };
+  const borrarBorrador = cod => { try { localStorage.removeItem(BORR(cod)); } catch (e) {} };
+  const CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+  async function manualMarca(forzar) { if (K.manual && !forzar) return K.manual; K.manual = await get('manual'); return K.manual; }
+
+  async function renderVisita(el, codigo) {
+    el.innerHTML = `<a class="lnk volver" href="#cliente/${encodeURIComponent(codigo)}">‹ Volver a la ficha</a><div class="vacio">Cargando el manual de la marca…</div>`;
+    let M, d;
+    try { [M, d] = await Promise.all([manualMarca(), K.ficha && K.ficha.cliente && K.ficha.cliente.c === codigo ? K.ficha : get('cliente', { codigo })]); }
+    catch (e) { el.innerHTML = `<a class="lnk volver" href="#cliente/${encodeURIComponent(codigo)}">‹ Volver a la ficha</a><div class="vacio">${esc(e.message)}</div>`; return; }
+    K.ficha = d;
+    const c = d.cliente, P = K.perfil || {}, V = d.vendedor || {};
+    const B = borrador(codigo) || { inicio: new Date().toISOString(), s: {}, nota: '', avisar: true };
+    guardarBorrador(codigo, B);
+    const S = id => (B.s[id] = B.s[id] || { hecho: false, items: [], comentario: '', fotos: [] });
+    const secs = [];
+    (M.secciones || []).forEach(s => { secs.push(s); (s.sub || []).forEach(h => secs.push(Object.assign({}, h, { hija: true }))); });
+    const subiendo = {};
+    const fotosHtml = s => S(s.id).fotos.map((f, i) => `<a href="${esc(f.url || '#')}" target="_blank" rel="noopener"><img src="${esc(f.url || '')}" alt="Foto ${i + 1}"><button type="button" class="quitar" data-quitar="${i}" aria-label="Sacar la foto">×</button></a>`).join('')
+      + Array.from({ length: subiendo[s.id] || 0 }, () => '<a class="subiendo">Subiendo…</a>').join('');
+    const secHtml = s => {
+      const st = S(s.id), conFoto = s.especial === 'w:kaf_foto';
+      return `<section class="kv-sec${s.hija ? ' hija' : ''}${st.hecho ? ' hecha' : ''}" data-s="${esc(s.id)}">
+        <div class="kv-h"><div class="kv-t"><b>${esc(s.nombre)}</b>${s.descripcion ? `<small>${esc(s.descripcion)}</small>` : ''}</div>
+          <label class="kv-hecho"><input type="checkbox" data-hecho ${st.hecho ? 'checked' : ''}> Hecho</label></div>
+        ${s.intro ? `<div class="kv-intro">${esc(s.intro)}</div>` : ''}
+        ${(s.items || []).length ? `<div class="kv-items">${s.items.map((it, i) => `<label class="kv-item"><input type="checkbox" data-item="${i}" ${st.items.includes(it.texto) ? 'checked' : ''}><span>${esc(it.texto)}${it.detalle ? `<small>${esc(it.detalle)}</small>` : ''}</span></label>`).join('')}</div>` : ''}
+        ${s.especial === 'w:kaf_acciones' ? accionesHtml(d.acciones, P.marca || 'la marca', true) : ''}
+        ${(s.planes || []).map(p => planHtml(p)).join('')}${(s.campanias || []).map(a => campHtml(a)).join('')}
+        ${s.pdf ? `<a class="lnk" href="${esc(s.pdf)}" target="_blank" rel="noopener">Ver el PDF de la sección</a>` : ''}
+        <div class="fotos kv-fotos" data-fotos>${fotosHtml(s)}</div>
+        <label class="btn claro kv-foto-btn${conFoto && !st.fotos.length ? ' falta' : ''}">${CAM} ${conFoto ? 'Foto (obligatoria para darla por hecha)' : 'Sacar o subir foto'}<input type="file" accept="image/*" multiple data-file hidden></label>
+        <textarea class="kv-com" data-com maxlength="1000" rows="2" placeholder="Comentario (opcional)">${esc(st.comentario)}</textarea>
+      </section>`;
+    };
+    const vendNom = V.nombre || c.v || '';
+    el.innerHTML = `<a class="lnk volver" href="#cliente/${encodeURIComponent(codigo)}">‹ Volver a la ficha</a>
+      <div class="head"><div><h1>Visita a ${esc(c.n)}</h1><p>${esc([TIPO1[c.t] || c.t, vendNom ? 'Vendedor: ' + vendNom : '', 'empezó ' + diaLargo(isoLocal(new Date(B.inicio))).toLowerCase() + ' ' + hora(B.inicio)].filter(Boolean).join(' · '))}</p></div></div>
+      ${secs.length ? secs.map(secHtml).join('') : `<div class="vacio">El manual de ${esc(P.marca || 'la marca')} todavía no tiene secciones: Juan Pablo las arma en Secciones del manual. Igual podés guardar la visita con una nota.</div>`}
+      <section class="kv-sec kv-pie">
+        <label class="campo"><span>Nota para ${esc(vendNom || 'el vendedor')}</span><textarea id="kv-nota" maxlength="1000" placeholder="Qué hiciste, qué le quedó pendiente, qué pidió el cliente…">${esc(B.nota)}</textarea></label>
+        ${vendNom ? `<label class="kv-item" style="border:0;padding:0 0 10px"><input type="checkbox" id="kv-avisar" ${B.avisar !== false ? 'checked' : ''}><span>Avisarle a ${esc(vendNom)} (le llega a la campanita del Portal)</span></label>` : ''}
+        <div class="msg" id="kv-msg"></div>
+        <button class="btn ok grande" id="kv-guardar">Guardar visita</button>
+        <button class="lnk" id="kv-descartar" style="margin-top:12px">Descartar esta visita</button>
+      </section>`;
+    const secDe = n => secs.find(s => s.id === n.closest('[data-s]').dataset.s);
+    const repintar = s => { const box = el.querySelector(`[data-s="${s.id}"]`); if (!box) return; box.outerHTML = secHtml(s); };
+    el.onchange = async e => {
+      const t = e.target;
+      if (t.id === 'kv-avisar') { B.avisar = t.checked; guardarBorrador(codigo, B); return; }
+      const s = t.closest('[data-s]') && secDe(t); if (!s) return;
+      const st = S(s.id);
+      if (t.matches('[data-hecho]')) { st.hecho = t.checked; t.closest('.kv-sec').classList.toggle('hecha', t.checked); }
+      else if (t.matches('[data-item]')) {
+        const tx = s.items[Number(t.dataset.item)].texto;
+        st.items = t.checked ? [...new Set(st.items.concat(tx))] : st.items.filter(x => x !== tx);
+      } else if (t.matches('[data-file]')) {
+        const fs = [...t.files].slice(0, Math.max(0, 8 - st.fotos.length));
+        t.value = '';
+        if (!fs.length) { toast('Hasta 8 fotos por sección.', true); return; }
+        subiendo[s.id] = (subiendo[s.id] || 0) + fs.length; repintar(s);
+        for (const f of fs) {
+          try { const r = await post({ accion: 'foto', foto: await leerArchivo(f) }); st.fotos.push({ path: r.path, url: r.url }); guardarBorrador(codigo, B); }
+          catch (er) { toast(er.message, true); }
+          subiendo[s.id]--; repintar(s);
+        }
+      }
+      guardarBorrador(codigo, B);
+    };
+    el.oninput = e => {
+      if (e.target.id === 'kv-nota') { B.nota = e.target.value; guardarBorrador(codigo, B); return; }
+      if (e.target.matches('[data-com]')) { S(secDe(e.target).id).comentario = e.target.value; guardarBorrador(codigo, B); }
+    };
+    el.onclick = async e => {
+      const q = e.target.closest('[data-quitar]');
+      if (q) { e.preventDefault(); const s = secDe(q); S(s.id).fotos.splice(Number(q.dataset.quitar), 1); guardarBorrador(codigo, B); repintar(s); return; }
+      if (e.target.closest('#kv-descartar')) {
+        if (!confirm('¿Descartar esta visita? Se pierde lo que marcaste (las fotos quedan sin usar).')) return;
+        borrarBorrador(codigo); location.hash = '#cliente/' + encodeURIComponent(codigo); return;
+      }
+      const g = e.target.closest('#kv-guardar'); if (!g) return;
+      const msg = el.querySelector('#kv-msg'); msg.textContent = '';
+      if (Object.values(subiendo).some(n => n > 0)) { msg.textContent = 'Esperá a que terminen de subir las fotos.'; return; }
+      const falta = secs.find(s => s.especial === 'w:kaf_foto' && S(s.id).hecho && !S(s.id).fotos.length);
+      if (falta) { msg.textContent = '"' + falta.nombre + '" va con foto: sacala o subila, o destildá Hecho.'; el.querySelector(`[data-s="${falta.id}"]`).scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      const algo = secs.some(s => { const st = S(s.id); return st.hecho || st.items.length || st.fotos.length || st.comentario.trim(); });
+      if (!algo && !B.nota.trim() && !confirm('No marcaste nada del recorrido. ¿Guardar igual que pasaste por el cliente?')) return;
+      g.disabled = true; g.textContent = 'Guardando…';
+      try {
+        const viejo = Date.now() - new Date(B.inicio).getTime() > 6 * 864e5;
+        const r = await post({ accion: 'visita', codigo, cuando: viejo ? undefined : B.inicio, nota: B.nota.trim(), avisar: B.avisar !== false,
+          secciones: secs.map(s => { const st = S(s.id); return { id: s.id, hecho: st.hecho, items: st.items, comentario: st.comentario.trim(), fotos: st.fotos.map(f => f.path) }; }) });
+        borrarBorrador(codigo);
+        if (K.clientes) { const cc = K.clientes.clientes.find(x => x.c === codigo); if (cc) { cc.vis = r.visita.fecha; cc.visMes = (cc.visMes || 0) + (r.repetida ? 0 : 1); } }
+        const av = (r.visita && r.visita.aviso) || {};
+        toast(r.repetida ? 'Esa visita ya estaba guardada.' : 'Visita guardada' + (av.a && av.a.length ? ': le avisamos a ' + (av.vendedor || 'el vendedor') : '') + '.');
+        location.hash = '#cliente/' + encodeURIComponent(codigo);
+      } catch (er) { msg.textContent = er.message; g.disabled = false; g.textContent = 'Guardar visita'; }
+    };
+  }
+
+  // ── Botón de la cámara: fotos al toque desde cualquier pantalla (13/11/2026) ──
+  const TIPOS_FOTO = [['evidencia', 'Ejecución'], ['perfect_serve', 'Perfect Serve'], ['perfect_store', 'Perfect Store'], ['material', 'Exhibidor o material']];
+  function fotoRapida(cliente) {
+    const mb = ventana('Cargar fotos', 'Elegí el cliente y qué es. Le llega a Trade Marketing y queda en la ficha del cliente.');
+    let archivos = [];
+    mb.innerHTML = `<label class="campo"><span>Cliente</span><div id="fr-cli"></div></label>
+      <div class="campo"><span>¿Qué es?</span><div class="opciones grilla">${TIPOS_FOTO.map(([k, n]) => `<label><input type="radio" name="fr-tipo" value="${k}" ${k === 'evidencia' ? 'checked' : ''}> ${esc(n)}</label>`).join('')}</div></div>
+      <div class="campo" id="fr-cal"><span>¿Cómo está?</span><div class="opciones"><label><input type="radio" name="fr-cal" value="bien" checked> Bien ejecutado</label><label><input type="radio" name="fr-cal" value="mal"> Mal ejecutado</label></div></div>
+      <label class="btn navy grande" style="margin:2px 0 8px">${CAM} Sacar o subir fotos<input type="file" id="fr-file" accept="image/*" multiple hidden></label>
+      <div class="fotos" id="fr-prev"></div>
+      <label class="campo" style="margin-top:12px"><span>Comentario (opcional)</span><textarea id="fr-com" maxlength="1000" placeholder="Qué se ve, qué hay que corregir…"></textarea></label>
+      <div class="msg" id="fr-msg"></div>
+      <div class="acts"><button class="btn claro" type="button" id="fr-cancel">Cancelar</button><button class="btn ok" type="button" id="fr-ok">Guardar</button></div>`;
+    const elegido = picker(mb.querySelector('#fr-cli'), cliente || null, false);
+    const tipo = () => (mb.querySelector('input[name="fr-tipo"]:checked') || {}).value || 'evidencia';
+    mb.querySelector('.opciones').onchange = () => { mb.querySelector('#fr-cal').style.display = tipo() === 'evidencia' ? '' : 'none'; };
+    const prev = () => { mb.querySelector('#fr-prev').innerHTML = archivos.map((a, i) => `<a href="#" data-q="${i}" title="Sacar"><img src="${a}" alt=""></a>`).join(''); };
+    mb.querySelector('#fr-file').onchange = async e => {
+      for (const f of [...e.target.files].slice(0, 4 - archivos.length)) { try { archivos.push(await leerArchivo(f)); } catch (er) { toast(er.message, true); } }
+      e.target.value = ''; prev();
+      if (archivos.length >= 4) toast('Hasta 4 fotos por carga.');
+    };
+    mb.querySelector('#fr-prev').onclick = e => { const a = e.target.closest('[data-q]'); if (!a) return; e.preventDefault(); archivos.splice(Number(a.dataset.q), 1); prev(); };
+    mb.querySelector('#fr-cancel').onclick = cerrar;
+    mb.querySelector('#fr-ok').onclick = async ev => {
+      const btn = ev.currentTarget, msg = mb.querySelector('#fr-msg'), c = elegido(), t = tipo();
+      msg.textContent = '';
+      if (!c) { msg.textContent = 'Elegí el cliente.'; return; }
+      if (!archivos.length) { msg.textContent = 'Sacá o subí al menos una foto.'; return; }
+      const com = mb.querySelector('#fr-com').value.trim();
+      const datos = t === 'evidencia' ? { calificacion: (mb.querySelector('input[name="fr-cal"]:checked') || {}).value || 'bien', comentario: com } : { comentario: com };
+      btn.disabled = true; btn.textContent = 'Guardando…';
+      try { await post({ accion: 'registro', tipo: t, codigo: c.c, datos, fotos: archivos }); toast('Guardado: le llega a Trade Marketing.'); cerrar.despues = K.alCambiar || null; cerrar(); }
+      catch (er) { msg.textContent = er.message; btn.disabled = false; btn.textContent = 'Guardar'; }
     };
   }
 
@@ -344,6 +581,9 @@ window.KAF = (function () {
 
   function resumenDatos(r) {
     const x = r.datos || {};
+    // Fotos cargadas en el recorrido de una visita (13/11/2026): la sección y el comentario.
+    if (x.seccion) return ['En la visita: ' + x.seccion, x.comentario].filter(Boolean).join(' · ');
+    if (r.tipo === 'material') return [x.material, x.marca, x.comentario].filter(Boolean).join(' · ') || 'Foto';
     if (r.tipo === 'evidencia') return [x.calificacion === 'mal' ? 'Mal ejecutado' : 'Bien ejecutado', x.marca, x.competencia ? 'Competencia' : ''].filter(Boolean).join(' · ');
     if (r.tipo === 'perfect_serve') return [x.trago, x.marca, x.cumple ? 'Cumple: ' + ({ si: 'sí', parcial: 'en parte', no: 'no' }[x.cumple]) : ''].filter(Boolean).join(' · ');
     if (r.tipo === 'perfect_store') return [x.exhibicion, x.cumple ? 'Cumple: ' + ({ si: 'sí', parcial: 'en parte', no: 'no' }[x.cumple]) : ''].filter(Boolean).join(' · ') || 'Relevamiento';
@@ -544,8 +784,17 @@ window.KAF = (function () {
       return `<h2>${esc(diaLargo(k))} <small>${n} cliente${n === 1 ? '' : 's'}${o ? ' · objetivo ' + o + (n >= o ? ' — cumplido' : (k === hoy() ? ' — faltan ' : ' — faltaron ') + (o - n)) : ''}</small></h2>`
         + l.map(v => {
           const tarde = new Date(v.registrada_at) - new Date(v.fecha) > 2 * 3600000;
+          // Recorrido (13/11/2026): secciones hechas, comentarios, fotos y el aviso al vendedor.
+          const det = (v.detalle && v.detalle.secciones) || [];
+          const fotos = (v.fotos || []).map(p => (v.fotos_url || {})[p]).filter(Boolean);
+          const av = v.aviso || {};
           return `<div class="fila"><div style="font-weight:800;min-width:52px">${hora(v.fecha)}</div><div class="cuerpo"><div class="tit">${esc(v.cliente_nombre || v.cliente_codigo)} <small style="color:var(--muted);font-weight:500">${esc(v.cliente_codigo)}</small></div>
-            <div class="sub">${esc(TIPO1[v.tipo_cliente] || v.tipo_cliente || '')}${v.vendedor ? ' · Vendedor: ' + esc(v.vendedor) : ''}${v.nota ? ' · ' + esc(v.nota) : ''}</div>
+            <div class="sub">${esc(TIPO1[v.tipo_cliente] || v.tipo_cliente || '')}${v.vendedor ? ' · Vendedor: ' + esc(v.vendedor) : ''}</div>
+            ${det.length ? `<div class="chips">${det.map(s => `<span class="chip ${s.hecho ? 'verde' : 'gris'}">${esc(s.titulo)}${s.hecho ? '' : ' (sin terminar)'}</span>`).join('')}</div>` : (v.detalle ? '' : '<div class="chips"><span class="chip gris">Solo marcó que pasó</span></div>')}
+            ${det.filter(s => s.comentario || (s.items || []).length).map(s => `<div class="sub" style="margin-top:4px"><b style="color:var(--ink)">${esc(s.titulo)}:</b> ${esc([(s.items || []).join(', '), s.comentario].filter(Boolean).join(' — '))}</div>`).join('')}
+            ${v.nota ? `<div class="sub" style="margin-top:4px"><b style="color:var(--ink)">Nota${v.detalle ? ' para el vendedor' : ''}:</b> ${esc(v.nota)}</div>` : ''}
+            ${fotos.length ? `<div class="fotos">${fotos.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener" title="Abrir"><img src="${esc(u)}" alt="Foto ${i + 1}" loading="lazy"></a>`).join('')}</div>` : ''}
+            ${(av.a || []).length ? `<div class="sub" style="margin-top:4px">Le llegó el aviso a ${esc(av.vendedor || 'el vendedor')}.</div>` : ''}
             ${tarde ? `<div class="chips"><span class="chip gris">Cargada después: ${fecha(v.registrada_at)} ${hora(v.registrada_at)}</span></div>` : ''}</div>
             ${esKaf() && Date.now() - new Date(v.registrada_at) < 864e5 ? `<div class="der"><button class="lnk" data-borrar-vis="${esc(v.id)}">Borrar</button></div>` : ''}</div>`;
         }).join('');
@@ -557,8 +806,9 @@ window.KAF = (function () {
     };
     el.querySelector('#kv-csv').onclick = () => {
       const nom = (d.kaf && d.kaf.nombre ? d.kaf.nombre : 'kaf').toLowerCase().replace(/[^a-z0-9]+/gi, '-');
-      csv('visitas-' + nom + '-' + desde + '-a-' + hasta + '.csv', [['Fecha', 'Día', 'Hora', 'Código', 'Cliente', 'Tipo', 'Vendedor', 'Nota', 'Cargada el']].concat(
-        vis.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1).map(v => [fecha(v.fecha), dia(v.fecha).split(' ')[0], hora(v.fecha), v.cliente_codigo, v.cliente_nombre, TIPO1[v.tipo_cliente] || v.tipo_cliente || '', v.vendedor || '', v.nota || '', fecha(v.registrada_at) + ' ' + hora(v.registrada_at)])));
+      csv('visitas-' + nom + '-' + desde + '-a-' + hasta + '.csv', [['Fecha', 'Día', 'Hora', 'Código', 'Cliente', 'Tipo', 'Vendedor', 'Secciones hechas', 'Fotos', 'Nota', 'Cargada el']].concat(
+        vis.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1).map(v => [fecha(v.fecha), dia(v.fecha).split(' ')[0], hora(v.fecha), v.cliente_codigo, v.cliente_nombre, TIPO1[v.tipo_cliente] || v.tipo_cliente || '', v.vendedor || '',
+          ((v.detalle && v.detalle.secciones) || []).filter(s => s.hecho).map(s => s.titulo).join(', '), (v.fotos || []).length, v.nota || '', fecha(v.registrada_at) + ' ' + hora(v.registrada_at)])));
     };
   }
 
@@ -634,5 +884,6 @@ window.KAF = (function () {
   }
 
   return { K, $, esc, num, plata, fecha, hora, dia, diaLargo, hoy, mesDe, mesNombre, mesMenos, TIPO, TIPO1, REG, ESTADO, ESTADO_OBJ, toast, get, post, secc, csv, ventana, cerrar, clientes, picker, leerArchivo,
-    renderInicio, renderClientes, abrirFicha, renderVisitas, renderNuevos, renderRegistros, formRegistro, modeloHtml, pedidoHtml, sinPerfilHtml, supa };
+    renderInicio, renderClientes, abrirFicha, renderVisitas, renderNuevos, renderRegistros, formRegistro, modeloHtml, pedidoHtml, sinPerfilHtml, supa,
+    renderVisita, fotoRapida, borrador };
 })();
