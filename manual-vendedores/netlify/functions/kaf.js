@@ -86,7 +86,19 @@ const PRESET_PERNOD = {
   marcas: ['Absolut', 'Havana Club', 'Beefeater', 'Chivas', 'Jameson', "Ballantine's", 'Malibu', 'Ramazzotti', 'Lillet', 'Monkey 47', 'Malfy', 'The Glenlivet',
     'Wyborowa', 'Orloff', 'Cusenier', 'Tia Maria', 'Tia Creamy', 'Ricard', 'Blenders', 'Hiram Walker', 'Doble V', 'Buhero Negro', 'Capri', 'Aberlour', 'Longmorn', 'Scapa', 'The Deacon', 'Brighton', 'Padilla', 'TX'],
 };
-const PRESETS = [{ k: 'campari', n: 'Campari', p: PRESET_CAMPARI }, { k: 'pernod', n: 'Pernod Ricard', p: PRESET_PERNOD }];
+// Peñaflor (13/11/2026, Maru Fanina): en CUBO son seis proveedores de vinos: 0102 Trapiche,
+// 0112 Finca Las Moras, 0127 El Esteco, 0106 Navarro Correas y Los Árboles, 0194 Marantiqua y
+// 0117 Frizze. Mumm (0110) y Antares (0512) quedan afuera: en el catálogo son otros proveedores.
+// Maru trabaja OFF (vinotecas, Perfect Store). Las seis primeras marcas son las del 11T y van
+// primero también para que "Trapiche Medalla" cuente como Medalla y no como Trapiche.
+const PRESET_PENAFLOR = {
+  marca: 'Peñaflor', prefijos: ['0102', '0112', '0127', '0106', '0194', '0117'], planillas_campari: false, region: 'mendoza',
+  tipos: ['vinoteca', 'autoservicio', 'tienda de bebidas'],
+  marcas: ['Alma Mora', 'Cazador', 'Don David', 'Fond de Cave', 'Medalla', 'La Mascota', 'Alaris', 'Trapiche', 'Navarro Correas', 'Colección Privada', 'Alegoria', 'Los Arboles',
+    'San Telmo', 'Blend de Extremos', 'Elementos', 'Fincas Notables', 'Altimus', 'El Esteco', 'Los Intocables', 'Dada', 'Paz', 'El Bautismo', 'Las Moras', 'Costa & Pampa',
+    'Sagrado Pedernal', 'Demencial', 'Marantiqua', 'Frizze'],
+};
+const PRESETS = [{ k: 'campari', n: 'Campari', p: PRESET_CAMPARI }, { k: 'pernod', n: 'Pernod Ricard', p: PRESET_PERNOD }, { k: 'penaflor', n: 'Peñaflor', p: PRESET_PENAFLOR }];
 
 // ── Etapa 1 de la app de los KAF (13/11/2026, minuta de la reunión con Juan Pablo) ──
 // Cada marca tiene su manual, como los rubros del vendedor: secciones en
