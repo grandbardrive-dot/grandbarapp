@@ -526,6 +526,7 @@ window.KAF = (function () {
     const mb = ventana('Cargar fotos', 'Elegí el cliente y qué es. Le llega a Trade Marketing y queda en la ficha del cliente.');
     let archivos = [];
     mb.innerHTML = `<label class="campo"><span>Cliente</span><div id="fr-cli"></div></label>
+      ${secc('nuevos') ? '<div style="font-size:12.5px;color:var(--muted);margin:-6px 0 12px">¿Todavía no es cliente? <button class="lnk" type="button" id="fr-pdv">Cargalo como punto de venta nuevo</button></div>' : ''}
       <div class="campo"><span>¿Qué es?</span><div class="opciones grilla">${TIPOS_FOTO.map(([k, n]) => `<label><input type="radio" name="fr-tipo" value="${k}" ${k === 'evidencia' ? 'checked' : ''}> ${esc(n)}</label>`).join('')}</div></div>
       <div class="campo" id="fr-cal"><span>¿Cómo está?</span><div class="opciones"><label><input type="radio" name="fr-cal" value="bien" checked> Bien ejecutado</label><label><input type="radio" name="fr-cal" value="mal"> Mal ejecutado</label></div></div>
       <div class="aviso" id="fr-exh" style="display:none">¿Es un exhibidor que queda instalado en el cliente? <button class="lnk" type="button" id="fr-exh-ok">Registralo como exhibidor</button>: queda en la ficha del cliente para seguirlo con fotos.</div>
@@ -538,6 +539,7 @@ window.KAF = (function () {
     const tipo = () => (mb.querySelector('input[name="fr-tipo"]:checked') || {}).value || 'evidencia';
     mb.querySelector('.opciones').onchange = () => { mb.querySelector('#fr-cal').style.display = tipo() === 'evidencia' ? '' : 'none'; mb.querySelector('#fr-exh').style.display = tipo() === 'material' && secc('materiales') ? '' : 'none'; };
     mb.querySelector('#fr-exh-ok').onclick = () => formExhibidor(null, elegido(), { archivos });
+    const frp = mb.querySelector('#fr-pdv'); if (frp) frp.onclick = () => formPdv(archivos, null);
     const prev = () => { mb.querySelector('#fr-prev').innerHTML = archivos.map((a, i) => `<a href="#" data-q="${i}" title="Sacar"><img src="${a}" alt=""></a>`).join(''); };
     mb.querySelector('#fr-file').onchange = async e => {
       for (const f of [...e.target.files].slice(0, 4 - archivos.length)) { try { archivos.push(await leerArchivo(f)); } catch (er) { toast(er.message, true); } }
@@ -840,12 +842,126 @@ window.KAF = (function () {
   }
 
   // ── Clientes nuevos ────────────────────────────────────────────────────────
-  const EST_NUE = { mes: '' };
-  async function renderNuevos(el) {
+  // ── Clientes nuevos (13/11/2026): dos partes. "Puntos de venta nuevos": lugares que el KAF
+  // encontró y todavía no son clientes (nombre, ubicación y foto), para que los den de alta.
+  // "Nuevos en CUBO": los que empezaron a comprar en el mes.
+  const EST_NUE = { mes: '', pest: 'pdv' };
+  async function renderNuevos(el, pest) {
+    if (pest === 'pdv' || pest === 'cubo') EST_NUE.pest = pest;
+    const P = EST_NUE.pest;
+    el.innerHTML = `<div class="barra"><div class="tabs" id="kn-tabs"><button type="button" data-n="pdv" class="${P === 'pdv' ? 'on' : ''}">Puntos de venta nuevos</button><button type="button" data-n="cubo" class="${P === 'cubo' ? 'on' : ''}">Nuevos en CUBO</button></div></div><div id="kn-box"></div>`;
+    el.querySelector('#kn-tabs').onclick = e => { const b = e.target.closest('[data-n]'); if (b) renderNuevos(el, b.dataset.n); };
+    const box = el.querySelector('#kn-box');
+    return P === 'pdv' ? renderPdv(box) : renderNuevosCubo(box);
+  }
+  const mapaDe = x => x.lat != null && x.lng != null ? 'https://www.google.com/maps?q=' + x.lat + ',' + x.lng : (x.direccion ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(x.direccion) : '');
+  const EST_PDV_N = { nuevo: ['Para dar de alta', 'pendiente'], alta: ['Ya es cliente', 'aprobado'], descartado: ['Descartado', 'rechazado'] };
+  function pdvHtml(x, puede) {
+    const fs = (x.fotos_url || []).filter(Boolean), m = mapaDe(x), est = EST_PDV_N[x.estado] || [x.estado, ''];
+    const mio = !K.yo || x.usuario_id === K.yo;
+    return `<div class="fila"><div class="cuerpo">
+        <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><div class="tit" style="flex:1">${esc(x.nombre)}</div><span class="estado e-${est[1]}">${esc(est[0])}${x.cliente_codigo ? ' · ' + esc(x.cliente_codigo) : ''}</span></div>
+        <div class="sub">${esc([esKaf() && mio ? '' : x.solicitante, 'cargado el ' + fecha(x.created_at) + ' ' + hora(x.created_at)].filter(Boolean).join(' · '))}</div>
+        ${datoHtml('Dirección', x.direccion)}
+        ${m ? `<div style="font-size:13.5px;margin-top:4px"><a class="lnk" href="${esc(m)}" target="_blank" rel="noopener">Ver en el mapa</a>${x.lat != null ? ` <span style="color:var(--muted);font-size:12px">ubicación tomada con el celular${x.precision_m ? ' (±' + num(x.precision_m) + ' m)' : ''}</span>` : ''}</div>` : ''}
+        ${x.comentario ? `<div style="font-size:13.5px;margin-top:6px;white-space:pre-wrap;background:var(--cream);border-radius:9px;padding:8px 10px">${esc(x.comentario)}</div>` : ''}
+        ${fs.length ? `<div class="fotos">${fs.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener" title="Abrir"><img src="${esc(u)}" alt="Foto ${i + 1}" loading="lazy"></a>`).join('')}</div>` : ''}
+        ${x.revision ? `<div style="font-size:13.5px;margin-top:8px;background:var(--green-s);border-left:3px solid var(--green);border-radius:0 9px 9px 0;padding:8px 10px;white-space:pre-wrap"><b>${esc(x.revisado_por || 'Trade Marketing')}:</b> ${esc(x.revision)}</div>` : ''}
+        ${esKaf() ? (x.estado === 'nuevo' && mio ? `<div style="margin-top:8px"><button class="lnk" type="button" data-pv-borrar="${esc(x.id)}">Borrar</button></div>` : '')
+          : puede ? `<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">${x.estado === 'nuevo'
+            ? `<button class="btn ok chico" type="button" data-pv="${esc(x.id)}" data-est="alta">Ya es cliente</button><button class="btn rojo chico" type="button" data-pv="${esc(x.id)}" data-est="descartado">Descartar</button>`
+            : `<button class="btn claro chico" type="button" data-pv="${esc(x.id)}" data-est="nuevo">Volver a para dar de alta</button>`}</div>` : ''}
+      </div></div>`;
+  }
+  const EST_PDV = { estado: 'nuevo' };
+  async function renderPdv(el) {
+    el.innerHTML = '<div class="vacio">Cargando…</div>';
+    let d;
+    try { d = await get('pdv'); } catch (e) { el.innerHTML = `<div class="vacio">${esc(e.message)}</div>`; return; }
+    if (d.sinPerfil) { el.innerHTML = sinPerfilHtml(); return; }
+    const L = d.pdv || [];
+    el.innerHTML = `<div class="barra">${esKaf() ? '<button class="btn ok" type="button" id="pv-nuevo">Cargar punto de venta nuevo</button>' : ''}
+        <select id="pv-est"><option value="nuevo">Para dar de alta</option><option value="alta">Ya son clientes</option><option value="descartado">Descartados</option><option value="">Todos</option></select>
+        ${L.length ? '<button class="btn claro chico" type="button" id="pv-csv">Bajar Excel</button>' : ''}</div>
+      <div class="cuenta" id="pv-cuenta"></div><div id="pv-l"></div>`;
+    el.querySelector('#pv-est').value = EST_PDV.estado;
+    const filtrados = () => L.filter(x => !EST_PDV.estado || x.estado === EST_PDV.estado);
+    const pinta = () => {
+      const l = filtrados();
+      el.querySelector('#pv-cuenta').textContent = l.length ? num(l.length) + (l.length === 1 ? ' punto de venta' : ' puntos de venta') : '';
+      el.querySelector('#pv-l').innerHTML = l.length ? l.map(x => pdvHtml(x, d.puedeAtender)).join('')
+        : `<div class="vacio">${L.length ? 'No hay puntos de venta con ese filtro.' : esKaf() ? 'Todavía no cargaste puntos de venta nuevos. Cuando encuentres un lugar que todavía no es cliente, cargalo con el nombre, la ubicación y una foto: le llega a Trade Marketing para darlo de alta.' : 'Este KAF todavía no cargó puntos de venta nuevos.'}</div>`;
+    };
+    pinta();
+    el.querySelector('#pv-est').onchange = e => { EST_PDV.estado = e.target.value; pinta(); };
+    const nu = el.querySelector('#pv-nuevo'); if (nu) nu.onclick = () => formPdv(null, () => { EST_PDV.estado = 'nuevo'; renderPdv(el); });
+    const cv = el.querySelector('#pv-csv');
+    if (cv) cv.onclick = () => csv('puntos-de-venta-nuevos-' + slugMarca() + '-' + hoy() + '.csv', [['Nombre', 'Dirección', 'Latitud', 'Longitud', 'Mapa', 'Cargado por', 'Fecha', 'Estado', 'Código de cliente', 'Comentario']]
+      .concat(filtrados().map(x => [x.nombre, x.direccion, x.lat, x.lng, mapaDe(x), x.solicitante, fecha(x.created_at), (EST_PDV_N[x.estado] || [x.estado])[0], x.cliente_codigo, x.comentario])));
+    el.querySelector('#pv-l').onclick = async e => {
+      const bb = e.target.closest('[data-pv-borrar]');
+      if (bb) { if (!confirm('¿Borrar este punto de venta?')) return; try { await post({ accion: 'borrar_pdv', id: bb.dataset.pvBorrar }); toast('Borrado'); renderPdv(el); } catch (er) { toast(er.message, true); } return; }
+      const b = e.target.closest('[data-pv]'); if (!b) return;
+      const x = L.find(y => y.id === b.dataset.pv), est = b.dataset.est;
+      let codigo = '', revision = '';
+      if (est === 'alta') { const c = prompt('Código de cliente en CUBO (si ya lo tiene; si no, dejalo vacío):', ''); if (c === null) return; codigo = c.trim(); revision = prompt('Comentario para el KAF (opcional):', '') || ''; }
+      if (est === 'descartado') { const r = prompt('¿Por qué se descarta? (le llega al KAF)'); if (r === null) return; if (!r.trim()) { toast('Contale por qué se descarta.', true); return; } revision = r; }
+      b.disabled = true;
+      try { await post({ accion: 'atender_pdv', id: x.id, estado: est, codigo, revision }); toast(est === 'nuevo' ? 'Volvió a para dar de alta' : 'Listo: le avisamos al KAF'); renderPdv(el); if (K.alCambiar && !esKaf()) K.alCambiar(); }
+      catch (er) { b.disabled = false; toast(er.message, true); }
+    };
+  }
+  // Cargar un punto de venta nuevo: nombre, ubicación (la del celular o la dirección) y foto.
+  function formPdv(archivos0, alGuardar) {
+    const mb = ventana('Punto de venta nuevo', 'Un lugar que todavía no es cliente: nombre, ubicación y una foto. Le llega a Trade Marketing para darlo de alta.');
+    let archivos = (archivos0 || []).slice(0, 4), geo = null;
+    mb.innerHTML = `<label class="campo"><span>Nombre del punto de venta</span><input id="pv-nom" maxlength="160" placeholder="Ej. Bar La Esquina"></label>
+      <div class="campo"><span>Ubicación</span>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn navy" type="button" id="pv-gps">Usar mi ubicación</button><span id="pv-gps-t" style="font-size:13px;color:var(--muted)">Estando en el lugar, tomá la ubicación del celular.</span></div>
+        <input id="pv-dir" maxlength="300" placeholder="Dirección (calle, número, localidad)" style="margin-top:8px"></div>
+      <label class="btn navy grande" style="margin:2px 0 8px">${CAM} Sacar o subir fotos<input type="file" id="pv-file" accept="image/*" multiple hidden></label>
+      <div class="fotos kv-fotos" id="pv-prev"></div>
+      <label class="campo" style="margin-top:12px"><span>Comentario (opcional)</span><textarea id="pv-com" maxlength="1000" placeholder="Qué tipo de lugar es, con quién hablaste, qué marcas tiene…"></textarea></label>
+      <div class="msg" id="pv-msg"></div>
+      <div class="acts"><button class="btn claro" type="button" id="pv-cancel">Cancelar</button><button class="btn ok" type="button" id="pv-ok">Guardar</button></div>`;
+    const prev = () => { mb.querySelector('#pv-prev').innerHTML = archivos.map((a, i) => `<a href="#"><img src="${a}" alt=""><button type="button" class="quitar" data-q="${i}" aria-label="Sacar la foto">×</button></a>`).join(''); };
+    prev();
+    mb.querySelector('#pv-prev').onclick = e => { if (e.target.closest('a')) e.preventDefault(); const q = e.target.closest('[data-q]'); if (q) { archivos.splice(Number(q.dataset.q), 1); prev(); } };
+    mb.querySelector('#pv-file').onchange = async e => {
+      for (const f of [...e.target.files].slice(0, 4 - archivos.length)) { try { archivos.push(await leerArchivo(f)); } catch (er) { toast(er.message, true); } }
+      e.target.value = ''; prev();
+      if (archivos.length >= 4) toast('Hasta 4 fotos.');
+    };
+    mb.querySelector('#pv-gps').onclick = () => {
+      const t = mb.querySelector('#pv-gps-t');
+      if (!navigator.geolocation) { t.textContent = 'Este celular no da la ubicación: escribí la dirección.'; return; }
+      t.textContent = 'Buscando la ubicación…';
+      navigator.geolocation.getCurrentPosition(p => {
+        geo = { lat: p.coords.latitude, lng: p.coords.longitude, precision: p.coords.accuracy };
+        t.innerHTML = `Ubicación tomada (±${num(geo.precision)} m) · <a class="lnk" href="https://www.google.com/maps?q=${geo.lat},${geo.lng}" target="_blank" rel="noopener">Ver en el mapa</a>`;
+      }, er => { t.textContent = er && er.code === 1 ? 'No diste permiso para usar la ubicación: activalo o escribí la dirección.' : 'No se pudo tomar la ubicación: escribí la dirección.'; },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+    };
+    mb.querySelector('#pv-cancel').onclick = () => { cerrar.despues = null; cerrar(); };
+    mb.querySelector('#pv-ok').onclick = async ev => {
+      const btn = ev.currentTarget, msg = mb.querySelector('#pv-msg'), v = id => mb.querySelector(id).value.trim();
+      msg.textContent = '';
+      if (!v('#pv-nom')) { msg.textContent = 'Poné el nombre del punto de venta.'; return; }
+      if (!geo && !v('#pv-dir')) { msg.textContent = 'Falta la ubicación: tocá "Usar mi ubicación" o escribí la dirección.'; return; }
+      if (!archivos.length) { msg.textContent = 'Sacale una foto al punto de venta.'; return; }
+      btn.disabled = true; btn.textContent = 'Guardando…';
+      try {
+        await post(Object.assign({ accion: 'pdv', nombre: v('#pv-nom'), direccion: v('#pv-dir'), comentario: v('#pv-com'), fotos: archivos }, geo || {}));
+        toast('Guardado: le llega a Trade Marketing para darlo de alta.');
+        cerrar.despues = alGuardar || null; cerrar();
+      } catch (e) { msg.textContent = e.message; btn.disabled = false; btn.textContent = 'Guardar'; }
+    };
+  }
+  async function renderNuevosCubo(el) {
     const m0 = mesDe(hoy());
     const mes = EST_NUE.mes || m0;
     el.innerHTML = `<div class="barra"><select id="kn-mes">${[0, 1, 2, 3, 4, 5].map(i => { const m = mesMenos(m0, i); return `<option value="${m}" ${m === mes ? 'selected' : ''}>${esc(mesNombre(m))}</option>`; }).join('')}</select></div><div id="kn-cont"><div class="vacio">Calculando con las ventas de CUBO…</div></div>`;
-    el.querySelector('#kn-mes').onchange = e => { EST_NUE.mes = e.target.value; renderNuevos(el); };
+    el.querySelector('#kn-mes').onchange = e => { EST_NUE.mes = e.target.value; renderNuevosCubo(el); };
     let d;
     try { d = await get('nuevos', { mes }); } catch (e) { el.querySelector('#kn-cont').innerHTML = `<div class="vacio">${esc(e.message)}</div>`; return; }
     if (d.sinPerfil) { el.querySelector('#kn-cont').innerHTML = sinPerfilHtml(); return; }
@@ -1187,5 +1303,5 @@ window.KAF = (function () {
   return { K, $, esc, num, plata, fecha, hora, dia, diaLargo, hoy, mesDe, mesNombre, mesMenos, TIPO, TIPO1, REG, ESTADO, ESTADO_OBJ, toast, get, post, secc, csv, ventana, cerrar, clientes, picker, leerArchivo,
     renderInicio, renderClientes, abrirFicha, renderVisitas, renderNuevos, renderRegistros, formRegistro, modeloHtml, pedidoHtml, sinPerfilHtml, supa,
     renderVisita, fotoRapida, borrador,
-    ESP, catalogo, verMaterial, formExhibidor, renderExhibidores, formEspecial, renderEspeciales };
+    ESP, catalogo, verMaterial, formExhibidor, renderExhibidores, formEspecial, renderEspeciales, formPdv };
 })();

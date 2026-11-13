@@ -202,3 +202,30 @@ revoke all on public.kaf_exhibidores, public.kaf_especiales from anon, authentic
 -- En la base del MANUAL (también aplicado): la sección "Exhibidores y materiales" de los tres
 -- manuales KAF usa la herramienta w:kaf_exhibidores:
 -- update checklist_secciones set especial = 'w:kaf_exhibidores' where codigo = 'kaf_materiales' and canal like 'kaf_%';
+
+-- ── Puntos de venta nuevos (13/11/2026) — YA APLICADO (migración kaf_pdv_nuevos) ──
+-- El KAF junta los datos de un lugar que todavía no es cliente (nombre, ubicación y foto) para
+-- que después lo den de alta. Trade Marketing lo marca "ya es cliente" (código de CUBO) o lo descarta.
+create table if not exists public.kaf_pdv_nuevos (
+  id             uuid primary key default gen_random_uuid(),
+  usuario_id     uuid not null,
+  solicitante    text,
+  marca          text not null,
+  nombre         text not null,
+  direccion      text,
+  lat            double precision check (lat between -90 and 90),
+  lng            double precision check (lng between -180 and 180),
+  precision_m    integer,
+  fotos          text[] not null default '{}',
+  comentario     text,
+  estado         text not null default 'nuevo' check (estado in ('nuevo', 'alta', 'descartado')),
+  cliente_codigo text,
+  revision       text,
+  revisado_por   text,
+  revisado_at    timestamptz,
+  created_at     timestamptz not null default now(),
+  check (lat is not null or direccion is not null)
+);
+create index if not exists kaf_pdv_nuevos_idx on public.kaf_pdv_nuevos (marca, created_at desc);
+alter table public.kaf_pdv_nuevos enable row level security;
+revoke all on public.kaf_pdv_nuevos from anon, authenticated;

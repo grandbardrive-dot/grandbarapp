@@ -82,18 +82,18 @@ const PRESET_CAMPARI = {
 // Las seis primeras marcas son las "foco" de las oportunidades.
 const PRESET_PERNOD = {
   marca: 'Pernod Ricard', prefijos: ['0201'], planillas_campari: false, region: 'mendoza',
-  tipos: ['restaurante', 'bar', 'disco', 'evento'],
+  tipos: ['restaurante', 'bar', 'disco', 'evento', 'vinoteca', 'autoservicio', 'tienda de bebidas'],   // ON y OFF (13/11)
   marcas: ['Absolut', 'Havana Club', 'Beefeater', 'Chivas', 'Jameson', "Ballantine's", 'Malibu', 'Ramazzotti', 'Lillet', 'Monkey 47', 'Malfy', 'The Glenlivet',
     'Wyborowa', 'Orloff', 'Cusenier', 'Tia Maria', 'Tia Creamy', 'Ricard', 'Blenders', 'Hiram Walker', 'Doble V', 'Buhero Negro', 'Capri', 'Aberlour', 'Longmorn', 'Scapa', 'The Deacon', 'Brighton', 'Padilla', 'TX'],
 };
 // Peñaflor (13/11/2026, Maru Fanina): en CUBO son seis proveedores de vinos: 0102 Trapiche,
 // 0112 Finca Las Moras, 0127 El Esteco, 0106 Navarro Correas y Los Árboles, 0194 Marantiqua y
 // 0117 Frizze. Mumm (0110) y Antares (0512) quedan afuera: en el catálogo son otros proveedores.
-// Maru trabaja OFF (vinotecas, Perfect Store). Las seis primeras marcas son las del 11T y van
+// Maru trabaja ON y OFF (13/11/2026). Las seis primeras marcas son las del 11T y van
 // primero también para que "Trapiche Medalla" cuente como Medalla y no como Trapiche.
 const PRESET_PENAFLOR = {
   marca: 'Peñaflor', prefijos: ['0102', '0112', '0127', '0106', '0194', '0117'], planillas_campari: false, region: 'mendoza',
-  tipos: ['vinoteca', 'autoservicio', 'tienda de bebidas'],
+  tipos: ['restaurante', 'bar', 'disco', 'evento', 'vinoteca', 'autoservicio', 'tienda de bebidas'],   // ON y OFF (13/11)
   marcas: ['Alma Mora', 'Cazador', 'Don David', 'Fond de Cave', 'Medalla', 'La Mascota', 'Alaris', 'Trapiche', 'Navarro Correas', 'Colección Privada', 'Alegoria', 'Los Arboles',
     'San Telmo', 'Blend de Extremos', 'Elementos', 'Fincas Notables', 'Altimus', 'El Esteco', 'Los Intocables', 'Dada', 'Paz', 'El Bautismo', 'Las Moras', 'Costa & Pampa',
     'Sagrado Pedernal', 'Demencial', 'Marantiqua', 'Frizze'],
@@ -595,14 +595,15 @@ exports.handler = async (event) => {
         const users = await hub('usuarios?rol=eq.kaf&select=id,nombre,email,activo&order=nombre');
         const ids = users.map(u => u.id);
         const hoy = hoyAR(), mes = mesDe(hoy);
-        const [perfiles, visitas, objetivos, regs, peds, esps] = ids.length ? await Promise.all([
+        const [perfiles, visitas, objetivos, regs, peds, esps, pdvs] = ids.length ? await Promise.all([
           hub('kaf_perfiles?usuario_id=in.(' + ids.join(',') + ')&select=*'),
           hub('kaf_visitas?usuario_id=in.(' + ids.join(',') + ')&fecha=gte.' + mes + '-01T03:00:00Z&select=usuario_id,fecha,cliente_codigo&limit=5000'),
           hub('kaf_objetivos?usuario_id=in.(' + ids.join(',') + ')&mes=eq.' + mes + '&select=*'),
           hub('kaf_registros?usuario_id=in.(' + ids.join(',') + ')&estado=in.(nuevo,pendiente)&select=usuario_id,tipo&limit=2000'),
           hub('kaf_pedidos_materiales?usuario_id=in.(' + ids.join(',') + ')&estado=eq.enviado&select=usuario_id&limit=2000'),
           hub('kaf_especiales?usuario_id=in.(' + ids.join(',') + ')&estado=eq.pendiente&select=usuario_id&limit=2000').catch(() => []),
-        ]) : [[], [], [], [], [], []];
+          hub('kaf_pdv_nuevos?usuario_id=in.(' + ids.join(',') + ')&estado=eq.nuevo&select=usuario_id&limit=2000').catch(() => []),
+        ]) : [[], [], [], [], [], [], []];
         return json(200, {
           hoy, mes, preset: PRESET_CAMPARI, presets: PRESETS, secciones: SECCIONES,
           kafs: users.map(u => {
@@ -616,6 +617,7 @@ exports.handler = async (event) => {
               sinRevisar: regs.filter(r => r.usuario_id === u.id).length,
               pedidosAbiertos: peds.filter(p => p.usuario_id === u.id).length,
               especialesAbiertos: esps.filter(p => p.usuario_id === u.id).length,
+              pdvNuevos: pdvs.filter(p => p.usuario_id === u.id).length,
             };
           }),
         });
@@ -699,6 +701,14 @@ exports.handler = async (event) => {
       }
 
       if (!P) return json(200, { sinPerfil: true, secciones, kaf: { id: kid, nombre: usu.nombre } });
+
+      // Puntos de venta nuevos (13/11/2026): lugares que todavía no son clientes, con nombre,
+      // ubicación y foto, para darlos de alta. Son de la marca, como los exhibidores.
+      if (v === 'pdv') {
+        const l = await hub('kaf_pdv_nuevos?marca=eq.' + encodeURIComponent(P.marca) + '&select=*&order=created_at.desc&limit=1000');
+        const url = await firmar([].concat(...l.map(x => x.fotos || [])));
+        return json(200, { pdv: l.map(x => Object.assign(x, { fotos_url: (x.fotos || []).map(p => url[p] || null) })), puedeAtender: arma });
+      }
 
       // Exhibidores de la marca instalados en los clientes (todos, o los de un cliente).
       if (v === 'exhibidores') {
@@ -873,6 +883,28 @@ exports.handler = async (event) => {
       if (b.estado !== 'pendiente') await avisar(x.usuario_id, { icono: b.estado === 'rechazado' ? '✖️' : '🧾', titulo: 'Pedido especial ' + ESP_NOMBRE[b.estado],
         detalle: x.cantidad + ' × ' + x.que + (x.cliente_nombre ? ' · ' + x.cliente_nombre : '') + (b.estado === 'presupuestado' && monto ? ' · $' + Math.round(monto).toLocaleString('es-AR') : '') + (respuesta ? ' — ' + respuesta.slice(0, 200) : ''),
         link: '/kaf.html#materiales/especiales' });
+      return json(200, { ok: true });
+    }
+
+    // ---------- Trade Marketing: punto de venta nuevo → ya es cliente o descartado ----------
+    if (ac === 'atender_pdv') {
+      if (!arma) return json(403, { error: 'Esto lo marca Trade Marketing.' });
+      if (!esUuid(b.id) || !['nuevo', 'alta', 'descartado'].includes(b.estado)) return json(400, { error: 'Faltan datos.' });
+      const x = (await hub('kaf_pdv_nuevos?id=eq.' + b.id + '&select=id,usuario_id,nombre'))[0];
+      if (!x) return json(404, { error: 'No encontré el punto de venta.' });
+      const cod = b.estado === 'alta' ? String(b.codigo || '').trim() : '';
+      if (cod && !esCod(cod)) return json(400, { error: 'El código de cliente no es válido.' });
+      if (b.estado === 'descartado' && !texto(b.revision, 500)) return json(400, { error: 'Contale por qué se descarta.' });
+      let cli = null;
+      if (cod) {
+        cli = (await man('clientes?codigo_cliente=eq.' + encodeURIComponent(cod) + '&select=codigo_cliente,nombre'))[0];
+        if (!cli) return json(400, { error: 'No encontré ese código de cliente en CUBO.' });
+      }
+      const ahora = new Date().toISOString();
+      await escribir('kaf_pdv_nuevos?id=eq.' + x.id, 'PATCH', { estado: b.estado, cliente_codigo: cli ? cli.codigo_cliente : null, revision: texto(b.revision, 500),
+        revisado_por: b.estado === 'nuevo' ? null : quien, revisado_at: b.estado === 'nuevo' ? null : ahora }, 'return=minimal');
+      if (b.estado !== 'nuevo') await avisar(x.usuario_id, { icono: b.estado === 'alta' ? '✅' : '✖️', titulo: x.nombre + (b.estado === 'alta' ? ' ya es cliente' : ': punto de venta descartado'),
+        detalle: (cli ? cli.nombre + ' (' + cli.codigo_cliente + ')' : '') + (texto(b.revision, 200) ? (cli ? ' — ' : '') + texto(b.revision, 200) : ''), link: '/kaf.html#nuevos/pdv' });
       return json(200, { ok: true });
     }
 
@@ -1194,6 +1226,34 @@ exports.handler = async (event) => {
       if (!x || x.usuario_id !== user.id) return json(403, { error: 'Solo podés borrar los que cargaste vos.' });
       if (Date.now() - new Date(x.created_at) > 7 * 864e5) return json(400, { error: 'Se cargó hace más de una semana: si ya no está, marcalo como retirado.' });
       await escribir('kaf_exhibidores?id=eq.' + b.id, 'DELETE', null, 'return=minimal');
+      await borrarArchivos(x.fotos);
+      return json(200, { ok: true });
+    }
+
+    // ---------- Punto de venta nuevo: nombre, ubicación y foto (13/11/2026) ----------
+    if (ac === 'pdv') {
+      const nombre = texto(b.nombre, 160), direccion = texto(b.direccion, 300), comentario = texto(b.comentario, 1000);
+      const lat = Number(b.lat), lng = Number(b.lng);
+      const conGps = b.lat != null && b.lng != null && isFinite(lat) && isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
+      if (!nombre) return json(400, { error: 'Poné el nombre del punto de venta.' });
+      if (!conGps && !direccion) return json(400, { error: 'Falta la ubicación: tocá "Usar mi ubicación" o escribí la dirección.' });
+      const archivos = (Array.isArray(b.fotos) ? b.fotos : []).slice(0, 4);
+      if (!archivos.length) return json(400, { error: 'Sacale una foto al punto de venta.' });
+      let fotos;
+      try { fotos = await subir(user.id + '/pdv/' + Date.now(), archivos, false); } catch (e) { return json(400, { error: e.message }); }
+      const fila = { usuario_id: user.id, solicitante: quien, marca: P.marca, nombre, direccion, comentario, fotos,
+        lat: conGps ? Math.round(lat * 1e6) / 1e6 : null, lng: conGps ? Math.round(lng * 1e6) / 1e6 : null,
+        precision_m: conGps && isFinite(Number(b.precision)) ? Math.max(0, Math.min(100000, Math.round(Number(b.precision)))) : null };
+      const r = (await escribir('kaf_pdv_nuevos', 'POST', fila))[0];
+      for (const t of await trade()) await avisar(t.id, { icono: '📍', titulo: 'Punto de venta nuevo de ' + quien, detalle: nombre + (direccion ? ' · ' + direccion : '') + (comentario ? ' · ' + comentario.slice(0, 120) : ''), link: '/trade-kaf.html?kaf=' + user.id + '#nuevos' });
+      return json(200, { ok: true, pdv: r });
+    }
+    if (ac === 'borrar_pdv') {
+      if (!esUuid(b.id)) return json(400, { error: 'Falta el punto de venta.' });
+      const x = (await hub('kaf_pdv_nuevos?id=eq.' + b.id + '&select=id,usuario_id,estado,fotos'))[0];
+      if (!x || x.usuario_id !== user.id) return json(403, { error: 'Solo podés borrar los que cargaste vos.' });
+      if (x.estado !== 'nuevo') return json(400, { error: 'Trade Marketing ya lo revisó: no se puede borrar.' });
+      await escribir('kaf_pdv_nuevos?id=eq.' + b.id, 'DELETE', null, 'return=minimal');
       await borrarArchivos(x.fotos);
       return json(200, { ok: true });
     }

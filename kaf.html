@@ -43,7 +43,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/auth-persist.js?v=1"></script>
-<script src="assets/kaf-comun.js?v=3"></script>
+<script src="assets/kaf-comun.js?v=4"></script>
 <script>
   const { K, $, esc, num, fecha, hora, toast, get, post, secc, ventana, cerrar, picker } = KAF;
   const ICO = {
@@ -99,7 +99,7 @@
     const ayuda = S && S.ayuda && !KAF.REG[v] ? `<div class="ayuda">${esc(S.ayuda)}</div>` : '';
     if (v === 'clientes') { C.innerHTML = cabeza(titulo, 'Todos los clientes de GrandBar con su vendedor, lo que compran de la marca y las oportunidades. Tocá uno para ver su ficha y empezar la visita.') + ayuda + '<div id="vista"></div>'; KAF.renderClientes($('vista')); return; }
     if (v === 'visitas') { C.innerHTML = cabeza(titulo, 'Las visitas que marcaste, día por día. Juan Pablo las ve igual que vos.') + ayuda + '<div id="vista"></div>'; KAF.renderVisitas($('vista')); return; }
-    if (v === 'nuevos') { C.innerHTML = cabeza(titulo, 'Clientes que empezaron a comprar este mes, con los datos de CUBO.') + ayuda + '<div id="vista"></div>'; KAF.renderNuevos($('vista')); return; }
+    if (v === 'nuevos') { C.innerHTML = cabeza(titulo, 'Los puntos de venta que encontrás y todavía no son clientes (nombre, ubicación y foto, para darlos de alta) y los que empezaron a comprar este mes según CUBO.') + ayuda + '<div id="vista"></div>'; KAF.renderNuevos($('vista'), arg); return; }
     if (KAF.REG[v]) { C.innerHTML = cabeza(titulo, esc(KAF.REG[v].d)) + '<div id="vista"></div>'; KAF.renderRegistros($('vista'), v); return; }
     if (v === 'materiales') {
       // #materiales/<pestaña>: catálogo, exhibidores, especiales o pedidos (a Andrea).

@@ -40,7 +40,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/auth-persist.js?v=1"></script>
-<script src="assets/kaf-comun.js?v=3"></script>
+<script src="assets/kaf-comun.js?v=4"></script>
 <script>
   const { K, $, esc, num, fecha, toast, get, post, ventana, cerrar } = KAF;
   K.modo = 'trade';
@@ -62,7 +62,7 @@
         <b>${esc(k.nombre || k.email)}</b>
         <span>${k.perfil ? 'KAF ' + esc(k.perfil.marca) : 'Panel sin armar'}${k.activo ? '' : ' · sin acceso'}</span>
         <span>Hoy: <b style="display:inline;font-size:13px;color:var(--ink)">${k.visitasHoy}</b>${o.visitas_dia ? ' de ' + o.visitas_dia : ''} clientes · mes: ${k.visitasMes} visitas</span>
-        ${k.sinRevisar || k.pedidosAbiertos || k.especialesAbiertos ? `<span class="chips">${k.sinRevisar ? `<span class="chip ambar">${k.sinRevisar} para revisar</span>` : ''}${k.especialesAbiertos ? `<span class="chip ambar">${k.especialesAbiertos} para presupuestar</span>` : ''}${k.pedidosAbiertos ? `<span class="chip">${k.pedidosAbiertos} pedido${k.pedidosAbiertos > 1 ? 's' : ''} de materiales</span>` : ''}</span>` : ''}
+        ${k.sinRevisar || k.pedidosAbiertos || k.especialesAbiertos || k.pdvNuevos ? `<span class="chips">${k.sinRevisar ? `<span class="chip ambar">${k.sinRevisar} para revisar</span>` : ''}${k.pdvNuevos ? `<span class="chip ambar">${k.pdvNuevos} punto${k.pdvNuevos > 1 ? 's' : ''} de venta nuevo${k.pdvNuevos > 1 ? 's' : ''}</span>` : ''}${k.especialesAbiertos ? `<span class="chip ambar">${k.especialesAbiertos} para presupuestar</span>` : ''}${k.pedidosAbiertos ? `<span class="chip">${k.pedidosAbiertos} pedido${k.pedidosAbiertos > 1 ? 's' : ''} de materiales</span>` : ''}</span>` : ''}
       </button>`;
     }).join('');
   }
