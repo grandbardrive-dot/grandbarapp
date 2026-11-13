@@ -146,7 +146,7 @@ alter table public.kaf_registros add constraint kaf_registros_tipo_check
 -- Perfect Serve y Perfect Store (w:kaf_foto), Exhibidores y materiales, Capacitaciones y
 -- valor agregado. Se editan en Secciones del manual.
 
--- ── App de los KAF, etapa 2 sin stock (13/11/2026) — migración kaf_materiales_etapa2 ──
+-- ── App de los KAF, etapa 2 sin stock (13/11/2026) — YA APLICADO en el Portal ──
 -- Exhibidores instalados en los clientes (con foto) y pedidos especiales para presupuestar.
 -- Igual que el resto: RLS sin reglas, todo pasa por la función kaf.
 create table if not exists public.kaf_exhibidores (
@@ -199,3 +199,6 @@ create index if not exists kaf_especiales_idx on public.kaf_especiales (usuario_
 alter table public.kaf_exhibidores enable row level security;
 alter table public.kaf_especiales  enable row level security;
 revoke all on public.kaf_exhibidores, public.kaf_especiales from anon, authenticated;
+-- En la base del MANUAL (también aplicado): la sección "Exhibidores y materiales" de los tres
+-- manuales KAF usa la herramienta w:kaf_exhibidores:
+-- update checklist_secciones set especial = 'w:kaf_exhibidores' where codigo = 'kaf_materiales' and canal like 'kaf_%';
