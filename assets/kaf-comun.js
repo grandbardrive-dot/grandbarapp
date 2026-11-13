@@ -304,6 +304,9 @@ window.KAF = (function () {
         ${!esKaf() ? `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><input id="kf-obj" maxlength="300" placeholder="Nuevo objetivo para ${esc(mesNombre(mes).split(' ')[0].toLowerCase())}: ej. sumar Aperol en carta" style="flex:1;min-width:200px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:14px"><button class="btn navy" id="kf-obj-ok">Agregar objetivo</button></div>` : ''}</div>`;
     const marcas = c.m || [];
     const meses = d.meses || [];
+    const exh = d.exhibidores || [];
+    // Después de tocar un exhibidor se vuelve a la ficha (la página del KAF o la ventana de Trade).
+    const volverFicha = () => abrirFicha(codigo, pagina ? el : undefined);
     const t5 = c.t5;
     mb.innerHTML = `${cab}${pagina ? '' : visitaHtml}
       <div id="kf-objs">${objHtml()}</div>
@@ -323,9 +326,12 @@ window.KAF = (function () {
         <div style="font-size:12px;color:var(--muted);margin-top:6px">De la planilla del Plan 5T (Drive). Tachado = no tiene la marca.</div></div>` : ''}
       ${(d.acuerdos || []).length ? `<div class="bloque"><h4>Acuerdos Campari</h4><div class="tabla-wrap"><table class="tabla"><thead><tr><th>Producto</th><th>Calibre</th><th>Condición</th><th>Mínimo</th><th>Tope s/cargo</th><th>Visibilidad</th></tr></thead><tbody>
         ${d.acuerdos.map(a => `<tr><td>${esc(a.producto)}</td><td>${esc(a.calibre)}</td><td>${esc(a.condicion)}</td><td>${esc(a.minimo)}</td><td>${esc(a.tope)}</td><td>${esc(a.visibilidad)}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
+      ${secc('materiales') || exh.length ? `<div class="bloque"><h4>Exhibidores de ${esc(P.marca || 'la marca')} en este cliente <small>${exh.filter(x => x.estado === 'instalado').length} instalados</small></h4>
+          ${exh.length ? `<div class="kv-exh">${exh.map(x => exhibidorFila(x, false)).join('')}</div>` : '<div style="font-size:13px;color:var(--muted)">Todavía no hay exhibidores registrados en este cliente.</div>'}
+          ${esKaf() ? '<button class="btn claro" type="button" data-exh-nuevo style="margin-top:10px">Registrar exhibidor</button>' : ''}</div>` : ''}
       ${esKaf() ? `<div class="bloque"><h4>Cargar en este cliente</h4><div style="display:flex;gap:8px;flex-wrap:wrap">
           ${['evidencia', 'perfect_serve', 'perfect_store', 'capacitacion', 'presupuesto'].filter(secc).map(k => `<button class="btn claro" data-cargar="${k}">${esc(secc(k).t)}</button>`).join('')}
-          ${secc('materiales') ? '<button class="btn claro" data-materiales>Pedir materiales</button>' : ''}</div></div>` : ''}
+          ${secc('materiales') ? '<button class="btn claro" data-materiales>Pedir materiales</button><button class="btn claro" data-especial>Pedido especial</button>' : ''}</div></div>` : ''}
       ${(d.registros || []).length ? `<div class="bloque"><h4>Lo cargado en este cliente</h4>${d.registros.slice(0, 10).map(r => `<div style="display:flex;gap:8px;padding:6px 0;border-top:1px solid var(--line2);font-size:13.5px;align-items:center;flex-wrap:wrap">
           <b>${esc((REG[r.tipo] || {}).n || r.tipo)}</b><span style="color:var(--muted)">${fecha(r.fecha)} · ${esc(resumenDatos(r))}</span><span class="estado e-${esc(r.estado)}" style="margin-left:auto">${esc(ESTADO[r.estado] || r.estado)}</span></div>`).join('')}</div>` : ''}
       ${pagina ? visitaHtml : ''}`;
@@ -382,7 +388,11 @@ window.KAF = (function () {
       }
       const bc = e.target.closest('[data-cargar]');
       if (bc) { formRegistro(bc.dataset.cargar, { c: codigo, n: c.n }); return; }
-      if (e.target.closest('[data-materiales]')) { cerrar(); if (K.alPedirMateriales) K.alPedirMateriales({ c: codigo, n: c.n }); }
+      if (e.target.closest('[data-materiales]')) { cerrar(); if (K.alPedirMateriales) K.alPedirMateriales({ c: codigo, n: c.n }); return; }
+      if (e.target.closest('[data-especial]')) { formEspecial({ c: codigo, n: c.n }, null); return; }
+      if (e.target.closest('[data-exh-nuevo]')) { formExhibidor(null, { c: codigo, n: c.n }, { alGuardar: volverFicha }); return; }
+      const ex = e.target.closest('[data-ex]');
+      if (ex) { const x = exh.find(y => y.id === ex.dataset.ex); if (x) { if (!pagina) cerrar.despues = null; verExhibidor(x, volverFicha); if (!pagina) cerrar.despues = volverFicha; } }
     };
   }
 
@@ -421,12 +431,24 @@ window.KAF = (function () {
         ${s.intro ? `<div class="kv-intro">${esc(s.intro)}</div>` : ''}
         ${(s.items || []).length ? `<div class="kv-items">${s.items.map((it, i) => `<label class="kv-item"><input type="checkbox" data-item="${i}" ${st.items.includes(it.texto) ? 'checked' : ''}><span>${esc(it.texto)}${it.detalle ? `<small>${esc(it.detalle)}</small>` : ''}</span></label>`).join('')}</div>` : ''}
         ${s.especial === 'w:kaf_acciones' ? accionesHtml(d.acciones, P.marca || 'la marca', true) : ''}
+        ${s.especial === 'w:kaf_exhibidores' ? exhVisita() : ''}
         ${(s.planes || []).map(p => planHtml(p)).join('')}${(s.campanias || []).map(a => campHtml(a)).join('')}
         ${s.pdf ? `<a class="lnk" href="${esc(s.pdf)}" target="_blank" rel="noopener">Ver el PDF de la sección</a>` : ''}
         <div class="fotos kv-fotos" data-fotos>${fotosHtml(s)}</div>
         <label class="btn claro kv-foto-btn${conFoto && !st.fotos.length ? ' falta' : ''}">${CAM} ${conFoto ? 'Foto (obligatoria para darla por hecha)' : 'Sacar o subir foto'}<input type="file" accept="image/*" multiple data-file hidden></label>
         <textarea class="kv-com" data-com maxlength="1000" rows="2" placeholder="Comentario (opcional)">${esc(st.comentario)}</textarea>
       </section>`;
+    };
+    // Sección de exhibidores (w:kaf_exhibidores, etapa 2): los que ya están en el cliente,
+    // para sumarles una foto o darlos de baja, y el alta de uno nuevo. Se guardan al toque.
+    function exhVisita() {
+      const l = (d.exhibidores || []).filter(x => x.estado === 'instalado');
+      return `<div class="kv-exh">${l.length ? l.map(x => exhibidorFila(x, false)).join('') : '<div class="kv-intro" style="color:var(--muted);margin:0">Todavía no hay exhibidores registrados en este cliente.</div>'}
+        <div><button class="btn claro chico" type="button" data-exh-nuevo>Registrar exhibidor nuevo</button></div></div>`;
+    }
+    const recargarExh = async () => {
+      try { d.exhibidores = (await get('exhibidores', { codigo })).exhibidores || []; } catch (e) { toast(e.message, true); }
+      secs.filter(s => s.especial === 'w:kaf_exhibidores').forEach(s => repintar(s));
     };
     const vendNom = V.nombre || c.v || '';
     el.innerHTML = `<a class="lnk volver" href="#cliente/${encodeURIComponent(codigo)}">‹ Volver a la ficha</a>
@@ -468,6 +490,9 @@ window.KAF = (function () {
       if (e.target.matches('[data-com]')) { S(secDe(e.target).id).comentario = e.target.value; guardarBorrador(codigo, B); }
     };
     el.onclick = async e => {
+      if (e.target.closest('[data-exh-nuevo]')) { formExhibidor(null, { c: codigo, n: c.n }, { alGuardar: recargarExh }); return; }
+      const ex = e.target.closest('[data-ex]');
+      if (ex) { const x = (d.exhibidores || []).find(y => y.id === ex.dataset.ex); if (x) verExhibidor(x, recargarExh); return; }
       const q = e.target.closest('[data-quitar]');
       if (q) { e.preventDefault(); const s = secDe(q); S(s.id).fotos.splice(Number(q.dataset.quitar), 1); guardarBorrador(codigo, B); repintar(s); return; }
       if (e.target.closest('#kv-descartar')) {
@@ -503,6 +528,7 @@ window.KAF = (function () {
     mb.innerHTML = `<label class="campo"><span>Cliente</span><div id="fr-cli"></div></label>
       <div class="campo"><span>¿Qué es?</span><div class="opciones grilla">${TIPOS_FOTO.map(([k, n]) => `<label><input type="radio" name="fr-tipo" value="${k}" ${k === 'evidencia' ? 'checked' : ''}> ${esc(n)}</label>`).join('')}</div></div>
       <div class="campo" id="fr-cal"><span>¿Cómo está?</span><div class="opciones"><label><input type="radio" name="fr-cal" value="bien" checked> Bien ejecutado</label><label><input type="radio" name="fr-cal" value="mal"> Mal ejecutado</label></div></div>
+      <div class="aviso" id="fr-exh" style="display:none">¿Es un exhibidor que queda instalado en el cliente? <button class="lnk" type="button" id="fr-exh-ok">Registralo como exhibidor</button>: queda en la ficha del cliente para seguirlo con fotos.</div>
       <label class="btn navy grande" style="margin:2px 0 8px">${CAM} Sacar o subir fotos<input type="file" id="fr-file" accept="image/*" multiple hidden></label>
       <div class="fotos" id="fr-prev"></div>
       <label class="campo" style="margin-top:12px"><span>Comentario (opcional)</span><textarea id="fr-com" maxlength="1000" placeholder="Qué se ve, qué hay que corregir…"></textarea></label>
@@ -510,7 +536,8 @@ window.KAF = (function () {
       <div class="acts"><button class="btn claro" type="button" id="fr-cancel">Cancelar</button><button class="btn ok" type="button" id="fr-ok">Guardar</button></div>`;
     const elegido = picker(mb.querySelector('#fr-cli'), cliente || null, false);
     const tipo = () => (mb.querySelector('input[name="fr-tipo"]:checked') || {}).value || 'evidencia';
-    mb.querySelector('.opciones').onchange = () => { mb.querySelector('#fr-cal').style.display = tipo() === 'evidencia' ? '' : 'none'; };
+    mb.querySelector('.opciones').onchange = () => { mb.querySelector('#fr-cal').style.display = tipo() === 'evidencia' ? '' : 'none'; mb.querySelector('#fr-exh').style.display = tipo() === 'material' && secc('materiales') ? '' : 'none'; };
+    mb.querySelector('#fr-exh-ok').onclick = () => formExhibidor(null, elegido(), { archivos });
     const prev = () => { mb.querySelector('#fr-prev').innerHTML = archivos.map((a, i) => `<a href="#" data-q="${i}" title="Sacar"><img src="${a}" alt=""></a>`).join(''); };
     mb.querySelector('#fr-file').onchange = async e => {
       for (const f of [...e.target.files].slice(0, 4 - archivos.length)) { try { archivos.push(await leerArchivo(f)); } catch (er) { toast(er.message, true); } }
@@ -863,6 +890,280 @@ window.KAF = (function () {
     return d;
   }
 
+  // ── Etapa 2 (13/11/2026): materiales sin stock ─────────────────────────────
+  // Catálogo dividido por marca (la foto se baja o se comparte), exhibidores que quedan
+  // instalados en los clientes (con foto, los ven Trade y el vendedor) y pedidos especiales
+  // de algo que no está en el catálogo, que Trade Marketing presupuesta.
+  const ESP = { pendiente: 'Para presupuestar', presupuestado: 'Presupuestado', aprobado: 'Aprobado', rechazado: 'Rechazado', entregado: 'Entregado' };
+  async function catalogo(forzar) {
+    if (K.mats && K.mats._kaf === K.kaf && !forzar) return K.mats;
+    K.mats = Object.assign(await get('materiales'), { _kaf: K.kaf });
+    return K.mats;
+  }
+  const archivoDe = m => (String(m.nombre || 'material').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w -]/g, '').trim().replace(/\s+/g, '-') || 'material')
+    + '.' + ((/\.(png|jpe?g|webp)(\?|$)/i.exec(m.foto || '') || [0, 'jpg'])[1]);
+  const datoHtml = (k, v) => v ? `<div style="font-size:13.5px;margin-top:4px;white-space:pre-wrap"><span style="color:var(--muted)">${esc(k)}:</span> ${esc(v)}</div>` : '';
+
+  // Un material del catálogo, grande: para mostrárselo al cliente, bajarlo o mandarlo.
+  function verMaterial(m, botones) {
+    const mb = ventana(m.nombre, [m.marca || m.proveedor, m.categoria].filter(Boolean).join(' · '));
+    const baja = m.foto ? m.foto + (m.foto.includes('?') ? '&' : '?') + 'download=' + encodeURIComponent(archivoDe(m)) : '';
+    mb.innerHTML = `${m.foto ? `<div class="foto-grande"><img src="${esc(m.foto)}" alt="${esc(m.nombre)}"></div>
+        <div class="acts" style="justify-content:flex-start;margin-top:10px"><a class="btn navy" href="${esc(baja)}" download="${esc(archivoDe(m))}">Descargar la foto</a>${navigator.share ? '<button class="btn claro" type="button" id="vm-comp">Compartir</button>' : ''}</div>`
+        : '<div class="vacio">Este material no tiene foto cargada.</div>'}
+      <div class="bloque">${datoHtml('Marca', m.marca)}${datoHtml('Proveedor', m.proveedor)}${datoHtml('Categoría', m.categoria)}${datoHtml('Stock en el depósito', num(m.stock) + (m.unidad ? ' ' + m.unidad : ''))}
+        ${datoHtml('Descripción', m.descripcion)}${datoHtml('Cómo se usa', m.instrucciones)}
+        ${m.pdf || m.video ? `<div style="display:flex;gap:14px;margin-top:8px;flex-wrap:wrap">${m.pdf ? `<a class="lnk" href="${esc(m.pdf)}" target="_blank" rel="noopener">Ver el PDF</a>` : ''}${m.video ? `<a class="lnk" href="${esc(m.video)}" target="_blank" rel="noopener">Ver el video</a>` : ''}</div>` : ''}</div>
+      ${botones || ''}`;
+    const comp = mb.querySelector('#vm-comp');
+    if (comp) comp.onclick = async () => {
+      try {
+        const bl = await (await fetch(m.foto)).blob();
+        const f = new File([bl], archivoDe(m), { type: bl.type || 'image/jpeg' });
+        if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: m.nombre });
+        else await navigator.share({ title: m.nombre, url: m.foto });
+      } catch (e) { if (e && e.name !== 'AbortError') toast('No se pudo compartir: bajá la foto y mandala.', true); }
+    };
+    return mb;
+  }
+
+  // ── Exhibidores ────────────────────────────────────────────────────────────
+  const diasDesde = v => v ? Math.max(0, Math.floor((Date.now() - new Date(v)) / 864e5)) : null;
+  function exhibidorFila(x, conCliente) {
+    const fs = (x.fotos_url || []).filter(Boolean), u = fs[fs.length - 1], d = diasDesde(x.foto_at || x.created_at);
+    return `<div class="fila click exh" data-ex="${esc(x.id)}">
+        <div class="exh-img">${u ? `<img src="${esc(u)}" alt="" loading="lazy">` : ''}</div>
+        <div class="cuerpo"><div class="tit">${num(x.cantidad)} × ${esc(x.material)}</div>
+          <div class="sub">${esc([conCliente ? (x.cliente_nombre || x.cliente_codigo) : '', x.linea, 'instalado el ' + fecha(x.instalado)].filter(Boolean).join(' · '))}</div>
+          <div class="chips">${x.estado === 'retirado' ? `<span class="chip gris">Retirado${x.retirado ? ' el ' + fecha(x.retirado) : ''}</span>`
+            : `<span class="chip ${d > 90 ? 'ambar' : 'verde'}">Última foto: ${d === 0 ? 'hoy' : 'hace ' + num(d) + (d === 1 ? ' día' : ' días')}</span>`}</div></div></div>`;
+  }
+  function verExhibidor(x, alCambiar) {
+    const mb = ventana(num(x.cantidad) + ' × ' + x.material, [x.cliente_nombre, x.cliente_codigo].filter(Boolean).join(' · '));
+    const fs = (x.fotos_url || []).filter(Boolean);
+    const borrable = esKaf() && (!K.yo || x.usuario_id === K.yo) && Date.now() - new Date(x.created_at) < 7 * 864e5;
+    mb.innerHTML = `${fs.length ? `<div class="foto-grande"><img id="vx-img" src="${esc(fs[fs.length - 1])}" alt="Foto del exhibidor"></div>
+        ${fs.length > 1 ? `<div class="fotos">${fs.map((u, i) => `<a href="#" data-f="${i}" title="Ver"><img src="${esc(u)}" alt="Foto ${i + 1}"></a>`).join('')}</div>` : ''}` : '<div class="vacio">Sin fotos.</div>'}
+      <div class="bloque"><span class="estado e-${esc(x.estado)}">${x.estado === 'retirado' ? 'Retirado' + (x.retirado ? ' el ' + fecha(x.retirado) : '') : 'Instalado'}</span>
+        ${datoHtml('Marca', x.linea)}${datoHtml('Instalado el', fecha(x.instalado))}${datoHtml('Última foto', x.foto_at ? fecha(x.foto_at) : '')}${datoHtml('Nota', x.nota)}${datoHtml('Por qué se retiró', x.retiro_nota)}</div>
+      ${esKaf() ? `<div class="acts" style="justify-content:flex-start">
+          <label class="btn navy">${CAM} Sumar foto nueva<input type="file" id="vx-file" accept="image/*" multiple hidden></label>
+          <button class="btn claro" type="button" id="vx-editar">Corregir datos</button>
+          ${x.estado === 'instalado' ? '<button class="btn rojo" type="button" id="vx-retirar">Ya no está</button>' : '<button class="btn claro" type="button" id="vx-reinst">Volvió a estar</button>'}</div>` : ''}
+      <div class="msg" id="vx-msg"></div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px"><button class="lnk" type="button" id="vx-ficha">Ver la ficha del cliente</button>${borrable ? '<button class="lnk" type="button" id="vx-borrar">Borrar (lo cargué por error)</button>' : ''}</div>`;
+    const listo = (t, ex) => { toast(t); cerrar.despues = alCambiar ? () => alCambiar(ex) : null; cerrar(); };
+    const enviar = async (body, t) => {
+      mb.querySelector('#vx-msg').textContent = '';
+      try { const r = await post(Object.assign({ accion: 'exhibidor', id: x.id }, body)); listo(t, r.exhibidor); }
+      catch (e) { mb.querySelector('#vx-msg').textContent = e.message; }
+    };
+    mb.onclick = async e => {
+      const f = e.target.closest('[data-f]');
+      if (f) { e.preventDefault(); mb.querySelector('#vx-img').src = fs[Number(f.dataset.f)]; return; }
+      if (e.target.closest('#vx-ficha')) { cerrar.despues = null; cerrar(); abrirFicha(x.cliente_codigo); return; }
+      if (e.target.closest('#vx-editar')) { formExhibidor(x, null, { alGuardar: alCambiar }); return; }
+      if (e.target.closest('#vx-retirar')) { const n = prompt('¿Qué pasó? (opcional: lo sacaron, se rompió, lo devolvieron…)'); if (n === null) return; enviar({ estado: 'retirado', retiro_nota: n }, 'Marcado como retirado'); return; }
+      if (e.target.closest('#vx-reinst')) { enviar({ estado: 'instalado' }, 'Volvió a instalado'); return; }
+      if (e.target.closest('#vx-borrar')) {
+        if (!confirm('¿Borrar este exhibidor? Se borran también sus fotos.')) return;
+        try { await post({ accion: 'borrar_exhibidor', id: x.id }); listo('Borrado', null); } catch (er) { mb.querySelector('#vx-msg').textContent = er.message; }
+      }
+    };
+    const fi = mb.querySelector('#vx-file');
+    if (fi) fi.onchange = async () => {
+      const arch = [];
+      for (const fl of [...fi.files].slice(0, 4)) { try { arch.push(await leerArchivo(fl)); } catch (er) { toast(er.message, true); } }
+      fi.value = '';
+      if (!arch.length) return;
+      mb.querySelector('#vx-msg').textContent = 'Subiendo…';
+      enviar({ fotos: arch }, 'Foto nueva guardada');
+    };
+  }
+  // Alta o corrección. Del catálogo de la marca, o escrito a mano si no está.
+  async function formExhibidor(x, cliente, op) {
+    op = op || {};
+    const mb = ventana(x ? 'Corregir exhibidor' : 'Registrar exhibidor', x ? [x.cliente_nombre, x.cliente_codigo].filter(Boolean).join(' · ') : 'Lo que queda instalado en el cliente (heladera, exhibidor, cartel luminoso…), con foto. Le llega a Trade Marketing y al vendedor.');
+    let mats = [];
+    try { mats = ((await catalogo()).materiales || []).filter(m => m.mia); } catch (e) { mats = []; }
+    if (op.material && !mats.some(m => m.id === op.material.id)) mats = [op.material].concat(mats);
+    const elegidoMat = x ? (x.material_id || '') : (op.material ? op.material.id : '');
+    const enCat = !!elegidoMat && mats.some(m => m.id === elegidoMat);
+    let archivos = (op.archivos || []).slice(0, 4), quitar = [];
+    const viejas = x ? (x.fotos || []).map((p, i) => ({ p, u: (x.fotos_url || [])[i] })) : [];
+    mb.innerHTML = `${x ? '' : '<label class="campo"><span>Cliente</span><div id="ke-cli"></div></label>'}
+      <label class="campo"><span>¿Qué exhibidor es?</span><select id="ke-mat">
+        ${mats.length ? `<optgroup label="Del catálogo de materiales">${mats.map(m => `<option value="${esc(m.id)}" ${enCat && m.id === elegidoMat ? 'selected' : ''}>${esc(m.nombre)}${m.marca ? ' · ' + esc(m.marca) : ''}</option>`).join('')}</optgroup>` : ''}
+        <option value="" ${enCat ? '' : 'selected'}>${mats.length ? 'Otro, no está en el catálogo' : 'Lo escribo'}</option></select></label>
+      <label class="campo" id="ke-otro-c"><span>Qué es</span><input id="ke-otro" maxlength="160" value="${esc(x && !enCat ? x.material : '')}" placeholder="Ej. Heladera Aperol de una puerta"></label>
+      <div class="dos"><label class="campo"><span>Cantidad</span><input id="ke-cant" inputmode="numeric" value="${x ? x.cantidad : 1}"></label>
+        <label class="campo"><span>Instalado el</span><input type="date" id="ke-fecha" value="${x ? esc(x.instalado) : hoy()}" max="${hoy()}"></label></div>
+      <label class="campo"><span>Nota (opcional)</span><textarea id="ke-nota" maxlength="1000" placeholder="Dónde está, en qué estado, qué se acordó con el cliente…">${esc(x ? x.nota || '' : '')}</textarea></label>
+      <label class="btn navy grande" style="margin:2px 0 8px">${CAM} ${x ? 'Sumar fotos' : 'Sacar o subir fotos'}<input type="file" id="ke-file" accept="image/*" multiple hidden></label>
+      <div class="fotos kv-fotos" id="ke-prev"></div>
+      ${x ? '' : '<label class="kv-item" style="border:0;padding:6px 0"><input type="checkbox" id="ke-avisar" checked><span>Avisarle al vendedor del cliente (le llega a la campanita del Portal)</span></label>'}
+      <div class="msg" id="ke-msg"></div>
+      <div class="acts"><button class="btn claro" type="button" id="ke-cancel">Cancelar</button><button class="btn ok" type="button" id="ke-ok">Guardar</button></div>`;
+    const elegido = x ? null : picker(mb.querySelector('#ke-cli'), cliente || null, false);
+    const sel = mb.querySelector('#ke-mat'), otro = mb.querySelector('#ke-otro-c');
+    const sync = () => { otro.style.display = sel.value ? 'none' : ''; };
+    sel.onchange = sync; sync();
+    const prev = () => {
+      mb.querySelector('#ke-prev').innerHTML = viejas.filter(f => !quitar.includes(f.p)).map(f => `<a href="#"><img src="${esc(f.u || '')}" alt=""><button type="button" class="quitar" data-qv="${esc(f.p)}" aria-label="Sacar la foto">×</button></a>`).join('')
+        + archivos.map((a, i) => `<a href="#"><img src="${a}" alt=""><button type="button" class="quitar" data-q="${i}" aria-label="Sacar la foto">×</button></a>`).join('');
+    };
+    prev();
+    mb.querySelector('#ke-file').onchange = async e => {
+      for (const f of [...e.target.files].slice(0, 4 - archivos.length)) { try { archivos.push(await leerArchivo(f)); } catch (er) { toast(er.message, true); } }
+      e.target.value = ''; prev();
+      if (archivos.length >= 4) toast('Hasta 4 fotos por vez.');
+    };
+    mb.querySelector('#ke-prev').onclick = e => {
+      const q = e.target.closest('[data-q]'), qv = e.target.closest('[data-qv]');
+      if (q || qv || e.target.closest('a')) e.preventDefault();
+      if (q) { archivos.splice(Number(q.dataset.q), 1); prev(); }
+      if (qv) { quitar.push(qv.dataset.qv); prev(); }
+    };
+    mb.querySelector('#ke-cancel').onclick = () => { cerrar.despues = null; cerrar(); };
+    mb.querySelector('#ke-ok').onclick = async ev => {
+      const btn = ev.currentTarget, msg = mb.querySelector('#ke-msg'), c = x ? null : elegido();
+      const material_id = sel.value || null, material = sel.value ? '' : mb.querySelector('#ke-otro').value.trim();
+      msg.textContent = '';
+      if (!x && !c) { msg.textContent = 'Elegí el cliente.'; return; }
+      if (!material_id && !material) { msg.textContent = 'Elegí del catálogo o escribí qué exhibidor es.'; return; }
+      if (!x && !archivos.length) { msg.textContent = 'Sacale una foto al exhibidor instalado.'; return; }
+      if (x && viejas.length && viejas.every(f => quitar.includes(f.p)) && !archivos.length) { msg.textContent = 'Dejale al menos una foto.'; return; }
+      btn.disabled = true; btn.textContent = 'Guardando…';
+      try {
+        const r = await post({ accion: 'exhibidor', id: x ? x.id : undefined, codigo: c ? c.c : undefined, material_id, material, cantidad: mb.querySelector('#ke-cant').value,
+          instalado: mb.querySelector('#ke-fecha').value, nota: mb.querySelector('#ke-nota').value, fotos: archivos, quitar, avisar: x ? undefined : mb.querySelector('#ke-avisar').checked });
+        toast(x ? 'Exhibidor corregido' : 'Exhibidor registrado' + (r.avisoVendedor ? ': le avisamos a ' + r.avisoVendedor : ''));
+        cerrar.despues = op.alGuardar ? () => op.alGuardar(r.exhibidor) : null; cerrar();
+      } catch (e) { msg.textContent = e.message; btn.disabled = false; btn.textContent = 'Guardar'; }
+    };
+  }
+  const EST_EX = { estado: 'instalado', q: '' };
+  async function renderExhibidores(el) {
+    el.innerHTML = '<div class="vacio">Cargando…</div>';
+    let d;
+    try { d = await get('exhibidores'); } catch (e) { el.innerHTML = `<div class="vacio">${esc(e.message)}</div>`; return; }
+    if (d.sinPerfil) { el.innerHTML = sinPerfilHtml(); return; }
+    const L = d.exhibidores || [];
+    el.innerHTML = `<div class="barra">${esKaf() ? '<button class="btn ok" type="button" id="ex-nuevo">Registrar exhibidor</button>' : ''}
+        <select id="ex-est"><option value="instalado">Instalados</option><option value="retirado">Retirados</option><option value="">Todos</option></select>
+        <input type="search" id="ex-q" placeholder="Buscar cliente o exhibidor…" value="${esc(EST_EX.q)}" autocomplete="off">
+        ${L.length ? '<button class="btn claro chico" type="button" id="ex-csv">Bajar Excel</button>' : ''}</div>
+      <div class="cuenta" id="ex-cuenta"></div><div id="ex-l"></div>`;
+    el.querySelector('#ex-est').value = EST_EX.estado;
+    const filtrados = () => { const q = EST_EX.q.trim().toLowerCase(); return L.filter(x => (!EST_EX.estado || x.estado === EST_EX.estado) && (!q || [x.cliente_nombre, x.cliente_codigo, x.material, x.linea, x.nota].join(' ').toLowerCase().includes(q))); };
+    const pinta = () => {
+      const l = filtrados(), nc = new Set(l.map(x => x.cliente_codigo)).size;
+      el.querySelector('#ex-cuenta').textContent = l.length ? num(l.length) + (l.length === 1 ? ' exhibidor' : ' exhibidores') + ' en ' + num(nc) + (nc === 1 ? ' cliente' : ' clientes') : '';
+      el.querySelector('#ex-l').innerHTML = l.length ? l.map(x => exhibidorFila(x, true)).join('')
+        : `<div class="vacio">${L.length ? 'No hay exhibidores con ese filtro.' : esKaf() ? 'Todavía no registraste exhibidores. Cuando instales uno en un cliente, registralo con una foto: queda en su ficha y le llega a Trade Marketing y al vendedor.' : 'Este KAF todavía no registró exhibidores.'}</div>`;
+    };
+    pinta();
+    el.querySelector('#ex-est').onchange = e => { EST_EX.estado = e.target.value; pinta(); };
+    el.querySelector('#ex-q').oninput = e => { EST_EX.q = e.target.value; pinta(); };
+    const nu = el.querySelector('#ex-nuevo'); if (nu) nu.onclick = () => formExhibidor(null, null, { alGuardar: () => renderExhibidores(el) });
+    const cv = el.querySelector('#ex-csv');
+    if (cv) cv.onclick = () => csv('exhibidores-' + slugMarca() + '-' + hoy() + '.csv', [['Cliente', 'Código', 'Exhibidor', 'Marca', 'Cantidad', 'Instalado', 'Estado', 'Retirado', 'Última foto', 'Nota']]
+      .concat(filtrados().map(x => [x.cliente_nombre, x.cliente_codigo, x.material, x.linea, x.cantidad, fecha(x.instalado), x.estado === 'retirado' ? 'Retirado' : 'Instalado', x.retirado ? fecha(x.retirado) : '', x.foto_at ? fecha(x.foto_at) : '', x.nota])));
+    el.querySelector('#ex-l').onclick = e => { const f = e.target.closest('[data-ex]'); if (!f) return; verExhibidor(L.find(x => x.id === f.dataset.ex), () => renderExhibidores(el)); };
+  }
+  const slugMarca = () => String((K.perfil || {}).marca || 'kaf').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-');
+
+  // ── Pedidos especiales ─────────────────────────────────────────────────────
+  function formEspecial(cliente, alGuardar) {
+    const mb = ventana('Pedido especial', 'Algo que no está en el catálogo y hay que presupuestar (por ejemplo, un fondo de barra). Le llega a Trade Marketing.');
+    let archivos = [];
+    mb.innerHTML = `<label class="campo"><span>¿Qué necesitás?</span><input id="ks-que" maxlength="200" placeholder="Ej. Fondo de barra con la marca"></label>
+      <div class="dos"><label class="campo"><span>Cantidad</span><input id="ks-cant" inputmode="numeric" value="1"></label>
+        <label class="campo"><span>¿Para cuándo? (opcional)</span><input type="date" id="ks-cuando" min="${hoy()}"></label></div>
+      <label class="campo"><span>Medidas (si hace falta)</span><input id="ks-med" maxlength="300" placeholder="Ej. 3 m de ancho por 1,10 m de alto"></label>
+      <label class="campo"><span>Cliente (opcional)</span><div id="ks-cli"></div></label>
+      <label class="campo"><span>Detalle</span><textarea id="ks-det" maxlength="2000" placeholder="Para qué es, cómo lo imaginás, qué pone el cliente…"></textarea></label>
+      <label class="campo"><span>Fotos del lugar o de referencia, o un PDF (hasta 4)</span><input type="file" id="ks-fotos" accept="image/*,application/pdf" multiple></label>
+      <div class="fotos" id="ks-prev"></div>
+      <div class="msg" id="ks-msg"></div>
+      <div class="acts"><button class="btn claro" type="button" id="ks-cancel">Cancelar</button><button class="btn ok" type="button" id="ks-ok">Enviar a Trade Marketing</button></div>`;
+    const elegido = picker(mb.querySelector('#ks-cli'), cliente || null, true);
+    const prev = () => { mb.querySelector('#ks-prev').innerHTML = archivos.map((a, i) => `<a href="#" data-q="${i}" title="Sacar">${a.startsWith('data:application/pdf') ? 'PDF' : `<img src="${a}" alt="">`}</a>`).join(''); };
+    mb.querySelector('#ks-fotos').onchange = async e => {
+      for (const f of [...e.target.files].slice(0, 4 - archivos.length)) { try { archivos.push(await leerArchivo(f)); } catch (er) { toast(er.message, true); } }
+      e.target.value = ''; prev();
+    };
+    mb.querySelector('#ks-prev').onclick = e => { const a = e.target.closest('[data-q]'); if (!a) return; e.preventDefault(); archivos.splice(Number(a.dataset.q), 1); prev(); };
+    mb.querySelector('#ks-cancel').onclick = () => { cerrar.despues = null; cerrar(); };
+    mb.querySelector('#ks-ok').onclick = async ev => {
+      const btn = ev.currentTarget, msg = mb.querySelector('#ks-msg'), v = id => mb.querySelector(id).value.trim(), c = elegido();
+      msg.textContent = '';
+      if (!v('#ks-que')) { msg.textContent = 'Contá qué necesitás.'; return; }
+      btn.disabled = true; btn.textContent = 'Enviando…';
+      try {
+        await post({ accion: 'especial', que: v('#ks-que'), cantidad: v('#ks-cant'), para_cuando: v('#ks-cuando'), medidas: v('#ks-med'), detalle: v('#ks-det'), codigo: c ? c.c : null, fotos: archivos });
+        toast('Pedido enviado: Trade Marketing lo presupuesta y te avisa.');
+        cerrar.despues = alGuardar || null; cerrar();
+      } catch (e) { msg.textContent = e.message; btn.disabled = false; btn.textContent = 'Enviar a Trade Marketing'; }
+    };
+  }
+  function especialHtml(p, puedeAtender) {
+    const archivos = (p.fotos_url || []).filter(f => f.url);
+    const pz = p.presupuesto_url && p.presupuesto_url.url ? p.presupuesto_url : null;
+    return `<div class="fila"><div class="cuerpo">
+        <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><div class="tit" style="flex:1">${num(p.cantidad)} × ${esc(p.que)}</div><span class="estado e-${esc(p.estado)}">${esc(ESP[p.estado] || p.estado)}</span></div>
+        <div class="sub">${esc([esKaf() ? '' : p.solicitante, 'pedido el ' + fecha(p.created_at), p.cliente_nombre ? p.cliente_nombre + ' (' + p.cliente_codigo + ')' : ''].filter(Boolean).join(' · '))}</div>
+        ${datoHtml('Medidas', p.medidas)}${datoHtml('Para cuándo', p.para_cuando ? fecha(p.para_cuando) : '')}
+        ${p.detalle ? `<div style="font-size:13.5px;margin-top:6px;white-space:pre-wrap;background:var(--cream);border-radius:9px;padding:8px 10px">${esc(p.detalle)}</div>` : ''}
+        ${archivos.length ? `<div class="fotos">${archivos.map((f, i) => `<a href="${esc(f.url)}" target="_blank" rel="noopener" title="Abrir">${f.pdf ? 'PDF' : `<img src="${esc(f.url)}" alt="Foto ${i + 1}" loading="lazy">`}</a>`).join('')}</div>` : ''}
+        ${p.monto != null || p.proveedor || pz ? `<div class="presu"><b>Presupuesto</b>${esc([p.monto != null ? plata(p.monto) : '', p.proveedor].filter(Boolean).join(' · '))}${pz ? ` <a class="lnk" href="${esc(pz.url)}" target="_blank" rel="noopener">Ver ${pz.pdf ? 'el PDF' : 'la foto'}</a>` : ''}</div>` : ''}
+        ${p.respuesta ? `<div style="font-size:13.5px;margin-top:8px;background:var(--green-s);border-left:3px solid var(--green);border-radius:0 9px 9px 0;padding:8px 10px;white-space:pre-wrap"><b>${esc(p.atendido_por || 'Trade Marketing')}:</b> ${esc(p.respuesta)}</div>` : ''}
+        ${esKaf() ? (p.estado === 'pendiente' ? `<div style="margin-top:8px"><button class="lnk" type="button" data-borrar-esp="${esc(p.id)}">Borrar</button></div>` : '')
+          : puedeAtender ? `<div style="margin-top:8px"><button class="btn navy chico" type="button" data-atender="${esc(p.id)}">${p.estado === 'pendiente' ? 'Presupuestar o responder' : 'Cambiar estado'}</button></div>` : ''}
+      </div></div>`;
+  }
+  async function renderEspeciales(el) {
+    el.innerHTML = '<div class="vacio">Cargando…</div>';
+    let d;
+    try { d = await get('especiales'); } catch (e) { el.innerHTML = `<div class="vacio">${esc(e.message)}</div>`; return; }
+    const L = d.especiales || [];
+    el.innerHTML = `${esKaf() ? '<div class="barra"><button class="btn ok" type="button" id="es-nuevo">Nuevo pedido especial</button></div>' : ''}
+      ${L.length ? L.map(p => especialHtml(p, d.puedeAtender)).join('') : `<div class="vacio">${esKaf() ? 'Todavía no hiciste pedidos especiales. Si necesitás algo que no está en el catálogo (un fondo de barra, una carta, un exhibidor a medida), pedilo acá: Trade Marketing lo presupuesta y te avisa.' : 'Este KAF todavía no hizo pedidos especiales.'}</div>`}`;
+    const nu = el.querySelector('#es-nuevo'); if (nu) nu.onclick = () => formEspecial(null, () => renderEspeciales(el));
+    el.onclick = async e => {
+      const b = e.target.closest('[data-borrar-esp]');
+      if (b) { if (!confirm('¿Borrar este pedido especial?')) return; try { await post({ accion: 'borrar_especial', id: b.dataset.borrarEsp }); toast('Borrado'); renderEspeciales(el); } catch (er) { toast(er.message, true); } return; }
+      const a = e.target.closest('[data-atender]');
+      if (a) atenderEspecial(L.find(x => x.id === a.dataset.atender), () => { if (K.alCambiar) K.alCambiar(); else renderEspeciales(el); });
+    };
+  }
+  // Trade Marketing: presupuesta, aprueba o rechaza, y avisa cuando está.
+  function atenderEspecial(p, alGuardar) {
+    const mb = ventana('Pedido especial de ' + (p.solicitante || 'el KAF'), num(p.cantidad) + ' × ' + p.que + (p.cliente_nombre ? ' · ' + p.cliente_nombre : ''));
+    let archivo = null;
+    const est0 = p.estado === 'pendiente' ? 'presupuestado' : p.estado;
+    mb.innerHTML = `<div class="campo"><span>Estado</span><div class="opciones grilla">${Object.keys(ESP).map(k => `<label><input type="radio" name="ae-est" value="${k}" ${k === est0 ? 'checked' : ''}> ${esc(ESP[k])}</label>`).join('')}</div></div>
+      <div class="dos"><label class="campo"><span>Monto del presupuesto ($)</span><input id="ae-monto" inputmode="decimal" value="${p.monto != null ? esc(p.monto) : ''}"></label>
+        <label class="campo"><span>Proveedor</span><input id="ae-prov" maxlength="160" value="${esc(p.proveedor || '')}"></label></div>
+      <label class="campo"><span>Presupuesto en PDF o foto (opcional${p.presupuesto ? '; reemplaza el que está' : ''})</span><input type="file" id="ae-arch" accept="image/*,application/pdf"></label>
+      <label class="campo"><span>Mensaje para el KAF</span><textarea id="ae-resp" maxlength="800" placeholder="Qué incluye, plazos, por qué no sale…">${esc(p.respuesta || '')}</textarea></label>
+      <div class="msg" id="ae-msg"></div>
+      <div class="acts"><button class="btn claro" type="button" id="ae-cancel">Cancelar</button><button class="btn ok" type="button" id="ae-ok">Guardar y avisarle</button></div>`;
+    mb.querySelector('#ae-arch').onchange = async e => { const f = e.target.files[0]; archivo = null; if (!f) return; try { archivo = await leerArchivo(f); } catch (er) { toast(er.message, true); e.target.value = ''; } };
+    mb.querySelector('#ae-cancel').onclick = () => { cerrar.despues = null; cerrar(); };
+    mb.querySelector('#ae-ok').onclick = async ev => {
+      const btn = ev.currentTarget, msg = mb.querySelector('#ae-msg');
+      const estado = (mb.querySelector('input[name="ae-est"]:checked') || {}).value;
+      msg.textContent = '';
+      btn.disabled = true; btn.textContent = 'Guardando…';
+      try {
+        await post({ accion: 'atender_especial', id: p.id, estado, monto: mb.querySelector('#ae-monto').value.trim(), proveedor: mb.querySelector('#ae-prov').value, respuesta: mb.querySelector('#ae-resp').value, archivo: archivo || undefined });
+        toast(estado === 'pendiente' ? 'Volvió a para presupuestar' : 'Guardado: le avisamos al KAF');
+        cerrar.despues = alGuardar || null; cerrar();
+      } catch (e) { msg.textContent = e.message; btn.disabled = false; btn.textContent = 'Guardar y avisarle'; }
+    };
+  }
+
   // ── Pedidos de materiales (lista) ──────────────────────────────────────────
   function pedidoHtml(p, conAcciones) {
     return `<div class="fila"><div class="cuerpo">
@@ -885,5 +1186,6 @@ window.KAF = (function () {
 
   return { K, $, esc, num, plata, fecha, hora, dia, diaLargo, hoy, mesDe, mesNombre, mesMenos, TIPO, TIPO1, REG, ESTADO, ESTADO_OBJ, toast, get, post, secc, csv, ventana, cerrar, clientes, picker, leerArchivo,
     renderInicio, renderClientes, abrirFicha, renderVisitas, renderNuevos, renderRegistros, formRegistro, modeloHtml, pedidoHtml, sinPerfilHtml, supa,
-    renderVisita, fotoRapida, borrador };
+    renderVisita, fotoRapida, borrador,
+    ESP, catalogo, verMaterial, formExhibidor, renderExhibidores, formEspecial, renderEspeciales };
 })();

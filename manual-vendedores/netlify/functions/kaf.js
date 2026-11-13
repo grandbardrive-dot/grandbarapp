@@ -139,6 +139,17 @@ const tipoRegDe = s => {
   return 'evidencia';
 };
 
+// ── Etapa 2 de la app de los KAF, sin stock (13/11/2026) ──
+// Exhibidores: lo que queda instalado en un cliente (heladera, exhibidor, cartel luminoso…),
+// con foto. Son de la marca, no de la persona: si cambia el KAF, el nuevo los sigue viendo.
+// Pedidos especiales: algo que no está en el catálogo y hay que presupuestar (ej. un fondo de
+// barra). Los atiende Trade Marketing: presupuesta, aprueba o rechaza y avisa cuando está.
+// El stock (cargar lo recibido, sacar, descontar al asignar) espera la mesa de trabajo con
+// Juan Pablo, Laura (depósito) y Andrea.
+const ESP_ESTADOS = ['pendiente', 'presupuestado', 'aprobado', 'rechazado', 'entregado'];
+const ESP_NOMBRE = { pendiente: 'para presupuestar', presupuestado: 'presupuestado', aprobado: 'aprobado', rechazado: 'rechazado', entregado: 'entregado' };
+const esDia = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ''));
+
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const texto = (v, max) => { const s = String(v == null ? '' : v).trim().slice(0, max); return s || null; };
 const esUuid = v => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''));
@@ -564,19 +575,34 @@ exports.handler = async (event) => {
         return json(200, { pedidos: await hub(q), soyDestino: esAndrea });
       }
 
+      // Pedidos especiales (para presupuestar): el KAF ve los suyos; Trade, los de todos.
+      if (v === 'especiales') {
+        let q = 'kaf_especiales?select=*&order=created_at.desc&limit=300';
+        if (esKaf) q += '&usuario_id=eq.' + user.id;
+        else if (!veTodo) return json(403, { error: 'No autorizado.' });
+        else if (esUuid(qp.kaf)) q += '&usuario_id=eq.' + qp.kaf;
+        const l = await hub(q);
+        const url = await firmar([].concat(...l.map(x => (x.fotos || []).concat(x.presupuesto || []))));
+        return json(200, { especiales: l.map(x => Object.assign(x, {
+          fotos_url: (x.fotos || []).map(p => ({ url: url[p] || null, pdf: /\.pdf$/i.test(p) })),
+          presupuesto_url: x.presupuesto ? { url: url[x.presupuesto] || null, pdf: /\.pdf$/i.test(x.presupuesto) } : null,
+        })), puedeAtender: arma });
+      }
+
       // Trade Marketing: los KAF que hay y cómo vienen este mes.
       if (v === 'kafs') {
         if (!veTodo) return json(403, { error: 'No autorizado.' });
         const users = await hub('usuarios?rol=eq.kaf&select=id,nombre,email,activo&order=nombre');
         const ids = users.map(u => u.id);
         const hoy = hoyAR(), mes = mesDe(hoy);
-        const [perfiles, visitas, objetivos, regs, peds] = ids.length ? await Promise.all([
+        const [perfiles, visitas, objetivos, regs, peds, esps] = ids.length ? await Promise.all([
           hub('kaf_perfiles?usuario_id=in.(' + ids.join(',') + ')&select=*'),
           hub('kaf_visitas?usuario_id=in.(' + ids.join(',') + ')&fecha=gte.' + mes + '-01T03:00:00Z&select=usuario_id,fecha,cliente_codigo&limit=5000'),
           hub('kaf_objetivos?usuario_id=in.(' + ids.join(',') + ')&mes=eq.' + mes + '&select=*'),
           hub('kaf_registros?usuario_id=in.(' + ids.join(',') + ')&estado=in.(nuevo,pendiente)&select=usuario_id,tipo&limit=2000'),
           hub('kaf_pedidos_materiales?usuario_id=in.(' + ids.join(',') + ')&estado=eq.enviado&select=usuario_id&limit=2000'),
-        ]) : [[], [], [], [], []];
+          hub('kaf_especiales?usuario_id=in.(' + ids.join(',') + ')&estado=eq.pendiente&select=usuario_id&limit=2000').catch(() => []),
+        ]) : [[], [], [], [], [], []];
         return json(200, {
           hoy, mes, preset: PRESET_CAMPARI, presets: PRESETS, secciones: SECCIONES,
           kafs: users.map(u => {
@@ -589,6 +615,7 @@ exports.handler = async (event) => {
               visitasMes: vs.length, visitasHoy: vs.filter(x => diaAR(x.fecha) === hoy).length,
               sinRevisar: regs.filter(r => r.usuario_id === u.id).length,
               pedidosAbiertos: peds.filter(p => p.usuario_id === u.id).length,
+              especialesAbiertos: esps.filter(p => p.usuario_id === u.id).length,
             };
           }),
         });
@@ -612,18 +639,25 @@ exports.handler = async (event) => {
       // Catálogo de materiales (Manual): activos y visibles para vendedores.
       if (v === 'materiales') {
         if (!esKaf && !veTodo) return json(403, { error: 'No autorizado.' });
-        const [mats, brands, provs, cats] = await Promise.all([
-          manTodo('materials_with_stock?is_active=eq.true&visible_to_sellers=eq.true&select=id,name,description,processed_image_url,original_image_url,stock_actual,unit_type,brand_id,supplier_id,category_id,canales,requires_approval&order=name'),
+        // Dividido por marca (etapa 2): "mia" = de la marca del KAF, por el proveedor del
+        // material o, si no tiene, por alguna de sus marcas en el nombre (como las acciones).
+        const kidM = esKaf ? user.id : (esUuid(qp.kaf) ? qp.kaf : null);
+        const [mats, brands, provs, cats, PM] = await Promise.all([
+          manTodo('materials_with_stock?is_active=eq.true&visible_to_sellers=eq.true&select=id,name,description,instrucciones,pdf_url,video_url,processed_image_url,original_image_url,stock_actual,unit_type,brand_id,supplier_id,category_id,canales,requires_approval&order=name'),
           man('brands?select=id,name,supplier_id&limit=2000'),
           man('proveedores?select=id,nombre&limit=2000'),
           man('material_categories?select=id,name&limit=200'),
+          kidM ? perfilDe(kidM) : null,
         ]);
         const B = new Map(brands.map(b => [b.id, b])), PV = new Map(provs.map(p => [p.id, p.nombre])), C = new Map(cats.map(c => [c.id, c.name]));
         return json(200, {
+          marca: PM ? PM.marca : null,
           materiales: mats.map(m => {
-            const b = B.get(m.brand_id);
-            return { id: m.id, nombre: m.name, descripcion: m.description || '', foto: m.processed_image_url || m.original_image_url || null, stock: Number(m.stock_actual) || 0, unidad: m.unit_type || '',
-              marca: b ? b.name : '', proveedor: PV.get(m.supplier_id || (b && b.supplier_id)) || '', categoria: C.get(m.category_id) || '', canales: m.canales || [], aprobacion: !!m.requires_approval };
+            const b = B.get(m.brand_id), prov = PV.get(m.supplier_id || (b && b.supplier_id)) || '';
+            return { id: m.id, nombre: m.name, descripcion: m.description || '', instrucciones: m.instrucciones || '', pdf: m.pdf_url || null, video: m.video_url || null,
+              foto: m.processed_image_url || m.original_image_url || null, stock: Number(m.stock_actual) || 0, unidad: m.unit_type || '',
+              marca: b ? b.name : '', proveedor: prov, categoria: C.get(m.category_id) || '', canales: m.canales || [], aprobacion: !!m.requires_approval,
+              mia: PM ? deLaMarca(PM, prov, (b ? b.name + ' ' : '') + m.name) : false };
           }),
         });
       }
@@ -665,6 +699,15 @@ exports.handler = async (event) => {
       }
 
       if (!P) return json(200, { sinPerfil: true, secciones, kaf: { id: kid, nombre: usu.nombre } });
+
+      // Exhibidores de la marca instalados en los clientes (todos, o los de un cliente).
+      if (v === 'exhibidores') {
+        let q = 'kaf_exhibidores?marca=eq.' + encodeURIComponent(P.marca) + '&select=*&order=instalado.desc,created_at.desc&limit=3000';
+        if (esCod(qp.codigo)) q += '&cliente_codigo=eq.' + encodeURIComponent(qp.codigo);
+        const ex = await hub(q);
+        const url = await firmar([].concat(...ex.map(x => x.fotos || [])));
+        return json(200, { marca: P.marca, exhibidores: ex.map(x => Object.assign(x, { fotos_url: (x.fotos || []).map(p => url[p] || null) })) });
+      }
 
       // El manual de la marca: secciones con sus tareas, y los planes y campañas que
       // Luciana o Juan Pablo ubicaron en ellas (vigentes y de la zona).
@@ -729,16 +772,19 @@ exports.handler = async (event) => {
         });
         const vd = D.vend.get(c.vendedor_id) || {};
         const zonaCli = vd.codigo && SAN_LUIS_CODIGOS.has(String(vd.codigo).trim()) ? 'sanluis' : 'mendoza';
-        const [vis, regs, objs, A, compra] = await Promise.all([
+        const [vis, regs, objs, A, compra, exh] = await Promise.all([
           hub('kaf_visitas?usuario_id=eq.' + kid + '&cliente_codigo=eq.' + encodeURIComponent(c.codigo_cliente) + '&select=*&order=fecha.desc&limit=100'),
           hub('kaf_registros?usuario_id=eq.' + kid + '&cliente_codigo=eq.' + encodeURIComponent(c.codigo_cliente) + '&select=id,tipo,fecha,estado,datos,created_at,visita_id&order=created_at.desc&limit=100'),
           hub('kaf_objetivos_cliente?usuario_id=eq.' + kid + '&cliente_codigo=eq.' + encodeURIComponent(c.codigo_cliente) + '&select=*&order=mes.desc,created_at&limit=60'),
           baseAcciones().catch(() => null),
           comoCompra(P, c.codigo_cliente),
+          hub('kaf_exhibidores?marca=eq.' + encodeURIComponent(P.marca) + '&cliente_codigo=eq.' + encodeURIComponent(c.codigo_cliente) + '&select=*&order=estado.asc,instalado.desc&limit=100').catch(() => []),
         ]);
+        const urlEx = await firmar([].concat(...exh.map(x => x.fotos || [])));
+        exh.forEach(x => { x.fotos_url = (x.fotos || []).map(p => urlEx[p] || null); });
         return json(200, { cliente: r, meses, porMes: tabla, acuerdos: D.acuerdos.get(normCod(c.codigo_cliente)) || [], visitas: vis, registros: regs, objetivos: objs, marcas5t: MARCAS_5T, plata,
           vendedor: { nombre: vd.nombre || '', codigo: vd.codigo || '', whatsapp: vd.whatsapp || '' }, zona: zonaCli,
-          acciones: A ? accionesCliente(A, P, c, zonaCli) : null, compra });
+          acciones: A ? accionesCliente(A, P, c, zonaCli) : null, compra, exhibidores: exh });
       }
 
       if (v === 'visitas') {
@@ -798,6 +844,35 @@ exports.handler = async (event) => {
         : { estado: b.estado, remito: texto(b.remito, 60), respuesta: texto(b.respuesta, 500), atendido_por: quien, atendido_at: new Date().toISOString() };
       await escribir('kaf_pedidos_materiales?id=eq.' + b.id, 'PATCH', cambios, 'return=minimal');
       if (b.estado !== 'enviado') await avisar(ped.usuario_id, { icono: '📦', titulo: b.estado === 'remito' ? 'Tu pedido de materiales tiene remito' : 'Tu pedido de materiales no sale', detalle: b.estado === 'remito' ? ('Remito ' + (cambios.remito || 'emitido') + (cambios.respuesta ? ' · ' + cambios.respuesta : '')) : cambios.respuesta, link: '/kaf.html#materiales' });
+      return json(200, { ok: true });
+    }
+
+    // ---------- Trade Marketing: atiende un pedido especial ----------
+    // pendiente → presupuestado (monto, proveedor, archivo) → aprobado / rechazado → entregado.
+    if (ac === 'atender_especial') {
+      if (!arma) return json(403, { error: 'Los pedidos especiales los atiende Trade Marketing.' });
+      if (!esUuid(b.id) || !ESP_ESTADOS.includes(b.estado)) return json(400, { error: 'Faltan datos.' });
+      const x = (await hub('kaf_especiales?id=eq.' + b.id + '&select=id,usuario_id,que,cantidad,cliente_nombre,estado,monto,presupuesto'))[0];
+      if (!x) return json(404, { error: 'No encontré el pedido.' });
+      const respuesta = texto(b.respuesta, 800);
+      const n = b.monto == null || b.monto === '' ? null : Number(String(b.monto).replace(/\$|\s/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'));
+      if (n != null && !(isFinite(n) && n >= 0 && n < 1e11)) return json(400, { error: 'El monto no es un número.' });
+      const monto = n != null ? Math.round(n * 100) / 100 : x.monto;
+      if (b.estado === 'presupuestado' && !(monto > 0)) return json(400, { error: 'Poné el monto del presupuesto.' });
+      if (b.estado === 'rechazado' && !respuesta) return json(400, { error: 'Contale por qué no sale.' });
+      let archivo = x.presupuesto;
+      if (b.archivo) {
+        try { [archivo] = await subir('trade/especiales/' + x.id + '-' + Date.now(), [b.archivo], true); } catch (e) { return json(400, { error: e.message }); }
+        if (x.presupuesto) await borrarArchivos([x.presupuesto]);
+      }
+      const ahora = new Date().toISOString();
+      const cambios = { estado: b.estado, monto, proveedor: b.proveedor !== undefined ? texto(b.proveedor, 160) : undefined, presupuesto: archivo, respuesta, updated_at: ahora,
+        atendido_por: b.estado === 'pendiente' ? null : quien, atendido_at: b.estado === 'pendiente' ? null : ahora };
+      if (cambios.proveedor === undefined) delete cambios.proveedor;
+      await escribir('kaf_especiales?id=eq.' + x.id, 'PATCH', cambios, 'return=minimal');
+      if (b.estado !== 'pendiente') await avisar(x.usuario_id, { icono: b.estado === 'rechazado' ? '✖️' : '🧾', titulo: 'Pedido especial ' + ESP_NOMBRE[b.estado],
+        detalle: x.cantidad + ' × ' + x.que + (x.cliente_nombre ? ' · ' + x.cliente_nombre : '') + (b.estado === 'presupuestado' && monto ? ' · $' + Math.round(monto).toLocaleString('es-AR') : '') + (respuesta ? ' — ' + respuesta.slice(0, 200) : ''),
+        link: '/kaf.html#materiales/especiales' });
       return json(200, { ok: true });
     }
 
@@ -1050,8 +1125,109 @@ exports.handler = async (event) => {
       return json(200, { ok: true });
     }
 
+    // ---------- Exhibidores instalados en un cliente (etapa 2) ----------
+    // Alta (con foto), edición, fotos nuevas para mostrar que sigue ahí, y retiro.
+    if (ac === 'exhibidor') {
+      const id = esUuid(b.id) ? b.id : null;
+      let viejo = null, c = null;
+      if (id) {
+        viejo = (await hub('kaf_exhibidores?id=eq.' + id + '&select=*'))[0];
+        if (!viejo || viejo.marca !== P.marca) return json(403, { error: 'Ese exhibidor no es de tu marca.' });
+      } else {
+        try { c = await clienteDe(b.codigo, true); } catch (e) { return json(400, { error: e.message }); }
+      }
+      // Si sale del catálogo de materiales, con el nombre y la marca de la base.
+      let material = texto(b.material, 160), material_id = null, linea = texto(b.linea, 80);
+      if (esUuid(b.material_id)) {
+        const m = (await man('materials_with_stock?id=eq.' + b.material_id + '&select=id,name,brand_id'))[0];
+        if (m) {
+          material_id = m.id; material = m.name;
+          const br = m.brand_id ? (await man('brands?id=eq.' + m.brand_id + '&select=name'))[0] : null;
+          if (br) linea = br.name;
+        }
+      }
+      const hoy = hoyAR();
+      const cantidad = Math.max(1, Math.min(999, Math.round(Number(b.cantidad) || 1)));
+      const instalado = esDia(b.instalado) ? b.instalado : hoy;
+      if (instalado > hoy) return json(400, { error: 'La fecha de instalación no puede ser futura.' });
+      const archivos = (Array.isArray(b.fotos) ? b.fotos : []).slice(0, 4);
+      if (!viejo && !material) return json(400, { error: 'Elegí o escribí qué exhibidor es.' });
+      if (!viejo && !archivos.length) return json(400, { error: 'Sacale una foto al exhibidor instalado.' });
+      let fotos = [];
+      if (archivos.length) {
+        const cod = String(c ? c.codigo : viejo.cliente_codigo).replace(/[^\w-]/g, '');
+        try { fotos = await subir(user.id + '/exhibidores/' + cod + '-' + Date.now(), archivos, false); } catch (e) { return json(400, { error: e.message }); }
+      }
+      const ahora = new Date().toISOString();
+      if (!viejo) {
+        const fila = { usuario_id: user.id, marca: P.marca, cliente_codigo: c.codigo, cliente_nombre: c.nombre, material_id, material, linea, cantidad, instalado, fotos, nota: texto(b.nota, 1000), foto_at: ahora };
+        const r = (await escribir('kaf_exhibidores', 'POST', fila))[0];
+        const det = cantidad + ' × ' + material + (fila.nota ? ' · ' + fila.nota : '');
+        for (const t of await trade()) await avisar(t.id, { icono: '📦', titulo: 'Exhibidor instalado por ' + quien + ' en ' + c.nombre, detalle: det, link: '/trade-kaf.html?kaf=' + user.id + '#materiales' });
+        // Al vendedor del cliente, como la visita (el KAF ejecuta y le avisa).
+        let campanita = false;
+        if (b.avisar !== false && c.vendedorCodigo) {
+          const us = await hub('usuarios?codigo_vendedor=eq.' + encodeURIComponent(c.vendedorCodigo) + '&activo=not.is.false&select=id').catch(() => []);
+          for (const u of us) campanita = (await avisar(u.id, { icono: '📦', titulo: quien + ' (KAF ' + P.marca + ') instaló un exhibidor en ' + c.nombre, detalle: det, link: '/manual-vendedores/clientes.html' })) || campanita;
+        }
+        return json(200, { ok: true, exhibidor: r, avisoVendedor: campanita ? c.vendedor : null });
+      }
+      const cambios = { updated_at: ahora };
+      if (material) Object.assign(cambios, { material, material_id, linea });
+      if (b.cantidad != null) cambios.cantidad = cantidad;
+      if (esDia(b.instalado)) cambios.instalado = instalado;
+      if (b.nota !== undefined) cambios.nota = texto(b.nota, 1000);
+      let todas = viejo.fotos || [], sobran = [];
+      if (Array.isArray(b.quitar) && b.quitar.length) { sobran = todas.filter(p => b.quitar.includes(p)); todas = todas.filter(p => !b.quitar.includes(p)); }
+      if (fotos.length) { todas = todas.concat(fotos); cambios.foto_at = ahora; }
+      if (todas.length > 12) { sobran = sobran.concat(todas.slice(0, todas.length - 12)); todas = todas.slice(-12); }
+      if (fotos.length || sobran.length) cambios.fotos = todas;
+      if (b.estado === 'retirado') Object.assign(cambios, { estado: 'retirado', retirado: esDia(b.retirado) && b.retirado <= hoy ? b.retirado : hoy, retiro_nota: texto(b.retiro_nota, 500) });
+      else if (b.estado === 'instalado') Object.assign(cambios, { estado: 'instalado', retirado: null, retiro_nota: null });
+      const r = (await escribir('kaf_exhibidores?id=eq.' + id, 'PATCH', cambios))[0];
+      if (sobran.length) await borrarArchivos(sobran);
+      return json(200, { ok: true, exhibidor: r });
+    }
+    if (ac === 'borrar_exhibidor') {
+      if (!esUuid(b.id)) return json(400, { error: 'Falta el exhibidor.' });
+      const x = (await hub('kaf_exhibidores?id=eq.' + b.id + '&select=id,usuario_id,fotos,created_at'))[0];
+      if (!x || x.usuario_id !== user.id) return json(403, { error: 'Solo podés borrar los que cargaste vos.' });
+      if (Date.now() - new Date(x.created_at) > 7 * 864e5) return json(400, { error: 'Se cargó hace más de una semana: si ya no está, marcalo como retirado.' });
+      await escribir('kaf_exhibidores?id=eq.' + b.id, 'DELETE', null, 'return=minimal');
+      await borrarArchivos(x.fotos);
+      return json(200, { ok: true });
+    }
+
+    // ---------- Pedido especial: algo que no hay y hay que presupuestar (etapa 2) ----------
+    if (ac === 'especial') {
+      const que = texto(b.que, 200);
+      if (!que) return json(400, { error: 'Contá qué necesitás.' });
+      let c = null;
+      try { c = await clienteDe(b.codigo, false); } catch (e) { return json(400, { error: e.message }); }
+      const archivos = (Array.isArray(b.fotos) ? b.fotos : []).slice(0, 4);
+      let fotos = [];
+      if (archivos.length) {
+        try { fotos = await subir(user.id + '/especiales/' + (c ? c.codigo.replace(/[^\w-]/g, '') : 'sin-cliente') + '-' + Date.now(), archivos, true); } catch (e) { return json(400, { error: e.message }); }
+      }
+      const fila = { usuario_id: user.id, solicitante: quien, marca: P.marca, cliente_codigo: c ? c.codigo : null, cliente_nombre: c ? c.nombre : null, que,
+        cantidad: Math.max(1, Math.min(9999, Math.round(Number(b.cantidad) || 1))), medidas: texto(b.medidas, 300), detalle: texto(b.detalle, 2000),
+        para_cuando: esDia(b.para_cuando) ? b.para_cuando : null, fotos };
+      const r = (await escribir('kaf_especiales', 'POST', fila))[0];
+      for (const t of await trade()) await avisar(t.id, { icono: '🧾', titulo: 'Pedido especial de ' + quien + ' para presupuestar', detalle: fila.cantidad + ' × ' + que + (c ? ' · ' + c.nombre : '') + (fila.para_cuando ? ' · para el ' + fila.para_cuando.split('-').reverse().join('/') : ''), link: '/trade-kaf.html?kaf=' + user.id + '#materiales' });
+      return json(200, { ok: true, especial: r });
+    }
+    if (ac === 'borrar_especial') {
+      if (!esUuid(b.id)) return json(400, { error: 'Falta el pedido.' });
+      const x = (await hub('kaf_especiales?id=eq.' + b.id + '&select=id,usuario_id,estado,fotos'))[0];
+      if (!x || x.usuario_id !== user.id) return json(403, { error: 'Ese pedido no es tuyo.' });
+      if (x.estado !== 'pendiente') return json(400, { error: 'Trade Marketing ya lo está atendiendo: escribile a Juan Pablo.' });
+      await escribir('kaf_especiales?id=eq.' + b.id, 'DELETE', null, 'return=minimal');
+      await borrarArchivos(x.fotos);
+      return json(200, { ok: true });
+    }
+
     if (ac === 'pedido') {
-      const items = (Array.isArray(b.items) ? b.items : []).slice(0, 60).map(i => ({ id: esUuid(i && i.id) ? i.id : null, nombre: texto(i && i.nombre, 160), cantidad: Math.max(1, Math.min(9999, Math.round(Number(i && i.cantidad) || 0))) })).filter(i => i.nombre && i.cantidad);
+      const items =(Array.isArray(b.items) ? b.items : []).slice(0, 60).map(i => ({ id: esUuid(i && i.id) ? i.id : null, nombre: texto(i && i.nombre, 160), cantidad: Math.max(1, Math.min(9999, Math.round(Number(i && i.cantidad) || 0))) })).filter(i => i.nombre && i.cantidad);
       if (!items.length) return json(400, { error: 'El pedido está vacío.' });
       // Los del catálogo, con el nombre de la base (no el del celular).
       const ids = items.filter(i => i.id).map(i => i.id);

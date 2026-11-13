@@ -145,3 +145,57 @@ alter table public.kaf_registros add constraint kaf_registros_tipo_check
 -- kaf_pernod_ricard, kaf_penaflor; zona mendoza): Acciones de la marca (w:kaf_acciones),
 -- Perfect Serve y Perfect Store (w:kaf_foto), Exhibidores y materiales, Capacitaciones y
 -- valor agregado. Se editan en Secciones del manual.
+
+-- ── App de los KAF, etapa 2 sin stock (13/11/2026) — migración kaf_materiales_etapa2 ──
+-- Exhibidores instalados en los clientes (con foto) y pedidos especiales para presupuestar.
+-- Igual que el resto: RLS sin reglas, todo pasa por la función kaf.
+create table if not exists public.kaf_exhibidores (
+  id             uuid primary key default gen_random_uuid(),
+  usuario_id     uuid not null,                       -- el KAF que lo registró
+  marca          text not null,                       -- marca del KAF: los ve cualquier KAF de esa marca
+  cliente_codigo text not null,
+  cliente_nombre text,
+  material_id    uuid,                                -- del catálogo de materiales del Manual, si sale de ahí
+  material       text not null,
+  linea          text,                                -- marca del material (Absolut, Aperol…)
+  cantidad       integer not null default 1 check (cantidad between 1 and 999),
+  instalado      date not null default ((now() at time zone 'America/Argentina/Buenos_Aires')::date),
+  fotos          text[] not null default '{}',        -- carpeta privada kaf
+  foto_at        timestamptz,                         -- última foto (para ver si está al día)
+  nota           text,
+  estado         text not null default 'instalado' check (estado in ('instalado', 'retirado')),
+  retirado       date,
+  retiro_nota    text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+create index if not exists kaf_exhibidores_marca_idx on public.kaf_exhibidores (marca, cliente_codigo);
+
+create table if not exists public.kaf_especiales (
+  id             uuid primary key default gen_random_uuid(),
+  usuario_id     uuid not null,
+  solicitante    text,
+  marca          text,
+  cliente_codigo text,
+  cliente_nombre text,
+  que            text not null,                       -- qué se necesita (ej. fondo de barra)
+  cantidad       integer not null default 1 check (cantidad between 1 and 9999),
+  medidas        text,
+  detalle        text,
+  para_cuando    date,
+  fotos          text[] not null default '{}',        -- del lugar o de referencia (fotos o PDF)
+  estado         text not null default 'pendiente' check (estado in ('pendiente', 'presupuestado', 'aprobado', 'rechazado', 'entregado')),
+  monto          numeric(14,2) check (monto >= 0),
+  proveedor      text,
+  presupuesto    text,                                -- archivo del presupuesto (PDF o foto)
+  respuesta      text,
+  atendido_por   text,
+  atendido_at    timestamptz,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+create index if not exists kaf_especiales_idx on public.kaf_especiales (usuario_id, created_at desc);
+
+alter table public.kaf_exhibidores enable row level security;
+alter table public.kaf_especiales  enable row level security;
+revoke all on public.kaf_exhibidores, public.kaf_especiales from anon, authenticated;

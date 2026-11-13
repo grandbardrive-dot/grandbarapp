@@ -17,7 +17,7 @@
      panel de cada KAF (marca, clientes, secciones), le carga objetivos, ve sus visitas
      y lo que carga, aprueba presupuestos y carga los modelos de Perfect Serve / Store.
      Mismo menú que trade-acciones, trade-evidencias y torneo-evidencias. -->
-<link rel="stylesheet" href="assets/kaf.css?v=2">
+<link rel="stylesheet" href="assets/kaf.css?v=4">
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
 <body>
@@ -40,13 +40,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/auth-persist.js?v=1"></script>
-<script src="assets/kaf-comun.js?v=2"></script>
+<script src="assets/kaf-comun.js?v=3"></script>
 <script>
   const { K, $, esc, num, fecha, toast, get, post, ventana, cerrar } = KAF;
   K.modo = 'trade';
   const ROLES = ['torneo', 'desarrollo', 'diseno'];
   const TABS = [['resumen', 'Resumen'], ['clientes', 'Clientes y oportunidades'], ['visitas', 'Visitas'], ['nuevos', 'Clientes nuevos'], ['registros', 'Lo que carga'], ['materiales', 'Materiales'], ['objetivos', 'Objetivos'], ['armado', 'Armado del panel'], ['modelos', 'Modelos']];
-  let D = null, TAB = 'resumen', SEL = null, MOD_TIPO = 'perfect_serve', REG_TIPO = '';
+  let D = null, TAB = 'resumen', SEL = null, MOD_TIPO = 'perfect_serve', REG_TIPO = '', MAT_P = '';
 
   function pintarKafs() {
     const l = D.kafs || [];
@@ -62,7 +62,7 @@
         <b>${esc(k.nombre || k.email)}</b>
         <span>${k.perfil ? 'KAF ' + esc(k.perfil.marca) : 'Panel sin armar'}${k.activo ? '' : ' · sin acceso'}</span>
         <span>Hoy: <b style="display:inline;font-size:13px;color:var(--ink)">${k.visitasHoy}</b>${o.visitas_dia ? ' de ' + o.visitas_dia : ''} clientes · mes: ${k.visitasMes} visitas</span>
-        ${k.sinRevisar || k.pedidosAbiertos ? `<span class="chips">${k.sinRevisar ? `<span class="chip ambar">${k.sinRevisar} para revisar</span>` : ''}${k.pedidosAbiertos ? `<span class="chip">${k.pedidosAbiertos} pedido${k.pedidosAbiertos > 1 ? 's' : ''} de materiales</span>` : ''}</span>` : ''}
+        ${k.sinRevisar || k.pedidosAbiertos || k.especialesAbiertos ? `<span class="chips">${k.sinRevisar ? `<span class="chip ambar">${k.sinRevisar} para revisar</span>` : ''}${k.especialesAbiertos ? `<span class="chip ambar">${k.especialesAbiertos} para presupuestar</span>` : ''}${k.pedidosAbiertos ? `<span class="chip">${k.pedidosAbiertos} pedido${k.pedidosAbiertos > 1 ? 's' : ''} de materiales</span>` : ''}</span>` : ''}
       </button>`;
     }).join('');
   }
@@ -94,15 +94,24 @@
       return KAF.renderRegistros(el.querySelector('#rv'), REG_TIPO);
     }
     if (TAB === 'materiales') {
-      el.innerHTML = '<p style="font-size:13.5px;color:var(--muted);margin:0 0 12px">Los pedidos le llegan a Andrea (facturación), que emite el remito y le avisa al KAF.</p><div id="mv"><div class="vacio">Cargando…</div></div>';
-      try { const d = await get('pedidos', { kaf: SEL.id }); el.querySelector('#mv').innerHTML = (d.pedidos || []).length ? d.pedidos.map(p => KAF.pedidoHtml(p, false)).join('') : '<div class="vacio">Este KAF todavía no pidió materiales.</div>'; }
-      catch (e) { el.querySelector('#mv').innerHTML = `<div class="vacio">${esc(e.message)}</div>`; }
+      // Etapa 2 (13/11/2026): pedidos especiales para presupuestar, exhibidores instalados en
+      // los clientes y los pedidos del depósito que atiende Andrea.
+      const P2 = [['especiales', 'Pedidos especiales'], ['exhibidores', 'Exhibidores'], ['pedidos', 'Pedidos a Andrea']];
+      if (!MAT_P) MAT_P = SEL.especialesAbiertos ? 'especiales' : 'exhibidores';
+      el.innerHTML = `<div class="barra"><div class="tabs" id="mt2">${P2.map(([k, n]) => `<button type="button" data-m="${k}" class="${MAT_P === k ? 'on' : ''}">${esc(n)}${k === 'especiales' && SEL.especialesAbiertos ? ` <span class="n">${SEL.especialesAbiertos}</span>` : ''}</button>`).join('')}</div></div><div id="mv"></div>`;
+      el.querySelector('#mt2').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; MAT_P = b.dataset.m; vista(); };
+      const mv = el.querySelector('#mv');
+      if (MAT_P === 'especiales') { mv.insertAdjacentHTML('beforebegin', '<p style="font-size:13.5px;color:var(--muted);margin:0 0 12px">Lo que el KAF necesita y no está en el catálogo. Cargale el presupuesto (monto, proveedor, PDF), aprobalo o rechazalo, y marcalo entregado: a él le llega cada cambio.</p>'); return KAF.renderEspeciales(mv); }
+      if (MAT_P === 'exhibidores') { mv.insertAdjacentHTML('beforebegin', '<p style="font-size:13.5px;color:var(--muted);margin:0 0 12px">Lo que quedó instalado en cada cliente, con foto. Son de la marca: si cambia el KAF, el nuevo los sigue viendo.</p>'); return KAF.renderExhibidores(mv); }
+      mv.innerHTML = '<p style="font-size:13.5px;color:var(--muted);margin:0 0 12px">Los pedidos le llegan a Andrea (facturación), que emite el remito y le avisa al KAF.</p><div id="mv2"><div class="vacio">Cargando…</div></div>';
+      try { const d = await get('pedidos', { kaf: SEL.id }); mv.querySelector('#mv2').innerHTML = (d.pedidos || []).length ? d.pedidos.map(p => KAF.pedidoHtml(p, false)).join('') : '<div class="vacio">Este KAF todavía no pidió materiales.</div>'; }
+      catch (e) { mv.querySelector('#mv2').innerHTML = `<div class="vacio">${esc(e.message)}</div>`; }
       return;
     }
     if (TAB === 'objetivos') return objetivos(el);
     if (TAB === 'armado') return armado(el);
   }
-  K.alCambiar = () => { if (['resumen', 'registros', 'clientes'].includes(TAB)) { if (TAB !== 'clientes') vista(); } recargarKafs(); };
+  K.alCambiar = async () => { if (['resumen', 'registros', 'clientes'].includes(TAB)) { if (TAB !== 'clientes') vista(); } await recargarKafs(); if (TAB === 'materiales') vista(); };
   async function recargarKafs() { try { D = await get('kafs'); const id = SEL && SEL.id; SEL = (D.kafs || []).find(k => k.id === id) || SEL; pintarKafs(); } catch (e) {} }
 
   // ── Objetivos del mes ────────────────────────────────────────────────────

@@ -220,3 +220,26 @@ h2 small{font-weight:500;color:var(--muted);font-size:12.5px;margin-left:6px}
   .kv-h{flex-direction:column}
 }
 .opciones.grilla{display:grid;grid-template-columns:1fr 1fr}
+
+/* ── Etapa 2 (13/11/2026): catálogo por marca, exhibidores y pedidos especiales ── */
+.e-presupuestado{background:var(--blue-s);color:var(--blue)}
+.e-entregado,.e-instalado{background:var(--green-s);color:var(--green-d)}
+.e-retirado{background:#eee;color:#666}
+button.img{border:0;padding:0;width:100%;font:inherit;cursor:zoom-in}
+.foto-grande{background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden;display:grid;place-items:center}
+.foto-grande img{max-width:100%;max-height:60vh;object-fit:contain;display:block}
+.fila.exh{align-items:center;flex-wrap:nowrap}
+.exh-img{width:64px;height:64px;border-radius:10px;overflow:hidden;background:var(--cream);flex:none}
+.exh-img img{width:100%;height:100%;object-fit:cover;display:block}
+.kv-exh{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.kv-exh .fila + .fila{margin-top:0}
+.presu{margin-top:8px;padding:8px 10px;border-radius:0 9px 9px 0;border-left:3px solid var(--blue);background:var(--blue-s);font-size:13.5px}
+.presu b{display:block;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)}
+.grupo-mat{display:flex;align-items:baseline;gap:8px;margin:20px 0 10px}
+.grupo-mat h2{margin:0}
+@media(max-width:900px){
+  #km-grid .grid-mat{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #km-grid .mat .in{padding:8px 9px}
+  #km-grid .mat .pie{padding:0 9px 10px}
+  #km-grid .mat .btn.chico{padding:6px 8px;font-size:12px;white-space:normal}
+}

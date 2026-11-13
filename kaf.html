@@ -16,7 +16,7 @@
 <!-- Panel del KAF (19/10/2026): representante de una marca en la calle (Facu Llaver,
      Campari). Lo arma Juan Pablo Sepúlveda desde trade-kaf.html: marca, secciones y
      objetivos. Datos: función kaf (assets/kaf-comun.js). -->
-<link rel="stylesheet" href="assets/kaf.css?v=2">
+<link rel="stylesheet" href="assets/kaf.css?v=4">
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
 <body>
@@ -43,7 +43,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/auth-persist.js?v=1"></script>
-<script src="assets/kaf-comun.js?v=2"></script>
+<script src="assets/kaf-comun.js?v=3"></script>
 <script>
   const { K, $, esc, num, fecha, hora, toast, get, post, secc, ventana, cerrar, picker } = KAF;
   const ICO = {
@@ -101,7 +101,12 @@
     if (v === 'visitas') { C.innerHTML = cabeza(titulo, 'Las visitas que marcaste, día por día. Juan Pablo las ve igual que vos.') + ayuda + '<div id="vista"></div>'; KAF.renderVisitas($('vista')); return; }
     if (v === 'nuevos') { C.innerHTML = cabeza(titulo, 'Clientes que empezaron a comprar este mes, con los datos de CUBO.') + ayuda + '<div id="vista"></div>'; KAF.renderNuevos($('vista')); return; }
     if (KAF.REG[v]) { C.innerHTML = cabeza(titulo, esc(KAF.REG[v].d)) + '<div id="vista"></div>'; KAF.renderRegistros($('vista'), v); return; }
-    if (v === 'materiales') { C.innerHTML = cabeza(titulo, 'Elegí los materiales, sumalos al pedido y se lo mandás a Andrea (facturación) para que emita el remito.') + ayuda + '<div id="vista"></div>'; materiales($('vista')); return; }
+    if (v === 'materiales') {
+      // #materiales/<pestaña>: catálogo, exhibidores, especiales o pedidos (a Andrea).
+      if (arg && PESTS.some(([k]) => k === arg)) PEST = arg;
+      C.innerHTML = cabeza(titulo, 'El catálogo de materiales de tu marca, los exhibidores que dejaste en los clientes y tus pedidos: lo que está en el depósito se lo pedís a Andrea para el remito; lo que hay que hacer o comprar, a Trade Marketing para presupuestarlo.') + ayuda + '<div id="vista"></div>';
+      materiales($('vista')); return;
+    }
     location.replace('#inicio');
   }
   window.addEventListener('hashchange', ir);
@@ -113,7 +118,7 @@
   const guardarCarro = () => { try { localStorage.setItem('kaf_carro_v1', JSON.stringify(CARRO)); } catch (e) {} pintarCarro(); };
   function pintarCarro() {
     const n = CARRO.items.reduce((s, i) => s + (i.cantidad || 0), 0);
-    $('carro').classList.toggle('on', !!CARRO.items.length && VISTA === 'materiales');
+    $('carro').classList.toggle('on', !!CARRO.items.length && VISTA === 'materiales' && PEST === 'catalogo');
     $('carro-t').textContent = CARRO.items.length + (CARRO.items.length === 1 ? ' material' : ' materiales') + ' · ' + n + ' unidades';
   }
   function sumar(m, cant) {
@@ -122,48 +127,78 @@
     CARRO.items = CARRO.items.filter(x => x.cantidad > 0);
     guardarCarro();
   }
-  K.alPedirMateriales = cli => { CARRO.cliente = cli; guardarCarro(); if (location.hash !== '#materiales') location.hash = '#materiales'; else ir(); toast('Elegí los materiales para ' + cli.n); };
+  K.alPedirMateriales = cli => { CARRO.cliente = cli; guardarCarro(); PEST = 'catalogo'; if (location.hash !== '#materiales/catalogo') location.hash = '#materiales/catalogo'; else ir(); toast('Elegí los materiales para ' + cli.n); };
 
+  // Etapa 2 (13/11/2026): el catálogo va dividido por marca, y suman Exhibidores (lo que
+  // queda instalado en los clientes, con foto) y Pedidos especiales (lo que hay que
+  // presupuestar). El stock (cargar lo que llega, sacar, descontar) espera la mesa de trabajo.
+  const PESTS = [['catalogo', 'Catálogo'], ['exhibidores', 'Exhibidores'], ['especiales', 'Pedidos especiales'], ['pedidos', 'Pedidos a Andrea']];
+  let GRUPO = '';
   async function materiales(el) {
-    el.innerHTML = `<div class="barra"><div class="tabs" id="km-tabs"><button data-p="catalogo" class="${PEST === 'catalogo' ? 'on' : ''}">Catálogo</button><button data-p="pedidos" class="${PEST === 'pedidos' ? 'on' : ''}">Mis pedidos</button></div></div><div id="km"></div>`;
-    el.querySelector('#km-tabs').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; PEST = b.dataset.p; materiales(el); };
+    el.innerHTML = `<div class="barra"><div class="tabs" id="km-tabs">${PESTS.map(([k, n]) => `<button type="button" data-p="${k}" class="${PEST === k ? 'on' : ''}">${n}</button>`).join('')}</div></div><div id="km"></div>`;
+    el.querySelector('#km-tabs').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; location.hash = '#materiales/' + b.dataset.p; };
     const box = el.querySelector('#km');
+    pintarCarro();
+    if (PEST === 'exhibidores') return KAF.renderExhibidores(box);
+    if (PEST === 'especiales') return KAF.renderEspeciales(box);
     if (PEST === 'pedidos') {
       box.innerHTML = '<div class="vacio">Cargando…</div>';
-      try { const d = await get('pedidos'); box.innerHTML = (d.pedidos || []).length ? d.pedidos.map(p => KAF.pedidoHtml(p, false)).join('') : '<div class="vacio">Todavía no hiciste pedidos de materiales.</div>'; }
+      try { const d = await get('pedidos'); box.innerHTML = (d.pedidos || []).length ? d.pedidos.map(p => KAF.pedidoHtml(p, false)).join('') : '<div class="vacio">Todavía no le pediste materiales a Andrea.</div>'; }
       catch (e) { box.innerHTML = `<div class="vacio">${esc(e.message)}</div>`; }
       return;
     }
     box.innerHTML = '<div class="vacio">Cargando el catálogo…</div>';
-    if (!MATS) { try { MATS = (await get('materiales')).materiales || []; } catch (e) { box.innerHTML = `<div class="vacio">${esc(e.message)}</div>`; return; } }
-    const marca = String((K.perfil || {}).marca || '').toLowerCase();
-    const deMarca = m => marca && (m.proveedor + ' ' + m.marca + ' ' + m.nombre).toLowerCase().includes(marca);
-    if (SOLO_MARCA === null) SOLO_MARCA = MATS.some(deMarca);
+    try { MATS = (await KAF.catalogo()).materiales || []; } catch (e) { box.innerHTML = `<div class="vacio">${esc(e.message)}</div>`; return; }
+    const marca = (K.perfil || {}).marca || '', nMia = MATS.filter(m => m.mia).length;
+    if (SOLO_MARCA === null || !nMia) SOLO_MARCA = nMia > 0;
+    // De la marca: por línea (Absolut, Beefeater…). Todos: por proveedor.
+    const grupoDe = m => SOLO_MARCA ? (m.marca || 'Sin marca') : (m.proveedor || 'Sin proveedor');
     const cats = [...new Set(MATS.map(m => m.categoria).filter(Boolean))].sort();
-    box.innerHTML = `<div class="barra">
-        ${marca ? `<label class="opciones" style="margin:0"><label><input type="checkbox" id="km-marca" ${SOLO_MARCA ? 'checked' : ''}> Solo ${esc(K.perfil.marca)}</label></label>` : ''}
-        ${cats.length ? `<select id="km-cat"><option value="">Todas las categorías</option>${cats.map(c => `<option>${esc(c)}</option>`).join('')}</select>` : ''}
+    box.innerHTML = `${marca && !nMia ? `<div class="aviso">Todavía no hay materiales de ${esc(marca)} en el catálogo: los carga Luciana (Marketing). Mientras tanto ves los de las otras marcas, y si necesitás algo que no está, pedilo con "Pedido especial".</div>` : ''}
+      <div class="barra">
+        ${nMia ? `<div class="opciones" style="margin:0"><label><input type="checkbox" id="km-marca" ${SOLO_MARCA ? 'checked' : ''}> Solo ${esc(marca)}</label></div>` : ''}
+        <select id="km-grupo" aria-label="Marca"></select>
+        ${cats.length ? `<select id="km-cat" aria-label="Categoría"><option value="">Todas las categorías</option>${cats.map(c => `<option>${esc(c)}</option>`).join('')}</select>` : ''}
         <input type="search" id="km-q" placeholder="Buscar material…" autocomplete="off">
-        <button class="btn claro chico" id="km-otro" type="button">Pedir algo que no está</button>
-      </div><div class="cuenta" id="km-cuenta"></div><div class="grid-mat" id="km-grid"></div>`;
+        <button class="btn claro chico" id="km-otro" type="button">Pedido especial</button>
+      </div><div class="cuenta" id="km-cuenta"></div><div id="km-grid"></div>`;
+    const opcionesGrupo = () => {
+      const gs = [...new Set(MATS.filter(m => !SOLO_MARCA || m.mia).map(grupoDe))].sort((a, b) => a.localeCompare(b, 'es'));
+      if (!gs.includes(GRUPO)) GRUPO = '';
+      box.querySelector('#km-grupo').innerHTML = `<option value="">${SOLO_MARCA ? 'Todas las marcas' : 'Todos los proveedores'}</option>` + gs.map(g => `<option ${g === GRUPO ? 'selected' : ''}>${esc(g)}</option>`).join('');
+    };
+    const tarjeta = m => { const en = CARRO.items.find(x => x.id === m.id); return `<div class="mat">
+        <button class="img" type="button" data-ver="${esc(m.id)}" aria-label="Ver ${esc(m.nombre)}">${m.foto ? `<img src="${esc(m.foto)}" alt="" loading="lazy">` : 'Sin foto'}</button>
+        <div class="in"><div class="nom">${esc(m.nombre)}</div><div class="meta">${esc([SOLO_MARCA ? '' : m.marca, m.categoria].filter(Boolean).join(' · '))}</div><div class="meta">Stock: <b style="color:var(--ink)">${num(m.stock)}</b>${m.unidad ? ' ' + esc(m.unidad) : ''}</div></div>
+        <div class="pie">${en ? `<div class="cant"><button type="button" data-m="${esc(m.id)}" data-d="-1">−</button><input value="${en.cantidad}" data-mi="${esc(m.id)}" inputmode="numeric"><button type="button" data-m="${esc(m.id)}" data-d="1">+</button></div>` : `<button class="btn navy chico" type="button" data-m="${esc(m.id)}" data-d="1">Sumar al pedido</button>`}</div>
+      </div>`; };
     const pinta = () => {
       const q = (box.querySelector('#km-q').value || '').trim().toLowerCase(), cat = box.querySelector('#km-cat') ? box.querySelector('#km-cat').value : '';
-      const l = MATS.filter(m => (!SOLO_MARCA || deMarca(m)) && (!cat || m.categoria === cat) && (!q || (m.nombre + ' ' + m.marca + ' ' + m.proveedor + ' ' + m.descripcion).toLowerCase().includes(q)));
-      box.querySelector('#km-cuenta').textContent = l.length + (l.length === 1 ? ' material' : ' materiales') + ' con stock en el depósito';
-      box.querySelector('#km-grid').innerHTML = !l.length ? `<div class="vacio" style="grid-column:1/-1">${SOLO_MARCA ? 'No hay materiales de ' + esc(K.perfil.marca) + ' cargados en el catálogo. Sacá el filtro para ver todos, o pedí lo que necesitás con "Pedir algo que no está".' : 'No hay materiales con ese filtro.'}</div>`
-        : l.map(m => { const en = CARRO.items.find(x => x.id === m.id); return `<div class="mat">
-          <div class="img">${m.foto ? `<img src="${esc(m.foto)}" alt="" loading="lazy">` : 'Sin foto'}</div>
-          <div class="in"><div class="nom">${esc(m.nombre)}</div><div class="meta">${esc([m.marca || m.proveedor, m.categoria].filter(Boolean).join(' · '))}</div><div class="meta">Stock: <b style="color:var(--ink)">${num(m.stock)}</b>${m.unidad ? ' ' + esc(m.unidad) : ''}</div></div>
-          <div class="pie">${en ? `<div class="cant"><button type="button" data-m="${esc(m.id)}" data-d="-1">−</button><input value="${en.cantidad}" data-mi="${esc(m.id)}" inputmode="numeric"><button type="button" data-m="${esc(m.id)}" data-d="1">+</button></div>` : `<button class="btn navy chico" type="button" data-m="${esc(m.id)}" data-d="1">Sumar al pedido</button>`}</div>
-        </div>`; }).join('');
+      const l = MATS.filter(m => (!SOLO_MARCA || m.mia) && (!GRUPO || grupoDe(m) === GRUPO) && (!cat || m.categoria === cat) && (!q || (m.nombre + ' ' + m.marca + ' ' + m.proveedor + ' ' + m.descripcion).toLowerCase().includes(q)));
+      const grupos = [...new Set(l.map(grupoDe))].sort((a, b) => a.localeCompare(b, 'es'));
+      box.querySelector('#km-cuenta').textContent = l.length ? num(l.length) + (l.length === 1 ? ' material' : ' materiales') + (grupos.length > 1 ? ' de ' + grupos.length + (SOLO_MARCA ? ' marcas' : ' proveedores') : '') + '. Tocá la foto para verla grande, bajarla o mandarla.' : '';
+      box.querySelector('#km-grid').innerHTML = !l.length ? `<div class="vacio">No hay materiales con ese filtro.</div>`
+        : grupos.map(g => { const it = l.filter(m => grupoDe(m) === g); return `<div class="grupo-mat"><h2>${esc(g)} <small>${it.length}</small></h2></div><div class="grid-mat">${it.map(tarjeta).join('')}</div>`; }).join('');
     };
-    const mk = box.querySelector('#km-marca'); if (mk) mk.onchange = () => { SOLO_MARCA = mk.checked; pinta(); };
+    opcionesGrupo();
+    const mk = box.querySelector('#km-marca'); if (mk) mk.onchange = () => { SOLO_MARCA = mk.checked; opcionesGrupo(); pinta(); };
+    box.querySelector('#km-grupo').onchange = e => { GRUPO = e.target.value; pinta(); };
     const kc = box.querySelector('#km-cat'); if (kc) kc.onchange = pinta;
     box.querySelector('#km-q').oninput = pinta;
-    box.querySelector('#km-grid').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; const m = MATS.find(x => x.id === b.dataset.m); sumar(m, Number(b.dataset.d)); pinta(); };
+    box.querySelector('#km-grid').onclick = e => {
+      const ver = e.target.closest('[data-ver]');
+      if (ver) { verMat(MATS.find(x => x.id === ver.dataset.ver), pinta); return; }
+      const b = e.target.closest('[data-m]'); if (!b) return; const m = MATS.find(x => x.id === b.dataset.m); sumar(m, Number(b.dataset.d)); pinta();
+    };
     box.querySelector('#km-grid').onchange = e => { const i = e.target.closest('[data-mi]'); if (!i) return; const it = CARRO.items.find(x => x.id === i.dataset.mi); if (it) { it.cantidad = Math.max(0, Math.round(Number(i.value) || 0)); CARRO.items = CARRO.items.filter(x => x.cantidad > 0); guardarCarro(); pinta(); } };
-    box.querySelector('#km-otro').onclick = () => verPedido(true);
+    box.querySelector('#km-otro').onclick = () => KAF.formEspecial(CARRO.cliente || null, () => { location.hash = '#materiales/especiales'; });
     pinta();
+  }
+  // Un material grande: bajarlo, mandarlo, sumarlo al pedido o registrarlo como exhibidor.
+  function verMat(m, alVolver) {
+    const mb = KAF.verMaterial(m, `<div class="acts" style="justify-content:flex-start"><button class="btn ok" type="button" id="vm-sumar">Sumar al pedido a Andrea</button><button class="btn claro" type="button" id="vm-exh">Lo instalé en un cliente</button></div>`);
+    mb.querySelector('#vm-sumar').onclick = () => { sumar(m, 1); toast('Sumado al pedido'); cerrar.despues = alVolver; cerrar(); };
+    mb.querySelector('#vm-exh').onclick = () => KAF.formExhibidor(null, CARRO.cliente || null, { material: m, alGuardar: () => { location.hash = '#materiales/exhibidores'; } });
   }
 
   function verPedido(conOtro) {
@@ -171,7 +206,9 @@
     const pinta = () => {
       mb.innerHTML = `${CARRO.items.length ? CARRO.items.map((i, n) => `<div class="fila"><div class="cuerpo"><div class="tit">${esc(i.nombre)}</div>${i.id ? '' : '<div class="sub">Fuera del catálogo</div>'}</div>
           <div class="cant"><button type="button" data-i="${n}" data-d="-1">−</button><input value="${i.cantidad}" data-ii="${n}" inputmode="numeric"><button type="button" data-i="${n}" data-d="1">+</button></div></div>`).join('') : '<div class="vacio">Todavía no sumaste materiales.</div>'}
-        <div class="bloque"><h4>Algo que no está en el catálogo</h4><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="kp-otro" maxlength="160" placeholder="Ej. Copas Aperol balón" style="flex:1;min-width:180px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:14px"><input id="kp-otro-n" inputmode="numeric" value="1" style="width:70px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:14px"><button class="btn claro" type="button" id="kp-otro-ok">Agregar</button></div></div>
+        <div class="bloque"><h4>Algo del depósito que no está en el catálogo</h4>
+          <p style="font-size:12.5px;color:var(--muted);margin:-2px 0 8px">Si no existe y hay que hacerlo o comprarlo (un fondo de barra, algo a medida), pedilo con <button class="lnk" type="button" id="kp-especial">Pedido especial</button>: lo presupuesta Trade Marketing.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="kp-otro" maxlength="160" placeholder="Ej. Copas Aperol balón" style="flex:1;min-width:180px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:14px"><input id="kp-otro-n" inputmode="numeric" value="1" style="width:70px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:14px"><button class="btn claro" type="button" id="kp-otro-ok">Agregar</button></div></div>
         <div class="bloque"><h4>Para qué cliente (opcional)</h4><div id="kp-cli"></div></div>
         <label class="campo" style="margin-top:12px"><span>Nota para Andrea</span><textarea id="kp-nota" maxlength="1000" placeholder="Para cuándo lo necesitás, a dónde va…">${esc(CARRO.nota || '')}</textarea></label>
         <div class="msg" id="kp-msg"></div>
@@ -183,6 +220,7 @@
     mb.onclick = async e => {
       const b = e.target.closest('[data-i]');
       if (b) { const it = CARRO.items[Number(b.dataset.i)]; it.cantidad = Math.max(0, it.cantidad + Number(b.dataset.d)); CARRO.items = CARRO.items.filter(x => x.cantidad > 0); CARRO.nota = mb.querySelector('#kp-nota').value; guardarCarro(); pinta(); return; }
+      if (e.target.closest('#kp-especial')) { KAF.formEspecial(CARRO.cliente || null, () => { location.hash = '#materiales/especiales'; }); return; }
       if (e.target.closest('#kp-otro-ok')) {
         const n = mb.querySelector('#kp-otro').value.trim(), c = Math.max(1, Math.round(Number(mb.querySelector('#kp-otro-n').value) || 1));
         if (!n) { mb.querySelector('#kp-otro').focus(); return; }
@@ -223,6 +261,7 @@
     if (['torneo', 'desarrollo', 'diseno'].includes(rol)) { location.replace('trade-kaf.html'); return; }
     if (rol !== 'kaf') { location.replace('hub.html'); return; }
     NOMBRE = (u && u.nombre) || '';
+    K.yo = session.user.id;
     if (NOMBRE) { $('uName').textContent = NOMBRE; $('av').textContent = NOMBRE.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(); }
     // Perfil y secciones (las arma Trade Marketing).
     try {
