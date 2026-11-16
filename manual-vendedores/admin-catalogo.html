@@ -85,6 +85,13 @@
   .card-btn.del{color:var(--red);border-color:var(--red-bg)}
   .center-wrap{text-align:center;display:flex;flex-direction:column;align-items:center}
 
+  .buscador{position:relative;max-width:420px;margin-top:16px}
+  .buscador svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--ink3);pointer-events:none}
+  .buscador input{width:100%;padding:11px 38px 11px 40px;border:1.5px solid var(--line-2);border-radius:11px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--ink);outline:none}
+  .buscador input:focus{border-color:var(--navy)}
+  .buscador .limpiar{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--ink3);font-size:15px;width:30px;height:30px;border-radius:8px;cursor:pointer;display:none}
+  .buscador .limpiar:hover{background:var(--surface2);color:var(--ink)}
+  .buscador.con-texto .limpiar{display:block}
   .cats{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
   .cat-chip{border:1px solid var(--line-2);background:var(--surface);border-radius:20px;padding:7px 14px;font-size:12.5px;font-weight:600;color:var(--ink2);cursor:pointer}
   .cat-chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
@@ -171,6 +178,13 @@
         <button id="sw-prod" onclick="verVista('prod')">Productos <span class="count-pill" id="c-prod"></span></button>
       </div>
 
+      <!-- buscador por nombre (proveedores y productos) -->
+      <div class="buscador" id="buscador">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>
+        <input type="text" enterkeyhint="search" id="q" placeholder="Buscar proveedor por nombre…" autocomplete="off" oninput="buscar()">
+        <button class="limpiar" type="button" title="Borrar búsqueda" onclick="limpiarBusqueda()">✕</button>
+      </div>
+
       <!-- categorías (solo productos) -->
       <div class="cats" id="cats" style="display:none"></div>
 
@@ -253,8 +267,22 @@
   }
   const provNombre=id=>{ const p=PROV.find(x=>x.id===id); return p?p.nombre:''; };
 
+  // ── Buscador por nombre ──
+  let busq='';
+  const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  // Productos: busca en el nombre, el proveedor y el código. Proveedores: en el nombre.
+  const coincide=(texto)=>{ if(!busq) return true; const t=norm(texto); return busq.split(/\s+/).every(w=>t.includes(w)); };
+  function buscar(){
+    const v=document.getElementById('q').value;
+    document.getElementById('buscador').classList.toggle('con-texto',!!v);
+    busq=norm(v.trim()); render();
+  }
+  function limpiarBusqueda(){ const i=document.getElementById('q'); i.value=''; buscar(); i.focus(); }
+
   function verVista(v){
     VISTA=v; catFiltro='';
+    document.getElementById('q').value=''; busq=''; document.getElementById('buscador').classList.remove('con-texto');
+    document.getElementById('q').placeholder = v==='prov'?'Buscar proveedor por nombre…':'Buscar producto por nombre…';
     document.getElementById('sw-prov').classList.toggle('on',v==='prov');
     document.getElementById('sw-prod').classList.toggle('on',v==='prod');
     document.getElementById('btn-agregar-txt').textContent = v==='prov'?'Agregar proveedor':'Agregar producto';
@@ -339,7 +367,9 @@
     const slot=document.getElementById('grid-slot');
     if(VISTA==='prov'){
       if(!PROV.length){ slot.innerHTML=`<div class="empty">Todavía no cargaste proveedores.<br>Tocá <b>“Agregar proveedor”</b> y subí su logo.</div>`; return; }
-      slot.innerHTML=`<div class="grid prov">`+PROV.map(p=>`
+      const provs=PROV.filter(p=>coincide(p.nombre));
+      if(!provs.length){ slot.innerHTML=sinCoincidencias('proveedores'); return; }
+      slot.innerHTML=`<div class="grid prov">`+provs.map(p=>`
         <div class="card"><div class="center-wrap">
           <div class="card-logo ${p.logo_url?'':'ph'}">${p.logo_url?`<img src="${esc(p.logo_url)}" alt="">`:'🏷️'}</div>
           <div class="card-name">${esc(p.nombre)}</div>
@@ -349,15 +379,17 @@
           </div>
         </div></div>`).join('')+`</div>`;
     } else {
-      // categorías con conteo
-      const cnt={}; PROD.forEach(x=>{const c=x.categoria||'Otros'; cnt[c]=(cnt[c]||0)+1;});
+      // primero la búsqueda; las categorías cuentan lo que quedó
+      const base=PROD.filter(x=>coincide(`${x.nombre} ${provNombre(x.proveedor_id)} ${x.sku||''}`));
+      const cnt={}; PROD.forEach(x=>{const c=x.categoria||'Otros'; cnt[c]=0;});
+      base.forEach(x=>{const c=x.categoria||'Otros'; cnt[c]++;});
       const catsPresentes=Object.keys(cnt).sort();   // muestra solo las categorías que existen
       document.getElementById('cats').innerHTML =
-        `<button class="cat-chip ${catFiltro===''?'on':''}" onclick="filtrarCat('')">Todos <span class="n">${PROD.length}</span></button>`+
+        `<button class="cat-chip ${catFiltro===''?'on':''}" onclick="filtrarCat('')">Todos <span class="n">${base.length}</span></button>`+
         catsPresentes.map(c=>`<button class="cat-chip ${catFiltro===c?'on':''}" onclick="filtrarCat('${esc(c)}')">${esc(c)} <span class="n">${cnt[c]}</span></button>`).join('');
-      let items = catFiltro?PROD.filter(x=>(x.categoria||'Otros')===catFiltro):PROD;
+      let items = catFiltro?base.filter(x=>(x.categoria||'Otros')===catFiltro):base;
       if(!PROD.length){ slot.innerHTML=`<div class="empty">Todavía no cargaste productos.<br>Tocá <b>“Agregar producto”</b>, elegí la categoría y subí su foto.</div>`; return; }
-      if(!items.length){ slot.innerHTML=`<div class="empty">No hay productos en esa categoría.</div>`; return; }
+      if(!items.length){ slot.innerHTML = busq ? sinCoincidencias('productos') : `<div class="empty">No hay productos en esa categoría.</div>`; return; }
       slot.innerHTML=`<div class="grid prod">`+items.map(p=>`
         <div class="card"><div class="center-wrap" style="width:100%">
           <div class="card-photo ${p.imagen_url?'':'ph'}">${p.imagen_url?`<img src="${esc(p.imagen_url)}" alt="">`:'🍾'}</div>
@@ -372,6 +404,11 @@
     }
   }
   function filtrarCat(c){ catFiltro=c; render(); }
+  function sinCoincidencias(que){
+    const q=document.getElementById('q').value.trim();
+    const enCat = que==='productos' && catFiltro ? ` en <b>${esc(catFiltro)}</b>` : '';
+    return `<div class="empty">No hay ${que} que coincidan con “${esc(q)}”${enCat}.<br><button class="card-btn" style="margin-top:12px" onclick="limpiarBusqueda()">Borrar búsqueda</button></div>`;
+  }
 
   // ── Modal ──
   function abrirNuevo(){ editId=null; abrirModal(VISTA, null); }
