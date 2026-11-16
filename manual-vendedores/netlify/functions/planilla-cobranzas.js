@@ -246,7 +246,7 @@ exports.handler = async (event) => {
     // los equipos SL / MAY SL, igual que _zona-cobranzas) le mandan la planilla a Romina.
     const cuenta = async filtro => { const r = await cob('cuentas_cubo?select=codigo&vendedor=eq.' + encodeURIComponent(codigo) + filtro, { headers: { Prefer: 'count=exact', Range: '0-0' } }); return Number((r.headers.get('content-range') || '*/0').split('/')[1]) || 0; };
     const [nTot, nSL] = await Promise.all([cuenta(''), cuenta('&equipo=in.(SL,%22MAY%20SL%22)')]);
-    const rinde = nSL * 2 > nTot ? 'Romina' : 'Moni';
+    const rinde = nSL * 2 > nTot ? 'Romina' : 'Administración';   // 16/11: Mónica y Juana, no solo "Moni"
     return json(200, { fecha, nombre: perfil.nombre || null, filas: Array.isArray(filas) ? filas : [], totales: sumTotales(filas), envio: envArr[0] || null, rinde });
   } catch (e) {
     return json(500, { error: (e && e.message) || String(e) });

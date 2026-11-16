@@ -249,7 +249,7 @@
         <div class="plan-top">
           <div class="plan-fecha"><label>Fecha de rendición</label><input id="plFecha" type="date"></div>
           <div id="plEnvEstado" class="plan-env"></div>
-          <button class="btn-ok" id="plEnviar" onclick="enviarPlanilla()">📤 Enviar a Moni</button>
+          <button class="btn-ok" id="plEnviar" onclick="enviarPlanilla()">📤 Enviar a Administración</button>
         </div>
         <div class="aviso" id="plErr" style="display:none"></div>
 
@@ -648,7 +648,7 @@
     const tot=sel.reduce((a,f)=>a+(Number(f.saldo)||0),0);
     document.getElementById("plImporte").value = tot ? Math.round(tot*100)/100 : "";
   }
-  let RINDE="Moni";
+  let RINDE="Administración";
   // E-cheqs de una fila con su fecha de cobro (filas desde el 30/10/2026; las viejas usan fecha_cheque).
   const plTieneEchF = f => Array.isArray(f.echeq_fechas) && f.echeq_fechas.length > 0;
   function plEchFechasHtml(f){
@@ -666,7 +666,7 @@
       if(j.error){ body.innerHTML=`<tr><td colspan="14" style="padding:20px;color:var(--coral)">${esc(j.error)}</td></tr>`; return; }
       const filas=j.filas||[];
       const est=document.getElementById("plEnvEstado"), btn=document.getElementById("plEnviar");
-      // A quién le rinde: los de San Luis a Romina, el resto a Moni (lo dice la función, 26/10/2026).
+      // A quién le rinde: los de San Luis a Romina, el resto a Administración (lo dice la función, 26/10/2026; "Administración" desde el 16/11).
       if(j.rinde) RINDE=j.rinde;
       if(j.envio && j.envio.enviada_at){ est.className="plan-env ok"; est.textContent="✓ Enviada a "+RINDE+" el "+new Date(j.envio.enviada_at).toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+". Si cargás o cambiás filas, reenviala."; if(btn) btn.textContent="📤 Reenviar a "+RINDE; }
       else { est.className="plan-env"; est.textContent="Cuando termines de cargar, tocá \"Enviar a "+RINDE+"\"."; if(btn) btn.textContent="📤 Enviar a "+RINDE; }
