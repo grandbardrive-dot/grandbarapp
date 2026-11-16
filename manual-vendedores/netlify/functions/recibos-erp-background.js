@@ -49,6 +49,18 @@ const cob = (p, o = {}) => {
   return fetch(COB_URL + '/rest/v1/' + p, { ...o, headers: Object.assign({ apikey: service, Authorization: 'Bearer ' + service, 'Content-Type': 'application/json' }, o.headers || {}) });
 };
 const leer = async (p) => { const r = await cob(p); const j = await r.json().catch(() => []); return Array.isArray(j) ? j : []; };
+// La base devuelve como mucho 1000 filas por pedido: se lee de a tandas.
+async function leerTodo(p) {
+  const out = [];
+  for (let i = 0; i < 50; i++) {
+    const r = await cob(p, { headers: { 'Range-Unit': 'items', Range: (i * 1000) + '-' + (i * 1000 + 999) } });
+    const lote = await r.json().catch(() => []);
+    if (!Array.isArray(lote) || !lote.length) break;
+    out.push(...lote);
+    if (lote.length < 1000) break;
+  }
+  return out;
+}
 
 const padCod = v => { const d = String(v == null ? '' : v).replace(/\D/g, ''); return d ? d.padStart(5, '0') : ''; };
 const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
@@ -147,8 +159,8 @@ const clave = r => r.empresa + '|' + r.sucursal + '|' + r.numero;
 async function emparejar(log) {
   const hoy = hoyAR();
   const desde = sumaDias(hoy, -45);
-  const filas = await leer('planilla_cobranzas?select=id,codigo,factura,importe,fecha_rendicion,recibo,recibo_auto,recibo_erp,' + MEDIOS.join(',') + '&fecha_rendicion=gte.' + desde + '&order=fecha_rendicion.asc,created_at.asc&limit=5000');
-  const recs = await leer('recibos_erp?select=*&anulado=eq.false&fecha=gte.' + sumaDias(desde, -7) + '&limit=10000');
+  const filas = await leerTodo('planilla_cobranzas?select=id,codigo,factura,importe,fecha_rendicion,recibo,recibo_auto,recibo_erp,' + MEDIOS.join(',') + '&fecha_rendicion=gte.' + desde + '&order=fecha_rendicion.asc,created_at.asc,id.asc');
+  const recs = await leerTodo('recibos_erp?select=*&anulado=eq.false&fecha=gte.' + sumaDias(desde, -7) + '&order=empresa,sucursal,numero');
   if (!recs.length) return 0;
   const porCliente = {};
   recs.forEach(r => { (porCliente[r.cliente] = porCliente[r.cliente] || []).push(r); });
@@ -223,7 +235,7 @@ exports.handler = async (event) => {
     // Códigos de vendedor = sucursales posibles del recibo.
     const [eq, pl] = await Promise.all([
       leer('equipos_vendedores?select=vendedor,equipo'),
-      leer('planilla_cobranzas?select=vendedor&fecha_rendicion=gte.' + sumaDias(hoyAR(), -60) + '&limit=5000'),
+      leerTodo('planilla_cobranzas?select=vendedor&fecha_rendicion=gte.' + sumaDias(hoyAR(), -60)),
     ]);
     const cods = new Set(['1000', '9999']); // oficinas: San Luis cobra en mostrador con la sucursal 1000
     eq.filter(e => EQUIPOS_VENTA.includes(String(e.equipo || '').toUpperCase())).forEach(e => cods.add(e.vendedor));
