@@ -1337,6 +1337,25 @@ async function cobPlanillaDet(vendedor, fecha) {
       if (cobSoloLectura()) return `<td id="rec-${f.id}" style="padding:8px 11px;font-weight:700">${f.recibo ? cesc(f.recibo) : '<span style="color:var(--muted);font-weight:400">—</span>'}${marca}</td>`;
       return `<td id="rec-${f.id}" style="padding:5px 8px"><input value="${cesc(f.recibo || '')}" placeholder="—" title="${auto ? cesc(det) : 'Se completa solo cuando procesás el cobro en el sistema'}" onchange="cobPlanillaMarcar('${f.id}','recibo',this.value,this)" style="border:1px solid ${auto ? '#9cc7ad' : '#d7d7d7'};background:${auto ? '#f1f8f3' : '#fff'};border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;font-weight:700;width:96px">${marca}</td>`;
     };
+    // Pagos cargados en el PORTAL por el cliente: renglón celeste y, al final, el botón para aprobarlo
+    // en el portal sin ir a Revisión de cobranzas (acepta el pago y marca la fila procesada).
+    const BG_PORTAL = '#e3eefb';
+    const fondo = f => f.procesado ? '#e7f1ea' : (f.portal ? BG_PORTAL : '');
+    const celPortal = f => {
+      if (!f.portal) return '<td></td>';
+      const pagos = f.portal.pagos || [];
+      const abiertos = pagos.filter(c => c.estado !== 'aceptado');
+      const dinero = c => c.monto ? cnum(c.monto) : (c.concepto || 'pago');
+      if (abiertos.length) {
+        if (cobSoloLectura()) return `<td style="padding:5px 8px;font-size:11.5px;color:#1f447f">⏳ ${abiertos.length} pago${abiertos.length === 1 ? '' : 's'} sin aprobar en el portal</td>`;
+        const ids = abiertos.map(c => c.id).join(',');
+        const tot = abiertos.reduce((s, c) => s + (Number(c.monto) || 0), 0);
+        const det = abiertos.map(c => dinero(c) + ' · subido ' + cfec(c.created_at) + (c.estado === 'pendiente' ? ' · el vendedor todavía no lo confirmó' : '')).join('\n');
+        return `<td style="padding:5px 8px"><button type="button" title="${cesc(det)}" onclick="cobPlanillaPortal('${f.id}','${ids}',this)" style="background:#1f447f;color:#fff;border:0;border-radius:8px;padding:7px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap">✓ Aprobar en el portal${tot ? ' · ' + cnum(tot) : ''}${abiertos.length > 1 ? ' (' + abiertos.length + ')' : ''}</button></td>`;
+      }
+      const ok = pagos.filter(c => c.estado === 'aceptado').pop();
+      return `<td style="padding:5px 8px;font-size:11.5px;color:var(--green-d,#245647);white-space:nowrap">✓ Aprobado en el portal<div style="font-size:10px;color:var(--muted)">${cesc((ok && ok.revisado_por) || '')}</div></td>`;
+    };
     const nomVend = (env && env.vendedor_nombre) || ('Vendedor ' + vendedor);
     const th = (h, r) => `<th style="padding:9px 11px;text-align:${r ? 'right' : 'left'};font-size:11px;text-transform:uppercase">${h}</th>`;
     const td = (v, r) => `<td style="padding:8px 11px;text-align:${r ? 'right' : 'left'}">${v}</td>`;
@@ -1351,27 +1370,28 @@ async function cobPlanillaDet(vendedor, fecha) {
       </div>` : ''}
       ${cobSoloLectura()
         ? `<div class="wa-nota" style="margin-top:4px">Las filas tildadas en <b>Procesado</b> ya las pasó tesorería; debajo del tilde figura quién.</div>`
-        : `<div class="wa-nota" style="margin-top:4px">El <b>N° de recibo</b> se completa solo cuando procesás el cobro en el sistema (puede tardar un par de minutos; si no aparece, lo podés escribir vos). Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Si un vendedor cargó mal un monto, <b>editalo directo en la celda</b> (los totales se recalculan solos); si una fila sobra (ej. cargada dos veces), eliminala con 🗑. Las que queden sin tildar son las que te faltan.</div>`}
+        : `<div class="wa-nota" style="margin-top:4px">Las filas <b style="color:#1f447f">celestes</b> son de clientes que cargaron el pago en su portal: cuando lo proceses, tocá <b>Aprobar en el portal</b> al final de la fila y queda aceptado para el cliente y la fila procesada (no hace falta ir a Revisión de cobranzas). El <b>N° de recibo</b> se completa solo cuando procesás el cobro en el sistema (puede tardar un par de minutos; si no aparece, lo podés escribir vos). Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Si un vendedor cargó mal un monto, <b>editalo directo en la celda</b> (los totales se recalculan solos); si una fila sobra (ej. cargada dos veces), eliminala con 🗑. Las que queden sin tildar son las que te faltan.</div>`}
       <div style="overflow-x:auto;border:1px solid #e6e6e6;border-radius:12px;margin-top:12px">
       <table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap">
         <thead><tr style="background:#0d2238;color:#eaf0f4">
-          ${th('Código')}${th('Razón social')}${th('Factura')}${th('Importe', 1)}${th('Efectivo', 1)}${th('Cheques', 1)}${th('Retenc.', 1)}${th('Transf/MP', 1)}${th('Tarjeta', 1)}${th('E-cheq', 1)}${th('Fecha')}${th('Comprob.')}${th('Recepción')}${th('Recibo')}${th('Observaciones')}${th('Procesado')}${cobSoloLectura() ? '' : th('')}
+          ${th('Código')}${th('Razón social')}${th('Factura')}${th('Importe', 1)}${th('Efectivo', 1)}${th('Cheques', 1)}${th('Retenc.', 1)}${th('Transf/MP', 1)}${th('Tarjeta', 1)}${th('E-cheq', 1)}${th('Fecha')}${th('Comprob.')}${th('Recepción')}${th('Recibo')}${th('Observaciones')}${th('Procesado')}${th('Portal')}${cobSoloLectura() ? '' : th('')}
         </tr></thead>
-        <tbody>${filas.length ? filas.map(f => `<tr style="border-top:1px solid #eee;${f.procesado ? 'background:#e7f1ea' : ''}">
+        <tbody>${filas.length ? filas.map(f => `<tr data-portal="${f.portal ? 1 : ''}" style="border-top:1px solid #eee;background:${fondo(f)};${f.portal ? 'box-shadow:inset 4px 0 0 #1f447f' : ''}">
           ${td(cesc(f.codigo || ''))}
-          ${td(cesc(f.razon_social || ''))}
+          ${td(cesc(f.razon_social || '') + (f.portal ? '<div style="font-size:10px;font-weight:700;color:#1f447f">🌐 PAGÓ POR EL PORTAL</div>' : ''))}
           ${td(cesc(f.factura || ''))}
           ${td(celMoney(f, 'importe'), 1)}${td(celMoney(f, 'efectivo'), 1)}${td(celMoney(f, 'cheques', f.cheques_detalle), 1)}${td(celMoney(f, 'retenciones'), 1)}${td(celMoney(f, 'transferencia', f.transferencia_detalle), 1)}${td(celMoney(f, 'tarjeta'), 1)}${td(celMoney(f, 'echeq', f.echeq_detalle) + echFechas(f), 1)}
           ${td((f.fecha_pago ? cfec(f.fecha_pago) : '') + (f.fecha_cheque ? `<div style="font-size:10.5px;color:var(--muted)">${tieneEchF(f) ? 'cheque' : 'ch/e-cheq'}: ${cfec(f.fecha_cheque)}</div>` : ''))}${td(archComp(f))}${td(arch(f.recepcion_url))}
           ${celRecibo(f)}
           <td style="padding:5px 8px"><input value="${cesc(f.observaciones || '')}" placeholder="…" ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','observaciones',this.value,this)" style="border:1px solid #d7d7d7;border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;width:160px"></td>
           <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${f.procesado ? 'checked' : ''} ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','procesado',this.checked,this)" style="width:18px;height:18px;cursor:pointer">${f.procesado && f.procesado_por ? `<div style="font-size:9.5px;color:var(--muted)">${cesc(f.procesado_por)}</div>` : ''}</td>
+          ${celPortal(f)}
           ${cobSoloLectura() ? '' : `<td style="padding:5px 8px;text-align:center"><button type="button" title="Eliminar esta fila" onclick="cobPlanillaBorrar('${f.id}',this)" style="background:#fff;border:1px solid #e3b4a8;color:#c0392b;border-radius:7px;padding:4px 8px;cursor:pointer;font-size:13px">🗑</button></td>`}
-        </tr>`).join('') : `<tr><td colspan="17" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
+        </tr>`).join('') : `<tr><td colspan="18" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
         <tfoot><tr style="background:#f7efda;font-weight:800;border-top:2px solid #c9a13b">
           <td colspan="3" style="padding:9px 11px;text-align:right">TOTALES</td>
           ${['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'].map(k => `<td id="plt-${k}" style="padding:8px 11px;text-align:right">${cnum(t[k])}</td>`).join('')}
-          <td colspan="${cobSoloLectura() ? 6 : 7}"></td>
+          <td colspan="${cobSoloLectura() ? 7 : 8}"></td>
         </tr></tfoot>
       </table></div>`;
     // Los recibos que Moni va generando en el sistema aparecen solos: cada 40 s (mientras
@@ -1423,6 +1443,32 @@ async function cobPlanillaNumero(el) {
   }
 }
 
+// Moni aprueba el pago del cliente en su portal desde la planilla (16/11/2026): acepta el
+// pago (lo mismo que en Revisión de cobranzas) y marca la fila como procesada, de una.
+async function cobPlanillaPortal(id, ids, btn) {
+  const td = btn.parentNode;
+  btn.disabled = true; btn.textContent = 'Aprobando…';
+  try {
+    const d = await cobApi('', { method: 'POST', body: JSON.stringify({ accion: 'planilla-portal-aprobar', id, comprobantes: String(ids).split(',') }) });
+    td.style.cssText = 'padding:5px 8px;font-size:11.5px;color:var(--green-d,#245647);white-space:nowrap';
+    td.innerHTML = `✓ Aprobado en el portal<div style="font-size:10px;color:var(--muted)">${cesc(d.revisado_por || '')}</div>`;
+    const tr = td.closest('tr');
+    if (tr) {
+      tr.style.background = '#e7f1ea';
+      const chk = tr.querySelector('input[type=checkbox]');
+      if (chk && !chk.checked) {
+        chk.checked = true;
+        if (!chk.nextElementSibling) chk.insertAdjacentHTML('afterend', `<div style="font-size:9.5px;color:var(--muted)">${cesc(d.revisado_por || '')}</div>`);
+      }
+      const sub = cq('pla-det') && cq('pla-det').querySelector('.head-sub b');
+      if (sub) { const n = cq('pla-det').querySelectorAll('tbody input[type=checkbox]:checked').length; sub.textContent = n + ' procesada' + (n === 1 ? '' : 's'); }
+    }
+  } catch (e) {
+    alert('No se pudo aprobar: ' + (e.message || e));
+    btn.disabled = false; btn.textContent = '✓ Aprobar en el portal';
+  }
+}
+
 // Moni marca una fila como procesada / deja observaciones (en el detalle de la planilla).
 async function cobPlanillaMarcar(id, campo, valor, el) {
   const body = { accion: 'planilla-marcar', id }; body[campo] = valor;
@@ -1433,7 +1479,7 @@ async function cobPlanillaMarcar(id, campo, valor, el) {
       const m = el.parentNode && el.parentNode.querySelector('div'); if (m) m.remove();
     }
     if (campo === 'procesado' && el) {
-      const tr = el.closest('tr'); if (tr) tr.style.background = valor ? '#e7f1ea' : '';
+      const tr = el.closest('tr'); if (tr) tr.style.background = valor ? '#e7f1ea' : (tr.dataset.portal ? '#e3eefb' : '');
       // actualizar el contador del subtítulo
       const sub = cq('pla-det') && cq('pla-det').querySelector('.head-sub b');
       if (sub) { const n = cq('pla-det').querySelectorAll('tbody input[type=checkbox]:checked').length; sub.textContent = n + ' procesada' + (n === 1 ? '' : 's'); }

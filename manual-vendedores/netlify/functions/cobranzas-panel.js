@@ -251,6 +251,38 @@ exports.handler = async (event) => {
         if (!filas.length) return json(404, { error: 'Esa planilla todavía no fue enviada.' });
         return json(200, { ok: true, numero, repetida });
       }
+      // APROBAR EN EL PORTAL desde la planilla (16/11/2026): Moni ya procesó el cobro; con un
+      // clic acepta el pago que el cliente cargó en su portal (lo mismo que "Aceptar" en
+      // Revisión de cobranzas, ver cobranzas-tesoreria) y marca la fila como procesada.
+      if (b.accion === 'planilla-portal-aprobar') {
+        if (!['tesoreria', 'administracion', 'desarrollo'].includes(rol)) return json(403, { error: 'Aprobar pagos del portal es de tesorería.' });
+        if (!b.id || !Array.isArray(b.comprobantes) || !b.comprobantes.length) return json(400, { error: 'Falta la fila o el pago.' });
+        const ZP = await zonaPlanillas();
+        const fila0 = (await leer('planilla_cobranzas?select=id,vendedor,codigo&id=eq.' + encodeURIComponent(b.id)))[0];
+        if (!fila0) return json(404, { error: 'Esa fila ya no existe.' });
+        if (ZP && !ZP.vendOk(fila0.vendedor)) return json(403, { error: 'Esa planilla es de ' + (ZP.zona === 'mendoza' ? 'San Luis: la procesa Romina.' : 'Mendoza.') });
+        const cod = String(fila0.codigo || '').replace(/\D/g, '').padStart(5, '0');
+        const cli = (await leer('clientes?select=id&codigo_cubo=eq.' + encodeURIComponent(cod)))[0];
+        if (!cli) return json(404, { error: 'Ese cliente no usa el portal.' });
+        const ahora = new Date().toISOString(), quien = perfil.nombre || user.email || 'Tesorería';
+        const ids = b.comprobantes.map(String).slice(0, 20);
+        const comps = await leer('comprobantes?select=id,estado,cliente_id&cliente_id=eq.' + encodeURIComponent(cli.id) + '&id=in.(' + ids.map(i => '"' + i.replace(/"/g, '') + '"').join(',') + ')');
+        let aceptados = 0;
+        for (const c of comps) {
+          if (!['pendiente', 'procesado'].includes(c.estado)) continue;
+          // Si el vendedor todavía no lo había confirmado, se completa ese paso con su código.
+          const campos = { estado: 'aceptado', revisado_por: quien, revisado_at: ahora };
+          if (c.estado === 'pendiente') { campos.procesado_por = fila0.vendedor || null; campos.procesado_at = ahora; }
+          const up = await cob('comprobantes?id=eq.' + encodeURIComponent(c.id) + '&estado=eq.' + c.estado, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(campos) });
+          if (up.ok && (await up.json()).length) {
+            aceptados++;
+            try { await cob('nc_usos?comprobante_id=eq.' + encodeURIComponent(c.id) + '&estado=eq.pendiente', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'aplicado', aplicado_at: ahora }) }); } catch (_) {}
+          }
+        }
+        if (!aceptados) return json(409, { error: 'Ese pago ya estaba aceptado o rechazado. Recargá la planilla.' });
+        await cob('planilla_cobranzas?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ procesado: true, procesado_at: ahora, procesado_por: quien }) });
+        return json(200, { ok: true, aceptados, revisado_por: quien });
+      }
       if (b.accion === 'planilla-borrar') {
         if (!b.id) return json(400, { error: 'Falta la fila.' });
         const ZP = await zonaPlanillas();
@@ -461,6 +493,29 @@ exports.handler = async (event) => {
         leer('planilla_cobranzas?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha) + '&order=created_at.asc'),
         leer('planilla_envios?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha)),
       ]);
+      // Clientes que usan el PORTAL (16/11/2026): su pago también está cargado en el portal
+      // y hay que aceptarlo para que se le actualice al cliente. Se marca la fila y se mandan
+      // sus pagos sin cerrar (y los aceptados de esos días), así Moni lo aprueba desde acá.
+      const padC = v => { const d = String(v == null ? '' : v).replace(/\D/g, ''); return d ? d.padStart(5, '0') : ''; };
+      const cods = [...new Set(filas.map(f => padC(f.codigo)).filter(Boolean))];
+      if (cods.length) {
+        const clis = await leer('clientes?select=id,codigo_cubo&codigo_cubo=in.(' + cods.map(c => '"' + c + '"').join(',') + ')');
+        if (clis.length) {
+          // Pagos subidos al portal en los días de esta rendición (una semana antes hasta dos
+          // días después): un pago de otra semana es de otra planilla.
+          const dia0 = new Date(fecha + 'T12:00:00Z').getTime();
+          const desdeP = new Date(dia0 - 7 * 864e5).toISOString().slice(0, 10), hastaP = new Date(dia0 + 3 * 864e5).toISOString().slice(0, 10);
+          const comps = await leer('comprobantes?tipo=eq.cliente&estado=in.(pendiente,procesado,aceptado)&created_at=gte.' + desdeP + '&created_at=lt.' + hastaP
+            + '&cliente_id=in.(' + clis.map(c => '"' + c.id + '"').join(',') + ')&select=id,cliente_id,estado,monto,concepto,created_at,procesado_por,revisado_por,revisado_at&order=created_at.asc');
+          // Solo se marca la fila si ese pago está en el portal: muchos clientes tienen
+          // cuenta pero pagan por fuera, y esos no le dan trabajo extra a Moni.
+          filas.forEach(f => {
+            const cli = clis.find(c => c.codigo_cubo === padC(f.codigo));
+            const pagos = cli ? comps.filter(c => c.cliente_id === cli.id) : [];
+            if (pagos.length) f.portal = { pagos };
+          });
+        }
+      }
       return json(200, { filas, envio: (env || [])[0] || null });
     }
 
