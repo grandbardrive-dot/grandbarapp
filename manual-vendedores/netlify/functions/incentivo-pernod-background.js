@@ -125,9 +125,9 @@ exports.handler = async (event) => {
     const CL = {}; for (const c of listaDe(await post('DtTabla', { tabla: 'CLIENTES_TODOS' }, 120000))) CL[str(c.cl_codigo)] = c;
     const VE = {}; for (const v of listaDe(await post('DtTabla', { tabla: 'VENDEDORES' }, 90000))) VE[str(v.ven_codigo)] = str(v.ven_nombre);
 
-    // 3) Movimientos por SKU (01/10 → hoy)
+    // 3) Movimientos por SKU (01/10 → hoy, o hasta ?hasta=dd/mm/yyyy para validar un corte)
     log.paso = 'movimientos';
-    const HASTA = hoyDDMM();
+    const HASTA = (q.hasta && /^\d{2}\/\d{2}\/\d{4}$/.test(q.hasta)) ? q.hasta : hoyDDMM();
     const movs = [];
     for (const cod of Object.keys(AR)) {
       const j = await post('ListarMovimientosArticulos', { FechaDesde: DESDE, FechaHasta: HASTA, OrigenMov: 'Ventas', ArCodigo: cod }, 90000);
@@ -230,11 +230,12 @@ exports.handler = async (event) => {
     }
     const vendedores = Object.values(vmap).map(e => ({ ...e, logrado_total: e.por_objetivo.reduce((a, x) => a + x.logrados, 0) }));
 
-    // 9) Escribir el snapshot
+    // 9) Escribir el snapshot (incentivo = PR_Q4_2026, o ?incentivo=... para una validación aparte)
     log.paso = 'snapshot';
-    const corte = hoyISO();
+    const incentivoId = q.incentivo || 'PR_Q4_2026';
+    const corte = HASTA.split('/').reverse().join('-');
     const data = { corte, periodo: { desde: '2026-10-01', hasta: corte }, nombre: 'Q4 2026 · Clientes con compra', detalle: 'Clientes con compra (CCC) en 5 marcas y 3 canales. Premio trimestral de Pernod Ricard.', objetivos, vendedores };
-    const up = await hub('incentivos_snapshots?on_conflict=incentivo', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ incentivo: 'PR_Q4_2026', corte, data, updated_at: new Date().toISOString() }) });
+    const up = await hub('incentivos_snapshots?on_conflict=incentivo', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ incentivo: incentivoId, corte, data, updated_at: new Date().toISOString() }) });
     if (!up.ok) throw new Error('No pude escribir el snapshot: ' + (await up.text()).slice(0, 160));
 
     const total = objetivos.reduce((a, o) => a + o.logrado, 0);
