@@ -182,8 +182,9 @@ function json(status, body) {
 
 // ---------- lectura de ventas (paginada: Supabase devuelve máx. 1000 filas por pedido) ----------
 async function leerVentas(desde, hasta) {
-  const key = process.env.MANUAL_SERVICE_ROLE;
-  if (!key) throw new Error('Falta la variable de entorno MANUAL_SERVICE_ROLE');
+  // ventas_cliente del proyecto Manual es legible con la key pública (RLS abierto),
+  // igual que en el resto del portal (cuentas-vendedor, incentivos). No necesita service_role.
+  const key = process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 
   // Trae todo lo de la bodega (por prefijo). Se piden las dos formas del código
   // (con y sin ceros adelante) por si ventas_cliente.sku no viene con ceros.
