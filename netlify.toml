@@ -102,6 +102,13 @@
 [functions."penaflor-cron"]
   schedule = "20 9 * * *"
 
+# INCENTIVO SÉPTIMA: cada mañana (06:25 ART = 09:25 UTC) recalcula los clientes con compra de
+# las líneas Séptima (Oct–Nov) por cartera vigente, desde las ventas ya sincronizadas, y escribe
+# el snapshot 'SEPTIMA'. Objetivo/premio en septima_objetivo, líneas en septima_articulos.
+# Ver manual-vendedores/netlify/functions/septima-cron.js
+[functions."septima-cron"]
+  schedule = "25 9 * * *"
+
 # RECIBOS del ERP → planillas de rendición (16/11/2026). De lunes a sábado, cada 15 min de
 # 8 a 20 (11 a 23 UTC), trae los recibos nuevos y completa solo el N° de recibo de cada
 # fila (antes Moni lo escribía a mano en Observaciones). El panel también la dispara al

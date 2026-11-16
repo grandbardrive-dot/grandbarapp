@@ -306,6 +306,30 @@
     if(pm) pm.style.display = which==='pm'?'':'none';
   };
 
+  // Plan Séptima: clientes con compra vs objetivo, con premio y regla del 80%. Por vendedor,
+  // con su supervisor arriba (según el portal: vendedor ve lo suyo, supervisor su equipo).
+  function planSeptimaHTML(p){
+    const money = n => '$'+fN(n);
+    const grupos=(p.grupos||[]).map(g=>{
+      const rows=(g.filas||[]).map(f=>`<div class="vr ${f.cobra?'':'cero'}">
+          <div class="vn"><b>${esc(f.nombre)}</b><small>${f.avance} de ${f.objetivo} clientes · premio ${money(f.premio)}</small></div>
+          <div style="display:flex;align-items:center;gap:10px"><span class="chip ${f.cobra?'si':'no'}">${f.cobra?'Cobra':'No llega'}</span><div class="vpct">${f.pct}%</div></div></div>`).join('');
+      const sup = g.supervisor ? `<div class="vr ${g.supervisor.cobra?'':'cero'}" style="border-color:var(--gold)">
+          <div class="vn"><b>${esc(g.supervisor.nombre)}</b><small>Supervisor · equipo ${g.teamAv} de ${g.teamObj} · premio ${money(g.supervisor.premio)}</small></div>
+          <div style="display:flex;align-items:center;gap:10px"><span class="chip ${g.supervisor.cobra?'si':'no'}">${g.supervisor.cobra?'Cobra 100%':'No llega'}</span><div class="vpct">${g.teamPct}%</div></div></div>` : '';
+      const titulo = p.vista==='vendedor' ? '' : `<div class="secT">${esc(g.nombreEq)} <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)">· equipo ${g.teamAv}/${g.teamObj} = ${g.teamPct}%</span></div>`;
+      return titulo + `<div class="vlist">${sup}${rows}</div>`;
+    }).join('');
+    const rango = (p.desde&&p.hasta) ? `${fFechaCorte(p.desde)} al ${fFechaCorte(p.hasta)}` : '';
+    return `<div class="plan"><div class="body">
+        ${p.corte?`<div class="corte">📅 ${esc(rango)} · al ${esc(fFechaCorte(p.corte))}</div>`:''}
+        <div class="hero">${ring(p.pct)}<div class="heroR">
+            <div class="stat"><span class="n">${p.avanceTotal}</span><span class="l">clientes con compra de ${p.targetTotal} · objetivo</span></div>
+            <div class="obj">🏆 <b>${esc(p.detalle||'')}</b><br>Vendedor: cobra el ${p.umbralV}% del premio al llegar al ${p.umbralV}% del objetivo. Supervisor: 100% si su equipo llega al ${p.umbralS}% de los compradores.</div>
+        </div></div>
+        ${grupos}</div></div>`;
+  }
+
   // Plan Peñaflor (Volumen o CCC): anillo de cumplimiento + barra por línea/canal, y el
   // detalle del nivel (por vendedor / por cuenta / por equipo según el portal).
   function planPenaflorHTML(p){
@@ -383,6 +407,7 @@
       </div></div>`;
   }
   function planDetailHTML(p){
+    if(p.tipo==='septima') return planSeptimaHTML(p);
     if(p.tipo==='penaflor') return planPenaflorHTML(p);
     if(p.sucursales) return planTorneoHTML(p);
     if(p.porMarca) return plan5THTML(p);
@@ -435,7 +460,9 @@
         <div class="foot"><span class="fin">Finalizado</span><span class="go">Ver resultados ›</span></div>
       </button>`;
     }
-    const sub = p.tipo==='penaflor'
+    const sub = p.tipo==='septima'
+      ? `${p.avanceTotal||0} de ${p.targetTotal||0} clientes`
+      : p.tipo==='penaflor'
       ? (p.unidad==='clientes' ? `${p.cccAv||0} de ${p.cccObj||0} clientes` : `${p.avanceTotal||0} de ${p.targetTotal||0} botellas`)
       : p.porMarca
       ? (p.universo ? `${p.universo} clientes · ${p.completos} completos` : 'sin clientes en el plan')
@@ -489,7 +516,7 @@
       const i=document.getElementById('intro');
       if(i) i.innerHTML = soloTorneo
         ? 'Acá están los <b>resultados finales del Torneo Doña Paula</b>: el ranking de cada sucursal y los puntos de cada vendedor. Tocá un nombre para ver el detalle.'
-        : 'Acá ves <b>cómo vas con tus objetivos</b>. Entrá a <b>Peñaflor</b> para ver tu avance de Volumen y Clientes con compra, y a <b>Doña Paula</b> para los resultados finales del torneo.';
+        : 'Acá ves <b>cómo vas con tus objetivos e incentivos</b>. Entrá a cada uno (Peñaflor, Séptima, Doña Paula…) para ver tu avance en detalle.';
       if(!location.hash && soloTorneo) history.replaceState(null,'','#donapaula/torneo');
     }
     renderView();

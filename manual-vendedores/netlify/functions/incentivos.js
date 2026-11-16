@@ -189,6 +189,60 @@ async function penaflor(hub, perfil) {
   return { id: 'penaflor', nombre: 'Peñaflor', color: '#7A1F2B', cardPct: pI(volA, volT), nivel, actualizado: d.actualizado, planes: [planVol, planCcc] };
 }
 
+// Séptima · incentivo por vendedor: clientes con compra de las líneas Séptima (Oct–Nov) vs
+// objetivo, con premio. Avance en snapshot 'SEPTIMA' (septima-background). Participan OFF (sup
+// Diego) y SL (sup Martín). Vendedor cobra con 80% del objetivo; supervisor cobra 100% si su
+// equipo llega al 80% de los compradores objetivo.
+const PF_SEPEQ = { OFF: 'Equipo OFF', SL: 'San Luis', ON: 'Equipo ON', DIST: 'Distribución' };
+async function septima(hub, perfil) {
+  const rol = String(perfil.rol || '').toLowerCase();
+  const cod = perfil.codigo_vendedor != null ? String(perfil.codigo_vendedor) : null;
+  const esSup = !!perfil.es_supervisor;
+  const snap = (await (await hub('incentivos_snapshots?incentivo=eq.SEPTIMA&select=corte,data')).json())[0];
+  if (!snap || !snap.data || !Array.isArray(snap.data.vendedores)) return null;
+  const d = snap.data, all = d.vendedores;
+  const pI = (a, t) => t > 0 ? Math.round(100 * a / t) : 0;
+  const umbV = d.umbral_vendedor || 0.8, umbS = d.umbral_supervisor || 0.8;
+
+  let subset = [], vista = '';
+  if (esSup && all.some(v => v.codigo === cod && v.es_supervisor)) {
+    const eq = all.find(v => v.codigo === cod).equipo;
+    subset = all.filter(v => v.equipo === eq); vista = 'equipo';
+  } else if (['direccion', 'admin', 'diseno', 'torneo', 'desarrollo', 'compras'].includes(rol)) {
+    subset = all; vista = 'todo';
+  } else if (rol === 'ventas' || rol === 'mayorista') {
+    if (!all.some(v => v.codigo === cod && !v.es_supervisor)) return null;
+    subset = all.filter(v => v.codigo === cod); vista = 'vendedor';
+  } else return null;
+  if (!subset.length) return null;
+
+  const eqs = [...new Set(subset.map(v => v.equipo))];
+  const grupos = eqs.map(eq => {
+    const miembros = subset.filter(v => v.equipo === eq && !v.es_supervisor);
+    const sup = subset.find(v => v.equipo === eq && v.es_supervisor);
+    const filas = miembros.map(v => ({
+      nombre: v.nombre, avance: v.avance, objetivo: v.objetivo, premio: v.premio,
+      pct: pI(v.avance, v.objetivo || 0), cobra: v.objetivo ? (v.avance >= v.objetivo * umbV) : false,
+    })).sort((a, b) => b.pct - a.pct);
+    const teamObj = filas.reduce((a, f) => a + (f.objetivo || 0), 0);
+    const teamAv = filas.reduce((a, f) => a + f.avance, 0);
+    return {
+      equipo: eq, nombreEq: PF_SEPEQ[eq] || eq, filas, teamObj, teamAv, teamPct: pI(teamAv, teamObj),
+      supervisor: sup ? { nombre: sup.nombre, premio: sup.premio, cobra: teamObj ? (teamAv >= teamObj * umbS) : false } : null,
+    };
+  });
+  const totObj = grupos.reduce((a, g) => a + g.teamObj, 0), totAv = grupos.reduce((a, g) => a + g.teamAv, 0);
+
+  const plan = {
+    id: 'septima', tipo: 'septima', nombre: 'Séptima',
+    detalle: (d.nombre || 'Incentivo Séptima') + '. Clientes con compra de las líneas Séptima vs. objetivo.',
+    desde: d.desde, hasta: d.hasta, corte: d.corte, vista,
+    umbralV: Math.round(umbV * 100), umbralS: Math.round(umbS * 100),
+    grupos, avanceTotal: totAv, targetTotal: totObj, pct: pI(totAv, totObj),
+  };
+  return { id: 'septima', nombre: 'Séptima', color: '#7A2E4A', cardPct: pI(totAv, totObj), actualizado: d.actualizado, planes: [plan] };
+}
+
 exports.handler = async (event) => {
   try {
     const hubService = process.env.HUB_SERVICE_ROLE;
@@ -210,7 +264,8 @@ exports.handler = async (event) => {
       if (rol !== 'ventas' && rol !== 'mayorista') return json(403, { error: 'Solo para supervisores y Dirección/Marketing.' });
       const tp = await torneoDP(hub);
       const pf = await penaflor(hub, perfil).catch(() => null);
-      const provs = []; if (pf) provs.push(pf); if (tp) provs.push(tp);
+      const sp = await septima(hub, perfil).catch(() => null);
+      const provs = []; if (pf) provs.push(pf); if (sp) provs.push(sp); if (tp) provs.push(tp);
       return json(200, { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: 'vendedor', codigo: perfil.codigo_vendedor || null,
         generado: new Date().toISOString(), proveedores: provs });
     }
@@ -283,6 +338,9 @@ exports.handler = async (event) => {
 
     // ---- Peñaflor · Volumen + Clientes con compra (snapshot diario, por nivel) ----
     try { const pf = await penaflor(hub, perfil); if (pf) proveedores.push(pf); } catch (e) {}
+
+    // ---- Séptima · clientes con compra vs objetivo, con premio (snapshot diario) ----
+    try { const sp = await septima(hub, perfil); if (sp) proveedores.push(sp); } catch (e) {}
 
     // ---- Chandon · Plan mes corriente (surtido + clientes con compra por grupo) ----
     // Objetivo GLOBAL de la empresa, Mendoza + San Luis juntos (NO se separa por vendedor).
