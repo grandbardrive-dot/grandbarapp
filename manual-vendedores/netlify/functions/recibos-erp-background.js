@@ -203,6 +203,13 @@ async function emparejar(log) {
     const r = x.cands.filter(r => !usado[clave(r)] && !(r.facturas || []).length && mismoImporte(r, x)).sort((a, b) => cercania(a, x) - cercania(b, x))[0];
     if (r) tomar(x, [r]);
   });
+  // 4) el vendedor anotó mal la factura: mismo cliente, mismo importe exacto y recibo de
+  //    esos días (hasta una semana después de la planilla) que nadie tomó
+  info.filter(x => !asignado.has(x.f.id)).forEach(x => {
+    const r = x.cands.filter(r => !usado[clave(r)] && mismoImporte(r, x) && r.fecha >= sumaDias(x.f.fecha_rendicion, -1) && r.fecha <= sumaDias(x.f.fecha_rendicion, 7))
+      .sort((a, b) => cercania(a, x) - cercania(b, x))[0];
+    if (r) tomar(x, [r]);
+  });
 
   let completadas = 0;
   for (const x of info) {
