@@ -1215,35 +1215,6 @@
   .acuerdo-det { font-size: 11px; color: var(--text2); }
   .acuerdo-det strong { color: var(--text); }
 
-  /* ── Torneo Doña Paula (ficha) ── */
-  .torneo-ficha { margin-top: 0; padding-top: 0; border-top: none; }
-  .torneo-ficha-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:6px; }
-  .torneo-ficha-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--azul); display:flex; align-items:center; gap:6px; }
-  .liga-badge-f { display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:2px 8px; border-radius:20px; }
-  .liga-ON-f  { background:var(--azul); color:#fff; }
-  .liga-OFF-f { background:var(--dorado); color:var(--azul); }
-  .torneo-pts-mes { font-family:'DM Mono',monospace; font-size:13px; font-weight:700; color:var(--azul); background:var(--dorado-lt); padding:3px 10px; border-radius:20px; border:1px solid rgba(203,184,106,.3); }
-  .torneo-reg-list { display:flex; flex-direction:column; gap:5px; margin-bottom:10px; }
-  .torneo-reg-item { display:flex; align-items:center; gap:8px; background:var(--surface2); border-radius:var(--radius-sm); padding:7px 10px; font-size:12px; }
-  .torneo-reg-label { flex:1; color:var(--text2); }
-  .torneo-reg-pts { font-family:'DM Mono',monospace; font-weight:700; color:var(--azul); font-size:12px; }
-  .torneo-reg-foto { width:28px; height:28px; border-radius:5px; object-fit:cover; flex-shrink:0; cursor:pointer; }
-  .torneo-acciones { }
-  .torneo-acc-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); margin-bottom:6px; }
-  .torneo-acc-row { display:flex; align-items:center; gap:7px; font-size:12px; padding:3px 0; }
-  .torneo-acc-dot { width:14px; height:14px; border-radius:50%; flex-shrink:0; }
-  .dot-hecho { background:var(--green); }
-  .dot-falta { background:#e5d5c0; border:1.5px dashed #b8a080; }
-  .torneo-acc-label { color:var(--text2); }
-  .torneo-acc-label.falta { color:var(--text3); }
-  .btn-torneo-reg {
-    width:100%; margin-top:10px; padding:10px; background:var(--dorado); color:var(--azul);
-    border:none; border-radius:var(--radius-sm); font-family:system-ui,sans-serif;
-    font-size:13px; font-weight:700; cursor:pointer; transition:opacity .15s;
-    text-align:center;
-  }
-  .btn-torneo-reg:hover { opacity:.88; }
-
   /* ── Plan Campari 5T: Progresos ── */
   .prog-section { margin-top: 0; padding-top: 0; border-top: none; }
   .prog-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
@@ -1593,72 +1564,6 @@ body { background:transparent !important; }
       <div class="ficha-acord-body open" id="compras-acord"><div id="compras-det"></div></div>
     </div>
 
-    <!-- Programas Satélites — solo autoservicio, por defecto cerrado -->
-    <div class="ficha-acord" id="satelites-ficha" style="display:none">
-      <button class="ficha-acord-btn" onclick="toggleAcord('satelites-acord','satelites-chev')">
-        <span class="ficha-acord-title">🛰 Programas Satélites</span>
-        <div class="ficha-acord-meta">
-          <span class="torneo-pts-mes" id="satelites-pts" style="display:none"></span>
-        </div>
-        <span class="ficha-acord-chev" id="satelites-chev">▼</span>
-      </button>
-      <div class="ficha-acord-body" id="satelites-acord">
-
-        <!-- Torneo Doña Paula dentro de Satélites -->
-        <div class="ficha-acord" style="margin-bottom:7px;border-radius:8px" id="sat-torneo-inner">
-          <button class="ficha-acord-btn" style="border-radius:8px"
-                  onclick="toggleAcord('sat-torneo-body','sat-torneo-chev')">
-            <span class="ficha-acord-title" style="font-size:12px">🏆 Torneo Doña Paula</span>
-            <div class="ficha-acord-meta">
-              <span class="liga-badge-f" id="sat-tf-liga"></span>
-              <span class="torneo-pts-mes" id="sat-tf-pts">0 pts</span>
-            </div>
-            <span class="ficha-acord-chev" id="sat-torneo-chev">▼</span>
-          </button>
-          <div class="ficha-acord-body" id="sat-torneo-body">
-            <div class="torneo-ficha">
-              <div class="torneo-reg-list" id="sat-tf-regs"></div>
-              <div class="torneo-acciones" id="sat-tf-acciones"></div>
-              <button class="btn-torneo-reg" onclick="irRegistrarTorneo()">⚡ Registrar actividad con este cliente</button>
-            </div>
-          </div>
-        </div>
-
-
-
-      </div>
-    </div>
-
-    <!-- Torneo Doña Paula — acordeón, por defecto cerrado (no-autoservicio) -->
-    <div class="ficha-acord" id="torneo-ficha" style="display:none">
-      <button class="ficha-acord-btn" onclick="toggleAcord('torneo-acord','torneo-chev')">
-        <span class="ficha-acord-title">🏆 Torneo Doña Paula</span>
-        <div class="ficha-acord-meta">
-          <span class="liga-badge-f" id="tf-liga"></span>
-          <span class="torneo-pts-mes" id="tf-pts">0 pts</span>
-        </div>
-        <span class="ficha-acord-chev" id="torneo-chev">▼</span>
-      </button>
-      <div class="ficha-acord-body" id="torneo-acord">
-        <div class="torneo-ficha">
-          <div class="torneo-reg-list" id="tf-regs"></div>
-          <div class="torneo-acciones" id="tf-acciones"></div>
-          <button class="btn-torneo-reg" onclick="irRegistrarTorneo()">⚡ Registrar actividad con este cliente</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Torneo Doña Paula: los puntos del vendedor (29/09/2026). Ocupa el lugar
-         del Plan Campari 5T, que ya no va al principio de la visita. -->
-    <div class="ficha-acord" id="tdp-ficha" style="display:none">
-      <button class="ficha-acord-btn" onclick="toggleAcord('tdp-acord','tdp-chev')">
-        <span class="ficha-acord-title">🏆 Torneo Doña Paula</span>
-        <div class="ficha-acord-meta"><span class="torneo-pts-mes" id="tdp-pts"></span></div>
-        <span class="ficha-acord-chev" id="tdp-chev">▼</span>
-      </button>
-      <div class="ficha-acord-body" id="tdp-acord"><div class="torneo-ficha" id="tdp-det"></div></div>
-    </div>
-
     <!-- Acuerdos Campari + Plan Campari 5T: solo dentro de Spirits > Planes Campari
          (los manuales que tienen esa subsección). Desde el 29/09 ya no se inyectan acá. -->
     <div id="campari-ficha-slot"></div>
@@ -1917,9 +1822,7 @@ body { background:transparent !important; }
 <script src="_config.js"></script>
 <script src="_avatar.js?v=2"></script>
 <script src="_sucursales.js"></script>
-<script src="_torneo-oficial.js"></script>
 <script src="_checklist-data.js?v=8"></script>
-<script src="_torneo.js"></script>
 <script src="_acciones-render.js?v=7"></script>
 <script src="_evidencia-accion.js?v=3"></script>
 <script src="_celebracion.js"></script>
@@ -3061,8 +2964,7 @@ body { background:transparent !important; }
     if (slotCarta) slotCarta.innerHTML =
       ((checklist.secciones || []).length && CON_CARTA.includes(checklist.id)) ? renderBloqueCarta() : '';
     // Campari: solo dentro de la subsección sp_campari (restaurante). El fallback en la
-    // ficha (vinotecas/autoservicios) se sacó el 29/09/2026: el principio de la visita
-    // muestra ahora los puntos del Torneo Doña Paula.
+    // ficha (vinotecas/autoservicios) se sacó el 29/09/2026.
     const slotCampari = document.getElementById('campari-ficha-slot');
     if (slotCampari) slotCampari.innerHTML = '';
     document.getElementById('hero-tipo').textContent   = checklist.label;
@@ -3073,11 +2975,8 @@ body { background:transparent !important; }
     updProg();
     cargarHistorial();
     cargarAcuerdosCampari();
-    // El Torneo Doña Paula ya no va en la visita: tiene su pestaña en el panel del
-    // vendedor (torneo-vendedor.html, 22/09/2026). Sin esta carga, los acordeones
-    // del torneo y de Programas Satélites quedan ocultos.
+    // El Torneo Doña Paula terminó (16/11/2026): se sacó de la visita de todos los manuales.
     cargarProgresos();
-    cargarTorneoFicha();
     cargarSeccionesEspeciales();
     // Evidencias de las acciones de Luciana: botón en cada acción y, en la Introducción,
     // lo que se cerró en visitas anteriores y todavía no tiene fotos (14/10/2026).
@@ -3551,113 +3450,6 @@ body { background:transparent !important; }
     } catch { /* sin conexión o error — no mostrar sección */ }
   }
 
-  // ── Torneo Doña Paula — ficha del cliente ────────────────────────────────────
-  const TORNEO_ID_F  = 'dona_paula_2025';
-  const LIGA_ON_F  = ['restaurante','bar','hotel','disco','evento'];
-  const LIGA_OFF_F = ['vinoteca','autoservicio'];
-  function getLigaF(tipo) {
-    return LIGA_ON_F.includes((tipo||'').toLowerCase()) ? 'ON' : 'OFF';
-  }
-  function labelRegF(r) {
-    const LINEAS = { los_cardos:'Los Cardos', los_cardos_pr:'Los Cardos PR', estate:'Estate', sv:'SV', altitude:'Altitude/Altaluvia', parcel:'Parcel/SDB' };
-    const ACT    = { copa:'Vino por copa', degustacion:'Degustación/Evento', carta:'En carta', sampling:'Sampling', puntera:'Puntera' };
-    const COB    = { activo:'Activo c/compra', upselling:'Up selling', nuevo:'Cliente nuevo' };
-    if (r.tipo === 'volumen')    return `📦 ${LINEAS[r.detalle?.linea]||r.detalle?.linea} × ${r.detalle?.cajas} caj.`;
-    if (r.tipo === 'cobertura')  return `🎯 ${COB[r.detalle?.tipo]||r.detalle?.tipo}`;
-    if (r.tipo === 'activacion') return `⚡ ${ACT[r.detalle?.tipo]||r.detalle?.tipo}`;
-    return '—';
-  }
-
-  async function cargarTorneoFicha() {
-    const mes = new Date().getMonth() + 1;
-    const liga = getLigaF(cliente.tipo);
-
-    // Registros de este vendedor con este cliente en el torneo
-    const { data } = await sb
-      .from('torneo_registros')
-      .select('id, tipo, puntos, detalle, foto_url, mes')
-      .eq('torneo_id', TORNEO_ID_F)
-      .eq('vendedor_id', vendedor.id)
-      .eq('cliente_id', cliente.id)
-      .order('created_at', { ascending: false });
-
-    const regs = (data || []).filter(r => r.mes === mes);
-    const totalPts = regs.reduce((s, r) => s + r.puntos, 0);
-
-    const esAutoservicio = cliente.tipo === 'autoservicio';
-
-    // Para autoservicio: mostrar en el acordeón Programas Satélites
-    // Para otros canales: mostrar en el acordeón Torneo Doña Paula clásico
-    const ligaId  = esAutoservicio ? 'sat-tf-liga'    : 'tf-liga';
-    const ptsId   = esAutoservicio ? 'sat-tf-pts'     : 'tf-pts';
-    const regsId  = esAutoservicio ? 'sat-tf-regs'    : 'tf-regs';
-    const accsId  = esAutoservicio ? 'sat-tf-acciones': 'tf-acciones';
-
-    if (esAutoservicio) {
-      document.getElementById('satelites-ficha').style.display = 'block';
-      document.getElementById('torneo-ficha').style.display = 'none';
-      // Mostrar pts en el header de satélites
-      const satPts = document.getElementById('satelites-pts');
-      if (satPts) { satPts.textContent = `${totalPts} pts`; satPts.style.display = ''; }
-    } else {
-      document.getElementById('torneo-ficha').style.display = 'block';
-    }
-
-    // Liga badge
-    const lb = document.getElementById(ligaId);
-    if (lb) { lb.textContent = `Liga ${liga}`; lb.className = `liga-badge-f liga-${liga}-f`; }
-
-    // Puntos del mes
-    const ptsEl = document.getElementById(ptsId);
-    if (ptsEl) ptsEl.textContent = `${totalPts} pts`;
-
-    // Lista de registros
-    const regsEl = document.getElementById(regsId);
-    if (regsEl) regsEl.innerHTML = regs.length === 0
-      ? `<div style="font-size:12px;color:var(--text3);font-style:italic;padding:2px 0">Sin actividades registradas este mes.</div>`
-      : regs.map(r => `
-          <div class="torneo-reg-item">
-            ${r.foto_url ? `<img class="torneo-reg-foto" src="${r.foto_url}" onclick="window.open('${r.foto_url}')">` : ''}
-            <span class="torneo-reg-label">${labelRegF(r)}</span>
-            <span class="torneo-reg-pts">+${r.puntos} pts</span>
-          </div>`).join('');
-
-    // Acciones pendientes / completadas
-    const tiposHechos = new Set(regs.map(r => r.tipo));
-    const subTiposHechos = new Set(regs.map(r => r.detalle?.tipo));
-    const tieneVolumen = regs.some(r => r.tipo === 'volumen');
-    const tieneCobertura = regs.some(r => r.tipo === 'cobertura');
-
-    const accionesOn  = [
-      { label:'Volumen (cajas)', hecho: tieneVolumen },
-      { label:'Cobertura',       hecho: tieneCobertura },
-      { label:'Vino por copa',   hecho: subTiposHechos.has('copa') },
-      { label:'En carta',        hecho: subTiposHechos.has('carta') },
-      { label:'Degust./Evento',  hecho: subTiposHechos.has('degustacion') },
-    ];
-    const accionesOff = [
-      { label:'Volumen (cajas)', hecho: tieneVolumen },
-      { label:'Cobertura',       hecho: tieneCobertura },
-      { label:'Sampling',        hecho: subTiposHechos.has('sampling') },
-      { label:'Puntera',         hecho: subTiposHechos.has('puntera') },
-    ];
-    const acciones = liga === 'ON' ? accionesOn : accionesOff;
-
-    const accsEl = document.getElementById(accsId);
-    if (accsEl) accsEl.innerHTML = `
-      <div class="torneo-acc-title">Acciones del mes</div>
-      ${acciones.map(a => `
-        <div class="torneo-acc-row">
-          <div class="torneo-acc-dot ${a.hecho ? 'dot-hecho' : 'dot-falta'}"></div>
-          <span class="torneo-acc-label${a.hecho ? '' : ' falta'}">${a.label}</span>
-        </div>`).join('')}`;
-  }
-
-  function irRegistrarTorneo() {
-    // Guardamos el cliente actual para pre-seleccionarlo en registro
-    window.location.href = 'torneo-registro.html';
-  }
-
   // ── Plan Campari 5T ──────────────────────────────────────────────────────────
   const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQqUyLV4D_AsvxDat8KRQ270n7FYsgUlWSlH-HQ1F3zLwCYuOx6vXYS9CUY3tIyGw/pub?output=csv';
 
@@ -3733,33 +3525,6 @@ body { background:transparent !important; }
       _sheet5TCache = await r.text();
       return _sheet5TCache;
     } catch { _sheet5TCache = false; return false; }
-  }
-
-  // ── Torneo Doña Paula: puntos del vendedor al principio de la visita (29/09/2026) ──
-  // Salen de la planilla oficial que carga Administración (TorneoOficial). Si no se
-  // pueden leer, el bloque no aparece.
-  async function cargarTorneoFicha() {
-    const box = document.getElementById('tdp-ficha');
-    if (!box || typeof TorneoOficial === 'undefined') return;
-    let T;
-    try { T = await TorneoOficial.cargar(); } catch (e) { return; }
-    const cod = String((vendedor && vendedor.codigo) || '').trim().toUpperCase();
-    const yo = cod ? Object.values(T.porCodigo).find(p => String(p.codigo).toUpperCase() === cod) : null;
-    const fmt = n => Math.round(n || 0).toLocaleString('es-AR');
-    document.getElementById('tdp-pts').textContent = fmt(yo ? yo.total : 0) + ' pts';
-    let det;
-    if (!yo) det = '<div class="hist-empty">Todavía no tenés puntos cargados en el torneo.</div>';
-    else {
-      const suc = T.ranking(yo.sucursal), pos = T.puesto(yo);
-      const falta = pos > 1 ? suc[pos - 2].total - yo.total : 0;
-      const cats = TorneoOficial.CATS.concat(Object.keys(yo.cats).filter(c => !TorneoOficial.CATS.includes(c)));
-      det = `<div style="font-size:13px;color:var(--text2);margin-bottom:10px"><b style="color:var(--azul)">${pos}° en ${esc(yo.sucursal)}</b> de ${suc.length}`
-        + (pos > 1 ? ` · te faltan ${fmt(falta)} pts para el ${pos - 1}°` : ' · vas primero') + `</div>`
-        + `<div class="torneo-reg-list">` + cats.map(c => `<div class="torneo-reg-item"><span class="torneo-reg-label">${TorneoOficial.ICO[c] || '•'} ${esc(c)}</span><span class="torneo-reg-pts">${fmt(yo.cats[c])}</span></div>`).join('') + `</div>`
-        + `<div style="font-size:11.5px;color:var(--text3)">Los puntos los carga Administración. El detalle está en la pestaña Torneo Doña Paula del panel.</div>`;
-    }
-    document.getElementById('tdp-det').innerHTML = det;
-    box.style.display = 'block';
   }
 
   async function cargarProgresos() {
