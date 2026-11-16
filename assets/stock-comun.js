@@ -72,6 +72,56 @@ window.STOCK = (function () {
       .sort((a, b) => a.proveedor.localeCompare(b.proveedor, 'es') || a.nombre.localeCompare(b.nombre, 'es'));
   }
 
+  // ── Productos nuevos de Córdoba, solos (16/11/2026) ───────────────────────────
+  // La lista de stock-productos.js es fija. Al abrir el panel se piden los artículos que
+  // trae la sincronización (vista catalogo) y se suman a PRODUCTOS_VINOS / _SPIRITS los
+  // que faltan. Proveedor: el de su línea (6 dígitos), si no el de su grupo (4 dígitos), si
+  // no el que ya tiene su marca en la lista (≥3 productos y ≥75% con ese proveedor), si no
+  // "Otros". Se guarda en el celular y solo se vuelve a bajar si Córdoba sumó artículos.
+  const K_CAT = 'gb_stock_catalogo';
+  const GENERICAS = new Set(['promo', 'vodka', 'whisky', 'whiskey', 'licor', 'tequila', 'gin', 'ron', 'vino', 'energizante', 'espumante',
+    'capsulas', 'aperitivo', 'cerveza', 'agua', 'jugo', 'pisco', 'fernet', 'vermouth', 'cafe', 'molido', 'barra', 'barras', 'chocolate',
+    'mix', 'single', 'malt', 'cognac', 'brandy', 'sidra', 'champagne', 'rose', 'blanco', 'tinto', 'estuche', 'del', 'las', 'los']);
+  const sinTilde = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  function proveedorDe(sku, articulo, base) {
+    const dom = filtro => { const c = {}; base.forEach(p => { if (p.proveedor && filtro(p)) c[p.proveedor] = (c[p.proveedor] || 0) + 1; }); const t = Object.entries(c).sort((a, b) => b[1] - a[1])[0]; return t ? { prov: t[0], n: t[1], total: Object.values(c).reduce((s, v) => s + v, 0) } : null; };
+    const l6 = dom(p => p.sku.slice(0, 6) === sku.slice(0, 6)); if (l6) return l6.prov;
+    const g4 = dom(p => p.sku.slice(0, 4) === sku.slice(0, 4)); if (g4) return g4.prov;
+    const marca = sinTilde(articulo).split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !GENERICAS.has(w))[0];
+    if (marca) {
+      const re = new RegExp('\\b' + marca + '\\b');
+      const m = dom(p => re.test(sinTilde(p.articulo)));
+      if (m && m.n >= 3 && m.n / m.total >= 0.75) return m.prov;
+    }
+    return 'Otros';
+  }
+  let _nuevos = [];
+  function sumarAlCatalogo(items) {
+    const base = [...PRODUCTOS_VINOS, ...PRODUCTOS_SPIRITS], ya = new Set(base.map(p => p.sku)), agregados = [];
+    (items || []).forEach(([sku, articulo, s]) => {
+      if (!/^\d{8}$/.test(sku) || ya.has(sku) || !articulo) return;
+      const p = { sku, proveedor: proveedorDe(sku, articulo, base), articulo: String(articulo).replace(/\s+/g, ' ').trim(), stock_sistema: 0, nuevo: true };
+      (s === 'v' ? PRODUCTOS_VINOS : PRODUCTOS_SPIRITS).push(p); ya.add(sku); agregados.push(p);
+    });
+    if (agregados.length) { const ord = (a, b) => a.sku.localeCompare(b.sku); PRODUCTOS_VINOS.sort(ord); PRODUCTOS_SPIRITS.sort(ord); }
+    _nuevos = _nuevos.concat(agregados);
+    return agregados.length;
+  }
+  // Lo llaman deposito.html y deposito-admin.html al arrancar. Si falla, queda la lista fija.
+  async function sumarNuevos() {
+    let cache = null;
+    try { cache = JSON.parse(localStorage.getItem(K_CAT) || 'null'); } catch (e) {}
+    try {
+      const d = await get('catalogo', cache && cache.version ? { version: cache.version } : {});
+      if (d && !d.sinCambios && Array.isArray(d.items)) {
+        cache = { version: d.version, items: d.items };
+        try { localStorage.setItem(K_CAT, JSON.stringify(cache)); } catch (e) {}
+      }
+    } catch (e) { console.warn('catálogo de Córdoba:', e.message); }
+    return sumarAlCatalogo(cache && cache.items);
+  }
+  const nuevos = () => _nuevos.slice();
+
   // ── Filas del conteo (las mismas columnas que el Excel de siempre) ─────────────
   // stock: { sku → stock } de stock_sistema (solo los ≠ 0); hasSync = alguna vez se cargó.
   // Con el stock cargado, el SKU que no está es 0; si nunca se cargó, el del catálogo.
@@ -175,6 +225,6 @@ window.STOCK = (function () {
   }
   const horas = min => min < 60 ? min + ' min' : Math.floor(min / 60) + ' h' + (min % 60 ? ' ' + (min % 60) + ' min' : '');
 
-  return { supa, $, esc, num, SECTOR_LBL, SECTOR_ICO, DEP_LBL, setDep, dep, hoy, isoLocal, fecha, fechaHora, diaLargo, toast, get, post,
+  return { supa, $, esc, num, SECTOR_LBL, SECTOR_ICO, DEP_LBL, setDep, dep, hoy, isoLocal, fecha, fechaHora, diaLargo, toast, get, post, sumarNuevos, sumarAlCatalogo, nuevos,
     productos, esPromo, proveedores, lineas, filas, excel, descargar, excelDeConteo, agenda, horas, INACTIVAS_VINOS, SESION_MIN };
 })();

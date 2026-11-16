@@ -53,7 +53,7 @@
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="assets/stock-productos.js?v=2"></script>
-<script src="assets/stock-comun.js?v=2"></script>
+<script src="assets/stock-comun.js?v=3"></script>
 <script>
   const { $, esc, num, SECTOR_LBL, SECTOR_ICO, hoy, isoLocal, fecha, fechaHora, toast, get, post } = STOCK;
   const EMBED = document.documentElement.classList.contains('gb-embed');
@@ -314,6 +314,8 @@
       const VOLVER = { equipo_admin: 'equipo-panel.html#stock', administracion: 'panel-cobranzas.html#stock', tesoreria: 'panel-cobranzas.html#stock' };
       $('sb-volver').href = VOLVER[YO.rol] || 'hub.html';
     }
+    // Los productos nuevos de Córdoba que todavía no están en la lista fija (16/11/2026).
+    await STOCK.sumarNuevos();
     ir();
   })();
 </script>

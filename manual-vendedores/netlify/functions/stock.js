@@ -223,6 +223,24 @@ exports.handler = async (event) => {
         depLbl: DEP_LBL, avisoA: AVISO_TXT[dep] });
     }
 
+    if (vista === 'catalogo') {
+      // Los artículos que trae Córdoba (16/11/2026): el navegador suma a la lista del depósito
+      // (assets/stock-productos.js) los que todavía no están, así los productos nuevos aparecen
+      // solos. version = cuántas filas con nombre hay: si no cambió, no se vuelve a mandar todo.
+      const r = await sb('stock_sistema?select=sku&articulo=not.is.null', { headers: { Prefer: 'count=exact', Range: '0-0' } });
+      const version = String(Number((r.headers.get('content-range') || '*/0').split('/')[1]) || 0);
+      if (qp.version && qp.version === version) return json(200, { version, sinCambios: true });
+      // Mendoza primero (ordena antes que san_luis): su nombre es el de la tabla ARTICULO.
+      const filas = await traerTodo(sb, 'stock_sistema?select=sku,articulo,sector&articulo=not.is.null&order=sku,deposito');
+      const vistos = new Set(), items = [];
+      for (const f of filas) {
+        if (vistos.has(f.sku) || !SECTORES.includes(f.sector)) continue;
+        vistos.add(f.sku);
+        items.push([f.sku, f.articulo, f.sector === 'vinos' ? 'v' : 's']);
+      }
+      return json(200, { version, items });
+    }
+
     if (vista === 'stock') {
       // Solo los que tienen stock ≠ 0: el resto es 0. 'filas' dice si alguna vez se cargó.
       const [con, cuenta] = await Promise.all([

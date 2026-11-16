@@ -58,7 +58,7 @@
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="assets/stock-productos.js?v=2"></script>
-<script src="assets/stock-comun.js?v=2"></script>
+<script src="assets/stock-comun.js?v=3"></script>
 <script>
   const { $, esc, num, SECTOR_LBL, SECTOR_ICO, hoy, fecha, fechaHora, diaLargo, toast, get, post } = STOCK;
   let YO = null, SECTOR = null, AG = null, STK = null, VISTA = '';
@@ -462,6 +462,8 @@
     if (YO.esAdmin) { $('sb-admin').style.display = ''; $('sb-admin-cat').style.display = ''; }
     const s = YO.sector || (eligeCadaVez() ? lsGet('gb_stock_sector_ver', null) : null);
     if (s) ponerSector(s);
+    // Los productos nuevos de Córdoba que todavía no están en la lista fija (16/11/2026).
+    await STOCK.sumarNuevos();
     const rec = aplicarRecuperado();
     if (rec != null) { history.replaceState(null, '', location.pathname + '#conteo'); setTimeout(() => toast('Recuperamos tu conteo de la app vieja: ' + rec + ' productos cargados'), 700); }
     ir();
