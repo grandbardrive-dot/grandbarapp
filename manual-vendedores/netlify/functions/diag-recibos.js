@@ -25,7 +25,8 @@ exports.handler = async (event) => {
   const url = String((j1 && j1.retorno) || '').replace(/\/+$/, '');
   if (!url) return { statusCode: 502, headers, body: JSON.stringify({ error: 'sin url' }) };
 
-  const numero = String(q.numero || '12917').replace(/\D/g, '').padStart(8, '0');
+  const numeros = String(q.numero || '12917').split(',').map((n) => n.replace(/\D/g, '').padStart(8, '0'));
+  const numero = numeros.join(',');
   const sucs = String(q.sucs || '0001,0002,0003,0004,0005,0009,0010,0031,9999,1000,0000').split(',');
   const tipos = String(q.tipos || 'X,R,A,B,C').split(',');
   const codigos = String(q.codigos || 'REC,RBO,RC').split(',');
@@ -36,8 +37,8 @@ exports.handler = async (event) => {
     const token = j2 && j2.token && j2.token.Codigo;
     if (!token) { out['token_' + empresa] = false; continue; }
     const pruebas = [];
-    for (const Codigo of codigos) for (const Sucursal of sucs) for (const Tipo of tipos) pruebas.push({ Codigo, Sucursal, Tipo });
-    const res = await Promise.all(pruebas.map(async (p) => ({ p, j: await aikon(url + '/IS3/ObtenerComprobante', { cuenta, token, ...p, Numero: numero }) })));
+    for (const Numero of numeros) for (const Codigo of codigos) for (const Sucursal of sucs) for (const Tipo of tipos) pruebas.push({ Codigo, Sucursal, Tipo, Numero });
+    const res = await Promise.all(pruebas.map(async (p) => ({ p, j: await aikon(url + '/IS3/ObtenerComprobante', { cuenta, token, ...p }) })));
     for (const { p, j } of res) {
       const c = j && j.Comprobante;
       if (!c) { if (!out.noEncontrado) out.noEncontrado = JSON.stringify(j).slice(0, 200); continue; }
