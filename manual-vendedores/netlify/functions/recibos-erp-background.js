@@ -8,7 +8,8 @@
 //     sigue cada numeración en orden (tabla recibos_series):
 //       MZA  empresa 0001, número 10000000 + n  (los "RBO 12917" de Mendoza)
 //       SL   empresa 0001, número n             (San Luis, "3238")
-//       NF   empresa 9999, número n             (no fiscal, "2701")
+//       NF   empresa 9999, número n             (no fiscal Mendoza, "2157")
+//       NFSL empresa 9999, número n             (no fiscal San Luis, "2701")
 //     La sucursal del recibo es el código del vendedor que cobró y el contador es
 //     compartido entre vendedores, así que cada número se prueba en todos los códigos.
 //     Avanza de a VENTANA números mientras aparezcan recibos nuevos.
@@ -24,6 +25,7 @@
 const COB_URL = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const BUDGET_MS = 12 * 60 * 1000;
 const VENTANA = 3;        // números que se prueban por vuelta
+const SALTO = 12;         // hasta dónde mira si en la ventana no hubo nada (números salteados)
 const PARALELO = 8;       // pedidos simultáneos al ERP
 const EQUIPOS_VENTA = ['ON', 'OFF', 'SL', 'MAY SL', 'MAY MDZ'];
 
@@ -90,6 +92,7 @@ function aRecibo(c, serie) {
 // ---------- 1) Seguir las numeraciones ----------
 async function leerSeries(ctxs, codigos, t0, log) {
   const series = await leer('recibos_series?activo=eq.true&order=serie');
+  const hayPendientes = (await leer('planilla_cobranzas?select=id&procesado=eq.true&recibo=is.null&fecha_rendicion=gte.' + sumaDias(hoyAR(), -3) + '&limit=1')).length > 0;
   let nuevos = 0;
   for (const s of series) {
     const ctx = ctxs[s.empresa];
@@ -100,18 +103,25 @@ async function leerSeries(ctxs, codigos, t0, log) {
       { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ corriendo_desde: new Date().toISOString() }) });
     if (!(await lk.json().catch(() => [])).length) { log.push(s.serie + ': ocupada'); continue; }
     let cursor = Number(s.cursor), cursorFecha = s.cursor_fecha, vueltas = 0, hallados = 0;
+    const probar = async (desdeN, hastaN) => {
+      const pruebas = [];
+      for (let n = desdeN; n <= hastaN; n++) for (const suc of codigos) pruebas.push({ n, suc });
+      const res = await enParalelo(pruebas, PARALELO, async (p) => {
+        const j = await aikon(ctx.urlCuenta + '/IS3/ObtenerComprobante', { cuenta: ctx.cuenta, token: ctx.token, Codigo: 'REC', Sucursal: p.suc, Numero: String(Number(s.base) + p.n).padStart(8, '0'), Tipo: 'X' });
+        return j && j.Comprobante ? aRecibo(j.Comprobante, s) : null;
+      });
+      // El mismo número puede existir en otra sucursal de hace años: solo cuentan los recientes.
+      const desde = sumaDias(cursorFecha || hoyAR(), -10);
+      return res.filter(r => r && r.fecha && r.fecha >= desde);
+    };
     try {
       while (Date.now() - t0 < BUDGET_MS) {
         vueltas++;
-        const pruebas = [];
-        for (let k = 1; k <= VENTANA; k++) for (const suc of codigos) pruebas.push({ n: cursor + k, suc });
-        const res = await enParalelo(pruebas, PARALELO, async (p) => {
-          const j = await aikon(ctx.urlCuenta + '/IS3/ObtenerComprobante', { cuenta: ctx.cuenta, token: ctx.token, Codigo: 'REC', Sucursal: p.suc, Numero: String(Number(s.base) + p.n).padStart(8, '0'), Tipo: 'X' });
-          return j && j.Comprobante ? aRecibo(j.Comprobante, s) : null;
-        });
-        // El mismo número puede existir en otra sucursal de hace años: solo cuentan los recientes.
-        const desde = sumaDias(cursorFecha || hoyAR(), -10);
-        const hits = res.filter(r => r && r.fecha && r.fecha >= desde);
+        let hits = await probar(cursor + 1, cursor + VENTANA);
+        // Hay números salteados (anulados, o de una sucursal que no es de un vendedor).
+        // Si la numeración quedó atrás (no llegó a hoy) o hay filas procesadas esperando su
+        // recibo, se mira más adelante antes de darse por vencida.
+        if (!hits.length && (cursorFecha < hoyAR() || hayPendientes)) hits = await probar(cursor + VENTANA + 1, cursor + SALTO);
         if (!hits.length) break;
         const up = await cob('recibos_erp?on_conflict=empresa,sucursal,numero', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(hits) });
         if (!up.ok) { log.push(s.serie + ': no se pudo guardar ' + (await up.text()).slice(0, 120)); break; }

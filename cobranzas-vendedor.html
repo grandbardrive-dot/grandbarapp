@@ -480,19 +480,20 @@
       box.innerHTML = volver + `
         <h2 style="margin:0 0 4px;font-size:20px">Rendición · ${esc(nom)}</h2>
         <div style="font-size:13px;color:var(--muted);margin-bottom:8px">${fDia(fecha)}${env && env.enviada_at ? " · enviada " + fmtFecha(env.enviada_at) : ""}${env && env.numero ? " · N° " + esc(env.numero) : ""} · ${filas.length} fila${filas.length===1?"":"s"} · <b style="color:var(--green-d)">${nProc} procesada${nProc===1?"":"s"}</b></div>
-        <div class="plan-hint" style="margin:0 0 12px">Las filas en verde ya las pasó tesorería (debajo del tilde figura quién). Si te dejaron una <b>observación</b>, la ves en su columna.</div>
+        <div class="plan-hint" style="margin:0 0 12px">Las filas en verde ya las pasó tesorería (debajo del tilde figura quién) y en <b>Recibo</b> está el N° de recibo que generó el sistema. Si te dejaron una <b>observación</b>, la ves en su columna.</div>
         <div class="plan-wrap"><table class="plan-tabla">
-          <thead><tr><th>Código</th><th>Razón social</th><th>Factura</th><th class="num">Importe</th><th class="num">Efectivo</th><th class="num">Cheques</th><th class="num">Retenc.</th><th class="num">Transf/MP</th><th class="num">Tarjeta</th><th class="num">E-cheq</th><th>Fecha</th><th>Comprob.</th><th>Recepción</th><th>Observaciones</th><th>Procesado</th></tr></thead>
+          <thead><tr><th>Código</th><th>Razón social</th><th>Factura</th><th class="num">Importe</th><th class="num">Efectivo</th><th class="num">Cheques</th><th class="num">Retenc.</th><th class="num">Transf/MP</th><th class="num">Tarjeta</th><th class="num">E-cheq</th><th>Fecha</th><th>Comprob.</th><th>Recepción</th><th>Recibo</th><th>Observaciones</th><th>Procesado</th></tr></thead>
           <tbody>${filas.length ? filas.map(f => `<tr${f.procesado ? ' style="background:#e7f1ea"' : ""}>
             <td>${esc(f.codigo||"")}</td><td>${esc(f.razon_social||"")}</td><td>${esc(f.factura||"")}</td>
             <td class="num">${plN(f.importe)}</td><td class="num">${plN(f.efectivo)}</td><td class="num">${mDet(f.cheques, f.cheques_detalle)}</td><td class="num">${plN(f.retenciones)}</td>
             <td class="num">${mDet(f.transferencia, f.transferencia_detalle)}</td><td class="num">${plN(f.tarjeta)}</td><td class="num">${mDet(f.echeq, f.echeq_detalle)}${echF(f)}</td>
             <td>${f.fecha_pago ? fDia(f.fecha_pago) : ""}${f.fecha_cheque ? `<div class="hi-sub">${tieneEchF(f) ? "cheque" : "ch/e-cheq"}: ${fDia(f.fecha_cheque)}</div>` : ""}</td>
             <td>${comps(f)}</td><td>${ver(f.recepcion_url)}</td>
+            <td style="font-weight:700">${f.recibo ? esc(f.recibo) : '<span style="color:var(--muted);font-weight:400">—</span>'}</td>
             <td style="white-space:normal;min-width:140px">${esc(f.observaciones||"")}</td>
             <td style="text-align:center">${f.procesado ? "✅" : "⏳"}${f.procesado && f.procesado_por ? `<div class="hi-sub" style="text-align:center">${esc(f.procesado_por)}</div>` : ""}</td>
-          </tr>`).join("") : `<tr><td colspan="15" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
-          <tfoot><tr><td colspan="3" style="text-align:right">TOTALES</td>${MONEY.map(k => `<td class="num">${fmtMoney(t[k])}</td>`).join("")}<td colspan="5"></td></tr></tfoot>
+          </tr>`).join("") : `<tr><td colspan="16" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
+          <tfoot><tr><td colspan="3" style="text-align:right">TOTALES</td>${MONEY.map(k => `<td class="num">${fmtMoney(t[k])}</td>`).join("")}<td colspan="6"></td></tr></tfoot>
         </table></div>`;
     }catch(e){ box.innerHTML = volver + `<div class="aviso" style="display:block">Error de conexión: ${esc(e.message||e)}</div>`; }
   }
