@@ -65,7 +65,7 @@ async function clientesDelEquipo(codigos) {
 // Devuelve dos períodos para filtrar en la UI: '3m' (últimos 3 meses) y 'mes' (mes actual).
 async function plan5T(codigos, nombreDeCod, alcance) {
   if (!codigos.length) return null;
-  const man = (p, o) => fetch(MAN_URL + '/rest/v1/' + p, { headers: Object.assign({ apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON, 'Content-Type': 'application/json' }, (o && o.headers) || {}) });
+  const man = (p, o) => fetch(MAN_URL + '/rest/v1/' + p, Object.assign({}, o, { headers: Object.assign({ apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON, 'Content-Type': 'application/json' }, (o && o.headers) || {}) }));
   const clientes = await clientesDelEquipo(codigos);
   if (!clientes.size) return null;
   const codes = [...clientes.keys()];
