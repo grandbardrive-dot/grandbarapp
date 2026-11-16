@@ -85,3 +85,11 @@
 # Ver manual-vendedores/netlify/functions/stock-sync-cron.js
 [functions."stock-sync-cron"]
   schedule = "0 11-23 * * 1-6"
+
+# INCENTIVO PERNOD RICARD Q4: cada mañana (06:10 ART = 09:10 UTC) recalcula el avance
+# (clientes con compra por marca×canal) leyendo el ERP (empresa 3333) y escribe el snapshot
+# que muestra la sección Incentivos. Dispara incentivo-pernod-background (trabajo pesado).
+# Requiere credenciales del ERP para la empresa 3333 (AIKON_* o CS_*) en las env vars.
+# Ver manual-vendedores/netlify/functions/incentivo-pernod-cron.js
+[functions."incentivo-pernod-cron"]
+  schedule = "10 9 * * *"
