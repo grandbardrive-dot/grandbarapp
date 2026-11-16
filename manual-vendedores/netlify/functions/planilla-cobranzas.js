@@ -143,7 +143,8 @@ exports.handler = async (event) => {
       const detArr = v => Array.isArray(v) ? v.map(x => num(x)).filter(x => x > 0) : null;
       const tDet = detArr(b.transferencia_detalle), cDet = detArr(b.cheques_detalle), eDet = detArr(b.echeq_detalle);
       // Fecha de cobro de cada e-cheq (30/10/2026), en el mismo orden que los importes.
-      const eFech = Array.isArray(b.echeq_fechas) ? b.echeq_fechas.slice(0, 30).map(x => (okFecha(x) ? x : null)) : null;
+      // Sin tope de cantidad (16/11/2026, pedido de Nahuel: "e-cheq ilimitados"); antes se cortaba en 30 fechas.
+      const eFech = Array.isArray(b.echeq_fechas) ? b.echeq_fechas.map(x => (okFecha(x) ? x : null)) : null;
       const fila = {
         vendedor: codigo, fecha_rendicion: fecha,
         recibo: b.recibo ? String(b.recibo).slice(0, 60) : null,
