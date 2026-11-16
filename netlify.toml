@@ -93,3 +93,10 @@
 # Ver manual-vendedores/netlify/functions/incentivo-pernod-cron.js
 [functions."incentivo-pernod-cron"]
   schedule = "10 9 * * *"
+
+# RECIBOS del ERP → planillas de rendición (16/11/2026). De lunes a sábado, cada 15 min de
+# 8 a 20 (11 a 23 UTC), trae los recibos nuevos y completa solo el N° de recibo de cada
+# fila (antes Moni lo escribía a mano en Observaciones). El panel también la dispara al
+# abrir una planilla. Ver manual-vendedores/netlify/functions/recibos-erp-background.js
+[functions."recibos-erp-cron"]
+  schedule = "*/15 11-23 * * 1-6"

@@ -1329,6 +1329,14 @@ async function cobPlanillaDet(vendedor, fecha) {
     const arch = u => u ? `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : '<span style="color:var(--muted)">—</span>';
     // Comprobantes: pueden ser varios por fila.
     const archComp = f => { const arr = (f.comprobante_url ? [{ url: f.comprobante_url }] : []).concat(Array.isArray(f.comprobantes) ? f.comprobantes : []); return arr.length ? arr.map((c, i) => `<a class="cb-b" href="${cesc(c.url)}" target="_blank" rel="noopener" style="margin:1px">👁${arr.length > 1 ? (' ' + (i + 1)) : ''}</a>`).join(' ') : '<span style="color:var(--muted)">—</span>'; };
+    // N° de recibo: lo completa solo el sistema (recibos del ERP) o lo escribe Moni.
+    const celRecibo = f => {
+      const auto = f.recibo_auto && f.recibo;
+      const det = auto && Array.isArray(f.recibo_erp) ? f.recibo_erp.map(r => r.sucursal + '-' + r.numero + ' · ' + cnum(r.total) + ' · ' + cfec(r.fecha)).join('\n') : '';
+      const marca = auto ? `<div style="font-size:9.5px;color:var(--green-d,#245647)" title="${cesc(det)}">✓ del sistema</div>` : '';
+      if (cobSoloLectura()) return `<td id="rec-${f.id}" style="padding:8px 11px;font-weight:700">${f.recibo ? cesc(f.recibo) : '<span style="color:var(--muted);font-weight:400">—</span>'}${marca}</td>`;
+      return `<td id="rec-${f.id}" style="padding:5px 8px"><input value="${cesc(f.recibo || '')}" placeholder="—" title="${auto ? cesc(det) : 'Se completa solo cuando procesás el cobro en el sistema'}" onchange="cobPlanillaMarcar('${f.id}','recibo',this.value,this)" style="border:1px solid ${auto ? '#9cc7ad' : '#d7d7d7'};background:${auto ? '#f1f8f3' : '#fff'};border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;font-weight:700;width:96px">${marca}</td>`;
+    };
     const nomVend = (env && env.vendedor_nombre) || ('Vendedor ' + vendedor);
     const th = (h, r) => `<th style="padding:9px 11px;text-align:${r ? 'right' : 'left'};font-size:11px;text-transform:uppercase">${h}</th>`;
     const td = (v, r) => `<td style="padding:8px 11px;text-align:${r ? 'right' : 'left'}">${v}</td>`;
@@ -1343,11 +1351,11 @@ async function cobPlanillaDet(vendedor, fecha) {
       </div>` : ''}
       ${cobSoloLectura()
         ? `<div class="wa-nota" style="margin-top:4px">Las filas tildadas en <b>Procesado</b> ya las pasó tesorería; debajo del tilde figura quién.</div>`
-        : `<div class="wa-nota" style="margin-top:4px">Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Si un vendedor cargó mal un monto, <b>editalo directo en la celda</b> (los totales se recalculan solos); si una fila sobra (ej. cargada dos veces), eliminala con 🗑. Las que queden sin tildar son las que te faltan.</div>`}
+        : `<div class="wa-nota" style="margin-top:4px">El <b>N° de recibo</b> se completa solo cuando procesás el cobro en el sistema (puede tardar un par de minutos; si no aparece, lo podés escribir vos). Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Si un vendedor cargó mal un monto, <b>editalo directo en la celda</b> (los totales se recalculan solos); si una fila sobra (ej. cargada dos veces), eliminala con 🗑. Las que queden sin tildar son las que te faltan.</div>`}
       <div style="overflow-x:auto;border:1px solid #e6e6e6;border-radius:12px;margin-top:12px">
       <table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap">
         <thead><tr style="background:#0d2238;color:#eaf0f4">
-          ${th('Código')}${th('Razón social')}${th('Factura')}${th('Importe', 1)}${th('Efectivo', 1)}${th('Cheques', 1)}${th('Retenc.', 1)}${th('Transf/MP', 1)}${th('Tarjeta', 1)}${th('E-cheq', 1)}${th('Fecha')}${th('Comprob.')}${th('Recepción')}${th('Observaciones')}${th('Procesado')}${cobSoloLectura() ? '' : th('')}
+          ${th('Código')}${th('Razón social')}${th('Factura')}${th('Importe', 1)}${th('Efectivo', 1)}${th('Cheques', 1)}${th('Retenc.', 1)}${th('Transf/MP', 1)}${th('Tarjeta', 1)}${th('E-cheq', 1)}${th('Fecha')}${th('Comprob.')}${th('Recepción')}${th('Recibo')}${th('Observaciones')}${th('Procesado')}${cobSoloLectura() ? '' : th('')}
         </tr></thead>
         <tbody>${filas.length ? filas.map(f => `<tr style="border-top:1px solid #eee;${f.procesado ? 'background:#e7f1ea' : ''}">
           ${td(cesc(f.codigo || ''))}
@@ -1355,17 +1363,42 @@ async function cobPlanillaDet(vendedor, fecha) {
           ${td(cesc(f.factura || ''))}
           ${td(celMoney(f, 'importe'), 1)}${td(celMoney(f, 'efectivo'), 1)}${td(celMoney(f, 'cheques', f.cheques_detalle), 1)}${td(celMoney(f, 'retenciones'), 1)}${td(celMoney(f, 'transferencia', f.transferencia_detalle), 1)}${td(celMoney(f, 'tarjeta'), 1)}${td(celMoney(f, 'echeq', f.echeq_detalle) + echFechas(f), 1)}
           ${td((f.fecha_pago ? cfec(f.fecha_pago) : '') + (f.fecha_cheque ? `<div style="font-size:10.5px;color:var(--muted)">${tieneEchF(f) ? 'cheque' : 'ch/e-cheq'}: ${cfec(f.fecha_cheque)}</div>` : ''))}${td(archComp(f))}${td(arch(f.recepcion_url))}
+          ${celRecibo(f)}
           <td style="padding:5px 8px"><input value="${cesc(f.observaciones || '')}" placeholder="…" ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','observaciones',this.value,this)" style="border:1px solid #d7d7d7;border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;width:160px"></td>
           <td style="padding:5px 8px;text-align:center"><input type="checkbox" ${f.procesado ? 'checked' : ''} ${cobSoloLectura() ? 'disabled' : ''} onchange="cobPlanillaMarcar('${f.id}','procesado',this.checked,this)" style="width:18px;height:18px;cursor:pointer">${f.procesado && f.procesado_por ? `<div style="font-size:9.5px;color:var(--muted)">${cesc(f.procesado_por)}</div>` : ''}</td>
           ${cobSoloLectura() ? '' : `<td style="padding:5px 8px;text-align:center"><button type="button" title="Eliminar esta fila" onclick="cobPlanillaBorrar('${f.id}',this)" style="background:#fff;border:1px solid #e3b4a8;color:#c0392b;border-radius:7px;padding:4px 8px;cursor:pointer;font-size:13px">🗑</button></td>`}
-        </tr>`).join('') : `<tr><td colspan="16" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
+        </tr>`).join('') : `<tr><td colspan="17" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>
         <tfoot><tr style="background:#f7efda;font-weight:800;border-top:2px solid #c9a13b">
           <td colspan="3" style="padding:9px 11px;text-align:right">TOTALES</td>
           ${['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'].map(k => `<td id="plt-${k}" style="padding:8px 11px;text-align:right">${cnum(t[k])}</td>`).join('')}
-          <td colspan="${cobSoloLectura() ? 5 : 6}"></td>
+          <td colspan="${cobSoloLectura() ? 6 : 7}"></td>
         </tr></tfoot>
       </table></div>`;
+    // Los recibos que Moni va generando en el sistema aparecen solos: cada 40 s (mientras
+    // siga en esta planilla) se releen y se completan las celdas que estaban vacías.
+    if (filas.some(f => !f.recibo)) cobPlanillaRecibosVivo(vendedor, fecha, celRecibo);
   } catch (e) { cq('pla-det').innerHTML = cerror(e.message); }
+}
+
+function cobPlanillaRecibosVivo(vendedor, fecha, celRecibo) {
+  clearTimeout(window._plaRecT);
+  window._plaRecT = setTimeout(async () => {
+    const p = window._plaDet || {};
+    if (p.vendedor !== vendedor || p.fecha !== fecha || !cq('pla-det')) return;
+    try {
+      const d = await cobApi('?que=planilla-det&vendedor=' + encodeURIComponent(vendedor) + '&fecha=' + encodeURIComponent(fecha));
+      let faltan = false;
+      (d.filas || []).forEach(f => {
+        const td = cq('rec-' + f.id);
+        if (!td) return;
+        const inp = td.querySelector('input');
+        if (inp && document.activeElement === inp) { faltan = true; return; }
+        if (f.recibo_auto && f.recibo && !(inp ? inp.value : td.textContent.replace('—', '').trim())) td.outerHTML = celRecibo(f);
+        if (!f.recibo) faltan = true;
+      });
+      if (faltan) cobPlanillaRecibosVivo(vendedor, fecha, celRecibo);
+    } catch (_) {}
+  }, 40000);
 }
 
 // Mónica / Romina cargan el N° de la planilla (29/10/2026). Si otra planilla ya tiene ese
@@ -1395,6 +1428,10 @@ async function cobPlanillaMarcar(id, campo, valor, el) {
   const body = { accion: 'planilla-marcar', id }; body[campo] = valor;
   try {
     await cobApi('', { method: 'POST', body: JSON.stringify(body) });
+    if (campo === 'recibo' && el) {  // escrito a mano: deja de ser "del sistema"
+      el.style.borderColor = '#d7d7d7'; el.style.background = '#fff';
+      const m = el.parentNode && el.parentNode.querySelector('div'); if (m) m.remove();
+    }
     if (campo === 'procesado' && el) {
       const tr = el.closest('tr'); if (tr) tr.style.background = valor ? '#e7f1ea' : '';
       // actualizar el contador del subtítulo

@@ -206,6 +206,13 @@ exports.handler = async (event) => {
           campos.procesado_por = b.procesado ? (perfil.nombre || null) : null;
         }
         if ('observaciones' in b) campos.observaciones = b.observaciones ? String(b.observaciones).slice(0, 500) : null;
+        // El recibo lo completa solo recibos-erp-background; si Moni lo escribe o lo borra a
+        // mano, queda como suyo y el automático no lo vuelve a tocar.
+        if ('recibo' in b) {
+          campos.recibo = b.recibo ? String(b.recibo).trim().slice(0, 120) : null;
+          campos.recibo_auto = false;
+          campos.recibo_erp = null;
+        }
         if (!Object.keys(campos).length) return json(400, { error: 'Nada para guardar.' });
         return patch('planilla_cobranzas', 'id=eq.' + encodeURIComponent(b.id), campos, 'Esa fila');
       }
@@ -443,6 +450,13 @@ exports.handler = async (event) => {
       if (!vend || !fecha) return json(400, { error: 'Falta el vendedor o la fecha.' });
       const ZP = await zonaPlanillas();
       if (ZP && !ZP.vendOk(vend)) return json(403, { error: 'Esa planilla es de ' + (ZP.zona === 'mendoza' ? 'San Luis: la procesa Romina.' : 'Mendoza.') });
+      // Buscar recibos nuevos del ERP ya (sin esperar al cron): la background responde 202
+      // al toque y tiene su propio freno si corrió hace menos de 2 min.
+      if (!p.sinrecibos) {
+        const ctl = new AbortController(); const tt = setTimeout(() => ctl.abort(), 2500);
+        await fetch((process.env.URL || 'https://portalgrandbar.com') + '/.netlify/functions/recibos-erp-background', { method: 'POST', signal: ctl.signal }).catch(() => {});
+        clearTimeout(tt);
+      }
       const [filas, env] = await Promise.all([
         leer('planilla_cobranzas?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha) + '&order=created_at.asc'),
         leer('planilla_envios?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha)),
