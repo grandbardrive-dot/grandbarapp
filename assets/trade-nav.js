@@ -11,7 +11,6 @@
 // ============================================================
 (function () {
   var I = {
-    torneo: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
     acciones: '<path d="M4 5h16M4 12h16M4 19h10"/>',
     campanias: '<path d="M3 11l11-4v10L3 13zM14 8.5a3 3 0 0 1 0 5M7 13v4a2 2 0 0 0 2 2"/>',
     secciones: '<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="4" cy="6" r="1" fill="currentColor"/>',
@@ -25,7 +24,6 @@
   };
   var GRUPOS = [
     { items: [
-      ['torneo-evidencias.html', 'Evidencias del torneo', 'torneo'],
       ['trade-acciones.html', 'Acciones comerciales', 'acciones'],
       ['trade-campanias.html', 'Campañas y planes', 'campanias'],
       ['trade-secciones.html', 'Secciones del manual', 'secciones'],

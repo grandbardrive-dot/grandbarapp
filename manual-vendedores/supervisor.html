@@ -52,7 +52,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--crema);colo
 .btn-logout{background:none;border:none;color:rgba(255,255,255,.4);font-size:12px;cursor:pointer;font-family:system-ui,sans-serif;padding:4px}
 
 /* ── Summary strip ── */
-.summary-strip{background:var(--azul-dk);border-bottom:1px solid rgba(255,255,255,.1);padding:10px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px}
+.summary-strip{background:var(--azul-dk);border-bottom:1px solid rgba(255,255,255,.1);padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:1px}
 .sum-block{text-align:center;padding:6px 4px}
 .sum-val{font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:#fff;line-height:1}
 .sum-label{font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
@@ -277,13 +277,11 @@ body { background:transparent !important; }
   <div class="summary-strip" id="summary-strip">
     <div class="sum-block"><div class="sum-val" id="sum-visitas">–</div><div class="sum-label">Visitas mes</div></div>
     <div class="sum-block"><div class="sum-val" id="sum-clientes">–</div><div class="sum-label">Clientes únicos</div></div>
-    <div class="sum-block"><div class="sum-val" id="sum-puntos">–</div><div class="sum-label">Pts torneo</div></div>
   </div>
 
   <div class="tabs-wrap">
     <div class="tabs">
       <button class="tab-btn active" id="tab-equipo"      onclick="showTab('equipo')">Equipo</button>
-      <button class="tab-btn"        id="tab-ranking"     onclick="showTab('ranking')">Ranking torneo</button>
       <button class="tab-btn"        id="tab-5t"          onclick="showTab('5t')">Cobertura 5T</button>
       <button class="tab-btn"        id="tab-sinvisitar"  onclick="showTab('sinvisitar')">Sin visitar</button>
     </div>
@@ -291,7 +289,6 @@ body { background:transparent !important; }
 
   <div class="main">
     <div id="content-equipo"><div class="spinner-center"><span class="sp"></span></div></div>
-    <div id="content-ranking"    style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
     <div id="content-5t"         style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
     <div id="content-sinvisitar" style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
   </div>
@@ -310,8 +307,7 @@ body { background:transparent !important; }
 <script src="_config.js"></script>
 <script src="_avatar.js?v=2"></script>
 <script src="_sucursales.js"></script>
-<script src="_torneo.js"></script>
-<script src="_torneo-oficial.js"></script>
+<script src="_torneo.js"></script><!-- solo por getMesActual / nombreMes -->
 <script src="_checklist-data.js?v=8"></script>
 <script src="_acciones-render.js?v=7"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -323,11 +319,7 @@ let supervisor = null;
 try { sessionStorage.removeItem('supervisor'); } catch (e) {}
 let miVendedores  = [];
 let allVisitas    = [];  // visitas del mes
-let allTorneo     = [];  // torneo_registros (solo para las fotos viejas de las visitas)
-// Puntos OFICIALES del torneo: el archivo de Administración (_torneo-oficial.js).
-// Desde el 22/09/2026 los puntos, el ranking y el desglose salen de acá.
-let TOF = null;
-const ptsOf = v => (TOF && v && TOF.porCodigo[v.codigo]) ? TOF.porCodigo[v.codigo].total : 0;
+// El Torneo Doña Paula terminó (16/11/2026): se sacaron sus puntos, el ranking y el detalle.
 const fmtN  = n => Math.round(Number(n) || 0).toLocaleString('es-AR');
 let allClientes   = [];  // clientes de la cartera
 let ultimasVisitas = {}; // cliente_id → fecha más reciente (global)
@@ -444,19 +436,13 @@ async function cargarTodo() {
   const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
   // 2. Cargar en paralelo
-  const [visitasRes, torneoRes, clientesRes, ultimasRes] = await Promise.all([
+  const [visitasRes, clientesRes, ultimasRes] = await Promise.all([
     // Visitas del mes actual
     sb.from('visitas')
       .select('id, vendedor_id, cliente_id, fecha, porcentaje_total, clientes(id, nombre, tipo, codigo_cliente, direccion)')
       .in('vendedor_id', vendIds)
       .gte('fecha', inicioMes)
       .order('fecha', { ascending: false }),
-
-    // Registros del torneo
-    sb.from('torneo_registros')
-      .select('vendedor_id, puntos, mes, tipo, detalle')
-      .eq('torneo_id', TORNEO_ID)
-      .in('vendedor_id', vendIds),
 
     // Todos los clientes de la cartera. Por páginas: la base corta en 1000 filas
     // y un equipo grande puede tener más.
@@ -473,7 +459,6 @@ async function cargarTodo() {
   ]);
 
   allVisitas  = visitasRes.data  || [];
-  allTorneo   = torneoRes.data   || [];
   allClientes = clientesRes || [];
 
   // Mapear última visita por cliente
@@ -481,14 +466,10 @@ async function cargarTodo() {
     if (!ultimasVisitas[v.cliente_id]) ultimasVisitas[v.cliente_id] = v.fecha;
   });
 
-  try { TOF = await TorneoOficial.cargar(); } catch (e) { TOF = null; }
-
   // 3. Summary
   const clientesUnicos = new Set(allVisitas.map(v => v.cliente_id)).size;
-  const puntosTotal    = fmtN(miVendedores.reduce((s, v) => s + ptsOf(v), 0));
   document.getElementById('sum-visitas').textContent  = allVisitas.length;
   document.getElementById('sum-clientes').textContent = clientesUnicos;
-  document.getElementById('sum-puntos').textContent   = puntosTotal;
 
   // 4. Renderizar tab inicial
   showTab('equipo');
@@ -506,7 +487,7 @@ async function autoAsignar() {
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 function showTab(tab) {
-  ['equipo','ranking','5t','sinvisitar'].forEach(t => {
+  ['equipo','5t','sinvisitar'].forEach(t => {
     document.getElementById(`content-${t}`).style.display = t === tab ? 'block' : 'none';
     document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
   });
@@ -515,7 +496,6 @@ function showTab(tab) {
 
 function renderTab(tab) {
   if (tab === 'equipo')      renderEquipo();
-  if (tab === 'ranking')     renderRanking();
   if (tab === '5t')          renderCobertura5T();
   if (tab === 'sinvisitar')  renderSinVisitar();
 }
@@ -532,7 +512,6 @@ function renderEquipo() {
   el.innerHTML = `<div class="section-title">${miVendedores.length} vendedores</div>` +
     miVendedores.map(v => {
       const visitas = allVisitas.filter(vi => vi.vendedor_id === v.id);
-      const puntos  = fmtN(ptsOf(v));
       const ultima  = visitas[0]?.fecha;
       const iniciales = v.nombre.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
       return `<div class="vend-card" onclick="abrirDetalle('${v.id}')">
@@ -541,61 +520,13 @@ function renderEquipo() {
           <div class="vend-nombre">${esc(v.nombre)}</div>
           <div class="vend-meta">
             <span>📋 ${visitas.length} visita${visitas.length!==1?'s':''}</span>
-            <span>🏆 ${puntos} pts</span>
           </div>
         </div>
         <div class="vend-right">
-          <div class="vend-pts">${puntos} pts</div>
           <div class="vend-fecha">${ultima ? fmtFecha(ultima) : 'Sin visitas'}</div>
         </div>
       </div>`;
     }).join('');
-}
-
-// ── Tab: Ranking torneo ───────────────────────────────────────────────────────
-// Tabla de ranking con los puntos oficiales (la usan el supervisor y la vista general).
-function tablaRankingOficial(rows, marcarIds, etiquetaMarca) {
-  const medallas = ['🥇','🥈','🥉'];
-  const g = 'grid-template-columns:28px 1fr 52px 58px 52px 58px';
-  return `<div class="rank-card" style="overflow-x:auto">
-      <div class="rank-head" style="${g};min-width:360px">
-        <span>#</span><span>Vendedor</span>
-        <span style="text-align:right" title="Acciones">🎯</span><span style="text-align:right" title="Volumen">📦</span>
-        <span style="text-align:right" title="Activaciones">⚡</span><span style="text-align:right">Total</span>
-      </div>
-      ${rows.map((r,i) => {
-        const marca = marcarIds && r.id && marcarIds.has(r.id);
-        return `<div class="rank-row${marca?' yo':''}" style="${g};min-width:360px${marca?';cursor:pointer':''}" ${marca?`onclick="abrirDetalle('${r.id}')"`:''}>
-          <span class="rank-pos">${i<3?medallas[i]:i+1}</span>
-          <div class="rank-nombre">${esc(r.nombre||'—')}${marca?`<small>${etiquetaMarca}</small>`:''}</div>
-          <span class="rank-pts-mes">${fmtN(r.cats.Acciones||0)}</span>
-          <span class="rank-pts-mes">${fmtN(r.cats.Volumen||0)}</span>
-          <span class="rank-pts-mes">${fmtN(r.cats.Activaciones||0)}</span>
-          <span class="rank-pts">${fmtN(r.total)}</span>
-        </div>`;
-      }).join('')}
-    </div>`;
-}
-
-// Ranking del torneo con los puntos OFICIALES (archivo de Administración). Ya no
-// hay ligas ON/OFF: el ranking es por sucursal. El supervisor de San Luis (AMBAS)
-// ve San Luis; los demás, Mendoza. Tocando a alguien de su equipo abre su ficha.
-async function renderRanking() {
-  const el = document.getElementById('content-ranking');
-  if (!TOF) { try { TOF = await TorneoOficial.cargar(); } catch (e) {} }
-  if (!TOF) { el.innerHTML = `<div class="empty-state">No se pudieron leer los puntos del torneo.</div>`; return; }
-  // La sucursal sale de su equipo (la liga cargada varía: 'AMBAS', 'ON/OFF'…).
-  const deSL = miVendedores.filter(v => getSucursal(v.codigo) === 'San Luis').length;
-  const suc  = (miVendedores.length ? deSL * 2 > miVendedores.length : supervisor.liga === 'AMBAS') ? 'San Luis' : 'Mendoza';
-  const rows = TOF.ranking(suc);
-  if (!rows.length) {
-    el.innerHTML = `<div class="rank-card"><div style="padding:32px;text-align:center;color:var(--text3)">Todavía no hay puntos cargados en ${suc}.</div></div>`;
-    return;
-  }
-  const misIds = new Set(miVendedores.map(v => v.id));
-  el.innerHTML = `<div class="section-title">Ranking Torneo Doña Paula — ${suc}</div>
-    ${tablaRankingOficial(rows, misIds, '← Tu equipo · ver detalle')}
-    <div style="font-size:11.5px;color:var(--text3);padding:8px 2px">Puntos oficiales cargados por Administración. 🎯 Acciones · 📦 Volumen · ⚡ Activaciones.</div>`;
 }
 
 // ── Helpers compartidos 5T (nueva estructura: 1 hoja, match por nombre) ──────
@@ -786,15 +717,6 @@ async function abrirDetalle(vendId) {
   const visitas  = allVisitas.filter(vi => vi.vendedor_id === vendId);
   const clientes = allClientes.filter(c => c.vendedor_id === vendId);
 
-  // Torneo: puntos OFICIALES del archivo de Administración
-  if (!TOF) { try { TOF = await TorneoOficial.cargar(); } catch (e) {} }
-  const tof       = TOF ? TOF.porCodigo[v.codigo] : null;
-  const rankSuc   = tof ? tof.sucursal : getSucursal(v.codigo);
-  const rankLista = TOF ? TOF.ranking(rankSuc) : [];
-  const rankPos   = tof ? rankLista.indexOf(tof) + 1 : 0;
-  const rankClass = rankPos===1?'top1':rankPos===2?'top2':rankPos===3?'top3':'';
-  const catsOf    = tof ? TorneoOficial.CATS.concat(Object.keys(tof.cats).filter(c => !TorneoOficial.CATS.includes(c))) : [];
-
   // Clientes sin visita 15+ días
   const alertas = clientes.filter(c => {
     const ultima = ultimasVisitas[c.id];
@@ -805,28 +727,9 @@ async function abrirDetalle(vendId) {
   document.getElementById('det-main').innerHTML = `
     <div class="det-hero">
       <div class="det-stat"><div class="det-stat-val">${visitas.length}</div><div class="det-stat-label">Visitas mes</div></div>
-      <div class="det-stat"><div class="det-stat-val">${tof ? fmtN(tof.total) : '—'}</div><div class="det-stat-label">Pts torneo</div></div>
-      <div class="det-stat"><div class="det-stat-val">${rankPos ? rankPos + '°' : '—'}</div><div class="det-stat-label">en ${rankSuc}</div></div>
+      <div class="det-stat"><div class="det-stat-val">${clientes.length}</div><div class="det-stat-label">Clientes</div></div>
+      <div class="det-stat"><div class="det-stat-val">${alertas.length}</div><div class="det-stat-label">Sin visita 15+ días</div></div>
     </div>
-
-    ${rankPos > 0 ? `<div class="det-section" style="margin-bottom:10px">
-      <div class="det-section-title">Torneo Doña Paula — posición en ${rankSuc}</div>
-      <div style="display:flex;align-items:center;gap:14px;padding:14px">
-        <div class="rank-badge ${rankClass}">${rankPos}</div>
-        <div>
-          <div style="font-size:16px;font-weight:700;color:var(--azul)">${fmtN(tof.total)} pts</div>
-          <div style="font-size:12px;color:var(--text3)">Puesto ${rankPos} de ${rankLista.length} en ${rankSuc}${rankPos > 1 ? ' · le faltan ' + fmtN(rankLista[rankPos-2].total - tof.total) + ' pts para pasar al ' + (rankPos-1) + '°' : ''}</div>
-        </div>
-      </div>
-    </div>` : `<div class="det-section" style="margin-bottom:10px"><div class="det-empty">${TOF ? 'Todavía no tiene puntos cargados en el torneo.' : 'No se pudieron leer los puntos del torneo.'}</div></div>`}
-
-    ${tof ? `<div class="det-section">
-      <div class="det-section-title">Torneo Doña Paula — detalle de puntos</div>
-      ${catsOf.map(c => `
-        <div class="det-item" style="background:var(--dorado-lt)"><span class="det-item-label"><b>${TorneoOficial.ICO[c] || '•'} ${esc(c)}</b></span><span class="det-item-val"><b>${fmtN(tof.cats[c] || 0)}</b></span></div>
-        ${tof.conceptos.filter(x => x.categoria === c).sort((a,b) => b.puntos - a.puntos).map(x => `
-          <div class="det-item"><span class="det-item-label" style="padding-left:14px${x.puntos ? '' : ';color:var(--text3)'}">${esc(x.concepto)}</span><span class="det-item-val">${fmtN(x.puntos)}</span></div>`).join('')}`).join('')}
-    </div>` : ''}
 
     <div class="det-section">
       <div class="det-section-title">Visitas del mes — ${nombreMes(mes)}</div>
@@ -876,7 +779,7 @@ function capitalize(s) { return String(s||'').charAt(0).toUpperCase() + String(s
 // OWNER EXECUTIVE DASHBOARD
 // ══════════════════════════════════════════════════════════════════════════════
 
-let OD = { vendedores:[], visitas:[], torneo:[], clientes:[], ultVis:{} };
+let OD = { vendedores:[], visitas:[], clientes:[], ultVis:{} };
 let owTabsLoaded = {};
 let owCharts = {};
 
@@ -886,21 +789,17 @@ async function loadOwnerData() {
 
   // Clientes y visitas se cuentan enteros, así que se piden por páginas: la base
   // corta en 1000 filas y la cartera son más de cinco mil.
-  const [vR, visR, tR, clientes, ultVis] = await Promise.all([
+  const [vR, visR, clientes, ultVis] = await Promise.all([
     sb.from('vendedores').select('id,nombre,codigo,zona').order('nombre'),
     sb.from('visitas').select('id,vendedor_id,cliente_id,fecha,porcentaje_total,progreso,clientes(id,nombre,tipo,codigo_cliente),vendedores(id,nombre,codigo)')
       .gte('fecha', inicioMes).order('fecha', { ascending:false }),
-    sb.from('torneo_registros').select('vendedor_id,puntos,mes,tipo,detalle,clientes(tipo),vendedores(id,nombre,codigo)')
-      .eq('torneo_id', TORNEO_ID),
     traerTodo(() => sb.from('clientes').select('id,nombre,tipo,codigo_cliente,vendedor_id').order('id')),
     traerTodo(() => sb.from('visitas').select('cliente_id,fecha').order('fecha', { ascending:false })),
   ]);
 
   OD.vendedores = vR.data   || [];
   OD.visitas    = visR.data || [];
-  OD.torneo     = tR.data   || [];
   OD.clientes   = clientes  || [];
-  try { TOF = await TorneoOficial.cargar(); } catch (e) { TOF = null; }
 
   const seen = new Set();
   (ultVis || []).forEach(v => { if (!seen.has(v.cliente_id)) { seen.add(v.cliente_id); OD.ultVis[v.cliente_id]=v.fecha; } });
@@ -910,7 +809,7 @@ async function loadOwnerData() {
 
 // ── Tab routing ───────────────────────────────────────────────────────────────
 function showOwnerTab(tab) {
-  ['resumen','vendedores','torneo','stats','5t'].forEach(t => {
+  ['resumen','vendedores','stats','5t'].forEach(t => {
     document.getElementById(`ow-${t}`).style.display = t === tab ? 'block' : 'none';
     document.getElementById(`ow-t-${t}`).classList.toggle('active', t === tab);
   });
@@ -919,7 +818,6 @@ function showOwnerTab(tab) {
 function renderOwnerTab(t) {
   if (t==='resumen')    renderOwResumen();
   if (t==='vendedores') renderOwVendedores();
-  if (t==='torneo')     renderOwTorneo();
   if (t==='stats')      renderOwStats();
   if (t==='5t')         renderOw5T();
 }
@@ -939,8 +837,7 @@ function renderOwResumen() {
   function sucursalStats(suc) {
     const vVends = OD.vendedores.filter(v=>getSucursal(v.codigo)===suc).map(v=>v.id);
     const vis    = OD.visitas.filter(v=>vVends.includes(v.vendedor_id));
-    const pts    = fmtN(TOF ? TOF.ranking(suc).reduce((s,p)=>s+p.total,0) : 0);   // puntos oficiales del torneo
-    return { vis:vis.length, pts, clientes:new Set(vis.map(v=>v.cliente_id)).size };
+    return { vis:vis.length, clientes:new Set(vis.map(v=>v.cliente_id)).size };
   }
   const mza = sucursalStats('Mendoza');
   const sl  = sucursalStats('San Luis');
@@ -963,13 +860,11 @@ function renderOwResumen() {
       <div class="ow-cmp">
         <div class="ow-cmp-hdr">🍇 Mendoza</div>
         <div class="ow-cmp-row"><span>Visitas</span><span class="ow-cmp-num">${mza.vis}</span></div>
-        <div class="ow-cmp-row"><span>Pts torneo</span><span class="ow-cmp-num">${mza.pts}</span></div>
         <div class="ow-cmp-row"><span>Clientes</span><span class="ow-cmp-num">${mza.clientes}</span></div>
       </div>
       <div class="ow-cmp">
         <div class="ow-cmp-hdr">🏔 San Luis</div>
         <div class="ow-cmp-row"><span>Visitas</span><span class="ow-cmp-num">${sl.vis}</span></div>
-        <div class="ow-cmp-row"><span>Pts torneo</span><span class="ow-cmp-num">${sl.pts}</span></div>
         <div class="ow-cmp-row"><span>Clientes</span><span class="ow-cmp-num">${sl.clientes}</span></div>
       </div>
     </div>
@@ -1003,43 +898,20 @@ function renderOwVendedores() {
     <div class="ow-sec-title">${suc==='Mendoza'?'🍇':'🏔'} ${suc}</div>
     ${vends.map(v=>{
       const vis  = OD.visitas.filter(vi=>vi.vendedor_id===v.id);
-      const pts  = fmtN(ptsOf(v));   // puntos oficiales del torneo
       const ini  = v.nombre.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
       const ult  = vis[0]?.fecha;
       return `<div class="vend-card" onclick="abrirDetalle('${v.id}')">
         <div class="vend-avatar">${ini}</div>
         <div class="vend-info">
           <div class="vend-nombre">${esc(v.nombre)}</div>
-          <div class="vend-meta"><span>📋 ${vis.length} vis.</span><span>🏆 ${pts} pts</span></div>
+          <div class="vend-meta"><span>📋 ${vis.length} vis.</span></div>
         </div>
         <div class="vend-right">
-          <div class="vend-pts">${pts} pts</div>
           <div class="vend-fecha">${ult?fmtFecha(ult):'Sin visitas'}</div>
         </div>
       </div>`;
     }).join('')}
   `).join('');
-}
-
-// ── Tab 3: Torneo ─────────────────────────────────────────────────────────────
-// Torneo con los puntos OFICIALES (archivo de Administración): ranking por sucursal
-// y quién va primero en cada categoría.
-function renderOwTorneo() {
-  const el = document.getElementById('ow-torneo');
-  if (!TOF) { el.innerHTML = '<div class="empty-state">No se pudieron leer los puntos del torneo.</div>'; return; }
-  const todos = TOF.lista;
-  if (!todos.length) { el.innerHTML = '<div class="empty-state">Todavía no hay puntos cargados en el torneo.</div>'; return; }
-  const top = c => [...todos].sort((a,b)=>(b.cats[c]||0)-(a.cats[c]||0))[0];
-  const kpi = c => { const t = top(c); return `<div class="ow-kpi"><div class="ow-kpi-val" style="font-size:13px">${esc(t && (t.cats[c]||0) > 0 ? t.nombre : '—')}</div><div class="ow-kpi-lbl">${TorneoOficial.ICO[c]} ${c}${t && (t.cats[c]||0) > 0 ? ' · ' + fmtN(t.cats[c]) : ''}</div></div>`; };
-  el.innerHTML = `
-    <div class="ow-sec-title">Primeros por categoría</div>
-    <div class="ow-kpi-grid" style="grid-template-columns:1fr 1fr 1fr">${TorneoOficial.CATS.map(kpi).join('')}</div>
-    ${['Mendoza','San Luis'].map(suc => {
-      const rows = TOF.ranking(suc);
-      return `<div class="ow-sec-title">${suc==='Mendoza'?'🍇':'🏔'} Ranking ${suc}</div>` +
-        (rows.length ? tablaRankingOficial(rows, null, '') : '<div class="empty-state">Sin puntos cargados.</div>');
-    }).join('')}
-    <div style="font-size:11.5px;color:var(--text3);padding:8px 2px">Puntos oficiales cargados por Administración. 🎯 Acciones · 📦 Volumen · ⚡ Activaciones.</div>`;
 }
 
 // ── Tab 4: Estadísticas ───────────────────────────────────────────────────────
@@ -1248,19 +1120,11 @@ async function abrirVisitaDetalle(visitaId) {
   // Cargar datos relacionados en paralelo
   // Fotos: sin filtro de fecha para evitar problemas de timezone — se muestran todas
   // las evidencias de este vendedor+cliente, ordenadas por recencia
-  const [compRes, torneoRes, vidRes, compEvidRes] = await Promise.all([
+  const [compRes, vidRes, compEvidRes] = await Promise.all([
     // Compromisos de este vendedor+cliente (los más recientes)
     sb.from('compromisos').select('*')
       .eq('cliente_id', clienteId)
       .eq('vendedor_id', vendedorId)
-      .order('created_at', { ascending: false })
-      .limit(20),
-
-    // Fotos del torneo de este vendedor+cliente (todas, sin filtro de fecha)
-    sb.from('torneo_registros').select('*')
-      .eq('cliente_id', clienteId)
-      .eq('vendedor_id', vendedorId)
-      .not('foto_url', 'is', null)
       .order('created_at', { ascending: false })
       .limit(20),
 
@@ -1279,16 +1143,11 @@ async function abrirVisitaDetalle(visitaId) {
   ]);
 
   const compromisos   = compRes.data    || [];
-  const torneoRegs    = torneoRes.data  || [];
   const vidEvidencias = vidRes.data     || [];
   const compEvidencias= compEvidRes.data|| [];
 
   // Armar galería de evidencias
   const evidencias = [
-    ...torneoRegs.filter(r => r.foto_url).map(r => ({
-      url: r.foto_url,
-      label: typeof labelRegistro === 'function' ? labelRegistro(r) : r.tipo
-    })),
     ...vidEvidencias.map(v => ({
       url: v.foto_url,
       label: `Vidriera ${v.bodega === 'dona_paula' ? 'Doña Paula' : v.bodega}`
@@ -1299,21 +1158,20 @@ async function abrirVisitaDetalle(visitaId) {
     })),
   ];
 
-  await renderVisitaDetalle(visita, compromisos, torneoRegs, evidencias);
+  await renderVisitaDetalle(visita, compromisos, evidencias);
 }
 
 function cerrarVisitaDetalle() {
   document.getElementById('visita-overlay').classList.remove('open');
 }
 
-async function renderVisitaDetalle(visita, compromisos, torneoRegs, evidencias) {
+async function renderVisitaDetalle(visita, compromisos, evidencias) {
   const mainEl  = document.getElementById('vd-main');
   const pct     = visita.porcentaje_total || 0;
   const progreso  = visita.progreso || {};
   // Secciones del manual real (base), no el checklist viejo del código (13/10/2026).
   const secsVisita = typeof seccionesDeVisita === 'function'
     ? await seccionesDeVisita(visita.clientes?.tipo, visita.vendedores?.zona, progreso) : [];
-  const mesPts    = torneoRegs.reduce((s, r) => s + (r.puntos || 0), 0);
 
   // ── 1. Hero con % y barra ──────────────────────────────────────────────────
   const heroHtml = `
@@ -1380,20 +1238,6 @@ async function renderVisitaDetalle(visita, compromisos, torneoRegs, evidencias) 
         </div>`).join('')}
     </div>` : '';
 
-  // ── 5. Torneo ──────────────────────────────────────────────────────────────
-  const torneoHtml = torneoRegs.length ? `
-    <div class="det-section" style="margin-bottom:10px">
-      <div class="det-section-title">🏆 Torneo Doña Paula — esta visita</div>
-      <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
-        <span style="font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--azul)">+${mesPts} pts</span>
-      </div>
-      ${torneoRegs.map(r => `
-        <div class="det-item">
-          <span class="det-item-label">${esc(typeof labelRegistro==='function' ? labelRegistro(r) : r.tipo)}</span>
-          <span class="det-item-val">+${r.puntos} pt${r.puntos!==1?'s':''}</span>
-        </div>`).join('')}
-    </div>` : '';
-
   // ── Observaciones generales de la visita ──────────────────────────────────
   const obsHtml = visita.observaciones ? `
     <div class="det-section" style="margin-bottom:10px">
@@ -1439,7 +1283,7 @@ async function renderVisitaDetalle(visita, compromisos, torneoRegs, evidencias) 
       </div>
     </div>` : '';
 
-  mainEl.innerHTML = heroHtml + durHtml + evidenciasHtml + accionesSupHtml + obsHtml + acompHtml + checklistHtml + compHtml + torneoHtml;
+  mainEl.innerHTML = heroHtml + durHtml + evidenciasHtml + accionesSupHtml + obsHtml + acompHtml + checklistHtml + compHtml;
 }
 
 // Recorrido de la visita: cada sección del manual real, si el vendedor la trabajó y
@@ -1487,7 +1331,6 @@ function cerrarFotoModal() {
     <div class="tabs" style="overflow-x:auto">
       <button class="tab-btn active" id="ow-t-resumen"    onclick="showOwnerTab('resumen')">📊 Resumen</button>
       <button class="tab-btn"        id="ow-t-vendedores" onclick="showOwnerTab('vendedores')">👥 Vendedores</button>
-      <button class="tab-btn"        id="ow-t-torneo"     onclick="showOwnerTab('torneo')">🏆 Torneo</button>
       <button class="tab-btn"        id="ow-t-stats"      onclick="showOwnerTab('stats')">📈 Estadísticas</button>
       <button class="tab-btn"        id="ow-t-5t"         onclick="showOwnerTab('5t')">🍷 Cobertura 5T</button>
     </div>
@@ -1496,7 +1339,6 @@ function cerrarFotoModal() {
   <div class="main">
     <div id="ow-resumen">   <div class="spinner-center"><span class="sp"></span></div></div>
     <div id="ow-vendedores" style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
-    <div id="ow-torneo"     style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
     <div id="ow-stats"      style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
     <div id="ow-5t"         style="display:none"><div class="spinner-center"><span class="sp"></span></div></div>
   </div>

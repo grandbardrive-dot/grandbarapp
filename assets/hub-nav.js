@@ -16,8 +16,6 @@
     { t:'Tareas',                 h:'tareas.html',                          svg:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/>' },
     // Evidencias de las acciones cerradas: fotos y videos para Trade Marketing y el proveedor (22/10/2026).
     { t:'Evidencias',             h:'evidencias.html',                      svg:'<rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/>' },
-    // El torneo estaba en el inicio del manual; desde el 22/09/2026 es una pestaña propia.
-    { t:'Torneo Doña Paula',      h:'torneo-vendedor.html',                 svg:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>' },
     // Pedidos todavía no tiene pantalla: en vez de no hacer nada al tocarlo, avisa.
     { t:'Pedidos',                h:'#', proximamente:true,                 svg:'<path d="M6 2 3 6v14h18V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/>' },
     { t:'Herramientas de venta',  h:'herramientas.html',                    svg:'<path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4"/>' },
@@ -93,7 +91,7 @@
   // a pedido del usuario el mismo día, sin Leads ni Torneo Doña Paula.
   const VENDE = ['ventas', 'mayorista'];
   // La guía de vendedores tampoco: explica el recorrido y las visitas, que la tienda no hace.
-  const FUERA_TIENDA = ['planificador-ia', 'agenda-eficiente', 'leads', 'torneo-vendedor', 'guia-vendedores'];
+  const FUERA_TIENDA = ['planificador-ia', 'agenda-eficiente', 'leads', 'guia-vendedores'];
   function itemsVende(rol) {
     return rol === 'mayorista' ? ITEMS.filter(it => !FUERA_TIENDA.includes(base(it.h))) : ITEMS;
   }

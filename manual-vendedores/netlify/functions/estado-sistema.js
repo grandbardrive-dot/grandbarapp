@@ -9,7 +9,7 @@
 //      (_corrida.js). Falla si dejó de correr o si sus últimas corridas fallaron.
 //    · Sitios: Portal, Portal del Cliente y los 3 catálogos responden.
 //    · Bases: las 4 de Supabase contestan.
-//    · Planillas de Drive que se leen en vivo (Avance Ventas, Torneo Doña Paula).
+//    · Planillas de Drive que se leen en vivo (Avance Ventas).
 //    · Ventas: que la última venta cargada no sea vieja.
 //
 //   Acceso: encabezado x-monitor-key = MONITOR_KEY (n8n), o sesión del Portal
@@ -149,7 +149,6 @@ exports.handler = async (event) => {
     // ---------- planillas de Drive ----------
     const PLANILLAS = [
       { id: 'drive-avance-ventas', nombre: 'Planilla Avance Ventas (Drive)', url: 'https://docs.google.com/spreadsheets/d/1oMIgtZ5KI83_1oyP9TFLKV2fAEpJY_Hc/gviz/tq?tqx=out:csv&tq=' + encodeURIComponent('select A limit 1') },
-      { id: 'drive-torneo',        nombre: 'Planilla del Torneo Doña Paula (Drive)', url: 'https://drive.google.com/uc?export=download&id=14vGtRYjcr-0E-5eSSf-5auj3y_WEv9K8' },
     ];
     const planillas = PLANILLAS.map(async (p) => {
       const base = { id: p.id, grupo: 'Planillas de Drive', nombre: p.nombre };

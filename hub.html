@@ -211,8 +211,8 @@
     // en el Hub genérico veía las herramientas de todas las áreas, incluido el panel
     // de Diseño y Desarrollo. Desde el 25/09/2026 va directo a su inicio.
     if (["direccion", "admin", "duenio"].includes(String(currentRole).toLowerCase())) { location.replace("direccion.html"); return; }
-    // Validación del torneo: su única pantalla es la revisión de evidencias (29/09/2026).
-    if (String(currentRole).toLowerCase() === "torneo") { location.replace("torneo-evidencias.html"); return; }
+    // Trade Marketing (Juan Pablo, rol torneo): su panel. El torneo terminó el 16/11/2026.
+    if (String(currentRole).toLowerCase() === "torneo") { location.replace("trade-acciones.html"); return; }
     // KAF (representante de una marca en la calle): su panel, armado por Trade Marketing (19/10/2026).
     if (String(currentRole).toLowerCase() === "kaf") { location.replace("kaf.html"); return; }
     // Luciana (compras) trabaja todo en su panel comercial: campañas, manual, catálogo,
