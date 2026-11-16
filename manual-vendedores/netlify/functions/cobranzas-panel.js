@@ -39,6 +39,7 @@
 // ============================================================
 
 const { zonaDe, armarZona } = require('./_zona-cobranzas');
+const compVend = require('./_comp-vendedor');
 
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
@@ -283,6 +284,19 @@ exports.handler = async (event) => {
         await cob('planilla_cobranzas?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ procesado: true, procesado_at: ahora, procesado_por: quien }) });
         return json(200, { ok: true, aceptados, revisado_por: quien });
       }
+      // Comprobantes que mandó el vendedor por WhatsApp y no encontraron su fila: Moni los
+      // asigna a mano o los descarta (16/11/2026). Ver _comp-vendedor.js.
+      if (b.accion === 'comp-asignar' || b.accion === 'comp-descartar') {
+        if (!b.comp_id) return json(400, { error: 'Falta el comprobante.' });
+        const ZP = await zonaPlanillas();
+        const c0 = (await leer('comprobantes_vendedor?select=vendedor&id=eq.' + encodeURIComponent(b.comp_id)))[0];
+        if (!c0) return json(404, { error: 'Ese comprobante ya no existe.' });
+        if (ZP && !ZP.vendOk(c0.vendedor)) return json(403, { error: 'Ese comprobante es de ' + (ZP.zona === 'mendoza' ? 'San Luis.' : 'Mendoza.') });
+        const res = b.accion === 'comp-asignar'
+          ? (b.fila_id ? await compVend.asignar(cob, b.comp_id, b.fila_id, perfil.nombre || 'Tesorería') : { error: 'Elegí la fila.', status: 400 })
+          : await compVend.descartar(cob, b.comp_id, perfil.nombre || 'Tesorería');
+        return res.error ? json(res.status || 400, { error: res.error }) : json(200, res);
+      }
       if (b.accion === 'planilla-borrar') {
         if (!b.id) return json(400, { error: 'Falta la fila.' });
         const ZP = await zonaPlanillas();
@@ -488,6 +502,7 @@ exports.handler = async (event) => {
         const ctl = new AbortController(); const tt = setTimeout(() => ctl.abort(), 2500);
         await fetch((process.env.URL || 'https://portalgrandbar.com') + '/.netlify/functions/recibos-erp-background', { method: 'POST', signal: ctl.signal }).catch(() => {});
         clearTimeout(tt);
+        await compVend.procesar();
       }
       const [filas, env] = await Promise.all([
         leer('planilla_cobranzas?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha) + '&order=created_at.asc'),
@@ -516,7 +531,8 @@ exports.handler = async (event) => {
           });
         }
       }
-      return json(200, { filas, envio: (env || [])[0] || null });
+      const sueltos = await compVend.sinAsignar(cob, vend, fecha);
+      return json(200, { filas, envio: (env || [])[0] || null, sueltos });
     }
 
     if (que === 'reclamos') {

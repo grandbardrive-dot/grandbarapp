@@ -27,6 +27,7 @@ const BUCKET   = 'comprobantes';
 const MAX_BYTES = 5 * 1024 * 1024;
 const MONEY = ['importe', 'efectivo', 'cheques', 'retenciones', 'transferencia', 'tarjeta', 'echeq'];
 const padCod = v => { const s = String(v == null ? '' : v).trim(); const n = s.replace(/\D/g, ''); return n ? n.padStart(5, '0') : s; };
+const compVend = require('./_comp-vendedor');
 
 function json(statusCode, body) {
   return { statusCode, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(body) };
@@ -122,6 +123,35 @@ exports.handler = async (event) => {
         const r = await cob('planilla_cobranzas?id=eq.' + encodeURIComponent(b.id) + '&vendedor=eq.' + encodeURIComponent(codigo), { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ comprobantes: lista, comprobante_url: null, updated_at: new Date().toISOString() }) });
         if (!r.ok) return json(400, { error: 'Se subió pero no se pudo guardar el enlace.' });
         return json(200, { ok: true, url, campo: 'comprobantes', comprobantes: lista });
+      }
+
+      // SUBIR VARIOS (16/11/2026): el vendedor elige todas las fotos/PDF juntos (uno por
+      // pedido, el navegador los manda en fila) y el sistema los lee con IA y los reparte
+      // solos por fila, igual que los que manda por WhatsApp. Ver comprobantes-wa-background.
+      if (b.accion === 'subir-suelto') {
+        if (!b.file_base64) return json(400, { error: 'Falta el archivo.' });
+        let bytes; try { bytes = Buffer.from(String(b.file_base64).replace(/^data:[^,]*,/, ''), 'base64'); } catch (_) { bytes = null; }
+        if (!bytes || !bytes.length) return json(400, { error: 'Archivo inválido.' });
+        if (bytes.length > MAX_BYTES) return json(413, { error: 'El archivo es muy grande (máx 5 MB).' });
+        const mime = String(b.mime || 'application/octet-stream').split(';')[0];
+        if (!/^image\//.test(mime) && mime !== 'application/pdf') return json(400, { error: 'Solo fotos o PDF.' });
+        const path = 'planilla/' + encodeURIComponent(codigo) + '/sueltos/' + hoyAR() + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + extDe(mime, b.filename);
+        const up = await fetch(COB_URL + '/storage/v1/object/' + BUCKET + '/' + path, { method: 'POST', headers: { apikey: service, Authorization: 'Bearer ' + service, 'Content-Type': mime, 'x-upsert': 'true' }, body: bytes });
+        if (!up.ok) return json(502, { error: 'No se pudo subir: ' + (await up.text()).slice(0, 150) });
+        const url = COB_URL + '/storage/v1/object/public/' + BUCKET + '/' + path;
+        const ins = await cob('comprobantes_vendedor', { method: 'POST', headers: { Prefer: 'return=representation' },
+          body: JSON.stringify({ vendedor: String(codigo), origen: 'planilla', url, mime, nombre: b.filename ? String(b.filename).slice(0, 80) : null, respondido: true }) });
+        const fila = (ins.ok ? await ins.json() : [])[0];
+        if (!fila) return json(500, { error: 'Se subió pero no se pudo registrar.' });
+        if (b.ultimo) await compVend.procesar();
+        return json(200, { ok: true, id: fila.id });
+      }
+      if (b.accion === 'comp-asignar' || b.accion === 'comp-descartar') {
+        if (!b.comp_id) return json(400, { error: 'Falta el comprobante.' });
+        const res = b.accion === 'comp-asignar'
+          ? (b.fila_id ? await compVend.asignar(cob, b.comp_id, b.fila_id, perfil.nombre || ('vendedor ' + codigo), codigo) : { error: 'Elegí la fila.', status: 400 })
+          : await compVend.descartar(cob, b.comp_id, perfil.nombre || ('vendedor ' + codigo), codigo);
+        return res.error ? json(res.status || 400, { error: res.error }) : json(200, res);
       }
 
       if (b.accion === 'enviar') {
@@ -247,7 +277,9 @@ exports.handler = async (event) => {
     const cuenta = async filtro => { const r = await cob('cuentas_cubo?select=codigo&vendedor=eq.' + encodeURIComponent(codigo) + filtro, { headers: { Prefer: 'count=exact', Range: '0-0' } }); return Number((r.headers.get('content-range') || '*/0').split('/')[1]) || 0; };
     const [nTot, nSL] = await Promise.all([cuenta(''), cuenta('&equipo=in.(SL,%22MAY%20SL%22)')]);
     const rinde = nSL * 2 > nTot ? 'Romina' : 'Administración';   // 16/11: Mónica y Juana, no solo "Moni"
-    return json(200, { fecha, nombre: perfil.nombre || null, filas: Array.isArray(filas) ? filas : [], totales: sumTotales(filas), envio: envArr[0] || null, rinde });
+    // Comprobantes que mandó por WhatsApp o subió juntos y todavía no encontraron su fila.
+    const sueltos = await compVend.sinAsignar(cob, String(codigo), null);
+    return json(200, { fecha, nombre: perfil.nombre || null, filas: Array.isArray(filas) ? filas : [], totales: sumTotales(filas), envio: envArr[0] || null, rinde, sueltos });
   } catch (e) {
     return json(500, { error: (e && e.message) || String(e) });
   }

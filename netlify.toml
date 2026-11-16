@@ -108,3 +108,10 @@
 # abrir una planilla. Ver manual-vendedores/netlify/functions/recibos-erp-background.js
 [functions."recibos-erp-cron"]
   schedule = "*/15 11-23 * * 1-6"
+
+# COMPROBANTES DE VENDEDORES por WhatsApp (16/11/2026). Los vendedores reenvían los
+# comprobantes al WhatsApp de GrandBar (en vez del grupo): de lunes a sábado, cada 2 min
+# de 8 a 20, la IA los lee y los engancha a la fila de su planilla. Si no hay nada nuevo
+# no hace nada. Ver manual-vendedores/netlify/functions/comprobantes-wa-background.js
+[functions."comprobantes-wa-cron"]
+  schedule = "*/2 11-23 * * 1-6"

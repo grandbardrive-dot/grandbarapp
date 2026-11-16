@@ -111,6 +111,15 @@
     .plan-add input{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit;font-size:13.5px;background:#fff;min-width:0}
     .plan-add #plAdd{grid-column:1/-1;justify-self:start}
     .plan-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+    .pl-comps{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;background:#f3f7fd;border:1px solid #c9d8ef;border-radius:12px;padding:10px 12px;margin:0 0 10px}
+    .pl-comps-txt{flex:1 1 320px;font-size:13px;line-height:1.45}
+    .pl-comps-txt a{color:#1f447f;font-weight:700}
+    .pl-suel{background:#fff;border:1px solid #c9d8ef;border-radius:12px;padding:10px 12px;margin:0 0 10px}
+    .pl-suel h4{margin:0 0 4px;font-size:14px;color:#1f447f}
+    .pl-suel-it{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 0;border-top:1px solid #e3ebf6;font-size:13px}
+    .pl-suel-it select{border:1px solid var(--line);border-radius:8px;padding:6px;font:inherit;font-size:13px;max-width:100%;flex:1 1 220px}
+    .pl-ia{display:block;font-size:10.5px;font-weight:700}
+    .pl-ia.ok{color:var(--green-d)} .pl-ia.mal{color:#b23120}
     .plan-tabla{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
     .plan-tabla th,.plan-tabla td{padding:9px 11px;border-bottom:1px solid var(--line-2);text-align:left}
     .plan-tabla th{background:var(--navy);color:#eaf0f4;font-size:11px;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0}
@@ -273,6 +282,15 @@
         <div class="plan-hint">💡 Si pagan en <b>varias transferencias</b>, <b>varios cheques</b> o <b>varios e-cheques</b>: escribí un importe y tocá <b>＋</b> al lado del campo para agregarlo; repetí con el siguiente. En cada <b>e-cheq</b> poné también <b>la fecha en que se cobra</b>, al lado del monto. Los <b>centavos</b> van con coma (ej: <code>1500,50</code>).</div>
         <div id="plChips"></div>
         <div id="plFacturas" class="plan-fact"></div>
+
+        <!-- Comprobantes sin buscar uno por uno (16/11/2026): se reenvían al WhatsApp de
+             GrandBar o se suben todos juntos, y el sistema los reparte solo por fila. -->
+        <div class="pl-comps">
+          <div class="pl-comps-txt"><b>📲 Comprobantes:</b> reenvialos todos al WhatsApp de GrandBar <a href="https://wa.me/5492614663448" target="_blank" rel="noopener">261 466-3448</a> (en vez del grupo) o subilos juntos acá: el sistema los lee y los engancha solo a cada fila.</div>
+          <button class="pl-file" id="plVariosBtn" onclick="document.getElementById('plFileVarios').click()">📎 Subir varios comprobantes</button>
+          <input type="file" id="plFileVarios" accept="image/*,application/pdf" multiple style="display:none">
+        </div>
+        <div id="plSueltos"></div>
 
         <div class="plan-wrap">
           <table class="plan-tabla">
@@ -582,6 +600,7 @@
     if(!_planIni){ _planIni=true;
       if(f) f.addEventListener("change", ()=>{ const p=document.getElementById("plFechaPago"); if(p) p.value=f.value; cargarPlanilla(); });
       const file=document.getElementById("plFile"); if(file) file.addEventListener("change", subirArchivoElegido);
+      const varios=document.getElementById("plFileVarios"); if(varios) varios.addEventListener("change", subirVarios);
       const cod=document.getElementById("plCodigo");
       if(cod){
         let tmr=null;
@@ -671,12 +690,18 @@
       if(j.rinde) RINDE=j.rinde;
       if(j.envio && j.envio.enviada_at){ est.className="plan-env ok"; est.textContent="✓ Enviada a "+RINDE+" el "+new Date(j.envio.enviada_at).toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+". Si cargás o cambiás filas, reenviala."; if(btn) btn.textContent="📤 Reenviar a "+RINDE; }
       else { est.className="plan-env"; est.textContent="Cuando termines de cargar, tocá \"Enviar a "+RINDE+"\"."; if(btn) btn.textContent="📤 Enviar a "+RINDE; }
+      plPintarSueltos(j.sueltos||[], filas);
       if(!filas.length){ body.innerHTML=`<tr><td colspan="14" style="text-align:center;padding:24px;color:var(--muted)">📋 No cargaste filas para este día. Agregá la primera arriba.</td></tr>`; foot.innerHTML=""; return; }
       const cel = (f,campo) => { const u=f[campo]; return u ? `<a class="pl-file" href="${esc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : `<button class="pl-file vacio" onclick="subirArchivo('${esc(String(f.id))}','${campo==='recepcion_url'?'recepcion':'comprobante'}')">📎 Cargar</button>`; };
       // Comprobantes: pueden ser VARIOS por fila.
       const celComp = (f) => {
         const arr=(f.comprobante_url?[{url:f.comprobante_url}]:[]).concat(Array.isArray(f.comprobantes)?f.comprobantes:[]);
-        const links=arr.map((c,i)=>`<a class="pl-file" href="${esc(c.url)}" target="_blank" rel="noopener" title="${esc((c&&c.nombre)||('comprobante '+(i+1)))}">👁${arr.length>1?(" "+(i+1)):""}</a>`).join(" ");
+        // Los que llegaron por WhatsApp o "subir varios" traen el importe que leyó el sistema.
+        const ms=["importe","efectivo","cheques","retenciones","transferencia","tarjeta","echeq"].map(k=>Number(f[k])||0)
+          .concat(f.transferencia_detalle||[], f.echeq_detalle||[], f.cheques_detalle||[]).map(Number).filter(x=>x>0);
+        const tagIA=c=>{ if(!c||c.monto_ia==null) return ""; const ok=ms.some(x=>Math.abs(x-Number(c.monto_ia))<=1);
+          return `<span class="pl-ia ${ok?"ok":"mal"}" title="${ok?"Coincide con lo que cargaste":"No coincide con ningún importe de esta fila: revisalo"}">${c.origen==="whatsapp"?"📲 ":""}${fmtMoney(c.monto_ia)}${ok?"":" ≠"}</span>`; };
+        const links=arr.map((c,i)=>`<span style="display:inline-block;text-align:center"><a class="pl-file" href="${esc(c.url)}" target="_blank" rel="noopener" title="${esc((c&&c.nombre)||('comprobante '+(i+1)))}">👁${arr.length>1?(" "+(i+1)):""}</a>${tagIA(c)}</span>`).join(" ");
         return `${links} <button class="pl-file vacio" onclick="subirArchivo('${esc(String(f.id))}','comprobante')" title="Agregar comprobante">📎${arr.length?" +":" Cargar"}</button>`;
       };
       body.innerHTML = filas.map(f=>`<tr>
@@ -786,6 +811,68 @@
       }
       if(subidos) cargarPlanilla();
     }catch(e){ alert("Error de conexión: "+(e.message||e)); if(subidos) cargarPlanilla(); }
+  }
+
+  // ── Comprobantes sin buscar uno por uno (16/11/2026) ──
+  // Los que mandó por WhatsApp o subió juntos y el sistema no supo a qué fila van: el
+  // vendedor elige la fila (de la fecha que tiene abierta) o lo descarta.
+  function plPintarSueltos(sueltos, filas){
+    const box=document.getElementById("plSueltos"); if(!box) return;
+    if(!sueltos.length){ box.innerHTML=""; return; }
+    const leyendo=sueltos.filter(c=>c.monto==null && c.estado!=="error").length;
+    box.innerHTML=`<div class="pl-suel">
+      <h4>📥 Comprobantes sin asignar (${sueltos.length})</h4>
+      <div style="font-size:12.5px;color:var(--muted)">${leyendo?`El sistema está leyendo ${leyendo}; en un minuto se acomodan solos. `:""}Si no encontró la fila, elegila vos${filas.length?"":" (cargá primero el cobro, o cambiá la fecha arriba si es de otro día)"}.</div>
+      ${sueltos.map(c=>`<div class="pl-suel-it">
+        <a class="pl-file" href="${esc(c.url)}" target="_blank" rel="noopener">👁 Ver</a>
+        <b>${c.monto!=null?fmtMoney(c.monto):(c.estado==="error"?"⚠️ no se leyó":"⏳ leyendo…")}</b>
+        <span>${esc(c.pagador||"")}${c.origen==="whatsapp"?" · 📲":""} · ${fmtFecha(c.recibido_at)}</span>
+        ${filas.length?`<select id="plS-${esc(c.id)}"><option value="">Elegí la fila…</option>${filas.map(f=>`<option value="${esc(String(f.id))}">${esc((f.codigo||"")+" · "+(f.razon_social||"")+" · "+fmtMoney(f.importe))}</option>`).join("")}</select>
+        <button class="pl-file" onclick="plCompAsignar('${esc(c.id)}',this)">Asignar</button>`:""}
+        <button class="pl-del" title="No va en la planilla" onclick="plCompDescartar('${esc(c.id)}',this)">✕</button>
+      </div>`).join("")}
+    </div>`;
+    // Mientras haya alguno leyéndose, se vuelve a mirar en un rato.
+    clearTimeout(window._plSuelT);
+    if(leyendo) window._plSuelT=setTimeout(cargarPlanilla, 30000);
+  }
+  async function plCompPost(body){
+    const r=await fetch("/.netlify/functions/planilla-cobranzas", { method:"POST", headers:{ Authorization:"Bearer "+token, "Content-Type":"application/json" }, body: JSON.stringify(body) });
+    const j=await r.json(); if(!j.ok) throw new Error(j.error||"error"); return j;
+  }
+  async function plCompAsignar(id, btn){
+    const sel=document.getElementById("plS-"+id); if(!sel||!sel.value){ alert("Elegí la fila."); return; }
+    btn.disabled=true; btn.textContent="Asignando…";
+    try{ await plCompPost({ accion:"comp-asignar", comp_id:id, fila_id:sel.value }); cargarPlanilla(); }
+    catch(e){ alert("No se pudo asignar: "+(e.message||e)); btn.disabled=false; btn.textContent="Asignar"; }
+  }
+  async function plCompDescartar(id, btn){
+    if(!confirm("¿Descartar este comprobante? No se carga en ninguna fila.")) return;
+    btn.disabled=true;
+    try{ await plCompPost({ accion:"comp-descartar", comp_id:id }); cargarPlanilla(); }
+    catch(e){ alert("No se pudo: "+(e.message||e)); btn.disabled=false; }
+  }
+  window.plCompAsignar=plCompAsignar; window.plCompDescartar=plCompDescartar;
+  // Subir varios juntos: se mandan de a uno y el último dispara la lectura con IA.
+  async function subirVarios(ev){
+    const files=Array.from(ev.target.files||[]).filter(f=>/^image\//.test(f.type)||f.type==="application/pdf"); ev.target.value="";
+    if(!files.length) return;
+    const btn=document.getElementById("plVariosBtn"), antes=btn.textContent; btn.disabled=true;
+    const b64De=file=>new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result).replace(/^data:[^,]*,/,"")); fr.onerror=rej; fr.readAsDataURL(file); });
+    let ok=0;
+    try{
+      for(let i=0;i<files.length;i++){
+        const file=files[i]; btn.textContent=`Subiendo ${i+1} de ${files.length}…`;
+        if(file.size>5*1024*1024){ alert(`"${file.name}" es muy grande (máx 5 MB), lo salteo.`); continue; }
+        try{ await plCompPost({ accion:"subir-suelto", file_base64:await b64De(file), mime:file.type, filename:file.name, ultimo:i===files.length-1 }); ok++; }
+        catch(e){ alert(`No se pudo subir "${file.name}": `+(e.message||e)); }
+      }
+    } finally { btn.disabled=false; btn.textContent=antes; }
+    if(ok){
+      // Si el último falló no se disparó la lectura: la toma el cron en 2 minutos.
+      cargarPlanilla();
+      alert(`✓ Subiste ${ok} comprobante${ok===1?"":"s"}. El sistema los lee y los engancha a cada fila en un minuto; los que no encuentre te aparecen arriba para que elijas la fila.`);
+    }
   }
 
   async function enviarPlanilla(){

@@ -1328,7 +1328,38 @@ async function cobPlanillaDet(vendedor, fecha) {
     };
     const arch = u => u ? `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener">👁 Ver</a>` : '<span style="color:var(--muted)">—</span>';
     // Comprobantes: pueden ser varios por fila.
-    const archComp = f => { const arr = (f.comprobante_url ? [{ url: f.comprobante_url }] : []).concat(Array.isArray(f.comprobantes) ? f.comprobantes : []); return arr.length ? arr.map((c, i) => `<a class="cb-b" href="${cesc(c.url)}" target="_blank" rel="noopener" style="margin:1px">👁${arr.length > 1 ? (' ' + (i + 1)) : ''}</a>`).join(' ') : '<span style="color:var(--muted)">—</span>'; };
+    // Los que llegaron por WhatsApp (o "subir varios") traen el importe que leyó la IA: en
+    // verde si coincide con algo declarado en la fila, en rojo si no (eso es lo que hay que mirar).
+    const montosFila = f => [f.importe, f.efectivo, f.cheques, f.retenciones, f.transferencia, f.tarjeta, f.echeq]
+      .concat(f.transferencia_detalle || [], f.echeq_detalle || [], f.cheques_detalle || []).map(Number).filter(x => x > 0);
+    const archComp = f => {
+      const arr = (f.comprobante_url ? [{ url: f.comprobante_url }] : []).concat(Array.isArray(f.comprobantes) ? f.comprobantes : []);
+      if (!arr.length) return '<span style="color:var(--muted)">—</span>';
+      const ms = montosFila(f);
+      return arr.map((c, i) => {
+        const ia = c.monto_ia != null ? Number(c.monto_ia) : null;
+        const ok = ia == null || ms.some(x => Math.abs(x - ia) <= 1);
+        const tag = ia == null ? '' : `<div title="${cesc((c.pagador ? 'Pagó: ' + c.pagador + '. ' : '') + (ok ? 'Coincide con lo declarado.' : 'No coincide con ningún importe de la fila.'))}" style="font-size:10px;font-weight:700;color:${ok ? 'var(--green-d,#245647)' : '#b23120'}">${c.origen === 'whatsapp' ? '📲 ' : ''}${cnum(ia)}${ok ? '' : ' ≠'}</div>`;
+        return `<span style="display:inline-block;text-align:center;margin:1px"><a class="cb-b" href="${cesc(c.url)}" target="_blank" rel="noopener">👁${arr.length > 1 ? (' ' + (i + 1)) : ''}</a>${tag}</span>`;
+      }).join(' ');
+    };
+    // Comprobantes del vendedor que no encontraron su fila: Moni elige la fila o los descarta.
+    const sueltos = d.sueltos || [];
+    const cajaSueltos = !sueltos.length ? '' : `
+      <div style="margin-top:12px;border:1px solid #c9d8ef;background:#f3f7fd;border-radius:12px;padding:10px 12px">
+        <div style="font-weight:800;color:#1f447f;margin-bottom:6px">📥 Comprobantes por WhatsApp sin asignar (${sueltos.length})</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Los mandó el vendedor y el sistema no encontró a qué fila van (o todavía no cargó ese cobro). ${cobSoloLectura() ? '' : 'Elegí la fila y tocá Asignar.'}</div>
+        ${sueltos.map(c => `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid #dfe8f5">
+          <a class="cb-b" href="${cesc(c.url)}" target="_blank" rel="noopener">👁 Ver</a>
+          <span style="font-weight:700">${c.monto != null ? cnum(c.monto) : (c.estado === 'error' ? '⚠️ no se leyó' : '⏳ leyendo…')}</span>
+          <span style="font-size:12px">${cesc(c.pagador || '')}${c.pagador_cuit ? ' · CUIT ' + cesc(c.pagador_cuit) : ''}${c.nombre ? ' · “' + cesc(c.nombre) + '”' : ''}</span>
+          <span style="font-size:11px;color:var(--muted)">recibido ${cfec(c.recibido_at)}${c.nota && c.estado === 'error' ? ' · ' + cesc(c.nota) : ''}</span>
+          ${cobSoloLectura() ? '' : `<select id="cs-${c.id}" style="border:1px solid #d7d7d7;border-radius:7px;padding:5px;font:inherit;font-size:12.5px;max-width:320px">
+              <option value="">Elegí la fila…</option>${filas.map(f => `<option value="${f.id}">${cesc((f.codigo || '') + ' · ' + (f.razon_social || '') + ' · ' + cnum(f.importe))}</option>`).join('')}</select>
+            <button type="button" onclick="cobCompAsignar('${c.id}',this)" style="background:#1f447f;color:#fff;border:0;border-radius:7px;padding:6px 10px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">Asignar</button>
+            <button type="button" onclick="cobCompDescartar('${c.id}',this)" title="No es un comprobante de esta planilla" style="background:#fff;border:1px solid #d7d7d7;border-radius:7px;padding:5px 9px;font:inherit;font-size:12px;cursor:pointer">Descartar</button>`}
+        </div>`).join('')}
+      </div>`;
     // N° de recibo: lo completa solo el sistema (recibos del ERP) o lo escribe Moni.
     const celRecibo = f => {
       const auto = f.recibo_auto && f.recibo;
@@ -1371,6 +1402,7 @@ async function cobPlanillaDet(vendedor, fecha) {
       ${cobSoloLectura()
         ? `<div class="wa-nota" style="margin-top:4px">Las filas tildadas en <b>Procesado</b> ya las pasó tesorería; debajo del tilde figura quién.</div>`
         : `<div class="wa-nota" style="margin-top:4px">Las filas <b style="color:#1f447f">celestes</b> son de clientes que cargaron el pago en su portal: cuando lo proceses, tocá <b>Aprobar en el portal</b> al final de la fila y queda aceptado para el cliente y la fila procesada (no hace falta ir a Revisión de cobranzas). El <b>N° de recibo</b> se completa solo cuando procesás el cobro en el sistema (puede tardar un par de minutos; si no aparece, lo podés escribir vos). Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Si un vendedor cargó mal un monto, <b>editalo directo en la celda</b> (los totales se recalculan solos); si una fila sobra (ej. cargada dos veces), eliminala con 🗑. Las que queden sin tildar son las que te faltan.</div>`}
+      ${cajaSueltos}
       <div style="overflow-x:auto;border:1px solid #e6e6e6;border-radius:12px;margin-top:12px">
       <table style="border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap">
         <thead><tr style="background:#0d2238;color:#eaf0f4">
@@ -1441,6 +1473,25 @@ async function cobPlanillaNumero(el) {
   } catch (e) {
     if (est) { est.style.color = '#b23120'; est.textContent = 'No se pudo guardar: ' + (e.message || e); }
   }
+}
+
+// Comprobante por WhatsApp sin fila: Moni lo asigna a una fila o lo descarta (16/11/2026).
+async function cobCompAsignar(compId, btn) {
+  const sel = cq('cs-' + compId);
+  if (!sel || !sel.value) { alert('Elegí primero la fila.'); return; }
+  btn.disabled = true; btn.textContent = 'Asignando…';
+  try {
+    await cobApi('', { method: 'POST', body: JSON.stringify({ accion: 'comp-asignar', comp_id: compId, fila_id: sel.value }) });
+    const p = window._plaDet || {}; cobPlanillaDet(p.vendedor, p.fecha);
+  } catch (e) { alert('No se pudo asignar: ' + (e.message || e)); btn.disabled = false; btn.textContent = 'Asignar'; }
+}
+async function cobCompDescartar(compId, btn) {
+  if (!confirm('¿Descartar este comprobante? No se va a cargar en ninguna fila.')) return;
+  btn.disabled = true;
+  try {
+    await cobApi('', { method: 'POST', body: JSON.stringify({ accion: 'comp-descartar', comp_id: compId }) });
+    const fila = btn.parentNode; if (fila) fila.remove();
+  } catch (e) { alert('No se pudo descartar: ' + (e.message || e)); btn.disabled = false; }
 }
 
 // Moni aprueba el pago del cliente en su portal desde la planilla (16/11/2026): acepta el
