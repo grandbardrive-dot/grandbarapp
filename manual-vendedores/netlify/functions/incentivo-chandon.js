@@ -42,19 +42,21 @@ const CONFIG = {
   clientes_excluidos: ['09689', '09627', '09690', '09691', '09692', '02068', '09687', '10012', '03600'],
 
   // Grupos, en el orden en que se muestran. mandatorio = se resalta.
+  // Objetivos y MANDATORIOS de NOVIEMBRE 2026 (planilla oficial Moët Hennessy "GRAND BAR
+  // NOVIEMBRE 26", región Centro & NOA). Mandatorios del mes: Extra Brut + Terrazas Reserva.
   grupos: [
-    { id: 'EB',   nombre: 'Extra Brut',       obj_unidades: 3100, obj_clientes: 98, mandatorio: false },
-    { id: 'DEL',  nombre: 'Delice',           obj_unidades: 2600, obj_clientes: 40, mandatorio: false },
-    { id: 'APE',  nombre: 'Aperitif',         obj_unidades: 300,  obj_clientes: 25, mandatorio: true  },
-    { id: 'BRO',  nombre: 'Brut Rose',        obj_unidades: 320,  obj_clientes: 26, mandatorio: false },
-    { id: 'DRO',  nombre: 'Delice Rose',      obj_unidades: 360,  obj_clientes: 20, mandatorio: false },
-    { id: 'BAR',  nombre: 'Baron B.',         obj_unidades: 900,  obj_clientes: 38, mandatorio: false },
-    { id: 'TOR',  nombre: 'Terrazas Origen',  obj_unidades: 54,   obj_clientes: 4,  mandatorio: false },
-    { id: 'TRE',  nombre: 'Terrazas Reserva', obj_unidades: 136,  obj_clientes: 18, mandatorio: false },
-    { id: 'ADP',  nombre: 'Altos del Plata',  obj_unidades: 120,  obj_clientes: 8,  mandatorio: false },
-    { id: 'L33',  nombre: 'Latitud 33',       obj_unidades: 3100, obj_clientes: 65, mandatorio: true  },
-    { id: 'HEN',  nombre: 'Hennessy',         obj_unidades: 7,    obj_clientes: 5,  mandatorio: false },
-    { id: 'L33S', nombre: 'Latitud 33 SPK',   obj_unidades: 420,  obj_clientes: 15, mandatorio: false },
+    { id: 'EB',   nombre: 'Extra Brut',       obj_unidades: 3500, obj_clientes: 105, mandatorio: true  },
+    { id: 'TRE',  nombre: 'Terrazas Reserva', obj_unidades: 120,  obj_clientes: 14,  mandatorio: true  },
+    { id: 'DRO',  nombre: 'Delice Rose',      obj_unidades: 300,  obj_clientes: 18,  mandatorio: false },
+    { id: 'DEL',  nombre: 'Delice',           obj_unidades: 1900, obj_clientes: 46,  mandatorio: false },
+    { id: 'APE',  nombre: 'Aperitif',         obj_unidades: 900,  obj_clientes: 36,  mandatorio: false },
+    { id: 'BRO',  nombre: 'Brut Rose',        obj_unidades: 300,  obj_clientes: 25,  mandatorio: false },
+    { id: 'L33',  nombre: 'Latitud 33',       obj_unidades: 2900, obj_clientes: 68,  mandatorio: false },
+    { id: 'L33S', nombre: 'Latitud 33 SPK',   obj_unidades: 520,  obj_clientes: 20,  mandatorio: false },
+    { id: 'BAR',  nombre: 'Baron B.',         obj_unidades: 840,  obj_clientes: 38,  mandatorio: false },
+    { id: 'TOR',  nombre: 'Terrazas Origen',  obj_unidades: 54,   obj_clientes: 5,   mandatorio: false },
+    { id: 'ADP',  nombre: 'Altos del Plata',  obj_unidades: 90,   obj_clientes: 8,   mandatorio: false },
+    { id: 'HEN',  nombre: 'Hennessy',         obj_unidades: 9,    obj_clientes: 6,   mandatorio: false },
   ],
 
   // SKU → grupo. Código del ERP con ceros a la izquierda (8 dígitos).
