@@ -143,6 +143,26 @@
   .vr .vn small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
   .vr .vtot{font-weight:900;font-size:19px;color:var(--navy)}
   .vr.cero{opacity:.55}
+  /* Torneo finalizado (Doña Paula, 16/11/2026) */
+  .fin{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--navy);border-radius:20px;padding:4px 11px}
+  .tcard .ganan{font-size:12.5px;color:var(--ink);line-height:1.45}
+  .tcard .ganan small{display:block;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+  .podio{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+  .podio .pp{border:1px solid var(--line);border-radius:14px;padding:13px 12px;background:#fff;text-align:center}
+  .podio .pp .pos{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;margin:0 auto 7px;font-weight:900;font-size:14px}
+  .podio .pp.p1 .pos{background:var(--gold);color:#241a06}
+  .podio .pp.p2 .pos{background:#c9ccd1;color:#2a2f35}
+  .podio .pp.p3 .pos{background:#d7a37c;color:#3a2412}
+  .podio .pp .pn{font-weight:800;font-size:13.5px;line-height:1.25}
+  .podio .pp .pt2{font-weight:900;font-size:19px;color:var(--navy);margin-top:4px}
+  .podio .pp .pt2 small{font-size:11px;color:var(--muted);font-weight:700}
+  .rk .vhead .pos{width:28px;height:28px;border-radius:50%;background:var(--cream);display:grid;place-items:center;font-weight:900;font-size:12.5px;flex:none}
+  .rk .vtot{font-weight:900;font-size:17px;color:var(--navy);white-space:nowrap}
+  .rk .vtot small{font-size:11px;color:var(--muted);font-weight:700}
+  .cpt{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--line-2)}
+  .cpt:last-child{border-bottom:0}
+  .cpt .cc{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-right:6px}
+  @media(max-width:560px){ .podio{gap:6px} .podio .pp{padding:10px 5px} .podio .pp .pos{width:28px;height:28px;font-size:12px} .podio .pp .pn{font-size:12px} .podio .pp .pt2{font-size:15px} }
 </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
@@ -162,7 +182,7 @@
       <h1>🎯 Incentivos</h1>
       <div class="who" id="who">Cargando…</div>
     </div>
-    <div class="intro">Acá ves <b>cómo vamos en los planes de los proveedores</b> contra el objetivo global de la empresa. Entrá a un proveedor para ver sus planes y el avance en detalle. Tenés la <b>Cobertura de Campari</b> y el <b>incentivo Q4 de Pernod Ricard</b>.</div>
+    <div class="intro">Acá ves <b>cómo vamos en los planes de los proveedores</b> contra el objetivo global de la empresa. Entrá a un proveedor para ver sus planes y el avance en detalle. Tenés la <b>Cobertura de Campari</b>, el <b>incentivo Q4 de Pernod Ricard</b> y los <b>resultados finales del Torneo Doña Paula</b>.</div>
     <div id="cont"><div class="loading">Cargando los planes…</div></div>
   </div>
   <nav class="botnav"></nav>
@@ -266,7 +286,37 @@
       </div></div>`;
   }
 
+  // Torneo finalizado (Doña Paula, 16/11/2026): podio y ranking final de cada sucursal;
+  // tocando un vendedor se ve el detalle de sus puntos.
+  const fN = n => Math.round(Number(n)||0).toLocaleString('es-AR');
+  function planTorneoHTML(p){
+    const cats = p.cats && p.cats.length ? p.cats : ['Acciones','Volumen','Activaciones'];
+    const suc = (p.sucursales||[]).map(s=>{
+      const rk = s.ranking||[];
+      if(!rk.length) return '';
+      const podio = rk.slice(0,3).map(v=>`<div class="pp p${v.puesto}"><div class="pos">${v.puesto}°</div><div class="pn">${esc(v.nombre)}</div><div class="pt2">${fN(v.total)} <small>pts</small></div></div>`).join('');
+      const filas = rk.map(v=>{
+        const resumen = cats.map(c=>c+' '+fN((v.cats||{})[c])).join(' · ');
+        const det = (v.conceptos||[]).map(x=>`<div class="cpt"><span><span class="cc">${esc(x.categoria)}</span>${esc(x.concepto)}</span><b>${fN(x.puntos)}</b></div>`).join('');
+        return `<div class="vrow"><div class="vhead" onclick="this.parentNode.classList.toggle('open')">
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+            <div class="pos">${v.puesto}</div>
+            <div class="vn">${esc(v.nombre)}<div class="vmeta">${esc(resumen)}</div></div>
+            <div class="vtot">${fN(v.total)} <small>pts</small></div></div>
+          <div class="vbody">${det||'<div class="vmeta" style="padding:10px 0">Sin detalle.</div>'}</div></div>`;
+      }).join('');
+      return `<div class="secT">${esc(s.nombre)} <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)">· ${rk.length} vendedores · tocá uno para ver sus puntos</span></div>
+        <div class="podio">${podio}</div><div class="rk">${filas}</div>`;
+    }).join('');
+    return `<div class="plan"><div class="body">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px"><span class="fin">Finalizado</span>
+          <span class="corte" style="margin:0">Resultados cerrados el ${esc(fFechaCorte(p.cerrado||''))}</span></div>
+        <div class="obj" style="margin-top:8px">Puntos oficiales que cargó Administración en tres categorías: <b>acciones</b>, <b>volumen</b> y <b>activaciones</b>. El ranking es por sucursal.</div>
+        ${suc||'<div class="empty">No hay resultados cargados.</div>'}
+      </div></div>`;
+  }
   function planDetailHTML(p){
+    if(p.sucursales) return planTorneoHTML(p);
     if(p.porMarca) return plan5THTML(p);
     if(p.objetivos) return planObjetivosHTML(p);
     const prods = (p.productos||[]);
@@ -287,7 +337,18 @@
       </div></div>`;
   }
 
+  // Primero de cada sucursal (para las tarjetas del torneo finalizado).
+  const ganadores = p => (p.sucursales||[]).filter(s=>(s.ranking||[]).length).map(s=>`<b>${esc(s.ranking[0].nombre)}</b> en ${esc(s.nombre)}`).join(' · ');
   function provCard(prov){
+    if(prov.finalizado){
+      const p=(prov.planes||[])[0]||{};
+      return `<button class="tcard" onclick="irProv('${esc(prov.id)}')">
+        <div class="th"><div class="logo" style="background:${esc(prov.color||'#0d2230')}">${esc(prov.nombre[0])}</div>
+          <div><div class="nm">${esc(prov.nombre)}</div><div class="sub">${esc(p.nombre||'')}</div></div></div>
+        <div class="ganan"><small>Ganadores</small>${ganadores(p)||'—'}</div>
+        <div class="foot"><span class="fin">Finalizado</span><span class="go">Ver resultados ›</span></div>
+      </button>`;
+    }
     const pct=provPct(prov), n=(prov.planes||[]).length;
     return `<button class="tcard" onclick="irProv('${esc(prov.id)}')">
       <div class="th"><div class="logo" style="background:${esc(prov.color||'#0d2230')}">${esc(prov.nombre[0])}</div>
@@ -296,6 +357,15 @@
     </button>`;
   }
   function planCard(prov,p){
+    if(p.finalizado){
+      return `<button class="tcard" onclick="irPlan('${esc(prov.id)}','${esc(p.id)}')">
+        <div class="th"><div class="logo" style="background:${esc(prov.color||'#0d2230')}">${esc(prov.nombre[0])}</div>
+          <div><div class="nm">${esc(p.nombre)}</div><div class="sub">${esc(prov.nombre)}</div></div></div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.4">${esc(p.detalle)}</div>
+        <div class="ganan"><small>Ganadores</small>${ganadores(p)||'—'}</div>
+        <div class="foot"><span class="fin">Finalizado</span><span class="go">Ver resultados ›</span></div>
+      </button>`;
+    }
     const sub = p.porMarca
       ? (p.universo ? `${p.universo} clientes · ${p.completos} completos` : 'sin clientes en el plan')
       : `${p.avanceTotal||0} de ${p.targetTotal||0} · objetivo global`;

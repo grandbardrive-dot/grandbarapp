@@ -11,6 +11,8 @@
 //      vendedores) + Sheet 5T (el mismo que lee la visita).
 //    - Pernod Ricard · "Q4 2026 · Clientes con compra": por objetivo (marca×canal)
 //      meta/logrado/cerca/promo + por vendedor. Fuente: incentivos_snapshots.
+//    - Doña Paula · "Torneo Doña Paula" (FINALIZADO 16/11/2026): ranking final por sucursal.
+//      Fuente: incentivos_snapshots (DP_TORNEO_2026), foto de la planilla de Administración.
 //   Env: HUB_SERVICE_ROLE (o token del usuario).
 // ============================================================
 
@@ -214,6 +216,22 @@ exports.handler = async (event) => {
           corte: d.corte || snap.corte,
           objetivos, vendedores,
           targetTotal: metaTotal, avanceTotal: logradoTotal, pct: pct(logradoTotal, metaTotal),
+        }] });
+      }
+    } catch (e) {}
+
+    // ---- Doña Paula · Torneo (FINALIZADO, 16/11/2026) ----
+    // Resultado final guardado en incentivos_snapshots (DP_TORNEO_2026), sacado de la planilla
+    // oficial de Administración el día que terminó: ya no depende del archivo de Drive.
+    // Ranking por sucursal, igual para todos (antes lo veían así vendedores y supervisores).
+    try {
+      const snap = (await (await hub('incentivos_snapshots?incentivo=eq.DP_TORNEO_2026&select=corte,data')).json())[0];
+      if (snap && snap.data) {
+        const d = snap.data;
+        proveedores.push({ id: 'donapaula', nombre: 'Doña Paula', color: '#6B1F2A', finalizado: true, planes: [{
+          id: 'torneo', nombre: d.nombre || 'Torneo Doña Paula', finalizado: true,
+          detalle: 'Terminó. Resultados finales por sucursal con los puntos que cargó Administración: acciones, volumen y activaciones.',
+          cerrado: d.cerrado || snap.corte, cats: d.cats || [], sucursales: d.sucursales || [],
         }] });
       }
     } catch (e) {}
