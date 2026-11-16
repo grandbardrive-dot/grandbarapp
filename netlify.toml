@@ -94,6 +94,14 @@
 [functions."incentivo-pernod-cron"]
   schedule = "10 9 * * *"
 
+# INCENTIVO PEÑAFLOR: cada mañana (06:20 ART = 09:20 UTC) recalcula el avance (Volumen por
+# línea + Clientes con compra por canal), asignado por cartera vigente, leyendo las ventas que
+# ya sincronizan (no llama al ERP) y escribe el snapshot que muestra la sección Incentivos.
+# El objetivo por vendedor está en las tablas penaflor_obj_* (se carga 1×/mes).
+# Ver manual-vendedores/netlify/functions/penaflor-cron.js
+[functions."penaflor-cron"]
+  schedule = "20 9 * * *"
+
 # RECIBOS del ERP → planillas de rendición (16/11/2026). De lunes a sábado, cada 15 min de
 # 8 a 20 (11 a 23 UTC), trae los recibos nuevos y completa solo el N° de recibo de cada
 # fila (antes Moni lo escribía a mano en Observaciones). El panel también la dispara al

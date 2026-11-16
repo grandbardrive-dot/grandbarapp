@@ -188,7 +188,7 @@
       <h1>🎯 Incentivos</h1>
       <div class="who" id="who">Cargando…</div>
     </div>
-    <div class="intro" id="intro">Acá ves <b>cómo vamos en los planes de los proveedores</b> contra el objetivo global de la empresa. Entrá a un proveedor para ver sus planes y el avance en detalle. Tenés la <b>Cobertura de Campari</b>, el <b>incentivo Q4 de Pernod Ricard</b>, el <b>Plan Chandon del mes</b> y los <b>resultados finales del Torneo Doña Paula</b>.</div>
+    <div class="intro" id="intro">Acá ves <b>cómo vamos en los planes de los proveedores</b> contra el objetivo global de la empresa. Entrá a un proveedor para ver sus planes y el avance en detalle. Tenés el <b>objetivo Peñaflor</b> (Volumen + Clientes con compra), la <b>Cobertura de Campari</b>, el <b>incentivo Q4 de Pernod Ricard</b>, el <b>Plan Chandon del mes</b> y los <b>resultados finales del Torneo Doña Paula</b>.</div>
     <div id="cont"><div class="loading">Cargando los planes…</div></div>
   </div>
   <nav class="botnav bottomnav"></nav>
@@ -306,6 +306,27 @@
     if(pm) pm.style.display = which==='pm'?'':'none';
   };
 
+  // Plan Peñaflor (Volumen o CCC): anillo de cumplimiento + barra por línea/canal, y el
+  // detalle del nivel (por vendedor / por cuenta / por equipo según el portal).
+  function planPenaflorHTML(p){
+    const w = v => Math.max(0, Math.min(100, Number(v)||0));
+    const esCcc = p.unidad==='clientes';
+    const bars=(p.barras||[]).map(b=>`<div class="bar"><div class="bt"><span class="nm">${esc(b.nombre)}</span><span class="vl"><b>${b.av}</b>/${b.obj} · ${b.pct}%</span></div>
+      <div class="track"><div class="fill ${clasePct(b.pct)}" style="width:${w(b.pct)}%"></div></div></div>`).join('');
+    const bigN = esCcc ? (p.cccAv||0) : (p.avanceTotal||0);
+    const bigL = esCcc ? ('clientes de '+(p.cccObj||0)+' · avance total') : ('botellas de '+(p.targetTotal||0)+' · avance total');
+    const filas=(p.det&&p.det.filas)||[];
+    const det = filas.length ? `<div class="secT">${esc(p.det.titulo)}</div><div class="vlist">`+filas.map(f=>`<div class="vr ${f.av?'':'cero'}"><div class="vn"><b>${esc(f.nombre)}</b><small>${f.av} de ${f.obj}${esCcc?' clientes':' botellas'}</small></div><div style="display:flex;align-items:center;gap:10px"><div class="vmini"><div class="track"><div class="fill ${clasePct(f.pct)}" style="width:${w(f.pct)}%"></div></div></div><div class="vpct">${f.pct}%</div></div></div>`).join('')+'</div>' : '';
+    return `<div class="plan"><div class="body">
+        ${p.corte?`<div class="corte">📅 Mes corriente · al ${esc(fFechaCorte(p.corte))}</div>`:''}
+        <div class="hero">${ring(p.pct)}<div class="heroR">
+            <div class="stat"><span class="n">${bigN}</span><span class="l">${esc(bigL)}</span></div>
+            <div class="obj">🎯 <b>Objetivo vs. ventas.</b> ${esc(p.detalle||'')}</div>
+        </div></div>
+        <div class="secT">${esCcc?'Por canal':'Por línea'}</div>${bars}${det}
+      </div></div>`;
+  }
+
   // Plan Chandon: surtido (unidades) + clientes con compra, por grupo de productos.
   // Objetivo global de la empresa del mes corriente; no se separa por vendedor.
   function planChandonHTML(p){
@@ -362,6 +383,7 @@
       </div></div>`;
   }
   function planDetailHTML(p){
+    if(p.tipo==='penaflor') return planPenaflorHTML(p);
     if(p.sucursales) return planTorneoHTML(p);
     if(p.porMarca) return plan5THTML(p);
     if(p.objetivos) return planObjetivosHTML(p);
@@ -396,7 +418,7 @@
         <div class="foot"><span class="fin">Finalizado</span><span class="go">Ver resultados ›</span></div>
       </button>`;
     }
-    const pct=provPct(prov), n=(prov.planes||[]).length;
+    const pct=(prov.cardPct!=null?prov.cardPct:provPct(prov)), n=(prov.planes||[]).length;
     return `<button class="tcard" onclick="irProv('${esc(prov.id)}')">
       <div class="th"><div class="logo" style="background:${esc(prov.color||'#0d2230')}">${esc(prov.nombre[0])}</div>
         <div><div class="nm">${esc(prov.nombre)}</div><div class="sub">${n} ${n===1?'plan':'planes'}</div></div></div>
@@ -413,7 +435,9 @@
         <div class="foot"><span class="fin">Finalizado</span><span class="go">Ver resultados ›</span></div>
       </button>`;
     }
-    const sub = p.porMarca
+    const sub = p.tipo==='penaflor'
+      ? (p.unidad==='clientes' ? `${p.cccAv||0} de ${p.cccObj||0} clientes` : `${p.avanceTotal||0} de ${p.targetTotal||0} botellas`)
+      : p.porMarca
       ? (p.universo ? `${p.universo} clientes · ${p.completos} completos` : 'sin clientes en el plan')
       : `${p.avanceTotal||0} de ${p.targetTotal||0} · objetivo global`;
     return `<button class="tcard" onclick="irPlan('${esc(prov.id)}','${esc(p.id)}')">
@@ -461,8 +485,12 @@
   function render(d){
     DATA=d; setHeader(d);
     if(d.alcance==='vendedor'){
-      const i=document.getElementById('intro'); if(i) i.innerHTML='Acá están los <b>resultados finales del Torneo Doña Paula</b>: el ranking de cada sucursal y los puntos de cada vendedor. Tocá un nombre para ver el detalle.';
-      if(!location.hash && (d.proveedores||[]).length) history.replaceState(null,'','#donapaula/torneo');
+      const provs=d.proveedores||[]; const soloTorneo = provs.length===1 && provs[0].id==='donapaula';
+      const i=document.getElementById('intro');
+      if(i) i.innerHTML = soloTorneo
+        ? 'Acá están los <b>resultados finales del Torneo Doña Paula</b>: el ranking de cada sucursal y los puntos de cada vendedor. Tocá un nombre para ver el detalle.'
+        : 'Acá ves <b>cómo vas con tus objetivos</b>. Entrá a <b>Peñaflor</b> para ver tu avance de Volumen y Clientes con compra, y a <b>Doña Paula</b> para los resultados finales del torneo.';
+      if(!location.hash && soloTorneo) history.replaceState(null,'','#donapaula/torneo');
     }
     renderView();
   }

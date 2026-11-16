@@ -124,6 +124,71 @@ async function torneoDP(hub) {
   } catch (e) { return null; }
 }
 
+// Peñaflor · Volumen (botellas) + Clientes con compra (CCC). Objetivo por vendedor en las
+// tablas penaflor_obj_* (carga mensual); avance diario calculado por penaflor-background y
+// guardado en incentivos_snapshots. Cada portal ve SU nivel (suma de vendedores = equipo =
+// total; cada venta una sola vez):
+//   vendedor → lo suyo · supervisor → su equipo (detalle por vendedor) ·
+//   Compras (Luciana) → Distribución (detalle por cuenta) · Dirección → total (detalle por equipo).
+const PF_EQNOM = { ON: 'Equipo ON', OFF: 'Equipo OFF', SL: 'San Luis', DIST: 'Distribución' };
+async function penaflor(hub, perfil) {
+  const rol = String(perfil.rol || '').toLowerCase();
+  const cod = perfil.codigo_vendedor != null ? String(perfil.codigo_vendedor) : null;
+  const esSup = !!perfil.es_supervisor;
+  const hoy = new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10);
+  const incentivo = 'PENAFLOR_' + hoy.slice(0, 7).replace('-', '_');
+  const snap = (await (await hub('incentivos_snapshots?incentivo=eq.' + incentivo + '&select=corte,data,updated_at')).json())[0];
+  if (!snap || !snap.data || !Array.isArray(snap.data.vendedores)) return null;
+  const d = snap.data, barras = d.barras || [], canales = d.canales || [], all = d.vendedores;
+  const pI = (a, t) => t > 0 ? Math.round(100 * a / t) : 0;
+
+  let subset = [], detalle = 'none', nivel = '';
+  if (rol === 'compras') { subset = all.filter(v => v.equipo === 'DIST'); detalle = 'vendedor'; nivel = 'Distribución'; }
+  else if (esSup) {
+    const yo = all.find(v => v.codigo === cod); const eq = yo ? yo.equipo : null;
+    if (!eq) return null;
+    subset = all.filter(v => v.equipo === eq); detalle = 'vendedor'; nivel = PF_EQNOM[eq] || eq;
+  } else if (['direccion', 'admin', 'diseno', 'torneo', 'desarrollo'].includes(rol)) {
+    subset = all; detalle = 'equipo'; nivel = 'Toda la empresa';
+  } else if (rol === 'ventas' || rol === 'mayorista') {
+    subset = all.filter(v => v.codigo === cod); detalle = 'none'; nivel = 'Tu objetivo';
+  } else return null;
+  if (!subset.length) return null;
+
+  const barraSuma = (keys, metric) => keys.map(k => {
+    let obj = 0, av = 0; subset.forEach(v => { const o = (v[metric] && v[metric][k]) || {}; obj += o.obj || 0; av += o.av || 0; });
+    return { nombre: k, obj, av, pct: pI(av, obj) };
+  });
+  const volBar = barraSuma(barras, 'vol'), cccBar = barraSuma(canales, 'ccc');
+  const volA = volBar.reduce((a, x) => a + x.av, 0), volT = volBar.reduce((a, x) => a + x.obj, 0);
+  const cccA = cccBar.reduce((a, x) => a + x.av, 0), cccT = cccBar.reduce((a, x) => a + x.obj, 0);
+
+  const filasVend = metric => subset.map(v => {
+    let obj = 0, av = 0; (metric === 'vol' ? barras : canales).forEach(k => { const o = (v[metric] && v[metric][k]) || {}; obj += o.obj || 0; av += o.av || 0; });
+    return { nombre: v.nombre, av, obj, pct: pI(av, obj) };
+  }).sort((a, b) => b.pct - a.pct || b.av - a.av);
+  const filasEq = metric => {
+    const g = {}; subset.forEach(v => { const e = v.equipo; g[e] = g[e] || { obj: 0, av: 0 }; (metric === 'vol' ? barras : canales).forEach(k => { const o = (v[metric] && v[metric][k]) || {}; g[e].obj += o.obj || 0; g[e].av += o.av || 0; }); });
+    return Object.entries(g).map(([e, x]) => ({ nombre: PF_EQNOM[e] || e, av: x.av, obj: x.obj, pct: pI(x.av, x.obj) })).sort((a, b) => b.av - a.av);
+  };
+  const det = metric => detalle === 'vendedor' ? filasVend(metric) : (detalle === 'equipo' ? filasEq(metric) : null);
+  const detTit = detalle === 'vendedor' ? (nivel === 'Distribución' ? 'Por cuenta' : 'Por vendedor') : (detalle === 'equipo' ? 'Por equipo' : '');
+
+  const planVol = {
+    id: 'volumen', tipo: 'penaflor', nombre: 'Volumen', unidad: 'botellas',
+    detalle: 'Botellas vendidas vs. objetivo, por línea de producto.',
+    corte: d.corte, barras: volBar, avanceTotal: volA, targetTotal: volT, pct: pI(volA, volT),
+    det: { titulo: detTit, filas: det('vol') },
+  };
+  const planCcc = {
+    id: 'ccc', tipo: 'penaflor', nombre: 'Clientes con compra', unidad: 'clientes',
+    detalle: 'Clientes que compraron Peñaflor vs. objetivo, por canal.',
+    corte: d.corte, barras: cccBar, pct: pI(cccA, cccT), cccAv: cccA, cccObj: cccT,
+    det: { titulo: detTit, filas: det('ccc') },
+  };
+  return { id: 'penaflor', nombre: 'Peñaflor', color: '#7A1F2B', cardPct: pI(volA, volT), nivel, actualizado: d.actualizado, planes: [planVol, planCcc] };
+}
+
 exports.handler = async (event) => {
   try {
     const hubService = process.env.HUB_SERVICE_ROLE;
@@ -142,10 +207,12 @@ exports.handler = async (event) => {
     // Vendedores (16/11/2026, pedido del usuario): ven SOLO los resultados finales del Torneo
     // Doña Paula; los planes de Campari y Pernod siguen siendo de supervisores y Dirección.
     if (!esSup && !VER_TODO.includes(rol)) {
-      if (rol !== 'ventas') return json(403, { error: 'Solo para supervisores y Dirección/Marketing.' });
+      if (rol !== 'ventas' && rol !== 'mayorista') return json(403, { error: 'Solo para supervisores y Dirección/Marketing.' });
       const tp = await torneoDP(hub);
+      const pf = await penaflor(hub, perfil).catch(() => null);
+      const provs = []; if (pf) provs.push(pf); if (tp) provs.push(tp);
       return json(200, { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: 'vendedor', codigo: perfil.codigo_vendedor || null,
-        generado: new Date().toISOString(), proveedores: tp ? [tp] : [] });
+        generado: new Date().toISOString(), proveedores: provs });
     }
 
     // Equipo (para el Plan 5T): supervisor = vendedores de su región + canal; el resto = todos.
@@ -213,6 +280,9 @@ exports.handler = async (event) => {
         }] });
       }
     } catch (e) {}
+
+    // ---- Peñaflor · Volumen + Clientes con compra (snapshot diario, por nivel) ----
+    try { const pf = await penaflor(hub, perfil); if (pf) proveedores.push(pf); } catch (e) {}
 
     // ---- Chandon · Plan mes corriente (surtido + clientes con compra por grupo) ----
     // Objetivo GLOBAL de la empresa, Mendoza + San Luis juntos (NO se separa por vendedor).
