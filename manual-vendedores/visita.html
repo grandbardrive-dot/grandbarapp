@@ -1547,17 +1547,12 @@ body { background:transparent !important; }
     <div class="historial-label">Visitas anteriores</div>
     <div id="hist-list"><div class="hist-empty">Cargando…</div></div>
 
-    <!-- Facturas del cliente (cuenta corriente) + descarga, como en el portal del cliente -->
-    <details class="fact-vend" style="margin-top:8px;border:1px solid var(--border,#e6e6e6);border-radius:14px;overflow:hidden;background:var(--surface,#fff)" ontoggle="if(this.open) cargarFacturasVend()">
-      <summary style="cursor:pointer;padding:12px 14px;font-weight:700;list-style:none;display:flex;align-items:center;gap:8px">📄 Facturas del cliente <span style="margin-left:auto;color:#8a8a8a;font-size:12px">ver / descargar</span></summary>
-      <div id="fv-body" style="padding:6px 14px 12px;max-height:420px;overflow-y:auto"><div style="color:#888;font-size:13px">Tocá para ver las facturas con saldo y las ya pagadas.</div></div>
-    </details>
-
-    <!-- Lo que dicen sus compras (27/10/2026): sale de lo facturado en CUBO (cliente_inteligencia).
-         Abierto de entrada: es lo primero que conviene mirar antes de entrar al local. -->
+    <!-- Oportunidades de venta (27/10/2026; desde el 16/11 SOLO oportunidades: sin montos de venta,
+         sin "por tipo" y sin facturas, pedido del usuario). Sale de lo facturado en CUBO
+         (cliente_inteligencia). Abierto de entrada: es lo primero que conviene mirar. -->
     <div class="ficha-acord" id="compras-ficha" style="display:none">
       <button class="ficha-acord-btn" onclick="toggleAcord('compras-acord','compras-chev')">
-        <span class="ficha-acord-title">📊 Lo que dicen sus compras</span>
+        <span class="ficha-acord-title">📊 Oportunidades de venta</span>
         <div class="ficha-acord-meta" id="compras-meta"></div>
         <span class="ficha-acord-chev open" id="compras-chev">▼</span>
       </button>
@@ -2857,25 +2852,9 @@ body { background:transparent !important; }
     const d = _cmp, box = document.getElementById('compras-ficha'), det = document.getElementById('compras-det'), meta = document.getElementById('compras-meta');
     if (!d || !box || !det) return;
     box.style.display = '';
-    if (!d.venta_12m && !d.venta_12m_anterior) {
-      meta.innerHTML = '';
-      det.innerHTML = '<div class="cmp-nota" style="margin-top:0">No tiene compras de productos en CUBO en los últimos dos años.</div>';
-      return;
-    }
-    // Frenado: hace más del doble de lo que suele tardar entre compras (y más de un mes), o
-    // más de 3 meses si en el año compró una vez o ninguna.
-    const frenado = d.dias_sin_comprar != null && (d.cada_dias ? d.dias_sin_comprar > Math.max(30, 2 * d.cada_dias) : d.dias_sin_comprar > 90);
-    meta.innerHTML = frenado ? `<span class="cmp-meta cmp-down">Sin compras ${cmpHace(d.dias_sin_comprar)}</span>`
-      : (d.venta_90_anterior ? `<span class="cmp-meta">${cmpVar(d.venta_90, d.venta_90_anterior)}</span>` : '');
-    let h = frenado ? `<div class="cmp-alerta">${d.cada_dias ? 'Suele comprar cada ~' + d.cada_dias + ' días y la' : 'La'} última compra fue ${cmpHace(d.dias_sin_comprar)} (${cmpFecha(d.ultima_compra)}).</div>` : '';
-    h += '<div class="cmp-kpis">'
-      + `<div class="cmp-kpi"><div class="k">Últimos 90 días</div><div class="v">${cmp$(d.venta_90)}</div><div class="s">${d.venta_90_anterior ? cmpVar(d.venta_90, d.venta_90_anterior) + ' vs. año pasado' : 'hace un año no compraba'}</div></div>`
-      + `<div class="cmp-kpi"><div class="k">Compra</div><div class="v">${d.cada_dias ? 'cada ~' + d.cada_dias + ' d' : d.pedidos_12m ? d.pedidos_12m + ' vez' : '—'}</div><div class="s">${d.ultima_compra ? 'última: ' + cmpHace(d.dias_sin_comprar) : ''}</div></div>`
-      + `<div class="cmp-kpi"><div class="k">Pedido promedio</div><div class="v">${d.ticket_promedio ? cmp$(d.ticket_promedio) : '—'}</div><div class="s">${d.pedidos_12m || 0} pedido${d.pedidos_12m === 1 ? '' : 's'} en 12 meses</div></div>`
-      + '</div>';
-    const tipos = d.por_tipo || [];
-    if (tipos.length) h += '<div class="cmp-tit">Últimos 12 meses, por tipo</div>'
-      + tipos.map(t => `<div class="cmp-tipo"><span class="n">${esc(t.nombre)}</span><span class="m">${cmp$(t.venta_12m)}</span><span class="p">${t.venta_12m_anterior ? cmpVar(t.venta_12m, t.venta_12m_anterior) : '<span class="cmp-up">nuevo</span>'}</span></div>`).join('');
+    // Solo oportunidades (16/11/2026): nada de montos, frecuencia, pedido promedio ni "por tipo".
+    meta.innerHTML = '';
+    let h = '';
     // Cada lista muestra 4 y "Ver los N" abre el resto.
     const lista = (k, items, linea) => items.slice(0, _cmpTodo[k] ? items.length : 4).map((p, i) =>
         `<div class="cmp-li"><div class="t"><b>${esc(p.nombre)}</b><span>${linea(p)}</span></div>`
@@ -2891,7 +2870,8 @@ body { background:transparent !important; }
       h += `<div class="cmp-tit">Lo compran ${esc(quienes)}</div><div class="cmp-sub">De los ${d.pares} que compraron en los últimos 4 meses. Este cliente no lo compró en un año y medio. Hay stock.</div>`
         + lista('p', par, p => `Lo compran ${p.clientes} (${p.pct}%) · unas ${Number(p.unidades_prom || 0).toLocaleString('es-AR')} u. cada uno en 4 meses`);
     }
-    h += '<div class="cmp-nota">Lo facturado en CUBO, sin IVA: vinos, espirituosas, cervezas, bebidas sin alcohol y cafés. Se actualiza cada 20 minutos.</div>';
+    if (!dejo.length && !par.length) h = '<div class="cmp-nota" style="margin-top:0">Por ahora no hay oportunidades para este cliente: no dejó de pedir nada de lo que compraba y ya compra lo que llevan los clientes parecidos.</div>';
+    h += '<div class="cmp-nota">Sale de lo facturado en CUBO. Se actualiza cada 20 minutos.</div>';
     det.innerHTML = h;
   }
 
