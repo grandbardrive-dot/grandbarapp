@@ -214,6 +214,20 @@ exports.handler = async (event) => {
       }
     } catch (e) {}
 
+    // ---- Chandon · Plan mes corriente (surtido + clientes con compra por grupo) ----
+    // Objetivo GLOBAL de la empresa, Mendoza + San Luis juntos (NO se separa por vendedor).
+    // Lee las ventas del mes directo del Manual (no llama al ERP), igual que la Cobertura Campari.
+    try {
+      const { calcularChandon, PROVEEDOR } = require('./incentivo-chandon.js');
+      const ch = await calcularChandon({});
+      if (ch && Array.isArray(ch.grupos) && ch.grupos.length) {
+        ch.avanceTotal = ch.grupos.reduce((a, g) => a + (g.surtido.avance || 0), 0);
+        ch.targetTotal = ch.grupos.reduce((a, g) => a + (g.surtido.objetivo || 0), 0);
+        ch.pct = pct(ch.avanceTotal, ch.targetTotal);
+        proveedores.push({ id: PROVEEDOR.id, nombre: PROVEEDOR.nombre, color: PROVEEDOR.color, planes: [ch] });
+      }
+    } catch (e) {}
+
     // ---- Doña Paula · Torneo (finalizado) ----
     const tp = await torneoDP(hub);
     if (tp) proveedores.push(tp);

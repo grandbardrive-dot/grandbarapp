@@ -188,7 +188,7 @@
       <h1>🎯 Incentivos</h1>
       <div class="who" id="who">Cargando…</div>
     </div>
-    <div class="intro" id="intro">Acá ves <b>cómo vamos en los planes de los proveedores</b> contra el objetivo global de la empresa. Entrá a un proveedor para ver sus planes y el avance en detalle. Tenés la <b>Cobertura de Campari</b>, el <b>incentivo Q4 de Pernod Ricard</b> y los <b>resultados finales del Torneo Doña Paula</b>.</div>
+    <div class="intro" id="intro">Acá ves <b>cómo vamos en los planes de los proveedores</b> contra el objetivo global de la empresa. Entrá a un proveedor para ver sus planes y el avance en detalle. Tenés la <b>Cobertura de Campari</b>, el <b>incentivo Q4 de Pernod Ricard</b>, el <b>Plan Chandon del mes</b> y los <b>resultados finales del Torneo Doña Paula</b>.</div>
     <div id="cont"><div class="loading">Cargando los planes…</div></div>
   </div>
   <nav class="botnav bottomnav"></nav>
@@ -306,6 +306,31 @@
     if(pm) pm.style.display = which==='pm'?'':'none';
   };
 
+  // Plan Chandon: surtido (unidades) + clientes con compra, por grupo de productos.
+  // Objetivo global de la empresa del mes corriente; no se separa por vendedor.
+  function planChandonHTML(p){
+    const g = p.grupos||[]; const r = p.resumen||{};
+    const w = v => Math.max(0, Math.min(100, Number(v)||0));
+    const filas = g.map(x=>{
+      const s=x.surtido||{}, c=x.clientes||{};
+      const star = x.mandatorio ? '<span title="Mandatorio" style="color:var(--gold-d)">★</span> ' : '';
+      return `<div class="bar">
+        <div class="bt"><span class="nm">${star}${esc(x.nombre)}</span><span class="vl">surtido <b>${s.avance}</b>/${s.objetivo} · ${s.pct}%</span></div>
+        <div class="track"><div class="fill ${clasePct(s.pct)}" style="width:${w(s.pct)}%"></div></div>
+        <div class="bt" style="margin-top:7px"><span class="nm" style="font-weight:600;color:var(--muted)">clientes con compra</span><span class="vl"><b>${c.avance}</b>/${c.objetivo} · ${c.pct}%</span></div>
+        <div class="track"><div class="fill ${clasePct(c.pct)}" style="width:${w(c.pct)}%"></div></div>
+      </div>`;
+    }).join('');
+    return `<div class="plan"><div class="body">
+        ${p.corte?`<div class="corte">📅 Mes corriente · al ${esc(fFechaCorte(p.corte))}</div>`:''}
+        <div class="hero">${ring(p.pct)}<div class="heroR">
+            <div class="stat"><span class="n">${p.avanceTotal}</span><span class="l">unidades de ${p.targetTotal} · surtido total</span></div>
+            <div class="obj">🎯 <b>Objetivo global del mes</b> (Mendoza + San Luis, sin separar por vendedor). Promedios: surtido <b>${r.prom_surtido||0}%</b> · clientes <b>${r.prom_clientes||0}%</b> · mes transcurrido ${r.avance_mes||0}%.</div>
+        </div></div>
+        <div class="secT">Por grupo de productos <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)">· ★ = mandatorio</span></div>${filas}
+      </div></div>`;
+  }
+
   // Torneo finalizado (Doña Paula, 16/11/2026): podio y ranking final de cada sucursal;
   // tocando un vendedor se ve el detalle de sus puntos.
   const fN = n => Math.round(Number(n)||0).toLocaleString('es-AR');
@@ -340,6 +365,7 @@
     if(p.sucursales) return planTorneoHTML(p);
     if(p.porMarca) return plan5THTML(p);
     if(p.objetivos) return planObjetivosHTML(p);
+    if(p.grupos) return planChandonHTML(p);
     const prods = (p.productos||[]);
     if(!prods.length){
       return `<div class="plan"><div class="body"><div class="empty">Todavía no hay productos cargados en este plan.</div></div></div>`;
