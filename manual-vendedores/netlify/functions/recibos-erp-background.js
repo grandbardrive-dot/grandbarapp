@@ -101,8 +101,10 @@ async function leerSeries(ctxs, codigos, t0, log) {
     const lim = new Date(Date.now() - 14 * 60 * 1000).toISOString();
     const lk = await cob('recibos_series?serie=eq.' + s.serie + '&or=(corriendo_desde.is.null,corriendo_desde.lt."' + lim + '")',
       { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ corriendo_desde: new Date().toISOString() }) });
-    if (!(await lk.json().catch(() => [])).length) { log.push(s.serie + ': ocupada'); continue; }
-    let cursor = Number(s.cursor), cursorFecha = s.cursor_fecha, vueltas = 0, hallados = 0;
+    const tomada = (await lk.json().catch(() => []))[0];
+    if (!tomada) { log.push(s.serie + ': ocupada'); continue; }
+    // El contador se relee recién al tomar el candado: otra corrida pudo haberlo movido.
+    let cursor = Number(tomada.cursor), cursorFecha = tomada.cursor_fecha, vueltas = 0, hallados = 0;
     const probar = async (desdeN, hastaN) => {
       const pruebas = [];
       for (let n = desdeN; n <= hastaN; n++) for (const suc of codigos) pruebas.push({ n, suc });
@@ -156,33 +158,49 @@ async function emparejar(log) {
   const usado = {};
   filas.forEach(f => (Array.isArray(f.recibo_erp) ? f.recibo_erp : []).forEach(x => { usado[clave(x)] = f.fecha_rendicion; }));
 
+  // Una misma factura se paga a veces en partes, en recibos de distintos días: por eso se
+  // asigna en tres pasadas, de la coincidencia más segura a la menos segura.
+  const libres = filas.filter(f => !f.recibo_auto && !(f.recibo && String(f.recibo).trim())); // las de Moni no se tocan
+  const info = libres.map(f => ({
+    f, facs: new Set(facturasDe(f.factura)),
+    pagado: MEDIOS.reduce((s, m) => s + num(f[m]), 0),
+    cands: (porCliente[padCod(f.codigo)] || []).filter(r => r.fecha >= sumaDias(f.fecha_rendicion, -3) && r.fecha <= sumaDias(f.fecha_rendicion, 30)),
+  })).filter(x => x.cands.length);
+  const libre = (r, f) => !usado[clave(r)] || usado[clave(r)] === f.fecha_rendicion;
+  const solapa = (r, x) => (r.facturas || []).some(k => x.facs.has(k));
+  const mismoImporte = (r, x) => Math.abs(num(r.total) - x.pagado) <= 1 || Math.abs(num(r.total) - num(x.f.importe)) <= 1;
+  const cercania = (r, x) => Math.abs(new Date(r.fecha) - new Date(x.f.fecha_rendicion)); // el más cercano al día de la planilla
+  const asignado = new Map(); // id fila → recibos
+  const tomar = (x, recs) => { asignado.set(x.f.id, recs); recs.forEach(r => { usado[clave(r)] = x.f.fecha_rendicion; }); };
+
+  // 1) misma factura Y mismo importe → un recibo
+  info.forEach(x => {
+    const r = x.cands.filter(r => !usado[clave(r)] && solapa(r, x) && mismoImporte(r, x)).sort((a, b) => cercania(a, x) - cercania(b, x))[0];
+    if (r) tomar(x, [r]);
+  });
+  // 2) misma factura (pago en varios recibos, o recibo que cubre varias filas): los del día
+  //    más cercano a la planilla
+  info.filter(x => !asignado.has(x.f.id)).forEach(x => {
+    const sol = x.cands.filter(r => libre(r, x.f) && solapa(r, x));
+    if (!sol.length) return;
+    const dia = sol.slice().sort((a, b) => cercania(a, x) - cercania(b, x))[0].fecha;
+    tomar(x, sol.filter(r => r.fecha === dia));
+  });
+  // 3) recibo sin facturas (a cuenta): por importe
+  info.filter(x => !asignado.has(x.f.id)).forEach(x => {
+    const r = x.cands.filter(r => !usado[clave(r)] && !(r.facturas || []).length && mismoImporte(r, x)).sort((a, b) => cercania(a, x) - cercania(b, x))[0];
+    if (r) tomar(x, [r]);
+  });
+
   let completadas = 0;
-  for (const f of filas) {
-    if (f.recibo_auto || (f.recibo && String(f.recibo).trim())) continue; // ya tiene, o lo escribió Moni
-    const cands = (porCliente[padCod(f.codigo)] || []).filter(r =>
-      r.fecha >= sumaDias(f.fecha_rendicion, -3) && r.fecha <= sumaDias(f.fecha_rendicion, 30) &&
-      (!usado[clave(r)] || usado[clave(r)] === f.fecha_rendicion));
-    if (!cands.length) continue;
-    const facs = new Set(facturasDe(f.factura));
-    let elegidos = cands.filter(r => (r.facturas || []).some(x => facs.has(x)));
-    if (elegidos.length) {
-      // Los del primer día en que tesorería procesó (un pago parcial posterior de la misma
-      // factura queda para la planilla de ese otro día).
-      const dia = elegidos.map(r => r.fecha).sort()[0];
-      elegidos = elegidos.filter(r => r.fecha === dia);
-    } else {
-      const pagado = MEDIOS.reduce((s, m) => s + num(f[m]), 0);
-      const r = cands.filter(r => !usado[clave(r)] && !(r.facturas || []).length
-        && (Math.abs(num(r.total) - pagado) <= 1 || Math.abs(num(r.total) - num(f.importe)) <= 1))
-        .sort((a, b) => (a.fecha + a.numero).localeCompare(b.fecha + b.numero))[0];
-      elegidos = r ? [r] : [];
-    }
-    if (!elegidos.length) continue;
+  for (const x of info) {
+    const elegidos = asignado.get(x.f.id);
+    if (!elegidos) continue;
     elegidos.sort((a, b) => a.n - b.n);
     const recibo_erp = elegidos.map(r => ({ empresa: r.empresa, sucursal: r.sucursal, numero: r.numero, n: r.n, total: num(r.total), fecha: r.fecha }));
-    const pr = await cob('planilla_cobranzas?id=eq.' + f.id + '&recibo_auto=eq.false', { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+    const pr = await cob('planilla_cobranzas?id=eq.' + x.f.id + '&recibo_auto=eq.false', { method: 'PATCH', headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({ recibo: elegidos.map(r => String(r.n)).join(' + '), recibo_auto: true, recibo_erp }) });
-    if (pr.ok) { completadas++; elegidos.forEach(r => { usado[clave(r)] = f.fecha_rendicion; }); }
+    if (pr.ok) completadas++;
   }
   log.push('planilla: ' + completadas + ' filas con recibo');
   return completadas;
@@ -207,7 +225,7 @@ exports.handler = async (event) => {
       leer('equipos_vendedores?select=vendedor,equipo'),
       leer('planilla_cobranzas?select=vendedor&fecha_rendicion=gte.' + sumaDias(hoyAR(), -60) + '&limit=5000'),
     ]);
-    const cods = new Set();
+    const cods = new Set(['1000', '9999']); // oficinas: San Luis cobra en mostrador con la sucursal 1000
     eq.filter(e => EQUIPOS_VENTA.includes(String(e.equipo || '').toUpperCase())).forEach(e => cods.add(e.vendedor));
     pl.forEach(p => cods.add(p.vendedor));
     const codigos = [...cods].map(c => String(c || '').replace(/\D/g, '')).filter(Boolean).map(c => c.padStart(4, '0')).filter((c, i, a) => a.indexOf(c) === i).sort();
