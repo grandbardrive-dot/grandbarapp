@@ -137,6 +137,22 @@ async function plan5T(codigos, nombreDeCod, alcance) {
   };
 }
 
+// Doña Paula · Torneo (FINALIZADO, 16/11/2026). Resultado final guardado en incentivos_snapshots
+// (DP_TORNEO_2026), sacado de la planilla oficial de Administración el día que terminó: ya no
+// depende del archivo de Drive. Ranking por sucursal, igual para todos.
+async function torneoDP(hub) {
+  try {
+    const snap = (await (await hub('incentivos_snapshots?incentivo=eq.DP_TORNEO_2026&select=corte,data')).json())[0];
+    if (!snap || !snap.data) return null;
+    const d = snap.data;
+    return { id: 'donapaula', nombre: 'Doña Paula', color: '#6B1F2A', finalizado: true, planes: [{
+      id: 'torneo', nombre: d.nombre || 'Torneo Doña Paula', finalizado: true,
+      detalle: 'Terminó. Resultados finales por sucursal con los puntos que cargó Administración: acciones, volumen y activaciones.',
+      cerrado: d.cerrado || snap.corte, cats: d.cats || [], sucursales: d.sucursales || [],
+    }] };
+  } catch (e) { return null; }
+}
+
 exports.handler = async (event) => {
   try {
     const hubService = process.env.HUB_SERVICE_ROLE;
@@ -152,7 +168,14 @@ exports.handler = async (event) => {
     const esSup = !!perfil.es_supervisor;
     // Supervisores → su equipo. Marketing/Dirección/Trade → toda la empresa (panorama).
     const VER_TODO = ['diseno', 'admin', 'direccion', 'torneo', 'compras', 'desarrollo'];
-    if (!esSup && !VER_TODO.includes(rol)) return json(403, { error: 'Solo para supervisores y Dirección/Marketing.' });
+    // Vendedores (16/11/2026, pedido del usuario): ven SOLO los resultados finales del Torneo
+    // Doña Paula; los planes de Campari y Pernod siguen siendo de supervisores y Dirección.
+    if (!esSup && !VER_TODO.includes(rol)) {
+      if (rol !== 'ventas') return json(403, { error: 'Solo para supervisores y Dirección/Marketing.' });
+      const tp = await torneoDP(hub);
+      return json(200, { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: 'vendedor', codigo: perfil.codigo_vendedor || null,
+        generado: new Date().toISOString(), proveedores: tp ? [tp] : [] });
+    }
 
     // Equipo (para el Plan 5T): supervisor = vendedores de su región + canal; el resto = todos.
     const eq = await (await hub('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region')).json();
@@ -166,7 +189,7 @@ exports.handler = async (event) => {
     const nombreDeCod = {}; equipo.forEach(v => { nombreDeCod[String(v.codigo_vendedor)] = v.nombre; });
     const codigos = equipo.map(v => String(v.codigo_vendedor));
 
-    const base = { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: esSup ? 'equipo' : 'todo', generado: new Date().toISOString() };
+    const base = { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: esSup ? 'equipo' : 'todo', codigo: perfil.codigo_vendedor || null, generado: new Date().toISOString() };
     const proveedores = [];
 
     // ---- Campari (dos planes: Cobertura + 5T) ----
@@ -220,21 +243,9 @@ exports.handler = async (event) => {
       }
     } catch (e) {}
 
-    // ---- Doña Paula · Torneo (FINALIZADO, 16/11/2026) ----
-    // Resultado final guardado en incentivos_snapshots (DP_TORNEO_2026), sacado de la planilla
-    // oficial de Administración el día que terminó: ya no depende del archivo de Drive.
-    // Ranking por sucursal, igual para todos (antes lo veían así vendedores y supervisores).
-    try {
-      const snap = (await (await hub('incentivos_snapshots?incentivo=eq.DP_TORNEO_2026&select=corte,data')).json())[0];
-      if (snap && snap.data) {
-        const d = snap.data;
-        proveedores.push({ id: 'donapaula', nombre: 'Doña Paula', color: '#6B1F2A', finalizado: true, planes: [{
-          id: 'torneo', nombre: d.nombre || 'Torneo Doña Paula', finalizado: true,
-          detalle: 'Terminó. Resultados finales por sucursal con los puntos que cargó Administración: acciones, volumen y activaciones.',
-          cerrado: d.cerrado || snap.corte, cats: d.cats || [], sucursales: d.sucursales || [],
-        }] });
-      }
-    } catch (e) {}
+    // ---- Doña Paula · Torneo (finalizado) ----
+    const tp = await torneoDP(hub);
+    if (tp) proveedores.push(tp);
 
     return json(200, Object.assign(base, { proveedores }));
   } catch (e) {

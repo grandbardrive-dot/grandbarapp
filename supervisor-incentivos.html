@@ -162,6 +162,9 @@
   .cpt{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--line-2)}
   .cpt:last-child{border-bottom:0}
   .cpt .cc{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-right:6px}
+  .rk .vrow.yo{border-color:var(--gold);box-shadow:inset 4px 0 0 var(--gold)}
+  .podio .pp.yo{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+  .vos{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:var(--gold);color:#241a06;border-radius:20px;padding:2px 8px;margin-left:6px;vertical-align:2px}
   @media(max-width:560px){ .podio{gap:6px} .podio .pp{padding:10px 5px} .podio .pp .pos{width:28px;height:28px;font-size:12px} .podio .pp .pn{font-size:12px} .podio .pp .pt2{font-size:15px} }
 </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
@@ -182,10 +185,10 @@
       <h1>🎯 Incentivos</h1>
       <div class="who" id="who">Cargando…</div>
     </div>
-    <div class="intro">Acá ves <b>cómo vamos en los planes de los proveedores</b> contra el objetivo global de la empresa. Entrá a un proveedor para ver sus planes y el avance en detalle. Tenés la <b>Cobertura de Campari</b>, el <b>incentivo Q4 de Pernod Ricard</b> y los <b>resultados finales del Torneo Doña Paula</b>.</div>
+    <div class="intro" id="intro">Acá ves <b>cómo vamos en los planes de los proveedores</b> contra el objetivo global de la empresa. Entrá a un proveedor para ver sus planes y el avance en detalle. Tenés la <b>Cobertura de Campari</b>, el <b>incentivo Q4 de Pernod Ricard</b> y los <b>resultados finales del Torneo Doña Paula</b>.</div>
     <div id="cont"><div class="loading">Cargando los planes…</div></div>
   </div>
-  <nav class="botnav"></nav>
+  <nav class="botnav bottomnav"></nav>
   </div>
 </div>
 
@@ -294,14 +297,15 @@
     const suc = (p.sucursales||[]).map(s=>{
       const rk = s.ranking||[];
       if(!rk.length) return '';
-      const podio = rk.slice(0,3).map(v=>`<div class="pp p${v.puesto}"><div class="pos">${v.puesto}°</div><div class="pn">${esc(v.nombre)}</div><div class="pt2">${fN(v.total)} <small>pts</small></div></div>`).join('');
+      const yo = v => DATA && DATA.codigo && v.codigo && String(v.codigo) === String(DATA.codigo);
+      const podio = rk.slice(0,3).map(v=>`<div class="pp p${v.puesto}${yo(v)?' yo':''}"><div class="pos">${v.puesto}°</div><div class="pn">${esc(v.nombre)}${yo(v)?'<span class="vos">Vos</span>':''}</div><div class="pt2">${fN(v.total)} <small>pts</small></div></div>`).join('');
       const filas = rk.map(v=>{
         const resumen = cats.map(c=>c+' '+fN((v.cats||{})[c])).join(' · ');
         const det = (v.conceptos||[]).map(x=>`<div class="cpt"><span><span class="cc">${esc(x.categoria)}</span>${esc(x.concepto)}</span><b>${fN(x.puntos)}</b></div>`).join('');
-        return `<div class="vrow"><div class="vhead" onclick="this.parentNode.classList.toggle('open')">
+        return `<div class="vrow${yo(v)?' yo':''}"><div class="vhead" onclick="this.parentNode.classList.toggle('open')">
             <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
             <div class="pos">${v.puesto}</div>
-            <div class="vn">${esc(v.nombre)}<div class="vmeta">${esc(resumen)}</div></div>
+            <div class="vn">${esc(v.nombre)}${yo(v)?'<span class="vos">Vos</span>':''}<div class="vmeta">${esc(resumen)}</div></div>
             <div class="vtot">${fN(v.total)} <small>pts</small></div></div>
           <div class="vbody">${det||'<div class="vmeta" style="padding:10px 0">Sin detalle.</div>'}</div></div>`;
       }).join('');
@@ -386,7 +390,7 @@
   function setHeader(d){
     const reg=d.region==='san_luis'?'San Luis':(d.region==='mendoza'?'Mendoza':'');
     const can=d.canal==='ambos'?'ambos canales':(d.canal?String(d.canal).toUpperCase()+' Trade':'');
-    const ambito=d.alcance==='todo'?'Vista general · toda la empresa':[reg,can].filter(Boolean).join(' · ');
+    const ambito=d.alcance==='vendedor'?'':(d.alcance==='todo'?'Vista general · toda la empresa':[reg,can].filter(Boolean).join(' · '));
     $('#who').textContent=[d.nombre,ambito].filter(Boolean).join(' — ')||'Tu equipo';
   }
 
@@ -410,7 +414,15 @@
     cont.innerHTML=`<div class="grid">${provs.map(provCard).join('')}</div>`;
   }
 
-  function render(d){ DATA=d; setHeader(d); renderView(); }
+  // Vendedores (16/11/2026): solo ven los resultados finales del Torneo Doña Paula; entran directo.
+  function render(d){
+    DATA=d; setHeader(d);
+    if(d.alcance==='vendedor'){
+      const i=document.getElementById('intro'); if(i) i.innerHTML='Acá están los <b>resultados finales del Torneo Doña Paula</b>: el ranking de cada sucursal y los puntos de cada vendedor. Tocá un nombre para ver el detalle.';
+      if(!location.hash && (d.proveedores||[]).length) history.replaceState(null,'','#donapaula/torneo');
+    }
+    renderView();
+  }
 
   async function cargar(){
     try{
@@ -427,8 +439,15 @@
     if(!session){ location.href='index.html'; return; }
     TOKEN = session.access_token;
     try{
-      const { data:u } = await hub.from('usuarios').select('nombre').eq('id',session.user.id).maybeSingle();
+      const { data:u } = await hub.from('usuarios').select('nombre,rol,es_supervisor').eq('id',session.user.id).maybeSingle();
       if(u&&u.nombre){ $('#uName').textContent=u.nombre; $('#avSb').textContent=(u.nombre.trim()[0]||'S').toUpperCase(); }
+      // Un vendedor (16/11/2026) llega acá desde su menú: se le dibuja SU menú (hub-nav). No se
+      // carga para Dirección ni Trade: hub-nav manda a Dirección a su panel desde cualquier pantalla.
+      const rolU=String((u&&u.rol)||'').toLowerCase();
+      if((rolU==='ventas'||rolU==='mayorista') && !(u&&u.es_supervisor)){
+        document.querySelectorAll('.sb-user .s').forEach(el=>{ el.textContent='Vendedor'; });
+        const sc=document.createElement('script'); sc.src='assets/hub-nav.js?v=7'; document.body.appendChild(sc);
+      }
     }catch(e){}
     const lo=$('#logout'); if(lo) lo.onclick=async()=>{ if(confirm('¿Cerrar sesión?')){ try{await hub.auth.signOut();}catch(e){} location.href='index.html'; } };
     cargar();
