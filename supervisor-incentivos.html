@@ -257,10 +257,13 @@
   }
 
   // Foto de la botella de cada producto Campari (Cobertura y Convivencia). '' si no corresponde.
-  const BOTTLES = { aperol:'assets/bottles/aperol.png', campari:'assets/bottles/campari.webp', cynar:'assets/bottles/cynar.webp', skyy:'assets/bottles/skyy.webp', others:'assets/bottles/others.webp' };
+  const BOTTLES = { aperol:'assets/bottles/aperol.png', campari:'assets/bottles/campari.webp', cynar:'assets/bottles/cynar.webp', skyy:'assets/bottles/skyy.webp', others:'assets/bottles/others.webp',
+    malibu:'assets/bottles/malibu.png', beefeater:'assets/bottles/beefeater.webp', ramazzotti:'assets/bottles/ramazzotti.png', buhero:'assets/bottles/buhero.webp', chivas:'assets/bottles/chivas.jpg' };
   function bottleImg(nm){
     const k = String(nm||'').toLowerCase();
-    const key = k.includes('aperol')?'aperol':k.includes('campari')?'campari':k.includes('cynar')?'cynar':k.includes('skyy')?'skyy':k.includes('other')?'others':'';
+    const key = k.includes('aperol')?'aperol':k.includes('campari')?'campari':k.includes('cynar')?'cynar':k.includes('skyy')?'skyy'
+      :k.includes('malibu')?'malibu':k.includes('beefeater')?'beefeater':k.includes('ramazzotti')?'ramazzotti':k.includes('buhero')?'buhero':k.includes('chivas')?'chivas'
+      :k.includes('other')?'others':'';
     return key ? `<img class="bottle" src="${BOTTLES[key]}" alt="${esc(nm)}">` : '';
   }
   function barra(nm, si, tot, pct){
@@ -288,9 +291,11 @@
     const idMap={}; obj.forEach(o=>{ idMap[o.id]=String(o.nombre||o.id).split('·')[0].trim(); });
     const bars=obj.map(o=>{
       const chips=[ o.cerca?`<span class="ochip cerca">${o.cerca} cerca</span>`:'', o.con_promo?`<span class="ochip promo">${o.con_promo} con promo</span>`:'' ].join('');
-      return `<div class="bar"><div class="bt"><span class="nm">${esc(o.nombre)}</span><span class="vl"><b>${o.logrado}</b>/${o.meta} · ${o.pct}%</span></div>
+      const img=bottleImg(o.nombre);
+      const inner=`<div class="bt"><span class="nm">${esc(o.nombre)}</span><span class="vl"><b>${o.logrado}</b>/${o.meta} · ${o.pct}%</span></div>
         <div class="track"><div class="fill ${clasePct(o.pct)}" style="width:${o.pct}%"></div></div>
-        ${chips?`<div class="ochips">${chips}</div>`:''}</div>`;
+        ${chips?`<div class="ochips">${chips}</div>`:''}`;
+      return img ? `<div class="bar withimg">${img}<div class="barmain">${inner}</div></div>` : `<div class="bar">${inner}</div>`;
     }).join('');
     const vends=(p.vendedores||[]).map(v=>{
       const det=(v.por_objetivo||[]).filter(x=>x.logrados).map(x=>`${esc(idMap[x.id]||x.id)} ${x.logrados}`).join(' · ');
