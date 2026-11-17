@@ -175,6 +175,9 @@
 (function () {
   const HUB = { url: 'https://xqhyemccbwmzxqzkrtwa.supabase.co', key: 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
   if (/[?&]embed=1/.test(location.search)) document.body.classList.add('embed');
+  // dir=1: adentro del panel de Dirección. Fernando ve los números sin las aclaraciones
+  // internas (origen del dato, errores de envío, datos que faltan cargar) (17/11/2026).
+  const DIR = /[?&]dir=1/.test(location.search);
 
   // ── Formatos ────────────────────────────────────────────────
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -214,7 +217,7 @@
   };
   const GRUPOS_V = [['ventas-sl', 'San Luis'], ['ventas-on', 'Mendoza · ON'], ['ventas-off', 'Mendoza · OFF'], ['may', 'Mayoristas'], ['otros', 'Otras cuentas (no son vendedores)']];
   const grupoDe = v => v.tipo === 'otros' ? 'otros' : v.tipo === 'may' ? 'may' : v.zona === 'San Luis' ? 'ventas-sl' : v.canal === 'ON' ? 'ventas-on' : 'ventas-off';
-  const tagCanal = c => '<span class="tag ' + (c === 'ON' ? 'on' : c === 'OFF' ? 'off' : c === 'Mayorista' ? 'may' : '') + '" title="' + (c === 'Mixto' ? 'Atiende clientes ON y OFF' : c === 'Sin clasificar' ? 'Cliente de San Luis sin rubro cargado' : '') + '">' + esc(c) + '</span>';
+  const tagCanal = c => '<span class="tag ' + (c === 'ON' ? 'on' : c === 'OFF' ? 'off' : c === 'Mayorista' ? 'may' : '') + '" title="' + (c === 'Mixto' ? 'Atiende clientes ON y OFF' : c === 'Sin clasificar' && !DIR ? 'Cliente de San Luis sin rubro cargado' : '') + '">' + esc(c) + '</span>';
 
   // ── Estado ──
   const S = { d: null, f: { per: '30', desde: '', hasta: '', zona: '', canal: '', vend: '', q: '' },
@@ -754,7 +757,7 @@
     const tipos = [['recordatorio', 'Estado de cuenta (lunes)'], ['plantilla', 'Plantillas (bienvenida, avisos)'], ['numero', 'Número de cliente'], ['enviado', 'Mensajes manuales del chat']];
     const filas = tipos.map(([k, l]) => { const a = X.waP.filter(x => x.k === k); if (!a.length) return ''; const e = a.filter(x => x.dl || x.rd).length, r = a.filter(x => x.rd).length, f = a.filter(x => x.f).length;
       return `<tr><td class="first"><b>${l}</b></td><td class="n">${nf(a.length)}</td><td class="n">${pct(e, a.length)}%</td><td class="n">${pct(r, a.length)}%</td><td class="n">${f ? `<span class="rojo">${nf(f)}</span>` : '<span class="mut">0</span>'}</td><td class="n">${dur(median(a.filter(x => x.rd).map(x => x.rd - x.t)))}</td></tr>`; }).join('');
-    const err = S.d.we.length ? '<div style="margin-top:10px;font-size:12px;color:var(--muted)"><b style="color:var(--ink-2)">Motivos de los fallidos (histórico):</b> ' + S.d.we.map(([t, n]) => esc(t) + ' (' + n + ')').join(' · ') + '</div>' : '';
+    const err = (!DIR && S.d.we.length) ? '<div style="margin-top:10px;font-size:12px;color:var(--muted)"><b style="color:var(--ink-2)">Motivos de los fallidos (histórico):</b> ' + S.d.we.map(([t, n]) => esc(t) + ' (' + n + ')').join(' · ') + '</div>' : '';
     return `<section class="sec" id="s-wa"><h2>WhatsApp</h2><p class="d">Mensajes que salieron por el número de GrandBar y cuántos se leyeron; respuestas = mensajes que mandaron los clientes.</p>
       <div class="card"><div id="leg-wa"></div><div class="chart" id="ch-wa"></div><button class="toggle-tabla" data-tabla="wa">Ver como tabla</button><div id="tb-wa"></div></div>
       <div class="tw" style="margin-top:12px">${filas ? `<table class="t"><thead><tr><th class="first">Tipo de mensaje</th><th class="n">Enviados</th><th class="n">Entregados</th><th class="n">Leídos</th><th class="n">Fallidos</th><th class="n">Se leen en</th></tr></thead><tbody>${filas}</tbody></table>` : '<div class="vacio">Sin mensajes en el período.</div>'}</div>${err}</section>`;
@@ -861,7 +864,7 @@
         const nz = document.getElementById('nota-zona'); nz.style.display = 'block'; nz.textContent = 'Ves solo lo de ' + z + ' (tu usuario es de esa zona).';
       }
       llenarVendedores();
-      sub.textContent = 'Datos al ' + new Date(S.d.generado).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' · ' + nf(Object.keys(S.d.C).length) + ' cuentas · deuda vencida como la guarda el sistema';
+      sub.textContent = 'Datos al ' + new Date(S.d.generado).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' · ' + nf(Object.keys(S.d.C).length) + ' cuentas' + (DIR ? '' : ' · deuda vencida como la guarda el sistema');
       render();
     } catch (e) {
       app.innerHTML = '<div class="err">No pude cargar el análisis: ' + esc(e.message || e) + '</div>';

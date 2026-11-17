@@ -19,7 +19,9 @@
   const TIPOS = { reunion: '🤝 Reunión', llamada: '📞 Llamada', visita: '📍 Visita', capacitacion: '🎓 Capacitación' };
   const ROL = { ventas: 'Ventas', direccion: 'Dirección', duenio: 'Dirección', admin: 'Dirección', administracion: 'Administración',
     tesoreria: 'Tesorería', compras: 'Compras', diseno: 'Diseño', desarrollo: 'Desarrollo', marketing: 'Marketing',
-    deposito: 'Depósito', mayorista: 'Mayorista', reportes: 'Reportes' };
+    deposito: 'Depósito', mayorista: 'Mayorista', reportes: 'Reportes', torneo: 'Trade Marketing', kaf: 'KAF',
+    reclamos: 'Reclamos', equipo_admin: 'Administración' };
+  const CANAL = { on: 'ON', off: 'OFF', ambos: 'ON y OFF' };
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
   const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 
@@ -91,7 +93,7 @@
 
   function etiqueta(u) {
     const r = ROL[String(u.rol || '').toLowerCase()] || u.rol || '';
-    return r + (u.canal ? ' · ' + u.canal : '') + (u.es_supervisor ? ' · Supervisor' : '');
+    return r + (u.canal ? ' · ' + (CANAL[String(u.canal).toLowerCase()] || u.canal) : '') + (u.es_supervisor ? ' · Supervisor' : '');
   }
 
   async function abrir(opts) {

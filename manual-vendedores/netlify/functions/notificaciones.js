@@ -10,11 +10,9 @@ const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const DIR_ROLES = ['direccion', 'admin', 'duenio'];
 
 // Novedades de la app (agregá nuevas arriba con su fecha).
-const NOVEDADES = [
-  { id: 'nv-agenda',   icon: '📅', titulo: 'Nuevo: Agenda de Dirección', detalle: 'Programá reuniones a cualquier usuario y mirá si confirman o no.', ts: '2026-08-18T12:00:00Z', link: 'dir-agenda.html' },
-  { id: 'nv-reportes', icon: '📊', titulo: 'Nuevo: Reportes', detalle: 'Cada usuario te envía reportes para que los apruebes y devuelvas.', ts: '2026-08-18T11:00:00Z', link: 'reportes.html' },
-  { id: 'nv-panel',    icon: '✨', titulo: 'Tu Panel de Dirección', detalle: 'Ventas, Cobranzas, Reportes y Agenda, con los números reales de la empresa.', ts: '2026-08-18T10:00:00Z', link: 'direccion.html' },
-];
+// (17/11/2026) Se sacaron los 3 anuncios del 18/08 ("Nuevo: Agenda", "Nuevo: Reportes", "Tu Panel de
+// Dirección"): quedaban fijos en la campanita de Fernando.
+const NOVEDADES = [];
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 

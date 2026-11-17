@@ -9,6 +9,10 @@ const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const DIR_ROLES = ['direccion', 'admin', 'duenio'];
+// Nombre legible del rol en los resultados (17/11/2026): antes salía 'torneo · cód 041'.
+const ROL_NOMBRE = { ventas: 'Ventas', torneo: 'Trade Marketing', diseno: 'Diseño', desarrollo: 'Desarrollo', compras: 'Compras',
+  marketing: 'Marketing', tesoreria: 'Tesorería', administracion: 'Administración', equipo_admin: 'Administración', deposito: 'Depósito',
+  kaf: 'KAF', mayorista: 'Tienda mayorista', reclamos: 'Reclamos', direccion: 'Dirección', admin: 'Dirección', duenio: 'Dirección' };
 
 // Las mismas cinco pantallas del menú de Dirección (Ventas se sumó el 14/10). Las maquetas (Compras,
 // Administración, Marketing, Depósito, Desarrollo, Clientes, Vendedores,
@@ -48,7 +52,7 @@ exports.handler = async (event) => {
     try {
       const us = await (await hub('usuarios?or=(nombre.ilike.' + like + ',email.ilike.' + like + ')&select=id,nombre,email,rol,codigo_vendedor&limit=8')).json();
       (Array.isArray(us) ? us : []).forEach(u => res.push({
-        tipo: 'Usuario', titulo: u.nombre || u.email, sub: (u.rol || '') + (u.codigo_vendedor ? ' · cód ' + u.codigo_vendedor : ''),
+        tipo: 'Usuario', titulo: u.nombre || u.email, sub: (ROL_NOMBRE[String(u.rol || '').toLowerCase()] || u.rol || '') + (u.codigo_vendedor ? ' · cód ' + u.codigo_vendedor : ''),
         link: 'dir-agenda.html', icon: '👤',
       }));
     } catch (e) {}

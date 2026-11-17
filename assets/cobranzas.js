@@ -253,7 +253,7 @@ async function cobFicha(codigo) {
       </div>
 
       ${cobrosPend.length ? `<div class="aviso"><span>💵</span><div>Avisó que tiene efectivo listo para retirar:
-        <b>${cobrosPend.map(x => cnum(x.monto)).join(', ')}</b>. ${cobVeId('efectivo') ? 'Se gestiona en Cobros en efectivo.' : 'Lo gestiona Administración.'}</div></div>` : ''}
+        <b>${cobrosPend.map(x => cnum(x.monto)).join(', ')}</b>. ${cobVeId('efectivo') ? 'Se gestiona en Cobros en efectivo.' : cobSoloLectura() ? '' : 'Lo gestiona Administración.'}</div></div>` : ''}
 
       <h2 style="font-size:16px;margin:26px 0 0">Facturas <span class="pv-n">${(d.facturas||[]).length}</span></h2>
       ${(d.facturas || []).length ? `
@@ -283,7 +283,7 @@ async function cobFicha(codigo) {
             <td>${cesc(x.revisado_por || '—')}</td>
             <td>${(Array.isArray(x.archivos) && x.archivos.length ? x.archivos : (x.archivo_url ? [x.archivo_url] : [])).map((u, i, a) => `<a class="cb-b" href="${cesc(u)}" target="_blank" rel="noopener" style="margin:1px">📎 ${a.length > 1 ? (i + 1) : 'Ver'}</a>`).join(' ')}</td>
           </tr>`).join('')}</tbody>
-        </table>` : `<div class="pv-vacio">${f ? 'Este cliente no subió ningún comprobante.' : 'No tiene ficha en el portal de clientes, así que no puede subir comprobantes.'}</div>`}
+        </table>` : `<div class="pv-vacio">${f || cobSoloLectura() ? 'Este cliente no subió ningún comprobante.' : 'No tiene ficha en el portal de clientes, así que no puede subir comprobantes.'}</div>`}
 
       <h2 style="font-size:16px;margin:26px 0 0">Reclamos <span class="pv-n">${(d.reclamos||[]).length}</span></h2>
       ${(d.reclamos || []).length ? `
@@ -341,7 +341,7 @@ async function cobComprobantes(dias) {
           <div style="font-size:26px;font-weight:800;margin-top:6px">${_horas(d.horasTesoreria)}</div>
           <p>desde que el vendedor lo pasa hasta que se cierra</p></div>
       </div>
-      ${d.cerradosSinRegistro ? `<p style="font-size:12.5px;color:var(--muted);margin:12px 0 0">
+      ${(d.cerradosSinRegistro && !cobSoloLectura()) ? `<p style="font-size:12.5px;color:var(--muted);margin:12px 0 0">
         De los ${d.cerrados} cerrados en el período, ${d.cerradosSinRegistro} son de antes de que se
         empezara a guardar quién los revisó, así que no entran en el promedio de tesorería.</p>` : ''}
 
@@ -367,9 +367,9 @@ async function cobComprobantes(dias) {
         : `<div class="pv-vacio">No quedó ninguno trabado. Al día.</div>`}
 
       <h2 style="font-size:16px;margin:26px 0 0">Quién los cerró en tesorería</h2>
-      <p style="font-size:12.5px;color:var(--muted);margin:4px 0 0">
+      ${cobSoloLectura() ? '' : `<p style="font-size:12.5px;color:var(--muted);margin:4px 0 0">
         El cruce con el banco: aceptar o rechazar. El tiempo se cuenta desde que el
-        vendedor lo pasó.</p>
+        vendedor lo pasó.</p>`}
       ${d.revisores.length ? `<table class="cb-tabla">
         <thead><tr><th>Persona</th><th class="num">Cerrados</th><th class="num">Aceptados</th><th class="num">Rechazados</th><th class="num">Monto</th><th class="num">Tardó</th></tr></thead>
         <tbody>${d.revisores.map(v => `<tr>
@@ -379,11 +379,11 @@ async function cobComprobantes(dias) {
           <td class="num ${v.rechazados ? 'rojo' : ''}">${v.rechazados}</td>
           <td class="num">${cnum(v.monto)}</td>
           <td class="num">${_horas(v.horas)}</td></tr>`).join('')}</tbody></table>`
-        : `<div class="pv-vacio">Todavía no se cerró ninguno con registro de quién lo revisó.</div>`}
+        : `<div class="pv-vacio">${cobSoloLectura() ? 'Todavía no se cerró ninguno.' : 'Todavía no se cerró ninguno con registro de quién lo revisó.'}</div>`}
 
       <h2 style="font-size:16px;margin:26px 0 0">Qué vendedor los confirmó</h2>
-      <p style="font-size:12.5px;color:var(--muted);margin:4px 0 0">
-        El paso previo: cuando el cliente le avisa al vendedor que pagó.</p>
+      ${cobSoloLectura() ? '' : `<p style="font-size:12.5px;color:var(--muted);margin:4px 0 0">
+        El paso previo: cuando el cliente le avisa al vendedor que pagó.</p>`}
       ${d.vendedores.length ? `<table class="cb-tabla">
         <thead><tr><th>Vendedor</th><th class="num">Confirmados</th><th class="num">Monto</th><th class="num">Tardó</th></tr></thead>
         <tbody>${d.vendedores.map(v => `<tr>
@@ -1124,8 +1124,7 @@ function recVisualDetalle(d) {
         ${m.texto ? `<div class="rv-texto">${cesc(m.texto)}</div>` : ''}
         ${m.archivo_url ? `<a class="rv-adj" href="${cesc(m.archivo_url)}" target="_blank" rel="noopener">📎 Ver adjunto</a>` : ''}
         <div class="rv-hora">${recCuando(m.created_at)}</div>
-      </div>`; }).join('') : `<div class="pv-vacio">Todavía no hay mensajes en este reclamo.</div>`}</div>
-    <div class="rv-nota">Los reclamos los atiende Administración. Desde acá se miran.</div>`;
+      </div>`; }).join('') : `<div class="pv-vacio">Todavía no hay mensajes en este reclamo.</div>`}</div>`;
 }
 
 // Muestra el nombre del archivo elegido para adjuntar en la respuesta del reclamo.
@@ -1217,7 +1216,7 @@ async function cobEfectivoRefrescar() {
 // detalle. Lo buscado queda guardado para volver del detalle a la misma búsqueda.
 async function cobPlanillas() {
   const q = window._plaBuscar || '';
-  cq('cob').innerHTML = cobCabecera('Planillas de rendición', 'Las rendiciones de cobranzas que te envían los vendedores. Entrá a una para ver el detalle y los comprobantes.') +
+  cq('cob').innerHTML = cobCabecera('Planillas de rendición', (cobSoloLectura() ? 'Las rendiciones de cobranzas que mandan los vendedores.' : 'Las rendiciones de cobranzas que te envían los vendedores.') + ' Entrá a una para ver el detalle y los comprobantes.') +
     `<div style="margin:0 0 12px"><input id="pla-buscar" type="search" value="${cesc(q)}" placeholder="Buscar por N° de planilla o vendedor…" oninput="cobPlanillasBuscar(this.value)" autocomplete="off"
       style="width:100%;max-width:420px;border:1px solid var(--line,#ddd);border-radius:10px;padding:9px 12px;font:inherit;font-size:14px;background:var(--card,#fff)"></div>` +
     `<div id="pla-lista"><div class="pv-vacio">Cargando…</div></div>`;
@@ -1269,7 +1268,7 @@ async function cobPlanillasLista() {
         faltan += Number(e.sinAprobar) || 0; pend += Number(e.pendiente) || 0;
       });
       const medios = ['efectivo', 'transferencia', 'echeq', 'cheques'].concat(['retenciones', 'tarjeta'].filter(k => s[k] > 0));
-      const resto = faltan ? `<div style="font-size:12px;font-weight:600;color:#b23120;margin-top:2px">Falta aprobar: ${faltan} fila${faltan === 1 ? '' : 's'} por <b>${cnum(pend)}</b> (no está sumado)</div>` : '';
+      const resto = faltan ? `<div style="font-size:12px;font-weight:600;color:#b23120;margin-top:2px">Falta aprobar: ${faltan} fila${faltan === 1 ? '' : 's'} por <b>${cnum(pend)}</b>${cobSoloLectura() ? '' : ' (no está sumado)'}</div>` : '';
       return `<div style="font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink,#1d2a3a);margin-top:5px">Total aprobado del día: ${medios.map(k => `<span style="white-space:nowrap">${lbl[k]} <b>${cnum(s[k])}</b></span>`).join(' · ')}${resto}</div>`;
     };
     // Buscando: todas las que coinciden, una debajo de la otra (sin agrupar ni archivar).
@@ -1346,7 +1345,8 @@ async function cobPlanillaDet(vendedor, fecha) {
     };
     // Comprobantes del vendedor que no encontraron su fila: Moni elige la fila o los descarta.
     const sueltos = d.sueltos || [];
-    const cajaSueltos = !sueltos.length ? '' : `
+    // Dirección no los ve: es trabajo pendiente de tesorería (17/11/2026).
+    const cajaSueltos = (!sueltos.length || cobSoloLectura()) ? '' : `
       <div style="margin-top:12px;border:1px solid #c9d8ef;background:#f3f7fd;border-radius:12px;padding:10px 12px">
         <div style="font-weight:800;color:#1f447f;margin-bottom:6px">📥 Comprobantes por WhatsApp sin asignar (${sueltos.length})</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Los mandó el vendedor y el sistema no encontró a qué fila van (o todavía no cargó ese cobro). ${cobSoloLectura() ? '' : 'Elegí la fila y tocá Asignar.'}</div>
@@ -1365,7 +1365,7 @@ async function cobPlanillaDet(vendedor, fecha) {
     const celRecibo = f => {
       const auto = f.recibo_auto && f.recibo;
       const det = auto && Array.isArray(f.recibo_erp) ? f.recibo_erp.map(r => r.sucursal + '-' + r.numero + ' · ' + cnum(r.total) + ' · ' + cfec(r.fecha)).join('\n') : '';
-      const marca = auto ? `<div style="font-size:9.5px;color:var(--green-d,#245647)" title="${cesc(det)}">✓ del sistema</div>` : '';
+      const marca = auto && !cobSoloLectura() ? `<div style="font-size:9.5px;color:var(--green-d,#245647)" title="${cesc(det)}">✓ del sistema</div>` : '';
       if (cobSoloLectura()) return `<td id="rec-${f.id}" style="padding:8px 11px;font-weight:700">${f.recibo ? cesc(f.recibo) : '<span style="color:var(--muted);font-weight:400">—</span>'}${marca}</td>`;
       return `<td id="rec-${f.id}" style="padding:5px 8px"><input value="${cesc(f.recibo || '')}" placeholder="—" title="${auto ? cesc(det) : 'Se completa solo cuando procesás el cobro en el sistema'}" onchange="cobPlanillaMarcar('${f.id}','recibo',this.value,this)" style="border:1px solid ${auto ? '#9cc7ad' : '#d7d7d7'};background:${auto ? '#f1f8f3' : '#fff'};border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;font-weight:700;width:96px">${marca}</td>`;
     };
@@ -1401,7 +1401,7 @@ async function cobPlanillaDet(vendedor, fecha) {
         <span id="pla-num-est" style="font-size:12px;color:var(--muted)">${env.numero && env.numero_por ? 'Cargado por ' + cesc(env.numero_por) : 'Sirve para buscar la planilla después.'}</span>
       </div>` : ''}
       ${cobSoloLectura()
-        ? `<div class="wa-nota" style="margin-top:4px">Las filas tildadas en <b>Procesado</b> ya las pasó tesorería; debajo del tilde figura quién.</div>`
+        ? ''
         : `<div class="wa-nota" style="margin-top:4px">Las filas <b style="color:#1f447f">celestes</b> son de clientes que cargaron el pago en su portal: cuando lo proceses, tocá <b>Aprobar en el portal</b> al final de la fila y queda aceptado para el cliente y la fila procesada (no hace falta ir a Revisión de cobranzas). El <b>N° de recibo</b> se completa solo cuando procesás el cobro en el sistema (puede tardar un par de minutos; si no aparece, lo podés escribir vos). Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Si un vendedor cargó mal un monto, <b>editalo directo en la celda</b> (los totales se recalculan solos); si una fila sobra (ej. cargada dos veces), eliminala con 🗑. Las que queden sin tildar son las que te faltan.</div>`}
       ${cajaSueltos}
       <div style="overflow-x:auto;border:1px solid #e6e6e6;border-radius:12px;margin-top:12px">

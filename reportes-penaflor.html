@@ -109,7 +109,7 @@
     let d=null; try{ d=await fetch('/.netlify/functions/reporte-11t?evolucion=1').then(r=>r.json()); }catch(e){}
     const meses=(d&&d.ok&&d.meses)?d.meses:[];
     MESESDATA=meses;
-    if(!meses.length){ $('evo').innerHTML='<tbody><tr><td class="empty">Todavía no hay meses cargados. Cuando Luciana suba el Excel GRAND BAR, aparecen acá.</td></tr></tbody>'; $('bars').innerHTML=''; $('kpis').innerHTML=''; $('pillMes').textContent='—'; return; }
+    if(!meses.length){ $('evo').innerHTML='<tbody><tr><td class="empty">Todavía no hay meses para mostrar.</td></tr></tbody>'; $('bars').innerHTML=''; $('kpis').innerHTML=''; $('pillMes').textContent='—'; return; }
 
     // KPIs del último mes + delta vs anterior
     const last=meses[meses.length-1], prev=meses.length>1?meses[meses.length-2]:null;
@@ -127,7 +127,7 @@
     let body='<tr class="tot"><td class="l">TOTAL</td>'+meses.map(m=>`<td>${cell(m.total)}</td>`).join('')+'</tr>';
     for(const [k,lbl] of CANALES){ body+=`<tr><td class="l">${lbl}</td>`+meses.map(m=>`<td>${cell(m.canales[k]||{real:0,objetivo:0,alcance:0})}</td>`).join('')+'</tr>'; }
     $('evo').innerHTML='<thead>'+head+'</thead><tbody>'+body+'</tbody>';
-    $('evoNote').textContent=meses.length+' mes'+(meses.length>1?'es':'')+' cargado'+(meses.length>1?'s':'');
+    $('evoNote').textContent=meses.length+' mes'+(meses.length>1?'es':'');
 
     // Barras de alcance total por mes
     const maxA=Math.max(100,...meses.map(m=>m.total.alcance));
@@ -143,7 +143,7 @@
     let d=null; try{ d=await fetch('/.netlify/functions/reportes?admin=1',{headers:{Authorization:'Bearer '+TOKEN}}).then(r=>r.json()); }catch(e){}
     const all=(d&&d.reportes)?d.reportes:[];
     LISTA=all.filter(r=>(/11t|pe[ñn]aflor/i.test(r.titulo||'')||/admin-11t/.test(r.enlace||''))&&!/^↪/.test(r.titulo||''));
-    if(!LISTA.length){ $('repList').innerHTML='<div class="empty">Todavía no hay reportes 11T presentados. Cuando Luciana toque “Presentar a Dirección”, aparecen acá.</div>'; $('repNote').textContent=''; return; }
+    if(!LISTA.length){ $('repList').innerHTML='<div class="empty">Todavía no hay reportes 11T presentados.</div>'; $('repNote').textContent=''; return; }
     $('repNote').textContent=LISTA.length+' reporte'+(LISTA.length>1?'s':'');
     $('repList').innerHTML='<table class="rt2"><thead><tr><th>Reporte</th><th>Período</th><th>Autor</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>'+
       LISTA.map(r=>{const b=BADGE[r.estado]||BADGE.pendiente;const f=new Date(r.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'});

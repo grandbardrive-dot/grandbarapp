@@ -32,7 +32,7 @@
   <div class="wrap">
     <div class="hero">
       <h1>Presupuestos</h1>
-      <p>Buzón compartido de Marketing: cada presupuesto con su foto, el link al proveedor, el estado y las condiciones (mínimo de compra y costos). Lo ven y editan Josefina, Nahuel, Sepúlveda y Fernando.</p>
+      <p>Buzón compartido de Marketing: cada presupuesto con su foto, el link al proveedor, el estado y las condiciones (mínimo de compra y costos).<span id="quienes"> Lo ven y editan Josefina, Nahuel, Sepúlveda y Fernando.</span></p>
     </div>
     <div id="presupuestos-app"></div>
   </div>
@@ -53,6 +53,8 @@
       return;
     }
     if(PANEL[rol]) document.getElementById('volver').href = PANEL[rol];
+    // A Dirección no se le explica quién más lo usa (17/11/2026).
+    if(['direccion','admin','duenio'].includes(rol)){ const q=document.getElementById('quienes'); if(q) q.remove(); }
     const sb = GBAuth.client;
     const YO = s.nombre || (s.user && s.user.email) || 'GrandBar';
     document.getElementById('me').textContent = YO;

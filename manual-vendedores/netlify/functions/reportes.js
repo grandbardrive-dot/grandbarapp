@@ -14,11 +14,17 @@ const { pushA } = require('./_notificar');
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 
+// Rótulo del área con nombres legibles (17/11/2026): antes quedaba "Torneo", "Diseno" o "Ventas San_luis ON".
+const NOMBRE_ROL = { torneo: 'Trade Marketing', diseno: 'Diseño', desarrollo: 'Desarrollo', compras: 'Compras', marketing: 'Marketing',
+  tesoreria: 'Tesorería', administracion: 'Administración', equipo_admin: 'Administración', deposito: 'Depósito', kaf: 'KAF',
+  mayorista: 'Tienda mayorista', reclamos: 'Reclamos', direccion: 'Dirección', admin: 'Dirección', duenio: 'Dirección' };
 function areaDe(perfil) {
   const canal = String(perfil.canal || '').toUpperCase();
-  const reg = perfil.region ? (String(perfil.region).charAt(0).toUpperCase() + String(perfil.region).slice(1)) : '';
-  if (perfil.rol && !['ventas'].includes(String(perfil.rol).toLowerCase())) {
-    return (String(perfil.rol).charAt(0).toUpperCase() + String(perfil.rol).slice(1));
+  const r0 = String(perfil.region || '').toLowerCase();
+  const reg = r0 === 'san_luis' ? 'San Luis' : r0 ? r0.charAt(0).toUpperCase() + r0.slice(1) : '';
+  const rol = String(perfil.rol || '').toLowerCase();
+  if (rol && rol !== 'ventas') {
+    return NOMBRE_ROL[rol] || (rol.charAt(0).toUpperCase() + rol.slice(1));
   }
   return ['Ventas', reg, canal].filter(Boolean).join(' ');
 }

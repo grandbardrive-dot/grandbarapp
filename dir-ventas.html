@@ -82,7 +82,7 @@
 
     <div class="dhead">
       <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>
-      <div><h1>Ventas y rentabilidad</h1><div class="sub">Lo facturado en CUBO. Se actualiza cada 20 minutos, también el día de hoy.</div></div>
+      <div><h1>Ventas y rentabilidad</h1><div class="sub">Lo facturado en el período elegido, incluido el día de hoy.</div></div>
       <span class="sp"></span>
       <div class="ic-btn" title="Novedades"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg></div>
       <div class="per" id="per">
@@ -106,7 +106,7 @@
         <li>Las comparaciones son contra los mismos días del período anterior y del año pasado. El día de hoy está en curso.</li>
       </ul>
     </details>
-    <div class="foot">Datos de CUBO · Panel de Dirección · GrandBar Distribuciones</div>
+    <div class="foot">Panel de Dirección · GrandBar Distribuciones</div>
   </div></div>
 </div>
 
@@ -122,6 +122,9 @@
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const hub=supabase.createClient(HUB.url,HUB.key);
   let PER='mes', D=null, ultima=null, cargando=false;
+  // Fernando ve solo los números. El detalle de la carga desde CUBO (percepciones, días que se
+  // vuelven a bajar, hora de la corrida) queda para la vista embebida del equipo (17/11/2026).
+  const EMB=document.documentElement.classList.contains('gb-embed');
   const VER={prov:false,prod:false,vend:false};
 
   // Plata: millones con un decimal; debajo del millón, en miles.
@@ -150,7 +153,7 @@
     const vTot=(x,p)=>!p?'':(x.dias_sin_percep>0||p.dias_sin_percep>0?'<span>cargando</span>':varia(x.total,p.total));
     return '<div class="k4">'
       +'<div class="kv tot"><div class="l">Venta total con impuestos</div><div class="v" title="'+$full(a.total)+'">'+$M(a.total)+'</div><div class="c">'
-        +(a.dias_sin_percep>0?'Se están sumando las percepciones: '+(a.dias_sin_percep===1?'falta 1 día':'faltan '+a.dias_sin_percep+' días')+'.<br>':'')
+        +(EMB&&a.dias_sin_percep>0?'Se están sumando las percepciones: '+(a.dias_sin_percep===1?'falta 1 día':'faltan '+a.dias_sin_percep+' días')+'.<br>':'')
         +cmp(0,vTot(a,an),vTot(a,y))+'</div></div>'
       +'<div class="kv"><div class="l">Venta de productos NETO</div><div class="v" title="'+$full(a.venta)+'">'+$M(a.venta)+'</div><div class="c">'+cmp(0,varia(a.venta,an&&an.venta),varia(a.venta,y&&y.venta))+'</div></div>'
       +'<div class="kv"><div class="l">Rentabilidad Neta</div><div class="v" title="'+$full(a.margen)+'">'+$M(a.margen)+'</div><div class="c">'+cmp(0,varia(a.margen,an&&an.margen),varia(a.margen,y&&y.margen))+'</div></div>'
@@ -286,7 +289,7 @@
       h+='<div class="g-2">'+card('sl')+card('otros')+'</div>';
     }
     h+='<div class="g-2">'+tabla('Por tipo de producto','',a.por_rubro||[],a.venta,'por_rubro','nombre')
-      +tabla('Por proveedor','código de CUBO y sus líneas',a.por_proveedor||[],a.venta,'por_proveedor','codigo',
+      +tabla('Por proveedor','',a.por_proveedor||[],a.venta,'por_proveedor','codigo',
           f=>'<span class="sub">Código '+esc(f.codigo)+'</span>','prov',12)+'</div>';
     h+='<div class="solo">'+tabla('Productos más vendidos','',(a.por_producto||[]),a.venta,'por_producto','sku',
           f=>'<span class="sub">'+esc(f.linea||'')+'</span>','prod',12)+'</div>';
@@ -295,7 +298,7 @@
     // ahí no se pueden sacar los vendedores que no se cuentan.
     const n=a.vendedor_completo===false?(a.dias_sin_vendedor||0):0;
     const comps=[an,y].filter(p=>p && p.vendedor_completo===false && p.titulo).map(p=>p.titulo);
-    if(n||comps.length){
+    if(EMB&&(n||comps.length)){
       const txt=(n?(n===1?'falta 1 día':'faltan '+n+' días')+' de este período':'falta')
         +(comps.length?(n?' y parte de ':' parte de ')+comps.join(' y de '):'');
       $('cuerpo').insertAdjacentHTML('afterbegin','<div class="aviso"><b>Carga en curso.</b> Desde hoy los vendedores que no se cuentan (Operaciones Especiales, Empleados Grandbar, etc.) se sacan según el vendedor de cada factura, y para eso se están volviendo a bajar de CUBO las ventas anteriores. '
@@ -308,6 +311,7 @@
     if(!D){ return; }
     const act=D.sync||D.actual.actualizado, min=act?Math.round((Date.now()-new Date(act))/60000):null;
     const viejo=min==null||min>45;
+    if(!EMB){ $('estado').innerHTML='<span class="pt'+(viejo?' viejo':'')+'"></span> Actualizado a las '+hora(act||ultima); return; }
     $('estado').innerHTML='<span class="pt'+(viejo?' viejo':'')+'"></span> '
       +(act?(D.sync?'CUBO revisado a las ':'Datos de CUBO al ')+hora(act)+(min!=null?' (hace '+(min<1?'menos de 1':min)+' min)':''):'Sin datos de actualización')
       +(viejo?' · la última carga se demoró; se reintenta sola':'')

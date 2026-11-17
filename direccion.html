@@ -197,11 +197,11 @@
     <div class="row3">
       <div class="card">
         <div class="c-h"><div class="t">Pagos por semana</div></div>
-        <div class="tabla" id="finSemanas"><div class="vacio">Leyendo la planilla...</div></div>
+        <div class="tabla" id="finSemanas"><div class="vacio">Cargando…</div></div>
       </div>
       <div class="card">
         <div class="c-h"><div class="t">Cheques</div></div>
-        <div class="tabla" id="finChequesDet"><div class="vacio">Leyendo la planilla...</div></div>
+        <div class="tabla" id="finChequesDet"><div class="vacio">Cargando…</div></div>
       </div>
       <div class="card">
         <div class="c-h"><div class="t">Reclamos de clientes</div><a class="lnk" href="dir-cobranzas.html#reclamos">Ver reclamos &rsaquo;</a></div>
@@ -227,7 +227,7 @@
     <div class="c-h" style="margin:4px 2px 10px"><div class="t" style="font-size:16px">Áreas de la empresa</div></div>
     <div class="areas">
       <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v" id="vtVend">—</div><div class="l">Vendedores</div></div><div><div class="v" id="vtVisHoy">—</div><div class="l">Visitas hoy</div></div><div><div class="v" id="vtVisMes">—</div><div class="l">Visitas del mes</div></div><div><div class="v" id="vtClientes">—</div><div class="l">Cuentas</div></div><div><div class="v" id="vtVentaMes">—</div><div class="l">Venta de productos NETO del mes</div></div><div><div class="v" id="vtMargenMes">—</div><div class="l">Rentabilidad Neta del mes</div></div></div><a class="en" href="dir-ventas.html">Ver ventas y rentabilidad →</a></div>
-      <div class="area"><div class="ah"><span class="ai">🗂️</span> Administración</div><div class="st"><div><div class="v" id="adCC">—</div><div class="l">Cuenta corriente</div></div><div><div class="v" id="adVenc">—</div><div class="l">Deuda vencida</div></div><div><div class="v" id="adCliVenc">—</div><div class="l">Clientes vencidos</div></div><div><div class="v" id="adClientes">—</div><div class="l">Cuentas en CUBO</div></div></div><a class="en" href="dir-cobranzas.html">Entrar →</a></div>
+      <div class="area"><div class="ah"><span class="ai">🗂️</span> Administración</div><div class="st"><div><div class="v" id="adCC">—</div><div class="l">Cuenta corriente</div></div><div><div class="v" id="adVenc">—</div><div class="l">Deuda vencida</div></div><div><div class="v" id="adCliVenc">—</div><div class="l">Clientes vencidos</div></div><div><div class="v" id="adClientes">—</div><div class="l">Cuentas</div></div></div><a class="en" href="dir-cobranzas.html">Entrar →</a></div>
     </div>
 
     <!-- Charts / Rankings -->
@@ -239,7 +239,6 @@
       </div>
     </div>
 
-    <div class="foot"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 1 0-2 6"/><path d="M20 5v6h-6"/></svg> Ventas se actualiza cada 5 minutos; el resto, al abrir la página · <span id="upd"></span></div>
   </div></div>
 </div>
 
@@ -253,7 +252,6 @@
   (function(){
     const d=new Date();
     document.getElementById('fecha').textContent = d.toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-    document.getElementById('upd').textContent = 'Abierta: ' + d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) + ' hs';
   })();
   (async ()=>{
     if(!window.supabase) return;
@@ -360,7 +358,7 @@
         set('finEfectivo', money(d.efectivo.total));
         set('finEfectivoSub', (d.efectivo.sucursales||[]).map(x=>x.sucursal+' '+money(x.saldo)).join(' · ') || 'Mendoza y San Luis');
         if (d.efectivo.fecha) fechas.push('efectivo al '+d.efectivo.fecha);
-      } else { set('finEfectivo','—'); set('finEfectivoSub','No se pudo leer la planilla'); }
+      } else { set('finEfectivo','—'); set('finEfectivoSub','No se pudo leer'); }
 
       const cajaCh = document.getElementById('finChequesDet');
       if (d.cheques && !d.cheques.error) {
@@ -371,8 +369,8 @@
         + '<div class="fl"><span class="n">Se acreditan esta semana</span><span class="m verde">'+money(d.cheques.semana)+' · '+d.cheques.cantidadSemana+'</span></div>'
         + '<div class="fl"><span class="n">Con fecha ya pasada</span><span class="m '+(d.cheques.atrasados?'rojo':'')+'">'+money(d.cheques.atrasados)+' · '+d.cheques.cantidadAtrasados+'</span></div>';
       } else {
-        set('finCheques','—'); set('finChequesSub','No se pudo leer la planilla');
-        cajaCh.innerHTML = '<div class="vacio">No se pudo leer la planilla de cheques.</div>';
+        set('finCheques','—'); set('finChequesSub','No se pudo leer');
+        cajaCh.innerHTML = '<div class="vacio">No se pudieron leer los cheques.</div>';
       }
 
       const cajaSem = document.getElementById('finSemanas');
@@ -380,29 +378,29 @@
         const w = (d.pagos.semanas||[]).find(x=>x.esEstaSemana);
         // Si la planilla no tiene la semana de hoy, no se muestra el total con el rótulo semanal.
         set('finSemana', w ? money(w.facturas) : '—');
-        set('finSemanaSub', w ? ('Total a pagar '+money(d.pagos.aPagar)) : 'La planilla no tiene esta semana · total '+money(d.pagos.aPagar));
+        set('finSemanaSub', w ? ('Total a pagar '+money(d.pagos.aPagar)) : 'Total a pagar '+money(d.pagos.aPagar));
         set('finFalta', w ? money(w.efectivo) : '—');
-        set('finFaltaSub', w ? ('Cubierto con cheques '+money(w.cheques)) : 'La planilla no tiene esta semana');
+        set('finFaltaSub', w ? ('Cubierto con cheques '+money(w.cheques)) : 'Sin datos de esta semana');
         if (d.pagos.fecha) fechas.push('pagos al '+d.pagos.fecha);
         const prox = (d.pagos.semanas||[]).filter(x=>x.esEstaSemana || !semanaYaPaso(x)).slice(0,7);
         cajaSem.innerHTML = prox.length
           ? '<div class="cab"><span class="n">Semana</span><span>A pagar</span><span>Falta cubrir</span></div>'
             + prox.map(x=>'<div class="fl '+(x.esEstaSemana?'hoy':'')+'"><span class="n">'+esc(x.etiqueta)+(x.esEstaSemana?' · esta semana':'')+'</span>'
               + '<span class="m">'+money(x.facturas)+'</span><span class="m '+(x.efectivo?'rojo':'verde')+'">'+money(x.efectivo)+'</span></div>').join('')
-          : '<div class="vacio">La planilla no tiene semanas por delante.</div>';
+          : '<div class="vacio">No hay pagos cargados para las próximas semanas.</div>';
       } else {
         set('finSemana','—'); set('finFalta','—');
-        cajaSem.innerHTML = '<div class="vacio">No se pudo leer la planilla de pagos.</div>';
+        cajaSem.innerHTML = '<div class="vacio">No se pudieron leer los pagos.</div>';
       }
 
       if (d.ordenes && !d.ordenes.error) {
         set('finOrdenes', money(d.ordenes.total));
         const t = (d.ordenes.top||[])[0];
         set('finOrdenesSub', t ? ('Mayor: '+t.proveedor.replace(/\s*S\.?A\.?.*$/,'')+' '+money(t.saldo)) : 'Comprada y no recibida');
-      } else { set('finOrdenes','—'); set('finOrdenesSub','No se pudo leer la planilla'); }
+      } else { set('finOrdenes','—'); set('finOrdenesSub','No se pudo leer'); }
 
       const ff = document.getElementById('finFecha');
-      if (ff) ff.textContent = fechas.length ? 'Archivos de Administracion · ' + fechas.join(' · ') : 'Archivos de Administracion';
+      if (ff) { const t = fechas.join(' · '); ff.textContent = t ? t.charAt(0).toUpperCase() + t.slice(1) : ''; }
     })();
 
     // ---- Reclamos de clientes (los que abren desde el Portal del Cliente): si se

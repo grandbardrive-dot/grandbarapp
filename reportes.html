@@ -102,7 +102,7 @@
     </div>
 
 
-    <div class="foot">Los datos se actualizan en tiempo real · Panel de Dirección · GrandBar Distribuciones</div>
+    <div class="foot">Panel de Dirección · GrandBar Distribuciones</div>
   </div></div>
 </div>
 <div id="ov" style="display:none;position:fixed;inset:0;background:rgba(13,34,48,.55);z-index:50;align-items:center;justify-content:center;padding:16px">
@@ -161,6 +161,11 @@
   let TOKEN=null, DATA=[], filtro='', abierto=null;
   const $=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  // Rótulos legibles: el área y el rol vienen de la base tal cual ("Torneo", "Ventas San_luis ON") (17/11/2026).
+  const NOMBRE_ROL={ventas:'Ventas',torneo:'Trade Marketing',diseno:'Diseño',desarrollo:'Desarrollo',compras:'Compras',marketing:'Marketing',tesoreria:'Tesorería',administracion:'Administración',equipo_admin:'Administración',deposito:'Depósito',kaf:'KAF',mayorista:'Tienda mayorista',reclamos:'Reclamos',reportes:'Reportes',direccion:'Dirección',admin:'Dirección',duenio:'Dirección',powerbi:'Power BI'};
+  const NOMBRE_LUGAR={san_luis:'San Luis',mendoza:'Mendoza',on:'ON',off:'OFF',ambos:'ON y OFF'};
+  const lindo=w=>{ const k=String(w||'').toLowerCase(); return NOMBRE_ROL[k]||NOMBRE_LUGAR[k]||(k?String(w).charAt(0).toUpperCase()+String(w).slice(1):''); };
+  const areaTxt=a=>String(a||'').split(' ').map(lindo).join(' ');
   const badge={pendiente:['tag crit','Pendiente'],aprobado:['tag ok','Aprobado'],rechazado:['tag alto','Rechazado'],revision:['tag medio','Cambios pedidos']};
 
   function pintar(){
@@ -168,7 +173,7 @@
     if(!rows.length){ $('repBody').innerHTML='<div style="text-align:center;color:#6d7d85;padding:26px;font-size:13px">No hay reportes'+(filtro?' en este estado.':' cargados todavía.')+'</div>'; return; }
     $('repBody').innerHTML='<table class="t rt"><tr><th>Reporte</th><th>Área</th><th>Tipo</th><th>Período</th><th>Autor</th><th>Fecha</th><th>Estado</th></tr>'+
       rows.map(r=>{const b=badge[r.estado]||badge.pendiente;const f=new Date(r.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
-        return `<tr style="cursor:pointer" data-id="${r.id}"><td><b>${esc(r.titulo)}</b></td><td><span class="tag tr">${esc(r.area||'—')}</span></td><td>${esc(r.tipo)}</td><td>${esc(r.periodo||'—')}</td><td>${esc(r.autor_nombre||'—')}</td><td>${f}</td><td><span class="${b[0]}">${b[1]}</span></td></tr>`;
+        return `<tr style="cursor:pointer" data-id="${r.id}"><td><b>${esc(r.titulo)}</b></td><td><span class="tag tr">${esc(areaTxt(r.area)||'—')}</span></td><td>${esc(r.tipo)}</td><td>${esc(r.periodo||'—')}</td><td>${esc(r.autor_nombre||'—')}</td><td>${f}</td><td><span class="${b[0]}">${b[1]}</span></td></tr>`;
       }).join('')+'</table>';
     $('repBody').querySelectorAll('[data-id]').forEach(tr=>tr.onclick=()=>abrir(tr.dataset.id));
   }
@@ -186,7 +191,7 @@
   function abrir(id){
     const r=DATA.find(x=>x.id===id); if(!r) return; abierto=r;
     $('mTit').textContent=r.titulo;
-    $('mMeta').textContent=(r.autor_nombre||'')+' · '+(r.area||'')+' · '+r.tipo+(r.periodo?' · '+r.periodo:'');
+    $('mMeta').textContent=(r.autor_nombre||'')+' · '+areaTxt(r.area)+' · '+r.tipo+(r.periodo?' · '+r.periodo:'');
     const es11t=/11t|pe[ñn]aflor/i.test(r.titulo||'')||/admin-11t\.html/.test(r.enlace||'');
     const mes=es11t?mesDe(r):null;
     if(es11t&&mes){ $('mCont').style.whiteSpace='normal'; $('mCont').style.background='transparent'; $('mCont').style.padding='0';
@@ -204,7 +209,7 @@
 
   // ── Reenviar a otros usuarios ──
   let USERS=null;
-  const rolLabel=u=>[u.es_supervisor?'Supervisor':(u.rol||''),u.canal,u.region].filter(Boolean).join(' · ')||'—';
+  const rolLabel=u=>[u.es_supervisor?'Supervisor':lindo(u.rol),lindo(u.canal),lindo(u.region)].filter(Boolean).join(' · ')||'—';
   async function cargarUsers(){
     if(USERS) return USERS;
     const r=await fetch(FN+'?usuarios=1',{headers:{Authorization:'Bearer '+TOKEN}});
@@ -263,7 +268,6 @@
               <span style="font-size:10.5px;font-weight:700;color:${p[0]};background:${p[0]}1a;border-radius:20px;padding:2px 8px">${p[1]}</span>
             </div></div></div>`; });
       if(ia.foco) h+=`<div style="font-size:12.5px;background:#3a2b63;color:#fff;border-radius:9px;padding:9px 12px;margin-top:2px"><b>Foco de la semana:</b> ${esc(ia.foco)}</div>`;
-      if(d.crudo) h+=`<div style="font-size:11.5px;color:#6d7d85;margin-top:6px">La IA respondió en texto libre.</div>`;
       h+=`<button id="mIaCopy" style="margin-top:9px;background:none;border:1px solid #cbb86a;color:#7a5c1e;border-radius:9px;padding:7px 12px;font:inherit;font-size:12px;font-weight:800;cursor:pointer">↧ Usar como devolución</button>`;
       cont.innerHTML=h;
       const txt=(ia.diagnostico?'Diagnóstico: '+ia.diagnostico+'\n\n':'')+(ia.acciones||[]).map((a,i)=>`${i+1}. ${a.titulo} — ${a.detalle}`).join('\n')+(ia.foco?'\n\nFoco de la semana: '+ia.foco:'');
@@ -292,7 +296,7 @@
         ${mini('Clientes logrados',nf(t.real))}
         ${mini('Faltan para el objetivo',nf(t.faltan),'#c0603e')}
       </div></div>`;
-    if(d.carga) h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:9px">Así está el mes hoy (datos al ${new Date(d.carga.fecha).toLocaleDateString('es-AR')}): puede no coincidir con lo que dice el texto del reporte, que se escribió antes.</div>`;
+    if(d.carga) h+=`<div style="font-size:11px;color:var(--muted);margin-bottom:9px">Datos al ${new Date(d.carga.fecha).toLocaleDateString('es-AR')}.</div>`;
 
     h+=`<div style="font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 5px">Por canal</div><div style="${card};overflow:hidden">`;
     ['vinotecas','tienda_bebidas','on_premise','on_premise_noche'].forEach((k,i)=>{ const c=d.canales[k]; if(!c) return; const a=c.tot.alcance, col=alcColor(a);

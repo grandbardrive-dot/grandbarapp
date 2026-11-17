@@ -54,7 +54,7 @@
 <script src="assets/auth.js"></script>
 <script src="assets/dir-nav.js"></script>
 <script src="assets/dir-notif.js"></script>
-<script src="assets/cobranzas.js?v=48"></script>
+<script src="assets/cobranzas.js?v=49"></script>
 <script>
   // Lo que Dirección no ve adentro de Cobranzas: las conversaciones y las tareas
   // operativas del equipo. Se sacan de la lista antes de dibujar, así tampoco
@@ -65,6 +65,7 @@
     window.COB_SOLO_LECTURA = true;
     for (var i = COB_SECCIONES.length - 1; i >= 0; i--) {
       if (OCULTAS.indexOf(COB_SECCIONES[i].id) > -1) COB_SECCIONES.splice(i, 1);
+      else if (COB_SECCIONES[i].id === 'planillas') COB_SECCIONES[i].d = 'Las rendiciones de cobranzas que mandan los vendedores, por día.';
     }
     // Si algún botón del tablero apunta a una de esas secciones, vuelve al tablero.
     var abrir = window.cobAbrir;
@@ -72,7 +73,7 @@
     // El subtítulo del tablero habla de tareas, que acá no están.
     // Análisis (27/10/2026): el tablero de datos de la cobranza, adentro del panel.
     window.COB_EXTRA = [{ id: 'analisis', ico: '📈', n: 'Análisis', arriba: true, abrir: function () {
-      document.getElementById('cob').innerHTML = '<iframe src="/cobranzas-analisis.html?embed=1" title="Análisis de cobranzas" style="display:block;width:100%;height:calc(100vh - 150px);min-height:600px;border:0;background:transparent"></iframe>';
+      document.getElementById('cob').innerHTML = '<iframe src="/cobranzas-analisis.html?embed=1&dir=1" title="Análisis de cobranzas" style="display:block;width:100%;height:calc(100vh - 150px);min-height:600px;border:0;background:transparent"></iframe>';
     } }];
     var tablero = window.cobTablero;
     window.cobTablero = function () {
