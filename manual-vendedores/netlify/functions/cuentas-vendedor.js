@@ -18,6 +18,7 @@ const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 
 const { traerTodo } = require('./_paginar.js');
+const { corteVigentes } = require('./_cuentas-vigentes');
 
 function json(statusCode, body) {
   return {
@@ -56,8 +57,15 @@ exports.handler = async (event) => {
     //    avisar y la deuda daría de menos. Es la misma consulta que usa el panel
     //    del supervisor, para que los dos muestren lo mismo.
     const cob = (p, o) => fetch(COB_URL + '/rest/v1/' + p, { headers: Object.assign({ apikey: service, Authorization: 'Bearer ' + service }, (o && o.headers) || {}) });
-    let clientes = await traerTodo(cob, 'cuentas_cubo?vendedor=eq.' + encodeURIComponent(codigo) + '&select=codigo,nombre,saldo,vencida,telefono&order=codigo.asc');
+    let clientes = await traerTodo(cob, 'cuentas_cubo?vendedor=eq.' + encodeURIComponent(codigo) + '&select=codigo,nombre,saldo,vencida,telefono,actualizado&order=codigo.asc');
     if (!Array.isArray(clientes)) clientes = [];
+    // 3a) ¿Sigue activa en CUBO? (17/11/2026) Las cuentas que CUBO dio de baja quedan en
+    //     cuentas_cubo con 'actualizado' viejo (_cuentas-vigentes.js). Se marca, no se filtra:
+    //     la lista de Clientes del vendedor muestra solo las vigentes; las demás pantallas, como antes.
+    try {
+      const corte = await corteVigentes(cob);
+      if (corte) { const t = new Date(corte).getTime(); clientes = clientes.map(c => ({ ...c, vigente: !c.actualizado || new Date(c.actualizado).getTime() >= t })); }
+    } catch (e) { /* sin la marca, la lista usa la cartera del manual como antes */ }
     // Deuda vencida = todas las facturas vencidas, sin descontar el saldo a favor y sin
     // tope (regla del 29/09/2026, igual que supervisor, Dirección y tesorería). Hasta el
     // 07/10 acá se la recortaba al saldo neto (regla vieja del 02/09), y el vendedor y la

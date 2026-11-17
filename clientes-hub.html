@@ -200,7 +200,7 @@
 
     <div class="content">
       <div class="stats">
-        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Clientes asignados</div><div class="v" id="stCount">—</div><div class="sub" id="stCountSub">Activos</div></div></div>
+        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l" id="stCountL">Clientes asignados</div><div class="v" id="stCount">—</div><div class="sub" id="stCountSub">Activos</div></div></div>
         <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas esta semana</div><div class="v" id="stVis">—</div><div class="sub pend" id="stVisSub">Cargando…</div></div></div>
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas del mes</div><div class="v" id="stVentas">—</div><div class="sub pend" id="stVentasSub">Cargando…</div></div></div>
       </div>
@@ -256,6 +256,15 @@
   let fDeuda='todos', fDim='', _dimKey='tipo', orden='az', verOcultos=false;
   // Un cliente es activo salvo que activo===false (por defecto: activo).
   const esActivo = c => c.activo !== false;
+  // MODO_CUBO (17/11/2026): la lista del vendedor son sus clientes ACTIVOS EN CUBO, los mismos
+  // "Clientes activos" del Inicio. Arriba va el total; las pestañas reparten Clientes / Quitados.
+  let MODO_CUBO = false;
+  function pintarConteo(nAct, nOcu){
+    const st=document.getElementById('stCount'), sub=document.getElementById('stCountSub');
+    if(!MODO_CUBO){ if(st) st.textContent = nAct; return; }
+    if(st) st.textContent = nAct + nOcu;
+    if(sub) sub.textContent = nOcu ? (nOcu + (nOcu === 1 ? ' quitado' : ' quitados') + ' de tu lista') : 'Todos en tu lista';
+  }
 
   function setVerOcultos(oc){
     verOcultos = oc;
@@ -278,7 +287,7 @@
       const m={}; data.forEach(r=>{ m[normCod(r.codigo)] = r.activo; });
       CLIENTES.forEach(c=>{ const k=normCod(c.codigo_cliente||c.id); if(k in m) c.activo = m[k]; });
       const act = CLIENTES.filter(c=>esActivo(c)).length;
-      const st=document.getElementById("stCount"); if(st) st.textContent = act;
+      pintarConteo(act, CLIENTES.length - act);
       sel=-1; renderList();
     }catch(e){}
   }
@@ -313,7 +322,7 @@
     const nAct = CLIENTES.filter(c=>esActivo(c)).length, nOcu = CLIENTES.length - nAct;
     const ca=document.getElementById('cntAct'); if(ca) ca.textContent = '('+nAct+')';
     const co=document.getElementById('cntOcu'); if(co) co.textContent = '('+nOcu+')';
-    const st=document.getElementById('stCount'); if(st) st.textContent = nAct;
+    pintarConteo(nAct, nOcu);
     let rows = CLIENTES.map((c,i)=>({c,i}))
       .filter(({c}) => esActivo(c) !== verOcultos)
       .filter(({c}) => !q || ((c.nombre||"")+" "+(c.direccion||"")+" "+(c.tipo||"")+" "+(c.vendedor_nombre||"")+" "+(c.codigo_cliente||"")).toLowerCase().includes(q))
@@ -798,7 +807,22 @@
       if(!cli || !cli.length){ reason="el vendedor "+perfil.codigo_vendedor+" no tiene clientes cargados en el Manual"; return; }
 
       CLIENTES = cli;
-      document.getElementById("stCount").textContent = cli.filter(c=>c.activo!==false).length;
+      // Saldos de cuentas_cubo y, desde el 17/11/2026, qué clientes siguen activos en CUBO: la lista
+      // muestra solo esos (pedido del usuario: los mismos activos del Inicio). Los que el vendedor
+      // quitó siguen en Quitados. Si no se puede leer, queda la cartera del manual como antes.
+      try{
+        const fr = await fetch("/.netlify/functions/cuentas-vendedor?con_ocultos=1", { headers:{ Authorization:"Bearer "+session.access_token } });
+        if(fr.ok){
+          const cuentas = (await fr.json()).clientes || [];
+          cuentas.forEach(cc=>{ const raw = String(cc.codigo); saldoMap[raw] = cc; saldoMap[raw.replace(/^0+/,"")] = cc; });
+          if(cuentas.some(cc=>'vigente' in cc)){
+            const vig = new Set(cuentas.filter(cc=>cc.vigente).map(cc=>normCod(cc.codigo)));
+            const enCubo = cli.filter(c=>vig.has(normCod(c.codigo_cliente)));
+            if(enCubo.length){ CLIENTES = enCubo; MODO_CUBO = true; const l=document.getElementById('stCountL'); if(l) l.textContent = 'Clientes activos'; }
+          }
+        }
+      }catch(e){}
+      { const a = CLIENTES.filter(c=>c.activo!==false).length; pintarConteo(a, CLIENTES.length - a); }
       aplicarEstado();   // aplica los estados guardados por código (override)
       cargarStats([vend.id], [perfil.codigo_vendedor], false);
 
@@ -812,18 +836,7 @@
 
       sel=-1; renderList("");
 
-      // Saldo/deuda reales (cuentas_cubo vía Netlify Function). Aditivo: si falla, no rompe nada.
-      try{
-        const fr = await fetch("/.netlify/functions/cuentas-vendedor?con_ocultos=1", { headers:{ Authorization:"Bearer "+session.access_token } });
-        if(fr.ok){
-          const fj = await fr.json();
-          (fj.clientes||[]).forEach(cc=>{
-            const raw = String(cc.codigo);
-            saldoMap[raw] = cc; saldoMap[raw.replace(/^0+/,"")] = cc;
-          });
-          if(sel>=0) selCliente(sel);
-        }
-      }catch(e){}
+      // (Los saldos de cuentas_cubo ya se leyeron arriba, junto con qué clientes siguen activos en CUBO.)
     }catch(e){ reason = "error inesperado ("+(e.message||e)+")"; }
     finally{
       const note = document.getElementById("modo");
