@@ -99,7 +99,7 @@ async function plan5T(codigos, nombreDeCod, alcance) {
   const p3 = armar(() => true);
   const pMes = armar(f => f >= mesDesde);
   return Object.assign({
-    id: 'campari5t', nombre: 'Plan 5T',
+    id: 'campari5t', nombre: 'Convivencia',
     detalle: 'Convivencia de las 5 marcas Campari (Aperol, Campari, Cynar, Skyy Inf, Others) por cliente: cuántas de las 5 tiene cada uno. Filtrá por últimos 3 meses o mes actual.',
     marcas: MARCAS_5T.map(([k, n]) => ({ k, n })),
     periodos: { '3m': p3, 'mes': pMes },
