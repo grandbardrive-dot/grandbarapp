@@ -53,6 +53,33 @@
   var TIT = 'style="font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8fa3ad;padding:14px 12px 5px"';
 
   function reveal() { var n = document.querySelector(".sb-nav"); if (n) n.style.visibility = "visible"; }
+
+  // Menú de respaldo para roles que "ven todo" pero NO son supervisores ni vendedores
+  // (Dirección, Compras/Luciana, Trade/Sepúlveda, Diseño…). Si no, al entrar a
+  // supervisor-incentivos.html el menú lateral quedaba vacío (17/11/2026).
+  var PANEL_ROL = {
+    direccion: ["direccion.html", "Dirección"], admin: ["direccion.html", "Dirección"], duenio: ["direccion.html", "Dirección"],
+    compras: ["manual-vendedores/admin-comercial.html", "Compras"], diseno: ["panel-diseno.html", "Diseño"],
+    marketing: ["panel-diseno.html", "Marketing"], desarrollo: ["panel-desarrollo.html", "Desarrollo"]
+  };
+  function navFallback(rol) {
+    // Sepúlveda (Trade): se le dibuja su propio menú de Trade, igual que en sus pantallas.
+    if (rol === "torneo") {
+      if (!document.getElementById("gb-trade-nav")) {
+        var s = document.createElement("script"); s.id = "gb-trade-nav"; s.src = "assets/trade-nav.js?v=2"; document.body.appendChild(s);
+      }
+      return;
+    }
+    var p = PANEL_ROL[rol] || ["hub.html", ""];
+    document.querySelectorAll(".sb-user .s").forEach(function (el) { if (p[1]) el.textContent = p[1]; });
+    var nav = document.querySelector(".sb-nav");
+    if (nav) {
+      nav.innerHTML = '<div ' + TIT + '>Menú</div>'
+        + '<a href="' + p[0] + '">' + svg('<path d="M15 6l-6 6 6 6"/>') + ' Volver a mi panel</a>'
+        + '<a href="supervisor-incentivos.html" class="active">' + svg('<circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"/>') + ' Incentivos</a>';
+      nav.style.visibility = "visible";
+    }
+  }
   function render() {
     // Marca para hub-nav.js: si el menú es de supervisor, el de vendedor no lo pisa.
     window.__gbSupNav = true;
@@ -113,14 +140,19 @@
       if (!window.supabase) return;
       var c = supabase.createClient(HUB.url, HUB.key);
       var s = (await c.auth.getSession()).data.session; if (!s) return;
-      var u = (await c.from("usuarios").select("es_supervisor").eq("id", s.user.id).maybeSingle()).data;
+      var u = (await c.from("usuarios").select("es_supervisor,rol").eq("id", s.user.id).maybeSingle()).data;
       var sup = !!(u && u.es_supervisor);
       try { localStorage.setItem("gb_es_sup", sup ? s.user.id : "no"); } catch (e) {}
       if (sup) render();
       else {
         window.__gbSupNav = false;
         try { document.documentElement.classList.remove("gb-sup"); } catch (e) {}
-        if (window.GBHubNav) window.GBHubNav.pintar(true);   // no es supervisor: vuelve el menú de vendedor
+        var rol = String((u && u.rol) || "").toLowerCase();
+        if (rol === "ventas" || rol === "mayorista") {
+          if (window.GBHubNav) window.GBHubNav.pintar(true);   // vendedor: vuelve su menú
+        } else {
+          navFallback(rol);                                    // Dirección/Compras/Trade/Diseño: menú de respaldo
+        }
         reveal();
       }
     } catch (e) { reveal(); }
