@@ -90,6 +90,36 @@
   .fill.lo{background:linear-gradient(90deg,#d98b63,var(--red))}
   .fill.hi{background:linear-gradient(90deg,#49a07f,var(--green-d))}
 
+  /* ===== Animaciones del dashboard ===== */
+  @keyframes gbCardIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @keyframes gbBarGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes gbRingSweep{from{stroke-dashoffset:var(--c)}}
+  @keyframes gbFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  /* Tarjetas: entran con fade + leve subida, escalonadas */
+  .grid .tcard{animation:gbCardIn .5s cubic-bezier(.22,1,.36,1) both}
+  .grid .tcard:nth-child(1){animation-delay:.02s}.grid .tcard:nth-child(2){animation-delay:.08s}
+  .grid .tcard:nth-child(3){animation-delay:.14s}.grid .tcard:nth-child(4){animation-delay:.20s}
+  .grid .tcard:nth-child(5){animation-delay:.26s}.grid .tcard:nth-child(6){animation-delay:.32s}
+  .grid .tcard:nth-child(n+7){animation-delay:.36s}
+  .tcard{transition:transform .18s ease, box-shadow .18s ease}
+  .tcard:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(13,34,48,.10)}
+  /* Detalle del plan: hero y secciones aparecen suave */
+  .plan .hero, .plan .secT{animation:gbFade .5s ease both}
+  .plan .secT{animation-delay:.08s}
+  /* Barras: el relleno crece desde cero (sirve para cualquier %) */
+  .fill{transform-origin:left center;animation:gbBarGrow .95s cubic-bezier(.22,1,.36,1) both}
+  .bar{animation:gbFade .45s ease both}
+  .bar:nth-child(2){animation-delay:.05s}.bar:nth-child(3){animation-delay:.10s}
+  .bar:nth-child(4){animation-delay:.15s}.bar:nth-child(5){animation-delay:.20s}.bar:nth-child(6){animation-delay:.25s}
+  /* Anillo grande: se dibuja solo de vacío a su valor */
+  .ring svg .ringprog{animation:gbRingSweep 1.15s cubic-bezier(.22,1,.36,1)}
+  /* Números que cuentan hacia arriba (los pone el JS con .countup) */
+  .countup{font-variant-numeric:tabular-nums}
+  @media (prefers-reduced-motion: reduce){
+    .grid .tcard,.plan .hero,.plan .secT,.fill,.bar,.ring svg .ringprog{animation:none!important}
+    .tcard{transition:none}
+  }
+
   /* Vendedores */
   .vrow{border:1px solid var(--line);border-radius:13px;margin-bottom:9px;overflow:hidden}
   .vhead{display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer;background:#fff}
@@ -221,9 +251,9 @@
     const col = pct>=66?'var(--green-d)':(pct<=33?'var(--red)':'var(--gold-d)');
     return `<div class="ring"><svg width="132" height="132" viewBox="0 0 132 132">
         <circle cx="66" cy="66" r="${R}" fill="none" stroke="#eee7d8" stroke-width="13"/>
-        <circle cx="66" cy="66" r="${R}" fill="none" stroke="${col}" stroke-width="13" stroke-linecap="round"
-          stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 66 66)"/>
-      </svg><div class="pctT"><div class="big">${pct}%</div><div class="lbl">cumplimiento</div></div></div>`;
+        <circle class="ringprog" cx="66" cy="66" r="${R}" fill="none" stroke="${col}" stroke-width="13" stroke-linecap="round"
+          style="--c:${C.toFixed(1)}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 66 66)"/>
+      </svg><div class="pctT"><div class="big countup" data-count="${pct}" data-suffix="%">${pct}%</div><div class="lbl">cumplimiento</div></div></div>`;
   }
 
   // Foto de la botella de cada producto Campari (Cobertura y Convivencia). '' si no corresponde.
@@ -484,7 +514,7 @@
     return `<button class="tcard" onclick="irProv('${esc(prov.id)}')">
       <div class="logoBanner">${provBrand(prov)}</div>
       <div class="subc">${n} ${n===1?'plan':'planes'}</div>
-      <div class="foot">${miniRing(pct)}<div><div class="pctbig">${pct}%</div><div class="pl">cumplimiento</div></div><span class="go">Ver planes ›</span></div>
+      <div class="foot">${miniRing(pct)}<div><div class="pctbig countup" data-count="${pct}" data-suffix="%">${pct}%</div><div class="pl">cumplimiento</div></div><span class="go">Ver planes ›</span></div>
     </button>`;
   }
   function planCard(prov,p){
@@ -508,7 +538,7 @@
       <div class="th">${provLogo(prov)}
         <div><div class="nm">${esc(p.nombre)}</div><div class="sub">${esc(prov.nombre)}</div></div></div>
       <div style="font-size:12.5px;color:var(--muted);line-height:1.4">${esc(p.detalle)}</div>
-      <div class="foot">${miniRing(p.pct||0)}<div><div class="pctbig">${p.pct||0}%</div><div class="pl">${esc(sub)}</div></div><span class="go">Ver ›</span></div>
+      <div class="foot">${miniRing(p.pct||0)}<div><div class="pctbig countup" data-count="${p.pct||0}" data-suffix="%">${p.pct||0}%</div><div class="pl">${esc(sub)}</div></div><span class="go">Ver ›</span></div>
     </button>`;
   }
 
@@ -525,7 +555,23 @@
     $('#who').textContent=[d.nombre,ambito].filter(Boolean).join(' — ')||'Tu equipo';
   }
 
-  function renderView(){
+  // Números que cuentan de 0 a su valor (0.9s). Respeta "reduce motion".
+  function gbNumbers(root){
+    if(!root) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    root.querySelectorAll('[data-count]').forEach(el=>{
+      const to = parseFloat(el.getAttribute('data-count'))||0, suf = el.getAttribute('data-suffix')||'';
+      if(reduce || to<=0){ el.textContent = to + suf; return; }
+      const dur=900, t0=performance.now();
+      (function step(t){
+        const k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3);
+        el.textContent = Math.round(to*e) + suf;
+        if(k<1) requestAnimationFrame(step);
+      })(t0);
+    });
+  }
+  function renderView(){ _renderView(); try{ gbNumbers($('#cont')); }catch(e){} }
+  function _renderView(){
     if(!DATA) return;
     const provs=DATA.proveedores||[]; const cont=$('#cont');
     if(!provs.length){ cont.innerHTML='<div class="empty">Todavía no hay planes cargados. Pronto vamos a ir sumando los planes de los proveedores.</div>'; return; }
