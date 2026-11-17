@@ -230,7 +230,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/auth-persist.js?v=1"></script>
-<script src="assets/ventas.js?v=3"></script>
+<script src="assets/ventas.js?v=4"></script>
 <script src="manual-vendedores/_sucursales.js"></script>
 <script src="assets/supervisor-nav.js?v=2"></script>
 <script>
@@ -524,7 +524,7 @@
     GBVentas.deCliente(c.codigo_cliente).then(monto=>{
       const el=document.getElementById("dVendido"); if(!el) return;
       if(monto!=null){ el.textContent = GBVentas.formato(monto); el.className = "v"; el.style.color = "var(--green-d)"; }
-      else { el.textContent = "Sin ventas en la planilla"; el.className = "v pend"; }
+      else { el.textContent = "Sin compras este mes"; el.className = "v pend"; }
     }).catch(()=>{ const el=document.getElementById("dVendido"); if(el){ el.textContent="—"; el.className="v pend"; } });
   }
 
@@ -745,10 +745,10 @@
     try{
       if(!window.GBVentas || !(await GBVentas.seLeyo())) throw new Error("sin planilla");
       const tot = (await Promise.all(codigos.map(c => GBVentas.totalDe(parseInt(c, 10))))).filter(v => v != null);
-      if(!tot.length){ $s("stVentasSub").textContent = esEquipo ? "el equipo no figura en la planilla" : "no figurás en la planilla"; return; }
+      if(!tot.length){ $s("stVentasSub").textContent = esEquipo ? "el equipo no tiene ventas este mes" : "sin ventas este mes"; return; }
       $s("stVentas").textContent = GBVentas.formato(tot.reduce((a, b) => a + b, 0));
       $s("stVentasSub").textContent = "facturado en " + mes + (esEquipo ? " por el equipo" : ""); $s("stVentasSub").classList.remove("pend");
-    }catch(e){ $s("stVentasSub").textContent = "no se pudo leer la planilla"; }
+    }catch(e){ $s("stVentasSub").textContent = "no se pudieron leer las ventas"; }
   }
 
   async function load(){

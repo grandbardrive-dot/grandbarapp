@@ -9,7 +9,7 @@
 //      (_corrida.js). Falla si dejó de correr o si sus últimas corridas fallaron.
 //    · Sitios: Portal, Portal del Cliente y los 3 catálogos responden.
 //    · Bases: las 4 de Supabase contestan.
-//    · Planillas de Drive que se leen en vivo (Avance Ventas).
+//    · Planillas de Drive que se leen en vivo (Avance Ventas se dejó de usar el 17/11/2026).
 //    · Ventas: que la última venta cargada no sea vieja.
 //    · Finanzas de Dirección: que el Efectivo y los Pagos de Administración no tengan
 //      más de 3 días (17/11/2026; los IDs en _finanzas-archivos.js).
@@ -150,7 +150,8 @@ exports.handler = async (event) => {
 
     // ---------- planillas de Drive ----------
     const PLANILLAS = [
-      { id: 'drive-avance-ventas', nombre: 'Planilla Avance Ventas (Drive)', url: 'https://docs.google.com/spreadsheets/d/1oMIgtZ5KI83_1oyP9TFLKV2fAEpJY_Hc/gviz/tq?tqx=out:csv&tq=' + encodeURIComponent('select A limit 1') },
+      // (17/11/2026) Se sacó "Planilla Avance Ventas": quedó en la papelera con octubre y ya no
+      // se usa; las ventas del vendedor salen de CUBO (ventas-vendedor).
     ];
     const planillas = PLANILLAS.map(async (p) => {
       const base = { id: p.id, grupo: 'Planillas de Drive', nombre: p.nombre };

@@ -334,7 +334,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/auth-persist.js?v=1"></script>
 <script src="assets/supervisor-nav.js?v=2"></script>
-<script src="assets/ventas.js?v=3"></script>
+<script src="assets/ventas.js?v=4"></script>
 <script src="assets/supabase-config.js"></script>
 <script>
   const HUB    = { url:"https://xqhyemccbwmzxqzkrtwa.supabase.co", key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc" };
@@ -363,16 +363,16 @@
       if(monto != null){
         const fmt = "$ " + Math.round(monto).toLocaleString("es-AR");
         document.getElementById("stVentas").textContent = fmt;
-        document.getElementById("stVentasSub").textContent = "Se actualiza a diario";
+        document.getElementById("stVentasSub").textContent = "Este mes, con IVA";
         const rv = document.getElementById("rsVentas"); if(rv) rv.textContent = fmt;
-        const rvs = document.getElementById("rsVentasSub"); if(rvs){ rvs.textContent = "Se actualiza a diario"; rvs.style.color = "var(--muted)"; }
+        const rvs = document.getElementById("rsVentasSub"); if(rvs){ rvs.textContent = "Este mes, con IVA"; rvs.style.color = "var(--muted)"; }
       } else {
         // Distinguir "no está tu código" de "no pude leer la planilla": si no se leyó
         // ningún vendedor, el problema es la planilla y no el código del vendedor.
         const ok = await GBVentas.seLeyo();
-        sinVentas(ok ? "Tu código ("+cod+") no figura en la planilla" : "No se pudo leer la planilla de ventas");
+        sinVentas(ok ? "Todavía no tenés ventas este mes" : "No se pudieron leer las ventas");
       }
-    }catch(e){ sinVentas("No se pudo leer la planilla"); }
+    }catch(e){ sinVentas("No se pudieron leer las ventas"); }
   }
 
   // ── Tu mes ──────────────────────────────────────────────────────────────────
@@ -455,8 +455,8 @@
       if(total != null){
         $("pfVentas").textContent = "$ " + Math.round(total).toLocaleString("es-AR");
         $("pfVentasSub").textContent = "facturado en " + mes;
-      } else { $("pfVentasSub").textContent = "no figurás en la planilla"; }
-    }catch(e){ $("pfVentasSub").textContent = "no se pudo leer la planilla"; }
+      } else { $("pfVentasSub").textContent = "sin ventas este mes"; }
+    }catch(e){ $("pfVentasSub").textContent = "no se pudieron leer"; }
   }
 
   let hub;
