@@ -181,6 +181,34 @@ async function clientesDeCubo() {
   return lista;
 }
 
+// ── Resumen de la tabla CLIENTES de CUBO, sin datos de nadie (17/11/2026) ──
+// Para saber qué trae DtTabla CLIENTES (5.828 filas) y si tiene un estado que diga
+// qué clientes están activos. Por cada columna: cuántas filas la tienen cargada y,
+// si tiene pocos valores distintos (estado, baja, tipo…), cuántas hay de cada uno;
+// si es una fecha, cuántas por año. Columnas con muchos valores (nombres, CUIT,
+// direcciones) solo dicen cuántos distintos hay.
+function resumirCubo(cubo) {
+  const cols = {};
+  for (const o of cubo) for (const k of Object.keys(o)) {
+    const c = cols[k] || (cols[k] = { llenas: 0, valores: new Map(), anios: {}, fechas: 0, muchos: false });
+    const s = o[k] == null ? '' : String(o[k]).trim();
+    if (!s) continue;
+    c.llenas++;
+    const f = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s) || /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+    if (f) { c.fechas++; const a = f[3].length === 4 ? f[3] : f[1]; c.anios[a] = (c.anios[a] || 0) + 1; }
+    if (c.valores.has(s) || c.valores.size < 40) c.valores.set(s, (c.valores.get(s) || 0) + 1); else c.muchos = true;
+  }
+  const out = { filas: cubo.length, columnas: {} };
+  for (const k of Object.keys(cols)) {
+    const c = cols[k], r = { llenas: c.llenas };
+    if (c.fechas > c.llenas / 2) r.por_anio = c.anios;
+    else if (!c.muchos && c.valores.size <= 30) r.valores = Object.fromEntries([...c.valores].sort((a, b) => b[1] - a[1]));
+    else r.distintos = c.muchos ? 'más de 40' : c.valores.size;
+    out.columnas[k] = r;
+  }
+  return out;
+}
+
 // ── Quién llama ─────────────────────────────────────────────
 async function autorizado(event) {
   const q = event.queryStringParameters || {};
@@ -238,7 +266,8 @@ async function sincronizar(modo, t0 = Date.now()) {
     const informe = {
       modo,
       cubo: { clientes: r.vistos, columnas: Object.keys(cubo[0] || {}),
-              campo_estado: CAMPOS_ESTADO.find(k => cubo[0] && k in cubo[0]) || null },
+              campo_estado: CAMPOS_ESTADO.find(k => cubo[0] && k in cubo[0]) || null,
+              resumen: resumirCubo(cubo) },
       manual: { clientes: manual.length, que_cubo_no_tiene: r.noEnCubo },
       nuevos: r.nuevos.length,
       nuevos_dados_de_baja_en_cubo: r.nuevos.filter(n => !n.activo).length,
@@ -297,6 +326,7 @@ async function reactivarCompradores() {
 
 exports.calcular = calcular;         // para probar el cálculo sin conectarse a CUBO
 exports.sincronizar = sincronizar;   // la usa sync-clientes-cron
+exports.resumirCubo = resumirCubo;
 exports.reactivarCompradores = reactivarCompradores;   // la usa sync-clientes-cron
 
 // Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).

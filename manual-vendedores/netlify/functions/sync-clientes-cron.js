@@ -31,6 +31,20 @@ exports.handler = async () => {
   }
   try {
     const inf = await sincronizar('aplicar', t0);
+    // Resumen de la tabla CLIENTES de CUBO (17/11/2026): queda en sistema_corridas como
+    // tarea 'cubo-clientes-resumen' para poder leerlo desde la base (sin datos de clientes).
+    try {
+      const k = process.env.HUB_SERVICE_ROLE;
+      if (k && inf.cubo && inf.cubo.resumen) {
+        const ahora = new Date().toISOString();
+        await fetch('https://xqhyemccbwmzxqzkrtwa.supabase.co/rest/v1/sistema_corridas', {
+          method: 'POST',
+          headers: { apikey: k, Authorization: 'Bearer ' + k, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ tarea: 'cubo-clientes-resumen', inicio: ahora, fin: ahora, ok: true, ms: 0,
+            detalle: JSON.stringify(inf.cubo.resumen).slice(0, 60000) }),
+        });
+      }
+    } catch (e) { console.log('sync-clientes-cron resumen no se guardó', (e && e.message) || String(e)); }
     console.log('sync-clientes-cron OK', JSON.stringify({
       en_cubo: inf.cubo && inf.cubo.clientes,
       nuevos: inf.nuevos,
