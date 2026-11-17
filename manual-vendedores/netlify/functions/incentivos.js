@@ -290,18 +290,25 @@ exports.handler = async (event) => {
 
     // Plan 1: Cobertura (tabla cobertura_productos, objetivo global)
     try {
-      let rows = await (await hub('cobertura_productos?select=producto,orden,color,target,avance&order=orden.asc')).json();
+      let [rows, cfg] = await Promise.all([
+        (await hub('cobertura_productos?select=producto,orden,color,target,avance&order=orden.asc')).json(),
+        (await hub('club_campari_config?select=k,v')).json(),
+      ]);
       if (Array.isArray(rows) && rows.length) {
+        const C = {}; (Array.isArray(cfg) ? cfg : []).forEach(r => { C[r.k] = r.v; });
         const productos = rows.map(r => {
           const target = num(r.target), avance = num(r.avance);
           return { nombre: r.producto, color: r.color || '#c79a3b', target, avance, pct: pct(avance, target) };
         });
         const targetTotal = productos.reduce((a, p) => a + p.target, 0);
         const avanceTotal = productos.reduce((a, p) => a + p.avance, 0);
+        // Anillo = clientes DISTINTOS que compran alguna de las 5 marcas vs objetivo global.
+        const clientesObj = num(C.objetivo_clientes), clientesAv = num(C.avance_clientes);
         campariPlanes.push({
           id: 'cobertura', nombre: 'Cobertura',
-          detalle: 'Objetivo global de la empresa por producto: cuánto llevamos (avance) contra el target.',
-          productos, targetTotal, avanceTotal, pct: pct(avanceTotal, targetTotal),
+          detalle: 'Objetivo global de la empresa: clientes que compran Campari (alguna de las 5 marcas) en el Q, y la cobertura por producto.',
+          productos, targetTotal, avanceTotal,
+          clientesObj, clientesAv, pct: pct(clientesAv, clientesObj),
         });
       }
     } catch (e) {}

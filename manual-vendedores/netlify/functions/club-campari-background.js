@@ -49,7 +49,21 @@ async function calcular() {
     if (up.ok) actualizadas.push({ marca, avance: av });
     else actualizadas.push({ marca, error: up.status });
   }
-  return { desde, hasta, actualizadas };
+
+  // Clientes DISTINTOS que compran alguna de las 5 marcas (para el anillo: X de 920).
+  let clientesDistintos = null;
+  try {
+    const rc = await man('rpc/club_campari_clientes', { method: 'POST', body: JSON.stringify({ desde, hasta }) });
+    if (rc.ok) {
+      clientesDistintos = Number(await rc.json()) || 0;
+      await hub('club_campari_config?k=eq.avance_clientes', {
+        method: 'PATCH', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ v: String(clientesDistintos) }),
+      });
+    }
+  } catch (e) {}
+
+  return { desde, hasta, actualizadas, clientesDistintos };
 }
 
 exports.handler = async (event) => {

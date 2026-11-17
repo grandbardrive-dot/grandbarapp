@@ -422,10 +422,14 @@
       return `<div class="bar"><div class="bt"><span class="nm">${dot}${esc(pr.nombre)}</span><span class="vl"><b>${pr.avance}</b>/${pr.target} · ${pr.pct}%</span></div>
         <div class="track"><div class="fill" style="width:${pr.pct}%;background:${esc(pr.color)}"></div></div></div>`;
     }).join('');
+    const cObj=(p.clientesObj||0), cAv=(p.clientesAv||0);
+    const heroStat = cObj
+      ? `<div class="stat"><span class="n">${cAv}</span><span class="l">de ${cObj} · clientes que compran Campari (el Q)</span></div>`
+      : `<div class="stat"><span class="n">${p.avanceTotal}</span><span class="l">de ${p.targetTotal} · avance total</span></div>`;
     return `<div class="plan"><div class="body">
         <div class="hero">${ring(p.pct)}<div class="heroR">
-            <div class="stat"><span class="n">${p.avanceTotal}</span><span class="l">de ${p.targetTotal} · avance total</span></div>
-            <div class="obj">🎯 <b>Objetivo global de la empresa.</b> Avance real vs target, producto por producto.</div>
+            ${heroStat}
+            <div class="obj">🎯 <b>Objetivo global de la empresa.</b> Clientes con compra en el Q (Oct–Dic); abajo, la cobertura producto por producto.</div>
         </div></div>
         <div class="secT">Por producto</div>${bars}
       </div></div>`;
@@ -466,7 +470,7 @@
       ? (p.unidad==='clientes' ? `${p.cccAv||0} de ${p.cccObj||0} clientes` : `${p.avanceTotal||0} de ${p.targetTotal||0} botellas`)
       : p.porMarca
       ? (p.universo ? `${p.universo} clientes · ${p.completos} completos` : 'sin clientes en el plan')
-      : `${p.avanceTotal||0} de ${p.targetTotal||0} · objetivo global`;
+      : (p.clientesObj ? `${p.clientesAv||0} de ${p.clientesObj} clientes` : `${p.avanceTotal||0} de ${p.targetTotal||0} · objetivo global`);
     return `<button class="tcard" onclick="irPlan('${esc(prov.id)}','${esc(p.id)}')">
       <div class="th"><div class="logo" style="background:${esc(prov.color||'#0d2230')}">${esc(prov.nombre[0])}</div>
         <div><div class="nm">${esc(p.nombre)}</div><div class="sub">${esc(prov.nombre)}</div></div></div>
