@@ -91,13 +91,32 @@ async function sincronizarDia(ctxs, fechaStr, opts = {}) {
   let renglones = 0, totalUtiles = 0, camposVend = null;
   const percDia = { iva: 0, iibb: 0 };
   const porEmpresa = {};
+  // Primero las listas de las dos empresas (17/11/2026). CUBO a veces devuelve, con el token de
+  // una empresa, la lista de la otra: el 16/11 se bajó bien (9999:44 0001:148) y, en otras corridas
+  // del mismo día, 148/148 (duplicado) o 44/44 (sin la 0001), y las ventas cambiaban cada 20 minutos.
+  // Ya había pasado en 43 días entre 2025 y 2026 (03/11). Si las dos empresas traen exactamente los
+  // mismos comprobantes, el día NO se reemplaza: queda lo que había y la próxima corrida reintenta.
+  const listas = [];
   for (const ctx of ctxs) {
+    const { urlCuenta, cuenta, token } = ctx;
+    const jc = await aikon(urlCuenta + '/IS3/ListarComprobantes', { cuenta, token, FechaDesde: fechaStr, FechaHasta: fechaStr }, 40000);
+    // Sin lista = error del ERP (un día sin ventas devuelve lista: []). No seguir:
+    // si no, se borraría el día con datos buenos.
+    if (!Array.isArray(jc.lista) && !Array.isArray(jc)) throw new Error(`ListarComprobantes (empresa ${ctx.empresa}) ${fechaStr}: ` + JSON.stringify(jc).slice(0, 160));
+    listas.push(Array.isArray(jc.lista) ? jc.lista : jc);
+  }
+  if (listas.length > 1) {
+    const firma = (l) => l.map((c) => [c.Codigo, c.Sucursal, c.Numero, c.Tipo].join('|')).sort().join(',');
+    const f0 = firma(listas[0]);
+    if (listas[0].length && listas.every((l) => firma(l) === f0)) {
+      const e = new Error(`${fechaStr}: CUBO devolvió los mismos ${listas[0].length} comprobantes para las empresas ${ctxs.map((c) => c.empresa).join(' y ')}; no se reemplaza el día, se reintenta en la próxima corrida.`);
+      e.mezcla = true;
+      throw e;
+    }
+  }
+  for (const [ix, ctx] of ctxs.entries()) {
   const { urlCuenta, cuenta, token } = ctx;
-  const jc = await aikon(urlCuenta + '/IS3/ListarComprobantes', { cuenta, token, FechaDesde: fechaStr, FechaHasta: fechaStr }, 40000);
-  // Sin lista = error del ERP (un día sin ventas devuelve lista: []). No seguir:
-  // si no, se borraría el día con datos buenos.
-  if (!Array.isArray(jc.lista) && !Array.isArray(jc)) throw new Error(`ListarComprobantes (empresa ${ctx.empresa}) ${fechaStr}: ` + JSON.stringify(jc).slice(0, 160));
-  const comps = Array.isArray(jc.lista) ? jc.lista : jc;
+  const comps = listas[ix];
   const utiles = comps.filter((c) => /^(FA|NC)/i.test(String(c.Codigo || '')) && !c.FechaAnulacion);
   porEmpresa[ctx.empresa] = utiles.length;
   totalUtiles += utiles.length;

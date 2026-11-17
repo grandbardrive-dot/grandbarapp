@@ -105,7 +105,8 @@ exports.handler = async (event) => {
         hechos.push(`hoy ${isoDe(hoy)} ${JSON.stringify(res.por_empresa)}`);
       } catch (e) {
         // Si falla, la próxima corrida (20 min) lo vuelve a intentar. No se anota como día fallido.
-        console.error('sync-ventas-background hoy:', (e && e.message) || e);
+        // La mezcla de empresas de CUBO (17/11/2026) es pasajera: aviso, no falla de la tarea.
+        (e && e.mezcla ? console.warn : console.error)('sync-ventas-background hoy:', (e && e.message) || e);
       }
     }
     for (const [i, d] of dias.entries()) {
@@ -115,7 +116,7 @@ exports.handler = async (event) => {
         hechos.push(`${isoDe(d)} ${JSON.stringify(res.por_empresa)}`);
       } catch (e) {
         // Un día que falla no frena el resto; queda pendiente para la próxima corrida.
-        console.error('sync-ventas-background:', isoDe(d), (e && e.message) || e);
+        (e && e.mezcla ? console.warn : console.error)('sync-ventas-background:', isoDe(d), (e && e.message) || e);
         await fetch(`${SB_URL}/rest/v1/ventas_sync_log`, { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
           body: JSON.stringify({ desde: isoDe(d), hasta: isoDe(d), comprobantes: 0, renglones: 0, skus: 0, ok: false, detalle: ('ERROR bg: ' + ((e && e.message) || e)).slice(0, 900) }) }).catch(() => {});
       }
