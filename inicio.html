@@ -155,6 +155,15 @@
     .perf .p-obj{font-size:11px;color:var(--muted)}
     .bar{height:6px;border-radius:6px;background:#eee;margin-top:8px;overflow:hidden}
     .bar span{display:block;height:100%;background:var(--gold)}
+    /* Avance de vinos y spirits contra el objetivo del mes (17/11/2026) */
+    .avance{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line-2)}
+    .avance .a-top{display:flex;align-items:baseline;gap:8px}
+    .avance .a-n{font-size:12px;color:var(--muted);font-weight:700;flex:1}
+    .avance .a-pct{font-size:18px;font-weight:800}
+    .avance .a-sub{font-size:11.5px;color:var(--muted);margin-top:6px}
+    .avance .bar{height:8px;margin-top:6px;background:#ece4d6}
+    .avance .bar span{background:var(--green)}
+    @media(max-width:800px){ .avance{grid-template-columns:1fr} }
 
     .bottomnav{display:none}
 
@@ -286,7 +295,11 @@
             <div id="pfColVisitas"><div class="p-lbl">Visitas</div><div class="p-val" id="pfVisitas">—</div><div class="p-obj" id="pfVisitasSub">Cargando…</div></div>
             <div><div class="p-lbl">Ventas</div><div class="p-val" id="pfVentas">—</div><div class="p-obj" id="pfVentasSub">Cargando…</div></div>
             <div><div class="p-lbl">Clientes con compra</div><div class="p-val" id="pfCcc">—</div><div class="p-obj" id="pfCccSub">Cargando…</div></div>
-            <div style="text-align:center"><div class="p-lbl">Cobertura</div><div class="donut" id="pfDonut" style="background:conic-gradient(#ece4d6 0 100%);margin:6px auto"><div class="inner" id="pfCob" style="font-size:14px">—</div></div><div class="p-obj" id="pfCobSub">de tu cartera</div></div>
+            <div style="text-align:center"><div class="p-lbl">Cobertura</div><div class="donut" id="pfDonut" style="background:conic-gradient(#ece4d6 0 100%);margin:6px auto"><div class="inner" id="pfCob" style="font-size:14px">—</div></div><div class="p-obj" id="pfCobSub">de tus clientes activos</div></div>
+          </div>
+          <div class="avance" id="pfAvance">
+            <div><div class="a-top"><span class="a-n">Vinos</span><span class="a-pct" id="avVinPct">—</span></div><div class="bar"><span id="avVinBar" style="width:0"></span></div><div class="a-sub" id="avVinSub">Cargando…</div></div>
+            <div><div class="a-top"><span class="a-n">Spirits</span><span class="a-pct" id="avSpiPct">—</span></div><div class="bar"><span id="avSpiBar" style="width:0"></span></div><div class="a-sub" id="avSpiSub">Cargando…</div></div>
           </div>
         </div>
       </div>
@@ -353,8 +366,45 @@
 
   // ── Tu mes ──────────────────────────────────────────────────────────────────
   // Todo sale de datos reales: las visitas del mes son las que el vendedor guardó
-  // en el manual; las ventas y los clientes con compra, de la planilla de ventas.
-  // No hay objetivos por vendedor cargados en ningún lado, así que no se muestran.
+  // en el manual; las ventas ($), de la planilla de ventas. Clientes activos vs con
+  // compra y el avance de vinos y spirits contra el objetivo (17/11/2026) los arma la
+  // función avance-vendedor: activos en CUBO, ventas del mes de CUBO y el objetivo
+  // de "Presupuesto Ventas" (Drive de Administración).
+  async function cargarAvance(){
+    const $ = id => document.getElementById(id);
+    const n = v => Math.round(v || 0).toLocaleString("es-AR");
+    const linea = (k, d) => {
+      if(!d || d.objetivo == null){
+        $(k+"Pct").textContent = "—";
+        $(k+"Sub").textContent = (d ? n(d.vendido) + " botellas" : "") + (d ? " · sin objetivo cargado" : "sin datos");
+        return;
+      }
+      const pct = d.objetivo > 0 ? Math.round(d.vendido * 100 / d.objetivo) : 0;
+      $(k+"Pct").textContent = pct + "%";
+      $(k+"Bar").style.width = Math.min(100, pct) + "%";
+      $(k+"Sub").textContent = n(d.vendido) + " de " + n(d.objetivo) + " botellas";
+    };
+    try{
+      const { data:{ session } } = await hub.auth.getSession();
+      const r = await fetch("/.netlify/functions/avance-vendedor", { headers:{ Authorization:"Bearer " + session.access_token } });
+      const d = await r.json();
+      if(!r.ok || !d.codigo) throw new Error(d.error || "sin código");
+      const act = d.clientes.activos, cc = d.clientes.con_compra;
+      $("pfCcc").textContent = cc;
+      $("pfCccSub").textContent = act != null ? ("de " + act + " clientes activos") : "este mes";
+      if(act){
+        const pct = Math.min(100, Math.round(cc * 100 / act));
+        $("pfCob").textContent = pct + "%";
+        $("pfDonut").style.background = "conic-gradient(var(--green) " + pct + "%, #ece4d6 0)";
+        $("pfCobSub").textContent = cc + " de " + act + " clientes activos";
+      } else { $("pfCobSub").textContent = "sin clientes activos"; }
+      linea("avVin", d.vinos); linea("avSpi", d.spirits);
+    }catch(e){
+      $("pfCccSub").textContent = "no se pudo leer"; $("pfCobSub").textContent = "";
+      $("avVinSub").textContent = "no se pudo leer"; $("avSpiSub").textContent = "no se pudo leer";
+    }
+  }
+
   async function cargarRendimiento(man, vendId, codigoVendedor, clientesActivos){
     const $ = id => document.getElementById(id);
     const mes = new Date().toLocaleDateString("es-AR", { month:"long" });
@@ -381,26 +431,19 @@
     } else { $("pfVisitasSub").textContent = "sin código de vendedor"; }
 
     const cod = parseInt(codigoVendedor, 10);
-    if(isNaN(cod)){ $("pfVentasSub").textContent = "sin código"; $("pfCccSub").textContent = "sin código"; return; }
+    if(isNaN(cod)){
+      $("pfVentasSub").textContent = "sin código"; $("pfCccSub").textContent = "sin código";
+      $("avVinSub").textContent = "sin código de vendedor"; $("avSpiSub").textContent = "sin código de vendedor"; return;
+    }
+    // Clientes con compra, cobertura y vinos/spirits: de CUBO (avance-vendedor).
+    cargarAvance();
     try{
-      const [total, clientes] = await Promise.all([ GBVentas.totalDe(cod), GBVentas.clientesDe(cod) ]);
+      const total = await GBVentas.totalDe(cod);
       if(total != null){
         $("pfVentas").textContent = "$ " + Math.round(total).toLocaleString("es-AR");
         $("pfVentasSub").textContent = "facturado en " + mes;
       } else { $("pfVentasSub").textContent = "no figurás en la planilla"; }
-
-      const conCompra = clientes.filter(c => c.monto > 0).length;
-      $("pfCcc").textContent = conCompra || "—";
-      $("pfCccSub").textContent = conCompra ? ("compraron en " + mes) : "sin compras en la planilla";
-
-      // Cobertura = de la cartera activa, cuántos compraron este mes.
-      if(conCompra && clientesActivos){
-        const pct = Math.min(100, Math.round(conCompra * 100 / clientesActivos));
-        $("pfCob").textContent = pct + "%";
-        $("pfDonut").style.background = "conic-gradient(var(--green) " + pct + "%, #ece4d6 0)";
-        $("pfCobSub").textContent = conCompra + " de " + clientesActivos + " clientes";
-      } else { $("pfCobSub").textContent = "sin datos de cartera"; }
-    }catch(e){ $("pfVentasSub").textContent = "no se pudo leer la planilla"; $("pfCccSub").textContent = ""; }
+    }catch(e){ $("pfVentasSub").textContent = "no se pudo leer la planilla"; }
   }
 
   let hub;
