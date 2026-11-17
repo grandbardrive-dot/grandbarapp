@@ -202,6 +202,23 @@ exports.handler = async (event) => {
       } catch (e) { return { ...base, estado: 'falla', detalle: 'No se pudo leer: ' + motivo(e) + '.' }; }
     });
 
+    // La Comparativa anual que Fernando baja de Reportes › Archivos (17/11/2026): no tiene
+    // fecha adentro, se mira cuándo la modificaron en Drive. Se actualiza los lunes:
+    // más de 9 días sin cambios = falla (o la reemplazaron por otro archivo).
+    finanzas.push((async () => {
+      const base = { id: 'datos-fin-comparativa', grupo: 'Datos al día', nombre: 'Comparativa anual (Excel de Administración)' };
+      try {
+        const r = await pedir('https://drive.usercontent.google.com/download?id=' + FIN.comparativa + '&export=download&confirm=t', { method: 'HEAD', redirect: 'follow' });
+        if (!r.ok) return { ...base, estado: 'falla', detalle: 'Drive responde con error ' + r.status + ' (¿cambió el archivo o los permisos?).' };
+        const lm = r.headers.get('last-modified');
+        if (!lm) return { ...base, estado: 'ok', detalle: 'Se lee bien.' };
+        const dias = Math.floor((ahora - new Date(lm).getTime()) / 86400000);
+        const fecha = new Date(lm).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+        if (dias > 9) return { ...base, estado: 'falla', detalle: 'No se actualiza desde el ' + fecha + ' (hace ' + dias + ' días). Administración la sube los lunes; si subieron un archivo nuevo, cambiar el ID en _finanzas-archivos.js.' };
+        return { ...base, estado: 'ok', detalle: 'Actualizada el ' + fecha + '.' };
+      } catch (e) { return { ...base, estado: 'falla', detalle: 'No se pudo leer: ' + motivo(e) + '.' }; }
+    })());
+
     // ---------- errores de funciones y pantallas (última hora) ----------
     // Las funciones que usa la gente anotan sus errores (_errores.js) y las pantallas
     // lo que se rompe en el navegador (reportar-error). Uno suelto puede ser casualidad:

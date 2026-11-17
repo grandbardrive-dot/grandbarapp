@@ -14,4 +14,7 @@ module.exports = {
   cheques:  '1qeTybv-a_8mLWdL9JyYoTx09nWpQPGb0',  // Disponibilidad / Cheques.xlsx
   pagos:    '120rJc8l7ohOOb-S7_lbBbSJ2sXXkttY-',  // Proceso_Pago_Proveedores.xlsx
   ordenes:  '1IK14iuaOZ7htMo1pH-hBfksTbuWn9G-c',  // Ordenes Compra activa.xlsx
+  // SHARE / Comparativa Anual.xlsx (~31 MB). Fernando la baja desde Reportes › Archivos
+  // (dir-archivos). Administración la actualiza, probablemente los lunes (17/11/2026).
+  comparativa: '1i8mM7AzIx3Eeg2SNLwr6rMDen85uVNRp',
 };

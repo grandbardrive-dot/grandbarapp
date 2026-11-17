@@ -49,6 +49,8 @@
   .prov-card.soon{opacity:.85} .prov-card .pc-soon{display:inline-block;margin-top:12px;font-size:11px;font-weight:800;color:var(--gold-d);background:var(--amber-soft);border-radius:20px;padding:3px 10px}
   .tab-empty{background:var(--card);border:1px dashed var(--line);border-radius:16px;padding:40px;text-align:center;color:var(--muted);font-size:13px}
   .kpis4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .arch-btn{margin-top:14px;display:inline-flex;align-items:center;gap:7px;background:var(--navy);color:#fff;border:0;border-radius:10px;padding:10px 16px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+  .arch-btn:disabled{opacity:.55;cursor:default}
   @media(max-width:900px){ .kpis4{grid-template-columns:1fr 1fr} }
 </style>
 <style>
@@ -70,6 +72,7 @@
     <div class="prov-tabs" id="provTabs">
       <button data-tab="general" class="on">General</button>
       <button data-tab="proveedores">Proveedores</button>
+      <button data-tab="archivos">Archivos</button>
     </div>
 
     <div id="tab-general">
@@ -101,6 +104,19 @@
       </div>
     </div>
 
+
+    <!-- Archivos (17/11/2026): la Comparativa anual de Administración, siempre la última versión de Drive. -->
+    <div id="tab-archivos" style="display:none">
+      <div class="prov-grid">
+        <div class="prov-card">
+          <div class="pc-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green-d)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg></div>
+          <h3>Comparativa anual</h3>
+          <p>Por mes, por familia y por artículo.</p>
+          <span class="pc-meta" id="arch-comp-fecha">Cargando…</span>
+          <div><button class="arch-btn" id="arch-comp-btn" disabled>Descargar Excel</button></div>
+        </div>
+      </div>
+    </div>
 
     <div class="foot">Panel de Dirección · GrandBar Distribuciones</div>
   </div></div>
@@ -276,6 +292,25 @@
     }catch(e){ cont.innerHTML='<div style="font-size:12.5px;color:#c0603e">No se pudo generar: '+esc(e.message||e)+'</div>'; btn.disabled=false; btn.innerHTML='✨ Sugerir estrategias'; }
   }
   window._iaSugerir=iaSugerir;
+
+  // ── Archivos (17/11/2026): la Comparativa anual se baja directo de Drive (31 MB, no pasa
+  //    por una función). dir-archivos controla que sea Dirección y da el link y la fecha.
+  let archCargado=false;
+  async function cargarArchivos(){
+    if(archCargado||!TOKEN) return; archCargado=true;
+    const f=$('arch-comp-fecha'), b=$('arch-comp-btn');
+    try{
+      const r=await fetch('/.netlify/functions/dir-archivos?archivo=comparativa',{headers:{Authorization:'Bearer '+TOKEN}});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok||!d.url) throw new Error(d.error||'No se pudo leer');
+      if(d.actualizado){ const fd=new Date(d.actualizado), tz='America/Argentina/Buenos_Aires';
+        f.textContent='Actualizada el '+fd.toLocaleDateString('es-AR',{weekday:'long',timeZone:tz})+' '+fd.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',timeZone:tz}).replace(/\D+/g,'/'); }
+      else f.textContent='Lista para descargar';
+      b.textContent='Descargar Excel'+(d.tamano?' ('+Math.round(d.tamano/1048576)+' MB)':'');
+      b.disabled=false; b.onclick=()=>{ location.href=d.url; };
+    }catch(e){ archCargado=false; f.textContent='No se pudo leer el archivo. Probá de nuevo en un rato.'; }
+  }
+  window._cargarArchivos=cargarArchivos;
   const nf=n=>Math.round(n||0).toLocaleString('es-AR');
   async function render11t(mes,textoFallback){
     let d=null;
@@ -363,7 +398,9 @@
   (async()=>{
     const hub=supabase.createClient(HUB.url,HUB.key);
     const {data:{session}}=await hub.auth.getSession();
-    if(!session) return; TOKEN=session.access_token; await cargar();
+    if(!session) return; TOKEN=session.access_token;
+    if($('tab-archivos').style.display!=='none') cargarArchivos();
+    await cargar();
     setInterval(async()=>{ try{ const {data:{session:s}}=await hub.auth.getSession(); if(s) TOKEN=s.access_token; }catch(e){} }, 10*60*1000);
     // reportes.html?id=… abre ese reporte (lo usa la página de Peñaflor).
     const pid=new URLSearchParams(location.search).get('id'); if(pid) abrir(pid);
@@ -376,8 +413,11 @@
   tabs.querySelectorAll('button').forEach(function(b){ b.onclick=function(){
     tabs.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
     b.classList.add('on');
-    ['general','proveedores','areas'].forEach(function(t){ var el=document.getElementById('tab-'+t); if(el) el.style.display=(t===b.dataset.tab?'':'none'); });
+    ['general','proveedores','areas','archivos'].forEach(function(t){ var el=document.getElementById('tab-'+t); if(el) el.style.display=(t===b.dataset.tab?'':'none'); });
+    if(b.dataset.tab==='archivos' && window._cargarArchivos) window._cargarArchivos();
   };});
+  // reportes.html#archivos abre directo la pestaña Archivos.
+  if(location.hash==='#archivos'){ var ba=tabs.querySelector('[data-tab="archivos"]'); if(ba) ba.click(); }
 })();
 </script>
 <script src="assets/user-menu.js?v=1"></script>
