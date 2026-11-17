@@ -27,7 +27,7 @@ const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 // 5T = las 5 marcas del portfolio Campari (SIN Cinzano desde 11/2026). "Tener la marca" =
 // que el cliente la haya COMPRADO en el período (se calcula de las ventas con la RPC
 // cobertura_5t del Manual; ya NO se lee el Google Sheet).
-const MARCAS_5T = [['aperol', 'Aperol'], ['bulldog', 'Bulldog'], ['campari', 'Campari'], ['cynar', 'Cynar'], ['skyy', 'Skyy Infusions']];
+const MARCAS_5T = [['aperol', 'Aperol'], ['campari', 'Campari'], ['cynar', 'Cynar'], ['skyy', 'Skyy Inf'], ['others', 'Others']];
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const num = v => { const n = Number(v); return isNaN(n) ? 0 : n; };
@@ -100,7 +100,7 @@ async function plan5T(codigos, nombreDeCod, alcance) {
   const pMes = armar(f => f >= mesDesde);
   return Object.assign({
     id: 'campari5t', nombre: 'Plan 5T',
-    detalle: 'Cobertura de las 5 marcas Campari (Aperol, Bulldog, Campari, Cynar, Skyy Infusions) según lo que compró cada cliente. Filtrá por últimos 3 meses o mes actual.',
+    detalle: 'Convivencia de las 5 marcas Campari (Aperol, Campari, Cynar, Skyy Inf, Others) por cliente: cuántas de las 5 tiene cada uno. Filtrá por últimos 3 meses o mes actual.',
     marcas: MARCAS_5T.map(([k, n]) => ({ k, n })),
     periodos: { '3m': p3, 'mes': pMes },
     avanceTotal: p3.casillerosSi, targetTotal: p3.casillerosTot,
