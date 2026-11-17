@@ -143,12 +143,11 @@ async function penaflor(hub, perfil) {
   const pI = (a, t) => t > 0 ? Math.round(100 * a / t) : 0;
 
   let subset = [], detalle = 'none', nivel = '';
-  if (rol === 'compras') { subset = all.filter(v => v.equipo === 'DIST'); detalle = 'vendedor'; nivel = 'Distribución'; }
-  else if (esSup) {
+  if (esSup) {
     const yo = all.find(v => v.codigo === cod); const eq = yo ? yo.equipo : null;
     if (!eq) return null;
     subset = all.filter(v => v.equipo === eq); detalle = 'vendedor'; nivel = PF_EQNOM[eq] || eq;
-  } else if (['direccion', 'admin', 'diseno', 'torneo', 'desarrollo'].includes(rol)) {
+  } else if (['direccion', 'admin', 'diseno', 'torneo', 'desarrollo', 'compras'].includes(rol)) {
     subset = all; detalle = 'equipo'; nivel = 'Toda la empresa';
   } else if (rol === 'ventas' || rol === 'mayorista') {
     subset = all.filter(v => v.codigo === cod); detalle = 'none'; nivel = 'Tu objetivo';

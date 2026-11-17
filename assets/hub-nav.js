@@ -104,11 +104,14 @@
   // Ahora ven solo lo suyo y la vuelta a su panel, como en mi-agenda.html.
   function itemsNoVende(rol) {
     const panel = { compras:'manual-vendedores/admin-comercial.html', diseno:'panel-diseno.html', marketing:'panel-diseno.html', desarrollo:'panel-desarrollo.html', equipo_admin:'equipo-panel.html', administracion:'panel-cobranzas.html', tesoreria:'panel-cobranzas.html', reclamos:'panel-cobranzas.html' }[rol] || 'hub.html';
-    return [
+    const items = [
       { t:'Volver a mi panel', h:panel,               m:'Mi panel', svg:'<path d="M15 6l-6 6 6 6"/>' },
       { t:'Mis reportes',      h:'mis-reportes.html', m:'Reportes', svg:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>' },
       { t:'Mi agenda',         h:'mi-agenda.html',    m:'Agenda',   svg:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>' },
     ];
+    // Luciana (Compras/Distribución) ve los Incentivos de proveedores de toda la empresa.
+    if (rol === 'compras') items.splice(1, 0, { t:'Incentivos', h:'supervisor-incentivos.html', m:'Incentivos', svg:'<circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"/>' });
+    return items;
   }
   // El rol se recuerda por usuario para no mostrar un instante el menú equivocado.
   function rolGuardado(uid) {

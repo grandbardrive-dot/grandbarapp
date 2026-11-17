@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seba desarrolla en el Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --crema:#f6f1e7; --crema-2:#efe7d6;
+    --tinta:#17262b; --tinta-2:#20343b;
+    --petroleo:#1f6b6b; --petroleo-soft:#2d8585;
+    --dorado:#c79a3b; --dorado-2:#e0b659;
+    --ink:#17262b; --muted:#5b6b6e; --line:#e2d8c4;
+    --card:#ffffff; --ok:#2f8f5b; --warn:#b4452a;
+    --shadow:0 1px 2px rgba(23,38,43,.06),0 8px 30px rgba(23,38,43,.08);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --crema:#0f1c20; --crema-2:#14262b;
+      --tinta:#f1ead9; --tinta-2:#e7dcc4;
+      --ink:#ede6d6; --muted:#9db0b2; --line:#26403f;
+      --card:#15282d; --petroleo:#5fb3b0; --petroleo-soft:#6fc3c0;
+      --dorado:#dcb257; --dorado-2:#ecc877;
+      --ok:#5fcf8f; --warn:#e58a6f;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --crema:#0f1c20; --crema-2:#14262b;
+    --tinta:#f1ead9; --tinta-2:#e7dcc4;
+    --ink:#ede6d6; --muted:#9db0b2; --line:#26403f;
+    --card:#15282d; --petroleo:#5fb3b0; --petroleo-soft:#6fc3c0;
+    --dorado:#dcb257; --dorado-2:#ecc877;
+    --ok:#5fcf8f; --warn:#e58a6f;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--crema); color:var(--ink);
+    font-family:Inter,system-ui,sans-serif; line-height:1.55;
+    font-feature-settings:"ss01";
+  }
+  .wrap{max-width:860px; margin:0 auto; padding:0 20px}
+
+  /* Hero */
+  header.hero{
+    background:
+      radial-gradient(120% 90% at 85% -10%, rgba(199,154,59,.18), transparent 60%),
+      linear-gradient(160deg,var(--tinta-2),var(--tinta) 70%);
+    color:#f3ecdc; padding:64px 0 54px; position:relative; overflow:hidden;
+  }
+  :root[data-theme="dark"] header.hero,
+  :root:not([data-theme="light"]) header.hero{ color:#f3ecdc; }
+  .hero .wrap{position:relative; z-index:1}
+  .kicker{
+    display:inline-flex; align-items:center; gap:8px; font-size:12.5px;
+    letter-spacing:.14em; text-transform:uppercase; font-weight:600;
+    color:var(--dorado-2); margin-bottom:18px;
+  }
+  .kicker::before{content:""; width:26px; height:1px; background:var(--dorado-2); display:inline-block}
+  h1{
+    font-family:Fraunces,Georgia,serif; font-weight:600; text-wrap:balance;
+    font-size:clamp(34px,6vw,54px); line-height:1.04; margin:0 0 16px;
+    letter-spacing:-.01em;
+  }
+  h1 em{font-style:italic; color:var(--dorado-2)}
+  .hero p{font-size:clamp(16px,2.4vw,19px); max-width:56ch; color:#d8d0bf; margin:0}
+  .brand{position:absolute; top:26px; right:24px; font-family:Fraunces,serif;
+    font-weight:600; letter-spacing:.12em; font-size:13px; color:var(--dorado-2); z-index:2}
+
+  section{padding:46px 0}
+  section + section{border-top:1px solid var(--line)}
+  h2{
+    font-family:Fraunces,Georgia,serif; font-weight:600; font-size:clamp(23px,3.4vw,30px);
+    margin:0 0 8px; letter-spacing:-.01em; text-wrap:balance;
+  }
+  .lead{color:var(--muted); margin:0 0 26px; font-size:16px; max-width:62ch}
+  .eyebrow{font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    font-weight:700; color:var(--petroleo); margin:0 0 6px}
+
+  /* qué cambia */
+  .flip{display:grid; grid-template-columns:1fr auto 1fr; gap:18px; align-items:center}
+  .flip .box{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 20px; box-shadow:var(--shadow)}
+  .flip .box h3{margin:0 0 4px; font-size:15px; font-family:Inter}
+  .flip .box p{margin:0; color:var(--muted); font-size:14px}
+  .flip .arrow{font-size:26px; color:var(--dorado); font-weight:700}
+  .flip .to{border-color:var(--petroleo)}
+  @media(max-width:620px){ .flip{grid-template-columns:1fr; text-align:center}
+    .flip .arrow{transform:rotate(90deg)} }
+
+  /* pasos */
+  ol.steps{list-style:none; counter-reset:s; margin:0; padding:0; display:grid; gap:14px}
+  ol.steps li{
+    counter-increment:s; background:var(--card); border:1px solid var(--line);
+    border-radius:14px; padding:20px 22px 20px 70px; position:relative; box-shadow:var(--shadow);
+  }
+  ol.steps li::before{
+    content:counter(s); position:absolute; left:18px; top:18px;
+    width:34px; height:34px; border-radius:50%; display:grid; place-items:center;
+    background:linear-gradient(145deg,var(--dorado-2),var(--dorado)); color:#2a1e06;
+    font-weight:700; font-size:15px; font-family:Fraunces,serif;
+  }
+  ol.steps h3{margin:0 0 4px; font-size:16.5px; font-family:Inter; font-weight:600}
+  ol.steps p{margin:0; color:var(--muted); font-size:14.5px}
+  ol.steps code, .code-inline{
+    font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12.5px;
+    background:var(--crema-2); border:1px solid var(--line); border-radius:5px; padding:1px 6px;
+    color:var(--ink); white-space:nowrap;
+  }
+
+  /* regla de oro */
+  .golden{
+    background:linear-gradient(160deg,var(--tinta-2),var(--tinta));
+    color:#f3ecdc; border-radius:16px; padding:26px 28px; box-shadow:var(--shadow);
+    position:relative; overflow:hidden;
+  }
+  .golden::after{content:""; position:absolute; inset:0 auto 0 0; width:4px;
+    background:linear-gradient(var(--dorado-2),var(--dorado))}
+  .golden .eyebrow{color:var(--dorado-2)}
+  .golden h3{font-family:Fraunces,serif; font-weight:600; font-size:22px; margin:2px 0 10px; color:#fff}
+  .golden p{margin:0 0 12px; color:#d8d0bf; font-size:15px}
+  .golden .flow{display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-family:ui-monospace,monospace; font-size:13px}
+  .golden .flow span{background:rgba(255,255,255,.08); border:1px solid rgba(224,182,89,.35);
+    color:#f3ecdc; padding:5px 11px; border-radius:7px}
+  .golden .flow b{color:var(--dorado-2)}
+
+  /* gotchas */
+  .cards{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media(max-width:620px){ .cards{grid-template-columns:1fr} }
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 20px; box-shadow:var(--shadow)}
+  .card h3{margin:0 0 6px; font-size:15px; display:flex; gap:8px; align-items:center}
+  .card .tag{font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--warn); border:1px solid currentColor; border-radius:999px; padding:1px 8px}
+  .card p{margin:0; color:var(--muted); font-size:14px}
+
+  /* pendientes */
+  ul.todo{list-style:none; margin:0; padding:0; display:grid; gap:10px}
+  ul.todo li{display:flex; gap:12px; align-items:flex-start; background:var(--card);
+    border:1px solid var(--line); border-radius:12px; padding:14px 16px}
+  ul.todo .dot{flex:none; width:10px; height:10px; border-radius:50%; margin-top:6px;
+    background:var(--petroleo)}
+  ul.todo li.star .dot{background:var(--dorado)}
+  ul.todo b{font-weight:600}
+  ul.todo span{color:var(--muted); font-size:14px}
+
+  .handoff{background:var(--crema-2); border:1px dashed var(--line); border-radius:14px;
+    padding:20px 22px; display:flex; gap:16px; align-items:flex-start}
+  .handoff .ic{flex:none; width:42px; height:42px; border-radius:11px; display:grid; place-items:center;
+    background:var(--petroleo); color:#fff; font-size:20px}
+  .handoff h3{margin:0 0 4px; font-size:16px}
+  .handoff p{margin:0; color:var(--muted); font-size:14.5px}
+  .handoff code{font-family:ui-monospace,monospace; font-size:12.5px; background:var(--card);
+    border:1px solid var(--line); border-radius:5px; padding:1px 6px}
+
+  footer{padding:34px 0 60px; color:var(--muted); font-size:13.5px; text-align:center}
+  footer .b{font-family:Fraunces,serif; color:var(--dorado); letter-spacing:.1em}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="brand">GRAND BAR</div>
+  <div class="wrap">
+    <div class="kicker">Sumarse al desarrollo del Portal</div>
+    <h1>Seba, ahora <em>construís</em><br>los incentivos adentro del portal</h1>
+    <p>Venías haciendo los reportes de incentivos por afuera. La idea es que ahora los
+      desarrolles vos mismo dentro de portalgrandbar.com, con Claude como copiloto.
+      Esta guía te deja listo para arrancar.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <p class="eyebrow">Qué cambia</p>
+    <h2>De reporte suelto a herramienta viva</h2>
+    <p class="lead">El mismo trabajo que hacés con los datos, pero conectado: el avance
+      se calcula solo y el equipo lo ve en vivo, sin que nadie te lo pida.</p>
+    <div class="flip">
+      <div class="box">
+        <h3>Antes</h3>
+        <p>Armás el reporte del incentivo a mano y lo pasás por fuera cada vez.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box to">
+        <h3>Ahora</h3>
+        <p>Un script lee el ERP a la madrugada y el portal muestra el avance solo, todos los días.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Puesta a punto</p>
+    <h2>5 pasos para quedar listo</h2>
+    <p class="lead">Una sola vez. Después es trabajar y publicar.</p>
+    <ol class="steps">
+      <li>
+        <h3>Instalar Claude Code</h3>
+        <p>La app de escritorio de Claude (pestaña Code) o el CLI. Es el copiloto con el
+          que vas a editar y publicar.</p>
+      </li>
+      <li>
+        <h3>Acceso al repositorio</h3>
+        <p>Que te den acceso a <code>github.com/grandbardrive-dot/grandbarapp</code> y
+          cloná el repo. En local la carpeta se llama <code>grandbar-hub</code>. (Lo coordina Nahuel.)</p>
+      </li>
+      <li>
+        <h3>Darle el contexto a tu Claude</h3>
+        <p>Pegale el archivo <code>CONTEXTO-PORTAL-GRANDBAR.md</code> al empezar, o
+          guardalo como <code>CLAUDE.md</code> en la raíz y lo lee solo. Tiene la
+          arquitectura, las bases y las reglas.</p>
+      </li>
+      <li>
+        <h3>Pedir las credenciales del ERP</h3>
+        <p>Para la automatización del incentivo necesitás las claves del ERP Aikon.
+          Las pasa <b>JP Sepúlveda</b> — van como variables de entorno, nunca en el código.</p>
+      </li>
+      <li>
+        <h3>Primera misión</h3>
+        <p>Automatizar el incentivo <b>Pernod Ricard Q4</b>: el script que lee el ERP y
+          escribe el avance en el portal todas las madrugadas. Está todo abajo.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="golden">
+      <p class="eyebrow">La regla que no se rompe</p>
+      <h3>El portal se publica solo con <code>git push</code></h3>
+      <p>Netlify publica automáticamente al pushear a <b>main</b>. Nunca uses
+        <code>netlify deploy</code> ni arrastres carpetas: el próximo push de otra
+        persona reconstruye desde GitHub y borra lo que subas por afuera. Y siempre
+        <code>git pull</code> antes de empezar (trabajan varios en el mismo repo).</p>
+      <div class="flow">
+        <span><b>git pull</b></span> <span>→</span> <span>editás</span> <span>→</span>
+        <span>git commit</span> <span>→</span> <span><b>git push</b></span> <span>→</span>
+        <span>online en ~1 min</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Dos cosas que muerden</p>
+    <h2>Gotchas para tener a mano</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>Verificar JS <span class="tag">cuidado</span></h3>
+        <p>Los <code class="code-inline">.js</code> son ES modules.
+          <code class="code-inline">node --check archivo.js</code> da un OK falso. Verificá
+          copiándolo a <code class="code-inline">.mjs</code> — si no, un paréntesis
+          suelto deja una pantalla en blanco.</p>
+      </div>
+      <div class="card">
+        <h3>Push 403 <span class="tag">git</span></h3>
+        <p>La PC tiene dos cuentas de GitHub. Si el push da
+          <code class="code-inline">Permission denied</code>, es la otra cuenta. En
+          grandbar-hub ya está resuelto con el usuario en la URL del remote.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Tu primera misión, en detalle</p>
+    <h2>Automatizar Pernod Ricard Q4</h2>
+    <p class="lead">El portal ya muestra el incentivo (tabla <code class="code-inline">incentivos_snapshots</code>
+      en la base del Hub). Hoy el avance se carga a mano; tu trabajo es que se cargue solo.</p>
+    <ul class="todo">
+      <li class="star"><span class="dot"></span><span><b>El dato sale del ERP Aikon</b> (empresa 3333 CUBOS, solo lectura).
+        No se alcanza desde la nube: el script corre en una PC/servidor de GrandBar.</span></li>
+      <li><span class="dot"></span><span><b>El script</b> consulta el ERP, calcula el avance con las reglas del
+        incentivo y hace <i>upsert</i> del JSON en <code class="code-inline">incentivos_snapshots</code>.</span></li>
+      <li><span class="dot"></span><span><b>Corre todos los días a las 06:00</b> (Programador de tareas de Windows).</span></li>
+      <li><span class="dot"></span><span><b>Validá</b> contra los números de control del documento de traspaso antes de darlo por bueno.</span></li>
+    </ul>
+    <div style="height:16px"></div>
+    <div class="handoff">
+      <div class="ic">📄</div>
+      <div>
+        <h3>Pedí el documento de traspaso de JP</h3>
+        <p>Está <code>Contexto_Incentivo_PR_Q4_GrandBar.html</code>: reglas del incentivo,
+          SKUs, cómo consultar el ERP, un script base y los números de control.
+          Se lo pedís a Josefina o a JP.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Después de la primera</p>
+    <h2>Qué más hay para tomar en el portal</h2>
+    <p class="lead">Cuando le agarres la mano, estas son líneas naturales para seguir.</p>
+    <ul class="todo">
+      <li><span class="dot"></span><span><b>Objetivo individual por vendedor</b> en el incentivo Pernod (lo pasa JP) y mostrarle a cada vendedor su avance en su panel.</span></li>
+      <li><span class="dot"></span><span><b>Conectar la Cobertura de Campari</b> a ventas del ERP o a un editor, para que el avance no se cargue a mano.</span></li>
+      <li><span class="dot"></span><span><b>Sumar nuevos incentivos de proveedores</b> a la sección Incentivos a medida que lleguen.</span></li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <span class="b">GRAND BAR</span> · Portal interno · Dudas de arquitectura → Nahuel · Dudas de datos del ERP → JP Sepúlveda
+</footer>
+
+</body>
+</html>

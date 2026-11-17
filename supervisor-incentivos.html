@@ -548,7 +548,7 @@
       const rolU=String((u&&u.rol)||'').toLowerCase();
       if((rolU==='ventas'||rolU==='mayorista') && !(u&&u.es_supervisor)){
         document.querySelectorAll('.sb-user .s').forEach(el=>{ el.textContent='Vendedor'; });
-        const sc=document.createElement('script'); sc.src='assets/hub-nav.js?v=7'; document.body.appendChild(sc);
+        const sc=document.createElement('script'); sc.src='assets/hub-nav.js?v=8'; document.body.appendChild(sc);
       }
     }catch(e){}
     const lo=$('#logout'); if(lo) lo.onclick=async()=>{ if(confirm('¿Cerrar sesión?')){ try{await hub.auth.signOut();}catch(e){} location.href='index.html'; } };
