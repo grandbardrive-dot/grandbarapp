@@ -99,6 +99,41 @@
     .add{margin-left:0}
     .dow div{font-size:9.5px;padding:7px 2px}
   }
+
+  /* Pestañas Calendario / Reportes */
+  .tabs{display:flex;gap:6px;margin-bottom:16px}
+  .tab{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 16px;font:inherit;font-weight:800;font-size:13.5px;color:var(--muted);cursor:pointer}
+  .tab.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  /* Reportes */
+  .repbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px}
+  .repbar h1{margin:0;font-size:21px}
+  .repwin{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:7px}
+  .repwin select{border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;font-size:13px;color:var(--ink);background:#fff}
+  .repintro{color:var(--muted);font-size:13.5px;line-height:1.5;margin:4px 0 16px;max-width:760px}
+  .repempty{color:var(--muted);font-size:14px;padding:20px 2px}
+  .repcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px 17px;margin-bottom:12px;box-shadow:0 1px 3px rgba(13,34,56,.05)}
+  .rchead{display:flex;gap:13px;align-items:flex-start}
+  .rcplaca{width:52px;height:52px;border-radius:10px;object-fit:cover;background:var(--line2);flex:none}
+  .rcnom{font-weight:800;font-size:15.5px;line-height:1.2}
+  .rcsub{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .rcrubros{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+  .rcrub{font-size:10.5px;font-weight:800;color:#fff;border-radius:20px;padding:3px 9px}
+  .rcmetrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .met{background:#fafbfc;border:1px solid var(--line2);border-radius:11px;padding:11px 12px}
+  .met .mn{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+  .met .ml{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.25}
+  .met .mp{font-size:12.5px;font-weight:800;color:var(--gold-d)}
+  .met.hero .mn{color:var(--navy)}
+  .met.ok .mn{color:#2e8b63}.met.ok .mp{color:#2e8b63}
+  .rcbar{height:8px;border-radius:6px;background:#eef1f3;overflow:hidden;margin-top:8px}
+  .rcbar>i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#6fb79a,#2e8b63)}
+  .rcaprox{font-size:11px;color:var(--muted);margin-top:7px}
+  .rcaprox input{border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:11.5px;width:140px;color:var(--ink)}
+  .rcaprox button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 9px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+  .rcver{margin-top:11px;font-size:12.5px;font-weight:800;color:var(--blue);cursor:pointer;user-select:none}
+  .rclist{margin-top:9px;border-top:1px solid var(--line2);max-height:280px;overflow:auto}
+  .rcrow{display:flex;justify-content:space-between;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line2);font-size:13px}
+  .rcrow small{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -109,6 +144,11 @@
   </div>
 
   <div class="wrap">
+    <div class="tabs">
+      <button class="tab on" id="tabCal" onclick="verTab('cal')">📅 Calendario</button>
+      <button class="tab" id="tabRep" onclick="verTab('rep')">📊 Reportes</button>
+    </div>
+    <div id="vistaCal">
     <div class="bar">
       <h1>Calendario de acciones</h1>
       <div class="nav">
@@ -125,6 +165,24 @@
     <div class="cal">
       <div class="dow"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div>
       <div class="grid" id="grid"></div>
+    </div>
+    </div><!-- /vistaCal -->
+
+    <div id="vistaRep" style="display:none">
+      <div class="repbar">
+        <h1>Reportes de conversión</h1>
+        <div class="repwin">Ventana:
+          <select id="repDias" onchange="cargarReporte()">
+            <option value="15">15 días</option>
+            <option value="30" selected>30 días</option>
+            <option value="45">45 días</option>
+            <option value="60">60 días</option>
+          </select>
+          <span class="muted">después del envío</span>
+        </div>
+      </div>
+      <p class="repintro">Cada acción se envía a los clientes activos de sus rubros. Acá ves cuántos <b>recibieron</b> la acción y cuántos <b>compraron después</b> (el producto de la acción, o cualquier cosa). Tocá una tarjeta para ver qué clientes compraron.</p>
+      <div id="repList"><div class="repempty">Cargando…</div></div>
     </div>
   </div>
 
@@ -255,6 +313,109 @@
   }
   function setFiltro(k){ FILTRO=k; renderRubros(); render(); }
   window.setFiltro=setFiltro;
+
+  /* ===== Pestaña REPORTES (conversión) ===== */
+  function verTab(t){
+    const cal = t==='cal';
+    $('vistaCal').style.display = cal?'':'none';
+    $('vistaRep').style.display = cal?'none':'';
+    $('tabCal').classList.toggle('on',cal);
+    $('tabRep').classList.toggle('on',!cal);
+    if(!cal) cargarReporte();
+  }
+  window.verTab=verTab;
+
+  // crm rubro -> clientes.tipo del Manual
+  const RUBRO_TIPO = r => r==='tienda_bebidas' ? 'tienda de bebidas' : String(r).replace(/_/g,' ');
+  const nrm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  // Palabras genéricas / de formato / distribuidores que NO sirven para identificar el producto.
+  const REP_STOP = new Set(['diageo','red','black','label','blanco','tinto','rosado','rose','mixer','caja','lata','pack','promo','precio','especial','adicional','descuento','hasta','agotar','stock','incorporacion','arma','fin','vinos','vino','bebida','gaseosa','todos','todas','mas','para','por','con','del','los','las','una','año','ano']);
+  const SIZEre = /^\d+([.,]\d+)?(ml|cc|lt|l|g|kg)?$|^x\d+$/;
+  function tokensOf(a){
+    const txt = nrm((a.producto||'')+' '+(a.proveedor||''));
+    const out=[];
+    for(const w of txt.split(/[^a-z0-9]+/)){
+      if(w.length<4 || REP_STOP.has(w) || SIZEre.test(w)) continue;
+      if(!out.includes(w)) out.push(w);
+      if(out.length>=4) break;
+    }
+    return out;
+  }
+  const fFecha = s => { if(!s) return ''; const [y,m,d]=String(s).slice(0,10).split('-'); return `${d}/${m}/${y}`; };
+
+  let REP_CONV = {}; // id -> converters[]
+  async function cargarReporte(){
+    const cont=$('repList');
+    if(!ACC || !ACC.length){ cont.innerHTML='<div class="repempty">Todavía no hay acciones cargadas en el calendario.</div>'; return; }
+    const dias=parseInt($('repDias').value,10)||30;
+    cont.innerHTML='<div class="repempty">Calculando la conversión de cada envío… ⏳</div>';
+    const m=manClient();
+    const acts=[...ACC].sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')));
+    try{
+      const results=await Promise.all(acts.map(async a=>{
+        const rubros=rubrosDe(a).map(RUBRO_TIPO);
+        const toks=tokensOf(a);
+        const { data, error } = await m.rpc('crm_reporte',{ p_rubros:rubros, p_desde:a.fecha, p_dias:dias, p_tokens:toks });
+        return { a, dias, toks, data: error?null:data, error };
+      }));
+      REP_CONV={};
+      cont.innerHTML = results.map(repCard).join('');
+    }catch(e){ cont.innerHTML='<div class="repempty">No se pudo calcular el reporte: '+esc(e.message||e)+'</div>'; }
+  }
+  window.cargarReporte=cargarReporte;
+
+  function repCard(r){
+    const a=r.a, d=r.data||{}; const alc=+d.alcance||0;
+    const prod=+d.compro_prod||0, algo=+d.compro_algo||0, skus=+d.skus||0;
+    const pPct=alc?Math.round(100*prod/alc):0, aPct=alc?Math.round(100*algo/alc):0;
+    REP_CONV[a.id]=Array.isArray(d.converters)?d.converters:[];
+    const rubs=rubrosDe(a).map(k=>`<span class="rcrub" style="background:${RCOL[k]||'#546e7a'}">${esc(RLBL[k]||k)}</span>`).join('');
+    const placa=a.placa_url?`<img class="rcplaca" src="${esc(a.placa_url)}" alt="">`:`<div class="rcplaca"></div>`;
+    const prodMet = skus
+      ? `<div class="met ok"><div class="mn">${prod}</div><div class="ml">compraron el producto <span class="mp">${pPct}%</span></div><div class="rcbar"><i style="width:${pPct}%"></i></div></div>`
+      : `<div class="met"><div class="mn">—</div><div class="ml">sin match de producto</div></div>`;
+    const term = r.toks.join(' ');
+    return `<div class="repcard" id="rep-${esc(a.id)}">
+      <div class="rchead">${placa}
+        <div style="flex:1;min-width:0">
+          <div class="rcnom">${esc(a.nombre||'(sin nombre)')}</div>
+          <div class="rcsub">${fFecha(a.fecha)} · ${esc(a.proveedor||'')}${a.producto?' · '+esc(a.producto):''}</div>
+          <div class="rcrubros">${rubs}</div>
+        </div>
+      </div>
+      <div class="rcmetrics">
+        <div class="met hero"><div class="mn">${alc}</div><div class="ml">clientes que recibieron la acción</div></div>
+        ${prodMet}
+        <div class="met"><div class="mn">${algo}</div><div class="ml">compraron algo después <span class="mp">${aPct}%</span></div><div class="rcbar"><i style="width:${aPct}%;background:linear-gradient(90deg,#d9b25f,#a9852a)"></i></div></div>
+      </div>
+      <div class="rcaprox">Producto detectado por: <input id="tok-${esc(a.id)}" value="${esc(term)}" placeholder="marca o palabra clave"> <button onclick="recalcAccion('${esc(a.id)}')">Recalcular</button> ${skus?`· ${skus} SKU match (aprox.)`:''}</div>
+      ${prod?`<div class="rcver" onclick="toggleConv('${esc(a.id)}')">Ver los ${prod} clientes que compraron ›</div><div class="rclist" id="conv-${esc(a.id)}" style="display:none"></div>`:''}
+    </div>`;
+  }
+
+  function toggleConv(id){
+    const el=$('conv-'+id); if(!el) return;
+    if(el.style.display==='none'){
+      const list=REP_CONV[id]||[];
+      el.innerHTML = list.map(c=>`<div class="rcrow"><span>${esc(c.nombre||('Cliente '+c.cod))} <small>#${esc(c.cod)}</small></span><small>compró el ${fFecha(c.fecha)}${c.unidades?' · '+c.unidades+'u':''}</small></div>`).join('')||'<div class="rcrow"><small>—</small></div>';
+      el.style.display='';
+    } else el.style.display='none';
+  }
+  window.toggleConv=toggleConv;
+
+  async function recalcAccion(id){
+    const a=ACC.find(x=>String(x.id)===String(id)); if(!a) return;
+    const toks=($('tok-'+id).value||'').split(/[^a-z0-9áéíóúñ]+/i).map(nrm).filter(w=>w.length>=3);
+    const dias=parseInt($('repDias').value,10)||30;
+    const card=$('rep-'+id); if(card) card.style.opacity='.5';
+    try{
+      const { data, error } = await manClient().rpc('crm_reporte',{ p_rubros:rubrosDe(a).map(RUBRO_TIPO), p_desde:a.fecha, p_dias:dias, p_tokens:toks });
+      if(error) throw error;
+      const html=repCard({ a, dias, toks, data });
+      if(card) card.outerHTML=html;
+    }catch(e){ if(card){ card.style.opacity='1'; } alert('No se pudo recalcular: '+(e.message||e)); }
+  }
+  window.recalcAccion=recalcAccion;
 
   async function cargar(){
     try{
