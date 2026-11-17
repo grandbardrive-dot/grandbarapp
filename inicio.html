@@ -164,6 +164,10 @@
     .avance .bar{height:8px;margin-top:6px;background:#ece4d6}
     .avance .bar span{background:var(--green)}
     @media(max-width:800px){ .avance{grid-template-columns:1fr} }
+    #cardMes .mes-cuerpo{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center}
+    #cardMes .avance{grid-template-columns:1fr;margin-top:0;padding:0 0 0 24px;border-top:0;border-left:1px solid var(--line-2)}
+    @media(max-width:1050px){ #cardMes .mes-cuerpo{grid-template-columns:1fr} #cardMes .avance{grid-template-columns:1fr 1fr;margin-top:16px;padding:14px 0 0;border-left:0;border-top:1px solid var(--line-2)} }
+    @media(max-width:800px){ #cardMes .avance{grid-template-columns:1fr} }
 
     .bottomnav{display:none}
 
@@ -229,10 +233,30 @@
 
       <!-- Stat cards -->
       <div class="stats">
-        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Clientes asignados</div><div class="v" id="stClientes">—</div><div class="sub" id="stClientesSub">Activos</div></div></div>
+        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Clientes activos</div><div class="v" id="stClientes">—</div><div class="sub" id="stClientesSub">Cargando…</div></div></div>
         <div class="stat gold" id="statVisitas"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas de hoy</div><div class="v" id="stVisitas">—</div><div class="sub mut" id="stVisitasSub">Cargando…</div></div></div>
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg></div><div><div class="l">Tareas pendientes</div><div class="v" id="stTareas">—</div><div class="sub mut" id="stTareasSub">Cargando…</div></div></div>
         <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas acumuladas</div><div class="v" id="stVentas">—</div><div class="sub" id="stVentasSub">Cargando…</div></div></div>
+      </div>
+
+      <!-- Tu mes (17/11/2026): arriba de todo, a pedido del usuario. Clientes con compra, cobertura y
+           vinos/spirits contra el objetivo, de la función avance-vendedor. -->
+      <div style="margin-bottom:16px">
+        <div class="card" id="cardMes">
+          <div class="card-h"><span class="t">Tu mes</span><a class="lnk" href="reporte-semanal.html">Ver más</a></div>
+          <div class="mes-cuerpo">
+          <div class="perf">
+            <div id="pfColVisitas"><div class="p-lbl">Visitas</div><div class="p-val" id="pfVisitas">—</div><div class="p-obj" id="pfVisitasSub">Cargando…</div></div>
+            <div><div class="p-lbl">Ventas</div><div class="p-val" id="pfVentas">—</div><div class="p-obj" id="pfVentasSub">Cargando…</div></div>
+            <div><div class="p-lbl">Clientes con compra</div><div class="p-val" id="pfCcc">—</div><div class="p-obj" id="pfCccSub">Cargando…</div></div>
+            <div style="text-align:center"><div class="p-lbl">Cobertura</div><div class="donut" id="pfDonut" style="background:conic-gradient(#ece4d6 0 100%);margin:6px auto"><div class="inner" id="pfCob" style="font-size:14px">—</div></div><div class="p-obj" id="pfCobSub">de tus clientes activos</div></div>
+          </div>
+          <div class="avance" id="pfAvance">
+            <div><div class="a-top"><span class="a-n">Vinos</span><span class="a-pct" id="avVinPct">—</span></div><div class="bar"><span id="avVinBar" style="width:0"></span></div><div class="a-sub" id="avVinSub">Cargando…</div></div>
+            <div><div class="a-top"><span class="a-n">Spirits</span><span class="a-pct" id="avSpiPct">—</span></div><div class="bar"><span id="avSpiBar" style="width:0"></span></div><div class="a-sub" id="avSpiSub">Cargando…</div></div>
+          </div>
+          </div>
+        </div>
       </div>
 
       <!-- Fila media -->
@@ -282,24 +306,11 @@
       </div>
 
       <!-- Fila inferior -->
-      <div class="grid2">
+      <div>
         <div class="card">
           <div class="card-h"><span class="t">Acciones y promociones activas</span><a class="lnk" id="lnkVerTodas" href="#" target="_blank">Ver todas</a></div>
           <div class="promos" id="promos">
             <div style="color:var(--muted);font-size:13.5px;padding:6px 2px">Cargando acciones…</div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-h"><span class="t">Tu mes</span><a class="lnk" href="reporte-semanal.html">Ver más</a></div>
-          <div class="perf">
-            <div id="pfColVisitas"><div class="p-lbl">Visitas</div><div class="p-val" id="pfVisitas">—</div><div class="p-obj" id="pfVisitasSub">Cargando…</div></div>
-            <div><div class="p-lbl">Ventas</div><div class="p-val" id="pfVentas">—</div><div class="p-obj" id="pfVentasSub">Cargando…</div></div>
-            <div><div class="p-lbl">Clientes con compra</div><div class="p-val" id="pfCcc">—</div><div class="p-obj" id="pfCccSub">Cargando…</div></div>
-            <div style="text-align:center"><div class="p-lbl">Cobertura</div><div class="donut" id="pfDonut" style="background:conic-gradient(#ece4d6 0 100%);margin:6px auto"><div class="inner" id="pfCob" style="font-size:14px">—</div></div><div class="p-obj" id="pfCobSub">de tus clientes activos</div></div>
-          </div>
-          <div class="avance" id="pfAvance">
-            <div><div class="a-top"><span class="a-n">Vinos</span><span class="a-pct" id="avVinPct">—</span></div><div class="bar"><span id="avVinBar" style="width:0"></span></div><div class="a-sub" id="avVinSub">Cargando…</div></div>
-            <div><div class="a-top"><span class="a-n">Spirits</span><span class="a-pct" id="avSpiPct">—</span></div><div class="bar"><span id="avSpiBar" style="width:0"></span></div><div class="a-sub" id="avSpiSub">Cargando…</div></div>
           </div>
         </div>
       </div>
@@ -390,6 +401,7 @@
       const d = await r.json();
       if(!r.ok || !d.codigo) throw new Error(d.error || "sin código");
       const act = d.clientes.activos, cc = d.clientes.con_compra;
+      if(act != null){ $("stClientes").textContent = act; $("stClientesSub").textContent = cc + (cc === 1 ? " compró" : " compraron") + " este mes"; }
       $("pfCcc").textContent = cc;
       $("pfCccSub").textContent = act != null ? ("de " + act + " clientes activos") : "este mes";
       if(act){
@@ -401,6 +413,7 @@
       linea("avVin", d.vinos); linea("avSpi", d.spirits);
     }catch(e){
       $("pfCccSub").textContent = "no se pudo leer"; $("pfCobSub").textContent = "";
+      $("stClientesSub").textContent = "no se pudo leer";
       $("avVinSub").textContent = "no se pudo leer"; $("avSpiSub").textContent = "no se pudo leer";
     }
   }
@@ -432,7 +445,7 @@
 
     const cod = parseInt(codigoVendedor, 10);
     if(isNaN(cod)){
-      $("pfVentasSub").textContent = "sin código"; $("pfCccSub").textContent = "sin código";
+      $("pfVentasSub").textContent = "sin código"; $("pfCccSub").textContent = "sin código"; $("stClientesSub").textContent = "sin código de vendedor";
       $("avVinSub").textContent = "sin código de vendedor"; $("avSpiSub").textContent = "sin código de vendedor"; return;
     }
     // Clientes con compra, cobertura y vinos/spirits: de CUBO (avance-vendedor).
@@ -833,8 +846,8 @@
             const norm = x => (String(x==null?'':x).trim().replace(/^0+/,'') || '0');
             const estMap = {}; (est||[]).forEach(r=>{ estMap[norm(r.codigo)] = r.activo; });
             const activos = cliRows.filter(c=>{ const k=norm(c.codigo_cliente); return (k in estMap) ? estMap[k] : (c.activo!==false); }).length;
-            document.getElementById("stClientes").textContent = activos;
-            document.getElementById("stClientesSub").textContent = "Activos " + activos;
+            // "Clientes activos" de arriba ya no es esta cuenta: lo llena cargarAvance con los
+            // activos de CUBO, los mismos de "Tu mes" (17/11/2026).
             activosCartera = activos;
           }
         }
