@@ -277,6 +277,8 @@ exports.handler = async (event) => {
 module.exports.sincronizarDia = sincronizarDia;
 module.exports.loginTodas = loginTodas;
 module.exports.fmtFecha = fmtFecha;
+module.exports.login = login;   // diagnóstico de la empresa 3333 (_diag-3333.js, 17/11/2026)
+module.exports.aikon = aikon;
 
 // Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
 module.exports.handler = require('./_errores').conErrores('sync-ventas', module.exports.handler);

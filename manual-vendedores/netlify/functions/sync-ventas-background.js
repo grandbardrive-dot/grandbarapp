@@ -125,6 +125,8 @@ exports.handler = async (event) => {
     console.error('sync-ventas-background login:', (e && e.message) || e);
   }
   console.log(`sync-ventas-background: ${hechos.length}/${dias.length} días ·`, hechos.join(' | '));
+  // Diagnóstico temporal de la empresa 3333 (17/11/2026, _diag-3333.js): solo cantidades, cada 6 h.
+  try { await require('./_diag-3333').diag3333(require('./sync-ventas')); } catch (e) { console.log('diag-3333:', (e && e.message) || e); }
 };
 
 // Estado del sistema (10/10/2026): cada corrida queda en sistema_corridas (ver _corrida.js).
