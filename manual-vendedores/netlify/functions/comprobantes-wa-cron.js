@@ -11,7 +11,9 @@ exports.handler = async () => {
   try {
     const service = process.env.COBRANZAS_SERVICE_ROLE;
     const desde = new Date(Date.now() - 6 * 864e5).toISOString();
-    const r = await fetch(COB_URL + '/rest/v1/comprobantes_vendedor?select=id&or=(estado.in.(nuevo,leido),and(estado.eq.sin_asignar,recibido_at.gte.' + desde + '))&limit=1',
+    // Hay algo por leer o por enganchar, o algún enganchado reciente que quizá haya que pasar
+    // a la planilla que el vendedor envió (ver "Reubicar" en la background).
+    const r = await fetch(COB_URL + '/rest/v1/comprobantes_vendedor?select=id&or=(estado.in.(nuevo,leido),and(estado.in.(sin_asignar,asignado),recibido_at.gte.' + desde + '))&limit=1',
       { headers: { apikey: service, Authorization: 'Bearer ' + service } });
     const hay = r.ok ? (await r.json()).length : 1;
     if (!hay) return { statusCode: 200, body: JSON.stringify({ ok: true, nada: true }) };

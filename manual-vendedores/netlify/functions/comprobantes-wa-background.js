@@ -103,6 +103,30 @@ function montosDe(f) {
   return out.filter(x => x > 0);
 }
 
+const { asignar: asignarComp } = require('./_comp-vendedor');
+// Fechas (YYYY-MM-DD) que el vendedor ya ENVIÓ entre `desde` y `hasta`.
+async function fechasEnviadas(vend, desde, hasta) {
+  const e = await leer('planilla_envios?select=fecha_rendicion&enviada_at=not.is.null&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=gte.' + desde + '&fecha_rendicion=lte.' + hasta);
+  return new Set(e.map(x => x.fecha_rendicion));
+}
+
+// Pasa que el vendedor carga el mismo cliente en dos planillas (una que no envió y la de
+// otro día, que sí): de cada cliente queda solo la de la planilla ENVIADA (la que ve Moni),
+// o la más nueva si ninguna se envió. `enviadas` = Set de fechas enviadas de ese vendedor.
+function sinDuplicados(filas, enviadas) {
+  const porCli = {};
+  filas.forEach(f => { const k = padCod(f.codigo) || ('#' + f.id); (porCli[k] = porCli[k] || []).push(f); });
+  const out = [];
+  Object.values(porCli).forEach(fs => {
+    const fechas = [...new Set(fs.map(f => f.fecha_rendicion))];
+    if (fechas.length < 2) { out.push(...fs); return; }
+    const env = fechas.filter(d => enviadas.has(d)).sort();
+    const queda = env.length ? env[env.length - 1] : fechas.sort()[fechas.length - 1];
+    out.push(...fs.filter(f => f.fecha_rendicion === queda));
+  });
+  return out;
+}
+
 // Devuelve la fila elegida (o null) para un comprobante ya leído.
 function elegirFila(c, filas, clientes) {
   if (!filas.length) return null;
@@ -210,9 +234,10 @@ exports.handler = async (event) => {
       const cods = [...new Set(filas.map(f => padCod(f.codigo)).filter(Boolean))];
       const clientes = {};
       if (cods.length) (await leer('cuentas_cubo?select=codigo,nombre,razon_social,cuit&codigo=in.(' + cods.map(x => '"' + x + '"').join(',') + ')')).forEach(x => { clientes[x.codigo] = x; });
+      const enviadas = await fechasEnviadas(vend, sumaDias(dias[0], -3), sumaDias(dias[dias.length - 1], 4));
       for (const c of comps) {
         const dia = diaAR(c.recibido_at);
-        const cand = filas.filter(f => f.fecha_rendicion >= sumaDias(dia, -3) && f.fecha_rendicion <= sumaDias(dia, 4));
+        const cand = sinDuplicados(filas.filter(f => f.fecha_rendicion >= sumaDias(dia, -3) && f.fecha_rendicion <= sumaDias(dia, 4)), enviadas);
         const fila = elegirFila(c, cand, clientes);
         if (fila && await adjuntar(c, fila, 'automático')) {
           asignados++;
@@ -225,7 +250,25 @@ exports.handler = async (event) => {
       }
     }
     // Los que pasaron 6 días sin fila quedan sin asignar para siempre (los ve Moni a mano).
-    log.push('leídos ' + nuevos.length + ' · enganchados ' + asignados + ' · esperando ' + esperando);
+
+    // 3) Reubicar (17/11/2026): un comprobante enganchado solo a una planilla que el vendedor
+    //    NO envió se pasa a la misma cliente en la planilla que sí envió después (pasó con
+    //    Nicolás García: cargó el 16/11 sin enviar y el 17/11 cargó y envió los mismos).
+    let movidos = 0;
+    const auto = await leer('comprobantes_vendedor?select=id,vendedor,fila_id&estado=eq.asignado&asignado_por=eq.autom%C3%A1tico&recibido_at=gte.' + desde + '&limit=500');
+    const filasA = auto.length ? await leer('planilla_cobranzas?select=id,vendedor,codigo,fecha_rendicion&id=in.(' + auto.map(a => a.fila_id).join(',') + ')') : [];
+    for (const a of auto) {
+      const f = filasA.find(x => x.id === a.fila_id);
+      if (!f || !padCod(f.codigo)) continue;
+      const env = await fechasEnviadas(f.vendedor, f.fecha_rendicion, sumaDias(f.fecha_rendicion, 5));
+      if (env.has(f.fecha_rendicion) || !env.size) continue;
+      const otras = await leer('planilla_cobranzas?select=id,codigo,fecha_rendicion&vendedor=eq.' + encodeURIComponent(f.vendedor) + '&fecha_rendicion=in.(' + [...env].join(',') + ')');
+      const destino = otras.filter(o => padCod(o.codigo) === padCod(f.codigo)).sort((x, y) => x.fecha_rendicion.localeCompare(y.fecha_rendicion))[0];
+      if (!destino) continue;
+      const r = await asignarComp(cob, a.id, destino.id, 'automático');
+      if (r && r.ok) movidos++;
+    }
+    log.push('leídos ' + nuevos.length + ' · enganchados ' + asignados + ' · esperando ' + esperando + ' · reubicados ' + movidos);
   } catch (e) {
     log.push('error: ' + ((e && e.message) || String(e)));
   }

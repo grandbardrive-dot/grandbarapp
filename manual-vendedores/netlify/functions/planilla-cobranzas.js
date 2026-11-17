@@ -164,6 +164,8 @@ exports.handler = async (event) => {
         const er = await cob('planilla_envios?on_conflict=vendedor,fecha_rendicion', { method: 'POST', headers: { Prefer: 'return=representation,resolution=merge-duplicates' }, body: JSON.stringify(env) });
         const out = await er.json();
         if (!er.ok) return json(400, { error: (out && out.message) || 'No se pudo enviar.' });
+        // Que los comprobantes de WhatsApp se acomoden ya en la planilla que acaba de enviar.
+        await compVend.procesar();
         return json(200, { ok: true, envio: out[0] || env });
       }
 
