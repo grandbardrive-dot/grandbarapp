@@ -16,13 +16,19 @@
 //    /sync-ventas                                  → AYER
 //    /sync-ventas?desde=01/08/2026&hasta=07/08/2026 → procesa lo que entre en ~20s
 //    (repetí con ?desde=<siguiente_desde>&hasta=... para continuar)
-//  EMPRESAS: el ERP tiene DOS empresas y el WebApi lista los comprobantes
+//  EMPRESA 3333 "CUBOS" (17/11/2026, pedido del usuario: "tomar todas las ventas de 3333"):
+//  con su token, ListarComprobantes trae los de las dos empresas juntas. Comprobado el
+//  17/11 para el 16 y el 13/11: 196 = 45 (9999) + 151 (0001) y 256 = 42 + 214, los mismos
+//  comprobantes, ninguno de más. Con una sola empresa no puede repetirse la mezcla de listas
+//  que CUBO hacía entre 9999 y 0001 (ver la guarda en sincronizarDia). Para volver a las dos:
+//  VENTAS_EMPRESAS=9999,0001 en Netlify.
+//  Antes (hasta el 17/11): el ERP tiene DOS empresas y el WebApi lista los comprobantes
 //  de la empresa con la que se pidió el token. 9999 = series internas
 //  9999/1000 (no fiscal); 0001 = puntos de venta fiscales (0003, 0005…), la
 //  mayor parte de la venta. Se leen las dos (diagnóstico 8/10/2026).
 //  Cada día procesado deja su fila en ventas_sync_log con detalle "v2 …":
 //  así sync-ventas-cron sabe qué días ya están completos.
-//  Env: AIKON_* (+ AIKON_EMPRESAS opcional, default "<AIKON_EMPRESA>,0001"),
+//  Env: AIKON_* (+ VENTAS_EMPRESAS opcional, default "3333"),
 //  opcional MANUAL_ANON_KEY, SYNC_SECRET.
 // ============================================================
 
@@ -52,7 +58,7 @@ function netDateToISO(s) { const m = String(s || '').match(/\/Date\((\d+)/); if 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const val = (o, ...keys) => { for (const k of keys) { if (o && o[k] != null && String(o[k]).trim() !== '') return o[k]; } return null; };
 
-const EMPRESAS = (process.env.AIKON_EMPRESAS || `${process.env.AIKON_EMPRESA || '9999'},0001`)
+const EMPRESAS = (process.env.VENTAS_EMPRESAS || '3333')
   .split(',').map((e) => e.trim()).filter((e, i, a) => e && a.indexOf(e) === i);
 
 async function login(empresa) {
@@ -277,8 +283,6 @@ exports.handler = async (event) => {
 module.exports.sincronizarDia = sincronizarDia;
 module.exports.loginTodas = loginTodas;
 module.exports.fmtFecha = fmtFecha;
-module.exports.login = login;   // diagnóstico de la empresa 3333 (_diag-3333.js, 17/11/2026)
-module.exports.aikon = aikon;
 
 // Estado del sistema (11/10/2026): los errores internos quedan en sistema_errores (ver _errores.js).
 module.exports.handler = require('./_errores').conErrores('sync-ventas', module.exports.handler);
