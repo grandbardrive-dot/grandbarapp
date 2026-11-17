@@ -109,6 +109,14 @@
 [functions."septima-cron"]
   schedule = "25 9 * * *"
 
+# CLUB CAMPARI: cada mañana (06:30 ART = 09:30 UTC) recalcula el avance del plan Cobertura de
+# Campari (clientes con compra por marca, ventana Oct–Nov de club_campari_config) desde las ventas
+# ya sincronizadas y lo escribe en cobertura_productos. Solo las marcas mapeadas en
+# club_campari_marcas (Aperol/Campari/Cynar; Skyy Inf y Others cuando Luciana defina).
+# Ver manual-vendedores/netlify/functions/club-campari-cron.js
+[functions."club-campari-cron"]
+  schedule = "30 9 * * *"
+
 # RECIBOS del ERP → planillas de rendición (16/11/2026). De lunes a sábado, cada 15 min de
 # 8 a 20 (11 a 23 UTC), trae los recibos nuevos y completa solo el N° de recibo de cada
 # fila (antes Moni lo escribía a mano en Observaciones). El panel también la dispara al
