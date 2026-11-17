@@ -907,7 +907,8 @@ async function cobEstadisticas() {
           <p>de ${d.total.toLocaleString('es-AR')} cuentas</p></div>
       </div>
       ${tabla('Por equipo', d.equipos, 'Equipo')}
-      ${(d.sinEquipo && d.sinEquipo.total) ? `
+      ${/* Dirección mira el resultado: la aclaración de la planilla y la lista para arreglarla son para Administración. */''}
+      ${(!cobSoloLectura() && d.sinEquipo && d.sinEquipo.total) ? `
         <div class="aviso" style="margin-top:14px"><span>🏷️</span><div>
           <b>${d.sinEquipo.total.toLocaleString('es-AR')} cuentas vienen sin equipo</b> en el Excel de CUBO
           (${cnum(d.sinEquipo.cartera)} de cartera, ${cnum(d.sinEquipo.vencida)} vencida). No es un equipo:
