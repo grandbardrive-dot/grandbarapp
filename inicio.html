@@ -412,7 +412,8 @@
       if(obj){
         $("pfCliObj").textContent = n(obj);
         $("pfCliObjSub").textContent = "llevás el " + Math.round(cc * 100 / obj) + "%";
-      } else { $("pfCliObjSub").textContent = "todavía no está cargado"; }
+      } else if(obj === 0){ $("pfCliObjSub").textContent = "sin objetivo este mes"; }
+      else { $("pfCliObjSub").textContent = "todavía no está cargado"; }
       linea("avVin", d.vinos); linea("avSpi", d.spirits);
     }catch(e){
       $("stClientesSub").textContent = "no se pudo leer"; $("pfCccSub").textContent = "no se pudo leer"; $("pfCliObjSub").textContent = "";

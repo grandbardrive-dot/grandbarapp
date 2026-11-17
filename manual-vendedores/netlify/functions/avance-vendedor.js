@@ -15,10 +15,10 @@
 //                   columnas "VINOS Objetivo" y "SPIRITS Objetivo", fila con el nombre del
 //                   vendedor. El archivo no dice el mes: se toma como el objetivo del mes en
 //                   curso. Si Administración sube otro archivo (otro link), cambiar PRESUPUESTO.
-//   · Objetivo de clientes (17/11/2026) = la columna de esa planilla que diga "cliente" y
-//                   "objetivo" (por ejemplo "CLIENTES Objetivo"). Hoy la planilla no la tiene:
-//                   sale null y el Inicio dice "todavía no está cargado". Cuando la agreguen,
-//                   se toma sola.
+//   · Objetivo de clientes (17/11/2026) = "Objetivo CCC.xlsx" (clientes con compra), también
+//                   en SHARE: columnas "Vendedor", "Nro Vendedor" y "Objetivos". Se cruza por el
+//                   número de vendedor, no por el nombre. Administración lo actualiza pisando el
+//                   mismo archivo; si suben uno nuevo (otro link), cambiar OBJ_CLIENTES.
 //  Env: COBRANZAS_SERVICE_ROLE.
 // ============================================================
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
@@ -27,6 +27,7 @@ const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_KEY  = process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 const PRESUPUESTO = '10aWYQdhuoZLM9lrhTJdkTwQcia-dClez';   // SHARE / Presupuesto Ventas.xlsx
+const OBJ_CLIENTES = '1Ej_ckOWLEEGVZJKi3TaDItrOkzXOL6YU';  // SHARE / Objetivo CCC.xlsx (clientes con compra)
 const { traerTodo } = require('./_paginar.js');
 const { filtroVigentes } = require('./_cuentas-vigentes');
 
@@ -80,10 +81,23 @@ async function objetivos(codigo, nombre) {
   const iVin = cab.findIndex(c => /vino/.test(c) && /objetivo/.test(c));
   const iSpi = cab.findIndex(c => /spirit/.test(c) && /objetivo/.test(c));
   if (iVin < 0 || iSpi < 0) throw new Error('No se encontraron las columnas de objetivo');
-  const iCli = cab.findIndex(c => /client/.test(c) && /objetivo/.test(c));   // opcional
   const fila = f.find(x => { const n = norm(x[0]); return ALIAS[n] ? ALIAS[n] === codigo : esElMismo(x[0], nombre); });
   if (!fila) return null;
-  return { vinos: entero(fila[iVin]), spirits: entero(fila[iSpi]), clientes: iCli >= 0 ? entero(fila[iCli]) : null };
+  return { vinos: entero(fila[iVin]), spirits: entero(fila[iSpi]) };
+}
+
+// Objetivo de clientes con compra del mes (Objetivo CCC.xlsx). null si no figura o no se pudo leer;
+// 0 si Administración le puso 0 (no tiene objetivo este mes).
+async function objetivoClientes(codigo) {
+  const r = await fetch('https://docs.google.com/spreadsheets/d/' + OBJ_CLIENTES + '/gviz/tq?tqx=out:csv', { redirect: 'follow' });
+  if (!r.ok) throw new Error('Drive respondió ' + r.status);
+  const f = csv(await r.text());
+  const cab = (f.shift() || []).map(norm);
+  const iCod = cab.findIndex(c => /vendedor/.test(c) && /(nro|num|cod)/.test(c));
+  const iObj = cab.findIndex(c => /objetivo/.test(c));
+  if (iCod < 0 || iObj < 0) throw new Error('No se encontraron las columnas de Objetivo CCC');
+  const fila = f.find(x => cod3(x[iCod]) === codigo);
+  return fila ? entero(fila[iObj]) : null;
 }
 
 exports.handler = async (event) => {
@@ -111,7 +125,7 @@ exports.handler = async (event) => {
     const vend = ((await (await man('vendedores?codigo=eq.' + encodeURIComponent(codigo) + '&select=nombre')).json()) || [])[0] || {};
     const nombre = vend.nombre || perfil.nombre || '';
 
-    const [activos, ventas, obj] = await Promise.all([
+    const [activos, ventas, obj, objCli] = await Promise.all([
       (async () => {
         const vig = await filtroVigentes(cob);
         const sinCero = String(parseInt(codigo, 10));   // en CUBO a veces viene "31" en vez de "031"
@@ -121,6 +135,7 @@ exports.handler = async (event) => {
       })(),
       traerTodo(man, 'ventas_cliente?select=cliente_codigo,sku,unidades,importe&vendedor=eq.' + encodeURIComponent(codigo) + '&fecha=gte.' + desde + '&order=fecha.asc'),
       objetivos(codigo, nombre).catch(e => ({ error: (e && e.message) || String(e) })),
+      objetivoClientes(codigo).catch(() => null),
     ]);
 
     const filas = Array.isArray(ventas) ? ventas : [];
@@ -135,7 +150,7 @@ exports.handler = async (event) => {
 
     return json(200, {
       codigo, nombre, desde, hasta: hoyAR,
-      clientes: { activos, con_compra: conCompra.size, objetivo: obj && !obj.error && obj.clientes != null ? obj.clientes : null },
+      clientes: { activos, con_compra: conCompra.size, objetivo: objCli },
       vinos: { vendido: Math.round(vinos), objetivo: obj && !obj.error ? obj.vinos : null },
       spirits: { vendido: Math.round(spirits), objetivo: obj && !obj.error ? obj.spirits : null },
       objetivo_error: obj && obj.error ? obj.error : (obj ? null : 'no figura en la planilla'),
@@ -147,4 +162,5 @@ exports.handler = async (event) => {
 
 exports.esElMismo = esElMismo;   // para probar el cruce de nombres
 exports.objetivos = objetivos;
+exports.objetivoClientes = objetivoClientes;
 module.exports.handler = require('./_errores').conErrores('avance-vendedor', module.exports.handler);
