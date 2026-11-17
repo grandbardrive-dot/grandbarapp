@@ -164,10 +164,20 @@
     .avance .bar{height:8px;margin-top:6px;background:#ece4d6}
     .avance .bar span{background:var(--green)}
     @media(max-width:800px){ .avance{grid-template-columns:1fr} }
-    #cardMes .mes-cuerpo{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center}
-    #cardMes .avance{grid-template-columns:1fr;margin-top:0;padding:0 0 0 24px;border-top:0;border-left:1px solid var(--line-2)}
-    @media(max-width:1050px){ #cardMes .mes-cuerpo{grid-template-columns:1fr} #cardMes .avance{grid-template-columns:1fr 1fr;margin-top:16px;padding:14px 0 0;border-left:0;border-top:1px solid var(--line-2)} }
-    @media(max-width:800px){ #cardMes .avance{grid-template-columns:1fr} }
+    /* Tu mes en dos tarjetas (17/11/2026): Clientes (activos, con compra, objetivo) y Vinos y spirits */
+    .mes2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .mes2 .card-h .per{color:var(--muted);font-size:12.5px;font-weight:600}
+    .cli3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .cli3 > div + div{border-left:1px solid var(--line-2);padding-left:14px}
+    .cli3 .p-lbl{font-size:12px;color:var(--muted);font-weight:700}
+    .cli3 .p-val{font-size:26px;font-weight:800;margin:4px 0 2px;line-height:1.05}
+    .cli3 .p-obj{font-size:11.5px;color:var(--muted)}
+    #cardBotellas .avance{grid-template-columns:1fr;gap:16px;margin-top:0;padding-top:0;border-top:0}
+    .stat .nota{font-size:10.5px;color:var(--muted);font-weight:500;margin-top:4px;line-height:1.3}
+    #stVentas{white-space:nowrap;font-size:22px;line-height:1.2}   /* el monto entero en un renglón */
+    @media(min-width:1051px){ .stats.tres{grid-template-columns:repeat(3,1fr)} }
+    @media(max-width:1050px){ .mes2{grid-template-columns:1fr} }
+    @media(max-width:480px){ .cli3{gap:8px} .cli3 > div + div{padding-left:8px} .cli3 .p-val{font-size:21px} }
 
     .bottomnav{display:none}
 
@@ -233,28 +243,31 @@
 
       <!-- Stat cards -->
       <div class="stats">
-        <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/></svg></div><div><div class="l">Clientes activos</div><div class="v" id="stClientes">—</div><div class="sub" id="stClientesSub">Cargando…</div></div></div>
-        <div class="stat gold" id="statVisitas"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas de hoy</div><div class="v" id="stVisitas">—</div><div class="sub mut" id="stVisitasSub">Cargando…</div></div></div>
+        <div class="stat" id="statVisitas"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div><div><div class="l">Visitas de hoy</div><div class="v" id="stVisitas">—</div><div class="sub mut" id="stVisitasSub">Cargando…</div></div></div>
+        <div class="stat gold" id="pfColVisitas"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div><div><div class="l">Visitas del mes</div><div class="v" id="pfVisitas">—</div><div class="sub mut" id="pfVisitasSub">Cargando…</div></div></div>
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg></div><div><div class="l">Tareas pendientes</div><div class="v" id="stTareas">—</div><div class="sub mut" id="stTareasSub">Cargando…</div></div></div>
-        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas acumuladas</div><div class="v" id="stVentas">—</div><div class="sub" id="stVentasSub">Cargando…</div></div></div>
+        <!-- El monto facturado del mes va UNA sola vez, acá (17/11/2026: antes también en Tu mes y en el
+             Resumen semanal). La aclaración de las facturas "F" la pidió el usuario con esas palabras. -->
+        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas acumuladas</div><div class="v" id="stVentas">—</div><div class="sub" id="stVentasSub">Cargando…</div><div class="nota">(El CUBO no contempla facturas originadas en "F")</div></div></div>
       </div>
 
-      <!-- Tu mes (17/11/2026): arriba de todo, a pedido del usuario. Clientes con compra, cobertura y
-           vinos/spirits contra el objetivo, de la función avance-vendedor. -->
-      <div style="margin-bottom:16px">
-        <div class="card" id="cardMes">
-          <div class="card-h"><span class="t">Tu mes</span><a class="lnk" href="reporte-semanal.html">Ver más</a></div>
-          <div class="mes-cuerpo">
-          <div class="perf">
-            <div id="pfColVisitas"><div class="p-lbl">Visitas</div><div class="p-val" id="pfVisitas">—</div><div class="p-obj" id="pfVisitasSub">Cargando…</div></div>
-            <div><div class="p-lbl">Ventas</div><div class="p-val" id="pfVentas">—</div><div class="p-obj" id="pfVentasSub">Cargando…</div></div>
-            <div><div class="p-lbl">Clientes con compra</div><div class="p-val" id="pfCcc">—</div><div class="p-obj" id="pfCccSub">Cargando…</div></div>
-            <div style="text-align:center"><div class="p-lbl">Cobertura</div><div class="donut" id="pfDonut" style="background:conic-gradient(#ece4d6 0 100%);margin:6px auto"><div class="inner" id="pfCob" style="font-size:14px">—</div></div><div class="p-obj" id="pfCobSub">de tus clientes activos</div></div>
+      <!-- Tu mes (17/11/2026, a pedido del usuario): una tarjeta con los clientes (activos en CUBO,
+           con compra en el mes y el objetivo) y otra con las botellas de vinos y spirits contra el
+           objetivo. Todo de la función avance-vendedor. -->
+      <div class="mes2">
+        <div class="card" id="cardClientes">
+          <div class="card-h"><span class="t">Clientes</span><span class="per">Este mes</span></div>
+          <div class="cli3">
+            <div><div class="p-lbl">Activos</div><div class="p-val" id="stClientes">—</div><div class="p-obj" id="stClientesSub">Cargando…</div></div>
+            <div><div class="p-lbl">Con compra</div><div class="p-val" id="pfCcc">—</div><div class="p-obj" id="pfCccSub">Cargando…</div></div>
+            <div><div class="p-lbl">Objetivo</div><div class="p-val" id="pfCliObj">—</div><div class="p-obj" id="pfCliObjSub">Cargando…</div></div>
           </div>
-          <div class="avance" id="pfAvance">
+        </div>
+        <div class="card" id="cardBotellas">
+          <div class="card-h"><span class="t">Vinos y spirits</span><span class="per">Botellas del mes</span></div>
+          <div class="avance">
             <div><div class="a-top"><span class="a-n">Vinos</span><span class="a-pct" id="avVinPct">—</span></div><div class="bar"><span id="avVinBar" style="width:0"></span></div><div class="a-sub" id="avVinSub">Cargando…</div></div>
             <div><div class="a-top"><span class="a-n">Spirits</span><span class="a-pct" id="avSpiPct">—</span></div><div class="bar"><span id="avSpiBar" style="width:0"></span></div><div class="a-sub" id="avSpiSub">Cargando…</div></div>
-          </div>
           </div>
         </div>
       </div>
@@ -276,9 +289,6 @@
           <div class="rs-row" id="rsFilaVisitas">
             <div><div class="rs-lbl">Visitas realizadas</div><div class="rs-big" id="rsVisitas">—</div><div class="rs-lbl" id="rsVisitasSub">de la agenda</div></div>
             <div class="donut" id="rsDonut" style="background:conic-gradient(var(--gold) 0%, #ece4d6 0)"><div class="inner">0%</div></div>
-          </div>
-          <div class="rs-row">
-            <div><div class="rs-lbl">Ventas acumuladas</div><div class="rs-big" id="rsVentas">—</div><div class="rs-lbl" id="rsVentasSub" style="color:var(--muted)">Cargando…</div></div>
           </div>
           <div class="rs-row">
             <div><div class="rs-lbl">Nuevos clientes</div><div class="rs-big" id="rsNuevos">—</div><div class="rs-lbl" id="rsNuevosSub">esta semana</div></div>
@@ -348,13 +358,9 @@
     const sv=document.getElementById("stVentas"), ss=document.getElementById("stVentasSub");
     if(sv) sv.textContent = "—";
     if(ss) ss.textContent = motivo;
-    const rv=document.getElementById("rsVentas"), rs=document.getElementById("rsVentasSub");
-    if(rv) rv.textContent = "—";
-    if(rs) rs.textContent = motivo;
   }
 
-  // La lectura de la planilla vive en assets/ventas.js (busca las columnas por nombre,
-  // así un cambio de formato de la tabla dinámica no vuelve a romper la tarjeta).
+  // Las ventas del mes salen de CUBO (assets/ventas.js → función ventas-vendedor).
   async function cargarVentas(codigoVendedor){
     try{
       const cod = parseInt(codigoVendedor, 10);
@@ -364,8 +370,6 @@
         const fmt = "$ " + Math.round(monto).toLocaleString("es-AR");
         document.getElementById("stVentas").textContent = fmt;
         document.getElementById("stVentasSub").textContent = "Este mes, con IVA";
-        const rv = document.getElementById("rsVentas"); if(rv) rv.textContent = fmt;
-        const rvs = document.getElementById("rsVentasSub"); if(rvs){ rvs.textContent = "Este mes, con IVA"; rvs.style.color = "var(--muted)"; }
       } else {
         // Distinguir "no está tu código" de "no pude leer la planilla": si no se leyó
         // ningún vendedor, el problema es la planilla y no el código del vendedor.
@@ -376,11 +380,11 @@
   }
 
   // ── Tu mes ──────────────────────────────────────────────────────────────────
-  // Todo sale de datos reales: las visitas del mes son las que el vendedor guardó
-  // en el manual; las ventas ($), de la planilla de ventas. Clientes activos vs con
-  // compra y el avance de vinos y spirits contra el objetivo (17/11/2026) los arma la
-  // función avance-vendedor: activos en CUBO, ventas del mes de CUBO y el objetivo
-  // de "Presupuesto Ventas" (Drive de Administración).
+  // Todo sale de datos reales: las visitas del mes son las que el vendedor guardó en el
+  // manual. Las tarjetas Clientes (activos, con compra, objetivo) y Vinos y spirits
+  // (17/11/2026) las arma la función avance-vendedor: activos en CUBO, ventas del mes de
+  // CUBO y los objetivos de "Presupuesto Ventas" (Drive de Administración). Si un objetivo
+  // no está en la planilla, se dice; no se inventa.
   async function cargarAvance(){
     const $ = id => document.getElementById(id);
     const n = v => Math.round(v || 0).toLocaleString("es-AR");
@@ -393,27 +397,25 @@
       const pct = d.objetivo > 0 ? Math.round(d.vendido * 100 / d.objetivo) : 0;
       $(k+"Pct").textContent = pct + "%";
       $(k+"Bar").style.width = Math.min(100, pct) + "%";
-      $(k+"Sub").textContent = n(d.vendido) + " de " + n(d.objetivo) + " botellas";
+      $(k+"Sub").textContent = "Vendidas " + n(d.vendido) + " · objetivo " + n(d.objetivo) + " botellas";
     };
     try{
       const { data:{ session } } = await hub.auth.getSession();
       const r = await fetch("/.netlify/functions/avance-vendedor", { headers:{ Authorization:"Bearer " + session.access_token } });
       const d = await r.json();
       if(!r.ok || !d.codigo) throw new Error(d.error || "sin código");
-      const act = d.clientes.activos, cc = d.clientes.con_compra;
-      if(act != null){ $("stClientes").textContent = act; $("stClientesSub").textContent = cc + (cc === 1 ? " compró" : " compraron") + " este mes"; }
-      $("pfCcc").textContent = cc;
-      $("pfCccSub").textContent = act != null ? ("de " + act + " clientes activos") : "este mes";
-      if(act){
-        const pct = Math.min(100, Math.round(cc * 100 / act));
-        $("pfCob").textContent = pct + "%";
-        $("pfDonut").style.background = "conic-gradient(var(--green) " + pct + "%, #ece4d6 0)";
-        $("pfCobSub").textContent = cc + " de " + act + " clientes activos";
-      } else { $("pfCobSub").textContent = "sin clientes activos"; }
+      const act = d.clientes.activos, cc = d.clientes.con_compra, obj = d.clientes.objetivo;
+      $("stClientes").textContent = act != null ? n(act) : "—";
+      $("stClientesSub").textContent = act != null ? "en CUBO" : "no se pudo leer";
+      $("pfCcc").textContent = n(cc);
+      $("pfCccSub").textContent = act ? (Math.round(cc * 100 / act) + "% de tus activos") : "este mes";
+      if(obj){
+        $("pfCliObj").textContent = n(obj);
+        $("pfCliObjSub").textContent = "llevás el " + Math.round(cc * 100 / obj) + "%";
+      } else { $("pfCliObjSub").textContent = "todavía no está cargado"; }
       linea("avVin", d.vinos); linea("avSpi", d.spirits);
     }catch(e){
-      $("pfCccSub").textContent = "no se pudo leer"; $("pfCobSub").textContent = "";
-      $("stClientesSub").textContent = "no se pudo leer";
+      $("stClientesSub").textContent = "no se pudo leer"; $("pfCccSub").textContent = "no se pudo leer"; $("pfCliObjSub").textContent = "";
       $("avVinSub").textContent = "no se pudo leer"; $("avSpiSub").textContent = "no se pudo leer";
     }
   }
@@ -445,18 +447,12 @@
 
     const cod = parseInt(codigoVendedor, 10);
     if(isNaN(cod)){
-      $("pfVentasSub").textContent = "sin código"; $("pfCccSub").textContent = "sin código"; $("stClientesSub").textContent = "sin código de vendedor";
+      $("pfCccSub").textContent = "sin código"; $("pfCliObjSub").textContent = ""; $("stClientesSub").textContent = "sin código de vendedor";
       $("avVinSub").textContent = "sin código de vendedor"; $("avSpiSub").textContent = "sin código de vendedor"; return;
     }
-    // Clientes con compra, cobertura y vinos/spirits: de CUBO (avance-vendedor).
+    // Clientes (activos, con compra, objetivo) y vinos/spirits: de CUBO (avance-vendedor).
+    // El monto del mes va una sola vez, en "Ventas acumuladas" de arriba (cargarVentas).
     cargarAvance();
-    try{
-      const total = await GBVentas.totalDe(cod);
-      if(total != null){
-        $("pfVentas").textContent = "$ " + Math.round(total).toLocaleString("es-AR");
-        $("pfVentasSub").textContent = "facturado en " + mes;
-      } else { $("pfVentasSub").textContent = "sin ventas este mes"; }
-    }catch(e){ $("pfVentasSub").textContent = "no se pudieron leer"; }
   }
 
   let hub;
@@ -629,6 +625,7 @@
   async function modoTienda(token){
     const ocultar = id => { const e = document.getElementById(id); if(e) e.style.display = "none"; };
     ocultar("rsFilaVisitas"); ocultar("pfColVisitas");
+    const fila = document.querySelector(".stats"); if(fila) fila.classList.add("tres");
     const lbl = document.querySelector("#statVisitas .l"); if(lbl) lbl.textContent = "Deuda vencida";
     const sv = document.getElementById("stVisitas"), ss = document.getElementById("stVisitasSub");
     sv.textContent = "…"; ss.textContent = "Cargando…"; ss.className = "sub mut";
@@ -846,8 +843,8 @@
             const norm = x => (String(x==null?'':x).trim().replace(/^0+/,'') || '0');
             const estMap = {}; (est||[]).forEach(r=>{ estMap[norm(r.codigo)] = r.activo; });
             const activos = cliRows.filter(c=>{ const k=norm(c.codigo_cliente); return (k in estMap) ? estMap[k] : (c.activo!==false); }).length;
-            // "Clientes activos" de arriba ya no es esta cuenta: lo llena cargarAvance con los
-            // activos de CUBO, los mismos de "Tu mes" (17/11/2026).
+            // La tarjeta Clientes no usa esta cuenta: la llena cargarAvance con los activos
+            // de CUBO (17/11/2026).
             activosCartera = activos;
           }
         }

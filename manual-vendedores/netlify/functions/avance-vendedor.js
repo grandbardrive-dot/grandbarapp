@@ -15,6 +15,10 @@
 //                   columnas "VINOS Objetivo" y "SPIRITS Objetivo", fila con el nombre del
 //                   vendedor. El archivo no dice el mes: se toma como el objetivo del mes en
 //                   curso. Si Administración sube otro archivo (otro link), cambiar PRESUPUESTO.
+//   · Objetivo de clientes (17/11/2026) = la columna de esa planilla que diga "cliente" y
+//                   "objetivo" (por ejemplo "CLIENTES Objetivo"). Hoy la planilla no la tiene:
+//                   sale null y el Inicio dice "todavía no está cargado". Cuando la agreguen,
+//                   se toma sola.
 //  Env: COBRANZAS_SERVICE_ROLE.
 // ============================================================
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
@@ -76,9 +80,10 @@ async function objetivos(codigo, nombre) {
   const iVin = cab.findIndex(c => /vino/.test(c) && /objetivo/.test(c));
   const iSpi = cab.findIndex(c => /spirit/.test(c) && /objetivo/.test(c));
   if (iVin < 0 || iSpi < 0) throw new Error('No se encontraron las columnas de objetivo');
+  const iCli = cab.findIndex(c => /client/.test(c) && /objetivo/.test(c));   // opcional
   const fila = f.find(x => { const n = norm(x[0]); return ALIAS[n] ? ALIAS[n] === codigo : esElMismo(x[0], nombre); });
   if (!fila) return null;
-  return { vinos: entero(fila[iVin]), spirits: entero(fila[iSpi]) };
+  return { vinos: entero(fila[iVin]), spirits: entero(fila[iSpi]), clientes: iCli >= 0 ? entero(fila[iCli]) : null };
 }
 
 exports.handler = async (event) => {
@@ -130,7 +135,7 @@ exports.handler = async (event) => {
 
     return json(200, {
       codigo, nombre, desde, hasta: hoyAR,
-      clientes: { activos, con_compra: conCompra.size },
+      clientes: { activos, con_compra: conCompra.size, objetivo: obj && !obj.error && obj.clientes != null ? obj.clientes : null },
       vinos: { vendido: Math.round(vinos), objetivo: obj && !obj.error ? obj.vinos : null },
       spirits: { vendido: Math.round(spirits), objetivo: obj && !obj.error ? obj.spirits : null },
       objetivo_error: obj && obj.error ? obj.error : (obj ? null : 'no figura en la planilla'),
