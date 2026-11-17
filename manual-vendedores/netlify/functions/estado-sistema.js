@@ -11,6 +11,8 @@
 //    · Bases: las 4 de Supabase contestan.
 //    · Planillas de Drive que se leen en vivo (Avance Ventas).
 //    · Ventas: que la última venta cargada no sea vieja.
+//    · Finanzas de Dirección: que el Efectivo y los Pagos de Administración no tengan
+//      más de 3 días (17/11/2026; los IDs en _finanzas-archivos.js).
 //
 //   Acceso: encabezado x-monitor-key = MONITOR_KEY (n8n), o sesión del Portal
 //   con rol desarrollo / diseno (panel).
@@ -176,6 +178,30 @@ exports.handler = async (event) => {
       } catch (e) { return { ...base, estado: 'falla', detalle: 'No se pudo revisar: ' + motivo(e) + '.' }; }
     })();
 
+    // ---------- finanzas de Dirección: los Excel de Administración al día (17/11/2026) ----------
+    // El Inicio de Fernando los lee en vivo; si Administración deja de subirlos (o los
+    // reemplaza por otro archivo y el link viejo queda en la papelera) se ve viejo sin
+    // avisar. La fecha sale del mismo lugar que muestra el panel. Más de 3 días = falla
+    // (un corte del viernes se ve el lunes).
+    const FIN = require('./_finanzas-archivos');
+    const FIN_CHEQ = [
+      { id: 'datos-fin-efectivo', nombre: 'Efectivo en caja (Excel de Administración)', archivo: FIN.efectivo, hoja: 'Mendoza', re: /Hasta:\s*(\d{1,2}\/\d{1,2}\/\d{4})/ },
+      { id: 'datos-fin-pagos', nombre: 'Pagos a proveedores (Excel de Administración)', archivo: FIN.pagos, hoja: 'Dashboard', re: /·\s*(\d{1,2}\/\d{1,2}\/\d{4})/ },
+    ];
+    const finanzas = FIN_CHEQ.map(async (p) => {
+      const base = { id: p.id, grupo: 'Datos al día', nombre: p.nombre };
+      try {
+        const r = await pedir('https://docs.google.com/spreadsheets/d/' + p.archivo + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(p.hoja), { redirect: 'follow' });
+        if (!r.ok) return { ...base, estado: 'falla', detalle: 'Drive responde con error ' + r.status + ' (¿cambió el archivo o los permisos?).' };
+        const m = p.re.exec((await r.text()).split('\n')[0] || '');
+        if (!m) return { ...base, estado: 'falla', detalle: 'No se encontró la fecha del corte en el archivo (¿cambió el formato?).' };
+        const [d, mes, a] = m[1].split('/').map(Number);
+        const dias = Math.floor((ahora - new Date(a, mes - 1, d, 12).getTime()) / 86400000);
+        if (dias > 3) return { ...base, estado: 'falla', detalle: 'El archivo tiene datos al ' + m[1] + ' (hace ' + dias + ' días). Administración tiene que subirlo actualizado.' };
+        return { ...base, estado: 'ok', detalle: 'Datos al ' + m[1] + '.' };
+      } catch (e) { return { ...base, estado: 'falla', detalle: 'No se pudo leer: ' + motivo(e) + '.' }; }
+    });
+
     // ---------- errores de funciones y pantallas (última hora) ----------
     // Las funciones que usa la gente anotan sus errores (_errores.js) y las pantallas
     // lo que se rompe en el navegador (reportar-error). Uno suelto puede ser casualidad:
@@ -212,7 +238,7 @@ exports.handler = async (event) => {
       return salida;
     })();
 
-    const [base, listaErrores] = await Promise.all([Promise.all([...tareas, ...sitios, ...bases, ...planillas, datos]), errores]);
+    const [base, listaErrores] = await Promise.all([Promise.all([...tareas, ...sitios, ...bases, ...planillas, datos, ...finanzas]), errores]);
     checks.push(...base, ...listaErrores);
 
     // Limpieza: corridas y errores de más de 30 días (no frena la respuesta si falla).

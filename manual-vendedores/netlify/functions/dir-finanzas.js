@@ -19,12 +19,9 @@
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const DIR_ROLES = ['direccion', 'admin', 'duenio'];
-const ARCHIVOS = {
-  efectivo: '1rp6xExmicN-BcsH8ld7_MkWnFCjBqiM2',
-  cheques:  '1-EN-FTusyvtCq5iQUGeALVi60u4TG5cA',
-  pagos:    '120rJc8l7ohOOb-S7_lbBbSJ2sXXkttY-',
-  ordenes:  '1IK14iuaOZ7htMo1pH-hBfksTbuWn9G-c',
-};
+// Los IDs están en _finanzas-archivos.js (17/11/2026: Efectivo y Cheques pasaron a la
+// carpeta "Disponibilidad"; se leían los viejos, que quedaron en la papelera al 23/10).
+const ARCHIVOS = require('./_finanzas-archivos');
 
 const json = (s, b) => ({ statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) });
 const url = (id, hoja) => 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(hoja);
