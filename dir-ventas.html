@@ -277,7 +277,8 @@
     let h='<div class="estado" style="margin:-6px 0 12px">'+esc(D.titulo)+': '+rango(a)+'</div>';
     if(!a.venta && !a.facturado){ $('cuerpo').innerHTML=h+'<div class="card vacio">Todavía no hay ventas cargadas en este período.</div>'; return; }
     // Sin el gráfico de venta y rentabilidad por día: Fernando no lo quiere en su panel (30/10/2026).
-    h+=kpis(a,an,y)+otros(a);
+    // "No se cuentan" (vendedores y tipos que quedan afuera): solo en la vista embebida; Fernando no lo ve (17/11/2026).
+    h+=kpis(a,an,y)+(EMB?otros(a):'');
     // Vendedores por equipo (30/10/2026): primero ON frente a OFF, después cada equipo.
     const vend=(a.por_vendedor||[]).filter(v=>v.venta!=null);
     if(!a.vendedor_completo && !vend.length){

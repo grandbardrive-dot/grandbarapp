@@ -568,8 +568,8 @@
         <td class="n"><span class="minibar" style="width:${w}px"></span><b>${dur(m)}</b></td><td class="n">${dur(p)}</td><td class="n">${nf(f[3].length)}</td>
         <td class="n">${f[4] == null ? '<span class="mut">—</span>' : f[4] ? `<span class="estado"><i style="background:var(--warn)"></i>${nf(f[4])} en espera</span>` : '<span class="estado ok"><i style="background:var(--good)"></i>al día</span>'}</td></tr>`;
     }).join('');
-    return `<section class="sec" id="s-flujos"><h2>Tiempos de los flujos</h2><p class="d">Cuánto tarda cada etapa. <b>Mediana</b> = el caso típico; <b>p90</b> = 9 de cada 10 casos tardan menos que eso (marca los que se demoran). Cuenta los casos que arrancaron en el período.</p>
-      <div class="tw"><table class="t"><thead><tr><th class="first">Etapa</th><th class="n">Mediana</th><th class="n">p90</th><th class="n">Casos</th><th class="n">Pendientes</th></tr></thead><tbody>${filas}</tbody></table></div></section>`;
+    return `<section class="sec" id="s-flujos"><h2>Tiempos de los flujos</h2><p class="d">Cuánto tarda cada etapa.${DIR ? '' : ' <b>Mediana</b> = el caso típico; <b>p90</b> = 9 de cada 10 casos tardan menos que eso (marca los que se demoran). Cuenta los casos que arrancaron en el período.'}</p>
+      <div class="tw"><table class="t"><thead><tr><th class="first">Etapa</th><th class="n">${DIR ? 'Lo habitual' : 'Mediana'}</th><th class="n">${DIR ? 'Los más lentos' : 'p90'}</th><th class="n">Casos</th><th class="n">Pendientes</th></tr></thead><tbody>${filas}</tbody></table></div></section>`;
   }
 
   // ── Vendedores ──
