@@ -120,6 +120,15 @@
     .tcard{transition:none}
   }
 
+  /* ===== Filtros de la lista Por vendedor ===== */
+  .gbfbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 12px}
+  .gbfsearch{flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:13px;background:#fff;color:var(--ink)}
+  .gbfsearch::placeholder{color:#b7ab95}
+  .gbfchips{display:flex;gap:3px;background:#f3ead2;border-radius:10px;padding:3px}
+  .gbfchips button{border:0;background:transparent;border-radius:8px;padding:5px 11px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+  .gbfchips button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.09)}
+  .gbfempty{color:var(--muted);font-size:13px;padding:6px 2px}
+
   /* Vendedores */
   .vrow{border:1px solid var(--line);border-radius:13px;margin-bottom:9px;overflow:hidden}
   .vhead{display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer;background:#fff}
@@ -575,7 +584,43 @@
       })(t0);
     });
   }
-  function renderView(){ _renderView(); try{ gbNumbers($('#cont')); }catch(e){} }
+  // Zona/canal por nombre de vendedor (roster fijo del equipo). Devuelve [zona, canal].
+  function stripA(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+  const ZC_TOKENS = [
+    ['san luis',['sl','may']],
+    ['mollar',['mza','on']],['laurito',['mza','on']],['cofano',['mza','on']],['garcia',['mza','on']],['heluani',['mza','on']],
+    ['sebastianelli',['mza','off']],['ojer',['mza','off']],['franso',['mza','off']],['gimenez',['mza','off']],['lopez',['mza','off']],
+    ['perez',['sl','sl']],['guigue',['sl','sl']],['fernandez',['sl','sl']],['juarez',['sl','sl']],
+    ['distribu',['mza','may']],['mayorista',['mza','may']],
+  ];
+  function vzName(name){ const n=stripA(name); for(const [t,zc] of ZC_TOKENS){ if(n.includes(t)) return zc; } return ['','']; }
+  function rowName(row){ const vn=row.querySelector('.vn'); if(!vn) return ''; const b=vn.querySelector('b'); if(b) return b.textContent; return (vn.childNodes[0]&&vn.childNodes[0].nodeValue||'').trim(); }
+  // Inserta una barra de filtros (buscar + Zona + Canal) sobre cada lista de vendedores.
+  function gbInstallFilters(root){
+    if(!root) return;
+    const groups=[];
+    root.querySelectorAll('.vlist').forEach(vl=>{ const rows=[...vl.querySelectorAll(':scope > .vr')]; if(rows.length>=4) groups.push({anchor:vl, rows}); });
+    const byParent=new Map();
+    root.querySelectorAll('.vrow').forEach(r=>{ const p=r.parentNode; if(!byParent.has(p)) byParent.set(p,[]); byParent.get(p).push(r); });
+    byParent.forEach(rows=>{ if(rows.length>=4) groups.push({anchor:rows[0], rows}); });
+    groups.forEach(g=>{
+      g.rows.forEach(r=>{ const nm=rowName(r); const zc=vzName(nm); r.dataset.gbnm=stripA(nm); r.dataset.gbz=zc[0]; r.dataset.gbc=zc[1]; });
+      const hasZC = g.rows.some(r=>r.dataset.gbz);
+      const bar=document.createElement('div'); bar.className='gbfbar';
+      bar.innerHTML='<input class="gbfsearch" placeholder="Buscar vendedor…">'
+        + (hasZC ? '<div class="gbfchips" data-k="z"><button data-v="" class="on">Zona</button><button data-v="mza">Mza</button><button data-v="sl">SL</button></div>'
+        +'<div class="gbfchips" data-k="c"><button data-v="" class="on">Canal</button><button data-v="on">ON</button><button data-v="off">OFF</button><button data-v="may">May</button></div>' : '');
+      g.anchor.parentNode.insertBefore(bar, g.anchor);
+      const st={q:'',z:'',c:''};
+      const apply=()=>{ let vis=0; g.rows.forEach(r=>{ const ok=(!st.q||(r.dataset.gbnm||'').includes(st.q))&&(!st.z||r.dataset.gbz===st.z)&&(!st.c||r.dataset.gbc===st.c); r.style.display=ok?'':'none'; if(ok)vis++; });
+        let em=bar.nextSibling&&bar.nextSibling.classList&&bar.nextSibling.classList.contains('gbfempty')?bar.nextSibling:null;
+        if(!vis){ if(!em){ em=document.createElement('div'); em.className='gbfempty'; em.textContent='Ningún vendedor con ese filtro.'; bar.parentNode.insertBefore(em,bar.nextSibling);} }
+        else if(em){ em.remove(); } };
+      bar.querySelector('.gbfsearch').addEventListener('input',e=>{ st.q=stripA(e.target.value); apply(); });
+      bar.querySelectorAll('.gbfchips').forEach(grp=>{ grp.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return; grp.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); st[grp.dataset.k]=b.dataset.v; apply(); }); });
+    });
+  }
+  function renderView(){ _renderView(); try{ gbNumbers($('#cont')); }catch(e){} try{ gbInstallFilters($('#cont')); }catch(e){} }
   function _renderView(){
     if(!DATA) return;
     const provs=DATA.proveedores||[]; const cont=$('#cont');
