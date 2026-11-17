@@ -30,6 +30,7 @@ const DIR_ROLES = ['direccion', 'admin', 'duenio'];
 
 const { traerTodo } = require('./_paginar');
 const { armarZona } = require('./_zona-cobranzas');
+const { filtroVigentes } = require('./_cuentas-vigentes');
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const num = v => { const n = Number(v); return isNaN(n) ? 0 : n; };
 const qvals = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
@@ -80,7 +81,9 @@ exports.handler = async (event) => {
     try {
       if (!cob) throw new Error('sin cobranzas');
       if (zona && !Z) throw new Error('no se pudo separar la sucursal');
-      let rows = await traerTodo(cob, 'cuentas_cubo?select=codigo,saldo,vencida,vendedor&order=codigo.asc');
+      // Solo las cuentas que CUBO sigue devolviendo, las ~2.400 activas (17/11/2026, _cuentas-vigentes.js).
+      const vig = await filtroVigentes(cob);
+      let rows = await traerTodo(cob, 'cuentas_cubo?select=codigo,saldo,vencida,vendedor&order=codigo.asc' + (vig ? '&' + vig : ''));
       rows = (Array.isArray(rows) ? rows : []).filter(c => !Z || Z.codOk(c.codigo));
       let saldo = 0, vencida = 0, clientesVencidos = 0;
       const porVend = {};

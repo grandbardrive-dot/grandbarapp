@@ -20,6 +20,7 @@
 // ============================================================
 
 const { zonaDe, armarZona } = require('./_zona-cobranzas');
+const { filtroVigentes } = require('./_cuentas-vigentes');
 
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
@@ -86,8 +87,10 @@ exports.handler = async (event) => {
     // creada, la lista viene vacía y queda el último inicio de sesión, como antes.
     const actividadPortal = async () => { try { return await leerTodo('rpc/portal_ultima_actividad?select=user_id,ultima&order=user_id'); } catch (_) { return []; } };
 
+    // Dirección (Fernando) ve solo las cuentas que CUBO sigue devolviendo, las activas (17/11/2026).
+    const VIG = ['admin', 'direccion', 'duenio'].includes(rol) ? await filtroVigentes(cob) : '';
     const [cuentas, fichas, comp, cobros, recl, recMsg, pla, env, borr, nc, wa, users, quit, vends, act] = await Promise.all([
-      leerTodo('cuentas_cubo?select=codigo,nombre,vendedor,equipo,rubro,saldo,vencida,telefono&order=codigo'),
+      leerTodo('cuentas_cubo?select=codigo,nombre,vendedor,equipo,rubro,saldo,vencida,telefono&order=codigo' + (VIG ? '&' + VIG : '')),
       leerTodo('clientes?select=id,codigo_cubo,whatsapp&order=id'),
       leerTodo('comprobantes?select=cliente_id,vendedor,estado,monto,created_at,procesado_at,revisado_at&order=created_at'),
       leerTodo('cobros_efectivo?select=codigo,cliente_id,vendedor,estado,monto,created_at,cobrado_at&order=created_at'),

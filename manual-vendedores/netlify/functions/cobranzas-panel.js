@@ -40,6 +40,7 @@
 
 const { zonaDe, armarZona } = require('./_zona-cobranzas');
 const compVend = require('./_comp-vendedor');
+const { filtroVigentes } = require('./_cuentas-vigentes');
 
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
@@ -113,6 +114,10 @@ exports.handler = async (event) => {
     // Zona del usuario: null = ve todo. Con zona, cada lectura se recorta y cada
     // escritura se controla (no se puede tocar un cliente de la otra zona).
     const Z = await armarZona(zonaDe(perfil), leerTodo);
+    // Dirección (Fernando) cuenta solo las cuentas que CUBO sigue devolviendo, las activas
+    // (17/11/2026, _cuentas-vigentes.js). El resto de los roles sigue viendo todas.
+    const VIG = SOLO_MIRA.includes(rol) ? await filtroVigentes(cob) : '';
+    const conVig = f => (VIG ? (f ? f + '&' : '') + VIG : f);
     const fuera = () => json(403, { error: 'Eso no es de ' + Z.nombre + '.' });
     // Planillas de rendición (26/10/2026): las de los vendedores de San Luis las procesa solo
     // Romina. Tesorería sin región (Mónica) ve las de Mendoza; Brenda, Dirección y Desarrollo,
@@ -379,7 +384,7 @@ exports.handler = async (event) => {
     if (que === 'resumen' && Z) {
       // Con zona no alcanza con contar en la base: hay que ver de quién es cada fila.
       const [cuentas, comps, recl, cobros, clientes] = await Promise.all([
-        contar('cuentas_cubo', Z.filtroEquipo, 'codigo'),
+        contar('cuentas_cubo', conVig(Z.filtroEquipo), 'codigo'),
         leerTodo('comprobantes?select=cliente_id&estado=eq.pendiente&tipo=eq.cliente&order=id'),
         leerTodo('reclamos?select=codigo,cliente_id&estado=eq.abierto&order=id'),
         leerTodo('cobros_efectivo?select=codigo,cliente_id&estado=eq.pendiente&order=id'),
@@ -396,7 +401,7 @@ exports.handler = async (event) => {
 
     if (que === 'resumen') {
       const [cuentas, compPend, reclAbiertos, cobrosPend, clientes] = await Promise.all([
-        contar('cuentas_cubo', '', 'codigo'),
+        contar('cuentas_cubo', conVig(''), 'codigo'),
         contar('comprobantes', 'estado=eq.pendiente&tipo=eq.cliente'),
         contar('reclamos', 'estado=eq.abierto'),
         contar('cobros_efectivo', 'estado=eq.pendiente'),
@@ -417,7 +422,7 @@ exports.handler = async (event) => {
       const filtro = q ? '&or=(codigo.ilike.' + lk + ',nombre.ilike.' + lk + ')' : '';
       const soloDeuda = p.deuda === '1' ? '&vencida=gt.0' : '';
       const deZona = Z ? '&' + Z.filtroEquipo : '';
-      const r = await cob('cuentas_cubo?select=*' + filtro + soloDeuda + deZona + '&order=vencida.desc.nullslast,saldo.desc.nullslast',
+      const r = await cob('cuentas_cubo?select=*' + filtro + soloDeuda + deZona + (VIG ? '&' + VIG : '') + '&order=vencida.desc.nullslast,saldo.desc.nullslast',
         { headers: { Prefer: 'count=exact', Range: desde + '-' + (desde + POR_PAGINA - 1) } });
       const filas = r.ok ? await r.json() : [];
       const total = Number((r.headers.get('content-range') || '*/0').split('/')[1]) || 0;
@@ -672,7 +677,7 @@ exports.handler = async (event) => {
       // Se recorre la cartera para sacar los totales: la función stats_cuentas_cubo
       // del otro sistema exige ser admin DE ESE sistema, y acá entramos con la llave
       // de servicio, así que se calcula del lado nuestro.
-      const cuentas = (await leerTodo('cuentas_cubo?select=codigo,saldo,vencida,equipo,vendedor&order=codigo'))
+      const cuentas = (await leerTodo('cuentas_cubo?select=codigo,saldo,vencida,equipo,vendedor&order=codigo' + (VIG ? '&' + VIG : '')))
         .filter(c => !Z || Z.codOk(c.codigo));
       const num = v => Number(v || 0);
       const cartera = cuentas.reduce((a, c) => a + num(c.saldo), 0);
