@@ -1,7 +1,8 @@
 // ============================================================
 //  GrandBar Hub · Function · reporte-diario  (18/11/2026)
-//  "Reporte diario" del portal de vendedores (reporte-diario.html), como la planilla
-//  que armaba Administración: todos los vendedores, por equipo, en el mes en curso.
+//  "Reporte diario" (reporte-diario.html), como la planilla que armaba Administración:
+//  todos los vendedores, por equipo, en el mes en curso. Está en el panel de supervisores
+//  (Mi equipo) y en el de Fernando (dir-reporte.html, embebido).
 //
 //   · Equipos y orden = "Presupuesto Ventas.xlsx" (las filas en MAYÚSCULAS son los
 //     subtotales de cada equipo). Solo entran los vendedores de esa planilla.
@@ -12,8 +13,9 @@
 //   · Pesos = lo mismo que "Ventas acumuladas" del Inicio (ventas_vendedor_mes).
 //   · Objetivos: vinos y spirits de Presupuesto Ventas; clientes de "Objetivo CCC.xlsx".
 //   · Clientes activos = cuentas_cubo vigentes (base de Cobranzas) por vendedor.
-//  Quién lo ve: vendedores, tienda, supervisores, Dirección, Administración, tesorería,
-//  Desarrollo y Diseño. Todos ven el reporte completo (pedido del usuario).
+//  Quién lo ve (18/11/2026, pedido del usuario: "solo en panel de supervisores y Fernando"):
+//  supervisores y Dirección, más Desarrollo y Diseño, que mantienen el sistema. Los
+//  vendedores y la tienda no: reciben 403.
 //  El subtotal "Distribución" deja afuera a Mayorista Mendoza (014) y Mayorista San Luis
 //  (008), como la planilla de Administración: lo arma la pantalla con `distribucion`.
 //  Env: COBRANZAS_SERVICE_ROLE (sin ella, los activos quedan en blanco).
@@ -28,7 +30,7 @@ const { filtroVigentes } = require('./_cuentas-vigentes');
 const OBJ = require('./_objetivos-vendedores');
 const { cod3, norm } = OBJ;
 
-const PUEDEN = ['ventas', 'mayorista', 'admin', 'direccion', 'duenio', 'desarrollo', 'diseno', 'tesoreria', 'administracion'];
+const PUEDEN = ['admin', 'direccion', 'duenio', 'desarrollo', 'diseno'];   // + es_supervisor
 const FUERA_DE_DISTRIBUCION = ['014', '008'];   // Mayorista Mendoza y Mayorista San Luis
 const NOMBRE_EQUIPO = { 'EQUIPO SL': 'EQUIPO SAN LUIS', 'MAYORISTA MDZ': 'MAYORISTA MENDOZA', 'MAYORISTA SL': 'MAYORISTA SAN LUIS' };
 
@@ -44,7 +46,7 @@ exports.handler = async (event) => {
     const pRes = await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=rol,codigo_vendedor,es_supervisor', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
     const perfil = ((await pRes.json()) || [])[0] || {};
     const rol = String(perfil.rol || '').toLowerCase();
-    if (!perfil.es_supervisor && !PUEDEN.includes(rol)) return json(403, { error: 'El reporte diario es para vendedores, supervisores y Dirección.' });
+    if (!perfil.es_supervisor && !PUEDEN.includes(rol)) return json(403, { error: 'El reporte diario es para supervisores y Dirección.' });
 
     // Mes en curso, en hora de Argentina.
     const hoyAR = new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10);

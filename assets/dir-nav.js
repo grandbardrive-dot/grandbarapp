@@ -8,6 +8,8 @@
     {h:'direccion.html',l:'Inicio',i:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>'},
     // Ventas y margen desde CUBO (14/10/2026), se actualiza cada 20 minutos.
     {h:'dir-ventas.html',l:'Ventas',i:'<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>'},
+    // Reporte diario (18/11/2026): unidades y clientes con compra de cada vendedor, por equipo.
+    {h:'dir-reporte.html',l:'Reporte diario',i:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M3 14.5h18"/>'},
     {h:'dir-cobranzas.html',l:'Cobranzas',i:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'},
     {h:'reportes.html',l:'Reportes',i:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>'},
     {h:'dir-agenda.html',l:'Agenda',i:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>'}
