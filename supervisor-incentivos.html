@@ -332,21 +332,21 @@
       const cls = clasePct(v.pct);
       const clientes = per.clientes.filter(c=>c.vendedor===v.codigo).map(c=>{
         const chips = marcasList.map(m=>`<span class="chip ${c.marcas[m.k]?'si':'no'}">${esc(m.n)}</span>`).join('');
-        const full = c.faltan.length===0;
+        const full = c.tiene>=4;
         return `<div class="cli"><div class="cn">${esc(c.nombre)}<small>#${esc(c.codigo)}${full?'':' · faltan '+c.faltan.length}</small></div>
           ${full?'<span class="cfull">✓ Completo</span>':`<div class="chips">${chips}</div>`}</div>`;
       }).join('');
       return `<div class="vrow"><div class="vhead" onclick="this.parentNode.classList.toggle('open')">
           <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
-          <div class="vn">${esc(v.nombre)}<div class="vmeta">${nClientes(v.clientes)} compran Campari · ${v.completos} con las 5</div></div>
+          <div class="vn">${esc(v.nombre)}<div class="vmeta">${nClientes(v.clientes)} compran Campari · ${v.completos} con 4+ de 5</div></div>
           <div class="vmini"><div class="track"><div class="fill ${cls}" style="width:${v.pct}%"></div></div></div>
           <div class="vpct">${v.pct}%</div></div>
         <div class="vbody">${clientes}</div></div>`;
     }).join('');
     return `<div class="hero">${ring(per.pct)}<div class="heroR">
           <div class="stat"><span class="n">${per.universo}</span><span class="l">clientes que compran Campari</span></div>
-          <div class="stat"><span class="n">${per.completos}</span><span class="l">con las 5 marcas</span></div>
-          <div class="obj">🎯 <b>Cobertura de las 5 marcas.</b> ${per.casillerosSi} de ${per.casillerosTot} colocaciones hechas.</div>
+          <div class="stat"><span class="n">${per.completos}</span><span class="l">con 4+ de las 5 marcas</span></div>
+          <div class="obj">🎯 <b>Objetivo Campari: 4 de las 5 marcas por cliente.</b> ${per.casillerosSi} de ${per.casillerosTot} colocaciones hechas.</div>
       </div></div>
       <div class="secT">Por marca</div>${marcas}
       <div class="secT">Por vendedor <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)">· tocá para ver sus clientes</span></div>${vends}`;

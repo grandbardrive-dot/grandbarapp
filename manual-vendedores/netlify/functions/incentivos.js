@@ -90,9 +90,9 @@ async function plan5T(codigos, nombreDeCod, alcance) {
     const universo = filas.length;
     const porMarca = MARCAS_5T.map(([k, n]) => { const si = filas.filter(f => f.marcas[k]).length; return { k, n, si, tot: universo, pct: universo ? Math.round(100 * si / universo) : 0 }; });
     const casillerosSi = porMarca.reduce((a, m) => a + m.si, 0), casillerosTot = universo * MARCAS_5T.length;
-    const completos = filas.filter(f => f.faltan.length === 0).length;
+    const completos = filas.filter(f => f.tiene >= 4).length;
     const vmap = {};
-    filas.forEach(f => { const v = vmap[f.vendedor] || (vmap[f.vendedor] = { codigo: f.vendedor, nombre: f.vendedor_nombre, clientes: 0, si: 0, completos: 0 }); v.clientes++; v.si += f.tiene; if (f.faltan.length === 0) v.completos++; });
+    filas.forEach(f => { const v = vmap[f.vendedor] || (vmap[f.vendedor] = { codigo: f.vendedor, nombre: f.vendedor_nombre, clientes: 0, si: 0, completos: 0 }); v.clientes++; v.si += f.tiene; if (f.tiene >= 4) v.completos++; });
     const porVendedor = Object.values(vmap).map(v => ({ ...v, tot: v.clientes * MARCAS_5T.length, pct: v.clientes ? Math.round(100 * v.si / (v.clientes * MARCAS_5T.length)) : 0 })).sort((a, b) => b.pct - a.pct);
     return { universo, completos, casillerosSi, casillerosTot, pct: casillerosTot ? Math.round(100 * casillerosSi / casillerosTot) : 0, porMarca, porVendedor, clientes: filas };
   }
@@ -100,7 +100,7 @@ async function plan5T(codigos, nombreDeCod, alcance) {
   const pMes = armar(f => f >= mesDesde);
   return Object.assign({
     id: 'campari5t', nombre: 'Convivencia',
-    detalle: 'Convivencia de las 5 marcas Campari (Aperol, Campari, Cynar, Skyy Inf, Others) por cliente: cuántas de las 5 tiene cada uno. Filtrá por últimos 3 meses o mes actual.',
+    detalle: 'Convivencia Campari: el objetivo es que cada cliente tenga al menos 4 de las 5 marcas (Aperol, Campari, Cynar, Skyy Inf, Others). Filtrá por últimos 3 meses o mes actual.',
     marcas: MARCAS_5T.map(([k, n]) => ({ k, n })),
     periodos: { '3m': p3, 'mes': pMes },
     avanceTotal: p3.casillerosSi, targetTotal: p3.casillerosTot,
