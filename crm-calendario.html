@@ -127,6 +127,12 @@
   .met.ok .mn{color:#2e8b63}.met.ok .mp{color:#2e8b63}
   .rcbar{height:8px;border-radius:6px;background:#eef1f3;overflow:hidden;margin-top:8px}
   .rcbar>i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#6fb79a,#2e8b63)}
+  .repsolo{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-weight:700;color:var(--ink);cursor:pointer}
+  .repsolo input{accent-color:var(--gold-d)}
+  .rcenv{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .rcenv label{display:inline-flex;align-items:center;gap:7px;font-weight:800;color:var(--ink);cursor:pointer}
+  .rcenv input[type=checkbox]{width:16px;height:16px;accent-color:#2e8b63}
+  .rcenv input[type=date]{border:1px solid var(--line);border-radius:8px;padding:4px 8px;font:inherit;font-size:12px;color:var(--ink)}
   .rcaprox{font-size:11px;color:var(--muted);margin-top:7px}
   .rcaprox input{border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:11.5px;width:140px;color:var(--ink)}
   .rcaprox button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 9px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
@@ -171,7 +177,9 @@
     <div id="vistaRep" style="display:none">
       <div class="repbar">
         <h1>Reportes de conversión</h1>
-        <div class="repwin">Ventana:
+        <div class="repwin">
+          <label class="repsolo"><input type="checkbox" id="repSolo" checked onchange="cargarReporte()"> Solo enviadas</label>
+          Ventana:
           <select id="repDias" onchange="cargarReporte()">
             <option value="15">15 días</option>
             <option value="30" selected>30 días</option>
@@ -348,14 +356,19 @@
     const cont=$('repList');
     if(!ACC || !ACC.length){ cont.innerHTML='<div class="repempty">Todavía no hay acciones cargadas en el calendario.</div>'; return; }
     const dias=parseInt($('repDias').value,10)||30;
+    const solo=$('repSolo') && $('repSolo').checked;
+    let acts=[...ACC];
+    if(solo) acts=acts.filter(a=>a.enviada);
+    acts.sort((a,b)=>String(b.enviada_at||b.fecha||'').localeCompare(String(a.enviada_at||a.fecha||'')));
+    if(!acts.length){ cont.innerHTML='<div class="repempty">No hay acciones marcadas como <b>enviadas</b>. Marcá las que enviaste con el casillero de cada tarjeta, o destildá «Solo enviadas» para verlas todas.</div>'; return; }
     cont.innerHTML='<div class="repempty">Calculando la conversión de cada envío… ⏳</div>';
     const m=manClient();
-    const acts=[...ACC].sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')));
     try{
       const results=await Promise.all(acts.map(async a=>{
         const rubros=rubrosDe(a).map(RUBRO_TIPO);
         const toks=tokensOf(a);
-        const { data, error } = await m.rpc('crm_reporte',{ p_rubros:rubros, p_desde:a.fecha, p_dias:dias, p_tokens:toks });
+        const desde=a.enviada_at||a.fecha;
+        const { data, error } = await m.rpc('crm_reporte',{ p_rubros:rubros, p_desde:desde, p_dias:dias, p_tokens:toks });
         return { a, dias, toks, data: error?null:data, error };
       }));
       REP_CONV={};
@@ -383,6 +396,10 @@
           <div class="rcrubros">${rubs}</div>
         </div>
       </div>
+      <div class="rcenv">
+        <label><input type="checkbox" ${a.enviada?'checked':''} onchange="setEnviada('${esc(a.id)}',this.checked)"> Enviada por Zenvia</label>
+        <span class="muted">el</span> <input type="date" value="${esc(a.enviada_at||a.fecha||'')}" onchange="setEnviadaFecha('${esc(a.id)}',this.value)">
+      </div>
       <div class="rcmetrics">
         <div class="met hero"><div class="mn">${alc}</div><div class="ml">clientes que recibieron la acción</div></div>
         ${prodMet}
@@ -402,6 +419,21 @@
     } else el.style.display='none';
   }
   window.toggleConv=toggleConv;
+
+  async function setEnviada(id, val){
+    const a=ACC.find(x=>String(x.id)===String(id)); if(!a) return;
+    const at = val ? (a.enviada_at || a.fecha) : a.enviada_at;
+    a.enviada=val; a.enviada_at=at;
+    try{ await sb.from('crm_acciones').update({ enviada:val, enviada_at:at }).eq('id',id); }catch(e){ alert('No se pudo guardar: '+(e.message||e)); }
+    cargarReporte();
+  }
+  async function setEnviadaFecha(id, val){
+    const a=ACC.find(x=>String(x.id)===String(id)); if(!a) return;
+    a.enviada_at=val||null;
+    try{ await sb.from('crm_acciones').update({ enviada_at:val||null }).eq('id',id); }catch(e){ alert('No se pudo guardar: '+(e.message||e)); }
+    cargarReporte();
+  }
+  window.setEnviada=setEnviada; window.setEnviadaFecha=setEnviadaFecha;
 
   async function recalcAccion(id){
     const a=ACC.find(x=>String(x.id)===String(id)); if(!a) return;
