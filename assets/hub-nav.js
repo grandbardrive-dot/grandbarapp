@@ -7,6 +7,8 @@
 (function () {
   const ITEMS = [
     { t:'Inicio',                 h:'inicio.html',            m:'Inicio',   svg:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>' },
+    // Reporte diario (18/11/2026): la planilla diaria de Administración, todos los vendedores por equipo.
+    { t:'Reporte diario',         h:'reporte-diario.html',                  svg:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M3 14.5h18"/>' },
     { t:'Clientes',               h:'clientes-hub.html',      m:'Clientes', svg:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 3.5a3 3 0 0 1 0 6"/>' },
     { t:'Leads',                  h:'leads.html',                           svg:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>' },
     { t:'Planificador de ruta IA',h:'planificador-ia.html',   m:'Ruta IA',  svg:'<path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.3"/>' },

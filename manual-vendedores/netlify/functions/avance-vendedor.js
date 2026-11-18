@@ -9,9 +9,12 @@
 //                   (_cuentas-vigentes.js). Las dadas de baja no cuentan.
 //   · Con compra  = clientes distintos en las facturas del mes en curso con su código
 //                   de vendedor (ventas_cliente, que baja de CUBO cada 20 minutos).
+//                   Desde el 18/11/2026 cuenta TODO cliente que aparece en sus ventas del mes,
+//                   aunque una nota de crédito lo deje en negativo, como la planilla de
+//                   Administración y el Reporte diario (antes pedía unidades o importe > 0).
 //   · Vinos / Spirits vendido = botellas del mes (rubro 01 = vinos, 02 = espirituosas,
 //                   los dos primeros dígitos del artículo), con las notas de crédito restando.
-//   · Objetivo    = "Presupuesto Ventas.xlsx" de la carpeta SHARE de Drive (Administración),
+//   · Objetivo    = (_objetivos-vendedores.js) "Presupuesto Ventas.xlsx" de la carpeta SHARE de Drive (Administración),
 //                   columnas "VINOS Objetivo" y "SPIRITS Objetivo", fila con el nombre del
 //                   vendedor. El archivo no dice el mes: se toma como el objetivo del mes en
 //                   curso. Si Administración sube otro archivo (otro link), cambiar PRESUPUESTO.
@@ -26,78 +29,25 @@ const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_KEY  = process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
-const PRESUPUESTO = '10aWYQdhuoZLM9lrhTJdkTwQcia-dClez';   // SHARE / Presupuesto Ventas.xlsx
-const OBJ_CLIENTES = '1Ej_ckOWLEEGVZJKi3TaDItrOkzXOL6YU';  // SHARE / Objetivo CCC.xlsx (clientes con compra)
 const { traerTodo } = require('./_paginar.js');
 const { filtroVigentes } = require('./_cuentas-vigentes');
+// Lectura de las planillas de Administración, compartida con reporte-diario (18/11/2026).
+const OBJ = require('./_objetivos-vendedores');
+const { cod3, esElMismo } = OBJ;
 
 const json = (s, b) => ({ statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) });
-const norm = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
-const cod3 = c => { const s = String(c == null ? '' : c).trim(); return /^\d+$/.test(s) ? s.padStart(3, '0') : s; };
-const entero = s => { const t = String(s == null ? '' : s).replace(/[^\d-]/g, ''); const n = parseInt(t, 10); return isNaN(n) ? null : n; };
-
-// Filas de la planilla que no son personas: se buscan por código, no por nombre.
-const ALIAS = { 'mayorista mza': '014', 'mayor distribucion': '031', 'mayorista san luis': '008', 'mayorista': '032' };
-
-function lev(a, b) {
-  const m = a.length, n = b.length; if (!m || !n) return m || n;
-  let prev = Array.from({ length: n + 1 }, (_, j) => j);
-  for (let i = 1; i <= m; i++) {
-    const cur = [i];
-    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-    prev = cur;
-  }
-  return prev[n];
-}
-// ¿El nombre de la planilla es este vendedor? "Carolina Hiluani" = "Carolina Heluani",
-// "Angela Laurito" = "Ángeles Laurito", "Jonathan Guique" = "Jonathan Guigue":
-// mismo comienzo de nombre y apellido con 2 letras de diferencia como mucho.
-function esElMismo(planilla, vendedor) {
-  const a = norm(planilla).split(' '), b = norm(vendedor).split(' ');
-  if (!a[0] || !b[0]) return false;
-  if (norm(planilla) === norm(vendedor)) return true;
-  const apA = a[a.length - 1], apB = b[b.length - 1];
-  return a[0].slice(0, 3) === b[0].slice(0, 3) && apA.length > 3 && lev(apA, apB) <= 2;
-}
-
-function csv(t) {
-  return String(t || '').replace(/\r/g, '').split('\n').filter(l => l.trim()).map(l => {
-    const out = []; let cur = '', q = false;
-    for (let i = 0; i < l.length; i++) {
-      const ch = l[i];
-      if (ch === '"') { if (q && l[i + 1] === '"') { cur += '"'; i++; } else q = !q; }
-      else if (ch === ',' && !q) { out.push(cur); cur = ''; } else cur += ch;
-    }
-    out.push(cur); return out;
-  });
-}
 
 // Objetivo del vendedor en la planilla de Administración (null si no figura o no se pudo leer).
 async function objetivos(codigo, nombre) {
-  const r = await fetch('https://docs.google.com/spreadsheets/d/' + PRESUPUESTO + '/gviz/tq?tqx=out:csv&sheet=Presupuesto', { redirect: 'follow' });
-  if (!r.ok) throw new Error('Drive respondió ' + r.status);
-  const f = csv(await r.text());
-  const cab = (f.shift() || []).map(norm);
-  const iVin = cab.findIndex(c => /vino/.test(c) && /objetivo/.test(c));
-  const iSpi = cab.findIndex(c => /spirit/.test(c) && /objetivo/.test(c));
-  if (iVin < 0 || iSpi < 0) throw new Error('No se encontraron las columnas de objetivo');
-  const fila = f.find(x => { const n = norm(x[0]); return ALIAS[n] ? ALIAS[n] === codigo : esElMismo(x[0], nombre); });
-  if (!fila) return null;
-  return { vinos: entero(fila[iVin]), spirits: entero(fila[iSpi]) };
+  const fila = (await OBJ.leerPresupuesto()).find(x => !x.grupo && OBJ.filaEs(x, codigo, nombre));
+  return fila ? { vinos: fila.vinos, spirits: fila.spirits } : null;
 }
 
 // Objetivo de clientes con compra del mes (Objetivo CCC.xlsx). null si no figura o no se pudo leer;
 // 0 si Administración le puso 0 (no tiene objetivo este mes).
 async function objetivoClientes(codigo) {
-  const r = await fetch('https://docs.google.com/spreadsheets/d/' + OBJ_CLIENTES + '/gviz/tq?tqx=out:csv', { redirect: 'follow' });
-  if (!r.ok) throw new Error('Drive respondió ' + r.status);
-  const f = csv(await r.text());
-  const cab = (f.shift() || []).map(norm);
-  const iCod = cab.findIndex(c => /vendedor/.test(c) && /(nro|num|cod)/.test(c));
-  const iObj = cab.findIndex(c => /objetivo/.test(c));
-  if (iCod < 0 || iObj < 0) throw new Error('No se encontraron las columnas de Objetivo CCC');
-  const fila = f.find(x => cod3(x[iCod]) === codigo);
-  return fila ? entero(fila[iObj]) : null;
+  const m = await OBJ.leerObjetivoCCC();
+  return codigo in m ? m[codigo] : null;
 }
 
 exports.handler = async (event) => {
@@ -142,8 +92,8 @@ exports.handler = async (event) => {
     const conCompra = new Set();
     let vinos = 0, spirits = 0;
     filas.forEach(v => {
-      const u = Number(v.unidades) || 0, imp = Number(v.importe) || 0;
-      if (u > 0 || imp > 0) conCompra.add(String(v.cliente_codigo));
+      const u = Number(v.unidades) || 0;
+      conCompra.add(String(v.cliente_codigo));   // todo cliente de sus ventas del mes (18/11/2026)
       const rubro = String(v.sku || '').slice(0, 2);
       if (rubro === '01') vinos += u; else if (rubro === '02') spirits += u;
     });
