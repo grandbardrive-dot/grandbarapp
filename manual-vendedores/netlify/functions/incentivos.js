@@ -398,12 +398,15 @@ exports.handler = async (event) => {
         const metaTotal = objetivos.reduce((a, o) => a + o.meta, 0);
         const logradoTotal = objetivos.reduce((a, o) => a + o.logrado, 0);
         const vendedores = (d.vendedores || []).slice().sort((a, b) => num(b.logrado_total) - num(a.logrado_total));
-        proveedores.push({ id: 'pernod', nombre: 'Pernod Ricard', color: '#1F447F', planes: [{
+        const pernodPlanes = [{
           id: 'pr_q4', nombre: d.nombre || 'Q4 2026', detalle: d.detalle || '',
           corte: d.corte || snap.corte,
           objetivos, vendedores,
           targetTotal: metaTotal, avanceTotal: logradoTotal, pct: pct(logradoTotal, metaTotal),
-        }] });
+        }];
+        // Plan 2 de Pernod: Malibu + Beefeater Familia ON Trade (objetivo POR VENDEDOR vs avance automático)
+        try { const ot = await ontrade(hub, perfil); if (ot && ot.planes) pernodPlanes.push(...ot.planes); } catch (e) {}
+        proveedores.push({ id: 'pernod', nombre: 'Pernod Ricard', color: '#1F447F', planes: pernodPlanes });
       }
     } catch (e) {}
 
@@ -412,9 +415,6 @@ exports.handler = async (event) => {
 
     // ---- Séptima · clientes con compra vs objetivo, con premio (snapshot diario) ----
     try { const sp = await septima(hub, perfil); if (sp) proveedores.push(sp); } catch (e) {}
-
-    // ---- Malibu + Beefeater Familia · ON Trade (objetivo por vendedor) ----
-    try { const ot = await ontrade(hub, perfil); if (ot) proveedores.push(ot); } catch (e) {}
 
     // ---- Chandon · Plan mes corriente (surtido + clientes con compra por grupo) ----
     // Objetivo GLOBAL de la empresa, Mendoza + San Luis juntos (NO se separa por vendedor).
