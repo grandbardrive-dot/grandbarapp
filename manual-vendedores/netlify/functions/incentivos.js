@@ -28,6 +28,11 @@ const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 // que el cliente la haya COMPRADO en el período (se calcula de las ventas con la RPC
 // cobertura_5t del Manual; ya NO se lee el Google Sheet).
 const MARCAS_5T = [['aperol', 'Aperol'], ['campari', 'Campari'], ['cynar', 'Cynar'], ['skyy', 'Skyy Inf'], ['others', 'Others']];
+// Objetivo = clientes a los que CADA vendedor puede venderle Campari (su universo real).
+// OFF Mendoza SOLO puede venderle a VINOTECAS (no autoservicios ni tiendas de bebidas), así que
+// su universo es fijo (dato de Comercial, nov-2026): 015 Ojer, 027 Gimenez, 024 Franso, 047 López, 011 Sebastianelli.
+// El resto (ON Mendoza + todo San Luis) le puede vender a TODOS sus clientes → objetivo = sus clientes activos.
+const CAMPARI_OBJETIVO_OFF = { '015': 52, '027': 68, '024': 59, '047': 25, '011': 65 };
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const num = v => { const n = Number(v); return isNaN(n) ? 0 : n; };
@@ -68,6 +73,9 @@ async function plan5T(codigos, nombreDeCod, alcance) {
   const man = (p, o) => fetch(MAN_URL + '/rest/v1/' + p, Object.assign({}, o, { headers: Object.assign({ apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON, 'Content-Type': 'application/json' }, (o && o.headers) || {}) }));
   const clientes = await clientesDelEquipo(codigos);
   if (!clientes.size) return null;
+  // Objetivo por vendedor: OFF Mza = universo fijo (vinotecas); el resto = sus clientes activos.
+  const activosPorVend = {}; for (const [, info] of clientes) { activosPorVend[info.vcod] = (activosPorVend[info.vcod] || 0) + 1; }
+  const objetivoDe = (vcod) => (CAMPARI_OBJETIVO_OFF[String(vcod)] != null) ? CAMPARI_OBJETIVO_OFF[String(vcod)] : (activosPorVend[String(vcod)] || 0);
   const codes = [...clientes.keys()];
   let rows = [];
   try { rows = await (await man('rpc/cobertura_5t', { method: 'POST', body: JSON.stringify({ codes }) })).json(); } catch (e) {}
@@ -92,9 +100,13 @@ async function plan5T(codigos, nombreDeCod, alcance) {
     const casillerosSi = porMarca.reduce((a, m) => a + m.si, 0), casillerosTot = universo * MARCAS_5T.length;
     const completos = filas.filter(f => f.tiene >= 4).length;
     const vmap = {};
-    filas.forEach(f => { const v = vmap[f.vendedor] || (vmap[f.vendedor] = { codigo: f.vendedor, nombre: f.vendedor_nombre, clientes: 0, si: 0, completos: 0 }); v.clientes++; v.si += f.tiene; if (f.tiene >= 4) v.completos++; });
-    const porVendedor = Object.values(vmap).map(v => ({ ...v, tot: v.clientes * MARCAS_5T.length, pct: v.clientes ? Math.round(100 * v.si / (v.clientes * MARCAS_5T.length)) : 0 })).sort((a, b) => b.pct - a.pct);
-    return { universo, completos, casillerosSi, casillerosTot, pct: casillerosTot ? Math.round(100 * casillerosSi / casillerosTot) : 0, porMarca, porVendedor, clientes: filas };
+    // Siembro todos los vendedores con su objetivo (aparecen aunque tengan 0 avance).
+    Object.keys(activosPorVend).forEach(vcod => { vmap[vcod] = { codigo: vcod, nombre: nombreDeCod[vcod] || vcod, clientes: 0, completos: 0, objetivo: objetivoDe(vcod) }; });
+    filas.forEach(f => { const v = vmap[f.vendedor] || (vmap[f.vendedor] = { codigo: f.vendedor, nombre: f.vendedor_nombre, clientes: 0, completos: 0, objetivo: objetivoDe(f.vendedor) }); v.clientes++; if (f.tiene >= 4) v.completos++; });
+    // Cumplimiento (Opción A): clientes con 4+ de 5 ÷ clientes a los que puede venderle Campari.
+    const porVendedor = Object.values(vmap).map(v => ({ ...v, pct: pct(v.completos, v.objetivo) })).sort((a, b) => b.pct - a.pct);
+    const objetivoTotal = Object.values(vmap).reduce((a, v) => a + (v.objetivo || 0), 0);
+    return { universo, completos, objetivoTotal, pct: pct(completos, objetivoTotal), casillerosSi, casillerosTot, porMarca, porVendedor, clientes: filas };
   }
   const p3 = armar(() => true);
   const pMes = armar(f => f >= mesDesde);
@@ -103,7 +115,7 @@ async function plan5T(codigos, nombreDeCod, alcance) {
     detalle: 'Convivencia Campari: el objetivo es que cada cliente tenga al menos 4 de las 5 marcas (Aperol, Campari, Cynar, Skyy Inf, Others). Filtrá por últimos 3 meses o mes actual.',
     marcas: MARCAS_5T.map(([k, n]) => ({ k, n })),
     periodos: { '3m': p3, 'mes': pMes },
-    avanceTotal: p3.casillerosSi, targetTotal: p3.casillerosTot,
+    avanceTotal: p3.completos, targetTotal: p3.objetivoTotal,
     actualizado: new Date().toISOString(),
   }, p3);
 }
