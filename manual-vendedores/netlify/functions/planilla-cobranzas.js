@@ -160,7 +160,8 @@ exports.handler = async (event) => {
         const filas = r.ok ? await r.json() : [];
         if (!filas.length) return json(400, { error: 'No hay filas cargadas en esta planilla.' });
         const totales = sumTotales(filas);
-        const env = { vendedor: codigo, vendedor_nombre: perfil.nombre || null, fecha_rendicion: fecha, enviada_at: new Date().toISOString(), filas: filas.length, totales };
+        // Si tesorería la había anulado y el vendedor la vuelve a enviar con filas, se reactiva.
+        const env = { vendedor: codigo, vendedor_nombre: perfil.nombre || null, fecha_rendicion: fecha, enviada_at: new Date().toISOString(), filas: filas.length, totales, anulada_at: null, anulada_por: null, anulada_motivo: null };
         const er = await cob('planilla_envios?on_conflict=vendedor,fecha_rendicion', { method: 'POST', headers: { Prefer: 'return=representation,resolution=merge-duplicates' }, body: JSON.stringify(env) });
         const out = await er.json();
         if (!er.ok) return json(400, { error: (out && out.message) || 'No se pudo enviar.' });

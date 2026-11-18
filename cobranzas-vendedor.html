@@ -438,11 +438,13 @@
       box.innerHTML = `<div class="empty"><div class="big">📭</div>${q||vend ? "No hay planillas con ese filtro." : "Todavía no enviaste ninguna planilla. Cuando envíes una desde la pestaña Planilla, aparece acá."}</div>`;
       return;
     }
-    const completa = e => (e.filas > 0 && (e.procesadas||0) >= e.filas);
+    // Anulada por tesorería (repetida o por error): no queda pendiente.
+    const completa = e => !!e.anulada_at || (e.filas > 0 && (e.procesadas||0) >= e.filas);
     const card = e => {
       const t = e.totales || {}, ok = completa(e);
       const tot = Object.keys(HI_LBL).filter(k => Number(t[k]) > 0).map(k => `${HI_LBL[k]}: <b>${fmtMoney(t[k])}</b>`).join(" · ");
-      const chip = ok ? `<span class="hi-chip ok">✓ Procesada</span>` : `<span class="hi-chip pend">⏳ ${e.procesadas||0}/${e.filas} procesadas</span>`;
+      const chip = e.anulada_at ? `<span class="hi-chip" style="background:#eee;color:#666">🚫 Anulada${e.anulada_motivo ? " · " + esc(e.anulada_motivo) : ""}</span>`
+        : ok ? `<span class="hi-chip ok">✓ Procesada</span>` : `<span class="hi-chip pend">⏳ ${e.procesadas||0}/${e.filas} procesadas</span>`;
       const nro = e.numero ? `<span class="hi-chip nro">N° ${esc(e.numero)}</span>` : "";
       const titulo = conNombre ? esc(e.vendedor_nombre || ("Vendedor " + e.vendedor)) : "Planilla del " + fDia(e.fecha_rendicion);
       return `<article class="hi-card ${ok?"ok":"pend"}" onclick="verHistorialDet('${esc(String(e.vendedor))}','${esc(String(e.fecha_rendicion))}')">

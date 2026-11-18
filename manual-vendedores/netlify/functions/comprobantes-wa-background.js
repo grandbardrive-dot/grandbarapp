@@ -106,7 +106,7 @@ function montosDe(f) {
 const { asignar: asignarComp } = require('./_comp-vendedor');
 // Fechas (YYYY-MM-DD) que el vendedor ya ENVIÓ entre `desde` y `hasta`.
 async function fechasEnviadas(vend, desde, hasta) {
-  const e = await leer('planilla_envios?select=fecha_rendicion&enviada_at=not.is.null&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=gte.' + desde + '&fecha_rendicion=lte.' + hasta);
+  const e = await leer('planilla_envios?select=fecha_rendicion&enviada_at=not.is.null&anulada_at=is.null&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=gte.' + desde + '&fecha_rendicion=lte.' + hasta);
   return new Set(e.map(x => x.fecha_rendicion));
 }
 

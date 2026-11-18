@@ -1236,18 +1236,21 @@ async function cobPlanillasLista() {
     const filas = d.filas || [];
     if (!filas.length) { cq('pla-lista').innerHTML = `<div class="pv-vacio">${q ? 'No hay planillas con "' + cesc(q) + '" en el N° ni en el vendedor.' : 'Todavía no te enviaron ninguna planilla.'}</div>`; return; }
     const lbl = { efectivo: 'Efectivo', cheques: 'Cheques', retenciones: 'Retenc.', transferencia: 'Transf/MP', tarjeta: 'Tarjeta', echeq: 'E-cheq' };
-    const completa = e => (e.filas > 0 && (e.procesadas || 0) >= e.filas);   // todas procesadas
+    // Anulada (repetida o por error, 18/11/2026): no cuenta como pendiente.
+    const completa = e => !!e.anulada_at || (e.filas > 0 && (e.procesadas || 0) >= e.filas);   // todas procesadas
     const card = e => {
       const t = e.totales || {};
       const tot = Object.keys(lbl).filter(k => Number(t[k]) > 0).map(k => `${lbl[k]}: <b>${cnum(t[k])}</b>`).join(' · ');
-      const ok = completa(e), col = ok ? '#1f8a4c' : '#d0402e';
-      const chip = ok
+      const ok = completa(e), col = e.anulada_at ? '#9a9a9a' : ok ? '#1f8a4c' : '#d0402e';
+      const chip = e.anulada_at
+        ? `<span class="cb-chip" style="background:#eee;color:#666" title="${cesc('Anulada' + (e.anulada_por ? ' por ' + e.anulada_por : '') + ' el ' + cfec(e.anulada_at))}">🚫 Anulada${e.anulada_motivo ? ' · ' + cesc(e.anulada_motivo) : ''}</span>`
+        : ok
         ? `<span class="cb-chip" style="background:#e7f1ea;color:#1f6b3d">✓ Procesada</span>`
         : `<span class="cb-chip" style="background:#fde8e6;color:#b23120">⏳ ${e.procesadas || 0}/${e.filas} procesadas</span>`;
       const nro = e.numero
         ? `<span class="cb-chip" style="background:#eef3fb;color:#1f447f">N° ${cesc(e.numero)}</span>`
         : (cobSoloLectura() ? '' : `<span class="cb-chip" style="background:#f1f1f1;color:#777">Sin N°</span>`);
-      return `<article class="hh" style="cursor:pointer;border-left:5px solid ${col}" onclick="cobPlanillaDet('${cesc(String(e.vendedor))}','${cesc(String(e.fecha_rendicion))}')">
+      return `<article class="hh" style="cursor:pointer;border-left:5px solid ${col};${e.anulada_at ? 'opacity:.6' : ''}" onclick="cobPlanillaDet('${cesc(String(e.vendedor))}','${cesc(String(e.fecha_rendicion))}')">
         <div class="hh-top"><span class="hh-ico">📋</span>
           <div class="hh-nom">${cesc(e.vendedor_nombre || ('Vendedor ' + e.vendedor))}</div>${nro}${chip}</div>
         <div class="hh-desc">${q ? cfec(e.fecha_rendicion) + ' · ' : ''}${e.filas} fila${e.filas === 1 ? '' : 's'} · Importe total: <b>${cnum(t.importe || 0)}</b></div>
@@ -1399,7 +1402,9 @@ async function cobPlanillaDet(vendedor, fecha) {
         <input id="pla-num" value="${cesc(env.numero || '')}" maxlength="40" placeholder="Escribí el número" autocomplete="off" onchange="cobPlanillaNumero(this)"
           style="border:1px solid #d7d7d7;border-radius:8px;padding:7px 10px;font:inherit;font-size:14px;width:180px">
         <span id="pla-num-est" style="font-size:12px;color:var(--muted)">${env.numero && env.numero_por ? 'Cargado por ' + cesc(env.numero_por) : 'Sirve para buscar la planilla después.'}</span>
+        ${env.anulada_at ? '' : `<button type="button" onclick="cobPlanillaAnular(this)" title="Para una planilla repetida o cargada por error: se borran sus filas (queda copia) y deja de figurar como pendiente" style="margin-left:auto;background:#fff;border:1px solid #e3b4a8;color:#c0392b;border-radius:8px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">🚫 Anular planilla</button>`}
       </div>` : ''}
+      ${env && env.anulada_at ? `<div class="wa-nota" style="margin-top:8px;background:#f1f1f1;border-color:#ddd">🚫 <b>Planilla anulada</b>${env.anulada_motivo ? ' (' + cesc(env.anulada_motivo) + ')' : ''}${env.anulada_por ? ' por ' + cesc(env.anulada_por) : ''} el ${cfec(env.anulada_at)}. No cuenta como pendiente. Si el vendedor la vuelve a enviar, se reactiva.</div>` : ''}
       ${cobSoloLectura()
         ? ''
         : `<div class="wa-nota" style="margin-top:4px">Las filas <b style="color:#1f447f">celestes</b> son de clientes que cargaron el pago en su portal: cuando lo proceses, tocá <b>Aprobar en el portal</b> al final de la fila y queda aceptado para el cliente y la fila procesada (no hace falta ir a Revisión de cobranzas). El <b>N° de recibo</b> se completa solo cuando procesás el cobro en el sistema (puede tardar un par de minutos; si no aparece, lo podés escribir vos). Tildá <b>Procesado</b> en cada fila a medida que la vas pasando, y dejá una <b>observación</b> si hace falta. Si un vendedor cargó mal un monto, <b>editalo directo en la celda</b> (los totales se recalculan solos); si una fila sobra (ej. cargada dos veces), eliminala con 🗑. Las que queden sin tildar son las que te faltan.</div>`}
@@ -1474,6 +1479,19 @@ async function cobPlanillaNumero(el) {
   } catch (e) {
     if (est) { est.style.color = '#b23120'; est.textContent = 'No se pudo guardar: ' + (e.message || e); }
   }
+}
+
+// Anular una planilla entera (18/11/2026): repetida o cargada por error. Se borran sus filas
+// (queda copia en el respaldo) y deja de figurar como pendiente.
+async function cobPlanillaAnular(btn) {
+  const p = window._plaDet || {};
+  const motivo = prompt('¿Por qué la anulás? Se borran todas sus filas (queda copia) y deja de figurar como pendiente.', 'Repetida');
+  if (motivo === null) return;
+  btn.disabled = true; btn.textContent = 'Anulando…';
+  try {
+    await cobApi('', { method: 'POST', body: JSON.stringify({ accion: 'planilla-anular', vendedor: p.vendedor, fecha: p.fecha, motivo }) });
+    cobPlanillaDet(p.vendedor, p.fecha);
+  } catch (e) { alert('No se pudo anular: ' + (e.message || e)); btn.disabled = false; btn.textContent = '🚫 Anular planilla'; }
 }
 
 // Comprobante por WhatsApp sin fila: Moni lo asigna a una fila o lo descarta (16/11/2026).

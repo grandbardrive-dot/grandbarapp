@@ -316,7 +316,33 @@ exports.handler = async (event) => {
         if (!r.ok) return json(400, { error: (borradas && borradas.message) || 'No se pudo borrar.' });
         if (!borradas.length) return json(404, { error: 'Esa fila ya no existe.' });
         await recalcEnvio(fila0.vendedor, fila0.fecha_rendicion);
-        return json(200, { ok: true });
+        // Si se le borraron todas las filas, la planilla queda anulada (no cuenta como pendiente).
+        const quedan = await leer('planilla_cobranzas?select=id&vendedor=eq.' + encodeURIComponent(fila0.vendedor) + '&fecha_rendicion=eq.' + encodeURIComponent(fila0.fecha_rendicion) + '&limit=1');
+        if (!quedan.length) await cob('planilla_envios?vendedor=eq.' + encodeURIComponent(fila0.vendedor) + '&fecha_rendicion=eq.' + encodeURIComponent(fila0.fecha_rendicion) + '&anulada_at=is.null',
+          { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ anulada_at: new Date().toISOString(), anulada_por: perfil.nombre || null, anulada_motivo: 'Se borraron todas las filas' }) });
+        return json(200, { ok: true, anulada: !quedan.length });
+      }
+      // ANULAR una planilla entera (18/11/2026), p. ej. la que el vendedor mandó repetida: cada
+      // fila se respalda en planilla_borradas y se borra, y la planilla queda "Anulada" (en gris,
+      // fuera de los pendientes). Si el vendedor la vuelve a enviar, se reactiva.
+      if (b.accion === 'planilla-anular') {
+        const vend = String(b.vendedor || '').trim(), fecha = String(b.fecha || '').trim();
+        if (!vend || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return json(400, { error: 'Falta el vendedor o la fecha de la planilla.' });
+        const ZP = await zonaPlanillas();
+        if (ZP && !ZP.vendOk(vend)) return json(403, { error: 'Esa planilla es de ' + (ZP.zona === 'mendoza' ? 'San Luis: la procesa Romina.' : 'Mendoza.') });
+        const motivo = String(b.motivo || '').trim().slice(0, 200) || 'Repetida';
+        const rows = await leer('planilla_cobranzas?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha));
+        for (const f of rows) {
+          const resp = await cob('planilla_borradas', { method: 'POST', body: JSON.stringify({ fila_id: String(f.id), vendedor: f.vendedor, fecha_rendicion: f.fecha_rendicion, datos: f, borrado_por: (perfil.nombre || '') + ' (anuló la planilla: ' + motivo + ')' }) });
+          if (!resp.ok) return json(500, { error: 'No se pudo guardar el respaldo; no anulé nada más.' });
+          await cob('planilla_cobranzas?id=eq.' + encodeURIComponent(f.id), { method: 'DELETE' });
+        }
+        await recalcEnvio(vend, fecha);
+        const r = await cob('planilla_envios?vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + encodeURIComponent(fecha), { method: 'PATCH', headers: { Prefer: 'return=representation' },
+          body: JSON.stringify({ anulada_at: new Date().toISOString(), anulada_por: perfil.nombre || null, anulada_motivo: motivo }) });
+        const env = r.ok ? await r.json() : [];
+        if (!env.length) return json(404, { error: 'Esa planilla no fue enviada.' });
+        return json(200, { ok: true, borradas: rows.length });
       }
       if (b.accion === 'planilla-editar') {
         if (!b.id) return json(400, { error: 'Falta la fila.' });
