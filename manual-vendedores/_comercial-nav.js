@@ -42,6 +42,7 @@
   I.planes = '<path d="M7 3h7l5 5v13H7z" stroke-linejoin="round"/><path d="M14 3v5h5" stroke-linecap="round"/>';
   I.incorp = '<path d="M12 5v14M5 12h14" stroke-linecap="round"/><rect x="3" y="3" width="18" height="18" rx="4"/>';
   I.copa = '<path d="M8 3h8l-1 6a3 3 0 0 1-6 0zM12 15v5M9 21h6" stroke-linejoin="round" stroke-linecap="round"/>';
+  I.incentivos = '<circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5" stroke-linejoin="round"/>';
   I.mesa = '<path d="M10 3h4v4l2 3v11H8V10l2-3z" stroke-linejoin="round"/><path d="M8 14h8" stroke-linecap="round"/>';
   I.puntera = '<path d="M5 3v18M19 3v18M5 8h14M5 14h14M5 20h14" stroke-linecap="round"/>';
   I.volumen = '<rect x="3" y="12" width="8" height="8" rx="1"/><rect x="13" y="12" width="8" height="8" rx="1"/><rect x="8" y="4" width="8" height="8" rx="1"/>';
@@ -94,6 +95,7 @@
       { h: 'admin-propuestas-proveedores.html', t: 'Propuestas de proveedores', s: 'Para revisar y aprobar', i: 'propuestas' },
       { h: 'admin-sellout.html', t: 'Sellout', s: 'Subir reporte de proveedor', i: 'sellout' },
       { h: 'admin-11t.html', t: 'Plan 11T', s: 'Peñaflor · por canal y línea', i: 'plan11t' },
+      { h: '/supervisor-incentivos.html', t: 'Incentivos', s: 'Proveedores · toda la empresa', i: 'incentivos' },
     ]},
     { titulo: 'Lo mío', items: [
       { h: 'admin-agenda.html', t: 'Mi agenda', i: 'agenda' },
