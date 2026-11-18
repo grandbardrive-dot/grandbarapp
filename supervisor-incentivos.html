@@ -82,6 +82,16 @@
   .bar.withimg{display:flex;gap:11px;align-items:center}
   .bar.withimg .barmain{flex:1;min-width:0}
   .bar .bottle{height:44px;width:26px;object-fit:contain;flex:none}
+  /* Tabla ON Trade (Malibu + Beefeater por vendedor) */
+  .othead,.otrow{display:grid;grid-template-columns:1.6fr .9fr 1.1fr .7fr;gap:8px;align-items:center}
+  .othead{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:2px 2px 7px}
+  .othead div:not(:first-child),.otrow .otc,.otrow .otp{text-align:center}
+  .otrow{padding:9px 2px;border-top:1px solid var(--line2);font-size:13.5px}
+  .otrow .otn{font-weight:700}
+  .otrow .otc b{font-weight:900}.otrow .otc span{color:var(--muted);font-size:12px}
+  .otrow .otc.z b{color:var(--muted)}
+  .otpill{display:inline-block;min-width:44px;padding:3px 8px;border-radius:20px;font-size:12px;font-weight:800;background:var(--gold-soft);color:var(--gold-d)}
+  .otpill.hi{background:#dcefe4;color:#2e8b63}.otpill.lo{background:#f6e0d8;color:var(--red)}
   .bar .bt{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;margin-bottom:5px}
   .bar .bt .nm{font-weight:700}
   .bar .bt .vl{font-size:12.5px;color:var(--muted)} .bar .bt .vl b{color:var(--ink);font-weight:800}
@@ -468,7 +478,25 @@
         ${suc||'<div class="empty">No hay resultados cargados.</div>'}
       </div></div>`;
   }
+  function planOntradeHTML(p){
+    const row=f=>`<div class="otrow">
+        <div class="otn">${esc(f.nombre)}</div>
+        <div class="otc ${f.malibu.av?'':'z'}"><b>${f.malibu.av}</b><span>/${f.malibu.obj}</span></div>
+        <div class="otc ${f.beef.av?'':'z'}"><b>${f.beef.av}</b><span>/${f.beef.obj}</span></div>
+        <div class="otp"><span class="otpill ${clasePct(f.pct)}">${f.pct}%</span></div></div>`;
+    const rows=(p.filas||[]).map(row).join('');
+    return `<div class="plan"><div class="body">
+        <div class="hero">${ring(p.pct)}<div class="heroR">
+            <div class="stat"><span class="n">${p.avanceTotal}</span><span class="l">de ${p.targetTotal} · clientes con compra${p.nivel?' · '+esc(p.nivel):''}</span></div>
+            <div class="obj">🎯 <b>Objetivo por vendedor vs avance.</b> Malibu <b>${p.malibu.av}/${p.malibu.obj}</b> · Beefeater Familia <b>${p.beef.av}/${p.beef.obj}</b>. Avance automático (clientes con compra por cartera), Oct–Dic.</div>
+        </div></div>
+        <div class="secT">Por vendedor</div>
+        <div class="othead"><div>Vendedor</div><div>Malibu</div><div>Beefeater Fam.</div><div>Cumpl.</div></div>
+        ${rows||'<div class="empty">Sin vendedores en tu alcance.</div>'}
+      </div></div>`;
+  }
   function planDetailHTML(p){
+    if(p.tipo==='ontrade') return planOntradeHTML(p);
     if(p.tipo==='septima') return planSeptimaHTML(p);
     if(p.tipo==='penaflor') return planPenaflorHTML(p);
     if(p.sucursales) return planTorneoHTML(p);
@@ -541,7 +569,9 @@
         <div class="foot"><span class="fin">Finalizado</span><span class="go">Ver resultados ›</span></div>
       </button>`;
     }
-    const sub = p.tipo==='septima'
+    const sub = p.tipo==='ontrade'
+      ? `${p.avanceTotal||0} de ${p.targetTotal||0} clientes`
+      : p.tipo==='septima'
       ? `${p.avanceTotal||0} de ${p.targetTotal||0} clientes`
       : p.tipo==='penaflor'
       ? (p.unidad==='clientes' ? `${p.cccAv||0} de ${p.cccObj||0} clientes` : `${p.avanceTotal||0} de ${p.targetTotal||0} botellas`)

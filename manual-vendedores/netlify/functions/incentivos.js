@@ -254,6 +254,58 @@ async function septima(hub, perfil) {
   return { id: 'septima', nombre: 'Séptima', color: '#7A2E4A', cardPct: pI(totAv, totObj), actualizado: d.actualizado, planes: [plan] };
 }
 
+// Incentivo Malibu + Beefeater Familia (ON Trade): objetivo POR VENDEDOR (tabla ontrade_objetivos)
+// vs avance AUTOMÁTICO (clientes con compra de cada producto, por cartera vigente del vendedor).
+const ONT_EQ  = { '029':'ON','039':'ON','025':'ON','007':'ON','031':'MAY','017':'SL','041':'SL','032':'MAY' };
+const ONT_SUP = { '005':'ON','011':'OFF','010':'SL' };
+async function ontrade(hub, perfil) {
+  const man = (p, o) => fetch(MAN_URL + '/rest/v1/' + p, Object.assign({}, o, { headers: Object.assign({ apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON, 'Content-Type': 'application/json' }, (o && o.headers) || {}) }));
+  let objRows, cfgRows;
+  try {
+    [objRows, cfgRows] = await Promise.all([
+      (await hub('ontrade_objetivos?select=vendedor_codigo,vendedor_nombre,producto,objetivo')).json(),
+      (await hub('ontrade_config?select=k,v')).json(),
+    ]);
+  } catch (e) { return null; }
+  if (!Array.isArray(objRows) || !objRows.length) return null;
+  const C = {}; (Array.isArray(cfgRows) ? cfgRows : []).forEach(r => { C[r.k] = r.v; });
+  const desde = C.desde || '2026-10-01', hasta = C.hasta || '2026-12-31';
+  let av = [];
+  try { av = await (await man('rpc/ontrade_avance', { method: 'POST', body: JSON.stringify({ desde, hasta }) })).json(); } catch (e) {}
+  const avMap = {}; (Array.isArray(av) ? av : []).forEach(r => { (avMap[r.cod] = avMap[r.cod] || {})[r.producto] = num(r.clientes); });
+  const vmap = {};
+  objRows.forEach(r => { const v = vmap[r.vendedor_codigo] || (vmap[r.vendedor_codigo] = { codigo: r.vendedor_codigo, nombre: r.vendedor_nombre || r.vendedor_codigo, obj: {} }); v.obj[r.producto] = num(r.objetivo); });
+
+  const rol = String(perfil.rol || '').toLowerCase();
+  const cod = perfil.codigo_vendedor != null ? String(perfil.codigo_vendedor) : null;
+  const esSup = !!perfil.es_supervisor;
+  let codigos = Object.keys(vmap), nivel = 'Toda la empresa';
+  if (['direccion', 'admin', 'diseno', 'torneo', 'desarrollo', 'compras'].includes(rol)) { /* todos */ }
+  else if (esSup) { const eq = ONT_SUP[cod]; if (!eq) return null; codigos = codigos.filter(c => ONT_EQ[c] === eq); nivel = 'Tu equipo'; }
+  else if (rol === 'ventas' || rol === 'mayorista') { if (!vmap[cod]) return null; codigos = [cod]; nivel = 'Tu objetivo'; }
+  else return null;
+  if (!codigos.length) return null;
+
+  const filas = codigos.map(c => {
+    const v = vmap[c], a = avMap[c] || {};
+    const mal = { obj: num(v.obj.malibu), av: num(a.malibu) }; mal.pct = pct(mal.av, mal.obj);
+    const bee = { obj: num(v.obj.beefeater_fam), av: num(a.beefeater_fam) }; bee.pct = pct(bee.av, bee.obj);
+    const tObj = mal.obj + bee.obj, tAv = mal.av + bee.av;
+    return { codigo: c, nombre: v.nombre, malibu: mal, beef: bee, totObj: tObj, totAv: tAv, pct: pct(tAv, tObj) };
+  }).sort((x, y) => y.pct - x.pct || (x.nombre || '').localeCompare(y.nombre || ''));
+  const sum = k1 => filas.reduce((s, f) => s + f[k1].obj, 0), suma = k1 => filas.reduce((s, f) => s + f[k1].av, 0);
+  const malObj = sum('malibu'), malAv = suma('malibu'), beeObj = sum('beef'), beeAv = suma('beef');
+  const plan = {
+    id: 'ontrade', tipo: 'ontrade', nombre: C.nombre || 'Malibu + Beefeater · ON Trade',
+    detalle: 'Clientes con compra de Malibu y Beefeater Familia por vendedor (su cartera) vs objetivo. Avance automático, período Oct–Dic.',
+    desde, hasta, nivel, filas,
+    malibu: { obj: malObj, av: malAv, pct: pct(malAv, malObj) },
+    beef: { obj: beeObj, av: beeAv, pct: pct(beeAv, beeObj) },
+    avanceTotal: malAv + beeAv, targetTotal: malObj + beeObj, pct: pct(malAv + beeAv, malObj + beeObj),
+  };
+  return { id: 'ontrade', nombre: 'Malibu + Beefeater', color: '#1F447F', cardPct: plan.pct, planes: [plan] };
+}
+
 exports.handler = async (event) => {
   try {
     const hubService = process.env.HUB_SERVICE_ROLE;
@@ -276,7 +328,8 @@ exports.handler = async (event) => {
       const tp = await torneoDP(hub);
       const pf = await penaflor(hub, perfil).catch(() => null);
       const sp = await septima(hub, perfil).catch(() => null);
-      const provs = []; if (pf) provs.push(pf); if (sp) provs.push(sp); if (tp) provs.push(tp);
+      const ot = await ontrade(hub, perfil).catch(() => null);
+      const provs = []; if (pf) provs.push(pf); if (sp) provs.push(sp); if (ot) provs.push(ot); if (tp) provs.push(tp);
       return json(200, { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: 'vendedor', codigo: perfil.codigo_vendedor || null,
         generado: new Date().toISOString(), proveedores: provs });
     }
@@ -359,6 +412,9 @@ exports.handler = async (event) => {
 
     // ---- Séptima · clientes con compra vs objetivo, con premio (snapshot diario) ----
     try { const sp = await septima(hub, perfil); if (sp) proveedores.push(sp); } catch (e) {}
+
+    // ---- Malibu + Beefeater Familia · ON Trade (objetivo por vendedor) ----
+    try { const ot = await ontrade(hub, perfil); if (ot) proveedores.push(ot); } catch (e) {}
 
     // ---- Chandon · Plan mes corriente (surtido + clientes con compra por grupo) ----
     // Objetivo GLOBAL de la empresa, Mendoza + San Luis juntos (NO se separa por vendedor).
