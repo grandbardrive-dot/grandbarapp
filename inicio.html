@@ -173,7 +173,6 @@
     .cli3 .p-val{font-size:26px;font-weight:800;margin:4px 0 2px;line-height:1.05}
     .cli3 .p-obj{font-size:11.5px;color:var(--muted)}
     #cardBotellas .avance{grid-template-columns:1fr;gap:16px;margin-top:0;padding-top:0;border-top:0}
-    .stat .nota{font-size:10.5px;color:var(--muted);font-weight:500;margin-top:4px;line-height:1.3}
     #stVentas{white-space:nowrap;font-size:22px;line-height:1.2}   /* el monto entero en un renglón */
     @media(min-width:1051px){ .stats.tres{grid-template-columns:repeat(3,1fr)} }
     @media(max-width:1050px){ .mes2{grid-template-columns:1fr} }
@@ -248,7 +247,7 @@
         <div class="stat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/></svg></div><div><div class="l">Tareas pendientes</div><div class="v" id="stTareas">—</div><div class="sub mut" id="stTareasSub">Cargando…</div></div></div>
         <!-- El monto facturado del mes va UNA sola vez, acá (17/11/2026: antes también en Tu mes y en el
              Resumen semanal). La aclaración de las facturas "F" la pidió el usuario con esas palabras. -->
-        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas acumuladas</div><div class="v" id="stVentas">—</div><div class="sub" id="stVentasSub">Cargando…</div><div class="nota">(El CUBO no contempla facturas originadas en "F")</div></div></div>
+        <div class="stat gold"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/></svg></div><div><div class="l">Ventas acumuladas</div><div class="v" id="stVentas">—</div><div class="sub" id="stVentasSub">Cargando…</div></div></div>
       </div>
 
       <!-- Tu mes (17/11/2026, a pedido del usuario): una tarjeta con los clientes (activos en CUBO,
