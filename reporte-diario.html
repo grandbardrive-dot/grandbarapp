@@ -16,7 +16,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 <style>
   /* Reporte diario (18/11/2026): la planilla diaria de Administración dentro del portal.
-     Solo supervisores (Mi equipo) y Fernando (dir-reporte.html la abre con ?embed=1).
+     Supervisores (Mi equipo), Fernando (dir-reporte.html), Juan Pablo Sepúlveda (trade-reporte.html),
+     Luciana (admin-reporte-diario.html) y Kathy (equipo-panel.html#reporte): los cuatro con ?embed=1.
      Dos tablas con todos los vendedores por equipo: unidades (vinos y spirits contra el
      objetivo, más sin alcohol, cervezas y café) y clientes con compra con las ventas en pesos.
      Los datos los arma la función reporte-diario. */
@@ -57,7 +58,8 @@
   /* Embebida en otro panel (?embed=1): sin menú propio. */
   .embed .sidebar,.embed .botnav{display:none!important}
   .embed .wrap{padding-bottom:24px}
-  .embed .topbar h1{display:none}   /* el título ya lo pone el panel de afuera */
+  .embed.dir .topbar h1{display:none}   /* en el panel de Fernando el título ya lo pone dir-reporte.html */
+  .embed .topbar h1{font-size:20px}
 
   .topbar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:16px;padding-right:58px}   /* deja lugar a la campanita */
   .topbar h1{font-size:24px;margin:0;font-weight:900;letter-spacing:-.01em}
@@ -162,6 +164,7 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   if (/[?&]embed=1\b/.test(location.search)) document.documentElement.classList.add('embed');
+  if (/[?&]dir=1\b/.test(location.search)) document.documentElement.classList.add('dir');
   let hub, TOKEN = null;
 
   const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
