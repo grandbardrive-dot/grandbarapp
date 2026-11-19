@@ -255,6 +255,12 @@
     flex-shrink: 0;
     white-space: nowrap;
   }
+  /* Compró este mes (19/11/2026), igual que Clientes del portal: ✓ verde / ✕ roja. */
+  .cmark{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;font-size:10px;font-weight:900;font-style:normal;margin-right:6px;vertical-align:1px;line-height:1}
+  .cmark.ok{background:#e2f1e7;color:#1d7548;border:1px solid #9fd0b4}
+  .cmark.no{background:#fbe5e1;color:#b3372a;border:1px solid #efb1a7}
+  .list-label .cc{margin-left:10px;text-transform:none;letter-spacing:0;font-weight:600}
+  .list-label .cc .cmark{margin:0 3px 0 8px;width:15px;height:15px;font-size:9px}
 </style>
 <style id="_bg-fondo">
 /* Fondo de pantalla GrandBar */
@@ -347,6 +353,10 @@ body { background:transparent !important; }
 
   // Código de cliente normalizado (sin ceros a la izquierda) = clave del estado.
   const normCodCli = s => (String(s == null ? '' : s).trim().replace(/^0+/, '') || '0');
+  // Quién compró este mes (19/11/2026): lo mismo que el Inicio y Clientes del portal. null = no se sabe.
+  let CON_COMPRA = null;
+  const marcaCompra = c => !CON_COMPRA ? '' : (CON_COMPRA.has(normCodCli(c.codigo_cliente))
+    ? '<i class="cmark ok" title="Compró este mes">✓</i>' : '<i class="cmark no" title="Todavía no compró este mes">✕</i>');
 
   // Cambia activo/inactivo. Optimista: actualiza la vista y guarda en la base.
   // Fuente de verdad: clientes_estado (por código) + espejo en clientes (por id),
@@ -367,6 +377,33 @@ body { background:transparent !important; }
   }
 
   // Aplica los estados guardados por código (override) sobre la lista cargada.
+  // Misma lista y mismas marcas que Clientes del portal (19/11/2026, "sincronizá toda la información
+  // en los diferentes paneles"): la cartera que sigue activa en CUBO (cuentas-vendedor) y quién
+  // compró este mes (avance-vendedor). Usa la sesión del portal; solo si es la de este mismo vendedor.
+  // Si algo falla, la lista queda como antes (toda la cartera del Manual, sin marcas).
+  async function cargarCuboYCompras() {
+    try {
+      const hub = supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co', 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc');
+      const { data: { session } } = await hub.auth.getSession();
+      if (!session) return;
+      const h = { Authorization: 'Bearer ' + session.access_token };
+      const [av, cv] = await Promise.all([
+        fetch('/.netlify/functions/avance-vendedor', { headers: h }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('/.netlify/functions/cuentas-vendedor?con_ocultos=1', { headers: h }).then(r => r.ok ? r.json() : null).catch(() => null),
+      ]);
+      if (!av || !av.codigo || normCodCli(av.codigo) !== normCodCli(vendedor.codigo)) return;
+      const lc = av.clientes && av.clientes.codigos_con_compra;
+      if (Array.isArray(lc)) CON_COMPRA = new Set(lc.map(normCodCli));
+      const cuentas = (cv && cv.clientes) || [];
+      if (cuentas.some(c => 'vigente' in c)) {
+        const vig = new Set(cuentas.filter(c => c.vigente).map(c => normCodCli(c.codigo)));
+        const enCubo = todosClientes.filter(c => vig.has(normCodCli(c.codigo_cliente)));
+        if (enCubo.length) todosClientes = enCubo;
+      }
+      filtrar();
+    } catch (e) {}
+  }
+
   async function aplicarEstadoCli() {
     try {
       const { data } = await sb.from('clientes_estado').select('codigo,activo');
@@ -446,6 +483,7 @@ body { background:transparent !important; }
     filtrar();
     renderRuta();        // Ruta de hoy (Agenda Eficiente) si viene desde el Hub
     cargarCampari5T();   // no bloqueante: agrega los llamadores "Sin Campari" cuando llega el Sheet
+    cargarCuboYCompras(); // no bloqueante: misma lista y mismas marcas que Clientes del portal
   }
 
   // ── Ruta de hoy: viene de la Agenda Eficiente (localStorage gb_ruta_manual) ──
@@ -489,10 +527,12 @@ body { background:transparent !important; }
     if (tipoActivo) lista = lista.filter(c => c.tipo === tipoActivo);
     if (q) lista = lista.filter(c =>
       c.nombre.toLowerCase().includes(q) || c.codigo_cliente.toLowerCase().includes(q));
-    document.getElementById('list-label').textContent =
-      lista.length === universo.length
+    const nOk = CON_COMPRA ? lista.filter(c => CON_COMPRA.has(normCodCli(c.codigo_cliente))).length : 0;
+    document.getElementById('list-label').innerHTML =
+      (lista.length === universo.length
         ? `${lista.length} cliente${lista.length !== 1 ? 's' : ''}`
-        : `${lista.length} resultado${lista.length !== 1 ? 's' : ''}`;
+        : `${lista.length} resultado${lista.length !== 1 ? 's' : ''}`)
+      + (CON_COMPRA ? `<span class="cc"><i class="cmark ok">✓</i>${nOk} compraron este mes<i class="cmark no">✕</i>${lista.length - nOk} todavía no</span>` : '');
     renderLista(lista);
   }
 
@@ -516,7 +556,7 @@ body { background:transparent !important; }
       return `<div class="client-card${sinCampari ? ' sin-campari' : ''}${activo ? '' : ' oculto'}" onclick="sel('${c.id}')">
         <div class="client-avatar">${c.logo_url ? `<img src="${esc(c.logo_url)}" alt="" onerror="this.parentElement.textContent='${emoji}'">` : emoji}</div>
         <div class="client-info">
-          <div class="client-nombre">${esc(c.nombre)}${sinCampari ? `<span class="badge-sincampari">🔴 Sin Campari</span>` : ''}</div>
+          <div class="client-nombre">${marcaCompra(c)}${esc(c.nombre)}${sinCampari ? `<span class="badge-sincampari">🔴 Sin Campari</span>` : ''}</div>
           <div class="client-meta">
             <span style="font-family:'DM Mono',monospace">${esc(c.codigo_cliente)}</span>
             ${c.direccion ? `<span>· ${esc(c.direccion)}</span>` : ''}
