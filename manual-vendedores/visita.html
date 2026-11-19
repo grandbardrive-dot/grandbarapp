@@ -2820,15 +2820,12 @@ body { background:transparent !important; }
   }
 
   // ── LO QUE DICEN SUS COMPRAS (27/10/2026) ─────────────────────────────────
-  // cliente_inteligencia (base del Manual): lo facturado en CUBO en los últimos 2 años, lo
-  // que dejó de comprar y lo que compran los clientes parecidos (mismo rubro y zona) y este
-  // no. Solo productos que cuentan (vinos, espirituosas, cervezas, sin alcohol, cafés) y,
-  // en las sugerencias, solo lo que tiene stock.
-  const CMP_RUBRO = { vinoteca: 'otras vinotecas', restaurante: 'otros restaurantes', bar: 'otros bares', autoservicio: 'otros autoservicios',
-                      disco: 'otras discos', hotel: 'otros hoteles', 'tienda de bebidas': 'otras tiendas de bebidas' };
-  const CMP_ZONA = { mendoza: 'Mendoza', sanluis: 'San Luis' };
+  // cliente_inteligencia (base del Manual): lo facturado en CUBO en los últimos 2 años y lo
+  // que dejó de comprar. Solo productos que cuentan (vinos, espirituosas, cervezas, sin
+  // alcohol, cafés) y, en las sugerencias, solo lo que tiene stock. Desde el 19/11/2026 no se
+  // muestra lo que compran los clientes parecidos (la función lo sigue trayendo).
   let _cmp = null;
-  const _cmpTodo = { d: false, p: false }, _cmpOfrecidos = new Set();   // listas abiertas / ya en el carrito
+  const _cmpTodo = { d: false }, _cmpOfrecidos = new Set();   // lista abierta / ya en el carrito
   const cmp$ = n => { n = Number(n) || 0; const a = Math.abs(n), s = n < 0 ? '−' : '';
     if (a >= 1e6) return s + '$' + (a / 1e6).toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' M';
     if (a >= 1e3) return s + '$' + Math.round(a / 1e3).toLocaleString('es-AR') + ' mil';
@@ -2864,13 +2861,9 @@ body { background:transparent !important; }
     const dejo = d.dejo_de_comprar || [];
     if (dejo.length) h += '<div class="cmp-tit">Dejó de comprar</div><div class="cmp-sub">Lo compraba seguido y hace mucho que no lo pide. Hay stock.</div>'
       + lista('d', dejo, p => `Lo compraba cada ~${p.cada} días (${p.veces} veces) · la última, ${cmpFecha(p.ultima)}, ${cmpHace(p.dias_sin)}`);
-    const par = d.compran_los_parecidos || [];
-    if (par.length) {
-      const quienes = (CMP_RUBRO[d.tipo] || 'otros clientes del mismo rubro') + (CMP_ZONA[d.zona] ? ' de ' + CMP_ZONA[d.zona] : '');
-      h += `<div class="cmp-tit">Lo compran ${esc(quienes)}</div><div class="cmp-sub">De los ${d.pares} que compraron en los últimos 4 meses. Este cliente no lo compró en un año y medio. Hay stock.</div>`
-        + lista('p', par, p => `Lo compran ${p.clientes} (${p.pct}%) · unas ${Number(p.unidades_prom || 0).toLocaleString('es-AR')} u. cada uno en 4 meses`);
-    }
-    if (!dejo.length && !par.length) h = '<div class="cmp-nota" style="margin-top:0">Por ahora no hay oportunidades para este cliente: no dejó de pedir nada de lo que compraba y ya compra lo que llevan los clientes parecidos.</div>';
+    // 19/11/2026 (pedido del usuario): se sacó la lista "Lo compran otros <rubro> de <zona>"
+    // (compran_los_parecidos). Queda solo "Dejó de comprar".
+    if (!dejo.length) h = '<div class="cmp-nota" style="margin-top:0">Por ahora no hay oportunidades para este cliente: no dejó de pedir nada de lo que compraba.</div>';
     h += '<div class="cmp-nota">Sale de lo facturado en CUBO. Se actualiza cada 20 minutos.</div>';
     det.innerHTML = h;
   }
