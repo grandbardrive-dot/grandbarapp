@@ -195,8 +195,6 @@
       <div class="kpi"><div class="hd"><span class="lbl">A pagar esta semana</span></div><div class="v" id="finSemana">...</div><div class="sub mut" id="finSemanaSub">Facturas de proveedores</div></div>
       <div class="kpi"><div class="hd"><span class="lbl">Falta cubrir esta semana</span></div><div class="v" id="finFalta">...</div><div class="sub mut" id="finFaltaSub">Transferencia o efectivo</div></div>
       <div class="kpi"><div class="hd"><span class="lbl">Mercaderia pedida</span></div><div class="v" id="finOrdenes">...</div><div class="sub mut" id="finOrdenesSub">Comprada y no recibida</div></div>
-      <!-- Deuda con proveedores (19/11/2026): sale de CUBO cada hora, no de un Excel. -->
-      <div class="kpi"><div class="hd"><span class="lbl">Deuda con proveedores</span></div><div class="v" id="finProv">...</div><div class="sub mut" id="finProvSub">Según CUBO</div></div>
     </div>
 
     <div class="row3">
@@ -403,14 +401,6 @@
         const t = (d.ordenes.top||[])[0];
         set('finOrdenesSub', t ? ('Mayor: '+t.proveedor.replace(/\s*S\.?A\.?.*$/,'')+' '+money(t.saldo)) : 'Comprada y no recibida');
       } else { set('finOrdenes','—'); set('finOrdenesSub','No se pudo leer'); }
-
-      if (d.proveedores && !d.proveedores.error) {
-        set('finProv', money(d.proveedores.total));
-        const t = (d.proveedores.top||[])[0];
-        set('finProvSub', t ? ('Mayor: '+t.nombre.replace(/\s*S\.?A\.?.*$/,'')+' '+money(t.deuda)) : (d.proveedores.con_deuda+' proveedores con deuda'));
-        if (d.proveedores.actualizado) { const a = new Date(d.proveedores.actualizado);
-          fechas.push('proveedores al '+a.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+' '+a.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})); }
-      } else { set('finProv','—'); set('finProvSub','No se pudo leer'); }
 
       const ff = document.getElementById('finFecha');
       if (ff) { const t = fechas.join(' · '); ff.textContent = t ? t.charAt(0).toUpperCase() + t.slice(1) : ''; }

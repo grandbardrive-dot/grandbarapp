@@ -76,6 +76,9 @@ exports.handler = async () => {
     con_deuda: conDeuda.length,
     proveedores: todos.length,
     top: conDeuda.sort((a, b) => b.deuda - a.deuda).slice(0, 10).map(p => ({ codigo: p.codigo, nombre: p.nombre, deuda: Math.round(p.deuda) })),
+    // Los de saldo negativo (19/11/2026): los grandes (Campari, Peñaflor, Chandon, Pernod) salen así y
+    // no coincide con el Excel de pagos. Se guardan para entender qué significa el signo en CUBO.
+    top_negativos: aFavor.sort((a, b) => a.deuda - b.deuda).slice(0, 15).map(p => ({ codigo: p.codigo, nombre: p.nombre, deuda: Math.round(p.deuda) })),
     empresas,
   };
 
