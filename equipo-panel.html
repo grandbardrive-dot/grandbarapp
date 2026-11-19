@@ -62,6 +62,7 @@
       <a class="sb-item" href="#agenda" data-v="agenda"><span class="i">📅</span> Agenda del equipo</a>
       <a class="sb-item" href="#mi-agenda" data-v="mi-agenda"><span class="i">🗓️</span> Mi agenda</a>
       <a class="sb-item" href="#ventas" data-v="ventas" id="ep-ventas-nav" style="display:none"><span class="i">📈</span> Ventas</a>
+      <a class="sb-item" href="#reporte" data-v="reporte" id="ep-reporte-nav" style="display:none"><span class="i">📋</span> Reporte diario</a>
       <a class="sb-item" href="#stock" data-v="stock" id="ep-stock-nav" style="display:none"><span class="i">🧮</span> Stock del depósito</a>
       <a class="sb-item" href="#materiales" data-v="materiales" id="ep-mat-nav" style="display:none"><span class="i">📦</span> Pedidos de materiales <span id="ep-mat-n" style="margin-left:auto;font-size:11px;font-weight:800;background:rgba(255,255,255,.16);border-radius:999px;padding:1px 7px;display:none"></span></a>
     </nav>
@@ -186,6 +187,13 @@
       main.innerHTML = '<iframe class="ep-marco" src="/dir-ventas.html?embed=1" title="Ventas"></iframe>';
       return;
     }
+    // Reporte diario (19/11/2026): el de supervisores y Fernando. Del equipo lo ve solo Kathy
+    // (el servidor controla quién: reporte-diario.js, REP_MAILS).
+    if (v === 'reporte' && veReporte()) {
+      main.classList.add('sin-pad');
+      main.innerHTML = '<iframe class="ep-marco" src="/reporte-diario.html?embed=1" title="Reporte diario"></iframe>';
+      return;
+    }
     // Stock del depósito (26/10/2026): lo maneja Laura, la encargada (agenda de los lunes y conteos).
     if (v === 'stock' && esStock()) {
       main.classList.add('sin-pad');
@@ -240,6 +248,8 @@
   // Del equipo, el stock del depósito lo maneja solo Laura (proveedores@); Diseño y Desarrollo, para revisarlo.
   const esStock = () => !!SES && (String((SES.user && SES.user.email) || '').toLowerCase() === 'proveedores@grandbar.com.ar' || ['desarrollo', 'diseno'].includes(String(SES.role || '').toLowerCase()));
   // Del equipo, Ventas la ve solo Sebastián (sbertoldi@); Diseño y Desarrollo, para revisarla.
+  // Del equipo, el Reporte diario lo ve solo Kathy (kolivares@); Diseño y Desarrollo, para revisarlo.
+  const veReporte = () => !!SES && (String((SES.user && SES.user.email) || '').toLowerCase() === 'kolivares@grandbar.com.ar' || ['desarrollo', 'diseno'].includes(String(SES.role || '').toLowerCase()));
   const veVentas = () => !!SES && (String((SES.user && SES.user.email) || '').toLowerCase() === 'sbertoldi@grandbar.com.ar' || ['desarrollo', 'diseno'].includes(String(SES.role || '').toLowerCase()));
 
   (async function () {
@@ -254,6 +264,7 @@
     if (YO && YO.puesto) eqQ('ep-quien').textContent = (s.nombre || YO.nombre) + ' · ' + YO.puesto;
     if (esStock()) eqQ('ep-stock-nav').style.display = '';
     if (veVentas()) eqQ('ep-ventas-nav').style.display = '';
+    if (veReporte()) eqQ('ep-reporte-nav').style.display = '';
     ir();
     contarMateriales();
   })();

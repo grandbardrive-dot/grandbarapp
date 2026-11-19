@@ -11,8 +11,9 @@
 //      vendedores) + Sheet 5T (el mismo que lee la visita).
 //    - Pernod Ricard · "Q4 2026 · Clientes con compra": por objetivo (marca×canal)
 //      meta/logrado/cerca/promo + por vendedor. Fuente: incentivos_snapshots.
-//    - Doña Paula · "Torneo Doña Paula" (FINALIZADO 16/11/2026): ranking final por sucursal.
-//      Fuente: incentivos_snapshots (DP_TORNEO_2026), foto de la planilla de Administración.
+//    - El Torneo Doña Paula (terminó el 16/11/2026) se sacó de Incentivos el 19/11/2026, en todos
+//      los paneles (pedido del usuario). El resultado final sigue guardado en incentivos_snapshots
+//      (DP_TORNEO_2026), sin tocar.
 //   Env: HUB_SERVICE_ROLE (o token del usuario).
 // ============================================================
 
@@ -118,22 +119,6 @@ async function plan5T(codigos, nombreDeCod, alcance) {
     avanceTotal: p3.completos, targetTotal: p3.objetivoTotal,
     actualizado: new Date().toISOString(),
   }, p3);
-}
-
-// Doña Paula · Torneo (FINALIZADO, 16/11/2026). Resultado final guardado en incentivos_snapshots
-// (DP_TORNEO_2026), sacado de la planilla oficial de Administración el día que terminó: ya no
-// depende del archivo de Drive. Ranking por sucursal, igual para todos.
-async function torneoDP(hub) {
-  try {
-    const snap = (await (await hub('incentivos_snapshots?incentivo=eq.DP_TORNEO_2026&select=corte,data')).json())[0];
-    if (!snap || !snap.data) return null;
-    const d = snap.data;
-    return { id: 'donapaula', nombre: 'Doña Paula', color: '#6B1F2A', finalizado: true, planes: [{
-      id: 'torneo', nombre: d.nombre || 'Torneo Doña Paula', finalizado: true,
-      detalle: 'Terminó. Resultados finales por sucursal con los puntos que cargó Administración: acciones, volumen y activaciones.',
-      cerrado: d.cerrado || snap.corte, cats: d.cats || [], sucursales: d.sucursales || [],
-    }] };
-  } catch (e) { return null; }
 }
 
 // Peñaflor · Volumen (botellas) + Clientes con compra (CCC). Objetivo por vendedor en las
@@ -321,15 +306,14 @@ exports.handler = async (event) => {
     const esSup = !!perfil.es_supervisor;
     // Supervisores → su equipo. Marketing/Dirección/Trade → toda la empresa (panorama).
     const VER_TODO = ['diseno', 'admin', 'direccion', 'torneo', 'compras', 'desarrollo'];
-    // Vendedores (16/11/2026, pedido del usuario): ven SOLO los resultados finales del Torneo
-    // Doña Paula; los planes de Campari y Pernod siguen siendo de supervisores y Dirección.
+    // Vendedores: sus planes (Peñaflor, Séptima, ON trade); los de Campari y Pernod siguen siendo
+    // de supervisores y Dirección. El Torneo Doña Paula se sacó el 19/11/2026.
     if (!esSup && !VER_TODO.includes(rol)) {
       if (rol !== 'ventas' && rol !== 'mayorista') return json(403, { error: 'Solo para supervisores y Dirección/Marketing.' });
-      const tp = await torneoDP(hub);
       const pf = await penaflor(hub, perfil).catch(() => null);
       const sp = await septima(hub, perfil).catch(() => null);
       const ot = await ontrade(hub, perfil).catch(() => null);
-      const provs = []; if (pf) provs.push(pf); if (sp) provs.push(sp); if (ot) provs.push(ot); if (tp) provs.push(tp);
+      const provs = []; if (pf) provs.push(pf); if (sp) provs.push(sp); if (ot) provs.push(ot);
       return json(200, { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: 'vendedor', codigo: perfil.codigo_vendedor || null,
         generado: new Date().toISOString(), proveedores: provs });
     }
@@ -429,10 +413,6 @@ exports.handler = async (event) => {
         proveedores.push({ id: PROVEEDOR.id, nombre: PROVEEDOR.nombre, color: PROVEEDOR.color, planes: [ch] });
       }
     } catch (e) {}
-
-    // ---- Doña Paula · Torneo (finalizado) ----
-    const tp = await torneoDP(hub);
-    if (tp) proveedores.push(tp);
 
     return json(200, Object.assign(base, { proveedores }));
   } catch (e) {

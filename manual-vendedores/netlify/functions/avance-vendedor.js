@@ -75,13 +75,21 @@ exports.handler = async (event) => {
     const vend = ((await (await man('vendedores?codigo=eq.' + encodeURIComponent(codigo) + '&select=nombre')).json()) || [])[0] || {};
     const nombre = vend.nombre || perfil.nombre || '';
 
-    const [activos, ventas, obj, objCli] = await Promise.all([
+    const nc = s => String(s == null ? '' : s).trim().replace(/^0+/, '') || '0';   // código sin ceros adelante
+    const [activosCods, ventas, obj, objCli] = await Promise.all([
+      // Los códigos de sus clientes activos (19/11/2026: la lista, no solo cuántos, para saber
+      // cuántos de SUS activos compraron). null si no se pudo leer.
       (async () => {
         const vig = await filtroVigentes(cob);
         const sinCero = String(parseInt(codigo, 10));   // en CUBO a veces viene "31" en vez de "031"
-        const r = await cob('cuentas_cubo?select=codigo&vendedor=in.(' + encodeURIComponent(codigo) + ',' + encodeURIComponent(sinCero) + ')' + (vig ? '&' + vig : ''),
-          { headers: { Prefer: 'count=exact', Range: '0-0' } });
-        return r.ok ? (Number((r.headers.get('content-range') || '*/0').split('/')[1]) || 0) : null;
+        const q = 'cuentas_cubo?select=codigo&vendedor=in.(' + encodeURIComponent(codigo) + ',' + encodeURIComponent(sinCero) + ')' + (vig ? '&' + vig : '');
+        const lista = [];
+        for (let i = 0; i < 20000; i += 1000) {
+          const r = await cob(q, { headers: { Range: i + '-' + (i + 999) } });
+          if (!r.ok) return null;
+          const l = await r.json(); lista.push(...l); if (l.length < 1000) break;
+        }
+        return lista.map(x => nc(x.codigo));
       })(),
       traerTodo(man, 'ventas_cliente?select=cliente_codigo,sku,unidades,importe&vendedor=eq.' + encodeURIComponent(codigo) + '&fecha=gte.' + desde + '&order=fecha.asc'),
       objetivos(codigo, nombre).catch(e => ({ error: (e && e.message) || String(e) })),
@@ -98,9 +106,33 @@ exports.handler = async (event) => {
       if (rubro === '01') vinos += u; else if (rubro === '02') spirits += u;
     });
 
+    const activos = activosCods ? activosCods.length : null;
+    // Con compra cuenta TODO cliente facturado con su código (como Administración y el objetivo).
+    // Aparte (19/11/2026, pedido del usuario): cuántos de SUS activos compraron, y quiénes de otras
+    // carteras le compraron (nombre y de quién es), para que Clientes cierre con el Inicio.
+    let conCompraActivos = null, otras = [];
+    if (activosCods) {
+      const mios = new Set(activosCods);
+      conCompraActivos = [...conCompra].filter(c => mios.has(nc(c))).length;
+      const fuera = [...conCompra].filter(c => !mios.has(nc(c)));
+      if (fuera.length) {
+        const [cl, vs] = await Promise.all([
+          man('clientes?select=codigo_cliente,nombre,vendedor_id&codigo_cliente=in.(' + fuera.map(encodeURIComponent).join(',') + ')').then(r => r.ok ? r.json() : []).catch(() => []),
+          man('vendedores?select=id,nombre').then(r => r.ok ? r.json() : []).catch(() => []),
+        ]);
+        otras = fuera.map(c => {
+          const x = (cl || []).find(k => nc(k.codigo_cliente) === nc(c));
+          const v = x && (vs || []).find(w => w.id === x.vendedor_id);
+          return { codigo: c, nombre: x ? x.nombre : 'Cliente ' + c, cartera: v ? v.nombre : null };
+        }).sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+      }
+    }
+
     return json(200, {
       codigo, nombre, desde, hasta: hoyAR,
-      clientes: { activos, con_compra: conCompra.size, objetivo: objCli },
+      // codigos_con_compra (19/11/2026): la lista de Clientes marca en verde a estos y en rojo al resto.
+      clientes: { activos, con_compra: conCompra.size, con_compra_activos: conCompraActivos, objetivo: objCli,
+        codigos_con_compra: [...conCompra], otras_carteras: otras },
       vinos: { vendido: Math.round(vinos), objetivo: obj && !obj.error ? obj.vinos : null },
       spirits: { vendido: Math.round(spirits), objetivo: obj && !obj.error ? obj.spirits : null },
       objetivo_error: obj && obj.error ? obj.error : (obj ? null : 'no figura en la planilla'),

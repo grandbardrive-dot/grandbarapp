@@ -18,6 +18,7 @@ const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 
 const { traerTodo } = require('./_paginar.js');
+const { corteVigentes } = require('./_cuentas-vigentes');
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const qvals = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
@@ -30,7 +31,7 @@ const normCod = x => (String(x == null ? '' : x).trim().replace(/^0+/, '') || '0
 //   allowed          → Set de códigos activos de todo el equipo
 //   vendorsWithManual→ Set de códigos de vendedor que tienen clientes en el Manual
 //   countByVendor    → { codigoVendedor: cantidad de clientes activos }
-async function carteraManual(codigos) {
+async function carteraManual(codigos, vigentes) {
   const man = (p, o) => fetch(MAN_URL + '/rest/v1/' + p, { headers: Object.assign({ apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON }, (o && o.headers) || {}) });
   const out = { allowed: new Set(), vendorsWithManual: new Set(), countByVendor: {}, est: {}, col: {} };
   try {
@@ -51,7 +52,9 @@ async function carteraManual(codigos) {
       const k = normCod(c.codigo_cliente);
       out.col[k] = c.activo;
       const activo = (k in estMap) ? estMap[k] : (c.activo !== false);
-      if (activo) { out.allowed.add(k); out.countByVendor[vcod] = (out.countByVendor[vcod] || 0) + 1; }
+      // Cuenta solo las que siguen activas en CUBO (19/11/2026): así da lo mismo que la pestaña
+      // Clientes del vendedor (clientes-hub filtra igual). Si no se pudo saber, cuenta todas, como antes.
+      if (activo) { out.allowed.add(k); if (!vigentes || vigentes.has(k)) out.countByVendor[vcod] = (out.countByVendor[vcod] || 0) + 1; }
     });
   } catch (e) {}
   return out;
@@ -110,7 +113,14 @@ exports.handler = async (event) => {
     // por código; si no figura, la columna activo del Manual. Un cliente que el ERP tiene a
     // nombre del vendedor y no está en el Manual se cuenta (no está oculto).
     // El número de clientes sigue siendo el de la cartera del Manual ("Mi cartera").
-    const cartera = await carteraManual(codigos);
+    // Cuentas vigentes en CUBO (las que vinieron en la última corrida), para contar la cartera igual que el vendedor.
+    let vigentes = null;
+    try {
+      const corte = await corteVigentes(cob);
+      const tc = corte ? new Date(corte).getTime() : null;
+      if (tc) vigentes = new Set(clientes.filter(c => !c.actualizado || new Date(c.actualizado).getTime() >= tc).map(c => normCod(c.codigo)));
+    } catch (e) {}
+    const cartera = await carteraManual(codigos, vigentes);
     const oculto = c => {
       const k = normCod(c.codigo);
       return (k in cartera.est) ? cartera.est[k] === false : cartera.col[k] === false;

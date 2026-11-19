@@ -407,7 +407,10 @@
       $("stClientes").textContent = act != null ? n(act) : "—";
       $("stClientesSub").textContent = act != null ? "en CUBO" : "no se pudo leer";
       $("pfCcc").textContent = n(cc);
-      $("pfCccSub").textContent = act ? (Math.round(cc * 100 / act) + "% de tus activos") : "este mes";
+      // 19/11/2026: el % es de SUS activos que compraron (antes dividía todos los que compraron,
+      // incluidos clientes de otras carteras, por sus activos).
+      const cca = d.clientes.con_compra_activos;
+      $("pfCccSub").textContent = (act && cca != null) ? (n(cca) + " de tus " + n(act) + " activos (" + Math.round(cca * 100 / act) + "%)") : "este mes";
       if(obj){
         $("pfCliObj").textContent = n(obj);
         $("pfCliObjSub").textContent = "llevás el " + Math.round(cc * 100 / obj) + "%";

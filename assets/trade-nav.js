@@ -20,7 +20,8 @@
     calendario: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
     avisos: '<path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a4 4 0 0 1 0 6"/>',
     presupuestos: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/>',
-    incentivos: '<circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"/>'
+    incentivos: '<circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"/>',
+    reporte: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M3 14.5h18"/>'
   };
   var GRUPOS = [
     { items: [
@@ -37,7 +38,9 @@
       ['crm-calendario.html', 'Calendario de acciones', 'calendario'],
       ['acciones-crm.html', 'Avisos de envío', 'avisos'],
       ['presupuestos.html', 'Presupuestos', 'presupuestos'],
-      ['supervisor-incentivos.html', 'Incentivos', 'incentivos']
+      ['supervisor-incentivos.html', 'Incentivos', 'incentivos'],
+      // Reporte diario (19/11/2026): el mismo de supervisores y Fernando, embebido.
+      ['trade-reporte.html', 'Reporte diario', 'reporte']
     ] }
   ];
 

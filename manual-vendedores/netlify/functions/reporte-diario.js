@@ -16,6 +16,9 @@
 //  Quién lo ve (18/11/2026, pedido del usuario: "solo en panel de supervisores y Fernando"):
 //  supervisores y Dirección, más Desarrollo y Diseño, que mantienen el sistema. Los
 //  vendedores y la tienda no: reciben 403.
+//  19/11/2026 (pedido del usuario): también Juan Pablo Sepúlveda (Trade, rol torneo,
+//  trade-reporte.html), Luciana (compras, admin-reporte-diario.html) y, del equipo de
+//  Administración, solo Kathy (por su mail, REP_MAILS; equipo-panel.html#reporte).
 //  El subtotal "Distribución" deja afuera a Mayorista Mendoza (014) y Mayorista San Luis
 //  (008), como la planilla de Administración: lo arma la pantalla con `distribucion`.
 //  Env: COBRANZAS_SERVICE_ROLE (sin ella, los activos quedan en blanco).
@@ -30,7 +33,8 @@ const { filtroVigentes } = require('./_cuentas-vigentes');
 const OBJ = require('./_objetivos-vendedores');
 const { cod3, norm } = OBJ;
 
-const PUEDEN = ['admin', 'direccion', 'duenio', 'desarrollo', 'diseno'];   // + es_supervisor
+const PUEDEN = ['admin', 'direccion', 'duenio', 'desarrollo', 'diseno', 'torneo', 'compras'];   // + es_supervisor
+const REP_MAILS = ['kolivares@grandbar.com.ar'];   // Kathy (contadora), rol equipo_admin
 const FUERA_DE_DISTRIBUCION = ['014', '008'];   // Mayorista Mendoza y Mayorista San Luis
 const NOMBRE_EQUIPO = { 'EQUIPO SL': 'EQUIPO SAN LUIS', 'MAYORISTA MDZ': 'MAYORISTA MENDOZA', 'MAYORISTA SL': 'MAYORISTA SAN LUIS' };
 
@@ -46,7 +50,8 @@ exports.handler = async (event) => {
     const pRes = await fetch(HUB_URL + '/rest/v1/usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=rol,codigo_vendedor,es_supervisor', { headers: { apikey: HUB_ANON, Authorization: 'Bearer ' + token } });
     const perfil = ((await pRes.json()) || [])[0] || {};
     const rol = String(perfil.rol || '').toLowerCase();
-    if (!perfil.es_supervisor && !PUEDEN.includes(rol)) return json(403, { error: 'El reporte diario es para supervisores y Dirección.' });
+    const mail = String(user.email || '').trim().toLowerCase();
+    if (!perfil.es_supervisor && !PUEDEN.includes(rol) && !REP_MAILS.includes(mail)) return json(403, { error: 'El reporte diario es para supervisores y Dirección.' });
 
     // Mes en curso, en hora de Argentina.
     const hoyAR = new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10);
