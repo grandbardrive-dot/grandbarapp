@@ -23,6 +23,9 @@
       { href: "supervisor-pedidos.html", label: "Pedidos de acción",  short: "Pedidos", icon: '<path d="M4 4h16v16H4z"/><path d="M4 9h16M9 14l2 2 4-4"/>' },
       // Cómo va el equipo en los planes de incentivos de proveedores (arranca con Campari 5T).
       { href: "supervisor-incentivos.html", label: "Incentivos",      short: "Incentivos", icon: '<circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"/>' },
+      // Reporte "Apertura Presupuesto" automático (reemplaza el Excel de Seba): botellas por
+      // equipo/vendedor/tipo de cliente y familia (Vinos/Espirituosas) vs objetivo. (19/11/2026)
+      { href: "apertura-presupuesto.html", label: "Apertura Presupuesto", short: "Presupuesto", icon: '<path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/>' },
       { href: "leads-asignar.html",      label: "Leads",              short: "Leads",   icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>' },
       // Prospectos que arma solo el agente "Cazador de clientes" cada mañana.
       { href: "prospectos.html",         label: "Prospectos",         short: "Prospectos", icon: '<path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>' },
@@ -76,9 +79,11 @@
     document.querySelectorAll(".sb-user .s").forEach(function (el) { if (p[1]) el.textContent = p[1]; });
     var nav = document.querySelector(".sb-nav");
     if (nav) {
+      var aqui = function (h) { return location.pathname.split("/").pop().replace(/\.html$/, "").toLowerCase() === h.replace(/\.html$/, "").toLowerCase() ? " active" : ""; };
       nav.innerHTML = '<div ' + TIT + '>Menú</div>'
         + '<a href="' + p[0] + '">' + svg('<path d="M15 6l-6 6 6 6"/>') + ' Volver a mi panel</a>'
-        + '<a href="supervisor-incentivos.html" class="active">' + svg('<circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"/>') + ' Incentivos</a>';
+        + '<a href="supervisor-incentivos.html" class="' + (aqui('supervisor-incentivos') || 'x').replace('x', '') + '">' + svg('<circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"/>') + ' Incentivos</a>'
+        + '<a href="apertura-presupuesto.html" class="' + (aqui('apertura-presupuesto') || 'x').replace('x', '') + '">' + svg('<path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/>') + ' Apertura Presupuesto</a>';
       nav.style.visibility = "visible";
     }
   }
