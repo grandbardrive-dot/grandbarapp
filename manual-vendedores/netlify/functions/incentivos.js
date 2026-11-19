@@ -77,11 +77,13 @@ async function plan5T(codigos, nombreDeCod, alcance) {
   // Objetivo por vendedor: OFF Mza = universo fijo (vinotecas); el resto = sus clientes activos.
   const activosPorVend = {}; for (const [, info] of clientes) { activosPorVend[info.vcod] = (activosPorVend[info.vcod] || 0) + 1; }
   const objetivoDe = (vcod) => (CAMPARI_OBJETIVO_OFF[String(vcod)] != null) ? CAMPARI_OBJETIVO_OFF[String(vcod)] : (activosPorVend[String(vcod)] || 0);
-  const codes = [...clientes.keys()];
+  // cobertura_5t trae UNA fila por cliente (las 5 fechas como columnas) SIN filtrar por códigos:
+  // filtrar por miles de códigos hacía timeout (Luciana/Dirección ven toda la empresa). Acá se
+  // filtra en memoria contra `clientes`. (Fix 19/11/2026)
   let rows = [];
-  try { rows = await (await man('rpc/cobertura_5t', { method: 'POST', body: JSON.stringify({ codes }) })).json(); } catch (e) {}
+  try { rows = await (await man('rpc/cobertura_5t', { method: 'POST', body: '{}' })).json(); } catch (e) {}
   if (!Array.isArray(rows)) rows = [];
-  const porCli = {}; rows.forEach(r => { (porCli[r.cliente_codigo] = porCli[r.cliente_codigo] || {})[r.marca] = r.ult_fecha; });
+  const porCli = {}; rows.forEach(r => { porCli[r.cliente_codigo] = { aperol: r.aperol, campari: r.campari, cynar: r.cynar, skyy: r.skyy, others: r.others }; });
   const d = new Date();
   const mesDesde = d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-01';
 

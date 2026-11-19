@@ -277,14 +277,16 @@
   const clasePct = p => p>=66?'hi':(p<=33?'lo':'');
   const nClientes = n => n + (n===1?' cliente':' clientes');
 
+  // Color del % según avance (brillante para que resalte sobre el fondo oscuro).
+  const pcol = pct => pct>=66?'var(--green)':(pct<=33?'var(--red)':'var(--gold)');
   function ring(pct){
     const R=56, C=2*Math.PI*R, off=C*(1-pct/100);
-    const col = pct>=66?'var(--green-d)':(pct<=33?'var(--red)':'var(--gold-d)');
+    const col = pcol(pct);
     return `<div class="ring"><svg width="132" height="132" viewBox="0 0 132 132">
         <circle cx="66" cy="66" r="${R}" fill="none" stroke="#ffffff22" stroke-width="13"/>
         <circle class="ringprog" cx="66" cy="66" r="${R}" fill="none" stroke="${col}" stroke-width="13" stroke-linecap="round"
           style="--c:${C.toFixed(1)}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 66 66)"/>
-      </svg><div class="pctT"><div class="big countup" data-count="${pct}" data-suffix="%">${pct}%</div><div class="lbl">cumplimiento</div></div></div>`;
+      </svg><div class="pctT"><div class="big countup" style="color:${col}" data-count="${pct}" data-suffix="%">${pct}%</div><div class="lbl">cumplimiento</div></div></div>`;
   }
 
   // Foto de la botella de cada producto Campari (Cobertura y Convivencia). '' si no corresponde.
@@ -309,7 +311,7 @@
 
   function miniRing(pct){
     const R=16,C=2*Math.PI*R,off=C*(1-pct/100);
-    const col=pct>=66?'var(--green-d)':(pct<=33?'var(--red)':'var(--gold-d)');
+    const col=pcol(pct);
     return `<svg class="mini-ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="${R}" fill="none" stroke="#ffffff22" stroke-width="5"/><circle cx="20" cy="20" r="${R}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 20 20)"/></svg>`;
   }
   function provPct(prov){ let a=0,t=0; (prov.planes||[]).forEach(p=>{a+=p.avanceTotal||0; t+=p.targetTotal||0;}); return t?Math.round(100*a/t):0; }
@@ -527,7 +529,7 @@
     return `<button class="tcard" onclick="irProv('${esc(prov.id)}')">
       <div class="logoBanner">${provBrand(prov)}</div>
       <div class="subc">${n} ${n===1?'plan':'planes'}</div>
-      <div class="foot">${miniRing(pct)}<div><div class="pctbig countup" data-count="${pct}" data-suffix="%">${pct}%</div><div class="pl">cumplimiento</div></div><span class="go">Ver planes ›</span></div>
+      <div class="foot">${miniRing(pct)}<div><div class="pctbig countup" style="color:${pcol(pct)}" data-count="${pct}" data-suffix="%">${pct}%</div><div class="pl">cumplimiento</div></div><span class="go">Ver planes ›</span></div>
     </button>`;
   }
   function planCard(prov,p){
@@ -544,7 +546,7 @@
       <div class="th">${provLogo(prov)}
         <div><div class="nm">${esc(p.nombre)}</div><div class="sub">${esc(prov.nombre)}</div></div></div>
       <div style="font-size:12.5px;color:var(--muted);line-height:1.4">${esc(p.detalle)}</div>
-      <div class="foot">${miniRing(p.pct||0)}<div><div class="pctbig countup" data-count="${p.pct||0}" data-suffix="%">${p.pct||0}%</div><div class="pl">${esc(sub)}</div></div><span class="go">Ver ›</span></div>
+      <div class="foot">${miniRing(p.pct||0)}<div><div class="pctbig countup" style="color:${pcol(p.pct||0)}" data-count="${p.pct||0}" data-suffix="%">${p.pct||0}%</div><div class="pl">${esc(sub)}</div></div><span class="go">Ver ›</span></div>
     </button>`;
   }
 
