@@ -7,8 +7,12 @@
 //
 //   Motor: RPC public.apertura_reporte(desde,hasta) en el Manual (ventas
 //   del ERP ya sincronizadas a diario). Objetivos/config: HUB.
-//   Regla: solo familia 01 (VINOS) y 02 (ESPIRITUOSAS). Se excluye
-//   "Empresas y Particulares" salvo en MAYOR. unidades = botellas.
+//   Regla: solo familia 01 (VINOS) y 02 (ESPIRITUOSAS). unidades = botellas.
+//   19/11/2026 (pedido del usuario): cuenta TODO lo facturado, igual que el
+//   Inicio del vendedor (antes se excluía "Empresas y Particulares").
+//   Tipo de cliente = rubro de CUBO (cuentas_cubo, base de Cobranzas); el del
+//   Manual queda de respaldo. Equipos = los de la planilla Presupuesto Ventas
+//   (como el Reporte diario), así entra cualquier vendedor nuevo.
 //
 //   GET  → reporte completo (todos ven los 4 equipos).
 //   POST {accion:'guardar', mes, items:[{vcod,familia,objetivo}]} → objetivos.
@@ -22,12 +26,17 @@ const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
+const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
+const { traerTodo } = require('./_paginar.js');
 
 const EQUIPOS = ['ON', 'OFF', 'SL', 'MAYOR'];
+// Subtotales de la planilla Presupuesto Ventas → equipo de esta pantalla.
+const EQUIPO_DE_GRUPO = { 'EQUIPO ON': 'ON', 'EQUIPO OFF': 'OFF', 'EQUIPO SL': 'SL', 'MAYORISTA MDZ': 'MAYOR', 'MAYORISTA SL': 'MAYOR' };
 const EQNOMBRE = { ON: 'Equipo ON', OFF: 'Equipo OFF', SL: 'Equipo SL', MAYOR: 'Equipo MAYOR' };
 const FAMILIAS = [['VINOS', 'Vinos'], ['ESP', 'Espirituosas']];
 // Orden de tipos como en el Excel.
-const TIPOS = ['Disco', 'Bares', 'Restaurant', 'Vinoteca', 'Hotel', 'Autoservicio',
+// Catering y Cafeteria son rubros de CUBO que el Excel no tenía. Si CUBO trae otro, va al final.
+const TIPOS = ['Disco', 'Bares', 'Restaurant', 'Cafeteria', 'Vinoteca', 'Hotel', 'Catering', 'Autoservicio',
   'Tienda de Bebidas', 'Distribuidores y Mayoristas', 'Evento', 'Empresas y Particulares', 'Sin tipo'];
 
 const json = (s, b) => ({ statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) });
@@ -92,18 +101,48 @@ exports.handler = async (event) => {
     }
 
     // -------- GET: armar el reporte --------
-    const [rpcRes, objRes, eqRes] = await Promise.all([
-      fetch(MAN_URL + '/rest/v1/rpc/apertura_reporte', {
-        method: 'POST', headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ desde, hasta }),
-      }),
+    // Tipo de cliente = rubro de CUBO (19/11/2026). En el Manual, Catering y Cafetería figuraban como
+    // "otros" y se contaban como Empresas y Particulares.
+    const cobKey = process.env.COBRANZAS_SERVICE_ROLE;
+    const cob = (p, o) => fetch(COB_URL + '/rest/v1/' + p, { headers: Object.assign({ apikey: cobKey, Authorization: 'Bearer ' + cobKey }, (o && o.headers) || {}) });
+    const man = (p) => fetch(MAN_URL + '/rest/v1/' + p, { headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON } });
+    const nc = s => String(s == null ? '' : s).trim().replace(/^0+/, '') || '0';
+    const [tiposCubo, objRes, eqRes, vendMan, pres] = await Promise.all([
+      (async () => {
+        if (!cobKey) return null;
+        const filas = await traerTodo(cob, 'cuentas_cubo?select=codigo,rubro&order=codigo');
+        const t = {};
+        (filas || []).forEach(c => { const r = String(c.rubro || '').trim(); if (r && !/^sin categorizar$/i.test(r)) t[nc(c.codigo)] = r; });
+        return t;
+      })().catch(() => null),
       hub('presupuesto_objetivos?mes=eq.' + mesActual + '&select=vendedor_codigo,familia,tipo_cliente,objetivo'),
       hub('usuarios?select=nombre,codigo_vendedor&codigo_vendedor=not.is.null'),
+      man('vendedores?select=codigo,nombre').then(r => r.ok ? r.json() : []).catch(() => []),
+      OBJ.leerPresupuesto().catch(() => null),
     ]);
+    const rpcRes = await fetch(MAN_URL + '/rest/v1/rpc/apertura_reporte', {
+      method: 'POST', headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ desde, hasta, p_tipos: tiposCubo }),
+    });
     const datos = await rpcRes.json();
     if (!Array.isArray(datos)) return json(500, { error: 'Motor de ventas no disponible', detalle: datos });
     const objetivos = await objRes.json() || [];
     const usuarios = await eqRes.json() || [];
+
+    // Equipo de cada vendedor según la planilla Presupuesto Ventas: cada fila en MAYÚSCULAS
+    // (EQUIPO ON, EQUIPO OFF…) cierra el equipo de las de arriba. Si la planilla no responde,
+    // queda el equipo de respaldo que trae el motor.
+    const vendTodos = (Array.isArray(vendMan) ? vendMan : []).map(v => ({ codigo: v.codigo, nombre: v.nombre }))
+      .concat((Array.isArray(usuarios) ? usuarios : []).filter(u => u.codigo_vendedor).map(u => ({ codigo: u.codigo_vendedor, nombre: u.nombre })));
+    let equipoDe = null;
+    if (Array.isArray(pres)) {
+      equipoDe = {};
+      let grupo = [];
+      for (const fila of pres) {
+        if (fila.grupo) { const e = EQUIPO_DE_GRUPO[String(fila.nombre).trim().toUpperCase()]; if (e) grupo.forEach(c => { if (!equipoDe[c]) equipoDe[c] = e; }); grupo = []; continue; }
+        const c = OBJ.codigoDeFila(fila, vendTodos); if (c) grupo.push(nc(c));
+      }
+    }
 
     // nombre "oficial" del Hub por si el de ventas trae espacios/variantes
     const nombreHub = {}; (Array.isArray(usuarios) ? usuarios : []).forEach(u => { if (u.codigo_vendedor) nombreHub[String(u.codigo_vendedor).replace(/^0+/, '') || '0'] = u.nombre; });
@@ -113,9 +152,8 @@ exports.handler = async (event) => {
     // VINOS/SPIRITS por vendedor, se actualiza sola cada mes. Si una celda del Hub pisa, gana el Hub.
     const objSheet = {};
     try {
-      const vendList = (Array.isArray(usuarios) ? usuarios : []).filter(u => u.codigo_vendedor).map(u => ({ codigo: u.codigo_vendedor, nombre: u.nombre }));
-      const pres = await OBJ.leerPresupuesto();
-      for (const fila of pres) {
+      const vendList = vendTodos;   // vendedores del Manual + usuarios del Hub (19/11/2026: así entra Emiliano)
+      for (const fila of (pres || [])) {
         if (fila.grupo) continue;
         const cod = OBJ.codigoDeFila(fila, vendList);
         if (!cod) continue;
@@ -129,7 +167,9 @@ exports.handler = async (event) => {
     // acumular: eq -> fam -> vcod -> { nombre, tipos:{tipo:{meses}}, meses }
     const acc = {};
     for (const r of datos) {
-      const eq = r.equipo, fam = r.familia, vc = String(r.vendedor_codigo);
+      const fam = r.familia, vc = String(r.vendedor_codigo);
+      const eq = equipoDe ? equipoDe[vc] : r.equipo;
+      if (!eq || !fam) continue;   // vendedores fuera de los equipos de la planilla (p. ej. Empleados)
       acc[eq] = acc[eq] || {};
       acc[eq][fam] = acc[eq][fam] || {};
       const V = acc[eq][fam][vc] = acc[eq][fam][vc] || { vcod: vc, nombre: nombreHub[vc] || (r.vendedor_nombre || '').trim(), meses: {}, tipos: {} };
@@ -145,7 +185,7 @@ exports.handler = async (event) => {
         const vendedores = Object.values(vmap).map(V => {
           const objetivo = objDe(V.vcod, fk);
           const actual = num(V.meses[mesActual]);
-          const tipos = TIPOS
+          const tipos = TIPOS.concat(Object.keys(V.tipos).filter(t => !TIPOS.includes(t)))
             .filter(t => V.tipos[t])
             .map(t => ({ tipo: t, meses: todos.map(m => num(V.tipos[t].meses[m])), actual: num(V.tipos[t].meses[mesActual]) }));
           return { vcod: V.vcod, nombre: V.nombre, meses: todos.map(m => num(V.meses[m])), actual, objetivo, pct: pct(actual, objetivo), tipos };
