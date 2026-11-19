@@ -33,7 +33,7 @@ update public.usuarios as u
     ('ccarrada@grandbar.com.ar',       '003', 'Carolina Carrada'),
     ('jmollar@grandbar.com.ar',        '005', 'Juan Pablo Mollar'),
     ('dperez@grandbar.com.ar',         '006', 'Daniel Perez'),
-    ('alaurito@grandbar.com.ar',       '007', 'Ángeles Laurito'),
+    ('alaurito@grandbar.com.ar',       '007', 'Angela Laurito'),
     ('mjuarez@grandbar.com.ar',        '010', 'Martin Juarez'),
     ('dsebastianelli@grandbar.com.ar', '011', 'Diego Sebastianelli'),
     ('fojer@grandbar.com.ar',          '015', 'Facundo Ojer'),

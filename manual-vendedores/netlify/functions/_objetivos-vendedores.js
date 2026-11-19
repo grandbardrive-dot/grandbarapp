@@ -33,7 +33,7 @@ function lev(a, b) {
   return prev[n];
 }
 // ¿El nombre de la planilla es este vendedor? "Carolina Hiluani" = "Carolina Heluani",
-// "Angela Laurito" = "Ángeles Laurito", "Jonathan Guique" = "Jonathan Guigue",
+// "Angela Lauritto" = "Angela Laurito", "Jonathan Guique" = "Jonathan Guigue",
 // "Emiliano Lopez" = "E. López" (inicial, 18/11/2026): mismo comienzo de nombre (o la
 // inicial) y apellido con 2 letras de diferencia como mucho.
 function esElMismo(planilla, vendedor) {
