@@ -225,6 +225,19 @@ exports.handler = async (event) => {
     // Lo mismo que ve Moni en su panel, pero cada uno SOLO las suyas (también los
     // supervisores: no ven las de sus vendedores). Solo mirar: procesar, corregir y
     // numerar lo hace tesorería.
+    // MIS RECIBOS (19/11/2026): todos los recibos del sistema que cobró el vendedor (la
+    // sucursal del recibo es su código) o de su cartera, con el link para verlos o
+    // reenviárselos al cliente. Salen de recibos_erp (ver recibos-erp-background).
+    if (q.que === 'recibos') {
+      const link = require('./_recibo-link');
+      const c4 = String(codigo).replace(/\D/g, '').padStart(4, '0');
+      const desde = new Date(Date.now() - 180 * 864e5).toISOString().slice(0, 10);
+      const r = await cob('recibos_erp?select=empresa,sucursal,numero,n,cliente,cliente_nombre,fecha,hora,total,facturas&anulado=eq.false&fecha=gte.' + desde
+        + '&or=(sucursal.eq.' + c4 + ',vendedor.eq.' + encodeURIComponent(String(codigo)) + ')&order=fecha.desc,numero.desc&limit=1000');
+      const rows = r.ok ? await r.json() : [];
+      return json(200, { recibos: (Array.isArray(rows) ? rows : []).map(x => ({ ...x, url: link.url(x) })) });
+    }
+
     if (q.que === 'historial' || q.que === 'historial-det') {
       const equipo = [{ codigo: String(codigo), nombre: perfil.nombre || null }];
       const codigos = equipo.map(e => e.codigo);
@@ -237,7 +250,10 @@ exports.handler = async (event) => {
           cob('planilla_cobranzas?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + fecha + '&order=created_at.asc'),
           cob('planilla_envios?select=*&vendedor=eq.' + encodeURIComponent(vend) + '&fecha_rendicion=eq.' + fecha),
         ]);
-        return json(200, { filas: fr2.ok ? await fr2.json() : [], envio: (er2.ok ? await er2.json() : [])[0] || null });
+        // Cada recibo del sistema con su link (para abrirlo desde el historial).
+        const link = require('./_recibo-link');
+        const filasH = (fr2.ok ? await fr2.json() : []).map(f => ({ ...f, recibo_links: (Array.isArray(f.recibo_erp) ? f.recibo_erp : []).map(r => ({ n: r.n, url: link.url(r) })) }));
+        return json(200, { filas: filasH, envio: (er2.ok ? await er2.json() : [])[0] || null });
       }
 
       const er3 = await cob('planilla_envios?select=*&' + inCods + '&order=enviada_at.desc&limit=400');

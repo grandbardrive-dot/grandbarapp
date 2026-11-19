@@ -1369,8 +1369,12 @@ async function cobPlanillaDet(vendedor, fecha) {
       const auto = f.recibo_auto && f.recibo;
       const det = auto && Array.isArray(f.recibo_erp) ? f.recibo_erp.map(r => r.sucursal + '-' + r.numero + ' · ' + cnum(r.total) + ' · ' + cfec(r.fecha)).join('\n') : '';
       const marca = auto && !cobSoloLectura() ? `<div style="font-size:9.5px;color:var(--green-d,#245647)" title="${cesc(det)}">✓ del sistema</div>` : '';
-      if (cobSoloLectura()) return `<td id="rec-${f.id}" style="padding:8px 11px;font-weight:700">${f.recibo ? cesc(f.recibo) : '<span style="color:var(--muted);font-weight:400">—</span>'}${marca}</td>`;
-      return `<td id="rec-${f.id}" style="padding:5px 8px"><input value="${cesc(f.recibo || '')}" placeholder="—" title="${auto ? cesc(det) : 'Se completa solo cuando procesás el cobro en el sistema'}" onchange="cobPlanillaMarcar('${f.id}','recibo',this.value,this)" style="border:1px solid ${auto ? '#9cc7ad' : '#d7d7d7'};background:${auto ? '#f1f8f3' : '#fff'};border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;font-weight:700;width:96px">${marca}</td>`;
+      // Ver el recibo oficial y mandárselo al vendedor por WhatsApp (19/11/2026).
+      const ver = (f.recibo_links || []).map(l => `<a href="${cesc(l.url)}" target="_blank" rel="noopener" style="font-size:10.5px;margin-right:6px">🧾 ver ${cesc(l.n)}</a>`).join('');
+      const env = f.recibo_enviado_at ? `<div style="font-size:9.5px;color:var(--green-d,#245647)" title="${cesc('Enviado por ' + (f.recibo_enviado_por || '') + ' el ' + cfec(f.recibo_enviado_at))}">📲 enviado al vendedor</div>` : '';
+      const btnEnv = f.recibo && !cobSoloLectura() ? `<button type="button" onclick="cobReciboEnviar('${f.id}',this)" title="Mandarle este recibo al vendedor por WhatsApp" style="margin-top:3px;background:#fff;border:1px solid #9cc7ad;color:#245647;border-radius:7px;padding:3px 7px;font:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">📲 ${f.recibo_enviado_at ? 'Reenviar' : 'Enviar'} al vendedor</button>` : '';
+      if (cobSoloLectura()) return `<td id="rec-${f.id}" style="padding:8px 11px;font-weight:700">${f.recibo ? cesc(f.recibo) : '<span style="color:var(--muted);font-weight:400">—</span>'}${marca}<div>${ver}</div>${env}</td>`;
+      return `<td id="rec-${f.id}" style="padding:5px 8px"><input value="${cesc(f.recibo || '')}" placeholder="—" title="${auto ? cesc(det) : 'Se completa solo cuando procesás el cobro en el sistema'}" onchange="cobPlanillaMarcar('${f.id}','recibo',this.value,this)" style="border:1px solid ${auto ? '#9cc7ad' : '#d7d7d7'};background:${auto ? '#f1f8f3' : '#fff'};border-radius:7px;padding:5px 8px;font:inherit;font-size:12.5px;font-weight:700;width:96px">${marca}<div>${ver}</div>${env}${btnEnv}</td>`;
     };
     // Pagos cargados en el PORTAL por el cliente: renglón celeste y, al final, el botón para aprobarlo
     // en el portal sin ir a Revisión de cobranzas (acepta el pago y marca la fila procesada).
@@ -1479,6 +1483,16 @@ async function cobPlanillaNumero(el) {
   } catch (e) {
     if (est) { est.style.color = '#b23120'; est.textContent = 'No se pudo guardar: ' + (e.message || e); }
   }
+}
+
+// Mandarle el recibo al vendedor por WhatsApp (19/11/2026), para que se lo pase al cliente.
+async function cobReciboEnviar(filaId, btn) {
+  btn.disabled = true; const antes = btn.textContent; btn.textContent = 'Enviando…';
+  try {
+    const d = await cobApi('', { method: 'POST', body: JSON.stringify({ accion: 'recibo-enviar', fila_id: filaId }) });
+    btn.textContent = '✓ Enviado a ' + String(d.a || 'el vendedor').split(' ')[0];
+    btn.style.background = '#e7f1ea';
+  } catch (e) { alert(e.message || e); btn.disabled = false; btn.textContent = antes; }
 }
 
 // Anular una planilla entera (18/11/2026): repetida o cargada por error. Se borran sus filas

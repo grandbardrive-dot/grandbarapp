@@ -259,6 +259,23 @@ exports.handler = async (event) => {
     if (!service) return html(500, '<h3>Falta configuración (COBRANZAS_SERVICE_ROLE).</h3>');
 
     const q = event.queryStringParameters || {};
+
+    // RECIBO por link firmado (19/11/2026): el que Moni le manda al vendedor por WhatsApp y
+    // el de "Mis recibos" del vendedor. No pide sesión: la firma es la llave (ver _recibo-link).
+    if (q.r) {
+      const rec = require('./_recibo-link').leer(q.r);
+      if (!rec) return html(403, '<h3>Este link de recibo no es válido.</h3>');
+      const j1 = await aikon(A.managerUrl, { Cuenta: A.cuenta, CuentaPwd: A.pwd });
+      const urlCuenta = String(j1.retorno || '').replace(/\/+$/, '');
+      if (!urlCuenta) return html(502, '<h3>No se pudo conectar con el sistema. Probá de nuevo en un rato.</h3>');
+      const j2 = await aikon(urlCuenta + '/IS3/ObtenerToken', { cuenta: A.cuenta, usuario: A.usuario, 'contraseña': A.pass, empresa: rec.empresa });
+      const tk = j2.token && j2.token.Codigo;
+      if (!tk) return html(502, '<h3>No se pudo conectar con el sistema. Probá de nuevo en un rato.</h3>');
+      const jc = await aikon(urlCuenta + '/IS3/ObtenerComprobante', { cuenta: A.cuenta, token: tk, Codigo: 'REC', Sucursal: rec.sucursal, Numero: rec.numero, Tipo: 'X' });
+      if (!jc || !jc.Comprobante) return html(404, '<h3>No se encontró el recibo en el sistema.</h3>');
+      return html(200, renderRecibo(jc.Comprobante));
+    }
+
     const esLista = q.que === 'lista';
     const resp = esLista
       ? (s, obj) => ({ statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(obj) })

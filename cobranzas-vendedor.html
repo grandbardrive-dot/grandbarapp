@@ -210,6 +210,7 @@
         <button id="tab-comp" onclick="verTab('comp')">📄 Comprobantes</button>
         <button id="tab-plan" onclick="verTab('plan')">📋 Planilla</button>
         <button id="tab-hist" onclick="verTab('hist')">📁 Historial de planillas</button>
+        <button id="tab-rec" onclick="verTab('rec')">🧾 Recibos</button>
       </div>
 
       <!-- DEUDA DE MIS CLIENTES -->
@@ -316,6 +317,16 @@
         </div>
         <div id="hiLista"><div class="empty"><div class="big">⏳</div>Cargando…</div></div>
       </div>
+
+      <!-- MIS RECIBOS (19/11/2026): los recibos del sistema de sus cobros, para pasárselos
+           al cliente cuando se los pide. -->
+      <div id="vista-rec" style="display:none">
+        <div class="plan-hint" style="margin:0 0 10px">Todos los recibos que generó el sistema por tus cobros (de los últimos 6 meses). Tocá <b>Ver</b> para abrirlo y descargarlo, o <b>Mandar al cliente</b> para enviárselo por WhatsApp.</div>
+        <div class="hi-filtros">
+          <input id="reBuscar" type="search" placeholder="Buscar por cliente, código o N° de recibo…" oninput="pintarRecibos()" autocomplete="off">
+        </div>
+        <div id="reLista"><div class="empty"><div class="big">⏳</div>Cargando…</div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -390,13 +401,14 @@
   }
   window.verSub = verSub;
   function verTab(cual){
-    ["deuda","comp","plan","hist"].forEach(t=>{
+    ["deuda","comp","plan","hist","rec"].forEach(t=>{
       const v=document.getElementById("vista-"+t), b=document.getElementById("tab-"+t);
       if(v) v.style.display = cual===t ? "block" : "none";
       if(b) b.classList.toggle("on", cual===t);
     });
     if(cual==="plan") abrirPlanilla();
     if(cual==="hist") abrirHistorial();
+    if(cual==="rec") abrirRecibos();
   }
   window.verTab = verTab;
 
@@ -404,6 +416,37 @@
   // Las planillas enviadas, armadas igual que en el panel de Moni (por fecha, la de hoy
   // abierta y las anteriores archivadas, verde = todas las filas procesadas por tesorería).
   // Vendedor: las suyas. Supervisor: las suyas y las de su equipo (con filtro por vendedor).
+  // ── Mis recibos (19/11/2026) ──
+  let RECIBOS = null;
+  async function abrirRecibos(){
+    const box=document.getElementById("reLista");
+    if(RECIBOS){ pintarRecibos(); return; }
+    box.innerHTML=`<div class="empty"><div class="big">⏳</div>Cargando…</div>`;
+    try{
+      const r=await fetch("/.netlify/functions/planilla-cobranzas?que=recibos", { headers:{ Authorization:"Bearer "+token } });
+      const j=await r.json();
+      if(j.error){ box.innerHTML=`<div class="aviso" style="display:block">${esc(j.error)}</div>`; return; }
+      RECIBOS=j.recibos||[]; pintarRecibos();
+    }catch(e){ box.innerHTML=`<div class="aviso" style="display:block">Error de conexión: ${esc(e.message||e)}</div>`; }
+  }
+  function pintarRecibos(){
+    const box=document.getElementById("reLista"); if(!box||!RECIBOS) return;
+    const q=((document.getElementById("reBuscar")||{}).value||"").trim().toLowerCase();
+    const lista=RECIBOS.filter(x=>!q || [x.n, x.cliente, x.cliente_nombre, x.numero].join(" ").toLowerCase().includes(q));
+    if(!lista.length){ box.innerHTML=`<div class="empty"><div class="big">🧾</div>${q?"No hay recibos con esa búsqueda.":"Todavía no hay recibos tuyos en el sistema."}</div>`; return; }
+    box.innerHTML=lista.slice(0,300).map(x=>{
+      const msg="Hola! Te paso el recibo N° "+x.n+" de GrandBar por "+fmtMoney(x.total)+": "+x.url;
+      return `<article class="hi-card ok" style="cursor:default">
+        <div class="hi-top"><span>🧾</span><div class="hi-nom">N° ${esc(x.n)} · ${esc(x.cliente_nombre||"")} <span style="color:var(--muted);font-weight:400">[${esc(x.cliente||"")}]</span></div><span class="hi-chip ok">${fmtMoney(x.total)}</span></div>
+        <div class="hi-desc">${fDia(x.fecha)}${x.facturas&&x.facturas.length?" · cancela "+esc(x.facturas.join(", ")):""}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <a class="pl-file" href="${esc(x.url)}" target="_blank" rel="noopener">🧾 Ver / descargar</a>
+          <a class="pl-file" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">📲 Mandar al cliente</a>
+        </div></article>`;
+    }).join("") + (lista.length>300?`<div class="hi-cuenta">Mostrando 300 de ${lista.length}: buscá por cliente para encontrar el resto.</div>`:"");
+  }
+  window.pintarRecibos=pintarRecibos;
+
   let HIST = null;
   const fDia = s => s ? String(s).slice(0,10).split("-").reverse().join("/") : "—";   // sin corrimiento de zona horaria
   const HI_LBL = { efectivo:"Efectivo", cheques:"Cheques", retenciones:"Retenc.", transferencia:"Transf/MP", tarjeta:"Tarjeta", echeq:"E-cheq" };
@@ -509,7 +552,7 @@
             <td class="num">${mDet(f.transferencia, f.transferencia_detalle)}</td><td class="num">${plN(f.tarjeta)}</td><td class="num">${mDet(f.echeq, f.echeq_detalle)}${echF(f)}</td>
             <td>${f.fecha_pago ? fDia(f.fecha_pago) : ""}${f.fecha_cheque ? `<div class="hi-sub">${tieneEchF(f) ? "cheque" : "ch/e-cheq"}: ${fDia(f.fecha_cheque)}</div>` : ""}</td>
             <td>${comps(f)}</td><td>${ver(f.recepcion_url)}</td>
-            <td style="font-weight:700">${f.recibo ? esc(f.recibo) : '<span style="color:var(--muted);font-weight:400">—</span>'}</td>
+            <td style="font-weight:700">${(f.recibo_links||[]).length ? f.recibo_links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener" title="Ver el recibo">🧾 ${esc(l.n)}</a>`).join(" ") : (f.recibo ? esc(f.recibo) : '<span style="color:var(--muted);font-weight:400">—</span>')}</td>
             <td style="white-space:normal;min-width:140px">${esc(f.observaciones||"")}</td>
             <td style="text-align:center">${f.procesado ? "✅" : "⏳"}${f.procesado && f.procesado_por ? `<div class="hi-sub" style="text-align:center">${esc(f.procesado_por)}</div>` : ""}</td>
           </tr>`).join("") : `<tr><td colspan="16" style="padding:20px;text-align:center;color:var(--muted)">Sin filas.</td></tr>`}</tbody>

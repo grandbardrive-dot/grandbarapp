@@ -302,6 +302,65 @@ exports.handler = async (event) => {
           : await compVend.descartar(cob, b.comp_id, perfil.nombre || 'Tesorería');
         return res.error ? json(res.status || 400, { error: res.error }) : json(200, res);
       }
+      // ENVIAR EL RECIBO AL VENDEDOR por WhatsApp (19/11/2026): el recibo oficial (link firmado,
+      // ver _recibo-link) al celular del vendedor de la fila, para que se lo pase al cliente.
+      // WhatsApp solo deja mandar texto libre si el vendedor escribió al número de GrandBar en
+      // las últimas 24 hs; si no, va con la plantilla recibo_cobranza (aprobada por Meta).
+      if (b.accion === 'recibo-enviar') {
+        if (!b.fila_id) return json(400, { error: 'Falta la fila.' });
+        const ZP = await zonaPlanillas();
+        const f = (await leer('planilla_cobranzas?select=id,vendedor,codigo,razon_social,recibo,recibo_erp,fecha_rendicion&id=eq.' + encodeURIComponent(b.fila_id)))[0];
+        if (!f) return json(404, { error: 'Esa fila ya no existe.' });
+        if (ZP && !ZP.vendOk(f.vendedor)) return json(403, { error: 'Esa planilla es de ' + (ZP.zona === 'mendoza' ? 'San Luis.' : 'Mendoza.') });
+        // Los recibos de la fila: los que enganchó el sistema o, si Moni lo escribió a mano,
+        // se buscan por número y cliente entre los recibos del ERP.
+        let recs = Array.isArray(f.recibo_erp) ? f.recibo_erp : [];
+        if (!recs.length && f.recibo) {
+          const ns = String(f.recibo).match(/\d{3,8}/g) || [];
+          const cod = String(f.codigo || '').replace(/\D/g, '').padStart(5, '0');
+          if (ns.length) recs = await leer('recibos_erp?select=empresa,sucursal,numero,n,total,fecha&cliente=eq.' + cod + '&n=in.(' + ns.map(Number).join(',') + ')');
+        }
+        if (!recs.length) return json(404, { error: 'No encontré ese recibo en el sistema (si es de talonario de papel, no se puede enviar desde acá).' });
+        const vw = (await leer('vendedores_whatsapp?select=telefono,nombre&vendedor=eq.' + encodeURIComponent(f.vendedor) + '&limit=1'))[0];
+        if (!vw) return json(400, { error: 'No tengo cargado el WhatsApp de ese vendedor.' });
+        if (!process.env.WA_TOKEN || !process.env.WA_PHONE_ID) return json(500, { error: 'Falta configurar WhatsApp en el servidor.' });
+        const link = require('./_recibo-link');
+        const to = '549' + String(vw.telefono).replace(/\D/g, '').slice(-10);
+        const pesosAR = n => '$' + Number(n || 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const cliente = f.razon_social || ('cliente ' + f.codigo);
+        const enviarWA = async (payload) => {
+          const r = await fetch('https://graph.facebook.com/v21.0/' + process.env.WA_PHONE_ID + '/messages', { method: 'POST', headers: { Authorization: 'Bearer ' + process.env.WA_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', to, ...payload }) });
+          const j = await r.json().catch(() => ({}));
+          return { ok: r.ok, j };
+        };
+        const enviados = [];
+        for (const r of recs) {
+          const nro = String(r.n || Number(String(r.numero).slice(-5)));
+          const texto = '🧾 Recibo N° ' + nro + ' · ' + cliente + ' · ' + pesosAR(r.total) + (r.fecha ? ' (' + String(r.fecha).slice(8, 10) + '/' + String(r.fecha).slice(5, 7) + ')' : '')
+            + '\nPara verlo, descargarlo o reenviárselo al cliente: ' + link.url(r);
+          let res = await enviarWA({ type: 'text', text: { body: texto, preview_url: false } });
+          let via = 'texto';
+          // Fuera de las 24 hs (131047) → plantilla.
+          const code = res.j && res.j.error && res.j.error.code;
+          if (!res.ok && (code === 131047 || code === 131026)) {
+            res = await enviarWA({ type: 'template', template: { name: 'recibo_cobranza', language: { code: 'es' }, components: [
+              { type: 'body', parameters: [{ type: 'text', text: String(vw.nombre || 'equipo').split(' ')[0] }, { type: 'text', text: nro }, { type: 'text', text: cliente.slice(0, 60) }, { type: 'text', text: pesosAR(r.total) }] },
+              { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: encodeURIComponent(link.token(r)) }] },
+            ] } });
+            via = 'plantilla';
+          }
+          const mid = res.j && res.j.messages && res.j.messages[0] ? res.j.messages[0].id : null;
+          await cob('wa_eventos', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ tipo: 'saliente', estado: res.ok ? (via === 'texto' ? 'texto' : 'plantilla') : 'error', telefono: to, wa_id: to, message_id: mid, crudo: { text: { body: texto }, por: 'Recibo al vendedor (' + (perfil.nombre || 'tesorería') + ')', error: res.ok ? null : res.j } }) });
+          if (!res.ok) {
+            const m = (res.j && res.j.error && (res.j.error.error_data && res.j.error.error_data.details || res.j.error.message)) || 'error';
+            return json(502, { error: via === 'plantilla' ? 'No se pudo enviar: el vendedor no le escribió al WhatsApp de GrandBar en las últimas 24 hs y la plantilla todavía no está aprobada por Meta (' + m + ').' : 'No se pudo enviar por WhatsApp: ' + m, enviados });
+          }
+          enviados.push(nro);
+        }
+        const ahora = new Date().toISOString();
+        await cob('planilla_cobranzas?id=eq.' + encodeURIComponent(f.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ recibo_enviado_at: ahora, recibo_enviado_por: perfil.nombre || null }) });
+        return json(200, { ok: true, enviados, a: vw.nombre || f.vendedor, enviado_at: ahora });
+      }
       if (b.accion === 'planilla-borrar') {
         if (!b.id) return json(400, { error: 'Falta la fila.' });
         const ZP = await zonaPlanillas();
@@ -562,6 +621,9 @@ exports.handler = async (event) => {
           });
         }
       }
+      // Link a cada recibo del sistema de la fila (para verlo desde la planilla).
+      const linkRec = require('./_recibo-link');
+      filas.forEach(f => { f.recibo_links = (Array.isArray(f.recibo_erp) ? f.recibo_erp : []).map(r => ({ n: r.n, url: linkRec.url(r) })); });
       const sueltos = await compVend.sinAsignar(cob, vend, fecha);
       return json(200, { filas, envio: (env || [])[0] || null, sueltos });
     }
