@@ -16,6 +16,8 @@
 //   token del usuario (RLS: solo supervisores / compras / dirección).
 // ============================================================
 
+const OBJ = require('./_objetivos-vendedores');  // objetivos VINOS/SPIRITS por vendedor (misma planilla que el Reporte diario)
+
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
@@ -105,8 +107,24 @@ exports.handler = async (event) => {
 
     // nombre "oficial" del Hub por si el de ventas trae espacios/variantes
     const nombreHub = {}; (Array.isArray(usuarios) ? usuarios : []).forEach(u => { if (u.codigo_vendedor) nombreHub[String(u.codigo_vendedor).replace(/^0+/, '') || '0'] = u.nombre; });
-    // objetivo TOTAL por vendedor+familia
+    // objetivo TOTAL por vendedor+familia, cargado a mano en el Hub (tiene prioridad)
     const objMap = {}; (Array.isArray(objetivos) ? objetivos : []).forEach(o => { if (o.tipo_cliente === 'TOTAL') objMap[o.vendedor_codigo + '|' + o.familia] = num(o.objetivo); });
+    // Objetivos de la planilla "Presupuesto Ventas" de Administración (la MISMA que usa el Reporte diario):
+    // VINOS/SPIRITS por vendedor, se actualiza sola cada mes. Si una celda del Hub pisa, gana el Hub.
+    const objSheet = {};
+    try {
+      const vendList = (Array.isArray(usuarios) ? usuarios : []).filter(u => u.codigo_vendedor).map(u => ({ codigo: u.codigo_vendedor, nombre: u.nombre }));
+      const pres = await OBJ.leerPresupuesto();
+      for (const fila of pres) {
+        if (fila.grupo) continue;
+        const cod = OBJ.codigoDeFila(fila, vendList);
+        if (!cod) continue;
+        const vc = String(cod).replace(/^0+/, '') || '0';
+        if (fila.vinos != null) objSheet[vc + '|VINOS'] = num(fila.vinos);
+        if (fila.spirits != null) objSheet[vc + '|ESP'] = num(fila.spirits);
+      }
+    } catch (e) { /* si la planilla no responde, seguimos con los objetivos del Hub */ }
+    const objDe = (vc, fk) => { const k = vc + '|' + fk; return objMap[k] != null ? objMap[k] : (objSheet[k] || 0); };
 
     // acumular: eq -> fam -> vcod -> { nombre, tipos:{tipo:{meses}}, meses }
     const acc = {};
@@ -125,7 +143,7 @@ exports.handler = async (event) => {
       familias: FAMILIAS.map(([fk, fn]) => {
         const vmap = (acc[eq] && acc[eq][fk]) || {};
         const vendedores = Object.values(vmap).map(V => {
-          const objetivo = objMap[V.vcod + '|' + fk] || 0;
+          const objetivo = objDe(V.vcod, fk);
           const actual = num(V.meses[mesActual]);
           const tipos = TIPOS
             .filter(t => V.tipos[t])
