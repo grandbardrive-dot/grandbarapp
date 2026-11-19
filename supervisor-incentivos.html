@@ -220,6 +220,8 @@
   .vr .vtot{color:var(--ink)}
   /* Tarjetas y superficies: vidrio translúcido */
   .plan,.tcard,.vrow,.vr,.back,.gbfsearch{background:linear-gradient(160deg,#ffffff12,#ffffff06)!important;border-color:var(--line);backdrop-filter:blur(8px)}
+  /* los <button>.tcard no heredan color → el titulo salia negro sobre el fondo oscuro */
+  .tcard,.tcard .nm,.plan .pt,.brandname{color:var(--ink)}
   .plan .ph{background:linear-gradient(180deg,#ffffff10,#ffffff03)}
   .vhead{background:transparent}.vhead:hover{background:#ffffff0d}
   .vbody{background:#ffffff08}
