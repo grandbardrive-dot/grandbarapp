@@ -99,6 +99,22 @@ async function resumen(r) {
   });
   const d = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error('dir_ventas ' + res.status + ' ' + JSON.stringify(d).slice(0, 200));
+  // Clientes con compras por vendedor (19/11/2026, "sincronizá toda la información en los paneles"):
+  // todo cliente que aparece en sus ventas del período, igual que el Reporte diario, el Inicio del
+  // vendedor y la planilla de Administración (RPC ccc_por_vendedor). dir_ventas contaba solo los de
+  // compra neta positiva y daba distinto (Franco Fernández 53 contra 61). Si falla, queda el de dir_ventas.
+  try {
+    const rc = await fetch(MAN_URL + '/rest/v1/rpc/ccc_por_vendedor', {
+      method: 'POST',
+      headers: { apikey: MAN_KEY, Authorization: 'Bearer ' + MAN_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_desde: r.desde, p_hasta: r.hasta }),
+    });
+    const cc = rc.ok ? await rc.json() : null;
+    if (Array.isArray(cc) && Array.isArray(d.por_vendedor)) {
+      const m = {}; cc.forEach(x => { m[String(x.vendedor)] = Number(x.ccc) || 0; });
+      d.por_vendedor.forEach(v => { if (String(v.codigo) in m) v.clientes = m[String(v.codigo)]; });
+    }
+  } catch (e) {}
   return d;
 }
 // Venta y unidades de los artículos más vendidos del período, en otro período (30/10/2026):

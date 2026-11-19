@@ -276,6 +276,9 @@
         </div>`).join(''), 'Visitaste a toda tu cartera en los últimos 30 días. 👏');
     }
 
+    // Cuentas del vendedor (sin las quitadas, con la marca de vigente en CUBO): para la deuda y
+    // para saber cuáles son las de su pestaña Clientes.
+    const cvP = traer('cuentas-vendedor');
     // Ventas por cliente (planilla) → ranking y clientes sin compras.
     const [ventasCli, total] = await Promise.all([ GBVentas.clientesDe(codV), GBVentas.totalDe(codV) ]);
     $('kVentas').textContent = total!=null ? plata(total) : '—';
@@ -288,8 +291,21 @@
       </div>`).join(''), 'Todavía no tenés ventas este mes.');
 
     if(clientes.length){
+      // 19/11/2026 ("sincronizá toda la información en los paneles"): los mismos que la ✕ roja de
+      // Clientes. Compró = cualquier factura del mes con su código (avance-vendedor, igual que el
+      // Inicio); la cartera = la de su pestaña Clientes (sin quitados y activa en CUBO). Si algo no
+      // se puede leer, queda la cuenta de antes (ventas de productos y toda la cartera del Manual).
+      const nc = s => String(s==null?'':s).trim().replace(/^0+/,'') || '0';
+      const [av, cv] = await Promise.all([ traer('avance-vendedor'), cvP ]);
+      const lc = av && av.clientes && av.clientes.codigos_con_compra;
+      const compro = Array.isArray(lc) ? new Set(lc.map(nc)) : null;
+      const cuentas = (cv && cv.clientes) || [];
+      const vig = cuentas.some(c => 'vigente' in c) ? new Set(cuentas.filter(c => c.vigente).map(c => nc(c.codigo))) : null;
+      const cartera = vig ? clientes.filter(c => vig.has(nc(c.codigo_cliente))) : clientes;
       const conVenta = new Set(ventasCli.map(v=>v.codigo));
-      const sinCompra = clientes.filter(c => { const n=parseInt(String(c.codigo_cliente||''),10); return !isNaN(n) && !conVenta.has(n); });
+      const sinCompra = compro
+        ? cartera.filter(c => !compro.has(nc(c.codigo_cliente)))
+        : clientes.filter(c => { const n=parseInt(String(c.codigo_cliente||''),10); return !isNaN(n) && !conVenta.has(n); });
       pinta('sinCompraLista', sinCompra.slice(0,12).map(c=>`
         <div class="fila">
           <div class="n"><div class="nm">${esc(c.nombre)}</div><div class="meta">${esc(c.direccion||'—')} · Cód. ${esc(c.codigo_cliente||'—')}</div></div>
@@ -301,7 +317,7 @@
     }
 
     // Deuda vencida (cuentas corrientes).
-    traer('cuentas-vendedor').then(j=>{
+    cvP.then(j=>{
       const cc = (j && j.clientes) || [];
       const conDeuda = cc.filter(c => Number(c.vencida) > 0).sort((a,b)=> Number(b.vencida)-Number(a.vencida));
       pinta('deudaLista', conDeuda.slice(0,8).map(c=>`
