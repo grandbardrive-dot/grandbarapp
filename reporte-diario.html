@@ -88,6 +88,11 @@
   th:first-child,td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:inherit}
   thead th:first-child{background:#fbf8f1;z-index:2}
   tbody tr{background:#fff}
+  /* Un color suave por equipo (19/11/2026, pedido del usuario): el vendedor con el tono claro y
+     el subtotal del equipo un poco más marcado. Va por el orden de los equipos en la planilla. */
+  tr.g0{--g:#eef4fb;--gs:#dbe7f4} tr.g1{--g:#edf6f0;--gs:#d8ebdf} tr.g2{--g:#fbf5e8;--gs:#f1e3c4}
+  tr.g3{--g:#f3eff9;--gs:#e3dbf1} tr.g4{--g:#fbefec;--gs:#f1d9d3} tr.g5{--g:#f1f3f2;--gs:#dfe3e1}
+  tbody tr.grupo{background:var(--g)}
   .ini{border-left:1px solid var(--line)}
   td .cod{color:var(--muted);font-size:11.5px;margin-right:8px}
   td.nom{min-width:210px;font-weight:500}
@@ -98,7 +103,7 @@
   tr.yo td{background:#fffaf0}
   tr.yo td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
   .vos{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:var(--gold);color:#241a06;border-radius:20px;padding:2px 7px;margin-left:8px;vertical-align:1px}
-  tr.sub td{background:var(--cream);font-weight:800;border-bottom:1px solid var(--line)}
+  tr.sub td{background:var(--gs, var(--cream));font-weight:800;border-bottom:1px solid var(--line)}
   tr.sub td:first-child{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase}
   tr.sub + tr td{border-top:6px solid #fff}
   tr.dist td{background:#ece3d2;font-weight:800;border-bottom:0}
@@ -208,20 +213,21 @@
     return `<td class="${cls}">${c.pesos ? pesos(v) : n(v)}</td>`;
   }
 
-  function fila(x, cols, tipo, etiqueta, propio){
+  function fila(x, cols, tipo, etiqueta, propio, color){
     const yo = tipo === '' && propio && x.codigo === propio;
     const nombre = tipo === ''
       ? `<td class="nom">${x.codigo ? `<span class="cod">${esc(x.codigo)}</span>` : ''}${esc(x.nombre)}${yo ? '<span class="vos">Vos</span>' : ''}</td>`
       : `<td class="nom">${etiqueta}</td>`;
-    return `<tr class="${tipo}${yo ? ' yo' : ''}">${nombre}${cols.map(c => celda(x, c)).join('')}</tr>`;
+    const cls = [tipo, yo ? 'yo' : '', color != null ? 'grupo g' + (color % 6) : ''].filter(Boolean).join(' ');
+    return `<tr class="${cls}">${nombre}${cols.map(c => celda(x, c)).join('')}</tr>`;
   }
 
   function cuerpo(d, cols){
     const todas = [];
     let h = '';
-    d.grupos.forEach(g => {
-      g.filas.forEach(x => { h += fila(x, cols, '', '', d.codigo_propio); todas.push(x); });
-      h += fila(sumar(g.filas), cols, 'sub', esc(g.nombre));
+    d.grupos.forEach((g, gi) => {
+      g.filas.forEach(x => { h += fila(x, cols, '', '', d.codigo_propio, gi); todas.push(x); });
+      h += fila(sumar(g.filas), cols, 'sub', esc(g.nombre), null, gi);
     });
     h += fila(sumar(todas.filter(x => x.distribucion)), cols, 'dist', 'Subtotal distribución<small>Equipos ON, OFF y San Luis, Mza Distribución y San Luis Distribución</small>');
     h += fila(sumar(todas), cols, 'tot', 'Total general');
