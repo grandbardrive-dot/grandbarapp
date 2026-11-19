@@ -100,7 +100,8 @@ exports.handler = async (event) => {
 
     return json(200, {
       codigo, nombre, desde, hasta: hoyAR,
-      clientes: { activos, con_compra: conCompra.size, objetivo: objCli },
+      // codigos_con_compra (19/11/2026): la lista de Clientes marca en verde a estos y en rojo al resto.
+      clientes: { activos, con_compra: conCompra.size, objetivo: objCli, codigos_con_compra: [...conCompra] },
       vinos: { vendido: Math.round(vinos), objetivo: obj && !obj.error ? obj.vinos : null },
       spirits: { vendido: Math.round(spirits), objetivo: obj && !obj.error ? obj.spirits : null },
       objetivo_error: obj && obj.error ? obj.error : (obj ? null : 'no figura en la planilla'),

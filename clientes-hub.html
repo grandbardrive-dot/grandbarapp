@@ -103,6 +103,13 @@
     .badge.tog:hover{border-color:currentColor}
     .badge.off{background:#f0ece4;color:var(--muted)}
     .crow.oculto{opacity:.6}
+    /* Compró este mes (19/11/2026): ✓ verde si tiene compra en el mes, ✕ rojo si todavía no. */
+    .cmark{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-size:10.5px;font-weight:900;font-style:normal;margin-right:7px;vertical-align:1px;line-height:1}
+    .cmark.ok{background:#e2f1e7;color:#1d7548;border:1px solid #9fd0b4}
+    .cmark.no{background:#fbe5e1;color:#b3372a;border:1px solid #efb1a7}
+    .cc-ley{display:flex;flex-wrap:wrap;gap:6px 18px;padding:11px 16px;font-size:12.5px;color:var(--muted);border-bottom:1px solid var(--line-2);background:#fcfaf5}
+    .cc-ley span{display:inline-flex;align-items:center}
+    .cc-ley b{color:var(--ink);margin-right:4px}
     .list-foot{padding:12px 16px;font-size:12px;color:var(--muted);text-align:center}
 
     /* Detalle */
@@ -259,6 +266,11 @@
   // MODO_CUBO (17/11/2026): la lista del vendedor son sus clientes ACTIVOS EN CUBO, los mismos
   // "Clientes activos" del Inicio. Arriba va el total; las pestañas reparten Clientes / Quitados.
   let MODO_CUBO = false;
+  // Clientes con compra en el mes (códigos sin ceros adelante). null = todavía no se sabe (o vista de equipo).
+  let CON_COMPRA = null;
+  const marcaCompra = c => !CON_COMPRA ? '' : (CON_COMPRA.has(normCod(c.codigo_cliente))
+    ? '<i class="cmark ok" title="Compró este mes">✓</i>'
+    : '<i class="cmark no" title="Todavía no compró este mes">✕</i>');
   function pintarConteo(nAct, nOcu){
     const st=document.getElementById('stCount'), sub=document.getElementById('stCountSub');
     if(!MODO_CUBO){ if(st) st.textContent = nAct; return; }
@@ -349,12 +361,14 @@
       return;
     }
     const total = verOcultos ? nOcu : nAct, palabra = verOcultos ? ' quitados' : ' clientes';
-    document.getElementById("list").innerHTML = rows.map(({c,i},pos)=>{
+    const nOk = CON_COMPRA ? rows.filter(({c}) => CON_COMPRA.has(normCod(c.codigo_cliente))).length : 0;
+    const ley = CON_COMPRA ? `<div class="cc-ley"><span><i class="cmark ok">✓</i><b>${nOk}</b> compraron este mes</span><span><i class="cmark no">✕</i><b>${rows.length - nOk}</b> todavía no</span></div>` : '';
+    document.getElementById("list").innerHTML = ley + rows.map(({c,i},pos)=>{
       const lv = ultimaVisita[c.id] ? `Última visita<br>${fmtFecha(ultimaVisita[c.id])}` : "";
       const act = esActivo(c);
       return `<div class="crow ${i===sel?'sel':''}${act?'':' oculto'}" onclick="selCliente(${i})">
         <div class="n">${pos+1}</div>
-        <div><div class="nm">${_e(c.nombre)}</div><div class="meta">${_e(c.vendedor_nombre ? c.vendedor_nombre+(c.direccion?' · '+c.direccion:'') : cap(c.tipo)+(c.direccion? ' · '+c.direccion:''))}</div></div>
+        <div><div class="nm">${marcaCompra(c)}${_e(c.nombre)}</div><div class="meta">${_e(c.vendedor_nombre ? c.vendedor_nombre+(c.direccion?' · '+c.direccion:'') : cap(c.tipo)+(c.direccion? ' · '+c.direccion:''))}</div></div>
         <div class="right"><div class="lv">${lv}</div>${botonCartera(i, act)}</div>
       </div>`;
     }).join("") + `<div class="list-foot">${rows.length===total ? rows.length+palabra : rows.length+' de '+total+palabra}</div>`;
@@ -835,6 +849,12 @@
       }catch(e){}
 
       sel=-1; renderList("");
+
+      // Quién compró este mes (19/11/2026): lo mismo que "Con compra" del Inicio (avance-vendedor).
+      fetch("/.netlify/functions/avance-vendedor", { headers:{ Authorization:"Bearer "+session.access_token } })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { const l = d && d.clientes && d.clientes.codigos_con_compra; if (Array.isArray(l)) { CON_COMPRA = new Set(l.map(normCod)); renderList(); } })
+        .catch(() => {});
 
       // (Los saldos de cuentas_cubo ya se leyeron arriba, junto con qué clientes siguen activos en CUBO.)
     }catch(e){ reason = "error inesperado ("+(e.message||e)+")"; }
