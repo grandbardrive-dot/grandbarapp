@@ -10,6 +10,7 @@
 //   Cheques.xlsx                 → cartera de cheques y qué se acredita cuándo
 //   Proceso_Pago_Proveedores.xlsx→ cuánto hay que pagar, semana por semana
 //   Ordenes Compra activa.xlsx   → mercadería pedida que todavía no llegó
+//   + Deuda con proveedores (19/11/2026): de CUBO, no de un Excel (ver proveedores()).
 //
 //  Se leen con una consulta a Google (gviz, CSV), porque los archivos están
 //  compartidos por link. Si uno no se puede leer, ese bloque vuelve con
@@ -173,6 +174,19 @@ async function ordenes() {
   return { total, top };
 }
 
+// Deuda con proveedores de CUBO (19/11/2026): no viene de un Excel. La baja cada hora
+// proveedores-deuda-background (ListarProveedores) y deja una foto en finanzas_snapshots.
+async function proveedores() {
+  const k = process.env.HUB_SERVICE_ROLE;
+  if (!k) throw new Error('Falta HUB_SERVICE_ROLE');
+  const r = await fetch(HUB_URL + '/rest/v1/finanzas_snapshots?clave=eq.proveedores_deuda&select=data,actualizado', { headers: { apikey: k, Authorization: 'Bearer ' + k } });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const f = ((await r.json()) || [])[0];
+  if (!f || !f.data) throw new Error('todavía no se bajó de CUBO');
+  const d = f.data;
+  return { total: d.total, a_favor: d.a_favor, con_deuda: d.con_deuda, top: (d.top || []).slice(0, 5), actualizado: f.actualizado };
+}
+
 exports.handler = async (event) => {
   try {
     const token = (event.headers.authorization || event.headers.Authorization || '').replace(/^Bearer\s+/i, '').trim();
@@ -184,7 +198,7 @@ exports.handler = async (event) => {
     const perfil = ((await pRes.json()) || [])[0] || {};
     if (!DIR_ROLES.includes(String(perfil.rol || '').toLowerCase())) return json(403, { error: 'Solo Dirección.' });
 
-    const fns = { efectivo, cheques, pagos, ordenes };
+    const fns = { efectivo, cheques, pagos, ordenes, proveedores };
     const partes = Object.keys(fns);
     const res = await Promise.all(partes.map(k => fns[k]().catch(e => ({ error: (e && e.message) || 'no se pudo leer' }))));
     const out = {}; partes.forEach((k, i) => { out[k] = res[i]; });

@@ -54,6 +54,12 @@
 [functions."sync-ventas-cron"]
   schedule = "5,25,45 * * * *"
 
+# DEUDA CON PROVEEDORES de CUBO (19/11/2026): cada hora (a los 50) dispara
+# proveedores-deuda-background, que deja la foto en finanzas_snapshots para la franja
+# Finanzas del Inicio de Dirección. Ver manual-vendedores/netlify/functions/proveedores-deuda-cron.js
+[functions."proveedores-deuda-cron"]
+  schedule = "50 * * * *"
+
 # RECLAMOS por zona: cada 10 min mira si un cliente abrió un reclamo o escribió en uno
 # y se lo avisa a la administración de su zona (Romina, San Luis): campanita + celular.
 # Ver manual-vendedores/netlify/functions/reclamos-avisos-cron.js
