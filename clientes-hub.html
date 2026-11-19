@@ -110,6 +110,11 @@
     .cc-ley{display:flex;flex-wrap:wrap;gap:6px 18px;padding:11px 16px;font-size:12.5px;color:var(--muted);border-bottom:1px solid var(--line-2);background:#fcfaf5}
     .cc-ley span{display:inline-flex;align-items:center}
     .cc-ley b{color:var(--ink);margin-right:4px}
+    .cc-otras{border-bottom:1px solid var(--line-2);background:#fcfaf5;padding:0 16px 10px;font-size:12.5px;color:var(--muted)}
+    .cc-otras summary{cursor:pointer;color:var(--ink);font-weight:600;padding:2px 0 4px}
+    .cc-otras summary b{color:var(--ink)}
+    .cc-otras .co-f{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px dashed var(--line-2)}
+    .cc-otras .co-f span{color:var(--ink)}
     .list-foot{padding:12px 16px;font-size:12px;color:var(--muted);text-align:center}
 
     /* Detalle */
@@ -268,6 +273,8 @@
   let MODO_CUBO = false;
   // Clientes con compra en el mes (códigos sin ceros adelante). null = todavía no se sabe (o vista de equipo).
   let CON_COMPRA = null;
+  // Clientes de otras carteras que le compraron este mes (vienen con nombre y de quién son).
+  let OTRAS = [];
   const marcaCompra = c => !CON_COMPRA ? '' : (CON_COMPRA.has(normCod(c.codigo_cliente))
     ? '<i class="cmark ok" title="Compró este mes">✓</i>'
     : '<i class="cmark no" title="Todavía no compró este mes">✕</i>');
@@ -363,7 +370,11 @@
     const total = verOcultos ? nOcu : nAct, palabra = verOcultos ? ' quitados' : ' clientes';
     const nOk = CON_COMPRA ? rows.filter(({c}) => CON_COMPRA.has(normCod(c.codigo_cliente))).length : 0;
     const ley = CON_COMPRA ? `<div class="cc-ley"><span><i class="cmark ok">✓</i><b>${nOk}</b> compraron este mes</span><span><i class="cmark no">✕</i><b>${rows.length - nOk}</b> todavía no</span></div>` : '';
-    document.getElementById("list").innerHTML = ley + rows.map(({c,i},pos)=>{
+    // Los que facturó con su código y son de otra cartera: con estos, la cuenta cierra con "Con compra" del Inicio.
+    const otras = (CON_COMPRA && !verOcultos && OTRAS.length)
+      ? `<details class="cc-otras"><summary>Además te compraron <b>${OTRAS.length}</b> ${OTRAS.length === 1 ? 'cliente' : 'clientes'} de otras carteras</summary>${OTRAS.map(o => `<div class="co-f"><span>${_e(o.nombre)}</span><small>${o.cartera ? 'cartera de ' + _e(o.cartera) : ''}</small></div>`).join('')}</details>`
+      : '';
+    document.getElementById("list").innerHTML = ley + otras + rows.map(({c,i},pos)=>{
       const lv = ultimaVisita[c.id] ? `Última visita<br>${fmtFecha(ultimaVisita[c.id])}` : "";
       const act = esActivo(c);
       return `<div class="crow ${i===sel?'sel':''}${act?'':' oculto'}" onclick="selCliente(${i})">
@@ -853,7 +864,7 @@
       // Quién compró este mes (19/11/2026): lo mismo que "Con compra" del Inicio (avance-vendedor).
       fetch("/.netlify/functions/avance-vendedor", { headers:{ Authorization:"Bearer "+session.access_token } })
         .then(r => r.ok ? r.json() : null)
-        .then(d => { const l = d && d.clientes && d.clientes.codigos_con_compra; if (Array.isArray(l)) { CON_COMPRA = new Set(l.map(normCod)); renderList(); } })
+        .then(d => { const l = d && d.clientes && d.clientes.codigos_con_compra; if (Array.isArray(l)) { CON_COMPRA = new Set(l.map(normCod)); OTRAS = Array.isArray(d.clientes.otras_carteras) ? d.clientes.otras_carteras : []; renderList(); } })
         .catch(() => {});
 
       // (Los saldos de cuentas_cubo ya se leyeron arriba, junto con qué clientes siguen activos en CUBO.)
