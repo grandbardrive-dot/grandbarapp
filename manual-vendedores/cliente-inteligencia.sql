@@ -17,3 +17,11 @@
 --     compró en 18 meses y hay stock. No se calcula para 'otros', 'mayorista' ni 'evento'.
 --     pares = cuántos de esos clientes compraron en los 4 meses.
 -- Tarda ~0,1–0,3 s (la primera vez, en frío, ~1,4 s).
+--
+-- 19/11/2026, migración "cliente_inteligencia_datos_reales" (pedido: "que toda la información sea real"):
+--   * cuentas: los códigos con el MISMO nombre y la misma zona se toman como un solo cliente
+--     (CUBO le abre un código nuevo al cliente y antes "Dejó de comprar" salía falso en el viejo).
+--   * dejo_de_comprar no muestra un producto si después compró el mismo en otro tamaño
+--     (Campari 750 → 1 lt, Red Label 750 → 1000…).
+--   * "Consumidor final" (cuentas genéricas): sin dejo_de_comprar.
+--   * La visita ya no muestra compran_los_parecidos (se sigue calculando).

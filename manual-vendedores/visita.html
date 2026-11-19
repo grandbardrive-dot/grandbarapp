@@ -5654,9 +5654,20 @@ body { background:transparent !important; }
     const cod = String(cliente.codigo_cliente || '').trim();
     if (!cod) return [];
     try {
-      const { data: ventas } = await sb.from('ventas_cliente')
-        .select('sku,fecha,unidades').eq('cliente_codigo', cod).gt('unidades', 0).order('fecha');
-      if (!ventas || !ventas.length) return [];
+      // 19/11/2026: antes traía una sola página (la base corta en 1000 filas sin avisar) y en los
+      // clientes grandes quedaban afuera las compras más nuevas. Ahora se pagina. Si el cliente
+      // tiene otro código con el mismo nombre (cliente_inteligencia → cuentas), se suman los dos.
+      const cuentas = (_cmp && Array.isArray(_cmp.cuentas) && _cmp.cuentas.length) ? _cmp.cuentas : [cod];
+      const ventas = [];
+      for (let desde = 0; desde < 200000; desde += 1000) {
+        const { data, error } = await sb.from('ventas_cliente')
+          .select('sku,fecha,unidades').in('cliente_codigo', cuentas).gt('unidades', 0)
+          .order('fecha').order('sku').order('cliente_codigo').order('vendedor').range(desde, desde + 999);
+        if (error) throw error;
+        ventas.push(...(data || []));
+        if (!data || data.length < 1000) break;
+      }
+      if (!ventas.length) return [];
       const skus = [...new Set(ventas.map(v => v.sku).filter(s => s && /[0-9]/.test(s)))];
       const nombreDe = {};
       for (let i = 0; i < skus.length; i += 200){
@@ -5669,14 +5680,17 @@ body { background:transparent !important; }
       const hoy = new Date();
       _histProductos = Object.entries(bySku).map(([sku, arr]) => {
         arr.sort((a, b) => a.fecha < b.fecha ? -1 : 1);
-        const fechas = arr.map(v => v.fecha);
+        const fechas = [...new Set(arr.map(v => v.fecha))];   // un día con dos códigos es una sola compra
         const ultima = fechas[fechas.length - 1];
         const diasUlt = Math.round((hoy - new Date(ultima)) / 86400000);
         let gaps = []; for (let i = 1; i < fechas.length; i++) gaps.push((new Date(fechas[i]) - new Date(fechas[i-1])) / 86400000);
         const freqDias = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : null;
-        const qtyProm = Math.max(1, Math.round(arr.reduce((a, v) => a + Number(v.unidades || 0), 0) / arr.length));
+        const qtyProm = Math.max(1, Math.round(arr.reduce((a, v) => a + Number(v.unidades || 0), 0) / fechas.length));
         const nombre = nombreDe[sku];
-        return { sku, nombre, cat: catProducto(nombre), ultima, diasUlt, freqDias, qtyProm, nCompras: arr.length };
+        // La categoría sale del código del artículo (01 vinos, 02 espirituosas), como en CUBO;
+        // el nombre queda solo para los demás.
+        const cat = /^01/.test(sku) ? 'vinos' : /^02/.test(sku) ? 'spirits' : catProducto(nombre);
+        return { sku, nombre, cat, ultima, diasUlt, freqDias, qtyProm, nCompras: fechas.length };
       });
       return _histProductos;
     } catch (e) { return []; }
