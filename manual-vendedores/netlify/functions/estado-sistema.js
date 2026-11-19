@@ -34,7 +34,6 @@ const VEN_PANEL = ['desarrollo', 'diseno'];
 const TAREAS = [
   { id: 'sync-clientes',  nombre: 'Clientes desde CUBO',            cada: 'cada hora',      maxMin: 150,     fallasSeguidas: 2 },
   { id: 'sync-ventas',    nombre: 'Ventas del ERP',                 cada: 'cada 20 minutos', maxMin: 80,     fallasSeguidas: 2 },
-  // (proveedores-deuda: pausada el 19/11/2026, ver netlify.toml.)
   { id: 'sync-comprobantes', nombre: 'Facturas emitidas del ERP',    cada: 'cada 30 minutos', maxMin: 120,    fallasSeguidas: 2 },
   { id: 'push-cron',      nombre: 'Avisos de reuniones al celular', cada: 'cada 15 minutos', maxMin: 50,     fallasSeguidas: 2 },
   { id: 'reclamos-avisos', nombre: 'Avisos de reclamos por zona',   cada: 'cada 10 minutos', maxMin: 40,     fallasSeguidas: 2 },

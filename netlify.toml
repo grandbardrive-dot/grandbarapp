@@ -54,13 +54,6 @@
 [functions."sync-ventas-cron"]
   schedule = "5,25,45 * * * *"
 
-# DEUDA CON PROVEEDORES de CUBO (19/11/2026): PAUSADA. La cuenta corriente de proveedores de
-# CUBO no coincide con el Excel de pagos de Administración (Chandon −$600M, Peñaflor y Pernod
-# casi en cero). Hasta que Administración explique el saldo, no se baja ni se muestra. Para
-# volver a activarla, descomentar (y sumar la tarea en estado-sistema):
-# [functions."proveedores-deuda-cron"]
-#   schedule = "50 * * * *"
-
 # RECLAMOS por zona: cada 10 min mira si un cliente abrió un reclamo o escribió en uno
 # y se lo avisa a la administración de su zona (Romina, San Luis): campanita + celular.
 # Ver manual-vendedores/netlify/functions/reclamos-avisos-cron.js
