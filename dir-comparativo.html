@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Comparativo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<!-- Comparativo en el panel de Dirección (19/11/2026): la misma pantalla que ven los
+     supervisores (comparativo.html), adentro del marco de Fernando, sin cambiar de menú. -->
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  .rep{display:block;width:100%;height:calc(100vh - 120px);min-height:640px;border:0;background:transparent;margin-top:6px}
+</style>
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+    <div class="dhead">
+      <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V9M9 20V4M15 20v-7M20 20V11"/><path d="M2 20h20"/></svg></span>
+      <div><h1>Comparativo</h1><div class="sub">El mes elegido contra el mismo mes del año anterior.</div></div>
+    </div>
+    <iframe class="rep" src="/comparativo.html?embed=1&dir=1" title="Comparativo"></iframe>
+  </div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/dir-nav.js?v=3"></script>
+<script src="assets/dir-notif.js"></script>
+<script src="assets/user-menu.js?v=1"></script>
+<script src="assets/mobile-nav.js?v=1"></script>
+<script src="/assets/minuta-fab.js?v=3"></script>
+<script src="/assets/cuenta-activa.js?v=1"></script>
+</body>
+</html>

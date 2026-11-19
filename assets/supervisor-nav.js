@@ -16,6 +16,8 @@
       { href: "supervisor-equipo.html",  label: "Resumen del equipo", short: "Equipo",  icon: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>' },
       // Reporte diario (18/11/2026): todos los vendedores por equipo, unidades y clientes con compra.
       { href: "reporte-diario.html",    label: "Reporte diario",     short: "Reporte", icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M3 14.5h18"/>' },
+      // Comparativo (19/11/2026): el mes contra el mismo mes del año anterior.
+      { href: "comparativo.html",       label: "Comparativo",        short: "Comparativo", icon: '<path d="M4 20V9M9 20V4M15 20v-7M20 20V11"/><path d="M2 20h20"/>' },
       { href: "supervisor-visitas.html", label: "Visitas",            short: "Visitas", icon: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>' },
       { href: "supervisor-agendas.html", label: "Agendas",            short: "Agendas", icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3"/>' },
       { href: "supervisor-tareas.html",  label: "Tareas",             short: "Tareas",  icon: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/>' },
