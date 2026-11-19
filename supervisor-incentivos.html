@@ -13,15 +13,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>GrandBar Hub — Incentivos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --navy:#0d2230; --navy-2:#123043; --cream:#f6f1e8; --card:#ffffff;
-    --ink:#1b2a32; --muted:#6d7d85; --line:#e7ded0; --line-2:#ece4d6;
-    --green:#2f6f5e; --green-d:#245647; --green-soft:#e8f1ea;
-    --gold:#c0912f; --gold-d:#a97c22; --gold-soft:#f7efdc;
-    --red:#c0603e; --red-soft:#fbe9e4;
+    /* Paleta AURORA (tablero oscuro premium) — mismos nombres de variables */
+    --navy:#0a1017; --navy-2:#13202b; --cream:#0b1118; --card:#ffffff10;
+    --ink:#eaf1f4; --muted:#9fb2c2; --line:#ffffff1f; --line-2:#ffffff12;
+    --green:#64d6a6; --green-d:#2f7d6b; --green-soft:#16302a;
+    --gold:#e9b44c; --gold-d:#d79a2e; --gold-soft:#2f2713;
+    --red:#ef9a7f; --red-soft:#331f1a;
     --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --disp:'Syne',var(--font);
   }
   *{box-sizing:border-box} html,body{margin:0;height:100%}
   body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
@@ -204,6 +206,39 @@
   .vr .vn small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
   .vr .vtot{font-weight:900;font-size:19px;color:var(--navy)}
   .vr.cero{opacity:.55}
+
+  /* ===================== Reskin AURORA (19/11/2026) ===================== */
+  .main{position:relative;overflow:hidden}
+  .main::before,.main::after{content:"";position:fixed;width:620px;height:620px;border-radius:50%;filter:blur(90px);opacity:.26;z-index:0;pointer-events:none}
+  .main::before{background:#2f7d6b;top:-220px;right:-120px}
+  .main::after{background:#8a3a6a;bottom:-240px;left:40px}
+  .wrap{position:relative;z-index:1}
+  /* Títulos con Syne; números siempre legibles en Inter */
+  .topbar h1,.plan .pt,.tcard .nm,.brandname,.tcard .subc,.secT{font-family:var(--disp)}
+  .topbar h1{letter-spacing:-.4px}
+  .ring .pctT .big,.tcard .pctbig,.stat .n,.vr .vtot,.vpct,.otrow .otc b,.otpill,.bar .bt .vl b,.countup,.plan .pt{font-variant-numeric:tabular-nums}
+  .vr .vtot{color:var(--ink)}
+  /* Tarjetas y superficies: vidrio translúcido */
+  .plan,.tcard,.vrow,.vr,.back,.gbfsearch{background:linear-gradient(160deg,#ffffff12,#ffffff06)!important;border-color:var(--line);backdrop-filter:blur(8px)}
+  .plan .ph{background:linear-gradient(180deg,#ffffff10,#ffffff03)}
+  .vhead{background:transparent}.vhead:hover{background:#ffffff0d}
+  .vbody{background:#ffffff08}
+  .track{background:#ffffff1a}
+  .obj{background:#ffffff0d}
+  .gbfchips{background:#ffffff0d}.gbfchips button.on{background:#fff;color:#0b1118;box-shadow:none}
+  .gbfsearch{color:var(--ink)}.gbfsearch::placeholder{color:#7f93a3}
+  .segb{background:#ffffff12;color:var(--muted)}.segb.on{background:#fff;color:#0b1118;border-color:#fff}
+  .chip.no{background:#ffffff14;color:#8ea0ad}
+  .tcard:hover{border-color:#ffffff33;box-shadow:0 14px 32px -16px #000a}
+  /* Logos de marca (son oscuros, hechos para fondo claro): van sobre placa clara */
+  .tcard .logo.img,.plan .logo.img{background:#f4efe4;border-color:#ffffff22}
+  .logoBanner{background:#f4efe4;border-radius:14px;padding:8px 16px;margin:2px 6px 0}
+  .intro{background:linear-gradient(160deg,#13202b,#0e1821);border:1px solid var(--line)}
+  .sb-logo{font-family:var(--disp)}
+  .empty{background:#ffffff08}
+  /* pills de estado un poco más vivas sobre oscuro */
+  .otpill.hi,.chip.si{background:#16352c;color:#7fe0c6}
+  .otpill.lo{background:#3a241d;color:var(--red)}
 </style>
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
@@ -246,7 +281,7 @@
     const R=56, C=2*Math.PI*R, off=C*(1-pct/100);
     const col = pct>=66?'var(--green-d)':(pct<=33?'var(--red)':'var(--gold-d)');
     return `<div class="ring"><svg width="132" height="132" viewBox="0 0 132 132">
-        <circle cx="66" cy="66" r="${R}" fill="none" stroke="#eee7d8" stroke-width="13"/>
+        <circle cx="66" cy="66" r="${R}" fill="none" stroke="#ffffff22" stroke-width="13"/>
         <circle class="ringprog" cx="66" cy="66" r="${R}" fill="none" stroke="${col}" stroke-width="13" stroke-linecap="round"
           style="--c:${C.toFixed(1)}" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 66 66)"/>
       </svg><div class="pctT"><div class="big countup" data-count="${pct}" data-suffix="%">${pct}%</div><div class="lbl">cumplimiento</div></div></div>`;
@@ -275,7 +310,7 @@
   function miniRing(pct){
     const R=16,C=2*Math.PI*R,off=C*(1-pct/100);
     const col=pct>=66?'var(--green-d)':(pct<=33?'var(--red)':'var(--gold-d)');
-    return `<svg class="mini-ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="${R}" fill="none" stroke="#eee7d8" stroke-width="5"/><circle cx="20" cy="20" r="${R}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 20 20)"/></svg>`;
+    return `<svg class="mini-ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="${R}" fill="none" stroke="#ffffff22" stroke-width="5"/><circle cx="20" cy="20" r="${R}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 20 20)"/></svg>`;
   }
   function provPct(prov){ let a=0,t=0; (prov.planes||[]).forEach(p=>{a+=p.avanceTotal||0; t+=p.targetTotal||0;}); return t?Math.round(100*a/t):0; }
 
