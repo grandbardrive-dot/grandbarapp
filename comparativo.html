@@ -64,6 +64,18 @@
   .filtros .chk{flex-direction:row;align-items:center;gap:8px;align-self:end;padding:8px 2px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:600;cursor:pointer}
   .filtros .chk input{width:17px;height:17px;accent-color:var(--navy)}
   .filtros .limpiar{align-self:end;justify-self:start;font:inherit;font-size:12.5px;font-weight:700;color:var(--gold-d);background:none;border:0;padding:8px 2px;cursor:pointer}
+  /* Tipo de producto con varias opciones a la vez (20/11/2026) */
+  .multi{position:relative;display:flex;flex-direction:column;gap:4px;min-width:0}
+  .multi .ml{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .multi .mbtn{display:flex;align-items:center;gap:6px;font:inherit;font-size:13.5px;font-weight:500;color:var(--ink);text-align:left;border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:#fff;cursor:pointer;min-width:0}
+  .multi .mbtn span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .multi .mbtn svg{flex:none;color:var(--muted)}
+  .multi .mpanel{position:absolute;top:100%;left:0;min-width:100%;z-index:30;margin-top:4px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 28px -12px rgba(0,0,0,.28);padding:6px}
+  .multi .mpanel label{flex-direction:row;align-items:center;gap:9px;padding:7px 8px;border-radius:7px;font-size:13.5px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink);cursor:pointer;white-space:nowrap}
+  .multi .mpanel label:hover{background:var(--gold-soft)}
+  .multi .mpanel input{width:16px;height:16px;margin:0;accent-color:var(--navy)}
+  .multi .mpanel .mtodos{border-bottom:1px solid var(--line-2);border-radius:7px 7px 0 0;margin-bottom:3px}
+  .multi .maplicar{display:block;width:100%;margin-top:5px;font:inherit;font-size:13px;font-weight:700;color:#fff;background:var(--navy);border:0;border-radius:8px;padding:8px;cursor:pointer}
 
   /* Panel de variaciones */
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
@@ -162,7 +174,9 @@
       <label>Tipo de cliente<select id="fTipo"><option value="">Todos</option></select></label>
       <label>Provincia<select id="fProv"><option value="">Todas</option></select></label>
       <label>Proveedor<select id="fF2"><option value="">Todos</option></select></label>
-      <label>Tipo de producto<select id="fF1"><option value="">Todos</option></select></label>
+      <div class="multi"><span class="ml" id="fF1l">Tipo de producto</span>
+        <button type="button" class="mbtn" id="fF1b" aria-haspopup="true" aria-expanded="false" aria-labelledby="fF1l fF1t"><span id="fF1t">Todos</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="mpanel" id="fF1p" hidden></div></div>
       <label class="chk"><input type="checkbox" id="fPenaflor"> Solo Grupo Peñaflor</label>
       <button class="limpiar" id="limpiar" type="button">Limpiar filtros</button>
     </div>
@@ -213,7 +227,7 @@
     llenar($('fTipo'), F.tipos.map(t => [t, t]), ESTADO.tipo, 'Todos');
     llenar($('fProv'), F.provincias.map(p => [p, p === 'MDZ' ? 'Mendoza' : p === 'SL' ? 'San Luis' : p]), ESTADO.prov, 'Todas');
     llenar($('fF2'), F.proveedores.map(p => [p.codigo, p.nombre]), ESTADO.f2, 'Todos');
-    llenar($('fF1'), F.familias1.map(f => [f.codigo, f.nombre]), ESTADO.f1, 'Todos');
+    pintarF1(F.familias1);
     $('fPenaflor').checked = ESTADO.penaflor;
     opcionesListas = true;
   }
@@ -322,8 +336,44 @@
     } finally { cont.classList.remove('cargando'); }
   }
 
+  // Tipo de producto: varias opciones a la vez (20/11/2026). ESTADO.f1 = códigos separados por coma
+  // ('' = todos). Lo tildado se aplica al tocar "Aplicar" o al cerrar la lista.
+  let F1_NOMBRES = {}, f1Pend = '';
+  const textoF1 = cods => { const c = cods ? cods.split(',') : []; $('fF1t').textContent = c.length ? c.map(k => F1_NOMBRES[k] || k).join(', ') : 'Todos'; };
+  function pintarF1(fams){
+    F1_NOMBRES = Object.fromEntries(fams.map(f => [f.codigo, f.nombre]));
+    const sel = new Set(ESTADO.f1 ? ESTADO.f1.split(',') : []);
+    $('fF1p').innerHTML = '<label class="mtodos"><input type="checkbox" data-todos' + (sel.size ? '' : ' checked') + '> Todos</label>'
+      + fams.map(f => '<label><input type="checkbox" value="' + esc(f.codigo) + '"' + (sel.has(f.codigo) ? ' checked' : '') + '> ' + esc(f.nombre) + '</label>').join('')
+      + '<button type="button" class="maplicar">Aplicar</button>';
+    textoF1(ESTADO.f1);
+  }
+  function cerrarF1(){
+    const p = $('fF1p'); if (p.hidden) return;
+    p.hidden = true; $('fF1b').setAttribute('aria-expanded', 'false');
+    if (f1Pend !== ESTADO.f1) { ESTADO.f1 = f1Pend; ESTADO.limite = 100; cargar(); }
+  }
+  function enlazarF1(){
+    $('fF1b').onclick = e => { e.stopPropagation(); const p = $('fF1p');
+      if (p.hidden) { f1Pend = ESTADO.f1; p.hidden = false; $('fF1b').setAttribute('aria-expanded', 'true'); } else cerrarF1(); };
+    $('fF1p').onclick = e => { e.stopPropagation(); if (e.target.closest('.maplicar')) cerrarF1(); };
+    $('fF1p').onchange = e => {
+      const t = e.target; if (!t.matches('input')) return;
+      const cajas = [...$('fF1p').querySelectorAll('input[value]')], todos = $('fF1p').querySelector('[data-todos]');
+      if (t === todos) cajas.forEach(c => { c.checked = false; });
+      const elegidos = cajas.filter(c => c.checked);
+      // Ninguno o todos tildados = "Todos".
+      if (!elegidos.length || elegidos.length === cajas.length) { cajas.forEach(c => { c.checked = false; }); todos.checked = true; f1Pend = ''; }
+      else { todos.checked = false; f1Pend = elegidos.map(c => c.value).join(','); }
+      textoF1(f1Pend);
+    };
+    document.addEventListener('click', cerrarF1);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarF1(); });
+  }
+
   function enlazarFiltros(){
-    const m = { fMes:'mes', fVend:'vend', fEquipo:'equipo', fTipo:'tipo', fProv:'prov', fF2:'f2', fF1:'f1' };
+    enlazarF1();
+    const m = { fMes:'mes', fVend:'vend', fEquipo:'equipo', fTipo:'tipo', fProv:'prov', fF2:'f2' };
     Object.keys(m).forEach(id => $(id).onchange = () => { ESTADO[m[id]] = $(id).value; if (id === 'fF2') { ESTADO.f3 = ''; ESTADO.f3n = ''; } ESTADO.limite = 100; cargar(); });
     $('fPenaflor').onchange = () => { ESTADO.penaflor = $('fPenaflor').checked; ESTADO.limite = 100; cargar(); };
     $('limpiar').onclick = () => { Object.assign(ESTADO, { vend:'', equipo:'', tipo:'', prov:'', f2:'', f1:'', penaflor:false, f3:'', f3n:'', q:'', limite:100 }); cargar(); };

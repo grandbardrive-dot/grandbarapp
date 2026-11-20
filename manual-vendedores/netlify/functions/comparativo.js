@@ -166,7 +166,9 @@ exports.handler = async (event) => {
       && (!q.equipo || v.equipo === q.equipo)
       && (!q.prov || v.provincia === q.prov));
     if (q.vend || q.equipo || q.prov) incl = filtVend.map(v => v.codigo).concat(['__ninguno__']);
-    const f1 = q.f1 && FAMILIA1[q.f1] ? [q.f1] : Object.keys(FAMILIA1);
+    // Tipo de producto: uno o varios, separados por coma (20/11/2026: "f1=01,02" = Vinos y Spirits).
+    const f1Pedidos = [...new Set(String(q.f1 || '').split(',').map(s => s.trim()).filter(k => FAMILIA1[k]))];
+    const f1 = f1Pedidos.length ? f1Pedidos : Object.keys(FAMILIA1);
     let f2 = null;
     if (q.f2 && /^\d{4}$/.test(q.f2)) f2 = [q.f2];
     if (q.penaflor === '1') {
