@@ -17,7 +17,7 @@
      panel de cada KAF (marca, clientes, secciones), le carga objetivos, ve sus visitas
      y lo que carga, aprueba presupuestos y carga los modelos de Perfect Serve / Store.
      Mismo menú que trade-acciones, trade-evidencias y torneo-evidencias. -->
-<link rel="stylesheet" href="assets/kaf.css?v=4">
+<link rel="stylesheet" href="assets/kaf.css?v=5">
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
 <body>
@@ -40,12 +40,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/auth-persist.js?v=1"></script>
-<script src="assets/kaf-comun.js?v=4"></script>
+<script src="assets/kaf-comun.js?v=5"></script>
 <script>
   const { K, $, esc, num, fecha, toast, get, post, ventana, cerrar } = KAF;
   K.modo = 'trade';
   const ROLES = ['torneo', 'desarrollo', 'diseno'];
-  const TABS = [['resumen', 'Resumen'], ['clientes', 'Clientes y oportunidades'], ['visitas', 'Visitas'], ['nuevos', 'Clientes nuevos'], ['registros', 'Lo que carga'], ['materiales', 'Materiales'], ['objetivos', 'Objetivos'], ['armado', 'Armado del panel'], ['modelos', 'Modelos']];
+  // Cuadro de oportunidad (20/11/2026): solo para los KAF que lo tienen prendido en el armado.
+  const TABS = [['resumen', 'Resumen'], ['clientes', 'Clientes y oportunidades'], ['cuadro', 'Cuadro de oportunidad'], ['visitas', 'Visitas'], ['nuevos', 'Clientes nuevos'], ['registros', 'Lo que carga'], ['materiales', 'Materiales'], ['objetivos', 'Objetivos'], ['armado', 'Armado del panel'], ['modelos', 'Modelos']];
   let D = null, TAB = 'resumen', SEL = null, MOD_TIPO = 'perfect_serve', REG_TIPO = '', MAT_P = '';
 
   function pintarKafs() {
@@ -67,7 +68,9 @@
     }).join('');
   }
   function pintarTabs() {
-    $('tabs').innerHTML = TABS.map(([k, n]) => `<button data-t="${k}" class="${TAB === k ? 'on' : ''}">${esc(n)}</button>`).join('');
+    const conCuadro = !!(SEL && (SEL.secciones || []).some(s => s.k === 'cuadro' && s.on));
+    if (TAB === 'cuadro' && SEL && !conCuadro) TAB = 'resumen';
+    $('tabs').innerHTML = TABS.filter(([k]) => k !== 'cuadro' || conCuadro).map(([k, n]) => `<button data-t="${k}" class="${TAB === k ? 'on' : ''}">${esc(n)}</button>`).join('');
   }
   async function elegir(id) {
     SEL = (D.kafs || []).find(k => k.id === id) || null;
@@ -75,7 +78,7 @@
     K.kaf = SEL.id; K.perfil = SEL.perfil; K.clientes = null; K.secciones = [];
     const u = new URL(location.href); u.searchParams.set('kaf', SEL.id); history.replaceState(null, '', u.pathname + u.search + '#' + TAB);
     pintarKafs(); pintarTabs();
-    try { const ini = await get('inicio'); K.perfil = ini.perfil; K.secciones = ini.secciones || []; SEL.secciones = ini.secciones; } catch (e) {}
+    try { const ini = await get('inicio'); K.perfil = ini.perfil; K.secciones = ini.secciones || []; SEL.secciones = ini.secciones; pintarTabs(); } catch (e) {}
     vista();
   }
   async function vista() {
@@ -86,6 +89,7 @@
     if (!SEL) { el.innerHTML = '<div class="vacio">Elegí un KAF.</div>'; return; }
     if (TAB === 'resumen') return KAF.renderInicio(el);
     if (TAB === 'clientes') return KAF.renderClientes(el);
+    if (TAB === 'cuadro') return KAF.renderCuadro(el);
     if (TAB === 'visitas') return KAF.renderVisitas(el);
     if (TAB === 'nuevos') return KAF.renderNuevos(el);
     if (TAB === 'registros') {

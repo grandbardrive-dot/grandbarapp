@@ -16,7 +16,7 @@
 <!-- Panel del KAF (19/10/2026): representante de una marca en la calle (Facu Llaver,
      Campari). Lo arma Juan Pablo Sepúlveda desde trade-kaf.html: marca, secciones y
      objetivos. Datos: función kaf (assets/kaf-comun.js). -->
-<link rel="stylesheet" href="assets/kaf.css?v=4">
+<link rel="stylesheet" href="assets/kaf.css?v=5">
 <link rel="stylesheet" href="assets/mobile.css?v=3">
 </head>
 <body>
@@ -43,12 +43,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/auth-persist.js?v=1"></script>
-<script src="assets/kaf-comun.js?v=4"></script>
+<script src="assets/kaf-comun.js?v=5"></script>
 <script>
   const { K, $, esc, num, fecha, hora, toast, get, post, secc, ventana, cerrar, picker } = KAF;
   const ICO = {
     inicio: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
     clientes: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    cuadro: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
     visitas: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
     nuevos: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>',
     evidencia: '<rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/>',
@@ -98,6 +99,8 @@
     const titulo = S ? S.t : v;
     const ayuda = S && S.ayuda && !KAF.REG[v] ? `<div class="ayuda">${esc(S.ayuda)}</div>` : '';
     if (v === 'clientes') { C.innerHTML = cabeza(titulo, 'Todos los clientes de GrandBar con su vendedor, lo que compran de la marca y las oportunidades. Tocá uno para ver su ficha y empezar la visita.') + ayuda + '<div id="vista"></div>'; KAF.renderClientes($('vista')); return; }
+    // Cuadro de oportunidad (20/11/2026): el Excel de Análisis Comercial, con las ventas de CUBO.
+    if (v === 'cuadro') { C.innerHTML = cabeza(titulo, 'Quién le compró ' + esc((K.perfil || {}).marca || 'la marca') + ' a GrandBar en los meses anteriores y este mes todavía no, y cómo viene cada cliente mes a mes.') + ayuda + '<div id="vista"></div>'; KAF.renderCuadro($('vista')); return; }
     if (v === 'visitas') { C.innerHTML = cabeza(titulo, 'Las visitas que marcaste, día por día. Juan Pablo las ve igual que vos.') + ayuda + '<div id="vista"></div>'; KAF.renderVisitas($('vista')); return; }
     if (v === 'nuevos') { C.innerHTML = cabeza(titulo, 'Los puntos de venta que encontrás y todavía no son clientes (nombre, ubicación y foto, para darlos de alta) y los que empezaron a comprar este mes según CUBO.') + ayuda + '<div id="vista"></div>'; KAF.renderNuevos($('vista'), arg); return; }
     if (KAF.REG[v]) { C.innerHTML = cabeza(titulo, esc(KAF.REG[v].d)) + '<div id="vista"></div>'; KAF.renderRegistros($('vista'), v); return; }

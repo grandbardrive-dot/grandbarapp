@@ -45,6 +45,10 @@ const TIPOS_ON = ['restaurante', 'bar', 'disco', 'evento', 'hotel'];
 const TIPOS_OK = TIPOS_ON.concat(['vinoteca', 'autoservicio', 'tienda de bebidas', 'mayorista', 'otros']);
 const SECCIONES = [
   { k: 'clientes', t: 'Clientes', fija: true },
+  // Cuadro de oportunidad (20/11/2026): el Excel de Análisis Comercial ("Campari - Cuadro de
+  // oportunidad"), calculado con las ventas de CUBO. Juan Pablo: "el de Peña a Maru y el de
+  // Campari a Facu; Tomy no tiene". Viene prendido para esas marcas y se cambia en el armado.
+  { k: 'cuadro', t: 'Cuadro de oportunidad', marcas: ['campari', 'penaflor'] },
   { k: 'visitas', t: 'Mis visitas', fija: true },
   { k: 'nuevos', t: 'Clientes nuevos' },
   { k: 'evidencia', t: 'Evidencia en PDV' },
@@ -198,6 +202,19 @@ async function leerCSV(url) {
     return { head: splitCSV(lines[0]).map(h => h.trim().toLowerCase()), filas: lines.slice(1).map(splitCSV) };
   } catch (e) { return null; }
 }
+// Carteras que no son de venta (empleados, gestión administrativa, judicial, incobrables…): la
+// hoja "Excluidos" de Administración, la misma que usa el Comparativo. El cuadro de oportunidad
+// las deja afuera, como el Excel de Análisis Comercial. Si Drive no responde, las de siempre.
+const EXCLUIDOS_CSV = 'https://docs.google.com/spreadsheets/d/1O7-GapTY4apFw8uc8Og7kKAm9Z6dYl2t/gviz/tq?tqx=out:csv&sheet=Excluidos';
+let CACHE_EXCL = { t: 0, d: null };
+async function vendedoresExcluidos() {
+  if (CACHE_EXCL.d && Date.now() - CACHE_EXCL.t < 30 * 60000) return CACHE_EXCL.d;
+  const x = await leerCSV(EXCLUIDOS_CSV);
+  const cods = x ? x.filas.map(f => String(f[1] || '').trim()).filter(c => /^\d{3}$/.test(c)) : [];
+  if (!cods.length) return CACHE_EXCL.d || new Set(['021', '022', '023', '034']);
+  CACHE_EXCL = { t: Date.now(), d: new Set(cods) };
+  return CACHE_EXCL.d;
+}
 
 // ── Lecturas del Manual ──────────────────────────────────────────────────────
 const manCab = extra => Object.assign({ apikey: MAN_KEY, Authorization: 'Bearer ' + MAN_KEY }, extra || {});
@@ -242,7 +259,7 @@ function armarSecciones(P) {
   const guardadas = (P && P.secciones) || {};
   return SECCIONES.map(s => {
     const g = guardadas[s.k] || {};
-    const porDefecto = !s.canal || (s.canal === 'on' ? esOn : esOff);
+    const porDefecto = s.marcas ? s.marcas.includes(slug(P && P.marca)) : (!s.canal || (s.canal === 'on' ? esOn : esOff));
     return { k: s.k, t: texto(g.titulo, 60) || s.t, base: s.t, on: s.fija ? true : (typeof g.on === 'boolean' ? g.on : porDefecto), ayuda: texto(g.ayuda, 600) || '', fija: !!s.fija, canal: s.canal || null };
   });
 }
@@ -291,8 +308,9 @@ async function datosMarca(P) {
   const marcas = (P.marcas || []).length ? P.marcas : [P.marca];
 
   // Ventas de la marca de estos clientes, de a 150 códigos por consulta. Con todos los
-  // clientes (13/11/2026) son ~13 consultas: de a 7 a la vez y sin contar filas (el conteo
-  // de las 13 juntas hacía que la base cortara por tiempo).
+  // clientes (13/11/2026) son ~13 consultas, sin contar filas (el conteo de las 13 juntas
+  // hacía que la base cortara por tiempo). 20/11/2026: sin el conteo van las 13 a la vez
+  // (Campari, 50.000 filas: 2,5 s en vez de 4,2 s de a 7).
   const porCli = new Map();
   if (prefs.length && visibles.length) {
     const cods = visibles.map(c => String(c.codigo_cliente)).filter(esCod);
@@ -311,8 +329,8 @@ async function datosMarca(P) {
       return out;
     };
     const lotes = [];
-    for (let i = 0; i < trozos.length; i += 7) {
-      lotes.push(...await Promise.all(trozos.slice(i, i + 7).map(t => paginas('ventas_cliente?select=cliente_codigo,sku,fecha,unidades,importe&cliente_codigo=in.(' + lista(t) + ')' + filtro))));
+    for (let i = 0; i < trozos.length; i += 13) {
+      lotes.push(...await Promise.all(trozos.slice(i, i + 13).map(t => paginas('ventas_cliente?select=cliente_codigo,sku,fecha,unidades,importe&cliente_codigo=in.(' + lista(t) + ')' + filtro))));
     }
     for (const filas of lotes) {
       for (const f of filas) {
@@ -744,6 +762,48 @@ exports.handler = async (event) => {
         });
         const madres = secs.filter(s => !s.parent_id || !ids.includes(s.parent_id));
         return json(200, { canal, secciones: madres.map(m => Object.assign(nodo(m), { sub: secs.filter(h => h.parent_id === m.id).map(nodo) })) });
+      }
+
+      // Cuadro de oportunidad (20/11/2026): lo que compró cada cliente de la marca, por mes y
+      // por artículo, en los últimos 12 meses (como la hoja Source del Excel de Análisis
+      // Comercial). Las cuentas (quién compró antes y este mes todavía no, subas y bajas del
+      // 40%) se hacen en el navegador. Unidades netas (con devoluciones); el importe, solo GrandBar.
+      if (v === 'cuadro') {
+        if (esKaf && !secciones.some(s => s.k === 'cuadro' && s.on)) return json(403, { error: 'El cuadro de oportunidad no está habilitado en tu panel.' });
+        const [D, excl] = await Promise.all([datosMarca(P), vendedoresExcluidos()]);
+        const meses = [];
+        for (let i = 11; i >= 0; i--) { const d = new Date(hoyAR() + 'T12:00:00Z'); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - i); meses.push(d.toISOString().slice(0, 7)); }
+        const mIdx = new Map(meses.map((m, i) => [m, i])), desde = meses[0] + '-01';
+        const articulos = [], aIdx = new Map(), clientes = [], filas = [];
+        let ult = null;
+        for (const c of D.visibles) {
+          const ventas = D.porCli.get(c.codigo_cliente);
+          if (!ventas || !ventas.length) continue;
+          const vd = D.vend.get(c.vendedor_id) || {};
+          if (vd.codigo && excl.has(String(vd.codigo).trim())) continue;
+          const acc = new Map();
+          for (const [sku, fecha, u, imp] of ventas) {
+            if (fecha < desde) continue;
+            const mi = mIdx.get(fecha.slice(0, 7));
+            if (mi == null) continue;
+            if (!ult || fecha > ult) ult = fecha;
+            let ai = aIdx.get(sku);
+            if (ai == null) { ai = articulos.length; aIdx.set(sku, ai); const n = D.desc.get(sku) || sku; articulos.push({ s: sku, n, m: marcaDe(n, D.marcas) }); }
+            const k = mi * 100000 + ai, x = acc.get(k) || [0, 0];
+            x[0] += u; x[1] += imp; acc.set(k, x);
+          }
+          const ci = clientes.length;
+          let alguna = false;
+          for (const [k, [u, imp]] of acc) {
+            if (!u && !imp) continue;
+            const f = [ci, Math.floor(k / 100000), k % 100000, Math.round(u * 100) / 100];
+            if (plata) f.push(Math.round(imp));
+            filas.push(f); alguna = true;
+          }
+          if (!alguna) continue;
+          clientes.push({ c: c.codigo_cliente, n: c.nombre, t: c.tipo, v: vd.nombre || '', vc: vd.codigo || '', d: c.direccion || '', acu: (D.acuerdos.get(normCod(c.codigo_cliente)) || []).length });
+        }
+        return json(200, { marca: P.marca, tipos: P.tipos || [], meses, ult, articulos, clientes, filas, plata, hayAcuerdos: D.hayAcuerdos, generado: D.generado });
       }
 
       if (v === 'clientes') {

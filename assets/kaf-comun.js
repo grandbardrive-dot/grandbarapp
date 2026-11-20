@@ -1294,6 +1294,207 @@ window.KAF = (function () {
       </div></div>`;
   }
 
+  // ── Cuadro de oportunidad (20/11/2026) ─────────────────────────────────────
+  // El Excel "Cuadro de oportunidad" de Análisis Comercial, con las ventas de CUBO:
+  //  · Oportunidades: compraron en unos meses y en el mes que se compara todavía no (hoja
+  //    "Cuadro de oportunidad": compradores de los meses anteriores contra los del actual).
+  //  · Mes a mes: cada cliente por mes, con las subas y bajas del 40% contra el mes anterior
+  //    (hojas "Análisis" y "Análisis histórico"); tocando uno, lo que compró por artículo.
+  // Unidades netas (con devoluciones). El importe lo ve solo GrandBar (K.plata).
+  const EST_CU = { pest: 'op', prod: '', tipo: null, vend: '', q: '', a0: null, a1: null, act: null, lista: 'op', orden: 'u', n: 6, pesos: false, max: 150 };
+  let CU = null;
+  async function cuadro(forzar) {
+    if (CU && CU.kaf === K.kaf && !forzar) return CU;
+    const d = await get('cuadro');
+    d.kaf = K.kaf; K.plata = !!d.plata;
+    d.clientes.forEach(c => { c.f = []; });
+    d.filas.forEach(f => { d.clientes[f[0]].f.push(f); });
+    const ms = [...new Set(d.articulos.map(a => a.m))];
+    d.marcasArt = ms.filter(m => m !== 'Otros').sort((a, b) => a.localeCompare(b, 'es')).concat(ms.includes('Otros') ? ['Otros'] : []);
+    CU = d;
+    if (EST_CU.kafDe !== K.kaf) {                 // otro KAF (Trade): los meses y filtros vuelven a empezar
+      const n = d.meses.length;
+      Object.assign(EST_CU, { kafDe: K.kaf, prod: '', vend: '', q: '', tipo: (d.tipos || []).length ? 'canal' : '', act: n - 1, a1: n - 2, a0: n - 3, max: 150 });
+    }
+    return d;
+  }
+  async function renderCuadro(el) {
+    el.innerHTML = '<div class="vacio">Armando el cuadro con las ventas de CUBO… (la primera vez tarda unos segundos)</div>';
+    let d;
+    try { d = await cuadro(); } catch (e) { el.innerHTML = `<div class="vacio">${esc(e.message)}</div>`; return; }
+    const marca = d.marca || 'la marca', M = d.meses, mio = new Set(d.tipos || []);
+    if (!d.clientes.length) { el.innerHTML = `<div class="vacio">Todavía no hay ventas de ${esc(marca)} en CUBO en los últimos 12 meses.</div>`; return; }
+    const S = EST_CU;
+    const per = (a, b) => a === b ? mesCorto(M[a]) : mesCorto(M[a]) + '–' + mesCorto(M[b]);
+    const vendedores = [...new Map(d.clientes.filter(c => c.vc).map(c => [c.vc, c.v])).entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1])));
+    const tipos = [...new Set(d.clientes.map(c => c.t))].sort((a, b) => String(TIPO[a] || a).localeCompare(String(TIPO[b] || b)));
+    const prodOpts = `<option value="">Todo ${esc(marca)}</option>
+      <optgroup label="Por marca">${d.marcasArt.map(m => `<option value="m:${esc(m)}">${esc(m)}</option>`).join('')}</optgroup>
+      <optgroup label="Por artículo">${d.articulos.map((a, i) => [a, i]).sort((x, y) => x[0].n.localeCompare(y[0].n, 'es')).map(([a, i]) => `<option value="a:${i}">${esc(a.n)}</option>`).join('')}</optgroup>`;
+    const tipoOpts = (mio.size ? `<option value="canal">Mi canal (${esc([...mio].map(t => TIPO[t] || t).join(', '))})</option>` : '') + '<option value="">Todos los tipos de cliente</option>'
+      + tipos.map(t => `<option value="${esc(t)}">${esc(TIPO[t] || t)}</option>`).join('');
+    const mesOpts = sel => M.map((m, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(mesNombre(m))}</option>`).join('');
+    el.innerHTML = `<div class="barra"><div class="tabs" id="cu-pest"><button type="button" data-p="op" class="${S.pest === 'op' ? 'on' : ''}">Oportunidades</button><button type="button" data-p="mes" class="${S.pest === 'mes' ? 'on' : ''}">Mes a mes</button></div></div>
+      <div class="barra cu-per" id="cu-per" ${S.pest === 'op' ? '' : 'hidden'}>
+        <span>Compraron entre</span><select id="cu-a0" aria-label="Desde">${mesOpts(S.a0)}</select><span>y</span><select id="cu-a1" aria-label="Hasta">${mesOpts(S.a1)}</select>
+        <span>pero no en</span><select id="cu-act" aria-label="Mes a comparar">${mesOpts(S.act)}</select>
+      </div>
+      <div class="barra">
+        <select id="cu-prod" aria-label="Producto">${prodOpts}</select>
+        <select id="cu-tipo" aria-label="Tipo de cliente">${tipoOpts}</select>
+        <select id="cu-vend" aria-label="Vendedor"><option value="">Todos los vendedores</option>${vendedores.map(([k, n]) => `<option value="${esc(k)}">${esc(n || k)}</option>`).join('')}</select>
+        <span id="cu-extra"></span>
+        <input type="search" id="cu-q" placeholder="Buscar cliente, código o vendedor…" autocomplete="off">
+        <button class="btn claro chico" id="cu-csv" type="button">Bajar en Excel</button>
+      </div>
+      <div class="cuenta" id="cu-cuenta"></div><div id="cu-cuerpo"></div>`;
+    el.querySelector('#cu-prod').value = S.prod; el.querySelector('#cu-tipo').value = S.tipo == null ? '' : S.tipo; el.querySelector('#cu-vend').value = S.vend; el.querySelector('#cu-q').value = S.q;
+    if (el.querySelector('#cu-prod').value !== S.prod) S.prod = '';
+    const cuerpo = el.querySelector('#cu-cuerpo');
+
+    // Qué artículos entran y qué clientes (tipo, vendedor, búsqueda).
+    const artOk = () => {
+      if (!S.prod) return null;
+      const [k, v] = [S.prod.slice(0, 1), S.prod.slice(2)];
+      return new Set(d.articulos.map((a, i) => i).filter(i => k === 'm' ? d.articulos[i].m === v : String(i) === v));
+    };
+    const clientesOk = () => {
+      const q = S.q.trim().toLowerCase();
+      return d.clientes.filter(c => (S.tipo === 'canal' ? mio.has(c.t) : !S.tipo || c.t === S.tipo) && (!S.vend || c.vc === S.vend)
+        && (!q || [c.n, c.c, c.v, c.d].join(' ').toLowerCase().includes(q)));
+    };
+    // Por cliente: [unidades o pesos por mes] y, si se pide, por artículo.
+    const porMes = (c, A, col) => { const r = new Array(M.length).fill(0); c.f.forEach(f => { if (!A || A.has(f[2])) r[f[1]] += f[col] || 0; }); return r; };
+    const suma = (r, a, b) => { let s = 0; for (let i = a; i <= b; i++) s += r[i]; return s; };
+    const nomArt = s => String(s).replace(/^(aperitivo|vodka|whisky|tequila|licor|cognac|vino|espumante)\s+/i, '');
+    const fila = (c, der, chips) => `<div class="fila click" data-c="${esc(c.c)}">
+        <div class="cuerpo"><div class="tit">${esc(c.n)} <small style="color:var(--muted);font-weight:500">${esc(c.c)}</small></div>
+          <div class="sub">${esc(TIPO1[c.t] || c.t)}${c.v ? ' · Vendedor: ' + esc(c.v) : ''}${c.d ? ' · ' + esc(c.d) : ''}</div>
+          ${chips ? `<div class="chips">${chips}</div>` : ''}</div>
+        <div class="der">${der}</div></div>`;
+    const mas = (n, total) => total > n ? `<div style="text-align:center;margin-top:12px"><button class="btn claro" type="button" id="cu-mas">Mostrar ${Math.min(150, total - n)} más</button></div>` : '';
+
+    // ── Oportunidades ──
+    let CSV = null;
+    function oportunidades() {
+      el.querySelector('#cu-extra').innerHTML = `<select id="cu-orden" aria-label="Orden"><option value="u">Los que más compraban primero</option><option value="n">Por nombre</option></select>`;
+      el.querySelector('#cu-orden').value = S.orden;
+      const A = artOk(), l = clientesOk();
+      const op = [], ya = [], nuevos = [];
+      for (const c of l) {
+        const r = porMes(c, A, 3), antes = suma(r, S.a0, S.a1), ahora = r[S.act];
+        if (antes <= 0 && ahora <= 0) continue;
+        let ult = -1; for (let i = M.length - 1; i >= 0; i--) if (r[i] > 0) { ult = i; break; }
+        const x = { c, antes, ahora, ult };
+        if (antes > 0 && ahora <= 0) op.push(x); else if (antes > 0) ya.push(x); else nuevos.push(x);
+      }
+      const L = { op, ya, nuevos }[S.lista] || op;
+      L.sort(S.orden === 'n' ? (a, b) => a.c.n.localeCompare(b.c.n, 'es') : (a, b) => (S.lista === 'nuevos' ? b.ahora - a.ahora : b.antes - a.antes) || a.c.n.localeCompare(b.c.n, 'es'));
+      const pA = per(S.a0, S.a1), pM = mesCorto(M[S.act]), compraron = op.length + ya.length;
+      const enCurso = S.act === M.length - 1 && d.ult;
+      el.querySelector('#cu-cuenta').innerHTML = `${num(compraron)} ${compraron === 1 ? 'cliente compró' : 'clientes compraron'} ${esc(S.prod ? el.querySelector('#cu-prod').selectedOptions[0].textContent : marca)} en ${esc(pA)}: ${num(ya.length)} ya ${ya.length === 1 ? 'volvió' : 'volvieron'} a comprar en ${esc(pM)} y ${num(op.length)} todavía no. Ventas de CUBO${d.ult ? ' hasta el ' + fecha(d.ult) : ''}.`;
+      const tabs = `<div class="barra"><div class="tabs" id="cu-lista">
+        <button type="button" data-l="op" class="${S.lista === 'op' ? 'on' : ''}">Todavía no compraron en ${esc(pM)}<span class="n">${num(op.length)}</span></button>
+        <button type="button" data-l="ya" class="${S.lista === 'ya' ? 'on' : ''}">Ya compraron<span class="n">${num(ya.length)}</span></button>
+        <button type="button" data-l="nuevos" class="${S.lista === 'nuevos' ? 'on' : ''}">Nuevos en ${esc(pM)}<span class="n">${num(nuevos.length)}</span></button></div></div>`;
+      const ayuda = S.lista === 'op' ? `Le compraron ${esc(marca)} a GrandBar en ${esc(pA)} y en ${esc(pM)} todavía no${enCurso ? ' (el mes está en curso)' : ''}. Arriba, los que más compraban.`
+        : S.lista === 'ya' ? `Compraron en ${esc(pA)} y volvieron a comprar en ${esc(pM)}.` : `Compraron en ${esc(pM)} y no lo habían hecho en ${esc(pA)}.`;
+      const items = L.slice(0, S.max).map(x => {
+        const A2 = artOk(), porArt = {};
+        x.c.f.forEach(f => { if ((!A2 || A2.has(f[2])) && f[1] >= S.a0 && f[1] <= S.a1) porArt[f[2]] = (porArt[f[2]] || 0) + f[3]; });
+        const top = Object.entries(porArt).filter(([, u]) => u > 0).sort((a, b) => b[1] - a[1]);
+        const chips = top.slice(0, 4).map(([i, u]) => `<span class="chip gris">${esc(nomArt(d.articulos[i].n))}: ${num(u)}</span>`).join('') + (top.length > 4 ? `<span class="chip gris">y ${top.length - 4} más</span>` : '')
+          + (S.lista === 'op' && x.ult >= 0 ? `<span class="chip ambar">Última compra: ${esc(mesCorto(M[x.ult]))}</span>` : '')
+          + (x.c.acu ? `<span class="chip">${x.c.acu} acuerdo${x.c.acu > 1 ? 's' : ''} Campari</span>` : '');
+        const der = S.lista === 'nuevos' ? `<b style="color:var(--ink);font-size:14px">${num(x.ahora)} u.</b><br>en ${esc(pM)}`
+          : `<b style="color:var(--ink);font-size:14px">${num(x.antes)} u.</b><br>en ${esc(pA)}${S.lista === 'ya' ? `<br><b style="color:var(--green-d)">${num(x.ahora)} u.</b> en ${esc(pM)}` : ''}`;
+        return fila(x.c, der, chips);
+      }).join('');
+      cuerpo.innerHTML = tabs + `<p class="cu-ayuda">${ayuda}</p>` + (L.length ? items + mas(S.max, L.length) : `<div class="vacio">${S.lista === 'op' ? 'Todos los que compraron en ' + esc(pA) + ' ya volvieron a comprar. ¡Bien!' : 'No hay clientes en esta lista con ese filtro.'}</div>`);
+      CSV = () => {
+        const cab = ['Código', 'Cliente', 'Tipo', 'Vendedor', 'Dirección', 'Unidades ' + pA, 'Unidades ' + pM, 'Última compra', 'Qué compró en ' + pA].concat(d.hayAcuerdos ? ['Acuerdos Campari'] : []);
+        const nombre = { op: 'oportunidades', ya: 'ya-compraron', nuevos: 'nuevos' }[S.lista];
+        csv('cuadro-' + nombre + '-' + String(marca).toLowerCase().replace(/\W+/g, '-') + '-' + hoy() + '.csv', [cab].concat(L.map(x => {
+          const A2 = artOk(), porArt = {};
+          x.c.f.forEach(f => { if ((!A2 || A2.has(f[2])) && f[1] >= S.a0 && f[1] <= S.a1) porArt[f[2]] = (porArt[f[2]] || 0) + f[3]; });
+          return [x.c.c, x.c.n, TIPO1[x.c.t] || x.c.t, x.c.v, x.c.d, Math.round(x.antes), Math.round(x.ahora), x.ult >= 0 ? mesNombre(M[x.ult]) : '',
+            Object.entries(porArt).filter(([, u]) => u > 0).sort((a, b) => b[1] - a[1]).map(([i, u]) => d.articulos[i].n + ' ' + Math.round(u)).join(', ')].concat(d.hayAcuerdos ? [x.c.acu || ''] : []);
+        })));
+      };
+    }
+
+    // ── Mes a mes ──
+    function mesAMes() {
+      el.querySelector('#cu-extra').innerHTML = `<select id="cu-n" aria-label="Meses"><option value="6">Últimos 6 meses</option><option value="12">Últimos 12 meses</option></select>`
+        + (K.plata ? ` <select id="cu-pesos" aria-label="Qué mostrar"><option value="">Unidades</option><option value="1">Pesos</option></select>` : '');
+      el.querySelector('#cu-n').value = String(S.n);
+      if (K.plata) el.querySelector('#cu-pesos').value = S.pesos ? '1' : '';
+      const col = K.plata && S.pesos ? 4 : 3, fmt = v => v ? (col === 4 ? plata(v) : num(v)) : '';
+      const A = artOk(), desde = M.length - S.n;
+      const rows = clientesOk().map(c => { const r = porMes(c, A, col); return { c, r, tot: suma(r, desde, M.length - 1) }; })
+        .filter(x => x.r.slice(desde).some(v => v)).sort((a, b) => b.tot - a.tot || a.c.n.localeCompare(b.c.n, 'es'));
+      const tot = new Array(M.length).fill(0); rows.forEach(x => x.r.forEach((v, i) => { tot[i] += v; }));
+      // Como el Excel: verde si subió 40% o más contra el mes anterior; rojo si bajó 40% o más.
+      const clase = (r, i) => { const cur = r[i], prev = i > 0 ? r[i - 1] : 0; if (!prev) return ''; if (cur && cur / prev >= 1.4) return 'sube'; if (cur / prev <= 0.6) return 'baja'; return ''; };
+      const meses = M.slice(desde).map((m, j) => j + desde);
+      el.querySelector('#cu-cuenta').innerHTML = `${num(rows.length)} ${rows.length === 1 ? 'cliente' : 'clientes'} con compras de ${esc(S.prod ? el.querySelector('#cu-prod').selectedOptions[0].textContent : marca)} en ${esc(per(desde, M.length - 1))} · ${col === 4 ? 'pesos' : 'unidades'} por mes. Ventas de CUBO${d.ult ? ' hasta el ' + fecha(d.ult) : ''}.`;
+      cuerpo.innerHTML = `<p class="cu-ayuda"><span class="cu-ley sube">verde</span> 40% o más que el mes anterior · <span class="cu-ley baja">rojo</span> 40% o menos que el mes anterior. Tocá un cliente para ver qué compró, artículo por artículo.</p>`
+        + (!rows.length ? '<div class="vacio">No hay clientes con compras con ese filtro.</div>'
+          : `<div class="tabla-wrap"><table class="tabla cu"><thead><tr><th>Cliente</th>${meses.map(i => `<th class="n">${esc(mesCorto(M[i]))}</th>`).join('')}<th class="n">Total</th></tr></thead><tbody>
+            ${rows.slice(0, S.max).map(x => `<tr class="click" data-c="${esc(x.c.c)}"><td><b>${esc(x.c.n)}</b><div class="cu-v">${esc([x.c.c, TIPO1[x.c.t] || x.c.t, x.c.v].filter(Boolean).join(' · '))}</div></td>${meses.map(i => `<td class="n ${clase(x.r, i)}">${fmt(x.r[i])}</td>`).join('')}<td class="n"><b>${fmt(x.tot)}</b></td></tr>`).join('')}
+            </tbody><tfoot><tr><td><b>Total${rows.length > S.max ? ' (todos)' : ''}</b></td>${meses.map(i => `<td class="n"><b>${fmt(tot[i])}</b></td>`).join('')}<td class="n"><b>${fmt(suma(tot, desde, M.length - 1))}</b></td></tr></tfoot></table></div>` + mas(S.max, rows.length));
+      CSV = () => {
+        csv('cuadro-mes-a-mes-' + String(marca).toLowerCase().replace(/\W+/g, '-') + '-' + hoy() + '.csv', [['Código', 'Cliente', 'Tipo', 'Vendedor'].concat(meses.map(i => mesNombre(M[i])), ['Total'])]
+          .concat(rows.map(x => [x.c.c, x.c.n, TIPO1[x.c.t] || x.c.t, x.c.v].concat(meses.map(i => Math.round(x.r[i])), [Math.round(x.tot)]))));
+      };
+    }
+
+    // Un cliente, artículo por artículo, los 12 meses (hoja "Análisis por cliente").
+    function detalle(c) {
+      const col = K.plata && S.pesos ? 4 : 3, fmt = v => v ? (col === 4 ? plata(v) : num(v)) : '';
+      const A = artOk(), arts = {};
+      c.f.forEach(f => { if (!A || A.has(f[2])) { (arts[f[2]] = arts[f[2]] || new Array(M.length).fill(0))[f[1]] += f[col] || 0; } });
+      const l = Object.entries(arts).map(([i, r]) => ({ a: d.articulos[i], r, t: r.reduce((s, v) => s + v, 0) })).filter(x => x.r.some(v => v)).sort((a, b) => b.t - a.t);
+      const mb = ventana(c.n, [c.c, TIPO1[c.t] || c.t, c.v ? 'Vendedor: ' + c.v : ''].filter(Boolean).join(' · '));
+      mb.innerHTML = (!l.length ? '<div class="vacio">Sin compras con ese filtro.</div>'
+        : `<div class="tabla-wrap"><table class="tabla cu"><thead><tr><th>Artículo</th>${M.map(m => `<th class="n">${esc(mesCorto(m))}</th>`).join('')}<th class="n">Total</th></tr></thead><tbody>
+          ${l.map(x => `<tr><td>${esc(x.a.n)}</td>${x.r.map(v => `<td class="n">${fmt(v)}</td>`).join('')}<td class="n"><b>${fmt(x.t)}</b></td></tr>`).join('')}</tbody></table></div>`)
+        + `<p class="cu-ayuda" style="margin-top:10px">${col === 4 ? 'Pesos' : 'Unidades'} por mes, con devoluciones descontadas. Ventas de CUBO.</p>
+        <div class="acts"><button class="btn navy" type="button" id="cu-ficha">Ver la ficha del cliente</button></div>`;
+      mb.querySelector('#cu-ficha').onclick = () => { cerrar(); abrirFicha(c.c); };
+    }
+
+    const pinta = () => { S.pest === 'op' ? oportunidades() : mesAMes(); };
+    el.querySelector('#cu-pest').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; S.pest = b.dataset.p; S.max = 150; el.querySelector('#cu-per').hidden = S.pest !== 'op'; el.querySelectorAll('#cu-pest [data-p]').forEach(x => x.classList.toggle('on', x === b)); pinta(); };
+    // Los meses: "hasta" antes del mes que se compara, y "desde" no después de "hasta".
+    const per0 = () => {
+      const a0 = el.querySelector('#cu-a0'), a1 = el.querySelector('#cu-a1'), ac = el.querySelector('#cu-act');
+      S.act = Number(ac.value); S.a1 = Math.min(Number(a1.value), Math.max(0, S.act - 1)); S.a0 = Math.min(Number(a0.value), S.a1);
+      if (S.act === 0) { S.act = 1; S.a1 = 0; S.a0 = 0; }
+      a0.value = S.a0; a1.value = S.a1; ac.value = S.act; S.max = 150; pinta();
+    };
+    ['#cu-a0', '#cu-a1', '#cu-act'].forEach(s => { el.querySelector(s).onchange = per0; });
+    el.querySelector('#cu-prod').onchange = e => { S.prod = e.target.value; S.max = 150; pinta(); };
+    el.querySelector('#cu-tipo').onchange = e => { S.tipo = e.target.value; S.max = 150; pinta(); };
+    el.querySelector('#cu-vend').onchange = e => { S.vend = e.target.value; S.max = 150; pinta(); };
+    el.querySelector('#cu-q').oninput = e => { S.q = e.target.value; S.max = 150; pinta(); };
+    el.querySelector('#cu-extra').onchange = e => {
+      if (e.target.id === 'cu-orden') S.orden = e.target.value;
+      if (e.target.id === 'cu-n') S.n = Number(e.target.value) || 6;
+      if (e.target.id === 'cu-pesos') S.pesos = !!e.target.value;
+      pinta();
+    };
+    el.querySelector('#cu-csv').onclick = () => { if (CSV) CSV(); };
+    cuerpo.onclick = e => {
+      const t = e.target.closest('#cu-lista [data-l]'); if (t) { S.lista = t.dataset.l; S.max = 150; pinta(); return; }
+      if (e.target.closest('#cu-mas')) { S.max += 150; pinta(); return; }
+      const f = e.target.closest('[data-c]'); if (!f) return;
+      const c = d.clientes.find(x => x.c === f.dataset.c);
+      if (S.pest === 'mes' && c) detalle(c); else abrirFicha(f.dataset.c);
+    };
+    pinta();
+  }
+
   function sinPerfilHtml() {
     return esKaf()
       ? '<div class="vacio">Tu panel todavía no está armado: Juan Pablo Sepúlveda (Trade Marketing) elige tu marca y tus clientes. Cuando lo arme, acá vas a ver todo.</div>'
@@ -1301,7 +1502,7 @@ window.KAF = (function () {
   }
 
   return { K, $, esc, num, plata, fecha, hora, dia, diaLargo, hoy, mesDe, mesNombre, mesMenos, TIPO, TIPO1, REG, ESTADO, ESTADO_OBJ, toast, get, post, secc, csv, ventana, cerrar, clientes, picker, leerArchivo,
-    renderInicio, renderClientes, abrirFicha, renderVisitas, renderNuevos, renderRegistros, formRegistro, modeloHtml, pedidoHtml, sinPerfilHtml, supa,
+    renderInicio, renderClientes, renderCuadro, abrirFicha, renderVisitas, renderNuevos, renderRegistros, formRegistro, modeloHtml, pedidoHtml, sinPerfilHtml, supa,
     renderVisita, fotoRapida, borrador,
     ESP, catalogo, verMaterial, formExhibidor, renderExhibidores, formEspecial, renderEspeciales, formPdv };
 })();

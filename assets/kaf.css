@@ -243,3 +243,23 @@ button.img{border:0;padding:0;width:100%;font:inherit;cursor:zoom-in}
   #km-grid .mat .pie{padding:0 9px 10px}
   #km-grid .mat .btn.chico{padding:6px 8px;font-size:12px;white-space:normal}
 }
+/* Cuadro de oportunidad (20/11/2026): oportunidades y mes a mes, con las subas y bajas del 40%. */
+.barra[hidden]{display:none}
+#cu-prod,#cu-tipo,#cu-vend,.cu-per select{max-width:100%;min-width:0}
+.cu-per > span{font-size:13.5px;color:var(--muted);font-weight:600}
+.cu-ayuda{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5}
+.cu-ley{padding:1px 7px;border-radius:6px;font-size:12px}
+.tabla.cu td.sube,.cu-ley.sube{background:var(--green-s);color:var(--green-d);font-weight:700}
+.tabla.cu td.baja,.cu-ley.baja{background:var(--danger-s);color:var(--danger);font-weight:700}
+.tabla.cu{min-width:560px}
+.tabla.cu td.n,.tabla.cu th.n{white-space:nowrap}
+.tabla.cu th:first-child,.tabla.cu td:first-child{position:sticky;left:0;z-index:1;background:#fff;min-width:170px;max-width:260px;box-shadow:1px 0 0 var(--line2)}
+.tabla.cu thead th:first-child,.tabla.cu tfoot td,.tabla.cu tfoot td:first-child{background:#fbf8f2}
+.tabla.cu tfoot td{border-bottom:0}
+.tabla.cu tr.click{cursor:pointer}
+.tabla.cu tr.click:hover td:not(.sube):not(.baja){background:#fdf9ef}
+.cu-v{font-size:11.5px;color:var(--muted);font-weight:500;margin-top:1px}
+@media (max-width:640px){
+  .tabla.cu th:first-child,.tabla.cu td:first-child{min-width:130px;max-width:150px}
+  .tabla.cu th,.tabla.cu td{padding:7px 7px}
+}
