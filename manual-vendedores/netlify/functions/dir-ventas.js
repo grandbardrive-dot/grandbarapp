@@ -175,9 +175,30 @@ exports.handler = async (event) => {
         });
         return eq;
       }).catch(() => ({}));
-    const [actual, anterior, anio, sync, equipos] = await Promise.all([
-      resumen(P.actual), P.anterior ? resumen(P.anterior) : null, P.anio ? resumen(P.anio) : null, syncP, equiposP,
-    ]);
+    // "En el año" no cargaba (20/11/2026): con la clave pública la base corta cada consulta a los
+    // 3 s, y el año (1,2 s en caliente, 2 s o más en frío) se pedía junto con el año pasado: los dos
+    // a la vez no entraban. Sin MANUAL_SERVICE_ROLE, los períodos largos van de a uno y, si la base
+    // corta, se reintenta una vez (la segunda ya encuentra los datos en memoria).
+    // Las comparaciones que no llegan a tiempo quedan afuera (la pantalla ya sabe mostrar el período
+    // sin "vs año anterior") para no pasar los 10 s de Netlify. Con MANUAL_SERVICE_ROLE no hace falta.
+    const largo = r => r && (Date.parse(r.hasta) - Date.parse(r.desde)) / 864e5 > 62;
+    const t0 = Date.now();
+    const conReintento = async r => {
+      try { return await resumen(r); }
+      catch (e) { if (/57014|timeout/i.test(String(e && e.message)) && Date.now() - t0 < 4500) return resumen(r); throw e; }
+    };
+    const opcional = async r => { if (!r || Date.now() - t0 > 6000) return null; try { return await conReintento(r); } catch (e) { return null; } };
+    let actual, anterior, anio, sync, equipos;
+    if (!process.env.MANUAL_SERVICE_ROLE && (largo(P.actual) || largo(P.anio))) {
+      actual = await conReintento(P.actual);
+      anterior = await opcional(P.anterior);
+      anio = await opcional(P.anio);
+      [sync, equipos] = await Promise.all([syncP, equiposP]);
+    } else {
+      [actual, anterior, anio, sync, equipos] = await Promise.all([
+        resumen(P.actual), P.anterior ? resumen(P.anterior) : null, P.anio ? resumen(P.anio) : null, syncP, equiposP,
+      ]);
+    }
     const skus = (actual.por_producto || []).map(x => x.sku).filter(Boolean);
     const [prodAnt, prodAnio] = await Promise.all([anterior ? ventasSkus(P.anterior, skus) : [], anio ? ventasSkus(P.anio, skus) : []]);
     return json(200, {

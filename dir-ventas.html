@@ -329,13 +329,17 @@
       const d=await r.json().catch(()=>({}));
       if(!r.ok) throw new Error(d.error||('Error '+r.status));
       if(pedido!==PER) return;      // mientras cargaba, eligieron otro período
-      D=d; ultima=new Date(); pintar(); pintarEstado();
+      D=d; ultima=new Date(); reintento[pedido]=false; pintar(); pintarEstado();
     }catch(e){
-      if(!D) $('cuerpo').innerHTML='<div class="card vacio">No se pudieron calcular las ventas: '+esc(e.message)+'. Se vuelve a intentar en unos minutos.</div>';
-      $('estado').innerHTML='<span class="pt viejo"></span> No se pudo actualizar ('+esc(e.message)+'). Se reintenta sola.';
+      // 20/11/2026: la primera vez que falla un período se reintenta enseguida (la base suele estar
+      // "fría" y el segundo pedido ya entra). El mensaje ya no repite el error del servidor, y si lo
+      // que está en pantalla es de otro período, se avisa en vez de dejarlo como si fuera este.
+      if(pedido===PER && !reintento[pedido]){ reintento[pedido]=true; setTimeout(cargar,1500); }
+      else if(!D || D.periodo!==PER) $('cuerpo').innerHTML='<div class="card vacio">No se pudieron calcular las ventas. Se vuelve a intentar en unos minutos.</div>';
+      $('estado').innerHTML='<span class="pt viejo"></span> No se pudo actualizar. Se reintenta sola.';
     }finally{ cargando=false; if(otraVez){ otraVez=false; cargar(); } }
   }
-  let otraVez=false;
+  let otraVez=false; const reintento={};
 
   $('per').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     if(b.dataset.p===PER) return;
