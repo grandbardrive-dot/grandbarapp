@@ -13,7 +13,11 @@
     // Comparativo (19/11/2026): el mes contra el mismo mes del año anterior (clientes, líneas, proveedores, artículos).
     {h:'dir-comparativo.html',l:'Comparativo',i:'<path d="M4 20V9M9 20V4M15 20v-7M20 20V11"/><path d="M2 20h20"/>'},
     {h:'dir-cobranzas.html',l:'Cobranzas',i:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'},
+    // Presupuestos e Incentivos (20/11/2026): estaban solo en el menú del Inicio (direccion.html),
+    // y al pasar a cualquier otra pantalla desaparecían. Mismo orden que ese menú.
+    {h:'presupuestos.html',l:'Presupuestos',i:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/>'},
     {h:'reportes.html',l:'Reportes',i:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>'},
+    {h:'supervisor-incentivos.html',l:'Incentivos',i:'<circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"/>'},
     {h:'dir-agenda.html',l:'Agenda',i:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>'}
   ];
   var page=(location.pathname.split('/').pop()||'direccion.html').toLowerCase();
