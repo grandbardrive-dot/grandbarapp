@@ -105,6 +105,8 @@
       // Compartido con Josefina, Nahuel y Juan Pablo Sepúlveda (14/10/2026).
       { h: '/crm-calendario.html', t: 'Calendario CRM', s: 'Acciones por rubro', i: 'fechas' },
       { h: 'admin-reportes.html', t: 'Mis reportes', s: 'Para Dirección', i: 'resultados' },
+      // Fiesta de fin de año (20/11/2026): quién confirmó desde /fiesta.html (embebido).
+      { h: 'admin-fiesta.html', t: 'Fiesta de fin de año', s: 'Confirmaciones del personal', i: 'fechas' },
     ]},
   ];
 

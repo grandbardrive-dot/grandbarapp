@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<meta name="theme-color" content="#1f447f">
+<meta name="robots" content="noindex">
+<title>Fiesta de fin de año · Confirmaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  /* Lista de confirmaciones de la fiesta (20/11/2026). Solo con sesión del Hub y rol compras
+     (Luciana, embebida en su panel con ?embed=1), administración o desarrollo/diseño;
+     la base aplica la misma regla (RLS), así que sin ese rol la lista llega vacía. */
+  :root { --papel:#efebe2; --hoja:#fffdf8; --tinta:#1c2733; --gris:#5b6670; --linea:#dcd5c6; --azul:#1f447f; --azul-2:#2b5aa3; --oro:#9c7220; --rojo:#9b2c2c; --verde:#2f6b3a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--papel); color:var(--tinta); font-family:'Source Sans 3',system-ui,-apple-system,'Segoe UI',sans-serif; font-size:17px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  .hoja { max-width:880px; margin:28px auto; background:var(--hoja); box-shadow:0 0 0 1px var(--linea); }
+  .cab { padding:30px 40px 22px; border-bottom:3px double var(--linea); display:flex; flex-wrap:wrap; gap:16px 30px; align-items:flex-end; }
+  .cab img { width:150px; height:auto; display:block; }
+  .rotulo { font-family:'Oswald',sans-serif; font-weight:500; letter-spacing:.14em; text-transform:uppercase; font-size:12.5px; color:var(--oro); }
+  h1 { font-family:'Oswald',sans-serif; font-weight:600; text-transform:uppercase; color:var(--azul); font-size:30px; line-height:1.05; margin:4px 0 0; }
+  .cab .esp { flex:1; }
+  .cab a, .cab button { font:inherit; font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; letter-spacing:.08em; font-size:13px; color:var(--azul); text-decoration:none; background:none; border:1.5px solid var(--azul); border-radius:6px; padding:7px 12px; cursor:pointer; }
+  .totales { display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid var(--linea); }
+  .totales div { padding:18px 40px; border-right:1px solid var(--linea); }
+  .totales div:last-child { border-right:0; }
+  .totales b { display:block; font-family:'Oswald',sans-serif; font-weight:600; font-size:38px; line-height:1; color:var(--azul); }
+  .totales span { font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; letter-spacing:.08em; font-size:12.5px; color:var(--gris); }
+  .cuerpo { padding:22px 40px 40px; }
+  table { width:100%; border-collapse:collapse; font-size:16px; }
+  th { text-align:left; font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; letter-spacing:.08em; font-size:12.5px; color:var(--gris); padding:8px 10px 8px 0; border-bottom:2px solid var(--tinta); }
+  td { padding:9px 10px 9px 0; border-bottom:1px solid var(--linea); vertical-align:top; }
+  td.si { color:var(--verde); font-weight:700; } td.no { color:var(--rojo); font-weight:700; }
+  td.fecha { color:var(--gris); white-space:nowrap; font-size:14.5px; }
+  td.com { color:#36414b; }
+  .vacio { padding:30px 0; color:var(--gris); text-align:center; }
+  .filtros { display:flex; gap:8px; margin:0 0 16px; flex-wrap:wrap; }
+  .filtros button { font:inherit; font-size:14px; border:1.5px solid var(--linea); background:#fff; border-radius:999px; padding:5px 13px; cursor:pointer; color:var(--tinta); }
+  .filtros button.on { background:var(--azul); border-color:var(--azul); color:#fff; }
+  body.embed { background:transparent; } body.embed .hoja { margin:0 auto; max-width:none; box-shadow:none; }
+  @media (max-width:640px) { .hoja { margin:0; box-shadow:none; } .cab, .cuerpo { padding-left:20px; padding-right:20px; } .totales div { padding:14px 20px; } .totales b { font-size:30px; } th:nth-child(4), td:nth-child(4) { display:none; } }
+</style>
+</head>
+<body>
+<script>if (/[?&]embed=1/.test(location.search)) document.body.className = 'embed';</script>
+<div class="hoja">
+  <header class="cab">
+    <img src="assets/guia-supervisores/logo-grandbar.png" alt="GrandBar Distribuciones" width="235" height="78">
+    <div class="esp"><div class="rotulo">Fiesta de fin de año</div><h1>Confirmaciones</h1></div>
+    <button type="button" id="csv">Descargar Excel (CSV)</button>
+    <a href="fiesta.html" target="_blank" rel="noopener">Ver la página que llena la gente</a>
+  </header>
+  <div class="totales">
+    <div><b id="t-si">–</b><span>Vienen</span></div>
+    <div><b id="t-no">–</b><span>No pueden</span></div>
+    <div><b id="t-tot">–</b><span>Respondieron</span></div>
+  </div>
+  <div class="cuerpo">
+    <div class="filtros">
+      <button type="button" class="on" data-f="todos">Todos</button>
+      <button type="button" data-f="si">Vienen</button>
+      <button type="button" data-f="no">No pueden</button>
+      <button type="button" data-f="com">Con aclaración</button>
+    </div>
+    <div id="lista"><div class="vacio">Cargando…</div></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/auth.js"></script>
+<script>
+(async function () {
+  // Luciana (compras) la ve en su panel (admin-fiesta.html); el resto, por si ayudan a organizar.
+  var ROLES = ['compras', 'admin', 'administracion', 'tesoreria', 'equipo_admin', 'desarrollo', 'diseno'];
+  var s = await GBAuth.requireAuth();
+  if (!s) return;
+  if (!ROLES.includes(String(s.role || '').toLowerCase())) { location.replace('hub.html'); return; }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var FILAS = [], FILTRO = 'todos';
+
+  // Si alguien cargó dos veces, vale la última respuesta con ese nombre.
+  function ultimas(rows) {
+    var vistos = {}, out = [];
+    rows.forEach(function (r) { var k = r.nombre.trim().toLowerCase().replace(/\s+/g, ' '); if (vistos[k]) return; vistos[k] = 1; out.push(r); });
+    return out;
+  }
+  function fecha(iso) { var d = new Date(iso); return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }); }
+
+  function pintar() {
+    var f = FILAS.filter(function (r) { return FILTRO === 'todos' || (FILTRO === 'si' && r.asiste) || (FILTRO === 'no' && !r.asiste) || (FILTRO === 'com' && r.comentario); });
+    if (!f.length) { $('lista').innerHTML = '<div class="vacio">' + (FILAS.length ? 'Nadie en este filtro.' : 'Todavía no hay confirmaciones cargadas.') + '</div>'; return; }
+    $('lista').innerHTML = '<table><thead><tr><th>Nombre</th><th>Respuesta</th><th>Aclaración</th><th>Cargado</th></tr></thead><tbody>' +
+      f.map(function (r) { return '<tr><td>' + esc(r.nombre) + '</td><td class="' + (r.asiste ? 'si' : 'no') + '">' + (r.asiste ? 'Viene' : 'No puede') + '</td><td class="com">' + esc(r.comentario || '') + '</td><td class="fecha">' + fecha(r.creado) + '</td></tr>'; }).join('') +
+      '</tbody></table>';
+  }
+
+  async function cargar() {
+    var r = await GBAuth.client.from('fiesta_confirmaciones').select('id,creado,nombre,asiste,comentario').order('creado', { ascending: false }).limit(1000);
+    if (r.error) { $('lista').innerHTML = '<div class="vacio">No se pudo cargar la lista: ' + esc(r.error.message) + '</div>'; return; }
+    FILAS = ultimas(r.data || []).sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
+    var si = FILAS.filter(function (x) { return x.asiste; }).length;
+    $('t-si').textContent = si; $('t-no').textContent = FILAS.length - si; $('t-tot').textContent = FILAS.length;
+    pintar();
+  }
+
+  document.querySelectorAll('.filtros button').forEach(function (b) {
+    b.addEventListener('click', function () { document.querySelectorAll('.filtros button').forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); FILTRO = b.dataset.f; pintar(); });
+  });
+  $('csv').addEventListener('click', function () {
+    var q = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+    var csv = '﻿' + ['Nombre;Respuesta;Aclaración;Cargado'].concat(FILAS.map(function (r) { return [q(r.nombre), r.asiste ? 'Viene' : 'No puede', q(r.comentario || ''), fecha(r.creado)].join(';'); })).join('\r\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'fiesta-confirmaciones.csv'; a.click();
+  });
+  await cargar();
+})();
+</script>
+</body>
+</html>

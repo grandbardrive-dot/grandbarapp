@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<meta name="theme-color" content="#1f447f">
+<meta name="robots" content="noindex">
+<title>Fiesta de fin de año · GrandBar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  /* Confirmación de la fiesta de fin de año (20/11/2026). Una sola pantalla: quién sos,
+     si venís o no, y listo. Mismo estilo de "manual impreso" que las guías del Hub. */
+  :root { --papel:#efebe2; --hoja:#fffdf8; --tinta:#1c2733; --gris:#5b6670; --linea:#dcd5c6; --azul:#1f447f; --azul-2:#2b5aa3; --oro:#9c7220; --rojo:#9b2c2c; }
+  * { box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--papel); color:var(--tinta); font-family:'Source Sans 3',system-ui,-apple-system,'Segoe UI',sans-serif; font-size:18px; line-height:1.55; -webkit-font-smoothing:antialiased; min-height:100vh; display:flex; flex-direction:column; }
+  .hoja { width:100%; max-width:560px; margin:28px auto; background:var(--hoja); box-shadow:0 0 0 1px var(--linea); }
+  .portada { padding:34px 40px 26px; border-bottom:3px double var(--linea); }
+  .portada img { width:170px; height:auto; display:block; margin:0 0 26px; }
+  .rotulo { font-family:'Oswald',sans-serif; font-weight:500; letter-spacing:.14em; text-transform:uppercase; font-size:13px; color:var(--oro); }
+  h1 { font-family:'Oswald',sans-serif; font-weight:600; text-transform:uppercase; color:var(--azul); font-size:clamp(34px,8vw,46px); line-height:1.02; margin:8px 0 14px; }
+  .portada p { margin:0; color:#36414b; }
+  .ficha { margin:18px 0 0; padding-top:14px; border-top:1px solid var(--linea); display:grid; grid-template-columns:auto 1fr; gap:4px 18px; font-size:16px; }
+  .ficha dt { font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; letter-spacing:.08em; font-size:12.5px; color:var(--gris); padding-top:3px; }
+  .ficha dd { margin:0; font-weight:600; }
+  .ficha:empty { display:none; }
+  .ficha a.llegar { display:inline-block; margin-left:10px; font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; letter-spacing:.08em; font-size:12.5px; color:var(--azul); text-decoration:none; border:1.5px solid var(--azul); border-radius:6px; padding:2px 9px; vertical-align:2px; }
+  .mapa { display:block; width:100%; height:220px; border:1px solid var(--linea); border-radius:6px; margin-top:16px; background:#e8e4da; }
+
+  form { padding:28px 40px 36px; }
+  .campo { display:block; font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; letter-spacing:.08em; font-size:13px; color:var(--azul); margin:0 0 6px; }
+  input[type=text], textarea { width:100%; font:inherit; font-size:18px; color:var(--tinta); background:#fff; border:1.5px solid var(--linea); border-radius:6px; padding:11px 13px; outline:none; }
+  input[type=text]:focus, textarea:focus { border-color:var(--azul-2); }
+  textarea { min-height:84px; resize:vertical; }
+  .bloque + .bloque { margin-top:22px; }
+  .opciones { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .opciones input { position:absolute; opacity:0; width:0; height:0; }
+  .opciones label { display:block; text-align:center; padding:16px 10px; border:1.5px solid var(--linea); border-radius:6px; background:#fff; cursor:pointer; font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; letter-spacing:.06em; font-size:16px; color:var(--tinta); user-select:none; }
+  .opciones label small { display:block; font-family:'Source Sans 3',sans-serif; text-transform:none; letter-spacing:0; font-weight:400; font-size:14px; color:var(--gris); margin-top:3px; }
+  .opciones input:focus-visible + label { outline:2px solid var(--azul-2); outline-offset:2px; }
+  .opciones input:checked + label { border-color:var(--azul); background:var(--azul); color:#fff; }
+  .opciones input:checked + label small { color:#dfe7f3; }
+  .ayuda { font-size:14px; color:var(--gris); margin:6px 0 0; }
+  button.enviar { display:block; width:100%; margin-top:26px; border:0; border-radius:6px; background:var(--azul); color:#fff; font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; letter-spacing:.1em; font-size:17px; padding:15px; cursor:pointer; }
+  button.enviar:hover { background:var(--azul-2); }
+  button.enviar[disabled] { opacity:.6; cursor:default; }
+  .error { display:none; margin-top:14px; color:var(--rojo); font-weight:600; font-size:16px; }
+  .error.ver { display:block; }
+
+  .gracias { display:none; padding:34px 40px 40px; }
+  .gracias.ver { display:block; }
+  .gracias h2 { font-family:'Oswald',sans-serif; font-weight:600; text-transform:uppercase; color:var(--azul); font-size:30px; margin:0 0 10px; line-height:1.05; }
+  .gracias p { margin:0 0 10px; color:#36414b; }
+  .gracias a { color:var(--azul-2); }
+  .pie { text-align:center; font-size:13px; color:var(--gris); padding:0 20px 26px; }
+  @media (max-width:600px) { .hoja { margin:0; box-shadow:none; min-height:100vh; } .portada, form, .gracias { padding-left:22px; padding-right:22px; } .portada { padding-top:26px; } }
+</style>
+</head>
+<body>
+<div class="hoja">
+  <section class="portada">
+    <img src="assets/guia-supervisores/logo-grandbar.png" alt="GrandBar Distribuciones" width="235" height="78">
+    <div class="rotulo">Fiesta de fin de año</div>
+    <h1>¿Contamos con vos?</h1>
+    <p>Confirmanos si venís, así reservamos tu lugar. Lleva menos de un minuto.</p>
+    <dl class="ficha" id="ficha"></dl>
+  </section>
+
+  <form id="f" novalidate>
+    <div class="bloque">
+      <label class="campo" for="nombre">Nombre y apellido</label>
+      <input type="text" id="nombre" name="nombre" autocomplete="name" maxlength="80" required>
+    </div>
+    <div class="bloque">
+      <span class="campo">¿Venís a la fiesta?</span>
+      <div class="opciones">
+        <input type="radio" name="asiste" id="si" value="si"><label for="si">Sí, voy<small>Reservamos tu lugar</small></label>
+        <input type="radio" name="asiste" id="no" value="no"><label for="no">No puedo<small>Te vamos a extrañar</small></label>
+      </div>
+    </div>
+    <div class="bloque">
+      <label class="campo" for="comentario">Algo que tengamos que saber <span style="color:var(--gris);letter-spacing:0;text-transform:none;font-family:'Source Sans 3',sans-serif;font-weight:400">(opcional)</span></label>
+      <textarea id="comentario" name="comentario" maxlength="300" placeholder="Por ejemplo: soy celíaco, vegetariano, llego más tarde…"></textarea>
+    </div>
+    <button type="submit" class="enviar" id="btn">Confirmar</button>
+    <div class="error" id="err"></div>
+  </form>
+
+  <section class="gracias" id="gracias">
+    <h2 id="g-tit">Listo, gracias</h2>
+    <p id="g-txt"></p>
+    <p style="font-size:15px;color:var(--gris)">¿Te equivocaste? <a href="#" id="g-otra">Volver a cargar la respuesta</a>.</p>
+  </section>
+</div>
+<div class="pie">GrandBar Distribuciones</div>
+
+<script>
+(function () {
+  // ---- Datos de la fiesta: completar acá. Lo que quede vacío no se muestra. ----
+  var FIESTA = {
+    fecha: 'Viernes 4 de diciembre',
+    hora: 'de 19:30 a 1:00',
+    lugar: 'La Finquita 1920',
+    mapa: 'https://maps.app.goo.gl/yhEe4HQ3HLq4vNMD6', // link de Google Maps (botón "Cómo llegar")
+    coords: '-33.0231826,-68.7956862',               // mapa de abajo; vacío = sin mapa
+    confirmar_hasta: '' // ej: 'Hasta el 1 de diciembre'
+  };
+  // Base del Hub (misma de assets/supabase-config.js). La clave es la pública: desde acá
+  // solo se pueden AGREGAR confirmaciones, no leerlas.
+  var URL_BASE = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
+  var CLAVE = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var ficha = $('ficha'), filas = [['Cuándo', FIESTA.fecha + (FIESTA.hora ? ' · ' + FIESTA.hora : '')], ['Dónde', FIESTA.lugar], ['Confirmar', FIESTA.confirmar_hasta]];
+  filas.forEach(function (f) {
+    if (!f[1] || !f[1].replace(/[\s·]/g, '')) return;
+    var dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = f[0]; dd.textContent = f[1];
+    if (f[0] === 'Dónde' && FIESTA.mapa) { var a = document.createElement('a'); a.href = FIESTA.mapa; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Cómo llegar'; a.className = 'llegar'; dd.appendChild(a); }
+    ficha.appendChild(dt); ficha.appendChild(dd);
+  });
+  if (FIESTA.coords) {
+    var m = document.createElement('iframe');
+    m.className = 'mapa'; m.title = 'Mapa: ' + FIESTA.lugar; m.loading = 'lazy';
+    m.src = 'https://maps.google.com/maps?q=' + encodeURIComponent(FIESTA.coords) + '&z=15&hl=es&output=embed';
+    ficha.insertAdjacentElement('afterend', m);
+  }
+
+  var form = $('f'), err = $('err'), btn = $('btn');
+  function error(t) { err.textContent = t; err.classList.toggle('ver', !!t); }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault(); error('');
+    var nombre = $('nombre').value.trim();
+    var op = form.querySelector('input[name=asiste]:checked');
+    if (nombre.length < 2) { error('Escribí tu nombre y apellido.'); $('nombre').focus(); return; }
+    if (!op) { error('Marcá si venís o no.'); return; }
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    try {
+      var r = await fetch(URL_BASE + '/rest/v1/fiesta_confirmaciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: CLAVE, Authorization: 'Bearer ' + CLAVE, Prefer: 'return=minimal' },
+        body: JSON.stringify({ nombre: nombre, asiste: op.value === 'si', comentario: $('comentario').value.trim() || null })
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var va = op.value === 'si';
+      $('g-tit').textContent = va ? 'Listo, te esperamos' : 'Gracias por avisar';
+      $('g-txt').textContent = va ? 'Quedaste anotado, ' + nombre + '. Nos vemos en la fiesta.' : 'Anotamos que no vas a poder venir, ' + nombre + '. Una lástima, la próxima será.';
+      form.style.display = 'none'; $('gracias').classList.add('ver');
+      try { localStorage.setItem('gb_fiesta_ok', '1'); } catch (x) {}
+    } catch (x) {
+      error('No se pudo enviar. Revisá la conexión y probá de nuevo.');
+      btn.disabled = false; btn.textContent = 'Confirmar';
+    }
+  });
+  $('g-otra').addEventListener('click', function (e) {
+    e.preventDefault(); $('gracias').classList.remove('ver'); form.style.display = '';
+    btn.disabled = false; btn.textContent = 'Confirmar'; $('nombre').focus();
+  });
+})();
+</script>
+</body>
+</html>
