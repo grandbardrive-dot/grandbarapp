@@ -92,6 +92,19 @@
   .pager{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:16px;color:var(--ink3);font-size:13px}
   .pager button{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;width:32px;height:32px;cursor:pointer;font-family:inherit;color:var(--ink2)}
   .pager button:disabled{opacity:.4;cursor:default}
+  /* Producto escrito a mano, sin elegir la botella (20/11/2026, pedido para Juan Pablo). */
+  .libre{margin-top:20px;border-top:1px solid var(--line);padding-top:16px}
+  .libre-h{font-size:14px;font-weight:700}
+  .libre-sub{font-size:12.5px;color:var(--ink3);margin:2px 0 10px;line-height:1.45}
+  .libre-row{display:flex;gap:8px;flex-wrap:wrap}
+  .libre-row input{flex:1;min-width:200px;padding:11px 13px;border:1px solid var(--line-2);border-radius:10px;font:inherit;font-size:13.5px;outline:none}
+  .libre-row input:focus{border-color:var(--navy)}
+  .libre-row .btn{padding:11px 18px}
+  .elegidos{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px}
+  .elegidos > span:first-child{font-size:12.5px;color:var(--ink3);font-weight:600;margin-right:2px}
+  .eleg{display:inline-flex;align-items:center;gap:6px;background:rgba(31,68,127,.08);color:var(--navy);border-radius:20px;padding:5px 6px 5px 12px;font-size:12.5px;font-weight:700}
+  .eleg small{font-weight:600;color:var(--ink3)}
+  .eleg button{border:0;background:rgba(31,68,127,.12);border-radius:50%;width:20px;height:20px;cursor:pointer;color:inherit;font-size:14px;line-height:1;font-family:inherit}
 
   /* Canales / toggles */
   .toggles{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
@@ -527,7 +540,13 @@
           <button class="cat-chip ${prodCat===''?'on':''}" onclick="prodCat='';prodPage=1;renderPaso()">Todos</button>
           ${cats.map(c=>`<button class="cat-chip ${prodCat===c?'on':''}" onclick="prodCat='${esc(c)}';prodPage=1;renderPaso()">${esc(c)}</button>`).join('')}
         </div>
-        <div id="prod-grid"></div><div id="prod-pager"></div>`;
+        <div id="prod-grid"></div><div id="prod-pager"></div>
+        <div class="libre">
+          <div class="libre-h">¿Sin elegir la botella?</div>
+          <div class="libre-sub">Escribí el producto o la línea (por ejemplo “Campari” o “Línea Skyy”) y tocá Agregar. Va junto con los que elegiste arriba, si elegiste alguno.</div>
+          <div class="libre-row"><input id="prod-libre" type="text" maxlength="120" placeholder="Nombre del producto" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarLibre()}"><button class="btn sec" type="button" onclick="agregarLibre()">Agregar</button></div>
+        </div>
+        <div id="prod-elegidos"></div>`;
       renderProdGrid();
     } else if(paso===3){
       const gruposHtml=CANAL_GRUPOS.map(g=>{
@@ -692,6 +711,7 @@
   function elegirProv(id){ st.proveedor=PROV.find(p=>p.id===id); st.productos=[]; renderProvGrid(); renderResumen(); }
 
   function renderProdGrid(){
+    renderElegidos();
     let lst=PROD.slice();
     if(st.proveedor) lst=lst.filter(p=>p.proveedor_id===st.proveedor.id);
     if(prodCat) lst=lst.filter(p=>(p.categoria||'')===prodCat);
@@ -714,6 +734,20 @@
     if(i<0){ const p=PROD.find(x=>x.id===id); if(p) st.productos.push(p); }
     else st.productos.splice(i,1);
     renderProdGrid(); renderResumen(); }
+  // Producto escrito a mano (20/11/2026): Juan Pablo pidió poder poner el producto sin elegir
+  // la botella. Se guarda igual que uno del catálogo, sin id, foto ni código.
+  function agregarLibre(){
+    const inp=document.getElementById('prod-libre'); if(!inp) return;
+    const n=(inp.value||'').trim().replace(/\s+/g,' ').slice(0,120);
+    if(!n){ inp.focus(); return; }
+    if(!st.productos.some(p=>norm(p.nombre).trim()===norm(n))) st.productos.push({id:null,nombre:n,categoria:null,imagen_url:null,sku:null});
+    inp.value=''; renderProdGrid(); renderResumen(); inp.focus();
+  }
+  function quitarProd(k){ st.productos.splice(k,1); renderProdGrid(); renderResumen(); }
+  function renderElegidos(){
+    const el=document.getElementById('prod-elegidos'); if(!el) return;
+    el.innerHTML = st.productos.length ? `<div class="elegidos"><span>Elegidos:</span>${st.productos.map((p,k)=>`<span class="eleg">${esc(p.nombre)}${p.id?'':' <small>(escrito)</small>'}<button type="button" aria-label="Quitar ${esc(p.nombre)}" title="Quitar" onclick="quitarProd(${k})">×</button></span>`).join('')}</div>` : '';
+  }
   function toggleCanal(v){ const i=st.canales.indexOf(v); if(i<0)st.canales.push(v); else st.canales.splice(i,1); renderPaso(); renderResumen(); }
   function toggleGrupoCanal(gid){ const g=CANAL_GRUPOS.find(x=>x.id===gid); const keys=subsDe(g).map(s=>s[0]); const todos=keys.every(k=>st.canales.includes(k));
     if(todos) st.canales=st.canales.filter(k=>!keys.includes(k)); else keys.forEach(k=>{ if(!st.canales.includes(k))st.canales.push(k); });
@@ -768,7 +802,7 @@
   // navegación
   function validar(){
     if(paso===1&&!st.proveedor) return 'Elegí un proveedor.';
-    if(paso===2&&!st.productos.length) return 'Elegí al menos un producto.';
+    if(paso===2&&!st.productos.length) return 'Elegí al menos un producto, o escribilo abajo en “¿Sin elegir la botella?”.';
     if(paso===3&&!st.canales.length) return 'Elegí al menos un canal.';
     return '';
   }
