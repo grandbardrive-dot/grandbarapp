@@ -131,22 +131,39 @@ async function pagos() {
   const semanas = [];
   const mf = /·\s*(\d{1,2}\/\d{1,2}\/\d{4})/.exec((f[0] || []).join(' '));
   if (mf) fecha = mf[1];
+  // Dos formatos del Dashboard (20/11/2026: Administración lo cambió el 19/11):
+  //  - viejo: totales en la segunda fila, columnas B, E y H; cada semana "dd/mm – dd/mm" en E.
+  //  - nuevo: la segunda fila trae solo B (a pagar) y H (transferencia), E vacía; cada semana es
+  //    la fecha del lunes "dd/mm/aaaa" en E; los cheques del total salen de B − H.
+  // F, G y H de cada semana siguen siendo facturas, cheques y transferencia o efectivo.
+  const pad = n => String(n).padStart(2, '0');
+  const ddmm = d => pad(d.getDate()) + '/' + pad(d.getMonth() + 1);
   f.forEach(fila => {
-    // Los tres totales están en la segunda fila, en las columnas B, E y H.
-    if (aPagar == null && monto(fila[1]) != null && monto(fila[4]) != null && monto(fila[7]) != null) {
-      aPagar = monto(fila[1]); conCheques = monto(fila[4]); transferencia = monto(fila[7]);
+    const e = texto(fila[4]);
+    if (aPagar == null && monto(fila[1]) != null && monto(fila[7]) != null && !/\//.test(e)) {
+      aPagar = monto(fila[1]); transferencia = monto(fila[7]);
+      conCheques = monto(fila[4]) != null ? monto(fila[4]) : aPagar - transferencia;
       return;
     }
-    const m = /^(\d{1,2}\/\d{1,2})\s*[–-]\s*(\d{1,2}\/\d{1,2})$/.exec(texto(fila[4]));
-    if (!m) return;
-    semanas.push({ etiqueta: m[1] + ' al ' + m[2], desde: m[1], hasta: m[2], facturas: monto(fila[5]), cheques: monto(fila[6]), efectivo: monto(fila[7]) });
+    const s = { facturas: monto(fila[5]), cheques: monto(fila[6]), efectivo: monto(fila[7]) };
+    const m = /^(\d{1,2}\/\d{1,2})\s*[–-]\s*(\d{1,2}\/\d{1,2})$/.exec(e);
+    if (m) { semanas.push(Object.assign({ etiqueta: m[1] + ' al ' + m[2], desde: m[1], hasta: m[2] }, s)); return; }
+    const d1 = aFecha(e);
+    if (d1) {
+      const d2 = new Date(d1); d2.setDate(d1.getDate() + 6);
+      semanas.push(Object.assign({ etiqueta: ddmm(d1) + ' al ' + ddmm(d2), desde: ddmm(d1), hasta: ddmm(d2), d1, d2 }, s));
+    }
   });
   const hoy = hoyAR();
   semanas.forEach(w => {
-    const d1 = fechaCercana(w.desde, hoy);
-    const b = w.hasta.split('/');
-    const d2 = new Date(d1.getFullYear(), +b[1] - 1, +b[0]);
-    if (d2 < d1) d2.setFullYear(d1.getFullYear() + 1);     // la semana cruza de año
+    let d1 = w.d1, d2 = w.d2;
+    if (!d1) {
+      d1 = fechaCercana(w.desde, hoy);
+      const b = w.hasta.split('/');
+      d2 = new Date(d1.getFullYear(), +b[1] - 1, +b[0]);
+      if (d2 < d1) d2.setFullYear(d1.getFullYear() + 1);     // la semana cruza de año
+    }
+    delete w.d1; delete w.d2;
     w.desdeISO = iso(d1); w.hastaISO = iso(d2);
     w.esEstaSemana = hoy >= d1 && hoy <= d2;
     w.yaPaso = d2 < hoy;

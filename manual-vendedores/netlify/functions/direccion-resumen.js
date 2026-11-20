@@ -100,7 +100,9 @@ exports.handler = async (event) => {
         // Vendedores con usuario en el Portal y cartera (sin los códigos de cuentas internas).
         vendedores: Object.keys(porVend).filter(c => nombreDeCod[c]).length,
       };
-      out.ranking = Object.values(porVend).sort((a, b) => b.saldo - a.saldo).slice(0, 5)
+      // Solo vendedores con usuario en el Portal (20/11/2026): Gestión Administrativa (023) y las
+      // otras cuentas internas salían en el ranking como "Vendedor 023".
+      out.ranking = Object.values(porVend).filter(v => nombreDeCod[v.codigo]).sort((a, b) => b.saldo - a.saldo).slice(0, 5)
         .map(v => ({ ...v, saldo: Math.round(v.saldo), vencida: Math.round(v.vencida) }));
     } catch (e) { out.cobranzas_error = String(e.message || e); }
 

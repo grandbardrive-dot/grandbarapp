@@ -87,6 +87,7 @@
   .ag{display:flex;flex-direction:column}
   .ag-row{display:grid;grid-template-columns:44px 14px 1fr;gap:10px;align-items:start;padding:9px 0;border-bottom:1px solid var(--line-2)}
   .ag-row:last-child{border-bottom:0}
+  .ag-row > span:only-child{grid-column:1/-1}  /* "Cargando…" y "No tenés reuniones…" ocupan todo el ancho (20/11/2026) */
   .ag-row .h{font-size:12px;color:var(--muted);font-weight:700}
   .ag-row .dot{width:10px;height:10px;border-radius:50%;background:var(--gold);margin-top:3px}
   .ag-row .nm{font-weight:700;font-size:13.5px} .ag-row .pl{font-size:11.5px;color:var(--muted)}
@@ -189,7 +190,7 @@
 
 
     <!-- Finanzas (archivos que Administracion actualiza en Drive) -->
-    <div class="c-h" style="margin:4px 2px 10px"><div class="t" style="font-size:16px">Finanzas</div><span class="mut" id="finFecha" style="font-size:12px"></span></div>
+    <div class="c-h" style="margin:4px 2px 10px"><div class="t" style="font-size:16px">Finanzas<span id="finTodas" style="font-weight:500;color:var(--muted);font-size:12px"></span></div><span class="mut" id="finFecha" style="font-size:12px"></span></div>
     <div class="kpis" id="finKpis">
       <div class="kpi"><div class="hd"><span class="lbl">Efectivo en caja</span></div><div class="v" id="finEfectivo">...</div><div class="sub mut" id="finEfectivoSub">Mendoza y San Luis</div></div>
       <div class="kpi"><div class="hd"><span class="lbl">Cheques en cartera</span></div><div class="v" id="finCheques">...</div><div class="sub mut" id="finChequesSub">Por acreditar</div></div>
@@ -230,14 +231,14 @@
     <!-- Áreas de la empresa -->
     <div class="c-h" style="margin:4px 2px 10px"><div class="t" style="font-size:16px">Áreas de la empresa</div></div>
     <div class="areas">
-      <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v" id="vtVend">—</div><div class="l">Vendedores</div></div><div><div class="v" id="vtVisHoy">—</div><div class="l">Visitas hoy</div></div><div><div class="v" id="vtVisMes">—</div><div class="l" id="vtVisMesL">Visitas del mes</div></div><div><div class="v" id="vtClientes">—</div><div class="l">Cuentas</div></div><div><div class="v" id="vtVentaMes">—</div><div class="l">Venta de productos NETO del mes</div></div><div><div class="v" id="vtMargenMes">—</div><div class="l">Rentabilidad Neta del mes</div></div></div><a class="en" href="dir-ventas.html">Ver ventas y rentabilidad →</a></div>
+      <div class="area"><div class="ah"><span class="ai">🛒</span> Ventas</div><div class="st"><div><div class="v" id="vtVend">—</div><div class="l">Vendedores</div></div><div><div class="v" id="vtVisHoy">—</div><div class="l">Visitas hoy</div></div><div><div class="v" id="vtVisMes">—</div><div class="l" id="vtVisMesL">Visitas del mes</div></div><div><div class="v" id="vtClientes">—</div><div class="l">Cuentas</div></div><div><div class="v" id="vtVentaMes">—</div><div class="l" id="vtVentaMesL">Venta de productos NETO del mes</div></div><div><div class="v" id="vtMargenMes">—</div><div class="l" id="vtMargenMesL">Rentabilidad Neta del mes</div></div></div><a class="en" href="dir-ventas.html">Ver ventas y rentabilidad →</a></div>
       <div class="area"><div class="ah"><span class="ai">🗂️</span> Administración</div><div class="st"><div><div class="v" id="adCC">—</div><div class="l">Cuenta corriente</div></div><div><div class="v" id="adVenc">—</div><div class="l">Deuda vencida</div></div><div><div class="v" id="adCliVenc">—</div><div class="l">Clientes vencidos</div></div><div><div class="v" id="adClientes">—</div><div class="l">Cuentas</div></div></div><a class="en" href="dir-cobranzas.html">Entrar →</a></div>
     </div>
 
     <!-- Charts / Rankings -->
     <div class="row4">
       <div class="card top5">
-        <div class="c-h"><div class="t" style="font-size:14px">Top vendedores <span style="font-weight:500;color:var(--muted);font-size:12px">(por cartera)</span></div></div>
+        <div class="c-h"><div class="t" style="font-size:14px">Deuda de clientes por vendedor</div></div>
         <div id="top5list"><div class="t5"><span class="nm" style="color:var(--muted)">Cargando…</span></div></div>
         <div style="margin-top:8px"><a class="lnk" href="dir-cobranzas.html">Ver cobranzas ›</a></div>
       </div>
@@ -314,6 +315,10 @@
     const selSuc=document.getElementById('selSuc');
     async function cargarResumen(region){
       ['adCC','adVenc','adCliVenc','adClientes','vtVend','vtClientes','vtVisHoy','vtVisMes','kpiVisMes','kpiCobHoy'].forEach(id=>set(id,'…'));
+      // Con una sucursal elegida, lo que no se separa por sucursal lo dice (20/11/2026): la venta
+      // del mes, la rentabilidad y Finanzas son siempre de toda la empresa.
+      const todaLa = region ? ' · toda la empresa' : '';
+      set('vtVentaMesL','Venta de productos NETO del mes'+todaLa); set('vtMargenMesL','Rentabilidad Neta del mes'+todaLa); set('finTodas',todaLa);
       const tl=document.getElementById('top5list'); if(tl) tl.innerHTML='<div class="t5"><span class="nm" style="color:var(--muted)">Cargando…</span></div>';
       try{
         const r = await fetch('/.netlify/functions/direccion-resumen'+(region?('?region='+encodeURIComponent(region)):''),{headers:{Authorization:'Bearer '+TOKEN}});
@@ -367,7 +372,7 @@
       if (d.efectivo && !d.efectivo.error) {
         set('finEfectivo', money(d.efectivo.total));
         set('finEfectivoSub', (d.efectivo.sucursales||[]).map(x=>x.sucursal+' '+money(x.saldo)).join(' · ') || 'Mendoza y San Luis');
-        if (d.efectivo.fecha) fechas.push('efectivo al '+d.efectivo.fecha);
+        if (d.efectivo.fecha) fechas.push({ t:'efectivo al '+d.efectivo.fecha, f:d.efectivo.fecha });
       } else { set('finEfectivo','—'); set('finEfectivoSub','No se pudo leer'); }
 
       const cajaCh = document.getElementById('finChequesDet');
@@ -388,10 +393,11 @@
         const w = (d.pagos.semanas||[]).find(x=>x.esEstaSemana);
         // Si la planilla no tiene la semana de hoy, no se muestra el total con el rótulo semanal.
         set('finSemana', w ? money(w.facturas) : '—');
-        set('finSemanaSub', w ? ('Total a pagar '+money(d.pagos.aPagar)) : 'Total a pagar '+money(d.pagos.aPagar));
+        // Sin total legible no se escribe "Total a pagar null" (pasó el 20/11/2026 cuando cambió el Excel).
+        set('finSemanaSub', d.pagos.aPagar!=null ? 'Total a pagar '+money(d.pagos.aPagar) : 'Facturas de proveedores');
         set('finFalta', w ? money(w.efectivo) : '—');
         set('finFaltaSub', w ? ('Cubierto con cheques '+money(w.cheques)) : 'Sin datos de esta semana');
-        if (d.pagos.fecha) fechas.push('pagos al '+d.pagos.fecha);
+        if (d.pagos.fecha) fechas.push({ t:'pagos al '+d.pagos.fecha, f:d.pagos.fecha });
         const prox = (d.pagos.semanas||[]).filter(x=>x.esEstaSemana || !semanaYaPaso(x)).slice(0,7);
         cajaSem.innerHTML = prox.length
           ? '<div class="cab"><span class="n">Semana</span><span>A pagar</span><span>Falta cubrir</span></div>'
@@ -410,7 +416,10 @@
       } else { set('finOrdenes','—'); set('finOrdenesSub','No se pudo leer'); }
 
       const ff = document.getElementById('finFecha');
-      if (ff) { const t = fechas.join(' · '); ff.textContent = t ? t.charAt(0).toUpperCase() + t.slice(1) : ''; }
+      // Una fecha de más de 3 días va en rojo (20/11/2026): los pagos llegaron a estar 10 días viejos sin que se notara.
+      const diasDesde = s => { const m=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(s||'')); if(!m) return null; const f=new Date(+m[3],+m[2]-1,+m[1]); const h=new Date(); h.setHours(0,0,0,0); return Math.round((h-f)/864e5); };
+      if (ff) ff.innerHTML = fechas.map((x,i)=>{ const t = i===0 ? x.t.charAt(0).toUpperCase()+x.t.slice(1) : x.t; const dd = diasDesde(x.f);
+        return dd!=null && dd>3 ? '<span style="color:var(--danger);font-weight:700">'+esc(t)+'</span>' : esc(t); }).join(' · ');
     })();
 
     // ---- Reclamos de clientes (los que abren desde el Portal del Cliente): si se
@@ -423,7 +432,8 @@
         if(!r.ok){ box.innerHTML = '<div class="vacio">No se pudieron leer los reclamos.</div>'; return; }
         const filas = (await r.json()).filas || [];
         if(!filas.length){ box.innerHTML = '<div class="vacio">Todavía no hay reclamos de clientes.</div>'; return; }
-        const horas = f => { const a=new Date(f.created_at||f.fecha||f.updated_at), b=new Date(f.updated_at||f.created_at);
+        // Demora = hasta que se marcó resuelto (resuelto_at, 20/11/2026); updated_at se mueve con cualquier mensaje.
+        const horas = f => { const a=new Date(f.created_at||f.fecha||f.updated_at), b=new Date(f.resuelto_at||f.updated_at||f.created_at);
                              const h=(b-a)/36e5; return isFinite(h)&&h>=0 ? h : null; };
         const resueltas = filas.filter(f=>f.estado==='resuelto');
         const abiertas  = filas.filter(f=>f.estado!=='resuelto');

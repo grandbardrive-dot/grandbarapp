@@ -1062,7 +1062,9 @@ function recPintarDetalle(d) {
 // estado y, al tocarla, la conversación como un chat. Sin responder ni cambiar el
 // estado: el servidor (cobranzas-panel) tampoco se lo deja a Dirección.
 let _rvFiltro = 'abiertos', _rvFilas = [];
-const recHoras = r => { const h = (new Date(r.updated_at || r.created_at) - new Date(r.created_at || r.updated_at)) / 36e5; return isFinite(h) && h >= 0 ? h : null; };
+// Hasta que se marcó resuelto (resuelto_at, 20/11/2026). updated_at se mueve con cada mensaje y con
+// cierres en lote: daba 29 días de promedio. Los reclamos viejos tienen resuelto_at = su updated_at.
+const recHoras = r => { const h = (new Date(r.resuelto_at || r.updated_at || r.created_at) - new Date(r.created_at || r.updated_at)) / 36e5; return isFinite(h) && h >= 0 ? h : null; };
 const recDice = h => h == null ? '—' : h < 1 ? Math.max(1, Math.round(h * 60)) + ' min' : h < 48 ? Math.round(h) + ' h' : Math.round(h / 24) + ' días';
 const recHace = f => recDice((Date.now() - new Date(f).getTime()) / 36e5);
 const recCli = r => (r.cliente && (r.cliente.comercio || r.cliente.nombre)) || 'Sin cliente';
