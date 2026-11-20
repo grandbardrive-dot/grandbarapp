@@ -133,12 +133,15 @@ exports.handler = async (event) => {
         // Los vendedores de la sucursal (por su código) → sus ids en el Manual.
         const vendMan = await (await man('vendedores?select=id,codigo&limit=1000')).json();
         const ids = (Array.isArray(vendMan) ? vendMan : []).filter(v => Z.vendOk(v.codigo)).map(v => v.id);
-        if (!ids.length) { out.visitas = { mes: 0, hoy: 0 }; throw new Error('__done__'); }
+        if (!ids.length) { out.visitas = { mes: 0, hoy: 0, vendedoresMes: 0 }; throw new Error('__done__'); }
         vendIdFiltro = '&vendedor_id=in.(' + qvals(ids) + ')';
       }
-      const vis = await traerTodo(man, 'visitas?select=fecha&fecha=gte.' + encodeURIComponent(inicioMes + 'T00:00:00-03:00') + vendIdFiltro + '&order=fecha');
+      const vis = await traerTodo(man, 'visitas?select=fecha,vendedor_id&fecha=gte.' + encodeURIComponent(inicioMes + 'T00:00:00-03:00') + vendIdFiltro + '&order=fecha');
       const arr = Array.isArray(vis) ? vis : [];
-      out.visitas = { mes: arr.length, hoy: arr.filter(v => v.fecha && fechaAR(new Date(v.fecha)) === hoy).length };
+      // 20/11/2026: también cuántos vendedores las cargaron. En noviembre las 168 eran de uno
+      // solo, y "168 visitas" se leía como si fueran de toda la empresa.
+      out.visitas = { mes: arr.length, hoy: arr.filter(v => v.fecha && fechaAR(new Date(v.fecha)) === hoy).length,
+                      vendedoresMes: new Set(arr.map(v => v.vendedor_id).filter(Boolean)).size };
     } catch (e) { if (String(e.message) !== '__done__' && !out.visitas) { out.visitas = null; out.visitas_error = String(e.message || e); } }
 
     return json(200, out);
