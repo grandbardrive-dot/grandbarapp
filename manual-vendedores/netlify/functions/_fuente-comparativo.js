@@ -48,8 +48,9 @@ async function fuente() {
 // Vendedores del Manual con su equipo (Presupuesto Ventas) y su provincia (Comparativo fuente).
 async function vendedores(src) {
   const man = (p) => fetch(MAN_URL + '/rest/v1/' + p, { headers: { apikey: MAN_KEY, Authorization: 'Bearer ' + MAN_KEY } });
-  const lista = await (await man('vendedores?select=codigo,nombre')).json();
-  const vs = (Array.isArray(lista) ? lista : []).map(v => ({ codigo: cod3(v.codigo), nombre: String(v.nombre || '').trim() })).filter(v => v.codigo);
+  // oculto (24/11/2026): no va en las listas de vendedores (sus ventas siguen en los totales).
+  const lista = await (await man('vendedores?select=codigo,nombre,oculto')).json();
+  const vs = (Array.isArray(lista) ? lista : []).map(v => ({ codigo: cod3(v.codigo), nombre: String(v.nombre || '').trim(), oculto: v.oculto === true })).filter(v => v.codigo);
   const equipo = {};
   try {
     let grupo = [];

@@ -118,7 +118,7 @@ exports.handler = async (event) => {
       if (fuera.length) {
         const [cl, vs] = await Promise.all([
           man('clientes?select=codigo_cliente,nombre,vendedor_id&codigo_cliente=in.(' + fuera.map(encodeURIComponent).join(',') + ')').then(r => r.ok ? r.json() : []).catch(() => []),
-          man('vendedores?select=id,nombre').then(r => r.ok ? r.json() : []).catch(() => []),
+          man('vendedores?select=id,nombre&oculto=is.false').then(r => r.ok ? r.json() : []).catch(() => []),
         ]);
         otras = fuera.map(c => {
           const x = (cl || []).find(k => nc(k.codigo_cliente) === nc(c));

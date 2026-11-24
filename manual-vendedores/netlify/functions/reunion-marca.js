@@ -23,7 +23,8 @@
 //  (fuente: 'luci', monto = venta neta real). ?fuente=erp fuerza el sistema.
 //  Solo lectura, con claves públicas (Manual + Catálogo).
 // ============================================================
-const LUCI = require('./_datos/luci');
+const LUCI = require('./_datos/luci');
+const { ocultos, esOculto } = require('./_vendedores-ocultos');
 const MAN =['https://fzaxwuuodseyyinveknn.supabase.co/rest/v1/', process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk'];
 const CAT = ['https://zlwnoqdxendsgbfvfyue.supabase.co/rest/v1/', process.env.CATALOGO_ANON_KEY || 'sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4'];
 
@@ -175,7 +176,9 @@ exports.handler = async (event) => {
     }
     const vids = [...new Set([...clientes.values()].map((c) => c.vendedor_id).filter(Boolean))];
     const vendRows = vids.length ? await todo(MAN, `vendedores?select=id,nombre,codigo,zona&id=in.(${vids.join(',')})`) : [];
-    const vend = new Map(vendRows.map((v) => [v.id, v.nombre]));
+    // Vendedores ocultos (24/11/2026): sus clientes quedan "Sin vendedor" (siguen en los totales).
+    const OC = await ocultos();
+    const vend = new Map(vendRows.filter((v) => !esOculto(OC, v.codigo)).map((v) => [v.id, v.nombre]));
     const zonaVend = new Map(vendRows.map((v) => [v.id, ZONA_FIX[v.codigo] || String(v.zona || '').replace('_', '')]));
 
     // ── 4) Agregar ──

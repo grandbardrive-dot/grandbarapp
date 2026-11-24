@@ -163,7 +163,7 @@ exports.handler = async (event) => {
       filas,
       inflacion: ipc,
       filtros: {
-        vendedores: vend.filter(v => !excluidos.has(v.codigo) && conVentas.has(v.codigo)).sort((a, b) => a.nombre.localeCompare(b.nombre))
+        vendedores: vend.filter(v => !excluidos.has(v.codigo) && !v.oculto && conVentas.has(v.codigo)).sort((a, b) => a.nombre.localeCompare(b.nombre))
           .map(v => ({ codigo: v.codigo, nombre: v.nombre, equipo: v.equipo, provincia: v.provincia })),
         equipos: EQUIPOS,
         provincias: [...new Set(vend.filter(v => !excluidos.has(v.codigo) && v.provincia).map(v => v.provincia))].sort(),

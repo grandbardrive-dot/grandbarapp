@@ -30,7 +30,8 @@ const DIR_ROLES = ['direccion', 'admin', 'duenio'];
 
 const { traerTodo } = require('./_paginar');
 const { armarZona } = require('./_zona-cobranzas');
-const { filtroVigentes } = require('./_cuentas-vigentes');
+const { filtroVigentes } = require('./_cuentas-vigentes');
+const { ocultos, esOculto } = require('./_vendedores-ocultos');
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const num = v => { const n = Number(v); return isNaN(n) ? 0 : n; };
 const qvals = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
@@ -68,7 +69,9 @@ exports.handler = async (event) => {
     try { vendList = await (await hub('usuarios?rol=in.(ventas,mayorista)&select=nombre,codigo_vendedor')).json(); } catch (e) {}
     vendList = Array.isArray(vendList) ? vendList : [];
     const nombreDeCod = {};
-    vendList.forEach(v => { if (v.codigo_vendedor) nombreDeCod[String(v.codigo_vendedor)] = v.nombre; });
+    // Vendedores ocultos (24/11/2026): no van en el ranking (sus clientes siguen en los totales).
+    const OC = await ocultos();
+    vendList.forEach(v => { if (v.codigo_vendedor && !esOculto(OC, v.codigo_vendedor)) nombreDeCod[String(v.codigo_vendedor)] = v.nombre; });
 
     const cob = cobService
       ? (path, opts = {}) => fetch(COB_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: cobService, Authorization: 'Bearer ' + cobService, ...(opts.headers || {}) } })

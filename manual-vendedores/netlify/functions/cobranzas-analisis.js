@@ -21,6 +21,9 @@
 
 const { zonaDe, armarZona } = require('./_zona-cobranzas');
 const { filtroVigentes } = require('./_cuentas-vigentes');
+// Vendedores ocultos (24/11/2026): sus clientes y movimientos quedan "sin vendedor" (siguen en
+// los totales) y no aparecen en la tabla ni en el selector de vendedores.
+const { ocultos, esOculto } = require('./_vendedores-ocultos');
 
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
@@ -89,6 +92,8 @@ exports.handler = async (event) => {
 
     // Dirección (Fernando) ve solo las cuentas que CUBO sigue devolviendo, las activas (17/11/2026).
     const VIG = ['admin', 'direccion', 'duenio'].includes(rol) ? await filtroVigentes(cob) : '';
+    const OC = await ocultos();
+    const vOk = v => { const t = String(v || '').trim(); return esOculto(OC, t) ? '' : t; };
     const [cuentas, fichas, comp, cobros, recl, recMsg, pla, env, borr, nc, wa, users, quit, vends, act] = await Promise.all([
       leerTodo('cuentas_cubo?select=codigo,nombre,vendedor,equipo,rubro,saldo,vencida,telefono&order=codigo' + (VIG ? '&' + VIG : '')),
       leerTodo('clientes?select=id,codigo_cubo,whatsapp&order=id'),
@@ -124,7 +129,7 @@ exports.handler = async (event) => {
     const okVend = v => !Z || Z.vendOk(v);
 
     const cu = cuentas.filter(c => okCod(c.codigo)).map(c => [
-      padCod(c.codigo), c.nombre || '', String(c.vendedor || '').trim(), String(c.equipo || '').trim().toUpperCase(),
+      padCod(c.codigo), c.nombre || '', vOk(c.vendedor), String(c.equipo || '').trim().toUpperCase(),
       String(c.rubro || '').trim(), n2(c.saldo), n2(c.vencida), quitados.has(sinCeros(c.codigo)) ? 1 : 0,
     ]);
 
@@ -137,10 +142,10 @@ exports.handler = async (event) => {
       .map(u => [padCod(u.email.split('@')[0]), ts(u.created_at), ultimoUso(u)])
       .filter(r => r[0] && okCod(r[0]));
 
-    const co = comp.map(x => [codDeFicha[String(x.cliente_id)] || '', String(x.vendedor || ''), x.estado || '', n2(x.monto), ts(x.created_at), ts(x.procesado_at), ts(x.revisado_at)])
+    const co = comp.map(x => [codDeFicha[String(x.cliente_id)] || '', vOk(x.vendedor), x.estado || '', n2(x.monto), ts(x.created_at), ts(x.procesado_at), ts(x.revisado_at)])
       .filter(r => !Z || (r[0] && okCod(r[0])));
 
-    const ef = cobros.map(x => [padCod(x.codigo) || codDeFicha[String(x.cliente_id)] || '', String(x.vendedor || ''), x.estado || '', n2(x.monto), ts(x.created_at), ts(x.cobrado_at)])
+    const ef = cobros.map(x => [padCod(x.codigo) || codDeFicha[String(x.cliente_id)] || '', vOk(x.vendedor), x.estado || '', n2(x.monto), ts(x.created_at), ts(x.cobrado_at)])
       .filter(r => !Z || (r[0] && okCod(r[0])));
 
     // Reclamos: primera respuesta = primer mensaje nuestro (autor admin) después del primero del cliente.
@@ -155,13 +160,13 @@ exports.handler = async (event) => {
         ts(r.created_at), resp ? ts(resp.created_at) : null, r.estado === 'resuelto' ? ts(r.updated_at) : null, ms.length];
     }).filter(r => !Z || (r[0] && okCod(r[0])));
 
-    const pl = pla.filter(x => okVend(x.vendedor)).map(x => [String(x.vendedor || ''), x.fecha_rendicion, padCod(x.codigo),
+    const pl = pla.filter(x => okVend(x.vendedor)).map(x => [vOk(x.vendedor), x.fecha_rendicion, padCod(x.codigo),
       n2(x.importe), n2(x.efectivo), n2(x.cheques), n2(x.retenciones), n2(x.transferencia), n2(x.tarjeta), n2(x.echeq),
       ts(x.created_at), x.procesado ? 1 : 0, ts(x.procesado_at), x.editado_at ? 1 : 0]);
-    const en = env.filter(x => okVend(x.vendedor)).map(x => [String(x.vendedor || ''), x.fecha_rendicion, ts(x.enviada_at), x.filas || 0]);
-    const bo = borr.filter(x => okVend(x.vendedor)).map(x => [String(x.vendedor || ''), x.fecha_rendicion, ts(x.borrado_at)]);
+    const en = env.filter(x => okVend(x.vendedor)).map(x => [vOk(x.vendedor), x.fecha_rendicion, ts(x.enviada_at), x.filas || 0]);
+    const bo = borr.filter(x => okVend(x.vendedor)).map(x => [vOk(x.vendedor), x.fecha_rendicion, ts(x.borrado_at)]);
 
-    const ncu = nc.map(x => [padCod(x.codigo) || codDeFicha[String(x.cliente_id)] || '', String(x.vendedor || ''), x.estado || '', n2(x.monto), ts(x.created_at), ts(x.aplicado_at)])
+    const ncu = nc.map(x => [padCod(x.codigo) || codDeFicha[String(x.cliente_id)] || '', vOk(x.vendedor), x.estado || '', n2(x.monto), ts(x.created_at), ts(x.aplicado_at)])
       .filter(r => !Z || (r[0] && okCod(r[0])));
 
     // ── WhatsApp: cada mensaje enviado con su entrega/lectura/falla; los recibidos aparte ──
@@ -183,7 +188,7 @@ exports.handler = async (event) => {
     const wi = wa.filter(e => e.tipo === 'message').map(e => [codMsg(e), ts(e.created_at)]).filter(r => !Z || (r[0] && okCod(r[0])));
 
     const vend = {};
-    (vends || []).forEach(v => { if (v && v.codigo) vend[String(v.codigo).trim()] = { n: v.nombre || '', z: v.zona || '' }; });
+    (vends || []).forEach(v => { if (v && v.codigo && !esOculto(OC, v.codigo)) vend[String(v.codigo).trim()] = { n: v.nombre || '', z: v.zona || '' }; });
 
     return json(200, {
       generado: new Date().toISOString(), zona: zona || null, quien: perfil.nombre || null,

@@ -705,9 +705,12 @@ exports.handler = async (event) => {
 
       // procesado_por guarda el CÓDIGO del vendedor. Los nombres están en el
       // proyecto del manual, que sí se lee con la clave pública.
+      // Vendedores ocultos (24/11/2026): no van en la lista; lo suyo queda en "sin código".
+      const { ocultos, esOculto } = require('./_vendedores-ocultos');
+      const OC = await ocultos();
       const porVendedor = {};
       pasados.forEach(c => {
-        const k = c.procesado_por || 'sin-codigo';
+        const k = (c.procesado_por && !esOculto(OC, c.procesado_por)) ? c.procesado_por : 'sin-codigo';
         porVendedor[k] = porVendedor[k] || { codigo: k, nombre: null, cantidad: 0, monto: 0, _h: [] };
         porVendedor[k].cantidad++; porVendedor[k].monto += num(c.monto);
         const h = hrs(c.created_at, c.procesado_at);
@@ -809,9 +812,12 @@ exports.handler = async (event) => {
         enCero:    huerfanas.filter(c => num(c.saldo) === 0).length,
         vendedores: Object.values(porArreglar).sort((a, b) => b.cuentas - a.cuentas).slice(0, 25),
       };
+      // Vendedores ocultos (24/11/2026): su cartera va en "Sin asignar" (sigue en los totales).
+      const vOcultos = await require('./_vendedores-ocultos').ocultos();
+      const esVOculto = require('./_vendedores-ocultos').esOculto;
       const porVendedor = {};
       cuentas.forEach(c => {
-        const k = c.vendedor || 'Sin asignar';
+        const k = (c.vendedor && !esVOculto(vOcultos, c.vendedor)) ? c.vendedor : 'Sin asignar';
         porVendedor[k] = porVendedor[k] || { vendedor: k, cuentas: 0, cartera: 0, vencida: 0 };
         porVendedor[k].cuentas++; porVendedor[k].cartera += num(c.saldo); porVendedor[k].vencida += num(c.vencida);
       });

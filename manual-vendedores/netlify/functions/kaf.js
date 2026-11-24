@@ -289,18 +289,21 @@ async function datosMarca(P) {
   const [clientes, estados, vendedores, prods, t5, acu] = await Promise.all([
     manTodo('clientes?select=id,codigo_cliente,nombre,direccion,tipo,vendedor_id,activo,created_at&order=codigo_cliente'),
     manTodo('clientes_estado?select=codigo,activo&order=codigo'),
-    man('vendedores?select=id,nombre,codigo,whatsapp&limit=500'),
+    man('vendedores?select=id,nombre,codigo,whatsapp,oculto&limit=500'),
     prefs.length ? manTodo('productos_grandbar?select=codigo,descripcion&or=(' + prefs.map(p => 'codigo.like.' + p + '*').join(',') + ')&order=codigo') : [],
     P.planillas_campari ? leerCSV(SHEET_5T) : null,
     P.planillas_campari ? leerCSV(SHEET_ACUERDOS) : null,
   ]);
   const est = new Map(estados.map(e => [String(e.codigo), e.activo]));
-  const vend = new Map(vendedores.map(v => [v.id, v]));
+  // Vendedores ocultos (24/11/2026, vendedores.oculto): sus clientes quedan sin vendedor (no salen
+  // en el filtro ni se les avisa). La zona sí se toma de todos, para no cambiar quién ve qué.
+  const vendTodos = new Map(vendedores.map(v => [v.id, v]));
+  const vend = new Map(vendedores.filter(v => !v.oculto).map(v => [v.id, v]));
   const visibles = clientes.filter(c => {
     const a = est.has(String(c.codigo_cliente)) ? est.get(String(c.codigo_cliente)) : c.activo;
     if (a === false) return false;
     if (!P.region) return true;
-    const v = vend.get(c.vendedor_id);
+    const v = vendTodos.get(c.vendedor_id);
     if (!v || !v.codigo) return true;
     return (SAN_LUIS_CODIGOS.has(String(v.codigo).trim()) ? 'san_luis' : 'mendoza') === P.region;
   });
@@ -362,7 +365,7 @@ async function datosMarca(P) {
     }
   }
 
-  const d = { visibles, vend, desc, marcas, porCli, cob, acuerdos, hayT5: !!(t5 && t5.head.length), hayAcuerdos: !!(acu && acu.head.length), generado: new Date().toISOString() };
+  const d = { visibles, vend, vendTodos, desc, marcas, porCli, cob, acuerdos, hayT5: !!(t5 && t5.head.length), hayAcuerdos: !!(acu && acu.head.length), generado: new Date().toISOString() };
   CACHE.set(clave, { t: Date.now(), d });
   if (CACHE.size > 20) CACHE.delete(CACHE.keys().next().value);
   return d;
@@ -779,8 +782,8 @@ exports.handler = async (event) => {
         for (const c of D.visibles) {
           const ventas = D.porCli.get(c.codigo_cliente);
           if (!ventas || !ventas.length) continue;
-          const vd = D.vend.get(c.vendedor_id) || {};
-          if (vd.codigo && excl.has(String(vd.codigo).trim())) continue;
+          const vd = D.vend.get(c.vendedor_id) || {}, vdTodos = (D.vendTodos || D.vend).get(c.vendedor_id) || {};
+          if (vdTodos.codigo && excl.has(String(vdTodos.codigo).trim())) continue;
           const acc = new Map();
           for (const [sku, fecha, u, imp] of ventas) {
             if (fecha < desde) continue;
@@ -1079,7 +1082,7 @@ exports.handler = async (event) => {
       if (!esCod(codigo)) throw new Error('Cliente inválido.');
       const c = (await man('clientes?codigo_cliente=eq.' + encodeURIComponent(codigo) + '&select=codigo_cliente,nombre,tipo,vendedor_id'))[0];
       if (!c) throw new Error('No encontré el cliente.');
-      const v = c.vendedor_id ? (await man('vendedores?id=eq.' + c.vendedor_id + '&select=nombre,codigo'))[0] : null;
+      const v = c.vendedor_id ? (await man('vendedores?id=eq.' + c.vendedor_id + '&oculto=is.false&select=nombre,codigo'))[0] : null;
       return { codigo: c.codigo_cliente, nombre: c.nombre, tipo: c.tipo, vendedor: v ? v.nombre : null, vendedorCodigo: v && v.codigo ? String(v.codigo).trim() : null };
     }
 

@@ -1307,7 +1307,8 @@ alter table checklist_planes add column if not exists pdf_url text;</code>
   let resetTipoActivo = null;
 
   async function cargarVendedoresReset() {
-    const { data } = await sb.from('vendedores').select('id,nombre,codigo').order('nombre');
+    // Sin los vendedores ocultos (24/11/2026, vendedores.oculto).
+    const { data } = await sb.from('vendedores').select('id,nombre,codigo').eq('oculto', false).order('nombre');
     const sel = document.getElementById('reset-vend-sel');
     if (!sel || !data) return;
     data.forEach(v => {

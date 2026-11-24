@@ -790,7 +790,7 @@ async function loadOwnerData() {
   // Clientes y visitas se cuentan enteros, así que se piden por páginas: la base
   // corta en 1000 filas y la cartera son más de cinco mil.
   const [vR, visR, clientes, ultVis] = await Promise.all([
-    sb.from('vendedores').select('id,nombre,codigo,zona').order('nombre'),
+    sb.from('vendedores').select('id,nombre,codigo,zona').eq('oculto', false).order('nombre'),   // sin los ocultos (24/11/2026)
     sb.from('visitas').select('id,vendedor_id,cliente_id,fecha,porcentaje_total,progreso,clientes(id,nombre,tipo,codigo_cliente),vendedores(id,nombre,codigo)')
       .gte('fecha', inicioMes).order('fecha', { ascending:false }),
     traerTodo(() => sb.from('clientes').select('id,nombre,tipo,codigo_cliente,vendedor_id').order('id')),

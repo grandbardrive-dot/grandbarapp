@@ -206,11 +206,12 @@ body { background:transparent !important; }
   let vendedoresMap={};
 
   async function cargarVendedores(){
-    const {data}=await sb.from('vendedores').select('id,nombre,codigo').order('nombre');
+    const {data}=await sb.from('vendedores').select('id,nombre,codigo,oculto').order('nombre');
     const el=document.getElementById('vend-list');
     if(!data||!data.length){el.innerHTML=`<span style="font-size:12px;color:var(--text3)">No hay vendedores cargados.</span>`;return;}
     data.forEach(v=>{vendedoresMap[v.codigo.toUpperCase()]=v.id;});
-    el.innerHTML=data.map(v=>`<span class="vend-chip">${esc(v.codigo)} — ${esc(v.nombre)}</span>`).join('');
+    // Los ocultos (24/11/2026) se pueden seguir importando, pero no se listan.
+    el.innerHTML=data.filter(v=>!v.oculto).map(v=>`<span class="vend-chip">${esc(v.codigo)} — ${esc(v.nombre)}</span>`).join('');
   }
 
   function onDragOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('dragover');}

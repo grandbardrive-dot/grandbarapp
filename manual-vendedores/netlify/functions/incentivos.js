@@ -18,7 +18,8 @@
 // ============================================================
 
 const { regionDe } = require('./_equipo.js');
-const { traerTodo } = require('./_paginar.js');
+const { traerTodo } = require('./_paginar.js');
+const { ocultos, esOculto } = require('./_vendedores-ocultos');
 
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
@@ -316,9 +317,11 @@ exports.handler = async (event) => {
     // a su propia cartera (antes solo veían Peñaflor/Séptima/ON Trade). Torneo Doña Paula: fuera 19/11.
 
     // Equipo (para el Plan 5T): vendedor = solo su cartera; supervisor = su región + canal; el resto = todos.
+    // Vendedores ocultos (24/11/2026): no van en la lista (_vendedores-ocultos.js).
+    const OC = await ocultos();
     const eq = await (await hub('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region')).json();
     const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
-    const equipo = (Array.isArray(eq) ? eq : []).filter(u => {
+    const equipo = (Array.isArray(eq) ? eq : []).filter(u => !esOculto(OC, u.codigo_vendedor)).filter(u => {
       if (esVendedor) return String(u.codigo_vendedor) === String(perfil.codigo_vendedor);  // solo él
       if (!esSup) return true;                                // Dirección/Marketing: ve todo
       if (preg && regionDe(u) !== preg) return false;

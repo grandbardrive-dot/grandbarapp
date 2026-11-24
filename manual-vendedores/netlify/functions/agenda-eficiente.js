@@ -94,7 +94,8 @@ function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'applic
 const qv = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
 
 const { pushA } = require('./_notificar');
-const { traerTodo } = require('./_paginar');
+const { traerTodo } = require('./_paginar');
+const { ocultos, esOculto } = require('./_vendedores-ocultos');
 exports.handler = async (event) => {
   try {
     const srole = process.env.HUB_SERVICE_ROLE;
@@ -113,9 +114,11 @@ exports.handler = async (event) => {
     const perfil = (await (await sb('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=nombre,canal,region,codigo_vendedor,es_supervisor')).json())[0] || {};
 
     async function equipoCodigos() {
+      // Vendedores ocultos (24/11/2026): no van en la lista (_vendedores-ocultos.js).
+      const OC = await ocultos();
       const rows = await (await sb('usuarios?rol=eq.ventas&select=codigo_vendedor,canal,region')).json();
       const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
-      return (rows || []).filter(u => {
+      return (rows || []).filter(u => !esOculto(OC, u.codigo_vendedor)).filter(u => {
         if (!u.codigo_vendedor) return false;
         if (preg && regionDe(u) !== preg) return false;
         const uc = String(u.canal || '').toLowerCase();

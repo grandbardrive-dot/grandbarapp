@@ -18,7 +18,8 @@
 //   Env: HUB_SERVICE_ROLE
 // ============================================================
 
-const { regionDe } = require('./_equipo');
+const { regionDe } = require('./_equipo');
+const { ocultos, esOculto } = require('./_vendedores-ocultos');
 
 const HUB_URL = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
@@ -115,6 +116,8 @@ async function resumen(r) {
       d.por_vendedor.forEach(v => { if (String(v.codigo) in m) v.clientes = m[String(v.codigo)]; });
     }
   } catch (e) {}
+  // Vendedores ocultos (24/11/2026): no van en la tabla por vendedor; los totales no cambian.
+  if (Array.isArray(d.por_vendedor)) { const OC = await ocultos(); d.por_vendedor = d.por_vendedor.filter(v => !esOculto(OC, v.codigo)); }
   return d;
 }
 // Venta y unidades de los artículos más vendidos del período, en otro período (30/10/2026):
