@@ -308,23 +308,19 @@ exports.handler = async (event) => {
     const esSup = !!perfil.es_supervisor;
     // Supervisores → su equipo. Marketing/Dirección/Trade → toda la empresa (panorama).
     const VER_TODO = ['diseno', 'admin', 'direccion', 'torneo', 'compras', 'desarrollo'];
-    // Vendedores: sus planes (Peñaflor, Séptima, ON trade); los de Campari y Pernod siguen siendo
-    // de supervisores y Dirección. El Torneo Doña Paula se sacó el 19/11/2026.
-    if (!esSup && !VER_TODO.includes(rol)) {
-      if (rol !== 'ventas' && rol !== 'mayorista') return json(403, { error: 'Solo para supervisores y Dirección/Marketing.' });
-      const pf = await penaflor(hub, perfil).catch(() => null);
-      const sp = await septima(hub, perfil).catch(() => null);
-      const ot = await ontrade(hub, perfil).catch(() => null);
-      const provs = []; if (pf) provs.push(pf); if (sp) provs.push(sp); if (ot) provs.push(ot);
-      return json(200, { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: 'vendedor', codigo: perfil.codigo_vendedor || null,
-        generado: new Date().toISOString(), proveedores: provs });
-    }
+    const esVendedor = !esSup && (rol === 'ventas' || rol === 'mayorista');
+    // Solo vendedores, supervisores y Dirección/Marketing acceden.
+    if (!esSup && !VER_TODO.includes(rol) && !esVendedor) return json(403, { error: 'Solo para supervisores y Dirección/Marketing.' });
+    // Vendedores (24/11/2026): ven TODOS los planes como los supervisores —Campari (Cobertura global
+    // + Convivencia de SUS clientes), Pernod (Q4 + ON Trade), Peñaflor, Séptima y Chandon—, scopeados
+    // a su propia cartera (antes solo veían Peñaflor/Séptima/ON Trade). Torneo Doña Paula: fuera 19/11.
 
-    // Equipo (para el Plan 5T): supervisor = vendedores de su región + canal; el resto = todos.
+    // Equipo (para el Plan 5T): vendedor = solo su cartera; supervisor = su región + canal; el resto = todos.
     const eq = await (await hub('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region')).json();
     const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
     const equipo = (Array.isArray(eq) ? eq : []).filter(u => {
-      if (!esSup) return true;                                // ve todo
+      if (esVendedor) return String(u.codigo_vendedor) === String(perfil.codigo_vendedor);  // solo él
+      if (!esSup) return true;                                // Dirección/Marketing: ve todo
       if (preg && regionDe(u) !== preg) return false;
       const uc = String(u.canal || '').toLowerCase();
       return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;
@@ -332,7 +328,7 @@ exports.handler = async (event) => {
     const nombreDeCod = {}; equipo.forEach(v => { nombreDeCod[String(v.codigo_vendedor)] = v.nombre; });
     const codigos = equipo.map(v => String(v.codigo_vendedor));
 
-    const base = { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: esSup ? 'equipo' : 'todo', codigo: perfil.codigo_vendedor || null, generado: new Date().toISOString() };
+    const base = { nombre: perfil.nombre, region: perfil.region, canal: perfil.canal, alcance: esSup ? 'equipo' : (esVendedor ? 'vendedor' : 'todo'), codigo: perfil.codigo_vendedor || null, generado: new Date().toISOString() };
     const proveedores = [];
 
     // ---- Campari (dos planes: Cobertura + 5T) ----
