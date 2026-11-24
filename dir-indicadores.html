@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Indicadores financieros</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<!-- Indicadores financieros (24/11/2026), pedido de Fernando con dos PDF: plazo medio de cobranza
+     (hasta el pago y hasta la acreditación de los cheques), ingresos previstos por cheques y plazo
+     de pago a proveedores. Cierre de cada mes y actualización semanal. Datos: función dir-indicadores. -->
+<link rel="stylesheet" href="assets/dir.css" />
+<style>
+  .sec{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
+  .ind{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+  .ind .kpi .v{font-size:30px}
+  .ind .kpi .v small{font-size:14px;font-weight:700;color:var(--muted);margin-left:4px}
+  .ind .kpi .f{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+  .ind .kpi.pend .v{color:#b3aa9b}
+  .card + .card{margin-top:14px}
+  table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.t td.d{font-weight:800}
+  table.t tr.cur td{background:#fbf7ee}
+  .tw{overflow-x:auto}
+  .tw table{min-width:720px}
+  .ch{display:grid;grid-template-columns:150px 1fr 120px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line-2);font-size:12.5px}
+  .ch:last-child{border-bottom:0}
+  .ch .b{height:12px;background:#f1ebde;border-radius:6px;overflow:hidden}
+  .ch .b i{display:block;height:100%;background:var(--teal)}
+  .ch.atr .b i{background:var(--danger)}
+  .ch .m{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+  .ch .m small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+  .nota{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.55}
+  .vacio{color:var(--muted);font-size:13px;padding:30px 10px;text-align:center}
+  @media(max-width:900px){ .ind{grid-template-columns:1fr} .ch{grid-template-columns:110px 1fr 100px} }
+</style>
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="dsb"></aside>
+  <div class="main"><div class="wrap">
+    <div class="dhead">
+      <span class="ic"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      <div><h1>Indicadores financieros</h1><div class="sub" id="sub">Plazo de cobranza y de pago a proveedores: cierre de cada mes y actualización semanal.</div></div>
+    </div>
+    <div id="cont"><div class="vacio">Calculando…</div></div>
+  </div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/dir-nav.js?v=5"></script>
+<script src="assets/dir-notif.js"></script>
+<script>
+(function(){
+  const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc"};
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const hub=supabase.createClient(HUB.url,HUB.key);
+  const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const $M=v=>{ if(v==null) return '—'; v=Number(v)||0; const a=Math.abs(v), s=v<0?'−':'';
+    if(a>=1e6) return s+'$'+(a/1e6).toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1})+' M';
+    return s+'$'+Math.round(a).toLocaleString('es-AR'); };
+  const dias=v=>v==null?'—':Number(v).toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const dm=iso=>iso?Number(iso.slice(8,10))+'/'+Number(iso.slice(5,7)):'';
+  const mesNom=m=>{ const t=MESES[Number(m.slice(5,7))-1]; return t.charAt(0).toUpperCase()+t.slice(1)+' '+m.slice(0,4); };
+
+  function kpi(titulo,valor,pie,pendiente){
+    return '<div class="kpi'+(pendiente?' pend':'')+'"><div class="lbl">'+titulo+'</div><div class="v">'+valor+'</div><div class="f">'+pie+'</div></div>';
+  }
+
+  function pintar(D){
+    const cur=D.filas.find(f=>f.actual)||D.filas[0];
+    const enCurso=cur&&cur.actual;
+    $('sub').textContent=enCurso?(mesNom(cur.mes)+' al '+dm(D.hoy)+' y cierre de cada mes.'):'Cierre de cada mes.';
+    let h='';
+
+    // ── Cobranzas ──
+    h+='<div class="sec">Cobranzas</div><div class="ind">'
+      +kpi('Plazo medio hasta recibir el pago',cur&&cur.plazo_pago!=null?dias(cur.plazo_pago)+'<small>días</small>':'—',
+        'Saldo promedio de cuentas corrientes de clientes ÷ ventas del mes × días.')
+      +kpi('Plazo medio estimado hasta la acreditación',cur&&cur.plazo_acreditacion!=null?dias(cur.plazo_acreditacion)+'<small>días</small>':'—',
+        '(Saldo promedio de clientes + cheques en cartera sin acreditar) ÷ ventas del mes × días.')
+      +kpi('Cheques en cartera sin acreditar',$M(D.ahora.cheques_cartera),
+        (D.cheques?D.cheques.cantidad+' cheques':'')+(D.fuentes.cheques_al?' · planilla al '+dm(D.fuentes.cheques_al):''))
+      +'</div>';
+
+    const fila=f=>{
+      const tit=f.actual?mesNom(f.mes)+' <span style="color:var(--muted);font-weight:500">al '+dm(f.hasta)+'</span>':mesNom(f.mes);
+      if(f.sinVentas) return '<tr><td>'+tit+'</td><td class="n" colspan="6">No se pudieron leer las ventas.</td></tr>';
+      if(f.sinCierre) return '<tr><td>'+tit+'</td><td class="n" colspan="6">Sin corte de fin de mes.</td></tr>';
+      const p=f.promedio||{};
+      return '<tr class="'+(f.actual?'cur':'')+'"><td>'+tit+(f.soloCierre?' *':'')+'</td><td class="n">'+$M(p.saldo_clientes)+'</td><td class="n">'+$M(p.cheques_cartera)+'</td><td class="n">'+$M(f.ventas)+'</td><td class="n">'+f.dias+'</td><td class="n d">'+dias(f.plazo_pago)+'</td><td class="n d">'+dias(f.plazo_acreditacion)+'</td></tr>';
+    };
+    const conAst=D.filas.some(f=>f.soloCierre&&!f.sinVentas&&!f.sinCierre);
+    h+='<div class="card"><div class="c-h"><div class="t">Cierre de cada mes</div></div><div class="tw"><table class="t"><thead><tr><th>Mes</th><th class="n">Saldo prom. clientes</th><th class="n">Cheques prom. en cartera</th><th class="n">Ventas con IVA</th><th class="n">Días</th><th class="n">Hasta el pago</th><th class="n">Hasta la acreditación</th></tr></thead><tbody>'
+      +D.filas.map(fila).join('')+'</tbody></table></div>'
+      +(conAst?'<div class="nota">* Con el saldo al corte: el primer corte guardado es el del '+dm(D.primerCorte||D.hoy)+'.</div>':'')+'</div>';
+
+    if(D.semanas&&D.semanas.length){
+      h+='<div class="card"><div class="c-h"><div class="t">Semana a semana <small>'+esc(mesNom(cur.mes))+'</small></div></div><div class="tw"><table class="t"><thead><tr><th>Al</th><th class="n">Saldo clientes</th><th class="n">Cheques en cartera</th><th class="n">Ventas del mes a la fecha</th><th class="n">Hasta el pago</th><th class="n">Hasta la acreditación</th></tr></thead><tbody>'
+        +D.semanas.map(s=>'<tr><td>'+dm(s.fecha)+'</td><td class="n">'+$M(s.fin&&s.fin.saldo_clientes)+'</td><td class="n">'+$M(s.fin&&s.fin.cheques_cartera)+'</td><td class="n">'+$M(s.ventas)+'</td><td class="n d">'+dias(s.plazo_pago)+'</td><td class="n d">'+dias(s.plazo_acreditacion)+'</td></tr>').join('')
+        +'</tbody></table></div></div>';
+    }
+
+    // ── Ingresos previstos por cheques ──
+    const C=D.cheques;
+    h+='<div class="sec">Ingresos previstos por cheques</div><div class="card">';
+    if(!C) h+='<div class="vacio">No se pudo leer la planilla de cheques.</div>';
+    else{
+      const filasCh=[];
+      if(C.atrasados.cantidad) filasCh.push({et:'Fecha ya pasada',sub:'siguen en cartera',imp:C.atrasados.importe,n:C.atrasados.cantidad,atr:true});
+      C.semanas.forEach(s=>filasCh.push({et:dm(s.desde)+' al '+dm(s.hasta),imp:s.importe,n:s.cantidad}));
+      if(C.despues.cantidad) filasCh.push({et:'Más adelante',sub:'hasta el '+dm(C.despues.hasta),imp:C.despues.importe,n:C.despues.cantidad});
+      if(C.sinFecha.cantidad) filasCh.push({et:'Sin fecha',imp:C.sinFecha.importe,n:C.sinFecha.cantidad});
+      const mx=Math.max(1,...filasCh.map(x=>x.imp));
+      h+='<div class="c-h"><div class="t">'+$M(C.total)+' <small>en '+C.cantidad+' cheques, por semana de acreditación</small></div></div>'
+        +filasCh.map(x=>'<div class="ch'+(x.atr?' atr':'')+'"><div>'+esc(x.et)+(x.sub?'<div style="font-size:11px;color:var(--muted)">'+esc(x.sub)+'</div>':'')+'</div><div class="b"><i style="width:'+Math.max(1,Math.round(x.imp/mx*100))+'%"></i></div><div class="m">'+$M(x.imp)+'<small>'+x.n+(x.n===1?' cheque':' cheques')+'</small></div></div>').join('');
+    }
+    h+='</div>';
+
+    // ── Pago a proveedores ──
+    h+='<div class="sec">Pago a proveedores</div><div class="ind">'
+      +kpi('Facturas de proveedores a pagar',$M(D.ahora.saldo_proveedores),D.fuentes.pagos_al?'Planilla de pagos al '+dm(D.fuentes.pagos_al):'')
+      +kpi('Echeqs entregados sin debitar',$M(D.ahora.cheques_propios),D.fuentes.pagos_al?'Planilla de pagos al '+dm(D.fuentes.pagos_al):'')
+      +kpi('Plazo medio hasta entregar el pago','—','Se calcula cuando esté el total de compras del mes.',true)
+      +'</div>';
+
+    $('cont').innerHTML=h;
+  }
+
+  (async()=>{
+    try{
+      const { data:{ session } }=await hub.auth.getSession();
+      if(!session){ location.href='index.html'; return; }
+      const r=await fetch('/.netlify/functions/dir-indicadores',{headers:{Authorization:'Bearer '+session.access_token}});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(d.error||('Error '+r.status));
+      pintar(d);
+    }catch(e){ $('cont').innerHTML='<div class="vacio">No se pudieron calcular los indicadores. '+esc(e.message||e)+'</div>'; }
+  })();
+})();
+</script>
+<script src="assets/user-menu.js?v=1"></script>
+<script src="assets/mobile-nav.js?v=1"></script>
+<script src="/assets/minuta-fab.js?v=3"></script>
+<script src="/assets/cuenta-activa.js?v=1"></script>
+</body>
+</html>

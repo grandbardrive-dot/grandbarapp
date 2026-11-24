@@ -15,6 +15,8 @@
     // Diagnóstico de ventas (24/11/2026): CCC y botellas por vendedor, mes vs mes anterior y año anterior.
     {h:'dir-diagnostico.html',l:'Diagnóstico de ventas',i:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'},
     {h:'dir-cobranzas.html',l:'Cobranzas',i:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'},
+    // Indicadores financieros (24/11/2026, pedido de Fernando): plazo de cobranza y de pago a proveedores.
+    {h:'dir-indicadores.html',l:'Indicadores financieros',i:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'},
     // Presupuestos e Incentivos (20/11/2026): estaban solo en el menú del Inicio (direccion.html),
     // y al pasar a cualquier otra pantalla desaparecían. Mismo orden que ese menú.
     {h:'dir-presupuestos.html',l:'Presupuestos',i:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/>'},

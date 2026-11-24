@@ -130,3 +130,10 @@
 # no hace nada. Ver manual-vendedores/netlify/functions/comprobantes-wa-background.js
 [functions."comprobantes-wa-cron"]
   schedule = "*/2 11-23 * * 1-6"
+
+# INDICADORES FINANCIEROS de Dirección (24/11/2026): guarda el corte del día (saldo de clientes,
+# cheques en cartera, facturas de proveedores a pagar y echeqs sin debitar) a las 20:55 y 23:55 de
+# Argentina (23:55 y 02:55 UTC). El último corte de cada mes es el cierre que usa dir-indicadores.
+# Ver manual-vendedores/netlify/functions/indicadores-corte-cron.js
+[functions."indicadores-corte-cron"]
+  schedule = "55 2,23 * * *"

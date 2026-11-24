@@ -39,6 +39,7 @@ const TAREAS = [
   { id: 'reclamos-avisos', nombre: 'Avisos de reclamos por zona',   cada: 'cada 10 minutos', maxMin: 40,     fallasSeguidas: 2 },
   { id: 'sync-productos', nombre: 'Artículos y stock del ERP',      cada: '1 vez por día',  maxMin: 26 * 60, fallasSeguidas: 1 },
   { id: 'cazar-clientes', nombre: 'Cazador de clientes',            cada: '1 vez por día',  maxMin: 26 * 60, fallasSeguidas: 1 },
+  { id: 'indicadores-corte', nombre: 'Corte diario de indicadores financieros', cada: '2 veces por día', maxMin: 14 * 60, fallasSeguidas: 2 },
   // Solo días hábiles de 9 a 19: del viernes a la noche al lunes a la mañana pasan unas 62 horas sin corrida.
   // Stock del depósito desde Córdoba (26/10/2026): cada hora de 8 a 20, lunes a sábado.
   { id: 'stock-sync',     nombre: 'Stock del depósito desde Córdoba', cada: 'cada hora, de 8 a 20 de lunes a sábado', maxMin: 40 * 60, fallasSeguidas: 2 },
