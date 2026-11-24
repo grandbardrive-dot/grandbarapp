@@ -12,6 +12,8 @@
     {h:'dir-reporte.html',l:'Reporte diario',i:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M3 14.5h18"/>'},
     // Comparativo (19/11/2026): el mes contra el mismo mes del año anterior (clientes, líneas, proveedores, artículos).
     {h:'dir-comparativo.html',l:'Comparativo',i:'<path d="M4 20V9M9 20V4M15 20v-7M20 20V11"/><path d="M2 20h20"/>'},
+    // Diagnóstico de ventas (24/11/2026): CCC y botellas por vendedor, mes vs mes anterior y año anterior.
+    {h:'dir-diagnostico.html',l:'Diagnóstico de ventas',i:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'},
     {h:'dir-cobranzas.html',l:'Cobranzas',i:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'},
     // Presupuestos e Incentivos (20/11/2026): estaban solo en el menú del Inicio (direccion.html),
     // y al pasar a cualquier otra pantalla desaparecían. Mismo orden que ese menú.

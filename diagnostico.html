@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GrandBar">
+<meta name="theme-color" content="#0d2230">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GrandBar Hub — Diagnóstico de ventas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  /* Diagnóstico de ventas (24/11/2026): por vendedor, equipo o toda la empresa, clientes con
+     compra y botellas del mes contra el mes anterior y el año anterior, y el acumulado del año.
+     Spirits por proveedor, los 10 vinos más importantes y el resto. Pedido del usuario con un
+     dibujo (ejemplo: Carolina Heluani). Supervisores (Mi equipo) y Fernando
+     (dir-diagnostico.html, con ?embed=1&dir=1). Los datos los arma la función diagnostico. */
+  :root{
+    --navy:#0d2230; --navy-2:#123043; --cream:#f6f1e8; --card:#ffffff;
+    --ink:#1b2a32; --muted:#6d7d85; --line:#e7ded0; --line-2:#ece4d6;
+    --green:#2f6f5e; --green-d:#245647; --green-soft:#e8f1ea;
+    --gold:#c0912f; --gold-d:#a97c22; --gold-soft:#f7efdc;
+    --red:#b4532f; --red-soft:#fbe9e4;
+    --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font-family:var(--font);color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:250px;flex:none;background:var(--navy);color:#dfe7ec;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+  .sb-logo{font-family:Georgia,serif;font-weight:800;font-size:22px;letter-spacing:.5px;line-height:1;padding:6px 10px}
+  .sb-logo small{display:block;font-family:var(--font);font-size:9px;letter-spacing:.42em;color:#9db0ba;margin-top:6px;font-weight:600}
+  .sb-hub{color:var(--gold);font-weight:700;font-size:16px;padding:2px 10px 20px}
+  .sb-nav{display:flex;flex-direction:column;gap:3px}
+  .sb-nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;color:#c4d2d9;font-size:14px;font-weight:500}
+  .sb-nav a:hover{background:var(--navy-2);color:#fff}
+  .sb-nav a.active{background:var(--gold);color:#241a06;font-weight:600}
+  .sb-nav svg{width:19px;height:19px;flex:none;opacity:.9}
+  .sb-foot{margin-top:auto;display:flex;flex-direction:column;gap:12px;padding-top:16px}
+  .sb-user{display:flex;align-items:center;gap:11px;padding:6px 4px;cursor:pointer}
+  .sb-user .av{width:36px;height:36px;border-radius:50%;background:var(--gold);display:grid;place-items:center;font-weight:700;color:var(--navy)}
+  .sb-user .t{font-size:13px;font-weight:600}.sb-user .s{font-size:11px;color:#9db0ba}
+  .main{flex:1;min-width:0}
+  .botnav{display:none}
+  .wrap{max-width:1240px;margin:0 auto;padding:22px 18px 90px}
+  @media(max-width:820px){ .sidebar{display:none} }
+  .embed .sidebar,.embed .botnav{display:none!important}
+  .embed .wrap{padding-bottom:24px}
+  .embed.dir .topbar h1{display:none}
+
+  .topbar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;margin-bottom:14px;padding-right:58px}
+  .topbar h1{font-size:24px;margin:0;font-weight:900;letter-spacing:-.01em}
+  .topbar .who{font-size:12.5px;color:var(--muted);margin-top:3px}
+
+  .filtros{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:14px}
+  .filtros label{display:flex;flex-direction:column;gap:4px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);min-width:0}
+  .filtros label.ancho{flex:1 1 260px;max-width:420px}
+  .filtros select{font:inherit;font-size:13.5px;font-weight:500;color:var(--ink);text-transform:none;letter-spacing:0;border:1px solid var(--line);border-radius:9px;padding:8px 9px;background:#fff;min-width:0;max-width:100%}
+  .filtros .excel{margin-left:auto;font:inherit;font-size:13px;font-weight:700;color:var(--navy);background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer}
+
+  .cab{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;margin:0 2px 10px}
+  .cab h2{margin:0;font-size:19px;font-weight:900;letter-spacing:-.01em}
+  .cab span{font-size:12.5px;color:var(--muted)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:12px}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{border-collapse:separate;border-spacing:0;width:100%;min-width:900px;font-size:13px;font-variant-numeric:tabular-nums}
+  th,td{padding:8px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line-2);vertical-align:middle}
+  th{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:#fbf8f1}
+  thead tr.g1 th{font-size:12px;color:var(--ink);text-align:center;text-transform:none;letter-spacing:0;font-weight:800;border-bottom:1px solid var(--line)}
+  thead tr.g1 th small{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:1px}
+  thead tr.g2 th{text-align:center;color:var(--ink);font-size:11px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:inherit}
+  thead th:first-child{background:#fbf8f1;z-index:2}
+  .ini{border-left:1px solid var(--line)}
+  tbody tr{background:#fff}
+  td.nom{min-width:220px;max-width:280px;overflow:hidden;text-overflow:ellipsis}
+  tr.fila td.nom{padding-left:26px;font-weight:500}
+  tr.bloque td{background:#f7f2e8;font-weight:800}
+  tr.bloque td.nom{font-size:13.5px;text-transform:uppercase;letter-spacing:.04em}
+  tr.total td{background:#efe6d6;font-weight:900;border-bottom:0}
+  td.val{font-weight:700}
+  tr.fila td.val{font-weight:600}
+  td.pct b{display:block;font-weight:800}
+  td.pct small{display:block;font-size:10.5px;color:var(--muted);font-weight:500;margin-top:1px}
+  .up{color:var(--green-d)} .down{color:var(--red)} .cero{color:#b3aa9b}
+  .nota{font-size:12px;color:var(--muted);margin:4px 2px 0;line-height:1.55}
+
+  .loading,.error{color:var(--muted);font-size:13.5px;text-align:center;padding:40px 16px}
+  .cargando{opacity:.55;pointer-events:none;transition:opacity .15s}
+
+  @media(max-width:900px){ .topbar{padding-right:0} }
+  @media(max-width:560px){
+    .wrap{padding:16px 12px 90px}
+    .topbar h1{font-size:21px}
+    .filtros label,.filtros label.ancho{flex:1 1 100%;max-width:none}
+    .filtros .excel{margin-left:0}
+    td.nom{min-width:150px;max-width:160px}
+    tr.fila td.nom{padding-left:16px}
+    th,td{padding:7px 8px}
+  }
+</style>
+<link rel="stylesheet" href="assets/mobile.css?v=3">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-hub">Hub</div>
+    <nav class="sb-nav"></nav>
+    <div class="sb-foot">
+      <div class="sb-user" id="logout" title="Cerrar sesión"><div class="av" id="avSb">S</div><div><div class="t" id="uName">Supervisor</div><div class="s">Supervisor</div></div></div>
+    </div>
+  </aside>
+  <div class="main">
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Diagnóstico de ventas</h1>
+        <div class="who" id="who">Cargando…</div>
+      </div>
+    </div>
+
+    <div class="filtros">
+      <label class="ancho">Vendedor<select id="fSel"></select></label>
+      <label>Mes<select id="fMes"></select></label>
+      <button class="excel" id="excel" type="button">Bajar en Excel</button>
+    </div>
+
+    <div id="cont"><div class="loading">Armando el diagnóstico…</div></div>
+  </div>
+  <nav class="botnav bottomnav"></nav>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/auth-persist.js?v=1"></script>
+<script src="assets/supervisor-nav.js?v=4"></script>
+<script>
+  const HUB = { url:'https://xqhyemccbwmzxqzkrtwa.supabase.co', key:'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc' };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  if (/[?&]embed=1\b/.test(location.search)) document.documentElement.classList.add('embed');
+  if (/[?&]dir=1\b/.test(location.search)) document.documentElement.classList.add('dir');
+  let TOKEN = null, D = null;
+  const ESTADO = { sel:'', mes:'' };
+
+  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const n0 = v => Math.round(Number(v)||0).toLocaleString('es-AR');
+  const dec = (v, d) => (Number(v)||0).toLocaleString('es-AR',{minimumFractionDigits:d, maximumFractionDigits:d});
+  // Variación de "actual" contra "antes": null = no había nada antes y ahora sí (Nuevo).
+  const varPct = (antes, actual) => (!antes ? (actual ? null : 0) : (actual - antes) * 100 / Math.abs(antes));
+  const fmtPct = p => p == null ? 'Nuevo' : (p > 0 ? '+' : p < 0 ? '−' : '') + dec(Math.abs(p), 1) + '%';
+  const clase = p => p == null || p > 0.05 ? 'up' : (p < -0.05 ? 'down' : '');
+  const mesNom = m => { const [y, mm] = m.split('-'); const t = MESES[Number(mm)-1]; return t.charAt(0).toUpperCase() + t.slice(1) + ' ' + y; };
+  const corto = iso => MESES[Number(iso.slice(5,7))-1].slice(0,3) + (iso.slice(0,4) !== D.mes.slice(0,4) ? ' ' + iso.slice(0,4) : '');
+  const dm = iso => Number(iso.slice(8,10)) + '/' + Number(iso.slice(5,7));
+
+  // Celda de variación: el % grande y abajo, chico, el número del período con que se compara.
+  function celdaPct(antes, actual, cls){
+    if (!antes && !actual) return `<td class="pct ${cls||''} cero">—</td>`;
+    const p = varPct(antes, actual);
+    return `<td class="pct ${cls||''}"><b class="${clase(p)}">${fmtPct(p)}</b><small>${n0(antes)}</small></td>`;
+  }
+
+  function render(){
+    const [pm, pma, paa, pac, paca] = D.periodos;
+    const enCurso = D.parcial;
+    $('who').textContent = (enCurso ? 'Mes en curso: del 1 al ' + D.dia + ' de ' + MESES[Number(D.mes.slice(5,7))-1] + ', contra los mismos días del mes anterior y del año anterior.' : mesNom(D.mes) + ' completo, contra el mes anterior y el mismo mes del año anterior.')
+      + ' Datos de CUBO, se actualizan cada 20 minutos.';
+    const tMes = enCurso ? 'Mes en curso' : mesNom(D.mes);
+    const sub = enCurso ? '1 al ' + D.dia + ' de ' + MESES[Number(D.mes.slice(5,7))-1] : '';
+    const vsMes = 'vs ' + corto(pma.d), vsAnio = 'vs ' + corto(paa.d);
+    const fila = f => {
+      const cls = f.nivel === 'bloque' ? 'bloque' : f.nivel === 'total' ? 'total' : 'fila';
+      return `<tr class="${cls}"><td class="nom" title="${esc(f.n)}">${esc(f.n)}</td>
+        <td class="val ini">${n0(f.c[0])}</td>${celdaPct(f.c[1], f.c[0])}${celdaPct(f.c[2], f.c[0])}
+        <td class="val ini">${n0(f.u[0])}</td>${celdaPct(f.u[1], f.u[0])}${celdaPct(f.u[2], f.u[0])}
+        <td class="val ini">${n0(f.c[3])}</td>${celdaPct(f.c[4], f.c[3])}
+        <td class="val ini">${n0(f.u[3])}</td>${celdaPct(f.u[4], f.u[3])}</tr>`;
+    };
+    $('cont').innerHTML = `
+      <div class="cab"><h2>${esc(D.nombre)}</h2><span>CCC = clientes con compra · Volumen = botellas</span></div>
+      <section class="card"><div class="scroll"><table>
+        <thead>
+          <tr class="g1"><th rowspan="3"></th>
+            <th colspan="6" class="ini">${esc(tMes)}${sub ? `<small>${esc(sub)}</small>` : ''}</th>
+            <th colspan="4" class="ini">Acumulado del año<small>1/1 al ${esc(dm(pac.h))} · contra el mismo período de ${esc(paca.d.slice(0,4))}</small></th></tr>
+          <tr class="g2"><th colspan="3" class="ini">CCC</th><th colspan="3" class="ini">Volumen</th><th colspan="2" class="ini">CCC</th><th colspan="2" class="ini">Volumen</th></tr>
+          <tr><th class="ini">${esc(corto(pm.d))}</th><th>${esc(vsMes)}</th><th>${esc(vsAnio)}</th>
+            <th class="ini">${esc(corto(pm.d))}</th><th>${esc(vsMes)}</th><th>${esc(vsAnio)}</th>
+            <th class="ini">${esc(pac.d.slice(0,4))}</th><th>vs ${esc(paca.d.slice(0,4))}</th>
+            <th class="ini">${esc(pac.d.slice(0,4))}</th><th>vs ${esc(paca.d.slice(0,4))}</th></tr>
+        </thead>
+        <tbody>${D.filas.map(fila).join('')}</tbody>
+      </table></div></section>
+      <p class="nota">Debajo de cada porcentaje, el número del período con que se compara${enCurso ? ' (hasta el mismo día)' : ''}.
+        Los 10 vinos son los proveedores de vinos que más facturó GrandBar en ${esc(pac.d.slice(0,4))}. Campari incluye Cinzano.
+        Misma fuente que el Comparativo: sin las promos ni los vendedores excluidos por Administración.</p>`;
+  }
+
+  function opciones(O){
+    const s = $('fSel');
+    const porEquipo = O.equipos.map(e => `<optgroup label="Vendedores · ${esc(e)}">${O.vendedores.filter(v => v.equipo === e).map(v => `<option value="v:${esc(v.codigo)}">${esc(v.nombre)}</option>`).join('')}</optgroup>`).join('');
+    const sinEquipo = O.vendedores.filter(v => !v.equipo || !O.equipos.includes(v.equipo));
+    s.innerHTML = '<option value="todos">Toda la empresa</option>'
+      + `<optgroup label="Equipos">${O.equipos.map(e => `<option value="e:${esc(e)}">Equipo ${esc(e)}</option>`).join('')}</optgroup>`
+      + porEquipo
+      + (sinEquipo.length ? `<optgroup label="Vendedores · sin equipo">${sinEquipo.map(v => `<option value="v:${esc(v.codigo)}">${esc(v.nombre)}</option>`).join('')}</optgroup>` : '');
+    s.value = D.sel;
+    $('fMes').innerHTML = O.meses.slice().reverse().map(m => `<option value="${m}">${mesNom(m)}</option>`).join('');
+    $('fMes').value = D.mes;
+  }
+
+  async function cargar(){
+    const cont = $('cont'); cont.classList.add('cargando');
+    const p = new URLSearchParams();
+    if (ESTADO.sel) p.set('sel', ESTADO.sel);
+    if (ESTADO.mes) p.set('mes', ESTADO.mes);
+    try{
+      const r = await fetch('/.netlify/functions/diagnostico?' + p.toString(), { headers:{ Authorization:'Bearer ' + TOKEN } });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || ('Error ' + r.status));
+      D = d; ESTADO.sel = d.sel; ESTADO.mes = d.mes;
+      opciones(d.opciones);
+      render();
+    }catch(e){
+      cont.innerHTML = '<div class="error"><b>No se pudo armar el diagnóstico.</b><br>' + esc(e.message || e) + '</div>';
+    } finally { cont.classList.remove('cargando'); }
+  }
+
+  // CSV con ";" y BOM: lo abre bien el Excel en castellano.
+  function excel(){
+    if (!D) return;
+    const pct = (a, b) => { const p = varPct(a, b); return p == null ? 'Nuevo' : (!a && !b ? '' : dec(p, 1) + '%'); };
+    const [pm, pma, paa, pac, paca] = D.periodos;
+    const cab = ['Línea', 'CCC ' + corto(pm.d), 'CCC ' + corto(pma.d), 'CCC vs mes anterior', 'CCC ' + corto(paa.d) + ' ' + paa.d.slice(0,4), 'CCC vs año anterior',
+      'Botellas ' + corto(pm.d), 'Botellas ' + corto(pma.d), 'Botellas vs mes anterior', 'Botellas ' + corto(paa.d) + ' ' + paa.d.slice(0,4), 'Botellas vs año anterior',
+      'CCC acumulado ' + pac.d.slice(0,4), 'CCC acumulado ' + paca.d.slice(0,4), 'CCC acumulado vs año anterior',
+      'Botellas acumulado ' + pac.d.slice(0,4), 'Botellas acumulado ' + paca.d.slice(0,4), 'Botellas acumulado vs año anterior'];
+    const filas = D.filas.map(f => [(f.nivel === 'fila' ? '   ' : '') + f.n, f.c[0], f.c[1], pct(f.c[1], f.c[0]), f.c[2], pct(f.c[2], f.c[0]),
+      f.u[0], f.u[1], pct(f.u[1], f.u[0]), f.u[2], pct(f.u[2], f.u[0]), f.c[3], f.c[4], pct(f.c[4], f.c[3]), f.u[3], f.u[4], pct(f.u[4], f.u[3])]);
+    const txt = '﻿' + [[D.nombre + ' · ' + (D.parcial ? '1 al ' + D.dia + ' de ' : '') + mesNom(D.mes)], cab].concat(filas)
+      .map(f => f.map(v => { const s = String(v == null ? '' : v); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'diagnostico-' + D.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-') + '-' + D.mes + '.csv';
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+
+  (async () => {
+    const hub = supabase.createClient(HUB.url, HUB.key);
+    const { data:{ session } } = await hub.auth.getSession();
+    if (!session) { location.href = 'index.html'; return; }
+    TOKEN = session.access_token;
+    try{
+      const { data:u } = await hub.from('usuarios').select('nombre').eq('id', session.user.id).maybeSingle();
+      if (u && u.nombre && !document.documentElement.classList.contains('embed')) { $('uName').textContent = u.nombre; $('avSb').textContent = (u.nombre.trim()[0] || 'S').toUpperCase(); }
+    }catch(e){}
+    const lo = $('logout'); if (lo) lo.onclick = async () => { if (confirm('¿Cerrar sesión?')) { try{ await hub.auth.signOut(); }catch(e){} location.href = 'index.html'; } };
+    $('fSel').onchange = () => { ESTADO.sel = $('fSel').value; cargar(); };
+    $('fMes').onchange = () => { ESTADO.mes = $('fMes').value; cargar(); };
+    $('excel').onclick = excel;
+    cargar();
+  })();
+</script>
+<script>
+  // Adentro del panel de Fernando (?embed=1) la campanita, el menú del usuario y la barra del celular los pone el panel de afuera.
+  if (!document.documentElement.classList.contains('embed')) {
+    ['assets/notif.js?v=6', 'assets/user-menu.js?v=1', 'assets/mobile-nav.js?v=1', '/assets/cuenta-activa.js?v=1'].forEach(function (s) {
+      var e = document.createElement('script'); e.src = s; e.async = false; document.body.appendChild(e);
+    });
+  }
+</script>
+</body>
+</html>
