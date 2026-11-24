@@ -58,6 +58,8 @@
     { id:'revision',      ico:'💳', n:'Revisión de cobranzas', roles:['tesoreria','administracion','admin','desarrollo','diseno'], arriba:true, abrir: () => cobMarco('/cobranzas-tesoreria.html?embed=1', 'Revisión de cobranzas') },
     // Análisis (27/10/2026): tablero de datos de toda la cobranza, ver cobranzas-analisis.html.
     { id:'analisis',      ico:'📈', n:'Análisis', roles:['tesoreria','administracion','admin','desarrollo','diseno'], arriba:true, abrir: () => cobMarco('/cobranzas-analisis.html?embed=1', 'Análisis de cobranzas') },
+    // Cuentas corrientes Mendoza (24/11/2026): el tablero de créditos y cobranzas de Luciana (semáforo para facturar, compromisos, autorizaciones). Lo usa Agostina; ver cuentas-corrientes-mendoza.html.
+    { id:'ctasctes',      ico:'📒', n:'Cuentas corrientes Mza', roles:['reclamos','administracion','desarrollo','diseno'], arriba:true, abrir: () => cobMarco('/cuentas-corrientes-mendoza.html?embed=1', 'Cuentas corrientes Mendoza') },
     { id:'agenda-equipo', ico:'📅', n:'Agenda del equipo', roles:['administracion','admin','desarrollo','diseno'], abrir: () => eqAgenda() },
     { id:'mi-agenda',     ico:'🗓️', n:'Mi agenda',         roles:['administracion','admin','desarrollo','diseno'], abrir: () => cobMarco('/mi-agenda.html?embed=1', 'Mi agenda') },
     // Stock del depósito (26/10/2026): los conteos de Lucas Porro y Lucas Buenanueva, la agenda de los lunes y el stock de Córdoba. Desde el 29/10 también Romina (zona San Luis): el depósito de San Luis, los conteos de Cristian.
