@@ -19,7 +19,10 @@
      se abren acá adentro, con este mismo menú. */
   .sb-grupo{padding:14px 12px 4px;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45)}
   .sidebar{overflow-y:auto}
-  .cob-marco{display:block;width:100%;height:calc(100vh - 60px);border:0;background:transparent}
+  /* Una pantalla embebida ocupa todo el alto: el marco mide el viewport y el main pierde el
+     margen, así hay una sola barra para bajar (la de adentro) y no dos (24/11/2026). */
+  .main.con-marco{padding:0;max-width:none;height:100vh;overflow:hidden}
+  .cob-marco{display:block;width:100%;height:100vh;border:0;background:transparent}
 </style>
 </head>
 <body>
@@ -52,7 +55,9 @@
 <script>
   // Lo que se suma al menú de Cobranzas: se abre adentro del panel, sin cambiar de pantalla.
   // Brenda (administración) y Mónica (tesorería) trabajan todo desde acá (06/10/2026).
-  const cobMarco = (src, titulo) => { cq('cob').innerHTML = `<iframe class="cob-marco" src="${src}" title="${titulo}"></iframe>`; };
+  const cobMarco = (src, titulo) => { document.querySelector('.main').classList.add('con-marco'); cq('cob').innerHTML = `<iframe class="cob-marco" src="${src}" title="${titulo}"></iframe>`; };
+  // Al abrir cualquier otra sección (o el tablero) el main recupera su margen.
+  ['cobAbrir', 'cobTablero'].forEach(n => { const f = window[n]; window[n] = function () { document.querySelector('.main').classList.remove('con-marco'); return f.apply(this, arguments); }; });
   window.COB_HASH = true;
   window.COB_EXTRA = [
     { id:'revision',      ico:'💳', n:'Revisión de cobranzas', roles:['tesoreria','administracion','admin','desarrollo','diseno'], arriba:true, abrir: () => cobMarco('/cobranzas-tesoreria.html?embed=1', 'Revisión de cobranzas') },
