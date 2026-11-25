@@ -9,7 +9,7 @@
 // ============================================================
 
 const { regionDe } = require('./_equipo.js');
-const { ocultos, esOculto } = require('./_vendedores-ocultos');
+const { excluidos, esExcluido } = require('./_vendedores-excluidos');
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
@@ -216,11 +216,11 @@ exports.handler = async (event) => {
     if (qp.vista === 'equipo') {
       if (!perfil.es_supervisor) return json(403, { error: 'Solo para supervisores.' });
       const hubService = process.env.HUB_SERVICE_ROLE;
-      // Vendedores ocultos (24/11/2026): no van en la lista (_vendedores-ocultos.js).
-      const OC = await ocultos();
+      // Vendedores excluidos (25/11/2026, archivo de SHARE): no van en la lista (_vendedores-excluidos.js).
+      const EX = await excluidos();
       const eqRes = await fetch(HUB_URL + '/rest/v1/usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region', { headers: { apikey: hubService || HUB_ANON, Authorization: 'Bearer ' + (hubService || token) } });
       const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
-      const team = (await eqRes.json() || []).filter(u => !esOculto(OC, u.codigo_vendedor)).filter(u => {
+      const team = (await eqRes.json() || []).filter(u => !esExcluido(EX, u.codigo_vendedor)).filter(u => {
         if (!u.codigo_vendedor) return false;
         if (preg && regionDe(u) !== preg) return false;
         const uc = String(u.canal || '').toLowerCase();

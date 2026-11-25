@@ -19,7 +19,7 @@ const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 
 const { traerTodo } = require('./_paginar.js');
 const { corteVigentes } = require('./_cuentas-vigentes');
-const { ocultos, esOculto } = require('./_vendedores-ocultos');
+const { excluidos, esExcluido } = require('./_vendedores-excluidos');
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const qvals = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
@@ -82,11 +82,11 @@ exports.handler = async (event) => {
     const cob = (path, o) => fetch(COB_URL + '/rest/v1/' + path, { headers: Object.assign({ apikey: cobService, Authorization: 'Bearer ' + cobService }, (o && o.headers) || {}) });
 
     // Equipo: vendedores de la misma región + canal (o 'ambos')
-    // Vendedores ocultos (24/11/2026): no van en la lista (_vendedores-ocultos.js).
-    const OC = await ocultos();
+    // Vendedores excluidos (25/11/2026, archivo de SHARE): no van en la lista (_vendedores-excluidos.js).
+    const EX = await excluidos();
     const eqRes = await hub('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region');
     const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
-    const equipo = (await eqRes.json() || []).filter(u => !esOculto(OC, u.codigo_vendedor)).filter(u => {
+    const equipo = (await eqRes.json() || []).filter(u => !esExcluido(EX, u.codigo_vendedor)).filter(u => {
       if (preg && regionDe(u) !== preg) return false;
       const uc = String(u.canal || '').toLowerCase();
       return !pc || pc === 'ambos' || uc === 'ambos' || pc === uc;

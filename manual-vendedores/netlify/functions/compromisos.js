@@ -11,7 +11,7 @@ const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 
 const { traerTodo } = require('./_paginar');
-const { ocultos, esOculto } = require('./_vendedores-ocultos');
+const { excluidos, esExcluido } = require('./_vendedores-excluidos');
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const qvals = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
 
@@ -32,11 +32,11 @@ exports.handler = async (event) => {
 
     // Códigos del equipo del supervisor (región + canal)
     async function equipoCodigos() {
-      // Vendedores ocultos (24/11/2026): no van en la lista (_vendedores-ocultos.js).
-      const OC = await ocultos();
+      // Vendedores excluidos (25/11/2026, archivo de SHARE): no van en la lista (_vendedores-excluidos.js).
+      const EX = await excluidos();
       const eqRes = await sb('usuarios?rol=eq.ventas&select=codigo_vendedor,canal,region');
       const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
-      return (await eqRes.json() || []).filter(u => !esOculto(OC, u.codigo_vendedor)).filter(u => {
+      return (await eqRes.json() || []).filter(u => !esExcluido(EX, u.codigo_vendedor)).filter(u => {
         if (!u.codigo_vendedor) return false;
         if (preg && regionDe(u) !== preg) return false;
         const uc = String(u.canal || '').toLowerCase();

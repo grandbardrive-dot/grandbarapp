@@ -9,7 +9,7 @@
 // ============================================================
 
 const { regionDe } = require('./_equipo.js');
-const { ocultos, esOculto } = require('./_vendedores-ocultos');
+const { excluidos, esExcluido } = require('./_vendedores-excluidos');
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 
@@ -36,11 +36,11 @@ exports.handler = async (event) => {
     // Equipo del supervisor: vendedores de su misma región + canal (o 'ambos'). Los otros
     // supervisores no entran: las tareas se asignan solo de supervisor a vendedor.
     async function equipo() {
-      // Vendedores ocultos (24/11/2026): no van en la lista (_vendedores-ocultos.js).
-      const OC = await ocultos();
+      // Vendedores excluidos (25/11/2026, archivo de SHARE): no van en la lista (_vendedores-excluidos.js).
+      const EX = await excluidos();
       const eq = await sb('usuarios?rol=eq.ventas&select=nombre,codigo_vendedor,canal,region,es_supervisor,activo');
       const pc = String(perfil.canal || '').toLowerCase(), preg = regionDe(perfil);
-      return (await eq.json() || []).filter(u => !esOculto(OC, u.codigo_vendedor)).filter(u => {
+      return (await eq.json() || []).filter(u => !esExcluido(EX, u.codigo_vendedor)).filter(u => {
         if (u.es_supervisor || u.activo === false || !u.codigo_vendedor) return false;
         if (preg && regionDe(u) !== preg) return false;
         const uc = String(u.canal || '').toLowerCase();

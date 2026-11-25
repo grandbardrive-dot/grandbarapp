@@ -21,9 +21,8 @@
 
 const { zonaDe, armarZona } = require('./_zona-cobranzas');
 const { filtroVigentes } = require('./_cuentas-vigentes');
-// Vendedores ocultos (24/11/2026): sus clientes y movimientos quedan "sin vendedor" (siguen en
-// los totales) y no aparecen en la tabla ni en el selector de vendedores.
-const { ocultos, esOculto } = require('./_vendedores-ocultos');
+// Cobranzas no excluye a ningún vendedor (decisión del usuario, 25/11/2026): cada cuenta y cada
+// movimiento salen con su cartera real, aunque el vendedor esté en "Vendedores Excluidos.xlsx".
 
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
@@ -92,8 +91,7 @@ exports.handler = async (event) => {
 
     // Dirección (Fernando) ve solo las cuentas que CUBO sigue devolviendo, las activas (17/11/2026).
     const VIG = ['admin', 'direccion', 'duenio'].includes(rol) ? await filtroVigentes(cob) : '';
-    const OC = await ocultos();
-    const vOk = v => { const t = String(v || '').trim(); return esOculto(OC, t) ? '' : t; };
+    const vOk = v => String(v || '').trim();
     const [cuentas, fichas, comp, cobros, recl, recMsg, pla, env, borr, nc, wa, users, quit, vends, act] = await Promise.all([
       leerTodo('cuentas_cubo?select=codigo,nombre,vendedor,equipo,rubro,saldo,vencida,telefono&order=codigo' + (VIG ? '&' + VIG : '')),
       leerTodo('clientes?select=id,codigo_cubo,whatsapp&order=id'),
@@ -188,7 +186,7 @@ exports.handler = async (event) => {
     const wi = wa.filter(e => e.tipo === 'message').map(e => [codMsg(e), ts(e.created_at)]).filter(r => !Z || (r[0] && okCod(r[0])));
 
     const vend = {};
-    (vends || []).forEach(v => { if (v && v.codigo && !esOculto(OC, v.codigo)) vend[String(v.codigo).trim()] = { n: v.nombre || '', z: v.zona || '' }; });
+    (vends || []).forEach(v => { if (v && v.codigo) vend[String(v.codigo).trim()] = { n: v.nombre || '', z: v.zona || '' }; });
 
     return json(200, {
       generado: new Date().toISOString(), zona: zona || null, quien: perfil.nombre || null,

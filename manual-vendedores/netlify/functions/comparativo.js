@@ -8,8 +8,9 @@
 //   · Botellas = unidades. CCC = clientes distintos con algún renglón.
 //   · Tipo de producto (Familia 1): solo 01 vinos, 02 espirituosas, 04 cafés, 05 cervezas,
 //     07 sin alcohol; el resto queda afuera (pedido del usuario).
-//  Filtros que salen de "Comparativo (fuente).xlsx" (Drive SHARE, Administración):
-//   · Excluidos: sus ventas no entran en ningún número.
+//  Filtros que salen de Drive SHARE (Administración):
+//   · Excluidos ("Vendedores Excluidos.xlsx", desde el 25/11/2026): sus ventas no entran en ningún número.
+//  Y de "Comparativo (fuente).xlsx":
 //   · Provincia de cada vendedor (por nombre).  · Peñaflor: las bodegas del grupo (por nombre).
 //  Equipo = el del vendedor en "Presupuesto Ventas" (ON, OFF, SL y Mayoristas; decisión del usuario).
 //  Tipo de cliente = rubro de CUBO (cuentas_cubo, base de Cobranzas); si no tiene, el del Manual.
@@ -163,7 +164,7 @@ exports.handler = async (event) => {
       filas,
       inflacion: ipc,
       filtros: {
-        vendedores: vend.filter(v => !excluidos.has(v.codigo) && !v.oculto && conVentas.has(v.codigo)).sort((a, b) => a.nombre.localeCompare(b.nombre))
+        vendedores: vend.filter(v => !excluidos.has(v.codigo) && conVentas.has(v.codigo)).sort((a, b) => a.nombre.localeCompare(b.nombre))
           .map(v => ({ codigo: v.codigo, nombre: v.nombre, equipo: v.equipo, provincia: v.provincia })),
         equipos: EQUIPOS,
         provincias: [...new Set(vend.filter(v => !excluidos.has(v.codigo) && v.provincia).map(v => v.provincia))].sort(),

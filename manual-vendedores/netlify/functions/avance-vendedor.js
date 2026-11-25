@@ -34,6 +34,7 @@ const { filtroVigentes } = require('./_cuentas-vigentes');
 // Lectura de las planillas de Administración, compartida con reporte-diario (18/11/2026).
 const OBJ = require('./_objetivos-vendedores');
 const { cod3, esElMismo } = OBJ;
+const { excluidos, esExcluido } = require('./_vendedores-excluidos');
 
 const json = (s, b) => ({ statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) });
 
@@ -118,7 +119,9 @@ exports.handler = async (event) => {
       if (fuera.length) {
         const [cl, vs] = await Promise.all([
           man('clientes?select=codigo_cliente,nombre,vendedor_id&codigo_cliente=in.(' + fuera.map(encodeURIComponent).join(',') + ')').then(r => r.ok ? r.json() : []).catch(() => []),
-          man('vendedores?select=id,nombre&oculto=is.false').then(r => r.ok ? r.json() : []).catch(() => []),
+          // Sin los excluidos del archivo de SHARE (25/11/2026): esos clientes salen sin cartera.
+          Promise.all([man('vendedores?select=id,nombre,codigo').then(r => r.ok ? r.json() : []), excluidos()])
+            .then(([l, EX]) => (Array.isArray(l) ? l : []).filter(v => !esExcluido(EX, v.codigo))).catch(() => []),
         ]);
         otras = fuera.map(c => {
           const x = (cl || []).find(k => nc(k.codigo_cliente) === nc(c));

@@ -202,19 +202,10 @@ async function leerCSV(url) {
     return { head: splitCSV(lines[0]).map(h => h.trim().toLowerCase()), filas: lines.slice(1).map(splitCSV) };
   } catch (e) { return null; }
 }
-// Carteras que no son de venta (empleados, gestión administrativa, judicial, incobrables…): la
-// hoja "Excluidos" de Administración, la misma que usa el Comparativo. El cuadro de oportunidad
-// las deja afuera, como el Excel de Análisis Comercial. Si Drive no responde, las de siempre.
-const EXCLUIDOS_CSV = 'https://docs.google.com/spreadsheets/d/1O7-GapTY4apFw8uc8Og7kKAm9Z6dYl2t/gviz/tq?tqx=out:csv&sheet=Excluidos';
-let CACHE_EXCL = { t: 0, d: null };
-async function vendedoresExcluidos() {
-  if (CACHE_EXCL.d && Date.now() - CACHE_EXCL.t < 30 * 60000) return CACHE_EXCL.d;
-  const x = await leerCSV(EXCLUIDOS_CSV);
-  const cods = x ? x.filas.map(f => String(f[1] || '').trim()).filter(c => /^\d{3}$/.test(c)) : [];
-  if (!cods.length) return CACHE_EXCL.d || new Set(['021', '022', '023', '034']);
-  CACHE_EXCL = { t: Date.now(), d: new Set(cods) };
-  return CACHE_EXCL.d;
-}
+// Vendedores excluidos (25/11/2026): el archivo "Vendedores Excluidos.xlsx" de SHARE, el mismo
+// para todas las pantallas (_vendedores-excluidos.js). El cuadro de oportunidad deja afuera sus
+// ventas y sus clientes quedan sin vendedor (no salen en el filtro ni se les avisa).
+const { excluidos: vendedoresExcluidos, esExcluido } = require('./_vendedores-excluidos');
 
 // ── Lecturas del Manual ──────────────────────────────────────────────────────
 const manCab = extra => Object.assign({ apikey: MAN_KEY, Authorization: 'Bearer ' + MAN_KEY }, extra || {});
@@ -289,16 +280,17 @@ async function datosMarca(P) {
   const [clientes, estados, vendedores, prods, t5, acu] = await Promise.all([
     manTodo('clientes?select=id,codigo_cliente,nombre,direccion,tipo,vendedor_id,activo,created_at&order=codigo_cliente'),
     manTodo('clientes_estado?select=codigo,activo&order=codigo'),
-    man('vendedores?select=id,nombre,codigo,whatsapp,oculto&limit=500'),
+    man('vendedores?select=id,nombre,codigo,whatsapp&limit=500'),
     prefs.length ? manTodo('productos_grandbar?select=codigo,descripcion&or=(' + prefs.map(p => 'codigo.like.' + p + '*').join(',') + ')&order=codigo') : [],
     P.planillas_campari ? leerCSV(SHEET_5T) : null,
     P.planillas_campari ? leerCSV(SHEET_ACUERDOS) : null,
   ]);
   const est = new Map(estados.map(e => [String(e.codigo), e.activo]));
-  // Vendedores ocultos (24/11/2026, vendedores.oculto): sus clientes quedan sin vendedor (no salen
+  // Vendedores excluidos (25/11/2026, archivo de SHARE): sus clientes quedan sin vendedor (no salen
   // en el filtro ni se les avisa). La zona sí se toma de todos, para no cambiar quién ve qué.
+  const EX = await vendedoresExcluidos();
   const vendTodos = new Map(vendedores.map(v => [v.id, v]));
-  const vend = new Map(vendedores.filter(v => !v.oculto).map(v => [v.id, v]));
+  const vend = new Map(vendedores.filter(v => !esExcluido(EX, v.codigo)).map(v => [v.id, v]));
   const visibles = clientes.filter(c => {
     const a = est.has(String(c.codigo_cliente)) ? est.get(String(c.codigo_cliente)) : c.activo;
     if (a === false) return false;
@@ -1082,7 +1074,8 @@ exports.handler = async (event) => {
       if (!esCod(codigo)) throw new Error('Cliente inválido.');
       const c = (await man('clientes?codigo_cliente=eq.' + encodeURIComponent(codigo) + '&select=codigo_cliente,nombre,tipo,vendedor_id'))[0];
       if (!c) throw new Error('No encontré el cliente.');
-      const v = c.vendedor_id ? (await man('vendedores?id=eq.' + c.vendedor_id + '&oculto=is.false&select=nombre,codigo'))[0] : null;
+      let v = c.vendedor_id ? (await man('vendedores?id=eq.' + c.vendedor_id + '&select=nombre,codigo'))[0] : null;
+      if (v && esExcluido(await vendedoresExcluidos(), v.codigo)) v = null;   // excluidos (25/11/2026): sin vendedor
       return { codigo: c.codigo_cliente, nombre: c.nombre, tipo: c.tipo, vendedor: v ? v.nombre : null, vendedorCodigo: v && v.codigo ? String(v.codigo).trim() : null };
     }
 

@@ -18,8 +18,12 @@
 //   Env: HUB_SERVICE_ROLE
 // ============================================================
 
-const { regionDe } = require('./_equipo');
-const { ocultos, esOculto } = require('./_vendedores-ocultos');
+const { regionDe } = require('./_equipo');
+// Vendedores excluidos (25/11/2026): los del archivo "Vendedores Excluidos.xlsx" de SHARE quedan
+// fuera de todo (totales, rubros, productos y por vendedor) y salen en "No se cuentan". Antes la
+// lista estaba escrita en la base (dir_vendedor_excluido: 018, 023, 034, 042 y 044).
+const { excluidos } = require('./_vendedores-excluidos');
+const exclArr = async () => [...await excluidos()];
 
 const HUB_URL = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
 const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
@@ -96,7 +100,7 @@ async function resumen(r) {
   const res = await fetch(MAN_URL + '/rest/v1/rpc/dir_ventas', {
     method: 'POST',
     headers: { apikey: MAN_KEY, Authorization: 'Bearer ' + MAN_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ p_desde: r.desde, p_hasta: r.hasta }),
+    body: JSON.stringify({ p_desde: r.desde, p_hasta: r.hasta, p_vend_excl: await exclArr() }),
   });
   const d = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error('dir_ventas ' + res.status + ' ' + JSON.stringify(d).slice(0, 200));
@@ -116,8 +120,6 @@ async function resumen(r) {
       d.por_vendedor.forEach(v => { if (String(v.codigo) in m) v.clientes = m[String(v.codigo)]; });
     }
   } catch (e) {}
-  // Vendedores ocultos (24/11/2026): no van en la tabla por vendedor; los totales no cambian.
-  if (Array.isArray(d.por_vendedor)) { const OC = await ocultos(); d.por_vendedor = d.por_vendedor.filter(v => !esOculto(OC, v.codigo)); }
   return d;
 }
 // Venta y unidades de los artículos más vendidos del período, en otro período (30/10/2026):
@@ -129,7 +131,7 @@ async function ventasSkus(r, skus) {
     const res = await fetch(MAN_URL + '/rest/v1/rpc/dir_ventas_skus', {
       method: 'POST',
       headers: { apikey: MAN_KEY, Authorization: 'Bearer ' + MAN_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_desde: r.desde, p_hasta: r.hasta, p_skus: skus }),
+      body: JSON.stringify({ p_desde: r.desde, p_hasta: r.hasta, p_skus: skus, p_vend_excl: await exclArr() }),
     });
     const d = await res.json().catch(() => []);
     return res.ok && Array.isArray(d) ? d : [];

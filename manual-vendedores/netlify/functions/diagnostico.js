@@ -94,7 +94,7 @@ exports.handler = async (event) => {
       guardado('top-vinos-' + d3.h, 60 * 60e3, () => rpc('diagnostico_top_vinos', { p_desde: d3.d, p_hasta: d3.h, p_vend_excl: excluidos, p_n: TOP_VINOS })),
     ]);
     const conV = new Set((conVentas || []).map(cod3));
-    const lista = vend.filter(v => !excluidos.includes(v.codigo) && !v.oculto && conV.has(v.codigo))
+    const lista = vend.filter(v => !excluidos.includes(v.codigo) && conV.has(v.codigo))
       .sort((a, b) => (EQUIPOS.indexOf(a.equipo) + 1 || 99) - (EQUIPOS.indexOf(b.equipo) + 1 || 99) || a.nombre.localeCompare(b.nombre));
 
     // Qué se mira: un vendedor (v:039), un equipo (e:ON) o toda la empresa (todos).

@@ -30,8 +30,8 @@ const DIR_ROLES = ['direccion', 'admin', 'duenio'];
 
 const { traerTodo } = require('./_paginar');
 const { armarZona } = require('./_zona-cobranzas');
-const { filtroVigentes } = require('./_cuentas-vigentes');
-const { ocultos, esOculto } = require('./_vendedores-ocultos');
+const { filtroVigentes } = require('./_cuentas-vigentes');
+const cod3 = c => { const s = String(c == null ? '' : c).trim(); return /^\d{1,3}$/.test(s) ? s.padStart(3, '0') : s; };
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
 const num = v => { const n = Number(v); return isNaN(n) ? 0 : n; };
 const qvals = arr => arr.map(x => '"' + String(x).replace(/"/g, '') + '"').join(',');
@@ -69,9 +69,15 @@ exports.handler = async (event) => {
     try { vendList = await (await hub('usuarios?rol=in.(ventas,mayorista)&select=nombre,codigo_vendedor')).json(); } catch (e) {}
     vendList = Array.isArray(vendList) ? vendList : [];
     const nombreDeCod = {};
-    // Vendedores ocultos (24/11/2026): no van en el ranking (sus clientes siguen en los totales).
-    const OC = await ocultos();
-    vendList.forEach(v => { if (v.codigo_vendedor && !esOculto(OC, v.codigo_vendedor)) nombreDeCod[String(v.codigo_vendedor)] = v.nombre; });
+    vendList.forEach(v => { if (v.codigo_vendedor) nombreDeCod[String(v.codigo_vendedor)] = v.nombre; });
+    // Cobranzas no excluye a nadie (decisión del usuario, 25/11/2026): el ranking de carteras lleva
+    // también las que no son de un vendedor con usuario (Gestión Administrativa, Incobrables…), con
+    // el nombre del Manual.
+    const nombreMan = {};
+    try {
+      const vm = await (await fetch(MAN_URL + '/rest/v1/vendedores?select=codigo,nombre', { headers: { apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON } })).json();
+      (Array.isArray(vm) ? vm : []).forEach(v => { if (v.codigo) nombreMan[cod3(v.codigo)] = String(v.nombre || '').trim(); });
+    } catch (e) {}
 
     const cob = cobService
       ? (path, opts = {}) => fetch(COB_URL + '/rest/v1/' + path, { ...opts, headers: { apikey: cobService, Authorization: 'Bearer ' + cobService, ...(opts.headers || {}) } })
@@ -94,7 +100,7 @@ exports.handler = async (event) => {
         const s = num(c.saldo), v = Math.max(0, num(c.vencida)); // vencida = facturas vencidas, sin descontar el saldo a favor (29/09/2026)
         saldo += s; vencida += v; if (v > 0) clientesVencidos++;
         const cod = String(c.vendedor || ''); if (!cod) return;
-        if (!porVend[cod]) porVend[cod] = { codigo: cod, nombre: nombreDeCod[cod] || ('Vendedor ' + cod), clientes: 0, saldo: 0, vencida: 0 };
+        if (!porVend[cod]) porVend[cod] = { codigo: cod, nombre: nombreDeCod[cod] || nombreMan[cod3(cod)] || ('Vendedor ' + cod), clientes: 0, saldo: 0, vencida: 0 };
         porVend[cod].clientes++; porVend[cod].saldo += s; porVend[cod].vencida += v;
       });
       out.cobranzas = {
@@ -103,9 +109,8 @@ exports.handler = async (event) => {
         // Vendedores con usuario en el Portal y cartera (sin los códigos de cuentas internas).
         vendedores: Object.keys(porVend).filter(c => nombreDeCod[c]).length,
       };
-      // Solo vendedores con usuario en el Portal (20/11/2026): Gestión Administrativa (023) y las
-      // otras cuentas internas salían en el ranking como "Vendedor 023".
-      out.ranking = Object.values(porVend).filter(v => nombreDeCod[v.codigo]).sort((a, b) => b.saldo - a.saldo).slice(0, 5)
+      // Todas las carteras (25/11/2026), con el nombre del Manual si no tienen usuario en el Portal.
+      out.ranking = Object.values(porVend).sort((a, b) => b.saldo - a.saldo).slice(0, 5)
         .map(v => ({ ...v, saldo: Math.round(v.saldo), vencida: Math.round(v.vencida) }));
     } catch (e) { out.cobranzas_error = String(e.message || e); }
 

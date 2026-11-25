@@ -32,6 +32,9 @@ const { traerTodo } = require('./_paginar.js');
 const { filtroVigentes } = require('./_cuentas-vigentes');
 const OBJ = require('./_objetivos-vendedores');
 const { cod3, norm } = OBJ;
+// Vendedores excluidos (25/11/2026): si alguno del archivo "Vendedores Excluidos.xlsx" (SHARE)
+// figura en Presupuesto Ventas, no sale en el reporte ni suma en los subtotales.
+const { excluidos, esExcluido } = require('./_vendedores-excluidos');
 
 const PUEDEN = ['admin', 'direccion', 'duenio', 'desarrollo', 'diseno', 'torneo', 'compras'];   // + es_supervisor
 const REP_MAILS = ['kolivares@grandbar.com.ar'];   // Kathy (contadora), rol equipo_admin
@@ -87,6 +90,7 @@ exports.handler = async (event) => {
     (Array.isArray(vendedores) ? vendedores : []).forEach(v => { nombreDe[cod3(v.codigo)] = v.nombre; });
 
     // Equipos en el orden de la planilla: cada fila en MAYÚSCULAS cierra el equipo de las de arriba.
+    const EX = await excluidos();
     const grupos = [];
     const usados = new Set();
     let actual = [];
@@ -99,6 +103,7 @@ exports.handler = async (event) => {
       }
       const codigo = OBJ.codigoDeFila(fila, vendedores || []);
       if (codigo && usados.has(codigo)) continue;
+      if (codigo && esExcluido(EX, codigo)) continue;   // excluidos (25/11/2026): fuera de todo
       if (codigo) usados.add(codigo);
       const v = (codigo && porVendedor[codigo]) || {};
       actual.push({

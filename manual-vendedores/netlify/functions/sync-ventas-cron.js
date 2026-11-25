@@ -10,7 +10,11 @@ exports.handler = async () => {
   try {
     const r = await fetch(`${base}/.netlify/functions/sync-ventas-background`, { method: 'POST' }); // background → 202 al instante
     console.log('sync-ventas-cron: disparada la background →', r.status);
-    return { statusCode: 200, body: JSON.stringify({ ok: true, background: r.status }) };
+    // 25/11/2026: de paso, copia "Vendedores Excluidos.xlsx" (SHARE) en vendedores.excluido.
+    let excluidos = null;
+    try { excluidos = await require('./_vendedores-excluidos').sincronizarBase(); }
+    catch (e) { excluidos = { error: (e && e.message) || String(e) }; console.error('sync-ventas-cron: vendedores excluidos', excluidos.error); }
+    return { statusCode: 200, body: JSON.stringify({ ok: true, background: r.status, excluidos }) };
   } catch (e) {
     console.log('sync-ventas-cron error:', (e && e.message) || e);
     return { statusCode: 500, body: JSON.stringify({ ok: false, error: (e && e.message) || String(e) }) };

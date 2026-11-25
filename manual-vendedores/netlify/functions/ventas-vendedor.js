@@ -17,6 +17,7 @@ const HUB_ANON = 'sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc';
 const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_KEY  = process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 const VEN_TODO = ['admin', 'direccion', 'duenio', 'desarrollo', 'diseno', 'tesoreria', 'administracion'];
+const { excluidos, esExcluido } = require('./_vendedores-excluidos');
 
 const json = (s, b) => ({ statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) });
 const cod3 = c => { const s = String(c == null ? '' : c).trim(); return /^\d+$/.test(s) ? s.padStart(3, '0') : s; };
@@ -44,7 +45,9 @@ exports.handler = async (event) => {
       body: JSON.stringify({ p_desde: desde, p_hasta: hasta, p_vendedores: todos ? null : [codigo] }),
     });
     if (!r.ok) return json(502, { error: 'No se pudieron leer las ventas (' + r.status + ').' });
-    const filas = await r.json();
+    let filas = await r.json();
+    // Vendedores excluidos (25/11/2026, archivo de SHARE): fuera de todo en la vista de todos.
+    if (todos && Array.isArray(filas)) { const EX = await excluidos(); filas = filas.filter(f => !esExcluido(EX, f.vendedor)); }
     return json(200, {
       desde, hasta,
       // [vendedor, cliente, nombre, total con impuestos, neto]: corto, porque lo bajan del celular.

@@ -28,6 +28,8 @@ const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 const COB_URL  = 'https://qpaoyfubyaloyhepatlm.supabase.co';
 const { traerTodo } = require('./_paginar.js');
+// Vendedores excluidos (25/11/2026): "Vendedores Excluidos.xlsx" de SHARE (_vendedores-excluidos.js).
+const { excluidos, esExcluido } = require('./_vendedores-excluidos');
 
 const EQUIPOS = ['ON', 'OFF', 'SL', 'MAYOR'];
 // Subtotales de la planilla Presupuesto Ventas → equipo de esta pantalla.
@@ -166,10 +168,12 @@ exports.handler = async (event) => {
 
     // acumular: eq -> fam -> vcod -> { nombre, tipos:{tipo:{meses}}, meses }
     const acc = {};
+    const EX = await excluidos();
     for (const r of datos) {
       const fam = r.familia, vc = String(r.vendedor_codigo);
       const eq = equipoDe ? equipoDe[vc] : r.equipo;
       if (!eq || !fam) continue;   // vendedores fuera de los equipos de la planilla (p. ej. Empleados)
+      if (esExcluido(EX, vc)) continue;   // excluidos del archivo de SHARE (25/11/2026): fuera de todo
       acc[eq] = acc[eq] || {};
       acc[eq][fam] = acc[eq][fam] || {};
       const V = acc[eq][fam][vc] = acc[eq][fam][vc] || { vcod: vc, nombre: nombreHub[vc] || (r.vendedor_nombre || '').trim(), meses: {}, tipos: {} };

@@ -23,8 +23,8 @@
 //  (fuente: 'luci', monto = venta neta real). ?fuente=erp fuerza el sistema.
 //  Solo lectura, con claves públicas (Manual + Catálogo).
 // ============================================================
-const LUCI = require('./_datos/luci');
-const { ocultos, esOculto } = require('./_vendedores-ocultos');
+const LUCI = require('./_datos/luci');
+const { excluidos, esExcluido } = require('./_vendedores-excluidos');
 const MAN =['https://fzaxwuuodseyyinveknn.supabase.co/rest/v1/', process.env.MANUAL_ANON_KEY || 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk'];
 const CAT = ['https://zlwnoqdxendsgbfvfyue.supabase.co/rest/v1/', process.env.CATALOGO_ANON_KEY || 'sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4'];
 
@@ -152,9 +152,12 @@ exports.handler = async (event) => {
     const inSku = `sku=in.(${skus.join(',')})`;
 
     // ── 2) Ventas por cliente (los dos períodos) + precios + cobertura ──
+    // Vendedores excluidos (25/11/2026, archivo de SHARE): sus ventas no cuentan (fuera de todo).
+    const EX = await excluidos();
+    const sinExcluidos = (l) => l.filter((v) => !esExcluido(EX, v.vendedor));
     const [act, ant, precios, logs] = await Promise.all([
-      todo(MAN, `ventas_cliente?select=cliente_codigo,sku,fecha,unidades&${inSku}&fecha=gte.${desde}&fecha=lte.${hasta}`),
-      todo(MAN, `ventas_cliente?select=cliente_codigo,sku,fecha,unidades&${inSku}&fecha=gte.${pDesde}&fecha=lte.${pHasta}`),
+      todo(MAN, `ventas_cliente?select=cliente_codigo,sku,fecha,unidades,vendedor&${inSku}&fecha=gte.${desde}&fecha=lte.${hasta}`).then(sinExcluidos),
+      todo(MAN, `ventas_cliente?select=cliente_codigo,sku,fecha,unidades,vendedor&${inSku}&fecha=gte.${pDesde}&fecha=lte.${pHasta}`).then(sinExcluidos),
       todo(MAN, `ventas_articulos?select=sku,fecha,unidades,importe&${inSku}&fecha=gte.${pDesde}&fecha=lte.${hasta}`),
       todo(MAN, `ventas_sync_log?select=desde&ok=eq.true&detalle=like.v2*&or=(and(desde.gte.${desde},desde.lte.${hasta}),and(desde.gte.${pDesde},desde.lte.${pHasta}))`),
     ]);
@@ -176,9 +179,8 @@ exports.handler = async (event) => {
     }
     const vids = [...new Set([...clientes.values()].map((c) => c.vendedor_id).filter(Boolean))];
     const vendRows = vids.length ? await todo(MAN, `vendedores?select=id,nombre,codigo,zona&id=in.(${vids.join(',')})`) : [];
-    // Vendedores ocultos (24/11/2026): sus clientes quedan "Sin vendedor" (siguen en los totales).
-    const OC = await ocultos();
-    const vend = new Map(vendRows.filter((v) => !esOculto(OC, v.codigo)).map((v) => [v.id, v.nombre]));
+    // Los clientes de la cartera de un excluido quedan "Sin vendedor".
+    const vend = new Map(vendRows.filter((v) => !esExcluido(EX, v.codigo)).map((v) => [v.id, v.nombre]));
     const zonaVend = new Map(vendRows.map((v) => [v.id, ZONA_FIX[v.codigo] || String(v.zona || '').replace('_', '')]));
 
     // ── 4) Agregar ──

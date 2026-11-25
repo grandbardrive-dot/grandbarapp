@@ -42,12 +42,15 @@ language sql immutable as $$
 create or replace function public.dir_es_producto(p_sku text) returns boolean
 language sql immutable as $$ select left(p_sku, 2) in ('01', '02', '04', '05', '07', '08') $$;
 
--- Vendedores que no se cuentan (por código; el nombre por si la factura no trae el código).
-create or replace function public.dir_vendedor_excluido(p_cod text, p_nom text) returns boolean
-language sql immutable as $$
-  select coalesce(p_cod, '') in ('018', '023', '034', '042', '044')
-      or lower(trim(coalesce(p_nom, ''))) in ('luciana buenanueva', 'gestion administrativa', 'gestión administrativa',
-                                              'empleados grandbar', 'luisina brenda gonzalez', 'operaciones especiales')
+-- Vendedores que no se cuentan. 25/11/2026 (migraciones "dir_ventas_excluidos_del_archivo",
+-- "vendedores_excluido_del_archivo" y "dir_vendedor_excluido_security_definer"): la lista ya no
+-- está escrita acá. Es el archivo "Vendedores Excluidos.xlsx" de SHARE: dir_ventas(desde, hasta,
+-- p_vend_excl) y dir_ventas_skus(..., p_vend_excl) la reciben de la función (_vendedores-excluidos.js),
+-- y esta función (la usa la vista de Power BI) lee vendedores.excluido, la copia que actualiza
+-- sync-ventas-cron cada 20 minutos. Antes: 018, 023, 034, 042 y 044 fijos.
+create or replace function public.dir_vendedor_excluido(p_cod text, p_nom text)
+returns boolean language sql stable security definer set search_path to 'public' as $$
+  select exists (select 1 from public.vendedores v where v.codigo = coalesce(p_cod, '') and v.excluido)
 $$;
 
 -- dir_ventas: versión final (migraciones "dir_ventas_filtros_rapida" y "dir_ventas_filtros_plan_con_fechas").
