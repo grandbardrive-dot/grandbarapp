@@ -99,6 +99,8 @@
   .libre-row{display:flex;gap:8px;flex-wrap:wrap}
   .libre-row input{flex:1;min-width:200px;padding:11px 13px;border:1px solid var(--line-2);border-radius:10px;font:inherit;font-size:13.5px;outline:none}
   .libre-row input:focus{border-color:var(--navy)}
+  .libre-row select{padding:11px 10px;border:1px solid var(--line-2);border-radius:10px;font:inherit;font-size:13.5px;background:#fff;color:var(--ink)}
+  .libre-row select:focus{border-color:var(--navy);outline:none}
   .libre-row .btn{padding:11px 18px}
   .elegidos{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px}
   .elegidos > span:first-child{font-size:12.5px;color:var(--ink3);font-weight:600;margin-right:2px}
@@ -544,7 +546,7 @@
         <div class="libre">
           <div class="libre-h">¿Sin elegir la botella?</div>
           <div class="libre-sub">Escribí el producto o la línea (por ejemplo “Campari” o “Línea Skyy”) y tocá Agregar. Va junto con los que elegiste arriba, si elegiste alguno.</div>
-          <div class="libre-row"><input id="prod-libre" type="text" maxlength="120" placeholder="Nombre del producto" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarLibre()}"><button class="btn sec" type="button" onclick="agregarLibre()">Agregar</button></div>
+          <div class="libre-row"><input id="prod-libre" type="text" maxlength="120" placeholder="Nombre del producto" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarLibre()}"><select id="prod-libre-cat" aria-label="Categoría del producto escrito">${catProv()?'':'<option value="">Categoría…</option>'}${cats.map(c=>`<option value="${esc(c)}" ${c===catProv()?'selected':''}>${esc(c)}</option>`).join('')}</select><button class="btn sec" type="button" onclick="agregarLibre()">Agregar</button></div>
         </div>
         <div id="prod-elegidos"></div>`;
       renderProdGrid();
@@ -653,6 +655,7 @@
       }
       el.innerHTML=`<div class="panel-h">6. Materiales para esta acción (opcional)</div><div class="panel-sub">Materiales POP que el vendedor puede usar con esta acción. Podés vincular varios.</div>${cuerpo}`;
     } else if(paso===7){
+      completarCats();
       el.innerHTML=`<div class="panel-h">7. Revisá y publicá</div><div class="panel-sub">Confirmá que todo esté bien y publicá la campaña.</div>
         <div style="background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:6px">
           ${filaRev('Proveedor', st.proveedor?.nombre)}
@@ -736,17 +739,26 @@
     renderProdGrid(); renderResumen(); }
   // Producto escrito a mano (20/11/2026): Juan Pablo pidió poder poner el producto sin elegir
   // la botella. Se guarda igual que uno del catálogo, sin id, foto ni código.
+  // 25/11: el escrito a mano lleva la categoría que se elige al lado (por defecto, la que más
+  // tiene el proveedor en el catálogo). Sin categoría, la revisión decía "Falta".
+  function catProv(){
+    const n={}; PROD.filter(p=>st.proveedor&&p.proveedor_id===st.proveedor.id&&p.categoria).forEach(p=>{ n[p.categoria]=(n[p.categoria]||0)+1; });
+    return Object.keys(n).sort((a,b)=>n[b]-n[a])[0]||'';
+  }
+  // Los escritos que quedaron sin categoría toman la del proveedor.
+  function completarCats(){ const c=catProv(); if(c) st.productos.forEach(p=>{ if(!p.id&&!p.categoria) p.categoria=c; }); }
   function agregarLibre(){
     const inp=document.getElementById('prod-libre'); if(!inp) return;
     const n=(inp.value||'').trim().replace(/\s+/g,' ').slice(0,120);
     if(!n){ inp.focus(); return; }
-    if(!st.productos.some(p=>norm(p.nombre).trim()===norm(n))) st.productos.push({id:null,nombre:n,categoria:null,imagen_url:null,sku:null});
+    const cat=(document.getElementById('prod-libre-cat')||{}).value||catProv()||null;
+    if(!st.productos.some(p=>norm(p.nombre).trim()===norm(n))) st.productos.push({id:null,nombre:n,categoria:cat,imagen_url:null,sku:null});
     inp.value=''; renderProdGrid(); renderResumen(); inp.focus();
   }
   function quitarProd(k){ st.productos.splice(k,1); renderProdGrid(); renderResumen(); }
   function renderElegidos(){
     const el=document.getElementById('prod-elegidos'); if(!el) return;
-    el.innerHTML = st.productos.length ? `<div class="elegidos"><span>Elegidos:</span>${st.productos.map((p,k)=>`<span class="eleg">${esc(p.nombre)}${p.id?'':' <small>(escrito)</small>'}<button type="button" aria-label="Quitar ${esc(p.nombre)}" title="Quitar" onclick="quitarProd(${k})">×</button></span>`).join('')}</div>` : '';
+    el.innerHTML = st.productos.length ? `<div class="elegidos"><span>Elegidos:</span>${st.productos.map((p,k)=>`<span class="eleg">${esc(p.nombre)}${p.id?'':` <small>(escrito${p.categoria?' · '+esc(p.categoria):''})</small>`}<button type="button" aria-label="Quitar ${esc(p.nombre)}" title="Quitar" onclick="quitarProd(${k})">×</button></span>`).join('')}</div>` : '';
   }
   function toggleCanal(v){ const i=st.canales.indexOf(v); if(i<0)st.canales.push(v); else st.canales.splice(i,1); renderPaso(); renderResumen(); }
   function toggleGrupoCanal(gid){ const g=CANAL_GRUPOS.find(x=>x.id===gid); const keys=subsDe(g).map(s=>s[0]); const todos=keys.every(k=>st.canales.includes(k));
@@ -812,6 +824,7 @@
 
   // activa: true = publicar · false = sin publicar · 'aprobar' = Luciana aprueba una propuesta de Trade
   async function guardar(activa){
+    completarCats();
     const aprobar = activa==='aprobar';
     if(aprobar && !confirm('¿Aprobar la campaña? Se publica en el manual y la ven los vendedores.')) return;
     if(aprobar || esTrade()) activa=false;   // se publica al aprobarla (función trade-campanias)
