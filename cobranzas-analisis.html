@@ -666,15 +666,21 @@
   function secClientes() {
     return `<section class="sec" id="s-clientes"><h2>Clientes</h2><p class="d">Cada cliente de la selección con su deuda de hoy y lo que hizo en el período. Tocá uno para ver su historia completa.</p>
       <div class="tbar"><select id="c-ver">
-        <option value="todos">Todos</option><option value="act">Con actividad en el período</option><option value="venc">Con deuda vencida</option>
+        <option value="todos">Todos</option><option value="entro">Entraron al portal (alguna vez)</option><option value="noentro">Nunca entraron al portal</option>
+        <option value="act">Con actividad en el período</option><option value="venc">Con deuda vencida</option>
         <option value="nunca">Tienen usuario y nunca entraron</option><option value="sinusr">Sin usuario del portal</option><option value="activos">Entraron en los últimos 30 días</option>
-      </select><span class="mut" id="c-cuenta" style="font-size:12.5px"></span></div>
+      </select><span class="mut" id="c-cuenta" style="font-size:12.5px"></span>
+      <button class="btn" id="c-xls" type="button" style="margin-left:auto">⬇ Descargar lista (Excel)</button></div>
       <div class="tw" id="tb-cli"></div><div class="pag" id="c-pag"></div></section>`;
   }
   function pintarClientes(X) {
     const sel = document.getElementById('c-ver'); sel.value = S.ver;
     let rows = filasClientes(X);
     const now = ahora();
+    // Corte simple pedido el 25/11: entraron alguna vez vs nunca (con o sin usuario).
+    const nEntro = rows.filter(r => r.c.ult).length, nNo = rows.length - nEntro;
+    if (S.ver === 'entro') rows = rows.filter(r => r.c.ult);
+    if (S.ver === 'noentro') rows = rows.filter(r => !r.c.ult);
     if (S.ver === 'act') rows = rows.filter(r => r.act > 0);
     if (S.ver === 'venc') rows = rows.filter(r => r.venc > 0);
     if (S.ver === 'nunca') rows = rows.filter(r => r.c.tieneUsr && !r.c.ult);
@@ -683,7 +689,7 @@
     rows = ordenar(rows, S.sort.c); S.cliRows = rows;
     const pags = Math.max(1, Math.ceil(rows.length / POR_PAG)); if (S.pag >= pags) S.pag = 0;
     const vis = rows.slice(S.pag * POR_PAG, (S.pag + 1) * POR_PAG);
-    document.getElementById('c-cuenta').textContent = nf(rows.length) + ' clientes';
+    document.getElementById('c-cuenta').innerHTML = `${nf(rows.length)} clientes · <b style="color:#1f6b3d">${nf(nEntro)} entraron al portal</b> · <b style="color:#b23120">${nf(nNo)} nunca entraron</b> (${nEntro + nNo ? Math.round(nEntro * 100 / (nEntro + nNo)) : 0}%)`;
     const th = COLS_C.map(([k, l, n], i) => `<th class="${n ? 'n' : ''}${i === 0 ? ' first' : ''}" data-sc="${k}">${l}${S.sort.c.k === k ? `<span class="ar">${S.sort.c.d < 0 ? '▼' : '▲'}</span>` : ''}</th>`).join('');
     document.getElementById('tb-cli').innerHTML = vis.length ? `<table class="t"><thead><tr>${th}</tr></thead><tbody>${vis.map(r => `<tr class="clic" data-cod="${esc(r.cod)}">${COLS_C.map(([k, , n], i) => `<td class="${n ? 'n' : ''}${i === 0 ? ' first' : ''}">${celC(r, k)}</td>`).join('')}</tr>`).join('')}</tbody></table>` : '<div class="vacio">Ningún cliente con esos filtros.</div>';
     document.getElementById('c-pag').innerHTML = pags > 1 ? `<button class="btn" data-pag="-1" ${S.pag ? '' : 'disabled'}>‹</button> Página ${S.pag + 1} de ${pags} <button class="btn" data-pag="1" ${S.pag < pags - 1 ? '' : 'disabled'}>›</button>` : '';
@@ -842,7 +848,26 @@
     const tv = e.target.closest('[data-tabla]'); if (tv) { const k = tv.dataset.tabla, on = !S.vistas[k + 'On']; S.vistas[k + 'On'] = on; document.getElementById('tb-' + k).innerHTML = on ? S.vistas[k]() : ''; tv.textContent = on ? 'Ocultar tabla' : 'Ver como tabla'; return; }
     const vr = e.target.closest('tr[data-vend]'); if (vr) { S.f.vend = vr.dataset.vend; llenarVendedores(); document.getElementById('f-vend').value = S.f.vend; S.pag = 0; render(); document.getElementById('s-clientes').scrollIntoView({ behavior: 'smooth' }); return; }
     const cr = e.target.closest('tr[data-cod]'); if (cr && S.d.C[cr.dataset.cod]) ficha(cr.dataset.cod);
+    if (e.target.id === 'c-xls') descargarClientes();
   });
+  // Descarga la lista de clientes tal como está filtrada (zona, canal, vendedor, búsqueda y
+  // el selector de la tabla) en un CSV que Excel abre directo (25/11/2026).
+  function descargarClientes() {
+    const rows = S.cliRows || [];
+    if (!rows.length) { alert('No hay clientes con esos filtros.'); return; }
+    const d = t => t ? new Date(t * 1000).toLocaleDateString('es-AR') : '';
+    const n = v => String(Math.round((Number(v) || 0) * 100) / 100).replace('.', ',');
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const enc = ['Código', 'Cliente', 'Vendedor', 'Canal', 'Zona', 'Portal', 'Último ingreso', 'Saldo', 'Vencido'];
+    const lineas = rows.map(r => [r.cod, r.nom, r.vend ? (S.d.V[r.vend] ? S.d.V[r.vend].nom : r.vend) : '', r.canal, r.zona,
+      r.c.ult ? 'Entró' : (r.c.tieneUsr ? 'Tiene usuario, nunca entró' : 'Sin usuario'), d(r.ultIng), n(r.saldo), n(r.venc)].map(q).join(';'));
+    const csv = '﻿' + enc.map(q).join(';') + '\r\n' + lineas.join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const v = document.getElementById('f-vend'), c = document.getElementById('f-canal');
+    a.download = 'clientes-portal' + (c && c.value ? '-' + c.value : '') + (v && v.value ? '-vend' + v.value : '') + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
   app.addEventListener('change', e => {
     if (e.target.id === 'c-ver') { S.ver = e.target.value; S.pag = 0; pintarClientes(S.X); }
     if (e.target.id === 'v-alc') { S.vAlc = e.target.value; pintarVendedores(S.X); }
