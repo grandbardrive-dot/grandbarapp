@@ -58,7 +58,11 @@ const HUB={url:"https://xqhyemccbwmzxqzkrtwa.supabase.co",key:"sb_publishable_OO
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const nf=n=>Math.round(Number(n)||0).toLocaleString('es-AR');
-let hub, PROV=null, PERIODOS={}, STOCK=[], _clientes=[];
+let hub, PROV=null, PERIODOS={}, STOCK=[], STOCK_META={}, _clientes=[];
+// 25/11/2026: el sellout se arma solo con las ventas de CUBO (sellout-background, dos veces por día).
+// Se muestran los últimos 12 meses cerrados y el mes en curso; los meses más viejos que se subieron
+// desde el Excel quedan guardados pero no se listan.
+const desdePeriodo=()=>{ const d=new Date(); const t=new Date(d.getFullYear(), d.getMonth()-12, 1); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0'); };
 
 (async()=>{
   hub=supabase.createClient(HUB.url,HUB.key);
@@ -70,7 +74,8 @@ let hub, PROV=null, PERIODOS={}, STOCK=[], _clientes=[];
   $('emp').textContent=PROV.empresa+' · sellout mensual';
   try{
     const {data}=await sb.from('sellout_reportes').select('periodo,data').eq('proveedor',PROV.empresa);
-    (data||[]).forEach(r=>{ if(r.periodo==='stock') STOCK=(r.data&&r.data.stock)||[]; else PERIODOS[r.periodo]=r.data; });
+    const corte=desdePeriodo();
+    (data||[]).forEach(r=>{ if(r.periodo==='stock'){ STOCK=(r.data&&r.data.stock)||[]; STOCK_META=r.data||{}; } else if(r.periodo>=corte) PERIODOS[r.periodo]=r.data; });
     const keys=Object.keys(PERIODOS).sort();
     if(!keys.length){ $('cont').innerHTML='<div class="empty">📊 Todavía no hay reportes cargados para '+esc(PROV.empresa)+'.<br>En cuanto GrandBar suba tu sellout del mes, lo vas a ver acá.</div>'; return; }
     $('mselWrap').style.display='';
@@ -109,7 +114,8 @@ function pintar(){
     <div class="filtros" id="cliFil"></div>
     <input class="search" id="q" placeholder="Buscar cliente…" oninput="tablaClientes()">
     <div class="scroll"><table><thead><tr><th>Cliente</th><th>Tipo</th><th class="num">Botellas</th><th class="num">Monto</th></tr></thead><tbody id="tbCli"></tbody></table></div>
-    ${STOCK.length?`<h2>Stock actual</h2><div class="filtros" id="stockFil"></div><div id="stockBox"></div>`:''}
+    ${STOCK.length?`<h2>Stock actual</h2>${stockNota()}<div class="filtros" id="stockFil"></div><div id="stockBox"></div>`:''}
+    ${d.fuente==='CUBO'?`<div style="font-size:12px;color:var(--muted);margin-top:22px">Se actualiza solo con las ventas de GrandBar, dos veces por día. Botellas con las notas de crédito descontadas; monto con impuestos.</div>`:''}
   `;
   renderCliFil(); tablaClientes();
   renderStockUI();
@@ -128,10 +134,19 @@ window.setTipoCli=setTipoCli;
 
 // Stock con filtro Depo Mza / Depo San Luis / Consolidado (idea de Fer).
 let _stockFil=0, _stockBtns=[];
+// Fecha del stock (el del ERP trae "actualizado"; el del Excel, "updated").
+function stockNota(){
+  const f=STOCK_META.actualizado?new Date(STOCK_META.actualizado):(STOCK_META.updated?new Date(STOCK_META.updated):null);
+  if(!f||isNaN(f)) return '';
+  const txt=f.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  return `<div style="font-size:12px;color:var(--muted);margin:-4px 0 10px">${STOCK_META.fuente==='ERP'?'Stock de todos los depósitos al '+txt+'.':'Stock al '+txt+'.'}</div>`;
+}
 function renderStockUI(){
   if(!STOCK.length || !$('stockFil')) return;
   const ubis=[...new Set(STOCK.filter(s=>s.codigo).map(s=>s.ubicacion).filter(Boolean))];
-  _stockBtns=[{k:'consolidado',l:'Consolidado'}, ...ubis.map(u=>({k:u,l:u}))];
+  // Con un solo depósito (el stock total del ERP) no hace falta elegir.
+  _stockBtns=ubis.length>1?[{k:'consolidado',l:'Consolidado'}, ...ubis.map(u=>({k:u,l:u}))]:[{k:'consolidado',l:'Consolidado'}];
+  if(ubis.length<=1){ _stockFil=0; $('stockFil').style.display='none'; renderStock(); return; }
   if(_stockFil>=_stockBtns.length) _stockFil=0;
   $('stockFil').innerHTML=_stockBtns.map((b,i)=>`<button class="fbtn ${_stockFil===i?'on':''}" onclick="setStockFil(${i})">${esc(b.l)}</button>`).join('');
   renderStock();

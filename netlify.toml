@@ -137,3 +137,9 @@
 # Ver manual-vendedores/netlify/functions/indicadores-corte-cron.js
 [functions."indicadores-corte-cron"]
   schedule = "55 2,23 * * *"
+
+# SELLOUT de los proveedores desde CUBO (25/11/2026): últimos 12 meses + el mes en curso + stock,
+# para su panel (Mis reportes). 6:30 y 14:30 de Argentina (9:30 y 17:30 UTC), después del stock del ERP.
+# Ver manual-vendedores/netlify/functions/sellout-cron.js y _sellout.js
+[functions."sellout-cron"]
+  schedule = "30 9,17 * * *"
