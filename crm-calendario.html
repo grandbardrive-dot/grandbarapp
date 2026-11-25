@@ -140,6 +140,25 @@
   .rclist{margin-top:9px;border-top:1px solid var(--line2);max-height:280px;overflow:auto}
   .rcrow{display:flex;justify-content:space-between;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line2);font-size:13px}
   .rcrow small{color:var(--muted)}
+  /* Dirección en modo revisión: sin crear/editar/borrar */
+  body.dir .addmini, body.dir #edBtn, body.dir #delBtn{display:none!important}
+  body.dir .cell:not(.off){cursor:default}
+  /* Estado de aprobación */
+  .apb{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;border-radius:20px;padding:3px 9px}
+  .apb.pendiente{background:#fff4d6;color:#8a6a1e}
+  .apb.aprobada{background:var(--green-s,#e4f3ea);color:var(--green-d,#1f7a4d)}
+  .apb.rechazada{background:#fde7e2;color:#c0392b}
+  .apb.cambios{background:#e3edff;color:#2a5bd7}
+  .aprob{margin-top:14px;border-top:1px solid var(--line2);padding-top:13px}
+  .aprob .tt{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
+  .aprob .coment{background:#f7f5f0;border-radius:9px;padding:9px 11px;font-size:12.5px;color:#333;margin-top:8px}
+  .aprob .coment b{color:#000}
+  .aprob textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px;font:inherit;font-size:13px;resize:vertical;min-height:52px;margin-top:8px}
+  .aprow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .apbtn{flex:1;min-width:120px;border:0;border-radius:9px;padding:10px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;color:#fff}
+  .apbtn.ok{background:#1f9d57}.apbtn.chg{background:#2a5bd7}.apbtn.no{background:#c0392b}
+  .apbtn:disabled{opacity:.5;cursor:default}
+  .apev{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:3px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -240,10 +259,12 @@
       <div id="dPlaca"></div>
       <div id="dPub" style="margin-top:12px"></div>
       <div id="dPubMsg" style="font-size:12.5px;margin-top:8px"></div>
+      <div id="dAprob" class="aprob"></div>
+      <div id="dAprobMsg" style="font-size:12.5px;margin-top:8px"></div>
       <div class="mbtns">
         <button class="ghost" onclick="cerrar('ovDet')">Cerrar</button>
-        <button class="btn" style="background:#fff;color:var(--danger);border:1px solid var(--danger);box-shadow:none" onclick="borrar()">🗑 Borrar</button>
-        <button class="btn" onclick="editarActual()">✎ Editar</button>
+        <button id="delBtn" class="btn" style="background:#fff;color:var(--danger);border:1px solid var(--danger);box-shadow:none" onclick="borrar()">🗑 Borrar</button>
+        <button id="edBtn" class="btn" onclick="editarActual()">✎ Editar</button>
       </div>
     </div>
   </div>
@@ -275,7 +296,7 @@
   // Una acción puede tener varios rubros. rubrosDe() devuelve el array siempre.
   const rubrosDe=a=>(Array.isArray(a.rubros)&&a.rubros.length)?a.rubros:(a.rubro?[a.rubro]:[]);
 
-  let sb=null, man=null, YO='', ACC=[], FILTRO='todos', CUR=new Date(), _file=null, DETID=null, SEL_RUBROS=new Set();
+  let sb=null, man=null, YO='', ACC=[], FILTRO='todos', CUR=new Date(), _file=null, DETID=null, SEL_RUBROS=new Set(), ESDIR=false;
 
   // Cliente para subir la placa al bucket de imágenes (proyecto Manual)
   function manClient(){
@@ -289,13 +310,17 @@
     // Solo Diseño (Josefina), Desarrollo (Nahuel), Compras (Luciana) y Trade Marketing
     // (Juan Pablo Sepúlveda). La base tiene la misma regla (14/10/2026).
     const PANEL = { diseno: 'mi-panel.html', desarrollo: 'panel-desarrollo.html',
-                    compras: 'manual-vendedores/admin-comercial.html', torneo: 'trade-acciones.html' };
+                    compras: 'manual-vendedores/admin-comercial.html', torneo: 'trade-acciones.html',
+                    admin: 'direccion.html', direccion: 'direccion.html', duenio: 'direccion.html' };
     const rol = String(s.role || '').toLowerCase();
     if(!s.demo && !PANEL[rol]){
-      document.querySelector('.wrap').innerHTML = '<div style="text-align:center;color:var(--muted);padding:60px 16px">Este calendario es del equipo de Diseño, Desarrollo, Compras y Trade Marketing.<br><a href="hub.html" style="color:var(--gold-d);font-weight:700">Volver al Hub</a></div>';
+      document.querySelector('.wrap').innerHTML = '<div style="text-align:center;color:var(--muted);padding:60px 16px">Este calendario es del equipo de Diseño, Desarrollo, Compras, Trade Marketing y Dirección.<br><a href="hub.html" style="color:var(--gold-d);font-weight:700">Volver al Hub</a></div>';
       return;
     }
+    // Dirección (Fernando) entra en modo REVISIÓN: ve el calendario y aprueba/pide cambios, sin crear/editar/borrar.
+    ESDIR = ['admin','direccion','duenio'].includes(rol);
     if(PANEL[rol]) $('volver').href = PANEL[rol];
+    if(ESDIR) document.body.classList.add('dir');
     sb = GBAuth.client;
     YO = s.nombre || (s.user && s.user.email) || 'GrandBar';
     $('me').textContent = YO;
@@ -489,7 +514,8 @@
     const MAX=3;
     evs.slice(0,MAX).forEach(a=>{
       const c=RCOL[(FILTRO!=='todos'&&rubrosDe(a).includes(FILTRO))?FILTRO:rubrosDe(a)[0]]||'#546e7a';
-      ev+=`<div class="ev" style="background:${c}" onclick="event.stopPropagation();verDet('${a.id}')" title="${esc(a.nombre)}">${esc(a.nombre)}</div>`;
+      const apc={pendiente:'#e9b44c',aprobada:'#1f9d57',rechazada:'#c0392b',cambios:'#2a5bd7'}[a.aprobacion||'pendiente']||'#e9b44c';
+      ev+=`<div class="ev" style="background:${c}" onclick="event.stopPropagation();verDet('${a.id}')" title="${esc(a.nombre)} — ${esc(a.aprobacion||'pendiente')}"><span class="apev" style="background:${apc};box-shadow:0 0 0 1.5px rgba(255,255,255,.9)"></span>${esc(a.nombre)}</div>`;
     });
     if(evs.length>MAX) ev+=`<div class="more" onclick="event.stopPropagation();verDia('${key}')">+${evs.length-MAX} más</div>`;
     const clickable = off? '' : `onclick="abrirNueva('${key}')"`;
@@ -510,6 +536,7 @@
   // ---- Nueva / editar ----
   function fechaBonita(key){ if(!key) return '—'; const [a,m,d]=key.split('-'); return `${d}/${m}`; }
   function abrirNueva(key){
+    if(ESDIR) return;   // Dirección solo revisa/aprueba, no crea
     $('f-id').value=''; $('fTitulo').textContent='Nueva acción';
     const f = key || ymd(new Date());
     $('f-fecha').value=f; $('fFechaTag').textContent=fechaBonita(f);
@@ -523,6 +550,7 @@
   window.abrirNueva=abrirNueva;
 
   function editarActual(){
+    if(ESDIR) return;
     const a=ACC.find(x=>x.id===DETID); if(!a) return;
     cerrar('ovDet');
     $('f-id').value=a.id; $('fTitulo').textContent='Editar acción';
@@ -600,9 +628,50 @@
     $('dPub').innerHTML = a.publicada
       ? `<div style="background:var(--green-s);color:var(--green-d);border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:700">✓ Publicada a los vendedores${a.publicada_at?' · '+fechaBonita(a.publicada_at.slice(0,10)):''} <button onclick="publicarAccion(true)" style="margin-left:8px;background:none;border:0;color:var(--green-d);text-decoration:underline;cursor:pointer;font:inherit">reenviar aviso</button></div>`
       : `<button class="btn" style="width:100%;background:var(--petroleo,#2f968e)" onclick="publicarAccion(false)">📣 Publicar a vendedores</button>`;
+    $('dAprobMsg').textContent=''; renderAprob(a);
     abrir('ovDet');
   }
   window.verDet=verDet;
+
+  // ---- Aprobación de Dirección (Fernando): aprobar / pedir cambios / desaprobar ----
+  function aprBadge(est){
+    const L={pendiente:'⏳ Pendiente de aprobación',aprobada:'✓ Aprobada',rechazada:'✗ Desaprobada',cambios:'✎ Cambios pedidos'};
+    const e=est||'pendiente'; return `<span class="apb ${e}">${L[e]||L.pendiente}</span>`;
+  }
+  function renderAprob(a){
+    const est=a.aprobacion||'pendiente';
+    let h=`<div class="tt">Aprobación de Dirección</div>${aprBadge(est)}`;
+    if(a.aprobacion_por||a.aprobacion_at){
+      const when=a.aprobacion_at?fechaBonita(String(a.aprobacion_at).slice(0,10)):'';
+      h+=`<span style="font-size:11.5px;color:var(--muted);margin-left:8px">${esc(a.aprobacion_por||'')}${when?' · '+when:''}</span>`;
+    }
+    if(a.aprobacion_comentario) h+=`<div class="coment"><b>Comentario de Dirección:</b> ${esc(a.aprobacion_comentario)}</div>`;
+    if(ESDIR){
+      h+=`<textarea id="apCom" placeholder="Comentario (obligatorio para «Pedir cambios» o «Desaprobar»)">${esc(a.aprobacion_comentario||'')}</textarea>
+        <div class="aprow">
+          <button class="apbtn ok" onclick="setAprob('aprobada')">✓ Aprobar</button>
+          <button class="apbtn chg" onclick="setAprob('cambios')">✎ Pedir cambios</button>
+          <button class="apbtn no" onclick="setAprob('rechazada')">✗ Desaprobar</button>
+        </div>`;
+    }
+    $('dAprob').innerHTML=h;
+  }
+  async function setAprob(est){
+    if(!DETID) return;
+    const a=ACC.find(x=>x.id===DETID); if(!a) return;
+    const com=($('apCom')?$('apCom').value.trim():'')||null;
+    const dm=(t,c)=>{ $('dAprobMsg').textContent=t; $('dAprobMsg').style.color=c||'var(--muted)'; };
+    if((est==='cambios'||est==='rechazada') && !com){ dm('Escribí un comentario para pedir cambios o desaprobar.','var(--danger)'); return; }
+    const patch={ aprobacion:est, aprobacion_comentario:com, aprobacion_at:new Date().toISOString(), aprobacion_por:YO };
+    dm('Guardando…');
+    try{
+      const { error }=await sb.from('crm_acciones').update(patch).eq('id',DETID); if(error) throw error;
+      Object.assign(a,patch);
+      dm('✅ Guardado. El equipo lo verá en el calendario.','var(--green-d)');
+      renderAprob(a); render();
+    }catch(e){ dm('No se pudo: '+(e.message||e),'var(--danger)'); }
+  }
+  window.setAprob=setAprob;
 
   // Publica la acción: la hace visible en el portal de los vendedores (Acciones CRM)
   // y les manda una notificación a la campanita. Lo hace una Netlify Function con
@@ -630,6 +699,7 @@
   window.publicarAccion=publicarAccion;
 
   async function borrar(){
+    if(ESDIR) return;
     if(!DETID) return;
     if(!confirm('¿Borrar esta acción del calendario?')) return;
     const { error }=await sb.from('crm_acciones').delete().eq('id',DETID);
