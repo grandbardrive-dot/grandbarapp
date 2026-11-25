@@ -375,17 +375,19 @@
     }catch(e){ $('mMsg').style.color='#c0603e'; $('mMsg').textContent=e.message; }
   }
 
-  async function cargar(){
+  // silencioso: la actualización automática no pisa la lista con un error pasajero.
+  async function cargar(silencioso){
     try{
       const r=await fetch(FN+'?admin=1',{headers:{Authorization:'Bearer '+TOKEN}});
       const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+      if(silencioso && abierto) return;
       DATA=d.reportes||[];
       if($('kpiTotal')) $('kpiTotal').textContent=d.conteo.total;
       if($('kpiPend')) $('kpiPend').textContent=d.conteo.pendiente;
       if($('kpiRev')) $('kpiRev').textContent=d.conteo.revision;
       if($('kpiAprob')) $('kpiAprob').textContent=d.conteo.aprobado;
       pintar();
-    }catch(e){ $('repBody').innerHTML='<div style="text-align:center;color:#c0603e;padding:26px;font-size:13px">No pude cargar: '+esc(e.message)+'</div>'; }
+    }catch(e){ if(silencioso) return; $('repBody').innerHTML='<div style="text-align:center;color:#c0603e;padding:26px;font-size:13px">No pude cargar: '+esc(e.message)+'</div>'; }
   }
 
   $('repTabs').querySelectorAll('span').forEach(s=>s.onclick=()=>{ $('repTabs').querySelectorAll('span').forEach(x=>x.classList.remove('on')); s.classList.add('on'); filtro=s.dataset.estado||''; pintar(); });
@@ -402,6 +404,17 @@
     if($('tab-archivos').style.display!=='none') cargarArchivos();
     await cargar();
     setInterval(async()=>{ try{ const {data:{session:s}}=await hub.auth.getSession(); if(s) TOKEN=s.access_token; }catch(e){} }, 10*60*1000);
+    // Se actualiza sola (25/11/2026): al volver a la pestaña y cada 2 minutos, salvo que
+    // haya un reporte abierto. Antes, con la página abierta, no se veían los cambios.
+    let ultima=Date.now();
+    const refrescar=async()=>{
+      if(abierto||document.visibilityState!=='visible'||Date.now()-ultima<30000) return;
+      ultima=Date.now();
+      try{ const {data:{session:s}}=await hub.auth.getSession(); if(s) TOKEN=s.access_token; }catch(e){}
+      cargar(true);
+    };
+    document.addEventListener('visibilitychange',refrescar);
+    setInterval(refrescar, 2*60*1000);
     // reportes.html?id=… abre ese reporte (lo usa la página de Peñaflor).
     const pid=new URLSearchParams(location.search).get('id'); if(pid) abrir(pid);
   })();
