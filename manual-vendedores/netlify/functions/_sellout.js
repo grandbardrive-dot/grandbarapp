@@ -25,7 +25,7 @@ const FAMILIA2 = require('./_familia2');
 const { excluidos } = require('./_vendedores-excluidos');
 const { traerTodo } = require('./_paginar');
 
-// Bodegas de cada proveedor (el nombre es usuarios.empresa del proveedor en el Portal). "desde": mes
+// Bodegas de cada proveedor (el nombre es usuarios.empresa del proveedor en el Portal, tal cual). "desde": mes
 // desde el que la bodega entra, como en el Excel de Seba (Dellepiane desde julio y Cinzano desde agosto
 // de 2026 en Peñaflor). Chandon: solo Bodega Chandon, como su último Excel (Belvedere, Hennessy y
 // Glenmorangie, código 0252, quedaron afuera desde agosto de 2026).
@@ -36,6 +36,13 @@ const PROVEEDORES = {
     { p: '0102' }, { p: '0106' }, { p: '0112' }, { p: '0117' }, { p: '0127' }, { p: '0184' }, { p: '0194' },
     { p: '0202' }, { p: '0512' }, { p: '0212', desde: '2026-07' }, { p: '0253', desde: '2026-08' },
   ],
+  // 25/11/2026 (pedido del usuario: "activalo para Campari, Doña Paula, Renacer y Salentein").
+  // Cinzano: Campari hasta julio de 2026 y Peñaflor desde agosto (decisión del usuario, como el
+  // Excel de Seba). Salentein con Jack Daniel's (0242 "Salentein Jack Daniel´s" en CUBO), decisión del usuario.
+  'Campari Group': [{ p: '0204' }, { p: '0253', hasta: '2026-07' }],
+  'Doña Paula': [{ p: '0198' }],
+  'Renacer': [{ p: '0189' }],
+  'Salentein': [{ p: '0104' }, { p: '0242' }],
 };
 const MESES_CERRADOS = 12;
 const BOT_POR_CAJA = 6;
@@ -62,7 +69,8 @@ function meses(hoy) {
   }
   return out;
 }
-const prefijosDe = (prov, per) => (PROVEEDORES[prov] || []).filter(b => !b.desde || per >= b.desde).map(b => b.p);
+// Las bodegas de un proveedor en un mes ("desde"/"hasta": mes en que entra o el último en que está).
+const prefijosDe = (prov, per) => (PROVEEDORES[prov] || []).filter(b => (!b.desde || per >= b.desde) && (!b.hasta || per <= b.hasta)).map(b => b.p);
 
 async function rpcMes(M, prefijos, excl) {
   const r = await fetch(MAN_URL + '/rest/v1/rpc/sellout_mes', {
