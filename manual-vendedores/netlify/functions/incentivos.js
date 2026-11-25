@@ -85,6 +85,20 @@ async function plan5T(codigos, nombreDeCod, alcance) {
   try { rows = await (await man('rpc/cobertura_5t', { method: 'POST', body: '{}' })).json(); } catch (e) {}
   if (!Array.isArray(rows)) rows = [];
   const porCli = {}; rows.forEach(r => { porCli[r.cliente_codigo] = { aperol: r.aperol, campari: r.campari, cynar: r.cynar, skyy: r.skyy, others: r.others }; });
+
+  // Deuda vencida (cuenta corriente) por cliente, del sistema de Cobranzas
+  // (grandbar-ecommerce, tabla cuentas_cubo, columna vencida > 0). Sirve para
+  // avisar, de los NO COMPRADORES de Campari, a cuántos no conviene cargarles más.
+  // Se lee con la llave de servicio (la tabla tiene RLS es_admin() en ese proyecto).
+  const vencidos = new Set();
+  try {
+    const svc = process.env.COBRANZAS_SERVICE_ROLE;
+    if (svc) {
+      const cob = (p, o) => fetch('https://qpaoyfubyaloyhepatlm.supabase.co/rest/v1/' + p, Object.assign({}, o, { headers: Object.assign({ apikey: svc, Authorization: 'Bearer ' + svc }, (o && o.headers) || {}) }));
+      const ccc = await traerTodo(cob, 'cuentas_cubo?select=codigo&vencida=gt.0&order=codigo.asc');
+      (Array.isArray(ccc) ? ccc : []).forEach(r => vencidos.add(String(r.codigo)));
+    }
+  } catch (e) {}
   const d = new Date();
   const mesDesde = d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-01';
 
@@ -105,8 +119,15 @@ async function plan5T(codigos, nombreDeCod, alcance) {
     const completos = filas.filter(f => f.tiene >= 4).length;
     const vmap = {};
     // Siembro todos los vendedores con su objetivo (aparecen aunque tengan 0 avance).
-    Object.keys(activosPorVend).forEach(vcod => { vmap[vcod] = { codigo: vcod, nombre: nombreDeCod[vcod] || vcod, clientes: 0, completos: 0, objetivo: objetivoDe(vcod) }; });
-    filas.forEach(f => { const v = vmap[f.vendedor] || (vmap[f.vendedor] = { codigo: f.vendedor, nombre: f.vendedor_nombre, clientes: 0, completos: 0, objetivo: objetivoDe(f.vendedor) }); v.clientes++; if (f.tiene >= 4) v.completos++; });
+    Object.keys(activosPorVend).forEach(vcod => { vmap[vcod] = { codigo: vcod, nombre: nombreDeCod[vcod] || vcod, clientes: 0, completos: 0, objetivo: objetivoDe(vcod), noComprVencida: 0 }; });
+    filas.forEach(f => { const v = vmap[f.vendedor] || (vmap[f.vendedor] = { codigo: f.vendedor, nombre: f.vendedor_nombre, clientes: 0, completos: 0, objetivo: objetivoDe(f.vendedor), noComprVencida: 0 }); v.clientes++; if (f.tiene >= 4) v.completos++; });
+    // De los NO compradores de Campari de cada vendedor (su cliente activo que no
+    // compró ninguna marca en el período), cuántos tienen cuenta corriente vencida.
+    const compraron = new Set(filas.map(f => f.codigo));
+    for (const [cod, info] of clientes) {
+      if (compraron.has(cod) || !vencidos.has(cod)) continue;
+      const v = vmap[info.vcod]; if (v) v.noComprVencida++;
+    }
     // Cumplimiento (Opción A): clientes con 4+ de 5 ÷ clientes a los que puede venderle Campari.
     const porVendedor = Object.values(vmap).map(v => ({ ...v, pct: pct(v.completos, v.objetivo) })).sort((a, b) => b.pct - a.pct);
     const objetivoTotal = Object.values(vmap).reduce((a, v) => a + (v.objetivo || 0), 0);
