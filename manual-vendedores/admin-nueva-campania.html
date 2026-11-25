@@ -745,8 +745,13 @@
     const n={}; PROD.filter(p=>st.proveedor&&p.proveedor_id===st.proveedor.id&&p.categoria).forEach(p=>{ n[p.categoria]=(n[p.categoria]||0)+1; });
     return Object.keys(n).sort((a,b)=>n[b]-n[a])[0]||'';
   }
-  // Los escritos que quedaron sin categoría toman la del proveedor.
-  function completarCats(){ const c=catProv(); if(c) st.productos.forEach(p=>{ if(!p.id&&!p.categoria) p.categoria=c; }); }
+  // Los escritos que quedaron sin categoría toman la del proveedor. Si el proveedor no tiene
+  // productos en el catálogo (Molinos, 25/11), la que más se repite entre los de la campaña.
+  function completarCats(){
+    let c=catProv();
+    if(!c){ const n={}; st.productos.forEach(p=>{ if(p.categoria) n[p.categoria]=(n[p.categoria]||0)+1; }); c=Object.keys(n).sort((a,b)=>n[b]-n[a])[0]||''; }
+    if(c) st.productos.forEach(p=>{ if(!p.id&&!p.categoria) p.categoria=c; });
+  }
   function agregarLibre(){
     const inp=document.getElementById('prod-libre'); if(!inp) return;
     const n=(inp.value||'').trim().replace(/\s+/g,' ').slice(0,120);
@@ -844,7 +849,8 @@
     const row={
       proveedor: st.proveedor.nombre,
       producto: st.productos[0].nombre,
-      categoria: st.productos[0].categoria||null,
+      // La columna no admite vacío: la del primer producto que tenga (antes, solo la del primero).
+      categoria: (st.productos.find(p=>p.categoria)||{}).categoria||null,
       imagen_url: st.productos[0].imagen_url||null,
       sku: st.productos[0].sku||null,
       productos: st.productos.map(p=>({id:p.id||null,nombre:p.nombre,categoria:p.categoria||null,imagen_url:p.imagen_url||null,sku:p.sku||null})),
@@ -895,7 +901,8 @@
       // column ... violates not-null constraint") no le dice nada a quien carga la campaña.
       const m=String(e.message||e);
       const campo=(m.match(/column "([^"]+)"/)||[])[1];
-      const NOMBRE={accion:'la mecánica de la promoción (paso 5)', producto:'el producto (paso 2)', proveedor:'el proveedor (paso 1)'};
+      const NOMBRE={accion:'la mecánica de la promoción (paso 5)', producto:'el producto (paso 2)', proveedor:'el proveedor (paso 1)',
+        categoria:'la categoría: en el paso 2, sacá el producto escrito y agregalo de nuevo eligiendo la categoría al lado'};
       msg.style.color='#c0392b';
       // Faltan las columnas nuevas de segmentación: no se reintenta sin ellas
       if(/\b(secciones|zonas)\b/i.test(m)){ msg.textContent='Falta correr segmentacion-setup.sql en Supabase (proyecto del manual).'; return; }
