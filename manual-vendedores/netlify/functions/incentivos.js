@@ -18,7 +18,7 @@
 // ============================================================
 
 const { regionDe } = require('./_equipo.js');
-const { traerTodo } = require('./_paginar.js');
+const { traerTodo } = require('./_paginar.js');
 const { excluidos, esExcluido } = require('./_vendedores-excluidos');
 
 const HUB_URL  = 'https://xqhyemccbwmzxqzkrtwa.supabase.co';
@@ -110,7 +110,9 @@ async function plan5T(codigos, nombreDeCod, alcance) {
     // Cumplimiento (Opción A): clientes con 4+ de 5 ÷ clientes a los que puede venderle Campari.
     const porVendedor = Object.values(vmap).map(v => ({ ...v, pct: pct(v.completos, v.objetivo) })).sort((a, b) => b.pct - a.pct);
     const objetivoTotal = Object.values(vmap).reduce((a, v) => a + (v.objetivo || 0), 0);
-    return { universo, completos, objetivoTotal, pct: pct(completos, objetivoTotal), casillerosSi, casillerosTot, porMarca, porVendedor, clientes: filas };
+    // % general = clientes con 4+ de 5 sobre los que COMPRAN Campari (universo), misma base que
+    // "por marca" (pedido de Josefina 25/11). El objetivoTotal queda como contexto (cobro por vendedor).
+    return { universo, completos, objetivoTotal, pct: pct(completos, universo), casillerosSi, casillerosTot, porMarca, porVendedor, clientes: filas };
   }
   const p3 = armar(() => true);
   const pMes = armar(f => f >= mesDesde);

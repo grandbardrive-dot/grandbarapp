@@ -372,8 +372,8 @@
         <div class="vbody">${clientes}</div></div>`;
     }).join('');
     return `<div class="hero">${ring(per.pct)}<div class="heroR">
-          <div class="stat"><span class="n">${per.completos}</span><span class="l">clientes con 4+ de 5 (de ${per.objetivoTotal} posibles)</span></div>
-          <div class="stat"><span class="n">${per.universo}</span><span class="l">compran Campari hoy</span></div>
+          <div class="stat"><span class="n">${per.completos}</span><span class="l">de ${per.universo} que compran Campari tienen 4+ de 5</span></div>
+          <div class="stat"><span class="n">${per.objetivoTotal}</span><span class="l">clientes objetivo (a los que se les puede vender)</span></div>
           <div class="obj">🎯 <b>Objetivo Campari: 4 de las 5 marcas por cliente.</b> OFF Mendoza solo vinotecas; ON Mza y San Luis, todos sus clientes.</div>
       </div></div>
       <div class="secT">Por marca</div>${marcas}
