@@ -146,7 +146,9 @@
   .vhead{display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer;background:#fff}
   .vhead:hover{background:#fdfaf3}
   .vhead .vn{font-weight:800;font-size:14.5px;flex:1;min-width:0}
-  .vhead .vmeta{font-size:12px;color:var(--muted)}
+  .vhead .vmeta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:5px}
+  .vhead .vmeta span{white-space:nowrap}
+  .vhead .vmeta b{color:var(--ink);font-weight:800}
   .vpct{font-weight:900;font-size:16px;width:46px;text-align:right}
   .vmini{width:70px;flex:none}
   .chev{width:16px;height:16px;color:var(--muted);transition:transform .2s;flex:none}
@@ -364,7 +366,7 @@
       }).join('');
       return `<div class="vrow"><div class="vhead" onclick="this.parentNode.classList.toggle('open')">
           <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
-          <div class="vn">${esc(v.nombre)}<div class="vmeta">${v.completos} de ${v.objetivo} con 4+ de 5 · ${v.clientes} compran Campari</div></div>
+          <div class="vn">${esc(v.nombre)}<div class="vmeta"><span>Objetivo: <b>${v.objetivo}</b></span><span>Clientes compradores: <b>${v.clientes}</b></span><span>No compradores: <b>${Math.max(0,(v.objetivo||0)-(v.clientes||0))}</b></span><span>Con 4+ marcas: <b>${v.completos}</b></span></div></div>
           <div class="vmini"><div class="track"><div class="fill ${cls}" style="width:${v.pct}%"></div></div></div>
           <div class="vpct">${v.pct}%</div></div>
         <div class="vbody">${clientes}</div></div>`;
