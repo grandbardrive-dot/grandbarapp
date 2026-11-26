@@ -31,7 +31,7 @@
   /* ===== PROVEEDORES ===== */
   .cover{padding:22px 20px 6px}
   .cover .eyebrow{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
-  .cover h1{font-family:'Archivo';font-weight:900;font-size:clamp(46px,13vw,76px);line-height:.82;text-transform:uppercase;letter-spacing:-2.5px;margin-top:8px}
+  .cover h1{font-family:'Archivo';font-weight:900;font-size:clamp(36px,8.5vw,62px);line-height:.86;text-transform:uppercase;letter-spacing:-2px;margin-top:8px;max-width:12ch}
   .cover .tag2{font-family:'Archivo';font-weight:800;font-size:clamp(15px,3.6vw,20px);text-transform:uppercase;letter-spacing:-.3px;margin-top:14px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
   .cover .tag2 .hl{background:var(--red);color:#fff;padding:2px 9px;transform:skewX(-7deg);display:inline-block}
   .cover .tag2 .hl span{display:inline-block;transform:skewX(7deg)}
@@ -229,9 +229,8 @@ async function cargarProveedores(){
   const app=document.getElementById('app');
   app.innerHTML=
    '<div class="cover">'+(EMBED?'':'<button class="bk" id="bkPanel" style="background:rgba(0,0,0,.08);color:var(--ink);margin-bottom:10px">&larr; Volver</button><br>')+
-     '<div class="eyebrow">'+(ESKAF?'KAF · Ejecuciones':'Manual del vendedor')+'</div>'+
-     '<h1>Ejecu<span style="color:var(--red)">·</span>ciones</h1>'+
-     '<div class="tag2"><span class="hl"><span>Líderes en ejecuciones</span></span><span class="obj">Objetivo 2027</span></div>'+
+     '<div class="eyebrow">Programa 2027'+(ESKAF?' · KAF':'')+'</div>'+
+     '<h1>Líderes en la <span style="color:var(--red)">ejecución</span></h1>'+
      '<div class="sc">elegí la marca &rarr;</div></div>'+
    '<div class="provs">'+
      activos.map(p=>'<div class="prov" data-prov="'+esc(p.proveedor)+'"><span class="tape" style="top:-10px;left:50%;margin-left:-37px;transform:rotate(-3deg)"></span><div class="logo">'+logoHTML(p)+'</div><div class="cap"><b>'+esc(p.proveedor)+'<small>'+p.tipos+' ejecucion'+(p.tipos===1?'':'es')+'</small></b><span class="go">Entrar</span></div></div>').join('')+
