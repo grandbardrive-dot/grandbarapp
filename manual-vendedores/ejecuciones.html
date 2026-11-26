@@ -63,24 +63,28 @@
   .tab.on{background:var(--ink);color:var(--paper)}
   .sec{display:none;padding:16px 20px 36px}.sec.on{display:block}
   @media(max-width:520px){.sec{padding:14px 16px 32px}}
-  .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:22px}
-  @media(max-width:520px){.cgrid{grid-template-columns:1fr;gap:20px}}
-  /* card ejecución */
-  .card{position:relative;background:#fff;border:1px solid #d9d2c3;box-shadow:0 10px 22px rgba(0,0,0,.15)}
-  .card:nth-child(odd){transform:rotate(-.5deg)}.card:nth-child(even){transform:rotate(.5deg)}
-  .card .photo{position:relative;height:190px;overflow:hidden;border-bottom:3px solid var(--ink);background:var(--ink)}
-  .card .photo img{width:100%;height:100%;object-fit:cover;filter:contrast(1.04) saturate(1.04)}
+  .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:34px 30px;padding-top:10px}
+  @media(max-width:520px){.cgrid{grid-template-columns:1fr;gap:34px}}
+  /* card ejecución = recorte polaroid pegado al tablero */
+  .card{position:relative;background:#fff;padding:9px 9px 0;border:1px solid #e3dccb;box-shadow:0 12px 26px rgba(0,0,0,.18)}
+  .card:nth-child(3n+1){transform:rotate(-2deg)}.card:nth-child(3n+2){transform:rotate(1.5deg)}.card:nth-child(3n){transform:rotate(-.7deg)}
+  .card::before,.card::after{content:"";position:absolute;top:-11px;width:70px;height:23px;background:var(--tape);box-shadow:0 1px 2px rgba(0,0,0,.12);z-index:5}
+  .card::before{left:16px;transform:rotate(-5deg)}
+  .card::after{right:16px;transform:rotate(4.5deg)}
+  .card .photo{position:relative;height:186px;overflow:hidden;background:var(--ink)}
+  .card .photo img{width:100%;height:100%;object-fit:cover;filter:contrast(1.05) saturate(1.05)}
   .card .photo.nofoto{display:flex;align-items:center;justify-content:center}
-  .card .photo.nofoto::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.12) 1.1px,transparent 1.3px);background-size:8px 8px}
+  .card .photo.nofoto::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.13) 1.1px,transparent 1.3px);background-size:8px 8px}
   .card .photo.nofoto .big{position:relative;font-family:'Archivo';font-weight:900;font-size:38px;color:var(--paper);text-transform:uppercase;letter-spacing:-1px;opacity:.92}
-  .card .cat{position:absolute;top:10px;left:10px;background:var(--ink);color:var(--paper);font-family:'Archivo';font-weight:800;font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:4px 9px;z-index:2}
-  .card .stamp{position:absolute;right:11px;bottom:-18px;width:66px;height:66px;border-radius:50%;background:var(--red);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(-8deg);box-shadow:0 6px 14px rgba(0,0,0,.25);border:2px solid #fff;z-index:2}
-  .card .stamp b{font-family:'Archivo';font-weight:900;font-size:25px;line-height:.8}
+  .card .cat{position:absolute;top:10px;left:-5px;background:#fff;color:var(--red);border:1.5px solid var(--ink);font-family:'Permanent Marker',cursive;font-size:13px;padding:2px 10px;transform:rotate(-2.5deg);z-index:3;box-shadow:1px 2px 0 rgba(0,0,0,.15)}
+  .card .stamp{position:absolute;right:10px;bottom:-20px;width:64px;height:64px;border-radius:50%;background:var(--red);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;transform:rotate(-9deg);box-shadow:0 6px 14px rgba(0,0,0,.28);border:2px solid #fff;z-index:3}
+  .card .stamp b{font-family:'Archivo';font-weight:900;font-size:24px;line-height:.8}
   .card .stamp span{font-size:7.5px;font-weight:800;letter-spacing:.1em}
-  .card .bd{padding:16px 15px 14px}
-  .card h3{font-family:'Archivo';font-weight:900;font-size:21px;text-transform:uppercase;line-height:.94;letter-spacing:-.5px;max-width:74%}
+  .card .bd{padding:18px 7px 12px;position:relative}
+  .card h3{font-family:'Archivo';font-weight:900;font-size:21px;text-transform:uppercase;line-height:.92;letter-spacing:-.5px;max-width:76%}
   .card .d{font-size:12.5px;color:var(--mut);margin-top:7px}
-  .card .acts{display:flex;border-top:2px solid var(--ink)}
+  .card .scrib{position:absolute;right:4px;top:-2px;font-family:'Permanent Marker',cursive;color:var(--red);font-size:12.5px;transform:rotate(-7deg);max-width:86px;text-align:center;line-height:1.05}
+  .card .acts{display:flex;margin:4px -9px 0;border-top:2px solid var(--ink)}
   .card .acts button{flex:1;font-family:'Archivo';font-weight:800;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;padding:13px;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;background:#fff}
   .card .acts .man{border-right:2px solid var(--ink)}
   .card .acts .car{background:var(--red);color:#fff}
@@ -263,9 +267,12 @@ function pintarCatalogo(){
   app.querySelectorAll('[data-car]').forEach(b=>b.onclick=()=>abrirCarga(b.dataset.car));
 }
 function tipoPorId(id){ return (DATA.tipos||[]).find(t=>t.id===id); }
+const SCRIB={'Exhibición':'¡bien grande!','Barra':'a la vista','Pizarra':'que se lea','Puntera':'solo la línea','Cooler':'cargada'};
 function cardTipo(t){
-  const foto=t.foto_si?'<div class="photo"><span class="cat">'+esc(t.categoria||'Ejecución')+'</span><img src="'+esc(t.foto_si)+'" alt="">'+(ESKAF?'':'<div class="stamp"><b>'+(t.puntos||0)+'</b><span>PTS</span></div>')+'</div>'
-    :'<div class="photo nofoto"><span class="cat">'+esc(t.categoria||'Ejecución')+'</span><span class="big">'+esc(t.categoria||'Campari')+'</span>'+(ESKAF?'':'<div class="stamp"><b>'+(t.puntos||0)+'</b><span>PTS</span></div>')+'</div>';
+  const stamp=ESKAF?'':'<div class="stamp"><b>'+(t.puntos||0)+'</b><span>PTS</span></div>';
+  const cat='<span class="cat">'+esc((t.categoria||'Ejecución').toLowerCase())+'</span>';
+  const foto=t.foto_si?'<div class="photo">'+cat+'<img src="'+esc(t.foto_si)+'" alt="">'+stamp+'</div>'
+    :'<div class="photo nofoto">'+cat+'<span class="big">'+esc(t.categoria||'Campari')+'</span>'+stamp+'</div>';
   return '<div class="card">'+foto+
     '<div class="bd"><h3>'+esc(t.nombre)+'</h3><div class="d">'+esc(t.descripcion||'')+'</div></div>'+
     '<div class="acts"><button class="man" data-man="'+t.id+'">'+IC.book+'Manual</button><button class="car" data-car="'+t.id+'">'+IC.cam+'Cargar</button></div></div>';
