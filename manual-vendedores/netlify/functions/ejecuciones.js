@@ -86,8 +86,11 @@ exports.handler = async (event) => {
     }
     // Links temporales (1 h) para las fotos de la carpeta privada.
     async function firmar(filas) {
-      const paths = [].concat(...filas.map(f => (f.fotos || [])));
+      const todos = [].concat(...filas.map(f => (f.fotos || [])));
       const url = {};
+      // Las que ya son URL pública (ej. fotos de ejemplo) pasan tal cual; el resto se firma.
+      todos.forEach(p => { if (/^https?:\/\//i.test(String(p))) url[p] = p; });
+      const paths = todos.filter(p => !/^https?:\/\//i.test(String(p)));
       if (paths.length) {
         const r = await st('object/sign/' + BUCKET, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresIn: 3600, paths }) });
         const lista = r.ok ? await r.json() : [];
