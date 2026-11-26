@@ -8,7 +8,8 @@
 //  Este script va en esas tres pantallas, después de supabase-js y antes del
 //  script de cada una. También en admin-secciones (10/11/2026: Juan Pablo organiza las
 //  secciones del manual desde trade-secciones.html) y en admin-catalogo (11/11/2026: carga
-//  proveedores y productos desde trade-productos.html). Ahí los cambios van directo, sin
+//  proveedores y productos desde trade-productos.html), en admin-materiales y admin-material-nuevo
+//  (26/11/2026: materiales POP desde trade-materiales.html). Ahí los cambios van directo, sin
 //  aprobación, y solo se usa para el marco. Expone window.GBRevision:
 //    await GBRevision.listo          → { esTrade, esComercial, uid, nombre }
 //    GBRevision.camposTrade('campania'|'plan')  → lo que se agrega al guardar en modo Trade
@@ -43,8 +44,10 @@
     + '.gbr-msg{font-size:13px;font-weight:700;margin-top:6px;min-height:16px}'
     + '.gbr-aviso{background:#fff;border:1px solid rgba(31,68,127,.14);border-left:4px solid #C0912F;border-radius:12px;padding:12px 15px;margin:0 0 16px;font-size:13.5px;line-height:1.5;display:flex;gap:10px;align-items:center;flex-wrap:wrap}'
     + '.gbr-aviso a{color:#1F447F;font-weight:700;text-decoration:underline;cursor:pointer}';
-  // En el marco del panel de Juan Pablo, sin el menú ni la barra de Luciana.
-  if (embebida) css += 'aside.sidebar,header.topbar,#gb-mtop{display:none!important} .layout{grid-template-columns:1fr!important} body.gb-has-mtop{padding-top:0!important}';
+  // En el marco del panel de Juan Pablo, sin el menú ni la barra de Luciana. Una barra con
+  // .gbr-queda se deja (la de Nuevo material tiene la flecha para volver a la lista), y el
+  // botón de menú del celular de _admin-sidebar.js (Materiales) tampoco va (26/11/2026).
+  if (embebida) css += 'aside.sidebar,header.topbar:not(.gbr-queda),#gb-mtop,.sb-burger,.sb-backdrop{display:none!important} .layout{grid-template-columns:1fr!important} body.gb-has-mtop{padding-top:0!important}';
   var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
   R.listo = (async function () {
@@ -59,10 +62,12 @@
       R.esTrade = rol === 'torneo';
       R.esComercial = COMERCIAL.indexOf(rol) >= 0;
       // Juan Pablo entra siempre por su panel: si abre la pantalla suelta, se la muestra adentro.
-      // Secciones (10/11/2026) y Proveedores y productos (11/11/2026) tienen su propia opción
-      // en el menú de Trade.
+      // Secciones (10/11/2026), Proveedores y productos (11/11/2026) y Materiales (26/11/2026)
+      // tienen su propia opción en el menú de Trade.
       var pag = location.pathname.split('/').pop();
-      var PROPIAS = { 'admin-secciones.html': '/trade-secciones.html', 'admin-catalogo.html': '/trade-productos.html' };
+      var PROPIAS = { 'admin-secciones.html': '/trade-secciones.html', 'admin-catalogo.html': '/trade-productos.html',
+        'admin-materiales.html': '/trade-materiales.html' + (location.hash === '#movimientos' ? '#movimientos' : ''),
+        'admin-material-nuevo.html': '/trade-materiales.html' };
       if (R.esTrade && !embebida) location.replace(PROPIAS[pag] || '/trade-campanias.html?ir=' + encodeURIComponent(pag + location.search));
     } catch (e) {}
     return R;

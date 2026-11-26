@@ -74,7 +74,7 @@
 </style>
 </head>
 <body>
-<header class="topbar">
+<header class="topbar gbr-queda">
   <button class="back" onclick="location.href='admin-materiales.html'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <div class="top-t" id="top-t">Nuevo material</div>
 </header>
@@ -130,6 +130,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="_config.js"></script>
+<!-- Juan Pablo (Trade) usa esta pantalla en trade-materiales.html (26/11/2026) -->
+<script src="_trade-revision.js?v=4"></script>
 <script>
   sessionStorage.setItem('admin_auth','1');
   if(!sessionStorage.getItem('admin_perfil')) sessionStorage.setItem('admin_perfil','marketing');
