@@ -120,8 +120,8 @@
   .mh{position:sticky;top:0;z-index:2;background:var(--ink);color:var(--paper);padding:14px 16px;display:flex;justify-content:space-between;align-items:center;overflow:hidden}
   .mh::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) 1.1px,transparent 1.3px);background-size:7px 7px;opacity:.5}
   .mh b{position:relative;font-family:'Archivo';font-weight:900;font-size:15px;text-transform:uppercase;letter-spacing:.02em}
-  .mh .x{position:relative;background:var(--red);border:0;color:#fff;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-  .mh .x svg{width:18px;height:18px}
+  .mh .x{position:relative;background:var(--red);border:0;color:#fff;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3}
+  .mh .x svg{width:18px;height:18px;pointer-events:none}
   .mb{padding:15px 16px 20px}
   .exh{border:2px solid var(--ink);margin-bottom:14px;background:#fff}
   .exh .cap{display:flex;align-items:center;gap:8px;padding:9px 13px;font-family:'Archivo';font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--paper)}
@@ -161,14 +161,14 @@
 
 <!-- MODAL MANUAL -->
 <div class="ov" id="ovMan" hidden><div class="md">
-  <div class="mh"><b id="manTit">Manual</b><button class="x" onclick="cerrar('ovMan')" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="mh"><b id="manTit">Manual</b><button class="x" data-cerrar="ovMan" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="mb" id="manBody"></div>
   <div class="mfoot"><button class="bigbtn" id="manCargar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 8h3l1.5-2h9L18 8h3v11H3z"/><circle cx="12" cy="13" r="3.2"/></svg>Cargar esta ejecución</button></div>
 </div></div>
 
 <!-- MODAL CARGA -->
 <div class="ov" id="ovCar" hidden><div class="md">
-  <div class="mh"><b id="carTit">Cargar ejecución</b><button class="x" onclick="cerrar('ovCar')" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="mh"><b id="carTit">Cargar ejecución</b><button class="x" data-cerrar="ovCar" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="mb">
     <div class="carbox">
       <div><b id="carNom"></b><small id="carDesc"></small></div>
@@ -398,8 +398,10 @@ async function cargarCartera(){
 }
 document.getElementById('carFile').addEventListener('change',e=>{ sumarFotos(e.target.files); e.target.value=''; });
 document.getElementById('carOk').addEventListener('click',enviar);
-document.querySelectorAll('.ov').forEach(ov=>ov.addEventListener('click',e=>{ if(e.target===ov) cerrar(ov.id); }));
-document.querySelectorAll('.ov .x').forEach(b=>b.addEventListener('click',()=>{ const ov=b.closest('.ov'); if(ov) cerrar(ov.id); }));
+document.addEventListener('click',e=>{
+  const x=e.target.closest&&e.target.closest('.ov .x'); if(x){ const ov=x.closest('.ov'); if(ov){ cerrar(ov.id); } return; }
+  const ov=e.target.closest&&e.target.closest('.ov'); if(ov && e.target===ov) cerrar(ov.id);
+});
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ document.querySelectorAll('.ov:not([hidden])').forEach(ov=>cerrar(ov.id)); } });
 cargarProveedores();
 </script>
