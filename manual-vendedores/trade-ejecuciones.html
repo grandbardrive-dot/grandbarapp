@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d2230">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<title>Validar ejecuciones · Trade</title>
+<style>
+  :root{--navy:#1F447F;--navy-dd:#0f2340;--gold:#CBB86A;--gold-d:#B08D2E;--bg:#F4F1EA;--surface:#fff;--ink:#1F1B16;--ink2:#5f574c;--ink3:#9a9187;--line:rgba(31,68,127,.12);--green:#2D6A4F;--green-bg:#E7F1EC;--red:#C0392B;--red-bg:#FBEAE7;--amber:#9A6B0E;--amber-bg:#FAF0DA}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+  .wrap{max-width:760px;margin:0 auto;padding-bottom:50px}
+  .hd{background:linear-gradient(185deg,var(--navy),var(--navy-dd));color:#fff;padding:16px 18px 18px;border-bottom:3px solid var(--gold)}
+  .hd h1{font-size:20px;font-weight:800}.hd p{font-size:12.5px;color:rgba(255,255,255,.72)}
+  .filtros{display:flex;gap:7px;padding:12px 16px 4px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5}
+  .fi{padding:8px 13px;border-radius:9px;font-size:12.5px;font-weight:700;color:var(--ink2);background:var(--surface);border:1px solid var(--line);cursor:pointer}
+  .fi.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .fi .c{display:inline-block;min-width:18px;text-align:center;background:var(--gold);color:var(--navy-dd);border-radius:20px;font-size:11px;padding:0 5px;margin-left:5px}
+  .list{padding:8px 16px 0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:13px}
+  .r1{display:flex;gap:12px;align-items:flex-start}
+  .r1 .ti{flex:1}.r1 .ti b{font-size:15.5px;display:block}.r1 .ti small{font-size:12.5px;color:var(--ink2);display:block;margin-top:1px}
+  .pts-badge{flex:none;background:var(--gold);color:var(--navy-dd);font-weight:800;font-size:13px;border-radius:9px;padding:5px 9px;text-align:center}
+  .pts-badge small{display:block;font-size:10px}
+  .fotos{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+  .fotos a{width:120px;height:120px;border-radius:10px;overflow:hidden;background:#e7ecf2;display:block}
+  .fotos img{width:100%;height:100%;object-fit:cover}
+  .com{background:#f6f3ee;border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:10px}
+  .st{display:inline-block;font-size:11px;font-weight:800;border-radius:7px;padding:3px 9px}
+  .st.ap{background:var(--green-bg);color:var(--green)}.st.pe{background:var(--amber-bg);color:var(--amber)}.st.re{background:var(--red-bg);color:var(--red)}
+  .acts{display:flex;gap:8px;margin-top:6px}
+  .btn{flex:1;border-radius:10px;padding:11px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;border:1px solid}
+  .btn.ok{background:var(--green);color:#fff;border-color:var(--green)}
+  .btn.re{background:#fff;color:var(--amber);border-color:var(--amber)}
+  .btn.no{background:#fff;color:var(--red);border-color:var(--red)}
+  .btn:disabled{opacity:.5}
+  .vinfo{font-size:11.5px;color:var(--ink3);margin-top:8px}
+  .empty{text-align:center;color:var(--ink3);font-size:14px;padding:40px 10px}
+  .load{text-align:center;color:var(--ink3);font-size:14px;padding:50px}
+  .ov{position:fixed;inset:0;background:rgba(15,35,64,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .ov[hidden]{display:none}
+  .md{background:#fff;width:100%;max-width:420px;border-radius:16px;padding:18px}
+  .md h3{font-size:16px;margin-bottom:4px}.md p{font-size:13px;color:var(--ink2);margin-bottom:10px}
+  .md textarea{width:100%;border:1.5px solid #dfe3e6;border-radius:10px;padding:10px;font:inherit;font-size:14px;min-height:70px}
+  .md .f{display:flex;gap:8px;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd"><a href="/trade-evidencias.html" style="color:rgba(255,255,255,.75);font-size:12.5px;text-decoration:none">‹ Panel de Trade</a><h1 style="margin-top:6px">Validar ejecuciones</h1><p>Aprobá las ejecuciones que cumplen el estándar. Si no, pedí rehacerla con un motivo.</p></div>
+  <div class="filtros" id="filtros"></div>
+  <div class="list" id="list"><div class="load">Cargando…</div></div>
+</div>
+
+<div class="ov" id="ov" hidden><div class="md">
+  <h3 id="ovTit">Motivo</h3><p id="ovSub"></p>
+  <textarea id="ovTxt" placeholder="Qué tiene que corregir el vendedor…"></textarea>
+  <div class="f"><button class="btn" style="background:#fff;color:var(--ink2);border-color:var(--line)" onclick="cerrar()">Cancelar</button><button class="btn no" id="ovOk">Confirmar</button></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const FN='/.netlify/functions/ejecuciones';
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let HUBCLI=null, CFG=null, FILTRO='pendiente', PEND=0;
+function hub(){ return HUBCLI=HUBCLI||supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co','sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc'); }
+async function token(){ try{ const {data}=await hub().auth.getSession(); return data&&data.session&&data.session.access_token||null; }catch(e){ return null; } }
+function fcorta(f){ if(!f) return ''; const p=String(f).slice(0,10).split('-'); return p[2]+'/'+p[1]; }
+
+const EST={pendiente:['pe','Pendiente'],aprobada:['ap','Aprobada'],rehacer:['re','Rehacer'],rechazada:['re','No aprobada']};
+async function cargar(){
+  const tok=await token();
+  if(!tok){ document.getElementById('list').innerHTML='<div class="empty">Entrá con tu cuenta de GrandBar para validar.</div>'; return; }
+  let d;
+  try{
+    const r=await fetch(FN+'?vista=cola&estado='+FILTRO,{headers:{Authorization:'Bearer '+tok}});
+    d=await r.json(); if(!r.ok) throw new Error(d.error||'No se pudo cargar.');
+  }catch(e){ document.getElementById('list').innerHTML='<div class="empty">'+esc(e.message)+'</div>'; return; }
+  CFG=d.config||{valor_punto:100};
+  // contador de pendientes (siempre)
+  try{ const rp=await fetch(FN+'?vista=cola&estado=pendiente',{headers:{Authorization:'Bearer '+tok}}); const dp=await rp.json(); PEND=(dp.ejecuciones||[]).length; }catch(e){}
+  pintarFiltros();
+  const l=d.ejecuciones||[];
+  document.getElementById('list').innerHTML = l.length ? l.map(c=>card(c,d.puedeValidar)).join('') : '<div class="empty">No hay ejecuciones '+(FILTRO==='pendiente'?'pendientes. ¡Al día!':'en este estado.')+'</div>';
+  document.querySelectorAll('[data-ap]').forEach(b=>b.onclick=()=>validar(b.dataset.ap,'aprobada'));
+  document.querySelectorAll('[data-re]').forEach(b=>b.onclick=()=>pedirMotivo(b.dataset.re,'rehacer'));
+  document.querySelectorAll('[data-no]').forEach(b=>b.onclick=()=>pedirMotivo(b.dataset.no,'rechazada'));
+}
+function pintarFiltros(){
+  const fs=[['pendiente','Pendientes',PEND],['aprobada','Aprobadas'],['rehacer','A rehacer'],['rechazada','No aprobadas'],['','Todas']];
+  document.getElementById('filtros').innerHTML=fs.map(f=>'<button class="fi'+(FILTRO===f[0]?' on':'')+'" data-f="'+f[0]+'">'+f[1]+(f[2]?'<span class="c">'+f[2]+'</span>':'')+'</button>').join('');
+  document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ FILTRO=b.dataset.f; cargar(); window.scrollTo(0,0); });
+}
+function card(c,puede){
+  const e=EST[c.estado]||['pe',c.estado];
+  const fotos=(c.fotos_url||[]).map(u=>'<a href="'+esc(u)+'" target="_blank"><img src="'+esc(u)+'" alt=""></a>').join('')||'<div style="color:#9bb0c9;font-size:12px">sin fotos</div>';
+  const money='$'+Math.round((c.puntos||0)*(CFG.valor_punto||100)).toLocaleString('es-AR');
+  let acts='';
+  if(c.estado==='pendiente'&&puede) acts='<div class="acts"><button class="btn ok" data-ap="'+c.id+'">✓ Aprobar (+'+(c.puntos||0)+')</button><button class="btn re" data-re="'+c.id+'">↻ Rehacer</button><button class="btn no" data-no="'+c.id+'">✕ No</button></div>';
+  let vinfo='';
+  if(c.estado!=='pendiente') vinfo='<div class="vinfo">'+esc(EST[c.estado]?EST[c.estado][1]:c.estado)+(c.validado_por?' por '+esc(c.validado_por):'')+(c.validado_at?' · '+fcorta(c.validado_at):'')+(c.validacion_comentario?' · "'+esc(c.validacion_comentario)+'"':'')+'</div>';
+  return '<div class="card"><div class="r1"><div class="ti"><b>'+esc(c.tipo_nombre||'Ejecución')+'</b>'+
+    '<small>'+esc(c.vendedor_nombre||c.vendedor_codigo||'')+(c.cliente_nombre?' · '+esc(c.cliente_nombre):'')+' · '+fcorta(c.created_at)+'</small></div>'+
+    '<div style="text-align:right"><span class="st '+e[0]+'">'+e[1]+'</span><div class="pts-badge" style="margin-top:6px">'+(c.puntos||0)+'<small>PTS · '+money+'</small></div></div></div>'+
+    '<div class="fotos">'+fotos+'</div>'+(c.comentario?'<div class="com">'+esc(c.comentario)+'</div>':'')+acts+vinfo+'</div>';
+}
+let MOT=null;
+function pedirMotivo(id,estado){
+  MOT={id,estado};
+  document.getElementById('ovTit').textContent=estado==='rehacer'?'Pedir rehacer':'No aprobar';
+  document.getElementById('ovSub').textContent=estado==='rehacer'?'Contale al vendedor qué corregir para rehacerla.':'Motivo por el que no se aprueba.';
+  document.getElementById('ovTxt').value='';
+  document.getElementById('ov').hidden=false;
+}
+function cerrar(){ document.getElementById('ov').hidden=true; MOT=null; }
+document.getElementById('ovOk').onclick=()=>{ if(!MOT) return; const txt=document.getElementById('ovTxt').value.trim(); if(!txt){ document.getElementById('ovTxt').focus(); return; } validar(MOT.id,MOT.estado,txt); };
+async function validar(id,estado,comentario){
+  const tok=await token(); if(!tok){ alert('Entrá de nuevo.'); return; }
+  try{
+    const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({accion:'validar',id,estado,comentario:comentario||null})});
+    const d=await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error||'No se pudo guardar.');
+    cerrar(); cargar();
+  }catch(e){ alert(e.message||String(e)); }
+}
+cargar();
+</script>
+</body>
+</html>
