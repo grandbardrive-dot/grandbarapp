@@ -7,54 +7,76 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <title>Ejecuciones · GrandBar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap">
 <style>
   :root{
-    --navy:#1F447F; --navy-d:#16305a; --navy-dd:#0f2340; --gold:#CBB86A; --gold-d:#B08D2E;
-    --bg:#F4F1EA; --surface:#fff; --surface2:#FBF9F5; --ink:#1F1B16; --ink2:#5f574c; --ink3:#9a9187;
-    --line:rgba(31,68,127,.12); --green:#2D6A4F; --green-bg:#E7F1EC; --red:#C0392B; --red-bg:#FBEAE7; --amber:#9A6B0E; --amber-bg:#FAF0DA;
+    --navy:#1F447F; --navy-d:#16305a; --navy-dd:#0b1d38; --gold:#CBB86A; --gold-2:#e4cf8f; --gold-d:#9c7d26;
+    --bg:#F3EFE7; --surface:#fff; --surface2:#FBF9F5; --ink:#1b1712; --ink2:#5f574c; --ink3:#9a9187;
+    --line:#ece5d6; --green:#2D6A4F; --green-bg:#E7F1EC; --red:#C0392B; --red-bg:#FBEAE7; --amber:#9A6B0E; --amber-bg:#FAF0DA;
+    --shadow:0 1px 2px rgba(20,30,50,.04),0 10px 26px rgba(20,30,50,.07);
+    --font:'Inter',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --disp:'Fraunces',Georgia,serif;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
-  .phone{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:40px}
-  .hd{background:linear-gradient(185deg,var(--navy),var(--navy-dd));color:#fff;padding:14px 18px 18px;border-bottom:3px solid var(--gold)}
-  .hd .top{display:flex;align-items:center;gap:8px;font-size:12.5px;color:rgba(255,255,255,.7)}
-  .hd .back{background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:8px;padding:5px 9px;font-size:12px;cursor:pointer;text-decoration:none}
-  .hd h1{font-size:19px;font-weight:800;margin:9px 0 2px}
-  .hd p{font-size:12.5px;color:rgba(255,255,255,.72);max-width:42ch}
-  .wal{margin:13px 0 0;background:rgba(255,255,255,.08);border:1px solid rgba(203,184,106,.4);border-radius:14px;padding:12px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .wal .l{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold)}
-  .wal .pts{font-size:28px;font-weight:800;line-height:1;color:#fff;font-variant-numeric:tabular-nums}
-  .wal .pts small{font-size:13px;font-weight:600;color:rgba(255,255,255,.7)}
-  .wal .eq{text-align:right}
-  .wal .eq .m{font-size:20px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums}
-  .wal .eq .s{font-size:10px;color:rgba(255,255,255,.55)}
-  .tabs{display:flex;gap:6px;padding:12px 14px 4px;position:sticky;top:0;background:var(--bg);z-index:5}
-  .tab{flex:1;text-align:center;padding:9px 6px;border-radius:10px;font-size:12.5px;font-weight:700;color:var(--ink2);background:var(--surface);border:1px solid var(--line);cursor:pointer}
-  .tab.on{background:var(--navy);color:#fff;border-color:var(--navy)}
-  .wrap{padding:8px 14px 0}
-  .sec{display:none} .sec.on{display:block}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
-  .card .r1{display:flex;align-items:flex-start;gap:10px}
-  .ico{flex:none;width:44px;height:44px;border-radius:11px;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px}
-  .ti{flex:1;min-width:0}.ti b{font-size:15px;font-weight:800;display:block;color:var(--ink)}.ti small{font-size:12px;color:var(--ink2)}
-  .pts-badge{flex:none;background:var(--gold);color:var(--navy-dd);font-weight:800;font-size:13px;border-radius:9px;padding:5px 9px;white-space:nowrap;text-align:center}
-  .pts-badge small{font-weight:700;font-size:10px;display:block;letter-spacing:.04em}
-  .acts{display:flex;gap:8px;margin-top:12px}
-  .btn{flex:1;border-radius:10px;padding:10px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;border:1px solid var(--navy);display:flex;align-items:center;justify-content:center;gap:6px}
-  .btn.ghost{background:var(--surface2);color:var(--navy)} .btn.solid{background:var(--navy);color:#fff}
+  body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased}
+  .phone{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:46px}
+  /* header */
+  .hd{position:relative;overflow:hidden;background:linear-gradient(168deg,#24508f,var(--navy-dd));color:#fff;padding:16px 18px 20px;border-bottom:2px solid var(--gold)}
+  .hd::before{content:"";position:absolute;top:-90px;right:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(203,184,106,.32),transparent 70%)}
+  .hd>*{position:relative}
+  .hd .top{display:flex;align-items:center;gap:9px;font-size:12px;color:rgba(255,255,255,.62);letter-spacing:.02em}
+  .hd .back{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:9px;padding:5px 10px;font-size:12px;cursor:pointer;text-decoration:none}
+  .hd h1{font-family:var(--disp);font-weight:600;font-size:25px;letter-spacing:.2px;margin:11px 0 3px}
+  .hd p{font-size:12.5px;color:rgba(255,255,255,.74);max-width:44ch;line-height:1.5}
+  /* billetera */
+  .wal{margin:15px 0 2px;background:linear-gradient(135deg,rgba(255,255,255,.1),rgba(255,255,255,.035));border:1px solid rgba(203,184,106,.5);border-radius:16px;padding:13px 15px;display:flex;align-items:center;gap:13px}
+  .wal .wcoin{flex:none;width:46px;height:46px;border-radius:50%;background:linear-gradient(140deg,var(--gold-2),var(--gold-d));display:flex;align-items:center;justify-content:center;font-size:23px;box-shadow:0 4px 12px rgba(203,184,106,.35)}
+  .wal .wmain{flex:1;min-width:0}
+  .wal .l{font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--gold-2)}
+  .wal .pts{font-family:var(--disp);font-weight:700;font-size:32px;line-height:1.05;color:#fff;font-variant-numeric:tabular-nums}
+  .wal .pts small{font-family:var(--font);font-size:12.5px;font-weight:600;color:rgba(255,255,255,.65)}
+  .wal .eq{text-align:right;flex:none}
+  .wal .eq .m{font-family:var(--disp);font-size:21px;font-weight:700;color:var(--gold-2);font-variant-numeric:tabular-nums}
+  .wal .eq .s{font-size:9.5px;color:rgba(255,255,255,.5);margin-top:2px}
+  /* tabs segmentadas */
+  .tabbar{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 14px 6px}
+  .tabs{display:flex;gap:3px;padding:4px;background:#e7dfcf;border-radius:13px}
+  .tab{flex:1;text-align:center;padding:9px 6px;border-radius:10px;font-size:12.5px;font-weight:700;color:var(--ink2);background:transparent;border:0;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s}
+  .tab.on{background:var(--surface);color:var(--navy);box-shadow:0 2px 7px rgba(20,30,50,.1)}
+  .wrap{padding:4px 14px 0}
+  .sec{display:none}.sec.on{display:block;animation:fade .34s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){.sec.on{animation:none}}
+  /* card catálogo */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:15px 15px 14px;margin-bottom:13px;box-shadow:var(--shadow)}
+  .card .r1{display:flex;align-items:center;gap:12px}
+  .ico{flex:none;width:50px;height:50px;border-radius:14px;background:linear-gradient(145deg,#eaf0f8,#dce6f3);color:var(--navy);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:inset 0 0 0 1px rgba(31,68,127,.08)}
+  .ti{flex:1;min-width:0}.ti b{font-size:15.5px;font-weight:800;display:block;color:var(--ink);letter-spacing:-.1px}.ti small{font-size:12px;color:var(--ink2);display:block;margin-top:1px}
+  .pts-badge{flex:none;background:linear-gradient(140deg,var(--gold-2),var(--gold-d));color:#3a2d06;font-weight:800;font-size:15px;border-radius:12px;padding:6px 11px;white-space:nowrap;text-align:center;box-shadow:0 3px 8px rgba(203,184,106,.3);line-height:1}
+  .pts-badge .star{display:block;font-size:10px;opacity:.85;margin-bottom:2px}
+  .pts-badge small{font-weight:700;font-size:8.5px;display:block;letter-spacing:.07em;margin-top:2px}
+  .acts{display:flex;gap:8px;margin-top:13px;padding-top:13px;border-top:1px solid var(--line)}
+  .btn{flex:1;border-radius:11px;padding:11px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;border:1px solid var(--navy);display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .08s,filter .15s}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:#fff;color:var(--navy)}.btn.ghost:hover{background:var(--surface2)}
+  .btn.solid{background:linear-gradient(145deg,#2a5aa2,var(--navy-d));color:#fff;border-color:var(--navy-d)}.btn.solid:hover{filter:brightness(1.06)}
   .btn:disabled{opacity:.55;cursor:default}
-  .ev{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:11px 12px;margin-bottom:10px;display:flex;gap:11px;align-items:center}
-  .ev .ph{flex:none;width:52px;height:52px;border-radius:10px;background:#dfe6ef center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#9bb0c9;font-size:19px;overflow:hidden}
+  /* mis ejecuciones */
+  .ev{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:11px 12px;margin-bottom:11px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow)}
+  .ev .ph{flex:none;width:56px;height:56px;border-radius:12px;background:#dfe6ef center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#9bb0c9;font-size:19px;overflow:hidden}
   .ev .ph img{width:100%;height:100%;object-fit:cover}
-  .ev .in{flex:1;min-width:0}.ev .in b{font-size:14px;font-weight:800;display:block}.ev .in small{font-size:11.5px;color:var(--ink2);display:block}
-  .st{font-size:11px;font-weight:800;border-radius:7px;padding:4px 8px;white-space:nowrap}
+  .ev .in{flex:1;min-width:0}.ev .in b{font-size:14px;font-weight:800;display:block}.ev .in small{font-size:11.5px;color:var(--ink2);display:block;margin-top:1px}
+  .st{font-size:10.5px;font-weight:800;border-radius:999px;padding:4px 10px;white-space:nowrap;letter-spacing:.02em}
   .st.ap{background:var(--green-bg);color:var(--green)}.st.pe{background:var(--amber-bg);color:var(--amber)}.st.re{background:var(--red-bg);color:var(--red)}
-  .ev .pp{font-weight:800;color:var(--gold-d);font-size:13px;text-align:right;margin-top:3px}
-  .step{display:flex;gap:12px;margin-bottom:14px}
-  .step .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
-  .step .t b{font-size:14px}.step .t p{font-size:12.5px;color:var(--ink2)}
-  .mnote{background:var(--amber-bg);border:1px solid rgba(154,107,14,.25);border-radius:11px;padding:11px 13px;font-size:12.5px;color:#6b4e0c;margin-bottom:10px}
-  .empty{text-align:center;color:var(--ink3);font-size:13.5px;padding:30px 10px}
+  .ev .pp{font-family:var(--disp);font-weight:700;color:var(--gold-d);font-size:15px;text-align:right;margin-top:5px}
+  /* cómo funciona */
+  .step{display:flex;gap:13px;margin-bottom:15px}
+  .step:last-child{margin-bottom:0}
+  .step .n{flex:none;width:30px;height:30px;border-radius:50%;background:linear-gradient(140deg,var(--gold-2),var(--gold-d));color:#3a2d06;font-family:var(--disp);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .step .t b{font-size:14px}.step .t p{font-size:12.5px;color:var(--ink2);margin-top:1px}
+  .mnote{background:var(--amber-bg);border:1px solid rgba(154,107,14,.22);border-radius:12px;padding:11px 13px;font-size:12.5px;color:#6b4e0c;margin-bottom:10px}
+  .empty{text-align:center;color:var(--ink3);font-size:13.5px;padding:40px 16px;line-height:1.55}
   .ov{position:fixed;inset:0;background:rgba(15,35,64,.55);display:flex;align-items:flex-end;justify-content:center;z-index:50}
   .ov[hidden]{display:none}
   .md{background:var(--bg);width:100%;max-width:480px;max-height:93vh;overflow:auto;border-radius:18px 18px 0 0}
@@ -144,7 +166,7 @@ function pintar(){
   const KAF=!!DATA.esKaf;
   const app=document.getElementById('app');
   const walHTML = KAF ? '' :
-     '<div class="wal"><div><div class="l">Tus puntos '+esc(prov)+'</div><div class="pts">'+pts+' <small>pts</small></div></div>'+
+     '<div class="wal"><div class="wcoin">🏆</div><div class="wmain"><div class="l">Tus puntos '+esc(prov)+'</div><div class="pts">'+pts+'<small> pts</small></div></div>'+
        '<div class="eq"><div class="m">'+money(pts*c.valor_punto)+'</div><div class="s">1 pto = '+money(c.valor_punto)+(c.nota?' · '+esc(c.nota):'')+'</div></div></div>';
   app.innerHTML=
    '<div class="hd"><div class="top">'+(EMBED?'':'<a class="back" href="'+(KAF?'/kaf.html':'clientes.html')+'">‹ Volver</a>')+'<span>'+(KAF?'KAF · Ejecuciones':'Manual del vendedor · Ejecuciones')+'</span></div>'+
@@ -152,7 +174,7 @@ function pintar(){
      '<p>'+(KAF?'Entrá al punto de venta, sacá la foto de la ejecución y cargá el resultado (cuestionario al cliente).':'Armá exhibiciones bien logradas, sacá la foto y sumá puntos. Los puntos se transforman en plata.')+'</p>'+
      walHTML+
    '</div>'+
-   '<div class="tabs"><button class="tab on" data-t="cat">Catálogo</button><button class="tab" data-t="mis">Mis ejecuciones</button><button class="tab" data-t="como">Cómo funciona</button></div>'+
+   '<div class="tabbar"><div class="tabs"><button class="tab on" data-t="cat">Catálogo</button><button class="tab" data-t="mis">Mis ejecuciones</button><button class="tab" data-t="como">Cómo funciona</button></div></div>'+
    '<div class="wrap">'+
      '<div class="sec on" id="cat">'+(tipos.length?tipos.map(cardTipo).join(''):'<div class="empty">Todavía no hay ejecuciones cargadas.</div>')+'</div>'+
      '<div class="sec" id="mis">'+misHTML()+'</div>'+
@@ -168,7 +190,7 @@ function pintar(){
 }
 function tipoPorId(id){ return (DATA.tipos||[]).find(t=>t.id===id); }
 function cardTipo(t){
-  const badge=DATA.esKaf?'':'<div class="pts-badge">'+(t.puntos||0)+'<small>PTS</small></div>';
+  const badge=DATA.esKaf?'':'<div class="pts-badge"><span class="star">★</span>'+(t.puntos||0)+'<small>PTS</small></div>';
   return '<div class="card"><div class="r1"><div class="ico">'+esc(t.icono||'📦')+'</div>'+
     '<div class="ti"><b>'+esc(t.nombre)+'</b><small>'+esc(t.descripcion||'')+'</small></div>'+
     badge+'</div>'+
