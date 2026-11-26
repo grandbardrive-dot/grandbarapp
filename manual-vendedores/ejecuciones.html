@@ -130,18 +130,24 @@
   .exh ul{list-style:none;padding:11px 14px}
   .exh li{display:flex;gap:9px;font-size:13px;padding:4px 0;align-items:flex-start;color:var(--ink)}
   .exh li .ic{flex:none;font-weight:900}.exh.si li .ic{color:var(--ink)}.exh.no li .ic{color:var(--red)}
-  .lb{font-family:'Archivo';font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ink);margin:10px 0 5px;display:block}
-  .lb small{font-family:'Inter';font-weight:600;color:var(--mut2);text-transform:none;letter-spacing:0}
-  .in{width:100%;border:2px solid var(--ink);padding:10px 12px;font:inherit;font-size:14px;background:#fff;color:var(--ink)}
+  .lb{font-family:'Archivo';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:12px 0 5px;display:block}
+  .lb small{font-family:'Inter';font-weight:500;color:var(--mut2);text-transform:none;letter-spacing:0}
+  .in{width:100%;border:1.5px solid #cdc4b0;padding:11px 12px;font:inherit;font-size:14px;background:#fff;color:var(--ink);transition:border-color .15s}
+  .in:focus{outline:0;border-color:var(--red)}
   textarea.in{min-height:58px;resize:vertical}
-  .qbox{border:2px solid var(--ink);background:#fff;padding:12px 13px;margin-top:8px}
-  .qbox .qt{font-family:'Archivo';font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-  .qsec{font-family:'Archivo';font-weight:800;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin:13px 0 0;border-top:1.5px solid #e0d8c4;padding-top:9px}
+  .carbox{border:1.5px solid #ddd5c2;background:#fff;padding:12px 13px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .carbox b{font-family:'Archivo';font-weight:900;font-size:15.5px;text-transform:uppercase;line-height:1.02;display:block}
+  .carbox small{color:var(--mut);font-size:12px}
+  .minipts{flex:none;background:var(--red);color:#fff;font-family:'Archivo';font-weight:900;font-size:12.5px;border-radius:999px;padding:6px 12px;white-space:nowrap;letter-spacing:.02em}
+  .qbox{border:1.5px solid #ddd5c2;background:#faf7ef;padding:12px 13px;margin-top:10px}
+  .qbox .qt{font-family:'Archivo';font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink)}
+  .qsec{font-family:'Archivo';font-weight:800;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin:13px 0 0;border-top:1px solid #e3dbc8;padding-top:9px}
   .fotos{display:flex;gap:8px;flex-wrap:wrap}
   .f{position:relative;width:84px;height:84px;overflow:hidden;border:2px solid var(--ink)}
   .f img{width:100%;height:100%;object-fit:cover}
   .f button{position:absolute;top:0;right:0;width:24px;height:24px;border:0;background:var(--ink);color:#fff;font-size:13px;cursor:pointer}
-  .add{display:flex;align-items:center;justify-content:center;gap:7px;border:2px dashed var(--ink);padding:13px;font-family:'Archivo';font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ink);cursor:pointer}
+  .add{display:flex;align-items:center;justify-content:center;gap:7px;border:1.5px dashed #c3b9a2;padding:14px;font-family:'Archivo';font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);cursor:pointer;background:#fff}
+  .add:hover{border-color:var(--red);color:var(--red)}
   .add svg{width:16px;height:16px}
   .msg{font-size:13px;color:var(--red);font-weight:700;min-height:1px;margin-top:8px}
   .mfoot{position:sticky;bottom:0;background:var(--paper);padding:12px 16px 16px;border-top:2px solid var(--ink)}
@@ -164,9 +170,9 @@
 <div class="ov" id="ovCar" hidden><div class="md">
   <div class="mh"><b id="carTit">Cargar ejecución</b><button class="x" onclick="cerrar('ovCar')" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="mb">
-    <div style="border:2px solid var(--ink);background:#fff;padding:11px 13px;display:flex;justify-content:space-between;align-items:center;gap:10px">
-      <div><b id="carNom" style="font-family:'Archivo';font-weight:900;font-size:16px;text-transform:uppercase;line-height:1"></b><br><small id="carDesc" style="color:var(--mut);font-size:12px"></small></div>
-      <div style="text-align:right;flex:none"><b id="carPts" style="font-family:'Archivo';font-weight:900;color:var(--red);font-size:34px;line-height:.8"></b></div>
+    <div class="carbox">
+      <div><b id="carNom"></b><small id="carDesc"></small></div>
+      <span class="minipts" id="carPts"></span>
     </div>
     <label class="lb">Fotos del punto de venta <small>(hasta 3)</small></label>
     <div class="fotos" id="carFotos"></div>
@@ -320,7 +326,7 @@ function abrirCarga(id){
   const t=tipoPorId(id); if(!t) return; ACTUAL=t; FOTOS=[];
   document.getElementById('carNom').textContent=t.nombre;
   document.getElementById('carDesc').textContent=t.descripcion||'';
-  document.getElementById('carPts').textContent=ESKAF?'':(t.puntos||0);
+  const pill=document.getElementById('carPts'); if(ESKAF){ pill.style.display='none'; } else { pill.style.display=''; pill.textContent=(t.puntos||0)+' pts'; }
   document.getElementById('carCli').value=''; document.getElementById('carCom').value=''; document.getElementById('carMsg').textContent='';
   document.getElementById('carCliLb').innerHTML='Punto de venta '+(ESKAF?'<small style="color:var(--red)">(obligatorio)</small>':'<small>(opcional)</small>');
   const q=document.getElementById('carQuest'); const preg=DATA.preguntas||[];
