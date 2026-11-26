@@ -8,7 +8,7 @@
 <style>
   :root{--ink:#17110f;--paper:#f4efe9;--card:#fff;--line:#e7ddcf;--mut:#7a6f66;--campari:#C8102E;--aperol:#E8541B;--gold:#b58b2a}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Inter,system-ui,sans-serif;background:var(--paper);color:var(--ink)}
+  body{font-family:Inter,system-ui,sans-serif;background:var(--paper);color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .bar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px}
   .bar .t{font-weight:800;font-size:15px}
   .bar .t small{display:block;font-weight:500;color:var(--mut);font-size:12px}
@@ -26,7 +26,8 @@
   .cover .meta b{color:#fff;font-size:22px;font-family:Fraunces,serif;display:block}
   /* slide de ejecución */
   .ex{flex-direction:row}
-  .ex .foto{width:52%;background:#2a1416 center/cover no-repeat;flex:none}
+  .ex .foto{width:52%;background:#2a1416;flex:none;overflow:hidden}
+  .ex .foto img{width:100%;height:100%;object-fit:cover;display:block}
   .ex .foto.ph{display:flex;align-items:center;justify-content:center;color:#7a5b50;font-size:14px}
   .ex .body{flex:1;padding:4.2% 4.6%;display:flex;flex-direction:column;min-width:0}
   .ex .num{color:var(--campari);font-weight:800;font-size:13px;letter-spacing:.04em}
@@ -84,7 +85,7 @@ function slideEx(it,i,preg){
   if(it.resultado&&it.resultado.repetiria) desc+=(desc?' · ':'')+'Repetiría: '+esc(it.resultado.repetiria);
   if(it.resultado&&it.resultado.comentario_cliente) desc+=(desc?'<br>':'')+'“'+esc(it.resultado.comentario_cliente)+'”';
   return '<div class="slide ex">'+
-    (foto?'<div class="foto" style="background-image:url('+JSON.stringify(foto)+')"></div>':'<div class="foto ph">sin foto</div>')+
+    (foto?'<div class="foto"><img src="'+esc(foto)+'" alt="" loading="lazy"></div>':'<div class="foto ph">sin foto</div>')+
     '<div class="body"><div class="num">Ejecución '+(i)+'</div>'+
     '<h2>'+esc(it.tipo_nombre||'Ejecución')+tag+'</h2>'+
     '<div class="cli">'+esc(it.cliente_nombre||'Punto de venta')+'</div>'+
