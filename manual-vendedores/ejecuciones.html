@@ -115,6 +115,8 @@
 const FN='/.netlify/functions/ejecuciones';
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let HUBCLI=null, DATA=null, FOTOS=[], ACTUAL=null, CARTERA=[];
+const EMBED=new URLSearchParams(location.search).get('embed')==='1';
+if(EMBED) document.documentElement.style.background='transparent';
 function hub(){ return HUBCLI=HUBCLI||supabase.createClient('https://xqhyemccbwmzxqzkrtwa.supabase.co','sb_publishable_OOHT_QlNmec_NabERLw5YQ_DexGMwvc'); }
 async function token(){ try{ const {data}=await hub().auth.getSession(); return data&&data.session&&data.session.access_token||null; }catch(e){ return null; } }
 function abrir(id){ document.getElementById(id).hidden=false; document.body.style.overflow='hidden'; }
@@ -140,7 +142,7 @@ function pintar(){
   const tipos=DATA.tipos||[];
   const app=document.getElementById('app');
   app.innerHTML=
-   '<div class="hd"><div class="top"><a class="back" href="clientes.html">‹ Volver</a><span>Manual del vendedor · Ejecuciones</span></div>'+
+   '<div class="hd"><div class="top">'+(EMBED?'':'<a class="back" href="clientes.html">‹ Volver</a>')+'<span>Manual del vendedor · Ejecuciones</span></div>'+
      '<h1>Ejecuciones '+esc(prov)+'</h1>'+
      '<p>Armá exhibiciones bien logradas, sacá la foto y sumá puntos. Los puntos se transforman en plata.</p>'+
      '<div class="wal"><div><div class="l">Tus puntos '+esc(prov)+'</div><div class="pts">'+pts+' <small>pts</small></div></div>'+
