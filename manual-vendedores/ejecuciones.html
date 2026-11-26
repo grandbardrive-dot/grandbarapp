@@ -147,7 +147,7 @@ function pintar(){
      '<div class="wal"><div><div class="l">Tus puntos '+esc(prov)+'</div><div class="pts">'+pts+' <small>pts</small></div></div>'+
        '<div class="eq"><div class="m">'+money(pts*c.valor_punto)+'</div><div class="s">1 pto = '+money(c.valor_punto)+(c.nota?' · '+esc(c.nota):'')+'</div></div></div>';
   app.innerHTML=
-   '<div class="hd"><div class="top">'+(EMBED?'':'<a class="back" href="'+(KAF?'kaf.html':'clientes.html')+'">‹ Volver</a>')+'<span>'+(KAF?'KAF · Ejecuciones':'Manual del vendedor · Ejecuciones')+'</span></div>'+
+   '<div class="hd"><div class="top">'+(EMBED?'':'<a class="back" href="'+(KAF?'/kaf.html':'clientes.html')+'">‹ Volver</a>')+'<span>'+(KAF?'KAF · Ejecuciones':'Manual del vendedor · Ejecuciones')+'</span></div>'+
      '<h1>Ejecuciones '+esc(prov)+'</h1>'+
      '<p>'+(KAF?'Entrá al punto de venta, sacá la foto de la ejecución y cargá el resultado (cuestionario al cliente).':'Armá exhibiciones bien logradas, sacá la foto y sumá puntos. Los puntos se transforman en plata.')+'</p>'+
      walHTML+
