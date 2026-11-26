@@ -1818,7 +1818,7 @@ body { background:transparent !important; }
 <script src="_avatar.js?v=2"></script>
 <script src="_sucursales.js"></script>
 <script src="_checklist-data.js?v=8"></script>
-<script src="_acciones-render.js?v=7"></script>
+<script src="_acciones-render.js?v=8"></script>
 <script src="_evidencia-accion.js?v=3"></script>
 <script src="_celebracion.js"></script>
 <script src="_disco-tools.js"></script>
@@ -3144,6 +3144,7 @@ body { background:transparent !important; }
         ${sec.especial !== 'acciones_mensuales' ? `<div id="acm-${sec.id}"></div>` : ''}
         ${sec.intro?`<div class="sec-intro">${esc(sec.intro)}</div>`:''}
         ${widgetSlotHtml(sec)}
+        ${(widgetDe(sec) || {}).tipo !== 'ofertas' ? `<div id="ofcat-${sec.id}"></div>` : ''}
         <div id="hacc-${sec.id}"></div>
         ${itemsHtml}
         ${notaHtml}
@@ -4196,6 +4197,8 @@ body { background:transparent !important; }
     // (campari no carga acá: cargarProgresos/cargarAcuerdosCampari ya corren en init)
     seccionesHoja(checklist).forEach(sec => {
       const w = widgetDe(sec);
+      // Sin grilla de ofertas: igual muestra las del catálogo marcadas en esta sección.
+      if (!w || w.tipo !== 'ofertas') cargarOfertasMarcadas(sec.id);
       if (!w) return;
       if (w.tipo === 'propuestas') cargarPropuestasIncorp(sec.id, w.categoria, w.cartLabel);
       else if (w.tipo === 'ofertas') cargarOfertasWidget(w.dataKey, sec.id);
@@ -4286,9 +4289,10 @@ body { background:transparent !important; }
   // Campañas del panel admin que corresponden a ESTA sección y al canal del cliente.
   // Es la ÚNICA fuente de verdad: la usan tanto las tarjetas sueltas (acm) como el
   // widget de "ofertas por bodega" (botón por proveedor → modal).
-  // Una campaña puede agrupar varios productos (columna `productos`). Para el vendedor
-  // la expandimos en una tarjeta por producto — cada una con id único (id__pN) para que
-  // la selección (que se trackea por id) funcione bien. Las de 1 producto quedan igual.
+  // Una campaña puede agrupar varios productos (columna `productos`). Desde el 26/11/2026
+  // se muestra como UNA tarjeta con la lista de productos, sin fotos (pedido de Juan Pablo
+  // Sepúlveda). Antes se partía en una tarjeta con foto por producto (ids id__pN).
+  // _expandirCampanias queda para marcar cada producto como "ofrecido" en el resumen.
   function _expandirCampanias(list) {
     const out = [];
     for (const a of list) {
@@ -4308,7 +4312,7 @@ body { background:transparent !important; }
   }
 
   // Campañas segmentadas primero, sin repetir las que ya entran por la lógica de siempre.
-  const _expConSeg = (seg, lista) => _expandirCampanias(seg.concat(lista.filter(a => !seg.includes(a))));
+  const _segPrimero = (seg, lista) => seg.concat(lista.filter(a => !seg.includes(a)));
   // Una campaña general (sin sección elegida) de una categoría va a UNA sola sección de este
   // manual: la primera del recorrido que sea de esa categoría. Antes, en vinotecas y tiendas,
   // "Acciones de Rotación" y "Acciones de Volumen" eran las dos de vinos y la misma campaña
@@ -4376,7 +4380,7 @@ body { background:transparent !important; }
       const sinGeneral = _sinSeccionGeneral();
       const idsHoja = new Set(seccionesHoja(checklist).map(s => s.id));
       const huerfana = a => { const p = partes(a); return p.length > 0 && !p.some(c => idsHoja.has(c)); };
-      return _expConSeg(segmentadas, porCanal.filter(a =>
+      return _segPrimero(segmentadas, porCanal.filter(a =>
         asignadaAqui(a) || ((enBucketGeneral(a) || (sinGeneral && huerfana(a)))
                             && _seccionCanonica(_catCampania(a) || 'general') === secId)
       ));
@@ -4393,11 +4397,11 @@ body { background:transparent !important; }
       const huerfana = a => { const p = partes(a); return p.length > 0 && !p.some(c => idsHoja.has(c)); };
       // Las generales cuya categoría ya tiene su sección en este manual se ven allá, no acá.
       const vaASuCategoria = a => !!_seccionCanonica(_catCampania(a));
-      return _expConSeg(segmentadas, porCanal.filter(a => asignadaAqui(a) || (enBucketGeneral(a) && !vaASuCategoria(a)) || huerfana(a)));
+      return _segPrimero(segmentadas, porCanal.filter(a => asignadaAqui(a) || (enBucketGeneral(a) && !vaASuCategoria(a)) || huerfana(a)));
     }
 
     // 3) Cualquier otra sección específica: solo las asignadas explícitamente a ella.
-    return _expConSeg(segmentadas, porCanal.filter(asignadaAqui));
+    return _segPrimero(segmentadas, porCanal.filter(asignadaAqui));
   }
 
   // Convertir una campaña (acciones_mensuales) al formato de "oferta" del widget de bodegas.
@@ -5364,14 +5368,34 @@ body { background:transparent !important; }
     //  · las ACCIONES DEL CATÁLOGO, que son las que se muestran en esta grilla.
     // Antes, si había una campaña, la grilla se vaciaba. Ahora no: son cosas
     // distintas y el vendedor tiene que poder mostrar las dos.
-    const reales = (await _campaniasSeccion(secId)).map(_campaniaAOferta);
+    const reales = _expandirCampanias(await _campaniasSeccion(secId)).map(_campaniaAOferta);
     reales.forEach(o => marcarOfrecido(o.producto, _labelOfertas(subKey)));
 
     const ofertas = await cargarOfertas(subKey, secId);
     _ofertasData[subKey] = ofertas;
-    ofertas.forEach(o => marcarOfrecido(o.producto, _labelOfertas(subKey))); // Mejora 3
     // Sin ofertas se avisa, en vez de dejar la subsección en blanco (auditoría 22/09/2026).
     if (!ofertas.length) { el.innerHTML = `<div class="prop-loading">Todavía no hay ofertas del catálogo cargadas para esta sección.</div>`; return; }
+    pintarGrillaOfertas(el, subKey, secId, ofertas);
+  }
+
+  // Acciones del catálogo que Luciana marcó en una sección SIN la grilla de ofertas
+  // (Vino por Copa, Acciones de Incorporación…). Antes no salían en ningún lado aunque
+  // "Dónde se ve" dijera esa sección: Callia 4+1 y Killka 3+1 en Vino por Copa (26/11/2026).
+  // Van con la misma grilla de bodegas. Las que no tienen secciones marcadas no se tocan.
+  async function cargarOfertasMarcadas(secId) {
+    const el = document.getElementById(`ofcat-${secId}`);
+    const uuidSec = (buscarSec(secId) || {})._uuid;
+    if (!el || !uuidSec) return;
+    const ofertas = (await _getOfertasCatalogo()).filter(o => segMarcado(o) && segVa(o, uuidSec));
+    if (!ofertas.length) return;
+    el.className = 'ofertas-wrap';
+    pintarGrillaOfertas(el, secId, secId, ofertas);
+  }
+
+  // La grilla de bodegas o marcas; cada botón abre el modal con sus ofertas.
+  function pintarGrillaOfertas(el, subKey, secId, ofertas) {
+    _ofertasData[subKey] = ofertas;
+    ofertas.forEach(o => marcarOfrecido(o.producto, _labelOfertas(subKey))); // Mejora 3
 
     // Agrupar por bodega preservando el orden de aparición
     const bodegas = [];

@@ -113,6 +113,7 @@
   .tag{font-size:10.5px;font-weight:700;border-radius:6px;padding:3px 8px;background:rgba(31,68,127,.07);color:var(--navy);letter-spacing:.02em}
   .tag.off{background:var(--red-bg);color:var(--red)}
   .tag.uso{background:var(--green-bg);color:var(--green)}
+  .tag.uso-no{background:rgba(0,0,0,.05);color:var(--ink3)}
   .tag.herr{background:var(--amber-bg);color:var(--amber)}
   .acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
   .ab{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line-2);border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;font-family:inherit;white-space:nowrap}
@@ -476,16 +477,25 @@
   // Luciana "segmenta" acciones y planes a secciones (columna secciones uuid[]). Si la
   // sección desaparece, lo que estaba marcado SOLO ahí deja de verse en la visita,
   // sin aviso. Por eso antes de borrar u ocultar se cuenta qué queda afectado.
+  // vig: si hoy se ve en la visita, con el mismo filtro que usa la visita (26/11/2026).
+  // El número verde cuenta solo eso; lo vencido, apagado o esperando aprobación va aparte.
+  // Antes contaba todo y en Vino por Copa decía "10 cargados" con 4 a la vista.
+  const hoySec = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+  const diaSec = f => f ? String(f).slice(0,10) : '';
+  const enFecha = f => (!f.fecha_inicio || diaSec(f.fecha_inicio) <= hoySec()) && (!f.fecha_fin || diaSec(f.fecha_fin) >= hoySec());
   const TABLAS_SEG = [
-    { tabla:'acciones_mensuales',       uno:'campaña',             varios:'campañas' },
-    { tabla:'checklist_planes',         uno:'plan',                varios:'planes' },
-    { tabla:'vinos_por_copa',           uno:'vino por copa',       varios:'vinos por copa' },
-    { tabla:'aperitivos_bienvenida',    uno:'aperitivo de bienvenida', varios:'aperitivos de bienvenida' },
-    { tabla:'propuestas_incorporacion', uno:'propuesta de incorporación', varios:'propuestas de incorporación' },
-    { tabla:'mixes_ideales',            uno:'mix ideal',           varios:'mixes ideales' },
-    { tabla:'acciones_fechas',          uno:'acción por fecha',    varios:'acciones por fecha' },
+    { tabla:'acciones_mensuales',       uno:'campaña',             varios:'campañas',     cols:'activa,fecha_inicio,fecha_fin', vig:f=>f.activa===true && enFecha(f) },
+    { tabla:'checklist_planes',         uno:'plan',                varios:'planes',       cols:'activo,fecha_inicio,fecha_fin', vig:f=>f.activo===true && enFecha(f) },
+    { tabla:'vinos_por_copa',           uno:'vino por copa',       varios:'vinos por copa',          cols:'activo', vig:f=>f.activo===true },
+    { tabla:'aperitivos_bienvenida',    uno:'aperitivo de bienvenida', varios:'aperitivos de bienvenida', cols:'activo', vig:f=>f.activo===true },
+    { tabla:'propuestas_incorporacion', uno:'propuesta de incorporación', varios:'propuestas de incorporación', cols:'activo', vig:f=>f.activo===true },
+    { tabla:'mixes_ideales',            uno:'mix ideal',           varios:'mixes ideales', cols:'activo', vig:f=>f.activo===true },
+    // Las fechas especiales se ven en el calendario mientras no hayan pasado.
+    { tabla:'acciones_fechas',          uno:'acción por fecha',    varios:'acciones por fecha', cols:'activa,fecha_inicio,fecha_fin',
+      vig:f=>f.activa===true && (!diaSec(f.fecha_fin||f.fecha_inicio) || diaSec(f.fecha_fin||f.fecha_inicio) >= hoySec()) },
   ];
-  const CAT_TIPO = { tabla:'catalogo_acciones', uno:'acción del catálogo', varios:'acciones del catálogo' };
+  // Las del catálogo no tienen filtro de fechas en la visita: vale lo activo.
+  const CAT_TIPO = { tabla:'catalogo_acciones', uno:'acción del catálogo', varios:'acciones del catálogo', cols:'activo', vig:f=>f.activo===true };
   let _sbCat = null;
   const sbCatalogo = () => _sbCat || (_sbCat = supabase.createClient(
     'https://zlwnoqdxendsgbfvfyue.supabase.co', 'sb_publishable_gnrx5YRX7paRt0rYPB180A_733_UOZ4',
@@ -519,7 +529,7 @@
   async function usosDeSecciones(ids){
     const registros=[], fallas=[];
     const consultas = TABLAS_SEG.map(async t=>{
-      const cols = t.tabla==='checklist_planes' ? 'id,secciones,seccion_id' : 'id,secciones';
+      const cols = 'id,secciones,' + t.cols + (t.tabla==='checklist_planes' ? ',seccion_id' : '');
       const filas = await paginar(()=>sb.from(t.tabla).select(cols).overlaps('secciones', ids));
       // Los planes también se ubican por seccion_id (el campo de antes).
       if(t.tabla==='checklist_planes'){
@@ -528,12 +538,12 @@
       }
       filas.forEach(f=>{
         const marcadas = [...new Set([...(f.secciones||[]), ...(f.seccion_id?[f.seccion_id]:[])])];
-        registros.push({ tipo:t, id:f.id, marcadas });
+        registros.push({ tipo:t, id:f.id, marcadas, vigente:t.vig(f) });
       });
     });
     consultas.push((async()=>{
-      const filas = await paginar(()=>sbCatalogo().from('catalogo_acciones').select('id,secciones').overlaps('secciones', ids));
-      filas.forEach(f=>registros.push({ tipo:CAT_TIPO, id:f.id, marcadas:[...new Set(f.secciones||[])] }));
+      const filas = await paginar(()=>sbCatalogo().from('catalogo_acciones').select('id,secciones,'+CAT_TIPO.cols).overlaps('secciones', ids));
+      filas.forEach(f=>registros.push({ tipo:CAT_TIPO, id:f.id, marcadas:[...new Set(f.secciones||[])], vigente:CAT_TIPO.vig(f) }));
     })());
     const res = await Promise.allSettled(consultas);
     res.forEach((r,i)=>{ if(r.status==='rejected') fallas.push(i<TABLAS_SEG.length ? TABLAS_SEG[i].varios : CAT_TIPO.varios); });
@@ -544,14 +554,14 @@
     const alias = ALIAS_APLICA[canal] || [canal];
     const viejas = [];
     try{
-      const camps = await paginar(()=>sb.from('acciones_mensuales').select('id,seccion_checklist,aplica_a,secciones,zonas').not('seccion_checklist','is',null));
+      const camps = await paginar(()=>sb.from('acciones_mensuales').select('id,seccion_checklist,aplica_a,secciones,zonas,'+TABLAS_SEG[0].cols).not('seccion_checklist','is',null));
       camps.forEach(a=>{
         if((a.secciones||[]).length) return;
         if((a.zonas||[]).length && !a.zonas.includes(zona)) return;
         if(!(a.aplica_a||[]).some(v=>alias.includes(v) || v==='todos')) return;
         const cods = String(a.seccion_checklist||'').split(',').map(x=>x.trim()).filter(Boolean);
         const sids = SECS.filter(s=>ids.includes(s.id) && cods.includes(s.codigo)).map(s=>s.id);
-        if(sids.length) viejas.push({ tipo:TABLAS_SEG[0], id:a.id, marcadas:sids, vieja:true });
+        if(sids.length) viejas.push({ tipo:TABLAS_SEG[0], id:a.id, marcadas:sids, vieja:true, vigente:TABLAS_SEG[0].vig(a) });
       });
     }catch(e){ fallas.push('campañas por código'); }
     return { registros: registros.concat(viejas), fallas };
@@ -1097,11 +1107,18 @@
   }
 
   // Cuántas cosas (campañas, planes, vinos por copa…) están marcadas en esta sección.
+  // El verde cuenta lo que hoy se ve en la visita; el gris, lo marcado acá que no se ve
+  // (vencido, apagado o esperando que Luciana lo apruebe).
   function tagUso(s){
     const rs=USOS[s.id]||[]; if(!rs.length) return '';
-    const n={}; rs.forEach(r=>{ n[r.tipo.tabla]=n[r.tipo.tabla]||{t:r.tipo,c:0}; n[r.tipo.tabla].c++; });
-    const det=Object.values(n).map(x=>`${x.c} ${x.c>1?x.t.varios:x.t.uno}`).join(', ');
-    return `<span class="tag uso" title="Marcados en esta sección: ${esc(det)}">${rs.length} cargado${rs.length>1?'s':''} acá</span>`;
+    const det = lista=>{
+      const n={}; lista.forEach(r=>{ n[r.tipo.tabla]=n[r.tipo.tabla]||{t:r.tipo,c:0}; n[r.tipo.tabla].c++; });
+      return Object.values(n).map(x=>`${x.c} ${x.c>1?x.t.varios:x.t.uno}`).join(', ');
+    };
+    const si = rs.filter(r=>r.vigente), no = rs.filter(r=>!r.vigente);
+    let h = si.length ? `<span class="tag uso" title="Se ven hoy en la visita: ${esc(det(si))}">${si.length} cargado${si.length>1?'s':''} acá</span>` : '';
+    if(no.length) h += `<span class="tag uso-no" title="Marcados acá pero no se ven en la visita (vencidos, apagados o esperando aprobación): ${esc(det(no))}">${no.length} que no se ve${no.length>1?'n':''}</span>`;
+    return h;
   }
   const itemsDe = id => (ITEMS[id]||[]).slice().sort((a,b)=>(a.orden||0)-(b.orden||0));
   // Los manuales ya no llevan tareas para tildar (23/09/2026): se sacaron de la

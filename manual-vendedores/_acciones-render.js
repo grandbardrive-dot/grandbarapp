@@ -67,10 +67,15 @@
 
     /* ── Body (70%) ── */
     .am-card-body {
-      flex: 1; padding: 11px 13px 11px 10px;
+      flex: 1; padding: 12px 14px;
       display: flex; flex-direction: column; gap: 5px; min-width: 0;
     }
+    .am-card-prov    { font-size:10px; font-weight:700; color:#9E9B96; text-transform:uppercase; letter-spacing:.06em; }
     .am-card-nombre  { font-size:14px; font-weight:700; color:#1F447F; line-height:1.25; }
+    /* Productos de la campaña: en renglón, sin fotos (26/11/2026) */
+    .am-card-prods   { display:flex; flex-wrap:wrap; align-items:center; gap:4px 5px; }
+    .am-card-prods-lbl { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#9E9B96; margin-right:2px; }
+    .am-prod { font-size:11px; font-weight:600; color:#3c5373; background:#f3f1ec; border:1px solid #e6e1d6; border-radius:6px; padding:2px 7px; line-height:1.3; }
     .am-card-sub     { font-size:10px; color:#9E9B96; text-transform:uppercase; letter-spacing:.05em; }
     .am-card-varietales { font-size:11px; color:#7a756e; line-height:1.35; }
     .am-badge-accion {
@@ -469,19 +474,15 @@ function renderAccionCard(a, opts = {}) {
     : null;
   const subcat = a.subcategoria || (a.categoria === 'spirits' ? _amSpiritsSubcat(a.producto) : null);
   const yaAgregada = _amSeleccionadas.has(a.id);
+  const prods = _amProductosDe(a);
 
-  // El fallback va por función: inline no se podía, el SVG tiene comillas dobles y
-  // cortaba el atributo onerror — se veía un `';">` suelto al lado del producto.
-  const imgHtml = a.imagen_url
-    ? `<img src="${_amEsc(a.imagen_url)}" alt="${_amEsc(a.producto)}" loading="lazy"
-            onerror="_amImgFallback(this)">`
-    : `<div class="am-placeholder">${_AM_BOTTLE_SVG}<span>Sin imagen</span></div>`;
-
-  // Payload para el toggle (serializado en data attribute)
+  // Payload para el toggle (serializado en data attribute). requiere_evidencia viaja
+  // para que el carrito de la visita sepa que esta campaña pide evidencia.
   const payloadEnc = seleccionable
     // encodeURIComponent no codifica la comilla simple: "Gordon's" rompía el onclick
     ? encodeURIComponent(JSON.stringify({ id:a.id, producto:a.producto, accion:a.accion,
-        precio_accionado:a.precio_accionado, categoria:a.categoria, imagen_url:a.imagen_url||null })).replace(/'/g, '%27')
+        precio_accionado:a.precio_accionado, categoria:a.categoria, proveedor:a.proveedor||null,
+        requiere_evidencia:a.requiere_evidencia === true })).replace(/'/g, '%27')
     : '';
 
   const btnHtml = seleccionable
@@ -497,35 +498,42 @@ function renderAccionCard(a, opts = {}) {
          Consultar
        </a>`;
 
+  // Una tarjeta por campaña, sin fotos de botellas ni cantidad (pedido de Juan Pablo
+  // Sepúlveda, 26/11/2026): proveedor, título, la acción y la lista de productos.
+  // La cantidad se pone en el carrito de la visita ("acuerdos seleccionados").
   return `
     <div class="am-card${yaAgregada ? ' am-seleccionada' : ''}" id="am-card-${_amEsc(a.id)}">
-      <div class="am-card-img">${imgHtml}</div>
       <div class="am-card-body">
+        ${a.proveedor ? `<div class="am-card-prov">${_amEsc(a.proveedor)}</div>` : ''}
         <div class="am-card-nombre">${_amEsc(a.producto)}</div>
         ${subcat ? `<div class="am-card-sub">${_amEsc(subcat)}</div>` : ''}
         ${a.varietales ? `<div class="am-card-varietales">${_amEsc(a.varietales)}</div>` : ''}
         <span class="am-badge-accion">${_amEsc(a.accion)}</span>
+        ${prods.length ? `<div class="am-card-prods">
+          <span class="am-card-prods-lbl">${prods.length > 1 ? 'Productos' : 'Producto'}</span>
+          ${prods.map(n => `<span class="am-prod">${_amEsc(n)}</span>`).join('')}
+        </div>` : ''}
         ${precio ? `<div class="am-precio-wrap">
           <span class="am-precio-label">Precio accionado</span>
           <span class="am-precio-val">${precio}</span>
         </div>` : ''}
         ${btnHtml}
         ${seleccionable && window.GBEvid ? GBEvid.boton({ t: 'campania', id: a.id, titulo: a.producto, prov: a.proveedor, req: a.requiere_evidencia === true }) : ''}
-        ${seleccionable ? `
-        <div class="am-qty" id="am-qty-${_amEsc(a.id)}" style="display:flex">
-          <span class="am-qty-label">Cantidad</span>
-          <div class="am-qty-units">
-            <button type="button" class="am-qty-u${_selUnidad(a.id) === 'botellas' ? ' on' : ''}" data-u="botellas" onclick="amSetUnidad('${_amEsc(a.id)}','botellas')">Botellas</button>
-            <button type="button" class="am-qty-u${_selUnidad(a.id) !== 'botellas' ? ' on' : ''}" data-u="cajas" onclick="amSetUnidad('${_amEsc(a.id)}','cajas')">Cajas</button>
-          </div>
-          <input class="am-qty-input" type="number" min="1" inputmode="numeric"
-                 value="${_selCantidad(a.id)}"
-                 oninput="amSetCantidad('${_amEsc(a.id)}',this.value)">
-        </div>` : ''}
         ${_amEntregaHtml(a)}
       </div>
       ${_amEvidenciaHtml(a)}
     </div>`;
+}
+
+// Nombres de los productos de la campaña (columna productos). Sin repetidos, y si es
+// uno solo que se llama igual que el título, no se repite debajo.
+function _amProductosDe(a) {
+  const n = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  const nombres = (Array.isArray(a.productos) ? a.productos : [])
+    .map(p => String((p && (p.nombre || p.producto)) || '').trim()).filter(Boolean);
+  const unicos = nombres.filter((x, i) => nombres.findIndex(y => n(y) === n(x)) === i);
+  if (unicos.length === 1 && n(unicos[0]) === n(a.producto)) return [];
+  return unicos;
 }
 
 // ── Acción de proveedor que pide evidencia (09/10/2026) ──────────────────────
@@ -639,23 +647,6 @@ async function amEntregarMaterial(materialId, campaignId, key, btn) {
   }
 }
 
-// ── Render resumen dinámico (contenedor ─────────────────────────────────────
-function _amRenderResumen() {
-  return `
-    <div class="am-resumen-wrap" id="am-resumen-dinamico" style="display:${_amOnGuardar ? 'block' : 'none'}">
-      <div class="am-resumen-header">
-        <span class="am-resumen-title">🛒 Acciones seleccionadas para este cliente</span>
-        <span class="am-resumen-count" id="am-resumen-count">0 seleccionadas</span>
-      </div>
-      <div class="am-resumen-lista" id="am-resumen-lista">
-        <div class="am-resumen-empty">Tocá "+ Agregar" en las acciones que vas a gestionar con este cliente.</div>
-      </div>
-      <div class="am-resumen-footer" id="am-resumen-footer" style="display:none">
-        <button class="am-btn-ver-resumen" onclick="amAbrirModal()">📋 Ver resumen completo</button>
-      </div>
-    </div>`;
-}
-
 // ── Render agrupado (con subcategorías para spirits) ─────────────────────────
 function renderAccionesGrupo(acciones, opts = {}) {
   if (!acciones?.length) return '<div class="am-empty-cat">Sin acciones activas este mes.</div>';
@@ -707,7 +698,9 @@ function renderAccionesGrupo(acciones, opts = {}) {
         ${grupos[cat.id].map(a => renderAccionCard(a, opts)).join('')}`;
     }).join('');
 
-  return cardsHtml + extraHtml + _amRenderResumen();
+  // Sin el recuadro "Acciones seleccionadas para este cliente" (26/11/2026): repetía lo
+  // que ya junta el carrito de la visita y en cada sección parecía no sumar nada.
+  return cardsHtml + extraHtml;
 }
 
 // ── Modal: abrir ─────────────────────────────────────────────────────────────

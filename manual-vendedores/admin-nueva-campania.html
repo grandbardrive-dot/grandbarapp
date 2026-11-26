@@ -433,8 +433,8 @@
           st.canales   = Array.isArray(row.aplica_a)?row.aplica_a.slice():[];
           st.ubicaciones = (row.seccion_checklist||'').split(',').map(s=>s.trim()).filter(Boolean);
           st.mecanica  = row.accion||'';
-          st.precioReg = row.precio_regular!=null?String(row.precio_regular):'';
-          st.precioAcc = row.precio_accionado!=null?String(row.precio_accionado):'';
+          st.precioReg = pesosATexto(row.precio_regular);
+          st.precioAcc = pesosATexto(row.precio_accionado);
           st.fechaIni  = copiarId ? '' : (row.fecha_inicio||'');   // la copia lleva vigencia nueva
           st.fechaFin  = copiarId ? '' : (row.fecha_fin||'');
           st.materiales= Array.isArray(row.materiales)?row.materiales.slice():[];
@@ -618,9 +618,9 @@
       el.innerHTML=`<div class="panel-h">5. Configurá la promoción</div><div class="panel-sub">Definí la mecánica y los precios. Las fechas son opcionales: si las dejás vacías, la campaña queda vigente sin límite de tiempo.</div>
         <div class="form-grid">
           <div class="fld"><label>Mecánica</label><textarea id="f-mec" rows="3" placeholder="Ej: 3+1, 20% OFF, 2+1&#10;Con Enter pasás al renglón de abajo." oninput="st.mecanica=this.value;renderResumen()">${esc(st.mecanica)}</textarea></div>
-          <div class="fld"><label>Precio regular ($)</label><input id="f-preg" type="number" placeholder="0" value="${esc(st.precioReg)}" oninput="st.precioReg=this.value;renderResumen()"></div>
-          <div class="fld"><label>Precio accionado ($)</label><input id="f-pacc" type="number" placeholder="0" value="${esc(st.precioAcc)}" oninput="st.precioAcc=this.value;renderResumen()"></div>
-          <div class="fld"><label>&nbsp;</label><div style="font-size:13px;color:var(--ink3);padding-top:11px">${pctOff()}</div></div>
+          <div class="fld"><label>Precio regular ($)</label><input id="f-preg" type="text" inputmode="decimal" placeholder="Ej: 6.933" value="${esc(st.precioReg)}" oninput="st.precioReg=this.value;renderResumen();pintarPct()"></div>
+          <div class="fld"><label>Precio accionado ($)</label><input id="f-pacc" type="text" inputmode="decimal" placeholder="Ej: 5.199" value="${esc(st.precioAcc)}" oninput="st.precioAcc=this.value;renderResumen();pintarPct()"></div>
+          <div class="fld"><label>&nbsp;</label><div id="f-pct" style="font-size:13px;color:var(--ink3);padding-top:11px">${pctOff()}</div></div>
           <div class="fld"><label>Desde <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><input id="f-ini" type="date" value="${esc(st.fechaIni)}" oninput="st.fechaIni=this.value;renderResumen()"></div>
           <div class="fld"><label>Hasta <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><input id="f-fin" type="date" value="${esc(st.fechaFin)}" oninput="st.fechaFin=this.value;renderResumen()"></div>
           <div class="fld" style="grid-column:1/-1"><label class="evid-chk"><input type="checkbox" id="f-evid" ${st.requiereEvid?'checked':''} onchange="st.requiereEvid=this.checked"><span><b>Requiere evidencia</b><small>El vendedor tiene que cargar fotos del punto de venta. Puede hacerlo en la visita siguiente, cuando ya llegó el pedido. Le llegan a Trade Marketing y al proveedor.</small></span></label></div>
@@ -665,7 +665,7 @@
           ${filaRev('Zona', zonaTexto())}
           ${filaRev('Ubicaciones', secsElegidas().length? ubicNombres(true).join(' · '):'Acciones Mensuales (general)')}
           ${filaRev('Mecánica', st.mecanica)}
-          ${filaRev('Precios', (st.precioReg||st.precioAcc)?`$${st.precioReg||'—'} → $${st.precioAcc||'—'}`:'')}
+          ${filaRev('Precios', (st.precioReg||st.precioAcc)?`$${verPesos(st.precioReg)} → $${verPesos(st.precioAcc)}`:'')}
           ${filaRev('Vigencia', (st.fechaIni||st.fechaFin)?`${st.fechaIni||'—'} a ${st.fechaFin||'—'}`:'Sin límite de tiempo')}
           ${filaRev('Materiales', st.materiales.length? st.materiales.map(m=>m.name).join(', '):'')}
           ${filaRev('Evidencia', st.requiereEvid?'Sí: el vendedor carga fotos':'No pide')}
@@ -697,7 +697,21 @@
     const val = v ? esc(v) : '<span style="color:#c0392b">Falta</span>';
     return `<div style="display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--line)"><span style="font-size:12.5px;color:var(--ink3);font-weight:600">${k}</span><span style="font-size:13.5px;font-weight:700;text-align:right;white-space:pre-line">${val}</span></div>`;
   }
-  function pctOff(){ const r=parseFloat(st.precioReg),a=parseFloat(st.precioAcc); if(r>0&&a>0&&a<r){ return `<b style="color:var(--green)">${Math.round((1-a/r)*100)}% OFF</b>`;} return 'El % OFF se calcula solo.'; }
+  // Precios como se escriben acá (26/11/2026): "5.199" son cinco mil ciento noventa y nueve
+  // (punto de miles) y "5.199,50" lleva centavos. El campo numérico de antes leía 5.199 como
+  // cinco pesos y la visita mostraba "$ 5,199" (KILLKA y el combo Cynar de Juan Pablo).
+  function aPesos(v){
+    const s=String(v??'').replace(/[$\s]/g,'');
+    if(!s) return null;
+    const n=Number(s.replace(/\./g,'').replace(',','.'));
+    return isFinite(n) ? n : null;
+  }
+  // Lo guardado, de vuelta al campo: 5199 → "5199", 5199.5 → "5199,5". Un precio viejo mal
+  // guardado (5.199) aparece como "5,199" y se nota al revisarlo.
+  function pesosATexto(n){ return n==null ? '' : String(n).replace('.', ','); }
+  function verPesos(v){ const n=aPesos(v); return n==null ? '—' : n.toLocaleString('es-AR'); }
+  function pctOff(){ const r=aPesos(st.precioReg),a=aPesos(st.precioAcc); if(r>0&&a>0&&a<r){ return `<b style="color:var(--green)">${Math.round((1-a/r)*100)}% OFF</b>`;} return 'El % OFF se calcula solo.'; }
+  function pintarPct(){ const el=document.getElementById('f-pct'); if(el) el.innerHTML=pctOff(); }
 
   function renderProvGrid(){
     const q=(document.getElementById('q1')?.value||'').toLowerCase().trim();
@@ -857,8 +871,8 @@
       aplica_a: st.canales,
       seccion_checklist: codigos.length? codigos.join(','):null,
       accion: mecanica,   // la columna es NOT NULL: nunca mandar null
-      precio_regular: st.precioReg?Number(st.precioReg):null,
-      precio_accionado: st.precioAcc?Number(st.precioAcc):null,
+      precio_regular: aPesos(st.precioReg),
+      precio_accionado: aPesos(st.precioAcc),
       fecha_inicio: st.fechaIni||null,
       fecha_fin: st.fechaFin||null,
       materiales: st.materiales,
