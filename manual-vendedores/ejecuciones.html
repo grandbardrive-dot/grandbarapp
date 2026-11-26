@@ -32,7 +32,11 @@
   .cover{padding:22px 20px 6px}
   .cover .eyebrow{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
   .cover h1{font-family:'Archivo';font-weight:900;font-size:clamp(46px,13vw,76px);line-height:.82;text-transform:uppercase;letter-spacing:-2.5px;margin-top:8px}
-  .cover .sc{font-family:'Permanent Marker',cursive;color:var(--red);font-size:16px;transform:rotate(-3deg);display:inline-block;margin:12px 0 0 6px}
+  .cover .tag2{font-family:'Archivo';font-weight:800;font-size:clamp(15px,3.6vw,20px);text-transform:uppercase;letter-spacing:-.3px;margin-top:14px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+  .cover .tag2 .hl{background:var(--red);color:#fff;padding:2px 9px;transform:skewX(-7deg);display:inline-block}
+  .cover .tag2 .hl span{display:inline-block;transform:skewX(7deg)}
+  .cover .tag2 .obj{background:var(--ink);color:var(--paper);font-size:11px;letter-spacing:.12em;padding:5px 10px;transform:rotate(-2.5deg)}
+  .cover .sc{font-family:'Permanent Marker',cursive;color:var(--red);font-size:16px;transform:rotate(-3deg);display:inline-block;margin:14px 0 0 6px}
   .provs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px 16px;padding:18px 20px 6px}
   @media(max-width:520px){.provs{grid-template-columns:1fr 1fr;gap:16px 13px;padding:16px}}
   .prov{position:relative;background:#fff;border:1px solid #d9d2c3;box-shadow:0 8px 18px rgba(0,0,0,.14);cursor:pointer;transition:transform .12s}
@@ -227,6 +231,7 @@ async function cargarProveedores(){
    '<div class="cover">'+(EMBED?'':'<button class="bk" id="bkPanel" style="background:rgba(0,0,0,.08);color:var(--ink);margin-bottom:10px">&larr; Volver</button><br>')+
      '<div class="eyebrow">'+(ESKAF?'KAF · Ejecuciones':'Manual del vendedor')+'</div>'+
      '<h1>Ejecu<span style="color:var(--red)">·</span>ciones</h1>'+
+     '<div class="tag2"><span class="hl"><span>Líderes en ejecuciones</span></span><span class="obj">Objetivo 2027</span></div>'+
      '<div class="sc">elegí la marca &rarr;</div></div>'+
    '<div class="provs">'+
      activos.map(p=>'<div class="prov" data-prov="'+esc(p.proveedor)+'"><span class="tape" style="top:-10px;left:50%;margin-left:-37px;transform:rotate(-3deg)"></span><div class="logo">'+logoHTML(p)+'</div><div class="cap"><b>'+esc(p.proveedor)+'<small>'+p.tipos+' ejecucion'+(p.tipos===1?'':'es')+'</small></b><span class="go">Entrar</span></div></div>').join('')+
