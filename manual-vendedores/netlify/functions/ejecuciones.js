@@ -26,15 +26,18 @@ const VALIDAN = ['torneo', 'desarrollo', 'diseno'];
 const ADMIN = ['compras', 'admin', 'direccion', 'desarrollo', 'diseno', 'marketing'];
 const VEN_COLA = ['torneo', 'compras', 'admin', 'direccion', 'desarrollo', 'diseno', 'marketing'];
 
-// Cuestionario de resultado que completa el KAF en el PDV (fijo, Campari).
+// Cuestionario de resultado (fijo, Campari). Lo completan el KAF y el vendedor.
+// Orden pedido por Fernando: Antecedente → Qué se hizo → Resultado.
 const PREGUNTAS = [
-  { k: 'producto', t: 'Producto', tipo: 'texto', max: 60 },
-  { k: 'copas_accion', t: 'Copas/tragos vendidos durante la acción', tipo: 'num' },
-  { k: 'copas_normal', t: 'Copas/tragos por semana sin acción', tipo: 'num' },
-  { k: 'precio', t: 'Precio de venta de la copa ($)', tipo: 'num' },
-  { k: 'botellas', t: 'Botellas de la marca compradas por la acción', tipo: 'num' },
-  { k: 'repetiria', t: '¿Repetiría la acción?', tipo: 'texto', max: 20 },
-  { k: 'comentario_cliente', t: 'Comentario del cliente', tipo: 'texto', max: 400 },
+  { k: 'copas_normal', t: '¿Cuántas copas/tragos vendía por semana ANTES, sin la acción?', tipo: 'num', seccion: 'Antecedente' },
+  { k: 'precio_antes', t: '¿A qué precio lo vendía antes? ($)', tipo: 'num', seccion: 'Antecedente' },
+  { k: 'producto', t: '¿Qué producto/marca se trabajó?', tipo: 'texto', max: 60, seccion: 'Qué se hizo' },
+  { k: 'que_se_hizo', t: '¿Qué se hizo en el punto de venta?', tipo: 'texto', max: 300, seccion: 'Qué se hizo' },
+  { k: 'copas_accion', t: '¿Cuántas copas/tragos vendió DURANTE la acción?', tipo: 'num', seccion: 'Resultado' },
+  { k: 'precio', t: '¿A qué precio la vendió durante la acción? ($)', tipo: 'num', seccion: 'Resultado' },
+  { k: 'botellas', t: '¿Cuántas botellas de la marca compró por la acción?', tipo: 'num', seccion: 'Resultado' },
+  { k: 'repetiria', t: '¿Repetiría la acción?', tipo: 'texto', max: 20, seccion: 'Resultado' },
+  { k: 'comentario_cliente', t: 'Comentario del cliente', tipo: 'texto', max: 400, seccion: 'Resultado' },
 ];
 function limpiarResultado(r) {
   if (!r || typeof r !== 'object') return null;
@@ -117,7 +120,7 @@ exports.handler = async (event) => {
         if (!esVend && !esKaf) return json(403, { error: 'Solo los vendedores y el KAF cargan ejecuciones.' });
         const tipos = await hub('ejecuciones_tipos?activo=eq.true&select=id,proveedor,nombre,descripcion,puntos,icono,manual_objetivo,manual_si,manual_no,foto_si,foto_no,orden&order=orden.asc,nombre.asc');
         const mias0 = await hub('ejecuciones?usuario_id=eq.' + encodeURIComponent(user.id) + '&select=id,tipo_nombre,proveedor,puntos,cliente_nombre,fotos,estado,validacion_comentario,resultado,created_at,validado_at&order=created_at.desc&limit=100');
-        return json(200, { config: await config(), tipos: Array.isArray(tipos) ? tipos : [], mias: await firmar(Array.isArray(mias0) ? mias0 : []), puntos: await puntosDe(user.id), esKaf, preguntas: esKaf ? PREGUNTAS : null, vendedor: { nombre: perfil.nombre, codigo: perfil.codigo_vendedor } });
+        return json(200, { config: await config(), tipos: Array.isArray(tipos) ? tipos : [], mias: await firmar(Array.isArray(mias0) ? mias0 : []), puntos: await puntosDe(user.id), esKaf, preguntas: PREGUNTAS, vendedor: { nombre: perfil.nombre, codigo: perfil.codigo_vendedor } });
       }
 
       if (qp.vista === 'cola') {
@@ -183,7 +186,7 @@ exports.handler = async (event) => {
       if (b.cliente_codigo && /^[\w-]{1,20}$/.test(String(b.cliente_codigo))) cli = (await man('clientes?codigo_cliente=eq.' + encodeURIComponent(b.cliente_codigo) + '&select=id,codigo_cliente,nombre'))[0] || null;
       const cliNombre = cli ? cli.nombre : texto(b.cliente_nombre, 200);
       if (esKaf && !cliNombre) return json(400, { error: 'Elegí el punto de venta.' });
-      const resultado = esKaf ? limpiarResultado(b.resultado) : null;
+      const resultado = limpiarResultado(b.resultado);
 
       // Subir fotos.
       const subidas = [];

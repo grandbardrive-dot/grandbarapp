@@ -221,9 +221,17 @@ function abrirCarga(id){
   const KAF=!!DATA.esKaf;
   document.getElementById('carCliLb').innerHTML='Punto de venta '+(KAF?'<small style="font-weight:500;color:#c0392b">(obligatorio)</small>':'<small style="font-weight:500;color:#8a929a">(opcional)</small>');
   const q=document.getElementById('carQuest');
-  if(KAF && (DATA.preguntas||[]).length){
-    q.innerHTML='<div style="background:#f6f3ee;border-radius:11px;padding:11px 12px;margin-top:6px"><div style="font-weight:800;font-size:12.5px;color:#1b2a32;margin-bottom:4px">Resultado de la ejecución <small style="font-weight:500;color:#8a929a">(preguntale al cliente)</small></div>'+
-      DATA.preguntas.map(p=>'<label class="lb" style="margin-top:7px" for="q_'+p.k+'">'+esc(p.t)+'</label><input class="in" id="q_'+p.k+'" '+(p.tipo==='num'?'type="number" inputmode="decimal" min="0"':'maxlength="'+(p.max||200)+'"')+'>').join('')+'</div>';
+  const preg=DATA.preguntas||[];
+  if(preg.length){
+    let html='<div style="background:#f6f3ee;border-radius:11px;padding:11px 12px;margin-top:8px">'+
+      '<div style="font-weight:800;font-size:12.5px;color:#1b2a32">Datos de la ejecución <small style="font-weight:500;color:#8a929a">(preguntale al cliente)</small></div>';
+    let sec='';
+    preg.forEach(p=>{
+      if(p.seccion && p.seccion!==sec){ sec=p.seccion; html+='<div style="font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);margin:12px 0 0">'+esc(sec)+'</div>'; }
+      html+='<label class="lb" style="margin-top:6px" for="q_'+p.k+'">'+esc(p.t)+'</label><input class="in" id="q_'+p.k+'" '+(p.tipo==='num'?'type="number" inputmode="decimal" min="0"':'maxlength="'+(p.max||200)+'"')+'>';
+    });
+    html+='</div>';
+    q.innerHTML=html;
   } else q.innerHTML='';
   pintarFotos(); abrir('ovCar');
 }
@@ -257,7 +265,7 @@ async function enviar(){
   const cli=document.getElementById('carCli').value.trim();
   if(KAF && !cli){ msg.textContent='Elegí el punto de venta.'; return; }
   let resultado=null;
-  if(KAF && (DATA.preguntas||[]).length){ resultado={}; DATA.preguntas.forEach(p=>{ const v=(document.getElementById('q_'+p.k)||{}).value; if(v!=null&&String(v).trim()!=='') resultado[p.k]=v; }); }
+  if((DATA.preguntas||[]).length){ resultado={}; DATA.preguntas.forEach(p=>{ const v=(document.getElementById('q_'+p.k)||{}).value; if(v!=null&&String(v).trim()!=='') resultado[p.k]=v; }); if(!Object.keys(resultado).length) resultado=null; }
   btn.disabled=true; const t0=btn.textContent; btn.textContent='Enviando…'; msg.textContent='';
   try{
     const tok=await token(); if(!tok) throw new Error('Tu sesión venció. Entrá de nuevo desde el Portal.');

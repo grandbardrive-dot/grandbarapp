@@ -71,9 +71,10 @@ function kpisDe(r,preg){
   if(!r) return '';
   const chip=(v,l)=>'<div class="kpi"><div class="v">'+esc(v)+'</div><div class="l">'+esc(l)+'</div></div>';
   let h='';
+  if(r.copas_normal!=null) h+=chip(nf(r.copas_normal),'copas/sem antes');
   if(r.copas_accion!=null) h+=chip(nf(r.copas_accion),'copas con la acción');
-  if(r.copas_normal!=null) h+=chip(nf(r.copas_normal),'copas habituales');
-  if(r.precio!=null) h+=chip('$'+nf(r.precio),'precio de la copa');
+  if(r.precio_antes!=null) h+=chip('$'+nf(r.precio_antes),'precio antes');
+  if(r.precio!=null) h+=chip('$'+nf(r.precio),'precio con acción');
   if(r.botellas!=null) h+=chip(nf(r.botellas),'botellas compradas');
   return h;
 }
@@ -81,9 +82,10 @@ function slideEx(it,i,preg){
   const foto=(it.fotos_url&&it.fotos_url[0]);
   const by=it.fuente==='kaf'?'Relevado por KAF':(it.vendedor_nombre?'Ejecutado por '+esc(it.vendedor_nombre):'');
   const tag=it.fuente==='kaf'?'<span class="tag">KAF</span>':'';
-  let desc=it.comentario?esc(it.comentario):'';
-  if(it.resultado&&it.resultado.repetiria) desc+=(desc?' · ':'')+'Repetiría: '+esc(it.resultado.repetiria);
-  if(it.resultado&&it.resultado.comentario_cliente) desc+=(desc?'<br>':'')+'“'+esc(it.resultado.comentario_cliente)+'”';
+  const r=it.resultado||{};
+  let desc=r.que_se_hizo?esc(r.que_se_hizo):(it.comentario?esc(it.comentario):'');
+  if(r.repetiria) desc+=(desc?' · ':'')+'Repetiría: '+esc(r.repetiria);
+  if(r.comentario_cliente) desc+=(desc?'<br>':'')+'“'+esc(r.comentario_cliente)+'”';
   return '<div class="slide ex">'+
     (foto?'<div class="foto"><img src="'+esc(foto)+'" alt="" loading="lazy"></div>':'<div class="foto ph">sin foto</div>')+
     '<div class="body"><div class="num">Ejecución '+(i)+'</div>'+
