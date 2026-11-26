@@ -39,6 +39,12 @@ const PREGUNTAS = [
   { k: 'repetiria', t: '¿Repetiría la acción?', tipo: 'texto', max: 20, seccion: 'Resultado' },
   { k: 'comentario_cliente', t: 'Comentario del cliente', tipo: 'texto', max: 400, seccion: 'Resultado' },
 ];
+// El vendedor carga poco (en la visita no hay tiempo): 3 datos y el resultado se calcula solo.
+const PREGUNTAS_VEND = [
+  { k: 'producto', t: '¿Qué producto/marca se trabajó?', tipo: 'texto', max: 60 },
+  { k: 'copas_normal', t: '¿Cuántas copas/tragos vende por semana normalmente?', tipo: 'num' },
+  { k: 'copas_accion', t: '¿Cuántas vendió con la acción?', tipo: 'num' },
+];
 function limpiarResultado(r) {
   if (!r || typeof r !== 'object') return null;
   const out = {}; let hay = false;
@@ -141,7 +147,7 @@ exports.handler = async (event) => {
         const fProv = prov ? '&proveedor=eq.' + encodeURIComponent(prov) : '';
         const tipos = await hub('ejecuciones_tipos?activo=eq.true' + fProv + fCanal + '&select=id,proveedor,nombre,categoria,canal,descripcion,puntos,icono,manual_objetivo,manual_si,manual_no,foto_si,foto_no,orden&order=orden.asc,nombre.asc');
         const mias0 = await hub('ejecuciones?usuario_id=eq.' + encodeURIComponent(user.id) + fProv + '&select=id,tipo_nombre,proveedor,puntos,cliente_nombre,fotos,estado,validacion_comentario,resultado,created_at,validado_at&order=created_at.desc&limit=100');
-        return json(200, { config: await config(), proveedor: prov || null, tipos: Array.isArray(tipos) ? tipos : [], mias: await firmar(Array.isArray(mias0) ? mias0 : []), puntos: await puntosDe(user.id), esKaf, preguntas: PREGUNTAS, vendedor: { nombre: perfil.nombre, codigo: perfil.codigo_vendedor } });
+        return json(200, { config: await config(), proveedor: prov || null, tipos: Array.isArray(tipos) ? tipos : [], mias: await firmar(Array.isArray(mias0) ? mias0 : []), puntos: await puntosDe(user.id), esKaf, preguntas: esKaf ? PREGUNTAS : PREGUNTAS_VEND, vendedor: { nombre: perfil.nombre, codigo: perfil.codigo_vendedor } });
       }
 
       if (qp.vista === 'cola') {
@@ -208,6 +214,12 @@ exports.handler = async (event) => {
       const cliNombre = cli ? cli.nombre : texto(b.cliente_nombre, 200);
       if (esKaf && !cliNombre) return json(400, { error: 'Elegí el punto de venta.' });
       const resultado = limpiarResultado(b.resultado);
+      // El resultado (levante) se calcula solo: copas con la acción vs lo normal.
+      if (resultado && resultado.copas_normal != null && resultado.copas_accion != null) {
+        const base = Number(resultado.copas_normal), act = Number(resultado.copas_accion);
+        resultado.uplift = Math.round(act - base);
+        resultado.uplift_pct = base > 0 ? Math.round((act / base - 1) * 100) : null;
+      }
 
       // Subir fotos.
       const subidas = [];

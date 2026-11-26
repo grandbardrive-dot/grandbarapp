@@ -73,6 +73,8 @@ function kpisDe(r,preg){
   let h='';
   if(r.copas_normal!=null) h+=chip(nf(r.copas_normal),'copas/sem antes');
   if(r.copas_accion!=null) h+=chip(nf(r.copas_accion),'copas con la acción');
+  if(r.uplift_pct!=null) h+=chip((r.uplift_pct>=0?'+':'')+nf(r.uplift_pct)+'%','más que lo normal');
+  else if(r.uplift!=null) h+=chip((r.uplift>=0?'+':'')+nf(r.uplift),'copas de más');
   if(r.precio_antes!=null) h+=chip('$'+nf(r.precio_antes),'precio antes');
   if(r.precio!=null) h+=chip('$'+nf(r.precio),'precio con acción');
   if(r.botellas!=null) h+=chip(nf(r.botellas),'botellas compradas');
