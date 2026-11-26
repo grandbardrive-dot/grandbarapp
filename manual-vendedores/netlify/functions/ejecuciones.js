@@ -79,10 +79,13 @@ exports.handler = async (event) => {
     const hub = async path => { const r = await sb(path); return r.ok ? r.json() : []; };
     const man = async path => { const r = await fetch(MAN_URL + '/rest/v1/' + path, { headers: { apikey: MAN_KEY, Authorization: 'Bearer ' + MAN_KEY } }); return r.ok ? r.json() : []; };
 
-    const perfil = (await hub('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=nombre,rol,codigo_vendedor,activo'))[0] || {};
+    const perfil = (await hub('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=nombre,rol,codigo_vendedor,canal,activo'))[0] || {};
     if (perfil.activo === false) return json(403, { error: 'Tu usuario está desactivado.' });
     const rol = String(perfil.rol || '').toLowerCase();
     const esVend = CARGAN.includes(rol), esKaf = KAF.includes(rol), esValida = VALIDAN.includes(rol), esAdmin = ADMIN.includes(rol), verCola = VEN_COLA.includes(rol);
+    // El vendedor ve las ejecuciones de SU canal (ON/OFF) + las 'ambos'. El KAF las ve todas.
+    const canal = String(perfil.canal || '').toLowerCase();
+    const fCanal = (!esKaf && (canal === 'on' || canal === 'off')) ? '&or=(canal.eq.ambos,canal.eq.' + canal + ')' : '';
 
     async function config() {
       const c = (await hub('ejecuciones_config?id=eq.1&select=valor_punto,nota'))[0] || {};
@@ -120,7 +123,7 @@ exports.handler = async (event) => {
       // Pantalla de proveedores (con logo) para elegir antes del catálogo.
       if (qp.vista === 'proveedores') {
         if (!esVend && !esKaf) return json(403, { error: 'No autorizado.' });
-        const tt = await hub('ejecuciones_tipos?activo=eq.true&select=proveedor');
+        const tt = await hub('ejecuciones_tipos?activo=eq.true' + fCanal + '&select=proveedor');
         const cont = {}; (Array.isArray(tt) ? tt : []).forEach(t => { if (t.proveedor) cont[t.proveedor] = (cont[t.proveedor] || 0) + 1; });
         const logos = await man('proveedores?select=nombre,logo_url');
         const logoDe = (nombre) => {
@@ -136,7 +139,7 @@ exports.handler = async (event) => {
         if (!esVend && !esKaf) return json(403, { error: 'Solo los vendedores y el KAF cargan ejecuciones.' });
         const prov = texto(qp.proveedor, 120);
         const fProv = prov ? '&proveedor=eq.' + encodeURIComponent(prov) : '';
-        const tipos = await hub('ejecuciones_tipos?activo=eq.true' + fProv + '&select=id,proveedor,nombre,categoria,descripcion,puntos,icono,manual_objetivo,manual_si,manual_no,foto_si,foto_no,orden&order=orden.asc,nombre.asc');
+        const tipos = await hub('ejecuciones_tipos?activo=eq.true' + fProv + fCanal + '&select=id,proveedor,nombre,categoria,canal,descripcion,puntos,icono,manual_objetivo,manual_si,manual_no,foto_si,foto_no,orden&order=orden.asc,nombre.asc');
         const mias0 = await hub('ejecuciones?usuario_id=eq.' + encodeURIComponent(user.id) + fProv + '&select=id,tipo_nombre,proveedor,puntos,cliente_nombre,fotos,estado,validacion_comentario,resultado,created_at,validado_at&order=created_at.desc&limit=100');
         return json(200, { config: await config(), proveedor: prov || null, tipos: Array.isArray(tipos) ? tipos : [], mias: await firmar(Array.isArray(mias0) ? mias0 : []), puntos: await puntosDe(user.id), esKaf, preguntas: PREGUNTAS, vendedor: { nombre: perfil.nombre, codigo: perfil.codigo_vendedor } });
       }
