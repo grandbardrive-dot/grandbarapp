@@ -224,7 +224,7 @@ async function cargarProveedores(){
   const logoHTML=p=>p.logo?'<img src="'+esc(p.logo)+'" alt="'+esc(p.proveedor)+'">':'<span class="mono">'+esc(p.proveedor)+'</span>';
   const app=document.getElementById('app');
   app.innerHTML=
-   '<div class="cover">'+(EMBED?'':'<button class="bk" style="background:rgba(0,0,0,.08);color:var(--ink);margin-bottom:10px" onclick="location.href=\''+(ESKAF?'/kaf.html':'/inicio.html')+'\'">&larr; Volver</button><br>')+
+   '<div class="cover">'+(EMBED?'':'<button class="bk" id="bkPanel" style="background:rgba(0,0,0,.08);color:var(--ink);margin-bottom:10px">&larr; Volver</button><br>')+
      '<div class="eyebrow">'+(ESKAF?'KAF · Ejecuciones':'Manual del vendedor')+'</div>'+
      '<h1>Ejecu<span style="color:var(--red)">·</span>ciones</h1>'+
      '<div class="sc">elegí la marca &rarr;</div></div>'+
@@ -234,6 +234,7 @@ async function cargarProveedores(){
      '<span class="star" style="top:2px;right:14px;transform:rotate(12deg)">✦</span>'+
    '</div>';
   app.querySelectorAll('[data-prov]').forEach(c=>c.onclick=()=>abrirProveedor(c.dataset.prov));
+  const bp=document.getElementById('bkPanel'); if(bp) bp.onclick=()=>location.href=(ESKAF?'/kaf.html':'/inicio.html');
 }
 function abrirProveedor(prov){ PROV=prov; document.getElementById('app').innerHTML='<div class="load">Cargando '+esc(prov)+'…</div>'; cargarCatalogo(); }
 
@@ -398,6 +399,8 @@ async function cargarCartera(){
 document.getElementById('carFile').addEventListener('change',e=>{ sumarFotos(e.target.files); e.target.value=''; });
 document.getElementById('carOk').addEventListener('click',enviar);
 document.querySelectorAll('.ov').forEach(ov=>ov.addEventListener('click',e=>{ if(e.target===ov) cerrar(ov.id); }));
+document.querySelectorAll('.ov .x').forEach(b=>b.addEventListener('click',()=>{ const ov=b.closest('.ov'); if(ov) cerrar(ov.id); }));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ document.querySelectorAll('.ov:not([hidden])').forEach(ov=>cerrar(ov.id)); } });
 cargarProveedores();
 </script>
 </body>
