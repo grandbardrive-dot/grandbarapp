@@ -100,9 +100,10 @@
     <label class="lb">Fotos del punto de venta <small style="font-weight:500;color:#8a929a">(hasta 3)</small></label>
     <div class="fotos" id="carFotos"></div>
     <label class="add" id="carAdd" style="margin-top:8px"><input type="file" accept="image/*" multiple id="carFile" hidden>📷 Agregar foto</label>
-    <label class="lb" for="carCli">Cliente <small style="font-weight:500;color:#8a929a">(opcional)</small></label>
+    <label class="lb" for="carCli" id="carCliLb">Cliente <small style="font-weight:500;color:#8a929a">(opcional)</small></label>
     <input class="in" id="carCli" list="carCliList" placeholder="Nombre o código del cliente">
     <datalist id="carCliList"></datalist>
+    <div id="carQuest"></div>
     <label class="lb" for="carCom">Comentario <small style="font-weight:500;color:#8a929a">(opcional)</small></label>
     <textarea class="in" id="carCom" maxlength="500" placeholder="Qué se ve en la foto…"></textarea>
     <div class="msg" id="carMsg"></div>
@@ -140,13 +141,16 @@ function pintar(){
   const prov='Campari';
   const pts=(DATA.puntos||{})[prov]||0;
   const tipos=DATA.tipos||[];
+  const KAF=!!DATA.esKaf;
   const app=document.getElementById('app');
-  app.innerHTML=
-   '<div class="hd"><div class="top">'+(EMBED?'':'<a class="back" href="clientes.html">‹ Volver</a>')+'<span>Manual del vendedor · Ejecuciones</span></div>'+
-     '<h1>Ejecuciones '+esc(prov)+'</h1>'+
-     '<p>Armá exhibiciones bien logradas, sacá la foto y sumá puntos. Los puntos se transforman en plata.</p>'+
+  const walHTML = KAF ? '' :
      '<div class="wal"><div><div class="l">Tus puntos '+esc(prov)+'</div><div class="pts">'+pts+' <small>pts</small></div></div>'+
-       '<div class="eq"><div class="m">'+money(pts*c.valor_punto)+'</div><div class="s">1 pto = '+money(c.valor_punto)+(c.nota?' · '+esc(c.nota):'')+'</div></div></div>'+
+       '<div class="eq"><div class="m">'+money(pts*c.valor_punto)+'</div><div class="s">1 pto = '+money(c.valor_punto)+(c.nota?' · '+esc(c.nota):'')+'</div></div></div>';
+  app.innerHTML=
+   '<div class="hd"><div class="top">'+(EMBED?'':'<a class="back" href="'+(KAF?'kaf.html':'clientes.html')+'">‹ Volver</a>')+'<span>'+(KAF?'KAF · Ejecuciones':'Manual del vendedor · Ejecuciones')+'</span></div>'+
+     '<h1>Ejecuciones '+esc(prov)+'</h1>'+
+     '<p>'+(KAF?'Entrá al punto de venta, sacá la foto de la ejecución y cargá el resultado (cuestionario al cliente).':'Armá exhibiciones bien logradas, sacá la foto y sumá puntos. Los puntos se transforman en plata.')+'</p>'+
+     walHTML+
    '</div>'+
    '<div class="tabs"><button class="tab on" data-t="cat">Catálogo</button><button class="tab" data-t="mis">Mis ejecuciones</button><button class="tab" data-t="como">Cómo funciona</button></div>'+
    '<div class="wrap">'+
@@ -164,23 +168,29 @@ function pintar(){
 }
 function tipoPorId(id){ return (DATA.tipos||[]).find(t=>t.id===id); }
 function cardTipo(t){
+  const badge=DATA.esKaf?'':'<div class="pts-badge">'+(t.puntos||0)+'<small>PTS</small></div>';
   return '<div class="card"><div class="r1"><div class="ico">'+esc(t.icono||'📦')+'</div>'+
     '<div class="ti"><b>'+esc(t.nombre)+'</b><small>'+esc(t.descripcion||'')+'</small></div>'+
-    '<div class="pts-badge">'+(t.puntos||0)+'<small>PTS</small></div></div>'+
+    badge+'</div>'+
     '<div class="acts"><button class="btn ghost" data-man="'+t.id+'">📘 Ver manual</button><button class="btn solid" data-car="'+t.id+'">📷 Cargar ejecución</button></div></div>';
 }
 function misHTML(){
   const m=DATA.mias||[];
   if(!m.length) return '<div class="empty">Todavía no cargaste ninguna ejecución. Elegí una del catálogo y sumá tus primeros puntos.</div>';
+  const KAF=!!DATA.esKaf;
   return m.map(e=>{
-    const st=e.estado==='aprobada'?['ap','Aprobada']:e.estado==='rehacer'?['re','Rehacer']:e.estado==='rechazada'?['re','No aprobada']:['pe','Pendiente'];
+    const st=KAF?['ap','Cargada']:e.estado==='aprobada'?['ap','Aprobada']:e.estado==='rehacer'?['re','Rehacer']:e.estado==='rechazada'?['re','No aprobada']:['pe','Pendiente'];
     const foto=(e.fotos_url&&e.fotos_url[0])?'<img src="'+esc(e.fotos_url[0])+'" alt="">':'📷';
-    const sub=(e.cliente_nombre?esc(e.cliente_nombre):'Sin cliente')+' · '+fcorta(e.created_at)+(e.estado!=='pendiente'&&e.validacion_comentario?' · '+esc(e.validacion_comentario):'');
+    const sub=(e.cliente_nombre?esc(e.cliente_nombre):'Sin cliente')+' · '+fcorta(e.created_at)+(!KAF&&e.estado!=='pendiente'&&e.validacion_comentario?' · '+esc(e.validacion_comentario):'');
     return '<div class="ev"><div class="ph">'+foto+'</div><div class="in"><b>'+esc(e.tipo_nombre||'Ejecución')+'</b><small>'+sub+'</small></div>'+
-      '<div style="text-align:right"><span class="st '+st[0]+'">'+st[1]+'</span>'+(e.estado==='aprobada'?'<div class="pp">+'+(e.puntos||0)+'</div>':'')+'</div></div>';
+      '<div style="text-align:right"><span class="st '+st[0]+'">'+st[1]+'</span>'+(!KAF&&e.estado==='aprobada'?'<div class="pp">+'+(e.puntos||0)+'</div>':'')+'</div></div>';
   }).join('');
 }
 function comoHTML(){
+  if(DATA.esKaf) return '<div class="card"><div class="step"><div class="n">1</div><div class="t"><b>Entrá al punto de venta</b><p>Elegí la ejecución y mirá el manual "Esto sí / Esto no".</p></div></div>'+
+    '<div class="step"><div class="n">2</div><div class="t"><b>Sacá la foto de la ejecución</b><p>De frente, con buena luz. Hasta 3 fotos.</p></div></div>'+
+    '<div class="step"><div class="n">3</div><div class="t"><b>Cargá el resultado</b><p>Preguntale al cliente las copas vendidas con/sin acción, el precio, etc.</p></div></div>'+
+    '<div class="step" style="margin-bottom:0"><div class="n">4</div><div class="t"><b>Entra a la presentación del mes</b><p>Todo lo que cargás se junta en el deck de Campari que arma GrandBar.</p></div></div></div>';
   return '<div class="card"><div class="step"><div class="n">1</div><div class="t"><b>Elegí la ejecución</b><p>Mirá el manual "Esto sí / Esto no" para dejarla bien lograda.</p></div></div>'+
     '<div class="step"><div class="n">2</div><div class="t"><b>Sacá la foto en el cliente</b><p>De frente, con buena luz. Hasta 3 fotos.</p></div></div>'+
     '<div class="step"><div class="n">3</div><div class="t"><b>Juan Pablo (Trade) la valida</b><p>Si cumple el estándar, suma los puntos. Si no, te pide rehacerla.</p></div></div>'+
@@ -208,6 +218,13 @@ function abrirCarga(id){
   document.getElementById('carDesc').textContent=t.descripcion||'';
   document.getElementById('carPts').innerHTML=(t.puntos||0)+'<small>PTS</small>';
   document.getElementById('carCli').value=''; document.getElementById('carCom').value=''; document.getElementById('carMsg').textContent='';
+  const KAF=!!DATA.esKaf;
+  document.getElementById('carCliLb').innerHTML='Punto de venta '+(KAF?'<small style="font-weight:500;color:#c0392b">(obligatorio)</small>':'<small style="font-weight:500;color:#8a929a">(opcional)</small>');
+  const q=document.getElementById('carQuest');
+  if(KAF && (DATA.preguntas||[]).length){
+    q.innerHTML='<div style="background:#f6f3ee;border-radius:11px;padding:11px 12px;margin-top:6px"><div style="font-weight:800;font-size:12.5px;color:#1b2a32;margin-bottom:4px">Resultado de la ejecución <small style="font-weight:500;color:#8a929a">(preguntale al cliente)</small></div>'+
+      DATA.preguntas.map(p=>'<label class="lb" style="margin-top:7px" for="q_'+p.k+'">'+esc(p.t)+'</label><input class="in" id="q_'+p.k+'" '+(p.tipo==='num'?'type="number" inputmode="decimal" min="0"':'maxlength="'+(p.max||200)+'"')+'>').join('')+'</div>';
+  } else q.innerHTML='';
   pintarFotos(); abrir('ovCar');
 }
 
@@ -235,21 +252,25 @@ function pintarFotos(){
 async function enviar(){
   const msg=document.getElementById('carMsg'), btn=document.getElementById('carOk');
   if(!ACTUAL) return;
+  const KAF=!!DATA.esKaf;
   if(!FOTOS.length){ msg.textContent='Sumá al menos una foto.'; return; }
+  const cli=document.getElementById('carCli').value.trim();
+  if(KAF && !cli){ msg.textContent='Elegí el punto de venta.'; return; }
+  let resultado=null;
+  if(KAF && (DATA.preguntas||[]).length){ resultado={}; DATA.preguntas.forEach(p=>{ const v=(document.getElementById('q_'+p.k)||{}).value; if(v!=null&&String(v).trim()!=='') resultado[p.k]=v; }); }
   btn.disabled=true; const t0=btn.textContent; btn.textContent='Enviando…'; msg.textContent='';
   try{
     const tok=await token(); if(!tok) throw new Error('Tu sesión venció. Entrá de nuevo desde el Portal.');
-    const cli=document.getElementById('carCli').value.trim();
     const m=CARTERA.find(c=>c.label===cli||c.codigo===cli);
     const r=await fetch(FN,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
       body:JSON.stringify({accion:'cargar',tipo_id:ACTUAL.id,fotos:FOTOS,
         cliente_codigo:m?m.codigo:(/^[\w-]{1,20}$/.test(cli)?cli:null), cliente_nombre:m?null:(cli||null),
-        comentario:document.getElementById('carCom').value.trim()||null})});
+        comentario:document.getElementById('carCom').value.trim()||null, resultado})});
     const d=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(d.error||'No se pudo enviar.');
     cerrar('ovCar');
     await cargar();
-    alert('📷 Ejecución enviada. Le llegó a Juan Pablo (Trade) para validar. Cuando la apruebe, sumás los puntos.');
+    alert(KAF?'📷 Ejecución registrada. Va a la presentación del mes de Campari.':'📷 Ejecución enviada. Le llegó a Juan Pablo (Trade) para validar. Cuando la apruebe, sumás los puntos.');
   }catch(e){ msg.textContent=e.message||String(e); }
   finally{ btn.disabled=false; btn.textContent=t0; }
 }

@@ -21,9 +21,33 @@ const PREF = 'ejec/';
 const MAX_FOTOS = 3, MAX_BYTES = 3 * 1024 * 1024;
 
 const CARGAN = ['ventas', 'mayorista', 'desarrollo', 'diseno'];
+const KAF = ['kaf'];
 const VALIDAN = ['torneo', 'desarrollo', 'diseno'];
 const ADMIN = ['compras', 'admin', 'direccion', 'desarrollo', 'diseno', 'marketing'];
 const VEN_COLA = ['torneo', 'compras', 'admin', 'direccion', 'desarrollo', 'diseno', 'marketing'];
+
+// Cuestionario de resultado que completa el KAF en el PDV (fijo, Campari).
+const PREGUNTAS = [
+  { k: 'producto', t: 'Producto', tipo: 'texto', max: 60 },
+  { k: 'copas_accion', t: 'Copas/tragos vendidos durante la acción', tipo: 'num' },
+  { k: 'copas_normal', t: 'Copas/tragos por semana sin acción', tipo: 'num' },
+  { k: 'precio', t: 'Precio de venta de la copa ($)', tipo: 'num' },
+  { k: 'botellas', t: 'Botellas de la marca compradas por la acción', tipo: 'num' },
+  { k: 'repetiria', t: '¿Repetiría la acción?', tipo: 'texto', max: 20 },
+  { k: 'comentario_cliente', t: 'Comentario del cliente', tipo: 'texto', max: 400 },
+];
+function limpiarResultado(r) {
+  if (!r || typeof r !== 'object') return null;
+  const out = {}; let hay = false;
+  for (const p of PREGUNTAS) {
+    let v = r[p.k];
+    if (v == null || v === '') continue;
+    if (p.tipo === 'num') { v = Number(v); if (!Number.isFinite(v)) continue; }
+    else v = String(v).trim().slice(0, p.max || 200);
+    out[p.k] = v; hay = true;
+  }
+  return hay ? out : null;
+}
 
 let pushA = null;
 try { ({ pushA } = require('./_notificar')); } catch (e) { pushA = async () => {}; }
@@ -54,7 +78,7 @@ exports.handler = async (event) => {
     const perfil = (await hub('usuarios?id=eq.' + encodeURIComponent(user.id) + '&select=nombre,rol,codigo_vendedor,activo'))[0] || {};
     if (perfil.activo === false) return json(403, { error: 'Tu usuario está desactivado.' });
     const rol = String(perfil.rol || '').toLowerCase();
-    const esVend = CARGAN.includes(rol), esValida = VALIDAN.includes(rol), esAdmin = ADMIN.includes(rol), verCola = VEN_COLA.includes(rol);
+    const esVend = CARGAN.includes(rol), esKaf = KAF.includes(rol), esValida = VALIDAN.includes(rol), esAdmin = ADMIN.includes(rol), verCola = VEN_COLA.includes(rol);
 
     async function config() {
       const c = (await hub('ejecuciones_config?id=eq.1&select=valor_punto,nota'))[0] || {};
@@ -87,10 +111,10 @@ exports.handler = async (event) => {
       const qp = event.queryStringParameters || {};
 
       if (qp.vista === 'vendedor') {
-        if (!esVend) return json(403, { error: 'Solo los vendedores cargan ejecuciones.' });
+        if (!esVend && !esKaf) return json(403, { error: 'Solo los vendedores y el KAF cargan ejecuciones.' });
         const tipos = await hub('ejecuciones_tipos?activo=eq.true&select=id,proveedor,nombre,descripcion,puntos,icono,manual_objetivo,manual_si,manual_no,foto_si,foto_no,orden&order=orden.asc,nombre.asc');
-        const mias0 = await hub('ejecuciones?usuario_id=eq.' + encodeURIComponent(user.id) + '&select=id,tipo_nombre,proveedor,puntos,cliente_nombre,fotos,estado,validacion_comentario,created_at,validado_at&order=created_at.desc&limit=100');
-        return json(200, { config: await config(), tipos: Array.isArray(tipos) ? tipos : [], mias: await firmar(Array.isArray(mias0) ? mias0 : []), puntos: await puntosDe(user.id), vendedor: { nombre: perfil.nombre, codigo: perfil.codigo_vendedor } });
+        const mias0 = await hub('ejecuciones?usuario_id=eq.' + encodeURIComponent(user.id) + '&select=id,tipo_nombre,proveedor,puntos,cliente_nombre,fotos,estado,validacion_comentario,resultado,created_at,validado_at&order=created_at.desc&limit=100');
+        return json(200, { config: await config(), tipos: Array.isArray(tipos) ? tipos : [], mias: await firmar(Array.isArray(mias0) ? mias0 : []), puntos: await puntosDe(user.id), esKaf, preguntas: esKaf ? PREGUNTAS : null, vendedor: { nombre: perfil.nombre, codigo: perfil.codigo_vendedor } });
       }
 
       if (qp.vista === 'cola') {
@@ -106,6 +130,23 @@ exports.handler = async (event) => {
         if (!esAdmin) return json(403, { error: 'No autorizado.' });
         const tipos = await hub('ejecuciones_tipos?select=*&order=proveedor.asc,orden.asc');
         return json(200, { config: await config(), tipos: Array.isArray(tipos) ? tipos : [] });
+      }
+
+      // Presentaciones guardadas (lista).
+      if (qp.vista === 'presentaciones') {
+        if (!esAdmin) return json(403, { error: 'No autorizado.' });
+        const l = await hub('presentaciones?select=id,proveedor,periodo,titulo,total,generado_por,created_at&order=created_at.desc&limit=100');
+        return json(200, { presentaciones: Array.isArray(l) ? l : [] });
+      }
+      // Una presentación, con las fotos firmadas para el deck.
+      if (qp.vista === 'presentacion') {
+        if (!esAdmin) return json(403, { error: 'No autorizado.' });
+        if (!esUuid(qp.id)) return json(400, { error: 'Falta la presentación.' });
+        const p = (await hub('presentaciones?id=eq.' + qp.id + '&select=*'))[0];
+        if (!p) return json(404, { error: 'No encontré la presentación.' });
+        const items = Array.isArray(p.datos) ? p.datos : [];
+        const conFotos = await firmar(items);
+        return json(200, { presentacion: { ...p, datos: conFotos }, preguntas: PREGUNTAS });
       }
 
       // Ranking simple por proveedor (opcional, para motivar).
@@ -127,17 +168,19 @@ exports.handler = async (event) => {
 
     // ============ Cargar (vendedor) ============
     if (b.accion === 'cargar') {
-      if (!esVend) return json(403, { error: 'Solo los vendedores cargan ejecuciones.' });
+      if (!esVend && !esKaf) return json(403, { error: 'Solo los vendedores y el KAF cargan ejecuciones.' });
       if (!esUuid(b.tipo_id)) return json(400, { error: 'Elegí la ejecución.' });
       const tipo = (await hub('ejecuciones_tipos?id=eq.' + b.tipo_id + '&select=id,nombre,proveedor,puntos,activo'))[0];
       if (!tipo || tipo.activo === false) return json(404, { error: 'Esa ejecución ya no está disponible.' });
       const fotos = Array.isArray(b.fotos) ? b.fotos.slice(0, MAX_FOTOS) : [];
       if (!fotos.length) return json(400, { error: 'Sumá al menos una foto.' });
 
-      // Cliente opcional (de la base del Manual si vino el código).
+      // Cliente: opcional para el vendedor; obligatorio para el KAF.
       let cli = null;
       if (b.cliente_codigo && /^[\w-]{1,20}$/.test(String(b.cliente_codigo))) cli = (await man('clientes?codigo_cliente=eq.' + encodeURIComponent(b.cliente_codigo) + '&select=id,codigo_cliente,nombre'))[0] || null;
       const cliNombre = cli ? cli.nombre : texto(b.cliente_nombre, 200);
+      if (esKaf && !cliNombre) return json(400, { error: 'Elegí el punto de venta.' });
+      const resultado = esKaf ? limpiarResultado(b.resultado) : null;
 
       // Subir fotos.
       const subidas = [];
@@ -155,20 +198,23 @@ exports.handler = async (event) => {
       }
 
       const nueva = {
-        tipo_id: tipo.id, tipo_nombre: texto(tipo.nombre, 200), proveedor: texto(tipo.proveedor, 120), puntos: intOf(tipo.puntos, 0),
+        tipo_id: tipo.id, tipo_nombre: texto(tipo.nombre, 200), proveedor: texto(tipo.proveedor, 120),
+        puntos: esKaf ? 0 : intOf(tipo.puntos, 0), fuente: esKaf ? 'kaf' : 'vendedor',
         usuario_id: user.id, vendedor_codigo: texto(perfil.codigo_vendedor, 20), vendedor_nombre: texto(perfil.nombre, 120),
         cliente_id: cli ? cli.id : null, cliente_codigo: cli ? texto(cli.codigo_cliente, 30) : null, cliente_nombre: cliNombre,
-        fotos: subidas, comentario: texto(b.comentario, 500), estado: 'pendiente',
+        fotos: subidas, comentario: texto(b.comentario, 500), resultado, estado: esKaf ? 'aprobada' : 'pendiente',
       };
       const ins = await sb('ejecuciones', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(nueva) });
       if (!ins.ok) { await borrar(); return json(502, { error: 'No se pudo guardar la ejecución.' }); }
       const guardada = (await ins.json())[0] || nueva;
 
-      // Avisar a los validadores (Trade).
-      const tit = 'Ejecución para validar';
-      const det = tipo.nombre + (cliNombre ? ' · ' + cliNombre : '') + (nueva.vendedor_nombre ? ' · ' + nueva.vendedor_nombre : '');
-      const valid = await hub('usuarios?rol=eq.torneo&select=id,activo');
-      for (const u of (Array.isArray(valid) ? valid : []).filter(u => u.activo !== false)) await notificar(u.id, { icono: '🏆', titulo: tit, detalle: det, link: '/manual-vendedores/trade-ejecuciones.html' });
+      // El KAF no pasa por validación (no suma puntos). El vendedor sí: avisar a Trade.
+      if (!esKaf) {
+        const tit = 'Ejecución para validar';
+        const det = tipo.nombre + (cliNombre ? ' · ' + cliNombre : '') + (nueva.vendedor_nombre ? ' · ' + nueva.vendedor_nombre : '');
+        const valid = await hub('usuarios?rol=eq.torneo&select=id,activo');
+        for (const u of (Array.isArray(valid) ? valid : []).filter(u => u.activo !== false)) await notificar(u.id, { icono: '🏆', titulo: tit, detalle: det, link: '/manual-vendedores/trade-ejecuciones.html' });
+      }
       return json(200, { ok: true, ejecucion: (await firmar([guardada]))[0] });
     }
 
@@ -233,6 +279,37 @@ exports.handler = async (event) => {
       const patch = { valor_punto: numOf(b.valor_punto, 100), nota: texto(b.nota, 200), updated_at: new Date().toISOString() };
       const r = await sb('ejecuciones_config?id=eq.1', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
       if (!r.ok) return json(502, { error: 'No se pudo guardar.' });
+      return json(200, { ok: true });
+    }
+
+    // ============ Generar presentación del mes (admin) ============
+    if (b.accion === 'pres_generar') {
+      if (!esAdmin) return json(403, { error: 'No autorizado.' });
+      const prov = texto(b.proveedor, 120) || 'Campari';
+      const hoy = new Date(Date.now() - 3 * 3600000);
+      let periodo = String(b.periodo || '');
+      if (!/^\d{4}-\d{2}$/.test(periodo)) periodo = hoy.toISOString().slice(0, 7);
+      const [yy, mm] = periodo.split('-').map(Number);
+      const desde = periodo + '-01';
+      const hasta = (mm === 12 ? (yy + 1) + '-01-01' : yy + '-' + String(mm + 1).padStart(2, '0') + '-01');
+      const filas = await hub('ejecuciones?proveedor=eq.' + encodeURIComponent(prov) + '&estado=eq.aprobada&created_at=gte.' + desde + '&created_at=lt.' + hasta + '&select=tipo_nombre,cliente_nombre,vendedor_nombre,fuente,comentario,resultado,fotos,created_at&order=created_at.asc&limit=2000');
+      const datos = (Array.isArray(filas) ? filas : []).map(f => ({
+        tipo_nombre: f.tipo_nombre, cliente_nombre: f.cliente_nombre, vendedor_nombre: f.vendedor_nombre,
+        fuente: f.fuente, comentario: f.comentario, resultado: f.resultado, fotos: f.fotos || [], created_at: f.created_at,
+      }));
+      const MES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      const titulo = texto(b.titulo, 160) || ('Ejecuciones ' + MES[mm - 1] + ' ' + yy);
+      const fila = { proveedor: prov, periodo, titulo, total: datos.length, generado_por: perfil.nombre || user.email, generado_por_id: user.id, datos };
+      const ins = await sb('presentaciones', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) });
+      if (!ins.ok) return json(502, { error: 'No se pudo generar la presentación.' });
+      const g = (await ins.json())[0] || fila;
+      return json(200, { ok: true, presentacion: { id: g.id, titulo: g.titulo, total: g.total } });
+    }
+    // ============ Borrar presentación (admin) ============
+    if (b.accion === 'pres_borrar') {
+      if (!esAdmin) return json(403, { error: 'No autorizado.' });
+      if (!esUuid(b.id)) return json(400, { error: 'Falta la presentación.' });
+      await sb('presentaciones?id=eq.' + b.id, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
       return json(200, { ok: true });
     }
 

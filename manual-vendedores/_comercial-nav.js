@@ -56,6 +56,7 @@
   I.sellout = '<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 13l3-3 3 3 4-5" stroke-linecap="round" stroke-linejoin="round"/>';
   I.plan11t = '<path d="M4 4v16h16" stroke-linecap="round"/><path d="M8 14l3-3 2 2 4-5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="8" r="1.6" fill="currentColor" stroke="none"/>';
   I.evidencias = '<rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6" stroke-linejoin="round"/>';
+  I.presentacion = '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M12 17v4M8 21h8M8 9l2.5 2.5L16 7" stroke-linecap="round" stroke-linejoin="round"/>';
   var GRUPOS = [
     { items: [ { h: 'admin-comercial.html', t: 'Inicio', i: 'inicio' } ] },
     { titulo: 'Campañas', items: [
@@ -99,6 +100,10 @@
       { h: '/supervisor-incentivos.html', t: 'Incentivos', s: 'Proveedores · toda la empresa', i: 'incentivos' },
       // Reporte diario (19/11/2026): unidades y clientes con compra de cada vendedor (embebido).
       { h: 'admin-reporte-diario.html', t: 'Reporte diario', s: 'Ventas por vendedor y equipo', i: 'reporte' },
+    ]},
+    { titulo: 'Ejecuciones Campari', items: [
+      // Deck mensual que junta las ejecuciones de vendedores + KAF (26/11/2026).
+      { h: 'admin-presentaciones.html', t: 'Presentaciones', s: 'Deck del mes · una página por ejecución', i: 'presentacion' },
     ]},
     { titulo: 'Lo mío', items: [
       { h: 'admin-agenda.html', t: 'Mi agenda', i: 'agenda' },
