@@ -77,7 +77,7 @@ async function calcular(mes) {
   skus.forEach(s => skuLinea.set(norm(s.sku), s.linea));
 
   // ---- Clientes -> canal (Manual) ----
-  const clientes = await todo(man, 'clientes?select=codigo_cliente,tipo,activo');
+  const clientes = await todo(man, 'clientes?select=codigo_cliente,tipo,activo&order=codigo_cliente.asc');
   const cliCanal = new Map();
   clientes.forEach(c => {
     if (c.activo === false) return;
@@ -86,7 +86,7 @@ async function calcular(mes) {
   });
 
   // ---- Ventas del mes (Manual) ----
-  const ventas = await todo(man, 'ventas_cliente?select=cliente_codigo,sku,unidades&fecha=gte.' + desde + '&fecha=lte.' + hasta);
+  const ventas = await todo(man, 'ventas_cliente?select=cliente_codigo,sku,unidades&fecha=gte.' + desde + '&fecha=lte.' + hasta + '&order=cliente_codigo.asc,sku.asc,fecha.asc');
 
   // ---- Reparto: clientes distintos por canal (CCC) y por canal+línea ----
   const cccSet = {}; CANALES.forEach(c => cccSet[c] = new Set());
