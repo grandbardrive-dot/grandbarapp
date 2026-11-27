@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Permanent+Marker&family=Inter:wght@400;500;600;700&display=swap">
 <style>
-  :root{--ink:#141210;--paper:#ece6da;--paper2:#f3eee4;--red:#e01a1a;--red-d:#b00f0f;--mut:#6b6459;--mut2:#9a927f;--tape:rgba(214,198,150,.55);--amber:#9A6B0E;--amber-bg:#f6ecd4}
+  :root{--ink:#141210;--paper:#ece6da;--paper2:#f3eee4;--red:#e01a1a;--red-d:#b00f0f;--yel:#e9c43a;--mut:#6b6459;--mut2:#9a927f;--tape:rgba(214,198,150,.55);--amber:#9A6B0E;--amber-bg:#f6ecd4}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{font-family:'Inter',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:#d8d2c6;line-height:1.45;-webkit-font-smoothing:antialiased}
   svg{display:block}
@@ -24,19 +24,15 @@
   .kick{font-size:10.5px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:#b9b2a3}
   .bk{background:rgba(255,255,255,.14);border:0;color:var(--paper);font:inherit;font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-bottom:12px}
   .huge{font-family:'Archivo',sans-serif;font-weight:900;text-transform:uppercase;line-height:.86;letter-spacing:-1.5px}
-  .mark{position:relative;display:inline-block;color:#fff;z-index:1}
-  .mark::before{content:"";position:absolute;left:-5px;right:-5px;top:12%;bottom:8%;background:var(--red);transform:rotate(-1.4deg) skewX(-6deg);z-index:-1}
+  .mark{position:relative;display:inline-block;color:var(--ink);z-index:1}
+  .mark::before{content:"";position:absolute;left:-5px;right:-5px;top:14%;bottom:10%;background:var(--yel);transform:rotate(-1.4deg) skewX(-6deg);z-index:-1}
+  .hi{background:var(--yel);color:var(--ink);padding:0 6px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
   .tape{position:absolute;width:74px;height:22px;background:var(--tape);box-shadow:0 1px 2px rgba(0,0,0,.12);z-index:3}
   .star{position:absolute;color:var(--ink);font-size:20px;z-index:4;pointer-events:none}
   /* ===== PROVEEDORES ===== */
-  .cover{padding:22px 20px 6px}
-  .cover .eyebrow{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
-  .cover h1{font-family:'Archivo';font-weight:900;font-size:clamp(36px,8.5vw,62px);line-height:.86;text-transform:uppercase;letter-spacing:-2px;margin-top:8px;max-width:12ch}
-  .cover .tag2{font-family:'Archivo';font-weight:800;font-size:clamp(15px,3.6vw,20px);text-transform:uppercase;letter-spacing:-.3px;margin-top:14px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
-  .cover .tag2 .hl{background:var(--red);color:#fff;padding:2px 9px;transform:skewX(-7deg);display:inline-block}
-  .cover .tag2 .hl span{display:inline-block;transform:skewX(7deg)}
-  .cover .tag2 .obj{background:var(--ink);color:var(--paper);font-size:11px;letter-spacing:.12em;padding:5px 10px;transform:rotate(-2.5deg)}
-  .cover .sc{font-family:'Permanent Marker',cursive;color:var(--red);font-size:16px;transform:rotate(-3deg);display:inline-block;margin:14px 0 0 6px}
+  .lhead h1{font-family:'Archivo';font-weight:900;font-size:clamp(30px,8vw,52px);line-height:.88;text-transform:uppercase;letter-spacing:-1.5px;margin-top:9px}
+  .subnote{padding:15px 20px 0}
+  .sc{font-family:'Permanent Marker',cursive;color:var(--ink);font-size:16px;transform:rotate(-3deg);display:inline-block}
   .provs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px 16px;padding:18px 20px 6px}
   @media(max-width:520px){.provs{grid-template-columns:1fr 1fr;gap:16px 13px;padding:16px}}
   .prov{position:relative;background:#fff;border:1px solid #d9d2c3;box-shadow:0 8px 18px rgba(0,0,0,.14);cursor:pointer;transition:transform .12s}
@@ -228,10 +224,10 @@ async function cargarProveedores(){
   const logoHTML=p=>p.logo?'<img src="'+esc(p.logo)+'" alt="'+esc(p.proveedor)+'">':'<span class="mono">'+esc(p.proveedor)+'</span>';
   const app=document.getElementById('app');
   app.innerHTML=
-   '<div class="cover">'+(EMBED?'':'<button class="bk" id="bkPanel" style="background:rgba(0,0,0,.08);color:var(--ink);margin-bottom:10px">&larr; Volver</button><br>')+
-     '<div class="eyebrow">Programa 2027'+(ESKAF?' · KAF':'')+'</div>'+
-     '<h1>Líderes en la <span style="color:var(--red)">ejecución</span></h1>'+
-     '<div class="sc">elegí la marca &rarr;</div></div>'+
+   '<div class="strip lhead">'+(EMBED?'':'<button class="bk" id="bkPanel">&larr; Volver</button>')+
+     '<div class="kick">Programa 2027'+(ESKAF?' · KAF':'')+'</div>'+
+     '<h1>Líderes en la <span class="hi">ejecución</span></h1></div>'+
+   '<div class="subnote"><span class="sc">elegí la marca &rarr;</span></div>'+
    '<div class="provs">'+
      activos.map(p=>'<div class="prov" data-prov="'+esc(p.proveedor)+'"><span class="tape" style="top:-10px;left:50%;margin-left:-37px;transform:rotate(-3deg)"></span><div class="logo">'+logoHTML(p)+'</div><div class="cap"><b>'+esc(p.proveedor)+'<small>'+p.tipos+' ejecucion'+(p.tipos===1?'':'es')+'</small></b><span class="go">Entrar</span></div></div>').join('')+
      soon.map(p=>'<div class="prov soon"><div class="logo">'+logoHTML(p)+'</div><div class="cap"><b>'+esc(p.proveedor)+'<small>&nbsp;</small></b><span class="go">Pronto</span></div></div>').join('')+
