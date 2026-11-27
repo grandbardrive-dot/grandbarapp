@@ -13,7 +13,7 @@
   *{box-sizing:border-box}
   body{margin:0;font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
   .top{background:var(--navy);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
-  .top .b{font-weight:800;font-size:15px}.top .b .g{color:#e7c778}
+  .top .b{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;min-width:0}.top .b img{display:block;height:30px;width:auto;flex:none}.top .b span{padding-left:10px;border-left:1px solid rgba(255,255,255,.25);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .top .me{margin-left:auto;font-size:12.5px;color:#b9c6cd}
   .top .out{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cdd9e0;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer}
   .wrap{max-width:860px;margin:0 auto;padding:22px 16px 70px}
@@ -60,7 +60,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="b"><span class="g">Grand</span>Bar</div>
+    <div class="b"><img src="assets/logo-grandbar-claro.png" alt="GrandBar Distribuciones"></div>
     <div class="me" id="me">—</div>
     <button class="out" onclick="salir()">Salir</button>
   </div>

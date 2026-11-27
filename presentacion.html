@@ -24,6 +24,7 @@
   .cover .sub{color:#d8c9c2;font-size:clamp(13px,1.8vw,18px)}
   .cover .meta{margin-top:auto;display:flex;gap:26px;flex-wrap:wrap;color:#c7b4ac;font-size:13px}
   .cover .meta b{color:#fff;font-size:22px;font-family:Fraunces,serif;display:block}
+.cover .meta .gb{margin-left:auto;align-self:flex-end}.cover .meta .gb img{display:block;height:46px;width:auto}
   /* slide de ejecución */
   .ex{flex-direction:row}
   .ex .foto{width:52%;background:#2a1416;flex:none;overflow:hidden}
@@ -113,7 +114,7 @@ async function cargar(){
   const cover='<div class="slide cover"><div class="k">'+esc(p.proveedor)+' · Ejecuciones</div>'+
     '<h1>'+esc(p.titulo)+'</h1>'+
     '<div class="sub">Resumen de ejecuciones en los puntos de venta · '+esc(fmes(p.periodo))+'</div>'+
-    '<div class="meta"><div><b>'+items.length+'</b>ejecuciones</div><div><b>'+new Set(items.map(x=>x.cliente_nombre).filter(Boolean)).size+'</b>puntos de venta</div><div><b>GrandBar</b>Distribuciones</div></div></div>';
+    '<div class="meta"><div><b>'+items.length+'</b>ejecuciones</div><div><b>'+new Set(items.map(x=>x.cliente_nombre).filter(Boolean)).size+'</b>puntos de venta</div><div class="gb"><img src="assets/logo-grandbar-claro.png" alt="GrandBar Distribuciones"></div></div></div>';
   deck.innerHTML=cover+(items.length?items.map((it,i)=>slideEx(it,i+1,preg)).join(''):'<div class="load">No hubo ejecuciones en este período.</div>');
 }
 cargar();

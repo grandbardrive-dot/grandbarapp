@@ -43,7 +43,7 @@
       return `<a class="sb-item${on}" href="${it.href}">${ico}${txt}</a>`;
     }).join('');
     el.innerHTML = `
-      <div class="sb-logo"><img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar"></div>
+      <div class="sb-logo"><img src="logo-grandbar-claro.png" alt="GrandBar Distribuciones"></div>
       <nav class="sb-nav">${nav}</nav>
       <div class="sb-spacer"></div>
       <nav class="sb-nav" style="padding-top:0">
