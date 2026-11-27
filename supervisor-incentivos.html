@@ -199,6 +199,11 @@
   .crumb{font-size:12.5px;color:var(--muted);margin-bottom:12px}
   .crumb b{color:var(--ink)}
   .corte{font-size:11.5px;color:var(--muted);margin-bottom:12px}
+  .f11tbar{display:flex;gap:7px;flex-wrap:wrap;margin:-2px 0 14px}
+  .f11t{font-size:12.5px;font-weight:700;padding:7px 15px;border-radius:999px;border:1px solid var(--line);background:#ffffff12;color:var(--muted);cursor:pointer;transition:.15s;font-family:inherit}
+  .f11t:hover{border-color:#ffffff33;color:var(--ink)}
+  .f11t.on{background:#fff;color:#0b1118;border-color:#fff}
+  .g11t{display:flex;flex-direction:column;gap:8px}
   .ochips{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 2px}
   .ochip{font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:20px}
   .ochip.cerca{background:#f8efd6;color:#8a6a1e}
@@ -454,9 +459,21 @@
     const bars=(p.barras||[]).map(barra).join('');
     // Por producto: si ya hay objetivo cargado, barra con Real/Objetivo/Alcance/Faltan; si no, solo el real.
     const conObj=(p.marcas||[]).some(m=>m.obj>0);
-    const marcas=(p.marcas||[]).map(m=> conObj
-      ? barra(m)
-      : `<div class="vr"><div class="vn"><b>${esc(m.nombre)}</b><small>${m.av} ${m.av===1?'cliente':'clientes'} con compra</small></div></div>`).join('');
+    const prodList=ms=> (ms&&ms.length)
+      ? (conObj ? ms.map(barra).join('')
+                : '<div class="vlist">'+ms.map(m=>`<div class="vr"><div class="vn"><b>${esc(m.nombre)}</b><small>${m.av} ${m.av===1?'cliente':'clientes'} con compra</small></div></div>`).join('')+'</div>')
+      : '<div class="empty">Sin productos para este canal.</div>';
+    // Filtro por canal (solo si hay más de un canal en el alcance). "Todos" = suma de canales.
+    const grupos=p.grupos||[];
+    let filtro='', bloques='';
+    if(grupos.length>1){
+      const chip=(k,l)=>`<button class="f11t${k==='all'?' on':''}" data-f11t="${esc(k)}">${esc(l)}</button>`;
+      filtro=`<div class="f11tbar">${chip('all','Todos')}${grupos.map(g=>chip(g.key,g.label)).join('')}</div>`;
+      bloques=`<div class="g11t" data-g11t="all">${prodList(p.marcas)}</div>`+
+        grupos.map(g=>`<div class="g11t" data-g11t="${esc(g.key)}" hidden>${prodList(g.marcas)}</div>`).join('');
+    }else{
+      bloques=prodList(p.marcas);
+    }
     return `<div class="plan"><div class="body">
         ${p.corte?`<div class="corte">📅 Mes corriente · actualizado al ${esc(fFechaCorte(p.corte))}</div>`:''}
         <div class="hero">${ring(p.pct)}<div class="heroR">
@@ -464,7 +481,7 @@
             <div class="obj">🎯 <b>Plan 11T de Peñaflor.</b> Clientes con compra (CCC) por canal vs. el objetivo del mes. Se recalcula solo todos los días desde las ventas (no hay que subir Excel).</div>
         </div></div>
         <div class="secT">Por canal</div>${bars||'<div class="empty">Sin datos de tu canal este mes.</div>'}
-        ${marcas?`<div class="secT">Por producto${conObj?'':' · falta cargar el objetivo'}</div><div class="${conObj?'':'vlist'}">${marcas}</div>`:''}
+        <div class="secT">Por producto${conObj?'':' · falta cargar el objetivo'}</div>${filtro}${bloques}
       </div></div>`;
   }
   // Canales 11T que ve cada supervisor según su canal.
@@ -473,27 +490,31 @@
   function build11tPlan(rep, canalKey){
     const canales = (rep && rep.canales) || {};
     const scope = SCOPE_11T[String(canalKey||'').toLowerCase()] || ['vinotecas','tienda_bebidas','on_premise','on_premise_noche'];
-    let real=0, obj=0; const barras=[]; const marcas={};
-    scope.forEach(c=>{
-      const cc=canales[c]; if(!cc) return;
-      const t=cc.tot||{}; real+=t.real||0; obj+=t.objetivo||0;
-      barras.push({ nombre:cc.label||c, av:t.real||0, obj:t.objetivo||0, pct:t.alcance||0 });
-      // Productos: 11T + Innovaciones, sumando el real y el objetivo entre los canales del scope.
-      [...(cc.t11||[]), ...(cc.innov||[])].forEach(l=>{
-        const m = marcas[l.linea] || { nombre:l.linea, av:0, obj:0 };
-        m.av += l.real||0; m.obj += l.objetivo||0; marcas[l.linea]=m;
-      });
-    });
-    if(!barras.length) return null;
-    const pct = obj>0?Math.round(100*real/obj):(real>0?100:0);
-    const topMarcas = Object.values(marcas)
+    const ordenar = obj => Object.values(obj)
       .filter(m=>m.av>0||m.obj>0)
       .map(m=>({ nombre:m.nombre, av:m.av, obj:m.obj, pct: m.obj>0?Math.round(100*m.av/m.obj):(m.av>0?100:0) }))
       .sort((a,b)=> (b.obj-a.obj) || (b.av-a.av));
+    let real=0, obj=0; const barras=[]; const marcas={}; const grupos=[];
+    scope.forEach(c=>{
+      const cc=canales[c]; if(!cc) return;
+      const t=cc.tot||{}; real+=t.real||0; obj+=t.objetivo||0;
+      barras.push({ key:c, nombre:cc.label||c, av:t.real||0, obj:t.objetivo||0, pct:t.alcance||0 });
+      // Productos: 11T + Innovaciones. Se agregan a la lista total y a la del canal.
+      const porCanal={};
+      [...(cc.t11||[]), ...(cc.innov||[])].forEach(l=>{
+        const m = marcas[l.linea] || { nombre:l.linea, av:0, obj:0 };
+        m.av += l.real||0; m.obj += l.objetivo||0; marcas[l.linea]=m;
+        const g = porCanal[l.linea] || { nombre:l.linea, av:0, obj:0 };
+        g.av += l.real||0; g.obj += l.objetivo||0; porCanal[l.linea]=g;
+      });
+      grupos.push({ key:c, label:cc.label||c, marcas:ordenar(porCanal) });
+    });
+    if(!barras.length) return null;
+    const pct = obj>0?Math.round(100*real/obj):(real>0?100:0);
     return { id:'plan11t', tipo:'plan11t', nombre:'Plan 11T',
       detalle:'Clientes con compra (CCC) de las 11 líneas Peñaflor, por canal — automático',
       pct, cccAv:real, cccObj:obj, clientesAv:real, clientesObj:obj,
-      avanceTotal:real, targetTotal:obj, barras, marcas:topMarcas,
+      avanceTotal:real, targetTotal:obj, barras, marcas:ordenar(marcas), grupos,
       corte:(rep.carga&&rep.carga.fecha)?String(rep.carga.fecha).slice(0,10):'' };
   }
 
@@ -616,6 +637,15 @@
   function irPlan(pid,plid){ location.hash='#'+encodeURIComponent(pid)+'/'+encodeURIComponent(plid); }
   window.irHome=irHome; window.irProv=irProv; window.irPlan=irPlan;
   window.addEventListener('hashchange', renderView);
+
+  // Filtro por canal del Plan 11T (chips Todos/On Premise/…). CSP: nada de onclick inline.
+  document.addEventListener('click', e=>{
+    const b = e.target.closest && e.target.closest('.f11t'); if(!b) return;
+    const bar = b.closest('.body'); if(!bar) return;
+    const k = b.getAttribute('data-f11t');
+    bar.querySelectorAll('.f11t').forEach(x=> x.classList.toggle('on', x===b));
+    bar.querySelectorAll('.g11t').forEach(g=> g.hidden = (g.getAttribute('data-g11t')!==k));
+  });
 
   function setHeader(d){
     const reg=d.region==='san_luis'?'San Luis':(d.region==='mendoza'?'Mendoza':'');
