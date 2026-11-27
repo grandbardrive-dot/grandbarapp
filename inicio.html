@@ -164,6 +164,18 @@
     .avance .bar{height:8px;margin-top:6px;background:#ece4d6}
     .avance .bar span{background:var(--green)}
     @media(max-width:800px){ .avance{grid-template-columns:1fr} }
+    /* Desfasaje (27/11/2026, diseño del usuario): la rayita marca el avance del mes (días corridos),
+       el tramo rojo es lo que falta para llegar a lo esperado a hoy y la etiqueta, la diferencia. */
+    #cardBotellas .a-top{align-items:center;gap:10px}
+    #cardBotellas .a-n{font-size:13.5px}
+    #cardBotellas .a-pct{font-size:22px;line-height:1}
+    .avance .a-tag{font-size:12.5px;font-weight:700;padding:2px 10px;border-radius:12px;white-space:nowrap}
+    .avance .a-tag.up{background:#E3F0EA;color:#1F5A47} .avance .a-tag.down{background:#FCEBEB;color:#9B2626}
+    .avance .barx{position:relative;height:10px;margin:10px 0 8px;background:#ECE4D9;border-radius:5px}
+    .avance .barx .v{position:absolute;left:0;top:0;height:10px;border-radius:5px;background:var(--green)}
+    .avance .barx .a{position:absolute;top:0;height:10px;background:#E58A8A}
+    .avance .barx .mk{position:absolute;top:-4px;width:2px;height:18px;margin-left:-1px;background:#1C2B33}
+    #cardBotellas .a-sub{font-size:12.5px;margin-top:0}
     /* Tu mes en dos tarjetas (17/11/2026): Clientes (activos, con compra, objetivo) y Vinos y spirits */
     .mes2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
     .mes2 .card-h .per{color:var(--muted);font-size:12.5px;font-weight:600}
@@ -263,10 +275,10 @@
           </div>
         </div>
         <div class="card" id="cardBotellas">
-          <div class="card-h"><span class="t">Vinos y spirits</span><span class="per">Botellas del mes</span></div>
+          <div class="card-h"><span class="t">Vinos y spirits</span><span class="per" id="avMesPer">Botellas del mes</span></div>
           <div class="avance">
-            <div><div class="a-top"><span class="a-n">Vinos</span><span class="a-pct" id="avVinPct">—</span></div><div class="bar"><span id="avVinBar" style="width:0"></span></div><div class="a-sub" id="avVinSub">Cargando…</div></div>
-            <div><div class="a-top"><span class="a-n">Spirits</span><span class="a-pct" id="avSpiPct">—</span></div><div class="bar"><span id="avSpiBar" style="width:0"></span></div><div class="a-sub" id="avSpiSub">Cargando…</div></div>
+            <div><div class="a-top"><span class="a-n">Vinos</span><span class="a-tag" id="avVinTag" hidden></span><span class="a-pct" id="avVinPct">—</span></div><div class="barx" id="avVinBar"></div><div class="a-sub" id="avVinSub">Cargando…</div></div>
+            <div><div class="a-top"><span class="a-n">Spirits</span><span class="a-tag" id="avSpiTag" hidden></span><span class="a-pct" id="avSpiPct">—</span></div><div class="barx" id="avSpiBar"></div><div class="a-sub" id="avSpiSub">Cargando…</div></div>
           </div>
         </div>
       </div>
@@ -387,16 +399,36 @@
   async function cargarAvance(){
     const $ = id => document.getElementById(id);
     const n = v => Math.round(v || 0).toLocaleString("es-AR");
+    // Desfasaje (27/11/2026, diseño del usuario): días corridos. Avance del mes = día / días del mes
+    // (hoy cuenta entero; un mes cerrado = 100%). Esperado a hoy = objetivo × esa fracción exacta,
+    // redondeado. Desfasaje = vendidas − esperado. La barra no pasa del 100%; el % muestra el real.
+    // Sin objetivo (no cargado o 0): sin rayita, sin etiqueta y sin esperado.
+    let AVMES = null;
+    const avanceDelMes = hasta => {
+      const hoyAR = new Date(Date.now() - 3*3600e3).toISOString().slice(0,10);
+      const f = hasta || hoyAR, [y, m] = f.split("-").map(Number);
+      const dias = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      return f.slice(0,7) < hoyAR.slice(0,7) ? 1 : Number(f.slice(8,10)) / dias;
+    };
     const linea = (k, d) => {
-      if(!d || d.objetivo == null){
+      const tag = $(k+"Tag"), bar = $(k+"Bar");
+      tag.hidden = true; bar.innerHTML = "";
+      if(!d || !d.objetivo){
         $(k+"Pct").textContent = "—";
-        $(k+"Sub").textContent = (d ? n(d.vendido) + " botellas" : "") + (d ? " · sin objetivo cargado" : "sin datos");
+        $(k+"Sub").textContent = d ? "Vendidas " + n(d.vendido) + (d.objetivo === 0 ? " · sin objetivo este mes" : " · sin objetivo cargado") : "sin datos";
         return;
       }
-      const pct = d.objetivo > 0 ? Math.round(d.vendido * 100 / d.objetivo) : 0;
-      $(k+"Pct").textContent = pct + "%";
-      $(k+"Bar").style.width = Math.min(100, pct) + "%";
-      $(k+"Sub").textContent = "Vendidas " + n(d.vendido) + " · objetivo " + n(d.objetivo) + " botellas";
+      const v = Number(d.vendido) || 0, obj = Number(d.objetivo);
+      const esperado = Math.round(obj * AVMES), desf = v - esperado;
+      const wV = Math.min(100, 100 * v / obj), wE = Math.min(100, 100 * AVMES);
+      $(k+"Pct").textContent = Math.round(100 * v / obj) + "%";
+      tag.hidden = false;
+      tag.className = "a-tag " + (desf < 0 ? "down" : "up");
+      tag.textContent = desf === 0 ? "Al día" : (desf > 0 ? "+" : "−") + n(Math.abs(desf)) + " botellas";
+      bar.innerHTML = '<span class="v" style="width:' + wV.toFixed(2) + '%"></span>'
+        + (desf < 0 && wE > wV ? '<span class="a" style="left:' + wV.toFixed(2) + '%;width:' + (wE - wV).toFixed(2) + '%"></span>' : "")
+        + '<span class="mk" style="left:' + wE.toFixed(2) + '%"></span>';
+      $(k+"Sub").textContent = "Vendidas " + n(v) + " · esperado a hoy " + n(esperado) + " · objetivo " + n(obj);
     };
     try{
       const { data:{ session } } = await hub.auth.getSession();
@@ -416,6 +448,8 @@
         $("pfCliObjSub").textContent = "llevás el " + Math.round(cc * 100 / obj) + "%";
       } else if(obj === 0){ $("pfCliObjSub").textContent = "sin objetivo este mes"; }
       else { $("pfCliObjSub").textContent = "todavía no está cargado"; }
+      AVMES = avanceDelMes(d.hasta);
+      $("avMesPer").textContent = "Botellas del mes · avance del mes " + Math.round(100 * AVMES) + "%";
       linea("avVin", d.vinos); linea("avSpi", d.spirits);
     }catch(e){
       $("stClientesSub").textContent = "no se pudo leer"; $("pfCccSub").textContent = "no se pudo leer"; $("pfCliObjSub").textContent = "";
