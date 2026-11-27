@@ -459,10 +459,15 @@
     const bars=(p.barras||[]).map(barra).join('');
     // Por producto: si ya hay objetivo cargado, barra con Real/Objetivo/Alcance/Faltan; si no, solo el real.
     const conObj=(p.marcas||[]).some(m=>m.obj>0);
-    const prodList=ms=> (ms&&ms.length)
-      ? (conObj ? ms.map(barra).join('')
-                : '<div class="vlist">'+ms.map(m=>`<div class="vr"><div class="vn"><b>${esc(m.nombre)}</b><small>${m.av} ${m.av===1?'cliente':'clientes'} con compra</small></div></div>`).join('')+'</div>')
-      : '<div class="empty">Sin productos para este canal.</div>';
+    // Con objetivos cargados, "Por producto" muestra SOLO los productos del plan (con objetivo)
+    // de ese canal — no todo lo que tuvo alguna venta. Sin objetivos, muestra por ventas.
+    const prodList=ms=>{
+      const list = (conObj ? (ms||[]).filter(m=>m.obj>0) : (ms||[]));
+      if(!list.length) return '<div class="empty">Sin productos para este canal.</div>';
+      return conObj
+        ? list.map(barra).join('')
+        : '<div class="vlist">'+list.map(m=>`<div class="vr"><div class="vn"><b>${esc(m.nombre)}</b><small>${m.av} ${m.av===1?'cliente':'clientes'} con compra</small></div></div>`).join('')+'</div>';
+    };
     // Filtro por canal (solo si hay más de un canal en el alcance). "Todos" = suma de canales.
     const grupos=p.grupos||[];
     let filtro='', bloques='';
