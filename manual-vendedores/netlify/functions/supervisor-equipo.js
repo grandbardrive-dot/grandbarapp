@@ -18,7 +18,7 @@ const MAN_URL  = 'https://fzaxwuuodseyyinveknn.supabase.co';
 const MAN_ANON = 'sb_publishable_gvclIOm9A3vCXEDT38O0Ng_HuOGH-Rk';
 
 const { traerTodo } = require('./_paginar.js');
-const { corteVigentes } = require('./_cuentas-vigentes');
+const { corteVigentes } = require('./_cuentas-vigentes');
 const { excluidos, esExcluido } = require('./_vendedores-excluidos');
 
 function json(s, b) { return { statusCode: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, body: JSON.stringify(b) }; }
@@ -153,7 +153,14 @@ exports.handler = async (event) => {
       const compRes = await hub('tareas_completadas?fecha=eq.' + hoy + '&vendedor=in.(' + qvals(codigos) + ')&select=vendedor');
       (await compRes.json().catch(() => []) || []).forEach(x => { compHoy[String(x.vendedor)] = (compHoy[String(x.vendedor)] || 0) + 1; });
     }
-    const equipoOut = codigos.map(cod => ({ ...agg[cod], tareas_hoy: compHoy[cod] || 0 })).sort((a, b) => b.vencida - a.vencida);
+    // Ventas y cobros del día para las tarjetas (27/11/2026). Si algo no se pudo leer, va null
+    // (la pantalla muestra "—"), nunca un cero inventado.
+    const vc = await ventasYCobros(codigos, cob);
+    const de = (m, cod) => (m ? (m[cod3(cod)] || 0) : null);
+    const equipoOut = codigos.map(cod => ({
+      ...agg[cod], tareas_hoy: compHoy[cod] || 0,
+      venta_hoy: de(vc.hoy, cod), venta_ant: de(vc.ant, cod), ccc_mes: de(vc.ccc, cod), cobrado_hoy: de(vc.cobrado, cod),
+    })).sort((a, b) => (b.venta_hoy || 0) - (a.venta_hoy || 0) || (b.venta_ant || 0) - (a.venta_ant || 0));
     const totales = equipoOut.reduce((t, v) => ({ vendedores: t.vendedores + 1, clientes: t.clientes + v.clientes, saldo: t.saldo + v.saldo, vencida: t.vencida + v.vencida }), { vendedores: 0, clientes: 0, saldo: 0, vencida: 0 });
 
     let listaClientes = [];
@@ -161,11 +168,68 @@ exports.handler = async (event) => {
       listaClientes = await enriquecerGeo(clientes.map(c => ({ ...c, vendedor_nombre: nombreDeCod[String(c.vendedor)] || c.vendedor })), hubService);
     }
 
-    return json(200, { nombre: perfil.nombre, canal: perfil.canal, region: perfil.region, equipo: equipoOut, totales, clientes: listaClientes, actualizado });
+    return json(200, { nombre: perfil.nombre, canal: perfil.canal, region: perfil.region, equipo: equipoOut, totales, clientes: listaClientes, actualizado,
+      hoy: vc.fechaHoy, fecha_ant: vc.fechaAnt, ventas_actualizadas: vc.ventasActualizadas, cobros_actualizados: vc.cobrosActualizados });
   } catch (e) {
     return json(500, { error: (e && e.message) || String(e) });
   }
 };
+
+// ── Tarjetas del equipo (27/11/2026, diseño "tarjetas-vendedores.html" del usuario) ──
+//   venta_hoy   = lo facturado HOY con IVA, impuesto interno y percepciones (RPC ventas_vendedor_mes,
+//                 la misma cuenta que el Inicio; CUBO baja el día de hoy cada 20 minutos)
+//   venta_ant   = lo mismo para el último día con facturación antes de hoy ("ayer", o el viernes si es lunes)
+//   ccc_mes     = clientes con compra del mes (RPC ccc_por_vendedor: el criterio del Inicio y del Reporte diario)
+//   cobrado_hoy = recibos del ERP de hoy por vendedor (recibos_erp, base de Cobranzas, sin anulados).
+//                 Salen cuando Administración procesa el cobro en CUBO (recibos-erp-cron cada 15 min).
+// Todo con el código de 3 dígitos ("007"), que es como vienen ventas_cliente y recibos_erp.
+const cod3 = c => { const s = String(c == null ? '' : c).trim(); return /^\d+$/.test(s) ? s.padStart(3, '0') : s; };
+async function ventasYCobros(codigos, cob) {
+  const out = { hoy: null, ant: null, ccc: null, cobrado: null, fechaHoy: null, fechaAnt: null, ventasActualizadas: null, cobrosActualizados: null };
+  const cods = [...new Set(codigos.map(cod3))];
+  const fechaHoy = new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10);   // hora de Argentina
+  out.fechaHoy = fechaHoy;
+  const man = (p, o) => fetch(MAN_URL + '/rest/v1/' + p, Object.assign({}, o, { headers: Object.assign({ apikey: MAN_ANON, Authorization: 'Bearer ' + MAN_ANON, 'Content-Type': 'application/json' }, (o && o.headers) || {}) }));
+  const rpc = async (fn, body) => { const r = await man('rpc/' + fn, { method: 'POST', body: JSON.stringify(body) }); if (!r.ok) throw new Error(fn + ' ' + r.status); return r.json(); };
+  const sumaPor = filas => { const m = {}; (filas || []).forEach(f => { const k = cod3(f.vendedor); m[k] = (m[k] || 0) + num(f.total); }); return m; };
+
+  await Promise.all([
+    // Hoy y el último día con facturación.
+    (async () => {
+      try {
+        const [filasHoy, ult] = await Promise.all([
+          rpc('ventas_vendedor_mes', { p_desde: fechaHoy, p_hasta: fechaHoy, p_vendedores: cods }),
+          man('ventas_cliente?fecha=lt.' + fechaHoy + '&select=fecha&order=fecha.desc&limit=1').then(r => (r.ok ? r.json() : [])),
+        ]);
+        out.hoy = sumaPor(filasHoy);
+        const fa = Array.isArray(ult) && ult[0] && ult[0].fecha;
+        if (fa) { out.fechaAnt = fa; out.ant = sumaPor(await rpc('ventas_vendedor_mes', { p_desde: fa, p_hasta: fa, p_vendedores: cods })); }
+      } catch (e) {}
+    })(),
+    (async () => {
+      try {
+        const filas = await rpc('ccc_por_vendedor', { p_desde: fechaHoy.slice(0, 8) + '01', p_hasta: fechaHoy });
+        const m = {}; (filas || []).forEach(f => { m[cod3(f.vendedor)] = num(f.ccc); }); out.ccc = m;
+      } catch (e) {}
+    })(),
+    // Cuándo se bajó el día de hoy (el sync parcial de hoy no deja fila en ventas_sync_log).
+    (async () => {
+      try {
+        const r = await man('ventas_articulos?fecha=eq.' + fechaHoy + '&select=actualizado&order=actualizado.desc.nullslast&limit=1');
+        const x = r.ok ? await r.json() : []; out.ventasActualizadas = (x[0] && x[0].actualizado) || null;
+      } catch (e) {}
+    })(),
+    (async () => {
+      try {
+        const filas = await traerTodo(cob, 'recibos_erp?fecha=eq.' + fechaHoy + '&or=(anulado.is.null,anulado.is.false)&vendedor=in.(' + qvals(cods) + ')&select=vendedor,total&order=numero.asc');
+        const m = {}; (filas || []).forEach(f => { const k = cod3(f.vendedor); m[k] = (m[k] || 0) + num(f.total); }); out.cobrado = m;
+        const rs = await cob('recibos_series?select=actualizado&order=actualizado.desc.nullslast&limit=1');
+        const x = rs.ok ? await rs.json() : []; out.cobrosActualizados = (x[0] && x[0].actualizado) || null;
+      } catch (e) {}
+    })(),
+  ]);
+  return out;
+}
 
 // Agrega dirección/localidad/coords desde clientes_geo (Hub) por código numérico
 async function enriquecerGeo(lista, hubService) {

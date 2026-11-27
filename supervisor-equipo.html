@@ -60,21 +60,27 @@
     .subtabs button.on{background:var(--gold-soft);border-color:var(--gold);color:var(--ink)}
     .subtabs button b{font-weight:800;margin-left:3px}
 
-    .vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:15px}
-    .vcard{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:18px;cursor:pointer;transition:border-color .15s,transform .1s}
-    .vcard:hover{border-color:var(--gold);transform:translateY(-2px)}
-    .vc-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-    .vc-av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-d));display:grid;place-items:center;font-weight:800;color:var(--navy);flex:none}
-    .vc-nm{font-weight:700;font-size:15px;line-height:1.2}
-    .vc-sub{font-size:12px;color:var(--muted)}
-    .vc-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .vc-st{background:var(--cream);border-radius:10px;padding:9px 11px}
-    .vc-st .k{font-size:11px;color:var(--muted)}
-    .vc-st .v{font-size:16px;font-weight:800;margin-top:1px}
-    .vc-st.red .v{color:var(--danger)}
-    .vc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:12.5px;color:var(--muted)}
-    .vc-tag{background:var(--green-soft);color:var(--green-d);font-weight:700;padding:3px 9px;border-radius:6px;font-size:11px}
-    .vc-open{color:var(--gold-d);font-weight:600}
+    /* Tarjetas del equipo (27/11/2026): diseño "tarjetas-vendedores.html" del usuario.
+       Una por vendedor, de más a menos facturado hoy. La deuda vencida va en rojo desde LIMITE_VENCIDA. */
+    .equipo{--t-borde:#E9E3D6;--t-texto:#2B2A26;--t-suave:#77736A;--t-alerta-fondo:#FCEBEB;--t-alerta-texto:#9B2626;
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+    .equipo .loading,.equipo .empty{grid-column:1/-1}
+    .equipo .tarjeta{background:#fff;border:1px solid var(--t-borde);border-radius:12px;overflow:hidden;color:var(--t-texto);font-variant-numeric:tabular-nums;cursor:pointer;transition:border-color .15s}
+    .equipo .tarjeta:hover,.equipo .tarjeta:focus-visible{border-color:var(--gold);outline:none}
+    .equipo .nombre{margin:0;padding:10px 16px;border-bottom:1px solid var(--t-borde);font-size:14px;font-weight:600}
+    .equipo .etiqueta{margin:0;font-size:12px;color:var(--t-suave)}
+    .equipo .valor{margin:0}
+    .equipo .avance{padding:12px 16px 8px}
+    .equipo .avance .valor{font-size:30px;font-weight:600;line-height:1.25}
+    .equipo .clientes{display:flex;justify-content:space-between;align-items:baseline;padding:0 16px 12px}
+    .equipo .clientes .valor{font-size:22px;font-weight:600}
+    .equipo .dinero{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--t-borde)}
+    .equipo .dinero>div{padding:10px 16px}
+    .equipo .dinero>div+div{border-left:1px solid var(--t-borde)}
+    .equipo .dinero .valor{font-size:16px;font-weight:600}
+    .equipo .dinero .alerta{background:var(--t-alerta-fondo)}
+    .equipo .dinero .alerta .etiqueta,.equipo .dinero .alerta .valor{color:var(--t-alerta-texto)}
+    .nota-equipo{margin:0 0 12px;font-size:12.5px;color:var(--muted)}
 
     /* Lista clientes */
     .toolbar{display:flex;gap:10px;margin-bottom:14px}
@@ -147,7 +153,7 @@
         <a class="tab" href="supervisor-curso.html" style="text-decoration:none;color:inherit">📚 Curso del equipo</a>
       </div>
 
-      <div id="viewVend"><div class="vgrid" id="vgrid"><div class="loading">Cargando…</div></div></div>
+      <div id="viewVend"><p class="nota-equipo" id="notaEquipo"></p><div class="equipo" id="vgrid"><div class="loading">Cargando…</div></div></div>
 
       <div id="viewCli" style="display:none">
         <!-- Con vencido / con saldo (nada vencido) / sin deuda, por separado (15/10/2026). -->
@@ -233,24 +239,48 @@
     }catch(e){ cont.innerHTML='<div class="empty">Error cargando.</div>'; }
   }
 
+  // Tarjetas (27/11/2026). Los datos salen de supervisor-equipo:
+  //   venta_hoy / venta_ant = facturado con IVA hoy y el último día con facturación (CUBO, cada 20 min)
+  //   ccc_mes = clientes con compra del mes · cobrado_hoy = recibos del ERP de hoy · vencida = deuda vencida
+  // null = no se pudo leer → "—" (nunca un cero inventado).
+  const LIMITE_VENCIDA = 500000;   // pedido del usuario: rojo desde $ 500 mil
+  let ETQ_ANT = 'Facturado ayer';
+  const corto = n => {
+    if(n==null) return '—';
+    n = Number(n)||0; const a = Math.abs(n), s = n<0 ? '−' : '';
+    if(a >= 999500){ const dec = a >= 1e8 ? 1 : 2; return s+'$ '+(a/1e6).toLocaleString('es-AR',{minimumFractionDigits:dec,maximumFractionDigits:dec})+' M'; }
+    if(a >= 1000) return s+'$ '+Math.round(a/1000).toLocaleString('es-AR')+' mil';
+    return s+'$ '+Math.round(a).toLocaleString('es-AR');
+  };
+  // "Facturado ayer", o "Facturado el vie 21/11" si el último día con ventas no fue ayer (lunes, feriado).
+  function etiquetaAnterior(hoy, ant){
+    if(!hoy || !ant) return 'Facturado el día anterior';
+    const d = new Date(ant+'T12:00:00'), h = new Date(hoy+'T12:00:00');
+    if(Math.round((h-d)/864e5) === 1) return 'Facturado ayer';
+    const dia = d.toLocaleDateString('es-AR',{weekday:'short'}).replace('.','');
+    return 'Facturado el '+dia+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+  }
   function renderEquipo(){
     const g=document.getElementById('vgrid');
     if(!EQUIPO.length){ g.innerHTML='<div class="empty">No encontré vendedores en tu equipo. Revisá región/canal en los usuarios.</div>'; return; }
-    g.innerHTML = EQUIPO.map(v=>`
-      <div class="vcard" onclick="abrirVendedor('${esc(v.codigo)}')">
-        <div class="vc-top">
-          <div class="vc-av">${ini(v.nombre)}</div>
-          <div><div class="vc-nm">${esc(v.nombre||v.codigo)}</div><div class="vc-sub">Cód. ${esc(v.codigo)}</div></div>
+    g.innerHTML = EQUIPO.map(v=>{
+      const cod = esc(v.codigo), nom = esc(v.nombre||v.codigo);
+      return `
+      <article class="tarjeta" tabindex="0" role="button" aria-label="Ver los clientes de ${nom}" title="Ver sus clientes"
+        onclick="abrirVendedor('${cod}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirVendedor('${cod}')}">
+        <h2 class="nombre">${nom}</h2>
+        <div class="avance">
+          <p class="etiqueta">Avance de ventas hoy</p>
+          <p class="valor">${corto(v.venta_hoy)}</p>
+          <p class="etiqueta">${ETQ_ANT}: ${corto(v.venta_ant)}</p>
         </div>
-        <div class="vc-stats">
-          <div class="vc-st"><div class="k">Clientes</div><div class="v">${v.clientes}</div></div>
-          <div class="vc-st ${v.vencida>0?'red':''}"><div class="k">Deuda vencida</div><div class="v">${fmt(v.vencida)}</div></div>
+        <div class="clientes"><span class="etiqueta">Clientes con compra del mes</span><span class="valor">${v.ccc_mes==null?'—':Number(v.ccc_mes).toLocaleString('es-AR')}</span></div>
+        <div class="dinero">
+          <div><p class="etiqueta">Cobrado hoy</p><p class="valor">${corto(v.cobrado_hoy)}</p></div>
+          <div class="${Number(v.vencida)>LIMITE_VENCIDA?'alerta':''}"><p class="etiqueta">Deuda vencida</p><p class="valor">${corto(v.vencida)}</p></div>
         </div>
-        <div class="vc-foot">
-          <span class="vc-tag">✅ ${v.tareas_hoy} tareas hoy</span>
-          <span class="vc-open">Ver clientes ›</span>
-        </div>
-      </div>`).join('');
+      </article>`;
+    }).join('');
   }
 
   async function abrirVendedor(cod){
@@ -355,6 +385,12 @@
       document.getElementById('kCli').textContent = d.totales.clientes.toLocaleString('es-AR');
       document.getElementById('kVenc').textContent = fmt(d.totales.vencida);
       document.getElementById('kTar').textContent = EQUIPO.reduce((s,v)=>s+(v.tareas_hoy||0),0);
+      ETQ_ANT = etiquetaAnterior(d.hoy, d.fecha_ant);
+      const partes = [];
+      if(d.ventas_actualizadas) partes.push('Ventas de hoy actualizadas '+haceTxt(d.ventas_actualizadas));
+      if(d.cobros_actualizados) partes.push('recibos del ERP '+haceTxt(d.cobros_actualizados));
+      document.getElementById('notaEquipo').textContent = (partes.length ? partes.join(' · ')+'. ' : '') +
+        'Montos con IVA. La deuda vencida se marca en rojo desde $ 500 mil.';
       renderEquipo();
     }catch(e){ document.getElementById('sub').textContent='Error de conexión.'; document.getElementById('vgrid').innerHTML='<div class="empty">Error de conexión.</div>'; }
   }
