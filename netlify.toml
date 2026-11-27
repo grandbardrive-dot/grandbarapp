@@ -102,6 +102,14 @@
 [functions."penaflor-cron"]
   schedule = "20 9 * * *"
 
+# PLAN 11T de Peñaflor (27/11/2026): cada mañana (06:35 ART = 09:35 UTC) recalcula los REALES
+# del 11T (CCC por canal + por marca) desde las ventas ya sincronizadas y escribe penaflor_11t_reporte
+# (lo leen admin-11t, el reporte de Fernando y la tarjeta de supervisores). Reemplaza subir el Excel:
+# lo único que se carga 1×/mes son los objetivos (objetivos_11t). Mapeo marca en penaflor_11t_skus.
+# Ver manual-vendedores/netlify/functions/plan11t-cron.js
+[functions."plan11t-cron"]
+  schedule = "35 9 * * *"
+
 # INCENTIVO SÉPTIMA: cada mañana (06:25 ART = 09:25 UTC) recalcula los clientes con compra de
 # las líneas Séptima (Oct–Nov) por cartera vigente, desde las ventas ya sincronizadas, y escribe
 # el snapshot 'SEPTIMA'. Objetivo/premio en septima_objetivo, líneas en septima_articulos.
