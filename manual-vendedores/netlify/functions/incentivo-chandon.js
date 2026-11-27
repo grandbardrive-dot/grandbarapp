@@ -125,7 +125,6 @@ const CONFIG = {
     // L33
     '01180502': 'L33', // Latitud 33 Cabernet Sauvignon x 750 ml
     '01180501': 'L33', // Latitud 33 Chardonnay x 750 ml
-    '01182101': 'L33', // Latitud 33 Extra Brut x 750ml
     '01180503': 'L33', // Latitud 33 Malbec x 750 ml
     '01180528': 'L33', // Latitud 33 Rose x 750
     '01180505': 'L33', // Latitud 33 Sauvignon Blanc x 750 ml
@@ -141,7 +140,8 @@ const CONFIG = {
     '02520104': 'HEN', // Hennessy V.S.O.P. x 700 ml
     '02520105': 'HEN', // Hennessy X.O. x 700 ml
     '02520106': 'HEN', // Hennessy V.S. x 1.5lt
-    // L33S
+    // L33S (espumantes Latitud 33)
+    '01182101': 'L33S', // Latitud 33 Extra Brut x 750ml
     '01182103': 'L33S', // Latitud 33 Espumante Dulce x 750ml
     '01182102': 'L33S', // Latitud 33 Espumante Rosado Dulce x 750ml
   },
