@@ -449,9 +449,14 @@
   // del supervisor: OFF ve vinotecas+tienda, ON ve on_premise+on_premise_noche, SL/ambos los 4.
   function planPlan11tHTML(p){
     const w = v => Math.max(0, Math.min(100, Number(v)||0));
-    const bars=(p.barras||[]).map(b=>`<div class="bar"><div class="bt"><span class="nm">${esc(b.nombre)}</span><span class="vl"><b>${b.av}</b>/${b.obj} · ${b.pct}%</span></div>
-      <div class="track"><div class="fill ${clasePct(b.pct)}" style="width:${w(b.pct)}%"></div></div></div>`).join('');
-    const marcas=(p.marcas||[]).map(m=>`<div class="vr"><div class="vn"><b>${esc(m.nombre)}</b><small>${m.av} ${m.av===1?'cliente':'clientes'} con compra</small></div></div>`).join('');
+    const barra=b=>`<div class="bar"><div class="bt"><span class="nm">${esc(b.nombre)}</span><span class="vl"><b>${b.av}</b>/${b.obj} · ${b.pct}%${b.obj>b.av?` · faltan ${b.obj-b.av}`:''}</span></div>
+      <div class="track"><div class="fill ${clasePct(b.pct)}" style="width:${w(b.pct)}%"></div></div></div>`;
+    const bars=(p.barras||[]).map(barra).join('');
+    // Por producto: si ya hay objetivo cargado, barra con Real/Objetivo/Alcance/Faltan; si no, solo el real.
+    const conObj=(p.marcas||[]).some(m=>m.obj>0);
+    const marcas=(p.marcas||[]).map(m=> conObj
+      ? barra(m)
+      : `<div class="vr"><div class="vn"><b>${esc(m.nombre)}</b><small>${m.av} ${m.av===1?'cliente':'clientes'} con compra</small></div></div>`).join('');
     return `<div class="plan"><div class="body">
         ${p.corte?`<div class="corte">📅 Mes corriente · actualizado al ${esc(fFechaCorte(p.corte))}</div>`:''}
         <div class="hero">${ring(p.pct)}<div class="heroR">
@@ -459,7 +464,7 @@
             <div class="obj">🎯 <b>Plan 11T de Peñaflor.</b> Clientes con compra (CCC) por canal vs. el objetivo del mes. Se recalcula solo todos los días desde las ventas (no hay que subir Excel).</div>
         </div></div>
         <div class="secT">Por canal</div>${bars||'<div class="empty">Sin datos de tu canal este mes.</div>'}
-        ${marcas?`<div class="secT">Marcas que más suman</div><div class="vlist">${marcas}</div>`:''}
+        ${marcas?`<div class="secT">Por producto${conObj?'':' · falta cargar el objetivo'}</div><div class="${conObj?'':'vlist'}">${marcas}</div>`:''}
       </div></div>`;
   }
   // Canales 11T que ve cada supervisor según su canal.
@@ -473,11 +478,18 @@
       const cc=canales[c]; if(!cc) return;
       const t=cc.tot||{}; real+=t.real||0; obj+=t.objetivo||0;
       barras.push({ nombre:cc.label||c, av:t.real||0, obj:t.objetivo||0, pct:t.alcance||0 });
-      (cc.t11||[]).forEach(l=>{ if(l.real>0) marcas[l.linea]=(marcas[l.linea]||0)+(l.real||0); });
+      // Productos: 11T + Innovaciones, sumando el real y el objetivo entre los canales del scope.
+      [...(cc.t11||[]), ...(cc.innov||[])].forEach(l=>{
+        const m = marcas[l.linea] || { nombre:l.linea, av:0, obj:0 };
+        m.av += l.real||0; m.obj += l.objetivo||0; marcas[l.linea]=m;
+      });
     });
     if(!barras.length) return null;
     const pct = obj>0?Math.round(100*real/obj):(real>0?100:0);
-    const topMarcas = Object.entries(marcas).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([nombre,av])=>({nombre,av}));
+    const topMarcas = Object.values(marcas)
+      .filter(m=>m.av>0||m.obj>0)
+      .map(m=>({ nombre:m.nombre, av:m.av, obj:m.obj, pct: m.obj>0?Math.round(100*m.av/m.obj):(m.av>0?100:0) }))
+      .sort((a,b)=> (b.obj-a.obj) || (b.av-a.av));
     return { id:'plan11t', tipo:'plan11t', nombre:'Plan 11T',
       detalle:'Clientes con compra (CCC) de las 11 líneas Peñaflor, por canal — automático',
       pct, cccAv:real, cccObj:obj, clientesAv:real, clientesObj:obj,
