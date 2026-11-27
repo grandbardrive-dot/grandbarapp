@@ -13,7 +13,7 @@
   body{margin:0;font-family:'Inter',system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
   .top{background:var(--navy);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
   .top a.back{color:#cdd9e0;text-decoration:none;font-size:13px;font-weight:700}
-  .top .b{font-weight:800;font-size:15px}.top .b .g{color:#e7c778}
+  .top .b{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;min-width:0}.top .b img{display:block;height:30px;width:auto;flex:none}.top .b span{padding-left:10px;border-left:1px solid rgba(255,255,255,.25);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .top .out{margin-left:auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cdd9e0;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer}
   .wrap{max-width:1000px;margin:0 auto;padding:18px 16px 72px}
   .ctrls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px}
@@ -61,7 +61,7 @@
 <body>
   <div class="top">
     <a class="back" href="mi-panel.html">‹ Mi panel</a>
-    <div class="b"><span class="g">Grand</span>Bar · Reunión</div>
+    <div class="b"><img src="assets/logo-grandbar-claro.png" alt="GrandBar Distribuciones"><span>Reunión</span></div>
     <button class="out" onclick="salir()">Salir</button>
   </div>
   <div class="wrap">

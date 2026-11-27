@@ -20,8 +20,9 @@ a{color:var(--link)}
 a:focus-visible,button:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:3px}
 header.lg{background:var(--navy);color:#f3efe4}
 .lg-in{max-width:820px;margin:0 auto;padding:20px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.lg-in .brand{font-weight:800;font-size:18px;letter-spacing:.02em}
-.lg-in .brand .g{color:var(--gold)}
+.lg-in .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:.02em}
+.lg-in .brand img{display:block;height:34px;width:auto}
+.lg-in .brand span{padding-left:10px;border-left:1px solid rgba(255,255,255,.25)}
 .lg-in nav{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap}
 .lg-in nav a{color:#cdd9e0;text-decoration:none;font-size:13.5px}
 .lg-in nav a:hover,.lg-in nav a[aria-current="page"]{color:#fff;text-decoration:underline}

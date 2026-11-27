@@ -187,7 +187,7 @@ function render(c) {
   *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;color:#1a2740;margin:0;padding:16px;font-size:12px}
   .hoja{max-width:820px;margin:0 auto;border:1px solid #1a2740}
   .top{display:grid;grid-template-columns:1fr 90px 1fr;border-bottom:1px solid #1a2740}
-  .marca{padding:14px 16px} .marca b{font-size:26px;color:#1f447f;letter-spacing:1px} .marca .sub{letter-spacing:6px;color:#1f447f;font-size:11px}
+  .marca{padding:14px 16px;display:flex;align-items:center} .marca img{display:block;width:190px;max-width:100%;height:auto}
   .letra{border-left:1px solid #1a2740;border-right:1px solid #1a2740;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .letra .big{font-size:40px;font-weight:800;line-height:1} .letra .cod{font-size:9px}
   .tit{padding:14px 16px;text-align:right} .tit .f{font-size:22px;font-weight:800} .tit .n{font-weight:700;margin-top:6px}
@@ -209,7 +209,7 @@ function render(c) {
   <div class="imprimir"><button onclick="window.print()">🖨️ Descargar / Imprimir factura</button></div>
   <div class="hoja">
     <div class="top">
-      <div class="marca"><b>GRANDBAR</b><div class="sub">DISTRIBUCIONES</div></div>
+      <div class="marca"><img src="https://portalgrandbar.com/assets/logo-grandbar.png" alt="GrandBar Distribuciones"></div>
       <div class="letra"><div class="big">${esc(letra)}</div><div class="cod">Cod Nº 001</div></div>
       <div class="tit"><div class="f">${esc(c.Descripcion1 || 'Comprobante')}</div><div class="n">${esc(nroFactura)}</div><div>Fecha: ${fechaNet(c.FechaEmision)}</div></div>
     </div>

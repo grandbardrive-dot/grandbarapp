@@ -10,7 +10,7 @@
   :root{--cream:#f5f1e8;--card:#fff;--ink:#1b2a32;--muted:#6d7d85;--line:#e7ded0;--line2:#eee7d8;--gold:#c0912f;--gold-d:#a97c22;--gold-s:#f7efdc;--green:#2f8f6e;--green-d:#256f54;--green-s:#e6f2ec;--danger:#c0603e;--danger-s:#fbe9e4;--amber:#c99a2e;--amber-s:#f8efd6;--navy:#0d2230;--blue:#3f6f9c;--font:'Inter',system-ui,sans-serif}
   *{box-sizing:border-box}body{margin:0;font-family:var(--font);background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
   .top{background:var(--navy);color:#fff;padding:13px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
-  .top .b{font-weight:800;font-size:15px}.top .b .g{color:#e7c778}
+  .top .b{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;min-width:0}.top .b img{display:block;height:30px;width:auto;flex:none}.top .b span{padding-left:10px;border-left:1px solid rgba(255,255,255,.25);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .top .emp{margin-left:auto;font-size:12.5px;color:#b9c6cd}
   .top .out{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cdd9e0;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;cursor:pointer}
   .wrap{max-width:820px;margin:0 auto;padding:18px 14px 70px}
@@ -94,7 +94,7 @@
 </head>
 <body>
   <div class="top">
-    <div class="b"><span class="g">Grand</span>Bar · Proveedores</div>
+    <div class="b"><img src="logo-grandbar-claro.png" alt="GrandBar Distribuciones"><span>Proveedores</span></div>
     <div class="emp" id="emp">—</div>
     <!-- Campanita: la maneja /assets/notif.js (avisos de evidencias, 09/10/2026) -->
     <button class="out bell" type="button" data-gb-bell aria-label="Avisos" style="padding:5px 9px;line-height:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg></button>

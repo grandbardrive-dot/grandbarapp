@@ -54,8 +54,7 @@ function montarPanel(cfg) {
   document.getElementById('panel').innerHTML = `
   <div class="app">
     <aside class="sidebar">
-      <div class="sb-logo">Grand<b>Bar</b></div>
-      <div class="sb-sub">Distribuciones</div>
+      <div class="sb-logo"><img src="/assets/logo-grandbar-claro.png" alt="GrandBar Distribuciones"></div>
       <div class="sb-rol">Diseño y Desarrollo</div>
       <div class="sb-sub" style="color:#dfe7ec;font-size:13px;letter-spacing:0;text-transform:none;padding-top:2px">${esc(cfg.persona)}</div>
       <div class="sb-sub" style="padding-bottom:2px">${esc(cfg.mail)}</div>

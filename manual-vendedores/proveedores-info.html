@@ -32,7 +32,7 @@
   .hero{background:linear-gradient(160deg,var(--azul) 0%,var(--azul2) 100%); color:#fff; padding:0; position:relative; overflow:hidden}
   .hero::after{content:''; position:absolute; left:0; right:0; bottom:0; height:5px; background:var(--oro)}
   .hero-inner{max-width:1080px; margin:0 auto; padding:56px 20px 64px; position:relative; z-index:2}
-  .hero .logo{height:44px; margin-bottom:26px; filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+  .hero .logo{height:52px; margin-bottom:26px; filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
   .hero .kicker{display:inline-block; background:rgba(203,184,106,.2); border:1px solid rgba(203,184,106,.5); color:#f0e6c6; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:6px 14px; border-radius:30px; margin-bottom:20px}
   .hero h1{font-size:clamp(28px,5.5vw,46px); line-height:1.1; font-weight:800; max-width:760px}
   .hero h1 span{color:var(--oro)}
@@ -127,6 +127,7 @@
 
   footer{text-align:center; padding:34px 20px; color:var(--gris); font-size:12.5px}
   footer .lg{font-weight:800; color:var(--azul); letter-spacing:.05em}
+footer .lg img{display:block; width:150px; height:auto; margin:0 auto 10px}
 
   @media(max-width:560px){ section{padding:46px 0} .phone-screen{height:460px} }
 </style>
@@ -137,7 +138,7 @@
 <header class="hero">
   <div class="hero-deco"></div><div class="hero-deco b"></div>
   <div class="hero-inner">
-    <img src="logo.png" alt="GrandBar" class="logo" onerror="this.style.display='none'">
+    <img src="logo-grandbar-claro.png" alt="GrandBar Distribuciones" class="logo" onerror="this.style.display='none'">
     <div class="kicker">Guía para proveedores &amp; bodegas</div>
     <h1>Tus acciones, en la mano de <span>cada vendedor</span> de GrandBar</h1>
     <p>GrandBar equipa a su fuerza de ventas con una app que guía cada visita a los puntos de venta. Acá te explicamos qué es, para qué sirve y cómo tu marca propone las acciones que los vendedores van a presentar.</p>
@@ -338,8 +339,8 @@
 </section>
 
 <footer>
-  <div class="lg">GrandBar</div>
-  <div>Distribuciones · Fuerza de Ventas — Guía para proveedores</div>
+  <div class="lg"><img src="/assets/logo-grandbar.png" alt="GrandBar Distribuciones"></div>
+  <div>Fuerza de Ventas — Guía para proveedores</div>
   <div style="margin-top:10px;font-size:12px;opacity:.85">
     <a href="/privacidad.html" style="color:inherit">Política de Privacidad</a> ·
     <a href="/terminos.html" style="color:inherit">Términos de Uso</a> ·

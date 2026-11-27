@@ -29,7 +29,7 @@
   var svg=function(p){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+p+'</svg>';};
   var nav=items.map(function(it){return '<a href="'+it.h+'" class="'+(it.h.toLowerCase()===page?'on':'')+'">'+svg(it.i)+' '+it.l+'</a>';}).join('');
   var el=document.getElementById('dsb'); if(!el) return;
-  el.innerHTML='<div class="sb-logo">Grand<b>Bar</b><small>Distribuciones</small></div>'
+  el.innerHTML='<div class="sb-logo"><img src="/assets/logo-grandbar-claro.png" alt="GrandBar Distribuciones"></div>'
     +'<nav class="sb-nav">'+nav+'</nav>'
     +'<div class="sb-foot"><div class="sb-me" id="dlogout" title="Cerrar sesión"><div class="av" id="dav">F</div><div><div class="t" id="dname">Fernando</div><div class="s">Director</div></div></div></div>';
   if(window.supabase){

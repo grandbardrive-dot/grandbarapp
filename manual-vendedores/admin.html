@@ -192,7 +192,7 @@
 
   /* ── Auth overlay ── */
   #auth-overlay { position:fixed; inset:0; background:var(--azul); display:flex; align-items:center; justify-content:center; z-index:999; padding:20px; flex-direction:column; gap:24px; }
-  #auth-overlay img { height:52px; object-fit:contain; }
+  #auth-overlay img { height:46px; object-fit:contain; }
   .auth-card { background:var(--surface); border-radius:var(--radius); border-top:4px solid var(--dorado); padding:28px; width:100%; max-width:340px; box-shadow:0 12px 40px rgba(0,0,0,.3); }
   .auth-card h2 { font-family:Georgia,serif; font-size:20px; font-weight:normal; color:var(--azul); margin-bottom:5px; }
   .auth-card p  { font-size:13px; color:var(--text2); margin-bottom:22px; }
@@ -204,7 +204,7 @@
 
   /* ── Top bar ── */
   .top-bar { background:#1F447F; border-bottom:3px solid var(--dorado); padding:12px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
-  .top-bar img { height:50px; object-fit:contain; }
+  .top-bar img { height:40px; object-fit:contain; }
   .top-bar-right { display:flex; gap:10px; align-items:center; }
   .tb-link { font-size:12px; color:rgba(255,255,255,.7); text-decoration:none; border:1px solid rgba(203,184,106,.4); border-radius:20px; padding:5px 13px; transition:all .15s; font-weight:500; }
   .tb-link:hover { color:var(--dorado); border-color:var(--dorado); }
@@ -308,7 +308,7 @@ body { background:transparent !important; }
   /* Fondo crema SÓLIDO (en admin.html --crema es translúcido por la foto de fondo; acá lo forzamos opaco para que se lea) */
   #welcome{position:fixed;inset:0;z-index:1000;background:#F1EDE8;display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto}
   .wl-bar{background:var(--azul);border-bottom:3px solid var(--dorado);display:flex;align-items:center;justify-content:space-between;padding:0 26px;height:74px;flex:none}
-  .wl-logo{height:46px;object-fit:contain}
+  .wl-logo{height:42px;object-fit:contain}
   .wl-help{display:inline-flex;align-items:center;gap:7px;color:rgba(255,255,255,.85);text-decoration:none;font-size:14px;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit}
   .wl-help svg{width:19px;height:19px}
   .wl-help:hover{color:#fff}
@@ -349,7 +349,7 @@ body { background:transparent !important; }
   .wl-btn svg{width:18px;height:18px}
 
   @media (max-width:520px){
-    .wl-bar{padding:0 16px;height:64px}.wl-logo{height:38px}
+    .wl-bar{padding:0 16px;height:64px}.wl-logo{height:34px}
     .wl-seal,.wl-bottle,.wl-emblem,.wl-dots{display:none}
     .wl-star::before,.wl-star::after{width:54px}
     .wl-cards{gap:18px;margin-top:32px}
@@ -361,7 +361,7 @@ body { background:transparent !important; }
 
 <div id="welcome">
   <header class="wl-bar">
-    <img class="wl-logo" src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar Distribuciones">
+    <img class="wl-logo" src="logo-grandbar-claro.png" alt="GrandBar Distribuciones">
     <button class="wl-help" onclick="alert('Panel administrador de GrandBar.\n\nElegí tu perfil para entrar:\n• Luciana (Gestora Comercial): promociones, acciones, materiales y contenido.\n• Marketing (Trade Marketing): estructura de la app, checklists y administración.\n\nAnte cualquier duda, escribí al equipo.')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1 1-1.1 1.8v.5" stroke-linecap="round"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>
       Ayuda
@@ -430,7 +430,7 @@ body { background:transparent !important; }
 
 <div id="app" style="display:none">
   <div class="top-bar">
-    <img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar">
+    <img src="logo-grandbar-claro.png" alt="GrandBar Distribuciones">
     <div class="top-bar-right">
       <a class="tb-link" href="admin-importar.html">Importar clientes</a>
       <button class="btn-logout-admin" onclick="cerrarAdmin()">Cerrar sesión</button>

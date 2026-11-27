@@ -31,7 +31,7 @@
   .app{display:flex;min-height:100vh}
   /* sidebar (lo pinta supervisor-nav.js) */
   .sidebar{width:250px;flex:none;background:#0a1017;color:#cfdae2;display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh;border-right:1px solid var(--line2)}
-  .sb-logo{font-size:21px;font-weight:800;letter-spacing:.3px}.sb-logo small{display:block;font-size:10px;font-weight:600;color:#8fa3ad;letter-spacing:.18em;text-transform:uppercase;margin-top:2px}
+  .sb-logo{padding:4px 10px 12px}.sb-logo img{display:block;width:170px;max-width:100%;height:auto}
   .sb-hub{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#7f93a3;margin:16px 4px 2px}
   .sb-nav{display:flex;flex-direction:column;gap:1px;overflow-y:auto;visibility:hidden}
   .sb-nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:#b9c7d1;font-size:13.5px;font-weight:600}
@@ -167,7 +167,7 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="sb-logo">Grand<span style="color:var(--gold)">Bar</span><small>Distribuciones</small></div>
+    <div class="sb-logo"><img src="assets/logo-grandbar-claro.png" alt="GrandBar Distribuciones"></div>
     <div class="sb-hub">Hub</div>
     <nav class="sb-nav"></nav>
     <div class="sb-foot">

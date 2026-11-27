@@ -28,7 +28,7 @@
   .layout{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
   @media (max-width:860px){ .layout{grid-template-columns:1fr} .sidebar{display:none} }
   .sidebar{background:linear-gradient(185deg,var(--navy),var(--navy-d) 62%,var(--navy-dd));color:#fff;display:flex;flex-direction:column;padding:0 0 18px;position:sticky;top:0;height:100vh}
-  .sb-logo{padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)} .sb-logo img{height:38px;object-fit:contain}
+  .sb-logo{padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)} .sb-logo img{display:block;width:150px;max-width:100%;height:auto}
   .sb-nav{display:flex;flex-direction:column;gap:3px;padding:16px 12px}
   .sb-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:rgba(255,255,255,.72);cursor:pointer;background:none;border:none;font-family:inherit;text-align:left;width:100%}
   .sb-item:hover{background:rgba(255,255,255,.07);color:#fff}
@@ -85,7 +85,7 @@
 <body>
 <div class="layout">
   <aside class="sidebar">
-    <div class="sb-logo"><img src="GrandBar%20logotipo%20con%20sombra-05%20%282%29.png" alt="GrandBar"></div>
+    <div class="sb-logo"><img src="logo-grandbar-claro.png" alt="GrandBar Distribuciones"></div>
     <nav class="sb-nav">
       <a class="sb-item" href="admin-comercial.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v9h14v-9" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="sb-txt-main">Inicio</div></div></a>
       <a class="sb-item" href="admin-campanias.html"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/></svg><div><div class="sb-txt-main">Campañas</div><div class="sb-txt-sub">Acciones comerciales</div></div></a>
