@@ -76,6 +76,23 @@
   .multi .mpanel input{width:16px;height:16px;margin:0;accent-color:var(--navy)}
   .multi .mpanel .mtodos{border-bottom:1px solid var(--line-2);border-radius:7px 7px 0 0;margin-bottom:3px}
   .multi .maplicar{display:block;width:100%;margin-top:5px;font:inherit;font-size:13px;font-weight:700;color:#fff;background:var(--navy);border:0;border-radius:8px;padding:8px;cursor:pointer}
+  /* Meses y "Contra" con varios meses de cada lado (27/11/2026): grilla de meses por año */
+  .multi .mpanel.pmeses{min-width:252px;padding:8px}
+  .multi .mpanel.pder{left:auto;right:0}
+  .multi .manio{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);padding:7px 4px 4px}
+  .multi .mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+  .multi .mpanel .mcel{position:relative;justify-content:center;padding:0;border-radius:7px}
+  .multi .mpanel .mcel input{position:absolute;opacity:0;width:1px;height:1px}
+  .multi .mpanel .mcel span{display:block;width:100%;text-align:center;padding:7px 0;border:1px solid var(--line);border-radius:7px;font-size:13px;font-weight:600}
+  .multi .mpanel .mcel input:checked+span{background:var(--navy);border-color:var(--navy);color:#fff}
+  .multi .mpanel .mcel input:focus-visible+span{outline:2px solid var(--gold);outline-offset:1px}
+  .multi .mpanel .mcel.off{cursor:default}
+  .multi .mpanel .mcel.off span{color:#c9c0b1;border-style:dashed}
+  .multi .mpanel .mcel.off:hover{background:none}
+  .multi .mnota{font-size:11.5px;color:var(--muted);padding:6px 4px 0}
+  .multi .mnota.err{color:var(--red);font-weight:700}
+  .avisos{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+  .aviso{background:var(--gold-soft);border:1px solid #ead7ad;color:#5a4410;border-radius:10px;padding:8px 12px;font-size:12.5px;line-height:1.4}
 
   /* Panel de variaciones */
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
@@ -83,7 +100,7 @@
   .kpi .l{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
   .kpi .pct{font-size:30px;font-weight:900;line-height:1.1;margin:6px 0 4px;font-variant-numeric:tabular-nums}
   .kpi .pct.up{color:var(--green-d)} .kpi .pct.down{color:var(--red)}
-  .kpi .det{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;font-variant-numeric:tabular-nums}
+  .kpi .det{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 8px;font-variant-numeric:tabular-nums}
   .kpi .det b{color:var(--ink);font-weight:700}
   .kpi.inf{background:var(--navy);border-color:var(--navy);color:#eaf1f4}
   .kpi.inf .l,.kpi.inf .det{color:#a9bcc6} .kpi.inf .pct{color:#fff}
@@ -168,7 +185,12 @@
     </div>
 
     <div class="filtros" id="filtros">
-      <label>Mes<select id="fMes"></select></label>
+      <div class="multi"><span class="ml" id="fMesesL">Meses</span>
+        <button type="button" class="mbtn" id="fMesesB" aria-haspopup="true" aria-expanded="false" aria-labelledby="fMesesL fMesesT"><span id="fMesesT">Mes en curso</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="mpanel pmeses" id="fMesesP" hidden></div></div>
+      <div class="multi"><span class="ml" id="fContraL">Contra</span>
+        <button type="button" class="mbtn" id="fContraB" aria-haspopup="true" aria-expanded="false" aria-labelledby="fContraL fContraT"><span id="fContraT">Mismos meses del año anterior</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="mpanel pmeses pder" id="fContraP" hidden></div></div>
       <label>Vendedor<select id="fVend"><option value="">Todos</option></select></label>
       <label>Equipo<select id="fEquipo"><option value="">Todos</option></select></label>
       <label>Tipo de cliente<select id="fTipo"><option value="">Todos</option></select></label>
@@ -200,7 +222,8 @@
 
   const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const MODOS = [['clientes','Clientes'],['familia3','Familia 3 (líneas)'],['proveedor','Proveedores'],['articulo','Artículos']];
-  const ESTADO = { mes:'', modo:'proveedor', vend:'', equipo:'', tipo:'', prov:'', f2:'', f1:'', penaflor:false, f3:'', f3n:'', q:'', orden:'mb', dir:-1, limite:100 };
+  // meses = los elegidos ('YYYY-MM,YYYY-MM'; '' = el mes en curso). contra = '' → los mismos meses del año anterior.
+  const ESTADO = { meses:'', contra:'', modo:'proveedor', vend:'', equipo:'', tipo:'', prov:'', f2:'', f1:'', penaflor:false, f3:'', f3n:'', q:'', orden:'mb', dir:-1, limite:100 };
 
   const n0 = v => Math.round(Number(v)||0).toLocaleString('es-AR');
   const pesos = v => '$ ' + n0(v);
@@ -209,8 +232,26 @@
   const varPct = (a, b) => (!a ? (b ? null : 0) : (b - a) * 100 / Math.abs(a));
   const fmtPct = p => p == null ? 'Nuevo' : (p > 0 ? '+' : p < 0 ? '−' : '') + dec(Math.abs(p), 1) + '%';
   const clase = p => p == null || p > 0.05 ? 'up' : (p < -0.05 ? 'down' : '');
-  const etiquetaMes = (m, dia, parcial) => { const [y, mm] = m.split('-'); const t = MESES[Number(mm)-1]; return t.charAt(0).toUpperCase() + t.slice(1) + ' ' + y + (parcial ? ' (al ' + dia + ')' : ''); };
-  const corto = r => { const [y, m, d] = r.hasta.split('-'); return MESES[Number(m)-1].slice(0,3) + ' ' + y + (D && D.parcial ? ' · 1 al ' + Number(d) : ''); };
+  // Nombres de los períodos (27/11/2026: cada lado puede tener varios meses).
+  const MES3 = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const idxMes = m => Number(m.slice(0,4)) * 12 + Number(m.slice(5,7)) - 1;
+  const nm3 = m => MES3[Number(m.slice(5,7)) - 1];
+  // "Nov 2026", "Jun–Jul 2025", "Dic 2025 – Ene 2026", "Ene, Mar 2026", "Dic 2025 · Ene, Mar 2026"
+  function textoMeses(lista){
+    const ms = (lista || []).slice().sort();
+    if (!ms.length) return '';
+    if (ms.length === 1) return nm3(ms[0]) + ' ' + ms[0].slice(0,4);
+    const ini = ms[0], fin = ms[ms.length-1];
+    if (ms.every((m, i) => !i || idxMes(m) === idxMes(ms[i-1]) + 1))
+      return ini.slice(0,4) === fin.slice(0,4) ? nm3(ini) + '–' + nm3(fin) + ' ' + ini.slice(0,4) : nm3(ini) + ' ' + ini.slice(0,4) + ' – ' + nm3(fin) + ' ' + fin.slice(0,4);
+    const porAnio = {};
+    ms.forEach(m => (porAnio[m.slice(0,4)] = porAnio[m.slice(0,4)] || []).push(nm3(m)));
+    return Object.keys(porAnio).sort().map(y => porAnio[y].join(', ') + ' ' + y).join(' · ');
+  }
+  // Con el mes en curso (o su par del año anterior) cortado: "Nov 2026 · 1 al 27" / "Oct–Nov 2026 · nov al 27".
+  const etq = P => textoMeses(P.meses) + (P.parcial ? (P.meses.length === 1 ? ' · 1 al ' : ' · ' + nm3(P.parcial.mes).toLowerCase() + ' al ') + P.parcial.dia : '');
+  // Para las tarjetas de arriba: el año si cada lado es de un solo año y es contra el año anterior; si no, los meses.
+  const etqCorta = P => (D.comp === 'anio' && new Set(D.a.meses.map(m => m.slice(0,4))).size === 1 && new Set(D.b.meses.map(m => m.slice(0,4))).size === 1) ? P.meses[0].slice(0,4) : textoMeses(P.meses);
 
   function llenar(sel, items, valor, todos){
     const v = valor != null ? valor : sel.value;
@@ -219,9 +260,8 @@
   }
 
   function opciones(F){
-    const hoy = D.hoy;
-    $('fMes').innerHTML = F.meses.slice().reverse().map(m => `<option value="${m}">${etiquetaMes(m, 0, false)}</option>`).join('');
-    $('fMes').value = D.mes;
+    MESES_DISP = F.meses || [];
+    pintarMeses();
     llenar($('fVend'), F.vendedores.map(v => [v.codigo, v.nombre + (v.equipo ? ' · ' + v.equipo : '')]), ESTADO.vend, 'Todos');
     llenar($('fEquipo'), F.equipos.map(e => [e, e]), ESTADO.equipo, 'Todos');
     llenar($('fTipo'), F.tipos.map(t => [t, t]), ESTADO.tipo, 'Todos');
@@ -235,17 +275,29 @@
   function kpi(titulo, a, b, fmt){
     const p = varPct(a, b);
     return `<div class="kpi"><div class="l">${titulo}</div><div class="pct ${clase(p)}">${fmtPct(p)}</div>
-      <div class="det"><span>${D.a.desde.slice(0,4)}: <b>${fmt(a)}</b></span><span>${D.b.desde.slice(0,4)}: <b>${fmt(b)}</b></span></div></div>`;
+      <div class="det"><span>${esc(etqCorta(D.a))}: <b>${fmt(a)}</b></span><span>${esc(etqCorta(D.b))}: <b>${fmt(b)}</b></span></div></div>`;
   }
 
   function render(){
     const R = D.resumen || {}, A = R.a || {monto:0,unidades:0,ccc:0}, B = R.b || {monto:0,unidades:0,ccc:0};
-    $('who').textContent = 'Del 1 al ' + Number(D.b.hasta.slice(8,10)) + ' de ' + MESES[Number(D.mes.slice(5,7))-1] + ' ' + D.mes.slice(0,4)
-      + ' contra el mismo período de ' + D.a.desde.slice(0,4) + ' · datos de CUBO, se actualizan cada 20 minutos';
-    const inf = D.inflacion;
-    const infHtml = inf
-      ? `<div class="kpi inf"><div class="l">Inflación 12 meses</div><div class="pct">${dec(inf.interanual,1)}%</div><div class="det"><span>INDEC · IPC ${MESES[Number(inf.mes.slice(5,7))-1]} ${inf.mes.slice(0,4)}</span></div></div>`
-      : `<div class="kpi inf"><div class="l">Inflación 12 meses</div><div class="pct">—</div><div class="det"><span>INDEC no respondió</span></div></div>`;
+    // Un mes contra el mismo mes del año anterior: como siempre. Si no, "Ago–Sep 2026 contra Jun–Jul 2025".
+    const unMes = D.comp === 'anio' && D.b.meses.length === 1;
+    const mesB = D.b.meses[0];
+    $('who').textContent = (unMes
+        ? 'Del 1 al ' + Number(D.b.hasta.slice(8,10)) + ' de ' + MESES[Number(mesB.slice(5,7))-1] + ' ' + mesB.slice(0,4) + ' contra el mismo período de ' + D.a.meses[0].slice(0,4)
+        : etq(D.b) + ' contra ' + (D.comp === 'anio' ? 'los mismos meses del año anterior' : etq(D.a)))
+      + ' · datos de CUBO, se actualizan cada 20 minutos';
+    // Inflación: con un solo mes contra el año anterior, la de 12 meses (como antes). Si no, la de un
+    // período contra el otro (promedio del IPC de sus meses; los meses sin publicar toman el último).
+    const inf = D.inflacion, infP = D.inflacion_periodos;
+    const mesIpc = m => MESES[Number(m.slice(5,7))-1] + ' ' + m.slice(0,4);
+    const infHtml = unMes
+      ? (inf && inf.interanual != null
+          ? `<div class="kpi inf"><div class="l">Inflación 12 meses</div><div class="pct">${dec(inf.interanual,1)}%</div><div class="det"><span>INDEC · IPC ${mesIpc(inf.mes)}</span></div></div>`
+          : `<div class="kpi inf"><div class="l">Inflación 12 meses</div><div class="pct">—</div><div class="det"><span>INDEC no respondió</span></div></div>`)
+      : (infP
+          ? `<div class="kpi inf"><div class="l">Inflación entre períodos</div><div class="pct">${dec(infP.pct,1)}%</div><div class="det"><span>INDEC · IPC${infP.estimado ? ' publicado hasta ' + mesIpc(infP.hasta) : ''}</span></div></div>`
+          : `<div class="kpi inf"><div class="l">Inflación entre períodos</div><div class="pct">—</div><div class="det"><span>INDEC no respondió</span></div></div>`);
     const met = x => ({ precio: x.unidades ? x.monto / x.unidades : null, drop: x.ccc ? x.unidades / x.ccc : null, fact: x.ccc ? x.monto / x.ccc : null });
     const ma = met(A), mb = met(B);
     const dfila = (t, v) => `<div class="dfila"><span>${t}</span><b>${v}</b></div>`;
@@ -268,7 +320,10 @@
         <td class="ini var ${(f.ua || f.ub) ? clase(p) : ''}">${(f.ua || f.ub) ? fmtPct(p) : '—'}</td></tr>`; };
     const pt = varPct(tot.ua, tot.ub);
 
+    const titA = D.comp === 'anio' ? 'Año anterior · ' + etq(D.a) : etq(D.a);
+    const titB = D.comp === 'anio' ? 'Año actual · ' + etq(D.b) : etq(D.b);
     $('cont').innerHTML = `
+      ${(D.avisos || []).length ? `<div class="avisos">${D.avisos.map(a => `<div class="aviso">${esc(a)}</div>`).join('')}</div>` : ''}
       <div class="kpis">
         ${kpi('Monto vendido', A.monto, B.monto, millones)}
         ${infHtml}
@@ -276,8 +331,8 @@
         ${kpi('Clientes con compra', A.ccc, B.ccc, n0)}
       </div>
       <div class="drop">
-        ${dcard('Año anterior · ' + corto(D.a), ma)}
-        ${dcard('Año actual · ' + corto(D.b), mb)}
+        ${dcard(esc(titA), ma)}
+        ${dcard(esc(titB), mb)}
         <div class="dcard var"><h3>Variación</h3>
           ${vfila('Precio promedio', ma.precio, mb.precio)}${vfila('Drop', ma.drop, mb.drop)}${vfila('Facturación promedio', ma.fact, mb.fact)}</div>
       </div>
@@ -288,7 +343,7 @@
       ${ESTADO.f3 ? `<div class="chips"><span class="chip">Línea: ${esc(ESTADO.f3n || ESTADO.f3)} <button type="button" id="sacarF3" title="Sacar">✕</button></span></div>` : ''}
       <section class="card"><div class="scroll"><table>
         <thead>
-          <tr class="g"><th class="sin"></th><th colspan="2" class="ini sin">${esc(corto(D.a))}</th><th colspan="2" class="ini sin">${esc(corto(D.b))}</th><th class="ini sin">Variación</th></tr>
+          <tr class="g"><th class="sin"></th><th colspan="2" class="ini sin">${esc(etq(D.a))}</th><th colspan="2" class="ini sin">${esc(etq(D.b))}</th><th class="ini sin">Variación</th></tr>
           <tr>${th('n', nomCol)}${th('ua','Botellas','ini')}${th('ma','Monto')}${th('ub','Botellas','ini')}${th('mb','Monto')}${th('var','Botellas %','ini')}</tr>
         </thead>
         <tbody>${visibles.map(fila).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:26px">No hay ventas con estos filtros.</td></tr>`}
@@ -322,13 +377,13 @@
     const cont = $('cont'); cont.classList.add('cargando');
     const p = new URLSearchParams();
     p.set('modo', ESTADO.modo);
-    ['mes','vend','equipo','tipo','prov','f2','f1','f3'].forEach(k => { if (ESTADO[k]) p.set(k, ESTADO[k]); });
+    ['meses','contra','vend','equipo','tipo','prov','f2','f1','f3'].forEach(k => { if (ESTADO[k]) p.set(k, ESTADO[k]); });
     if (ESTADO.penaflor) p.set('penaflor', '1');
     try{
       const r = await fetch('/.netlify/functions/comparativo?' + p.toString(), { headers:{ Authorization:'Bearer ' + TOKEN } });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || ('Error ' + r.status));
-      D = d; ESTADO.mes = d.mes; ESTADO.modo = d.modo;
+      D = d; ESTADO.meses = (d.meses || []).join(','); ESTADO.contra = (d.contra || []).join(','); ESTADO.modo = d.modo;
       opciones(d.filtros);
       render();
     }catch(e){
@@ -355,7 +410,7 @@
   }
   function enlazarF1(){
     $('fF1b').onclick = e => { e.stopPropagation(); const p = $('fF1p');
-      if (p.hidden) { f1Pend = ESTADO.f1; p.hidden = false; $('fF1b').setAttribute('aria-expanded', 'true'); } else cerrarF1(); };
+      if (p.hidden) { cerrarMeses('meses'); cerrarMeses('contra'); f1Pend = ESTADO.f1; p.hidden = false; $('fF1b').setAttribute('aria-expanded', 'true'); } else cerrarF1(); };
     $('fF1p').onclick = e => { e.stopPropagation(); if (e.target.closest('.maplicar')) cerrarF1(); };
     $('fF1p').onchange = e => {
       const t = e.target; if (!t.matches('input')) return;
@@ -371,9 +426,63 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarF1(); });
   }
 
+  // Meses y "Contra" (27/11/2026, pedido del usuario: "julio y junio de 2025 contra agosto y septiembre
+  // de 2026"). Grilla de meses por año; lo tildado se aplica con "Aplicar" o al cerrar la lista.
+  // En "Contra", sin meses tildados = los mismos meses del año anterior.
+  const MAX_MESES = 12;
+  let MESES_DISP = [];
+  const SEL = {
+    meses:  { b:'fMesesB',  p:'fMesesP',  t:'fMesesT',  anio:false, pend:'' },
+    contra: { b:'fContraB', p:'fContraP', t:'fContraT', anio:true,  pend:'' },
+  };
+  const textoSel = (k, v) => v ? textoMeses(v.split(',')) : (k === 'contra' ? 'Mismos meses del año anterior' : 'Mes en curso');
+  function pintarMeses(){
+    const disp = new Set(MESES_DISP);
+    const anios = [...new Set(MESES_DISP.map(m => m.slice(0,4)))].sort().reverse();
+    Object.keys(SEL).forEach(k => {
+      const s = SEL[k], val = ESTADO[k], sel = new Set(val ? val.split(',') : []);
+      $(s.p).innerHTML = (s.anio ? `<label class="mtodos"><input type="checkbox" data-anio${sel.size ? '' : ' checked'}> Mismos meses del año anterior</label>` : '')
+        + anios.map(y => `<div class="manio">${y}</div><div class="mgrid">` + MES3.map((n, i) => {
+            const m = y + '-' + String(i + 1).padStart(2, '0'), ok = disp.has(m);
+            return `<label class="mcel${ok ? '' : ' off'}"><input type="checkbox" value="${m}"${sel.has(m) ? ' checked' : ''}${ok ? '' : ' disabled'}><span>${n}</span></label>`;
+          }).join('') + '</div>').join('')
+        + `<div class="mnota">Podés tildar varios meses (hasta ${MAX_MESES}).</div><button type="button" class="maplicar">Aplicar</button>`;
+      $(s.t).textContent = textoSel(k, val);
+    });
+  }
+  function cerrarMeses(k){
+    const s = SEL[k], p = $(s.p); if (!p || p.hidden) return;
+    p.hidden = true; $(s.b).setAttribute('aria-expanded', 'false');
+    if (s.pend !== ESTADO[k]) { ESTADO[k] = s.pend; ESTADO.limite = 100; cargar(); }
+  }
+  function enlazarMeses(){
+    Object.keys(SEL).forEach(k => {
+      const s = SEL[k];
+      $(s.b).onclick = e => { e.stopPropagation(); const p = $(s.p);
+        if (p.hidden) { cerrarF1(); cerrarMeses(k === 'meses' ? 'contra' : 'meses'); s.pend = ESTADO[k]; p.hidden = false; $(s.b).setAttribute('aria-expanded', 'true'); }
+        else cerrarMeses(k); };
+      $(s.p).onclick = e => { e.stopPropagation(); if (e.target.closest('.maplicar')) cerrarMeses(k); };
+      $(s.p).onchange = e => {
+        const t = e.target; if (!t.matches('input')) return;
+        const cajas = [...$(s.p).querySelectorAll('input[value]')], anio = $(s.p).querySelector('[data-anio]'), nota = $(s.p).querySelector('.mnota');
+        if (anio && t === anio) cajas.forEach(c => { c.checked = false; });
+        let elegidos = cajas.filter(c => c.checked);
+        if (elegidos.length > MAX_MESES) { t.checked = false; elegidos = cajas.filter(c => c.checked); nota.textContent = 'Hasta ' + MAX_MESES + ' meses de cada lado.'; nota.classList.add('err'); }
+        else { nota.textContent = 'Podés tildar varios meses (hasta ' + MAX_MESES + ').'; nota.classList.remove('err'); }
+        if (anio) anio.checked = !elegidos.length;
+        s.pend = elegidos.map(c => c.value).sort().join(',');
+        $(s.t).textContent = textoSel(k, s.pend);
+      };
+    });
+    const cerrarAmbos = () => { cerrarMeses('meses'); cerrarMeses('contra'); };
+    document.addEventListener('click', cerrarAmbos);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarAmbos(); });
+  }
+
   function enlazarFiltros(){
     enlazarF1();
-    const m = { fMes:'mes', fVend:'vend', fEquipo:'equipo', fTipo:'tipo', fProv:'prov', fF2:'f2' };
+    enlazarMeses();
+    const m = { fVend:'vend', fEquipo:'equipo', fTipo:'tipo', fProv:'prov', fF2:'f2' };
     Object.keys(m).forEach(id => $(id).onchange = () => { ESTADO[m[id]] = $(id).value; if (id === 'fF2') { ESTADO.f3 = ''; ESTADO.f3n = ''; } ESTADO.limite = 100; cargar(); });
     $('fPenaflor').onchange = () => { ESTADO.penaflor = $('fPenaflor').checked; ESTADO.limite = 100; cargar(); };
     $('limpiar').onclick = () => { Object.assign(ESTADO, { vend:'', equipo:'', tipo:'', prov:'', f2:'', f1:'', penaflor:false, f3:'', f3n:'', q:'', limite:100 }); cargar(); };
