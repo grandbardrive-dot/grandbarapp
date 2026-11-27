@@ -443,6 +443,48 @@
       </div></div>`;
   }
 
+  // Plan 11T de Peñaflor (automático): CCC (clientes con compra) por canal vs. objetivo
+  // del mes + las marcas que más suman. Se calcula solo todos los días desde las ventas
+  // (plan11t-background → penaflor_11t_reporte, lo lee reporte-11t.js). Scopeado por canal
+  // del supervisor: OFF ve vinotecas+tienda, ON ve on_premise+on_premise_noche, SL/ambos los 4.
+  function planPlan11tHTML(p){
+    const w = v => Math.max(0, Math.min(100, Number(v)||0));
+    const bars=(p.barras||[]).map(b=>`<div class="bar"><div class="bt"><span class="nm">${esc(b.nombre)}</span><span class="vl"><b>${b.av}</b>/${b.obj} · ${b.pct}%</span></div>
+      <div class="track"><div class="fill ${clasePct(b.pct)}" style="width:${w(b.pct)}%"></div></div></div>`).join('');
+    const marcas=(p.marcas||[]).map(m=>`<div class="vr"><div class="vn"><b>${esc(m.nombre)}</b><small>${m.av} ${m.av===1?'cliente':'clientes'} con compra</small></div></div>`).join('');
+    return `<div class="plan"><div class="body">
+        ${p.corte?`<div class="corte">📅 Mes corriente · actualizado al ${esc(fFechaCorte(p.corte))}</div>`:''}
+        <div class="hero">${ring(p.pct)}<div class="heroR">
+            <div class="stat"><span class="n">${p.cccAv}</span><span class="l">clientes de ${p.cccObj} · CCC del 11T</span></div>
+            <div class="obj">🎯 <b>Plan 11T de Peñaflor.</b> Clientes con compra (CCC) por canal vs. el objetivo del mes. Se recalcula solo todos los días desde las ventas (no hay que subir Excel).</div>
+        </div></div>
+        <div class="secT">Por canal</div>${bars||'<div class="empty">Sin datos de tu canal este mes.</div>'}
+        ${marcas?`<div class="secT">Marcas que más suman</div><div class="vlist">${marcas}</div>`:''}
+      </div></div>`;
+  }
+  // Canales 11T que ve cada supervisor según su canal.
+  const SCOPE_11T = { off:['vinotecas','tienda_bebidas'], on:['on_premise','on_premise_noche'] };
+  // Arma el plan 11T (para el proveedor Peñaflor) desde la respuesta de reporte-11t.
+  function build11tPlan(rep, canalKey){
+    const canales = (rep && rep.canales) || {};
+    const scope = SCOPE_11T[String(canalKey||'').toLowerCase()] || ['vinotecas','tienda_bebidas','on_premise','on_premise_noche'];
+    let real=0, obj=0; const barras=[]; const marcas={};
+    scope.forEach(c=>{
+      const cc=canales[c]; if(!cc) return;
+      const t=cc.tot||{}; real+=t.real||0; obj+=t.objetivo||0;
+      barras.push({ nombre:cc.label||c, av:t.real||0, obj:t.objetivo||0, pct:t.alcance||0 });
+      (cc.t11||[]).forEach(l=>{ if(l.real>0) marcas[l.linea]=(marcas[l.linea]||0)+(l.real||0); });
+    });
+    if(!barras.length) return null;
+    const pct = obj>0?Math.round(100*real/obj):(real>0?100:0);
+    const topMarcas = Object.entries(marcas).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([nombre,av])=>({nombre,av}));
+    return { id:'plan11t', tipo:'plan11t', nombre:'Plan 11T',
+      detalle:'Clientes con compra (CCC) de las 11 líneas Peñaflor, por canal — automático',
+      pct, cccAv:real, cccObj:obj, clientesAv:real, clientesObj:obj,
+      avanceTotal:real, targetTotal:obj, barras, marcas:topMarcas,
+      corte:(rep.carga&&rep.carga.fecha)?String(rep.carga.fecha).slice(0,10):'' };
+  }
+
   // Plan Chandon: surtido (unidades) + clientes con compra, por grupo de productos.
   // Objetivo global de la empresa del mes corriente; no se separa por vendedor.
   function planChandonHTML(p){
@@ -487,6 +529,7 @@
       </div></div>`;
   }
   function planDetailHTML(p){
+    if(p.tipo==='plan11t') return planPlan11tHTML(p);
     if(p.tipo==='ontrade') return planOntradeHTML(p);
     if(p.tipo==='septima') return planSeptimaHTML(p);
     if(p.tipo==='penaflor') return planPenaflorHTML(p);
@@ -652,11 +695,26 @@
     renderView();
   }
 
+  // Suma el Plan 11T (automático) DENTRO del proveedor Peñaflor, scopeado al canal del
+  // supervisor. No toca incentivos.js: se arma acá con reporte-11t.js. Si no hay proveedor
+  // Peñaflor en el alcance, o no hay datos del mes, no agrega nada.
+  async function sumar11t(d){
+    const prov = (d.proveedores||[]).find(p=>String(p.id||'').toLowerCase()==='penaflor');
+    if(!prov) return;
+    if((prov.planes||[]).some(p=>p.tipo==='plan11t')) return;
+    const r = await fetch('/.netlify/functions/reporte-11t');
+    const rep = await r.json().catch(()=>null);
+    if(!rep || !rep.ok || !rep.hay_datos) return;
+    const plan = build11tPlan(rep, d.canal);
+    if(plan){ (prov.planes = prov.planes||[]).push(plan); }
+  }
+
   async function cargar(){
     try{
       const r = await fetch('/.netlify/functions/incentivos', { headers:{ Authorization:'Bearer '+TOKEN } });
       const d = await r.json();
       if(!r.ok) throw new Error(d.error||('Error '+r.status));
+      try{ await sumar11t(d); }catch(e){}
       render(d);
     }catch(e){ $('#cont').innerHTML = '<div class="empty">No se pudieron cargar los planes.<br>'+esc(e.message||e)+'</div>'; }
   }
