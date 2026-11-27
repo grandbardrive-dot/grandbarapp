@@ -73,7 +73,9 @@ exports.handler = async (event) => {
     // -------- Períodos (mes actual = hoy; N meses base antes) --------
     const cfg = {}; (await (await hub('presupuesto_config?select=k,v')).json() || []).forEach(r => { cfg[r.k] = r.v; });
     const nBase = Math.max(1, Math.min(6, num(cfg.meses_base) || 3));
-    const hoy = new Date();
+    // Hora de Argentina (27/11/2026): con la hora UTC, el último día del mes desde las 21 h ya
+    // mostraba el mes siguiente.
+    const hoy = new Date(Date.now() - 3 * 3600 * 1000);
     const mesActual = cfg.mes_actual || (hoy.getUTCFullYear() + '-' + String(hoy.getUTCMonth() + 1).padStart(2, '0'));
     const mesesBase = []; for (let i = nBase; i >= 1; i--) mesesBase.push(addMonth(mesActual, -i));
     const todos = mesesBase.concat([mesActual]);
@@ -203,6 +205,7 @@ exports.handler = async (event) => {
 
     return json(200, {
       generado: new Date().toISOString(),
+      hoy: hoy.toISOString().slice(0, 10),   // fecha de Argentina, para el avance del mes de la tarjeta
       mesActual, mesActualLabel: ymLabel(mesActual),
       meses: todos.map(m => ({ ym: m, label: ymLabel(m), base: m !== mesActual })),
       puedeEditar, usuario: perfil.nombre || '',
