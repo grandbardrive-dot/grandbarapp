@@ -80,35 +80,41 @@
   .tp.g{background:#12302a;color:var(--teal)} .tp.y{background:#2f2713;color:var(--gold)} .tp.r{background:#331f1a;color:var(--red)} .tp.n{background:#1a232c;color:var(--mut)}
 
   /* Tarjeta "objetivo del mes" por equipo y familia (27/11/2026, diseño del usuario en estilo oscuro):
-     avance contra el objetivo, contra lo esperado a hoy (días corridos) y el ritmo que hace falta. */
-  .oc{background:linear-gradient(160deg,#ffffff12,#ffffff06);border:1px solid var(--line);border-radius:18px;padding:18px 20px 16px;margin:0 0 14px;backdrop-filter:blur(10px)}
-  .oc-h{display:flex;align-items:baseline;justify-content:space-between;gap:6px 16px;flex-wrap:wrap}
-  .oc-t{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:800;letter-spacing:-.2px}
+     avance contra el objetivo, contra lo esperado a hoy (días corridos) y el ritmo que hace falta.
+     Misma tarde: más baja. Barra y números en 2/3 a la izquierda, recuadro del ritmo en el tercio
+     de la derecha; colores de la familia (vinos = bordó/rosa de sus gráficos, spirits = dorado). */
+  .oc{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:0 22px;align-items:stretch;background:linear-gradient(160deg,#ffffff12,#ffffff06);border:1px solid var(--line);border-radius:18px;padding:16px 18px 16px 20px;margin:0 0 14px;backdrop-filter:blur(10px)}
+  .oc.sola{grid-template-columns:1fr}
+  .oc-izq{min-width:0;display:flex;flex-direction:column;justify-content:center}
+  .oc-h{display:flex;align-items:baseline;justify-content:space-between;gap:4px 16px;flex-wrap:wrap}
+  .oc-t{display:flex;align-items:center;gap:9px;font-size:16.5px;font-weight:800;letter-spacing:-.2px}
   .oc-t .dot{width:12px;height:12px;border-radius:4px;flex:none;align-self:center}
   .vinos .oc-t .dot{background:linear-gradient(135deg,var(--wine),var(--wine-d))}
   .esp .oc-t .dot{background:linear-gradient(135deg,var(--gold),var(--gold-d))}
   .oc-t .q{color:var(--mut);font-weight:600}
   .oc-m{font-size:12.5px;color:var(--mut)}
-  .oc-row{display:flex;align-items:center;justify-content:space-between;gap:8px 14px;flex-wrap:wrap;margin-top:14px}
+  .oc-row{display:flex;align-items:center;justify-content:space-between;gap:6px 14px;flex-wrap:wrap;margin-top:10px}
   .oc-av{font-size:14.5px;font-weight:700;color:var(--mut);font-variant-numeric:tabular-nums}
   .oc-av b{color:var(--ink);font-weight:800}
   .oc-r{display:flex;align-items:center;gap:12px}
   .oc-tag{font-size:13px;font-weight:800;padding:4px 12px;border-radius:999px;white-space:nowrap;font-variant-numeric:tabular-nums}
   .oc-tag.r{background:#3a1f1f;color:#f0a3a3} .oc-tag.g{background:#12302a;color:var(--teal)}
-  .oc-pct{font-size:30px;font-weight:800;line-height:1;letter-spacing:-.6px;font-variant-numeric:tabular-nums}
-  .oc-bar{position:relative;height:10px;border-radius:6px;background:#17222c;margin:14px 0 9px}
-  .oc-bar .v{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,var(--teal-d),#46b293)}
-  .oc-bar .a{position:absolute;top:0;bottom:0;background:#e58a8a;opacity:.75}
+  .oc-pct{font-size:28px;font-weight:800;line-height:1;letter-spacing:-.6px;font-variant-numeric:tabular-nums}
+  .oc-bar{position:relative;height:10px;border-radius:6px;background:#17222c;margin:11px 0 8px}
+  .oc-bar .v{position:absolute;left:0;top:0;bottom:0;border-radius:6px}
+  .vinos .oc-bar .v{background:linear-gradient(90deg,var(--wine-d),var(--wine))}
+  .esp .oc-bar .v{background:linear-gradient(90deg,var(--gold-d),var(--gold))}
+  /* el atraso va rayado para que no se confunda con el rosa de los vinos */
+  .oc-bar .a{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(-45deg,#ef8f8fd9 0 3px,#ef8f8f4d 3px 6px)}
   .oc-bar .mk{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--ink);border-radius:1px}
-  .oc-sub{font-size:13px;color:var(--mut);font-variant-numeric:tabular-nums}
-  .oc-box{border-radius:13px;padding:13px 16px;margin-top:13px;border:1px solid}
-  .oc-box .l1,.oc-box .l2{font-size:13px;line-height:1.4}
-  .oc-box .big{font-size:30px;font-weight:800;line-height:1.15;letter-spacing:-.5px;margin:3px 0 2px;font-variant-numeric:tabular-nums}
-  .oc-box.amb{background:#2c2412;border-color:#4a3b17;color:#e7c77f} .oc-box.amb .big{color:var(--gold)}
-  .oc-box.ok{background:#11291f;border-color:#1f4a3d;color:#9fdcc5} .oc-box.ok .big{color:var(--teal)}
-  .oc-proy{font-size:12.5px;color:var(--mut);margin-top:10px;font-variant-numeric:tabular-nums}
-  .oc-solo{margin-top:12px;font-size:14.5px;color:var(--mut)} .oc-solo b{color:var(--ink);font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
-  @media(max-width:560px){ .oc{padding:15px 15px 13px} .oc-pct{font-size:26px} .oc-box .big{font-size:26px} }
+  .oc-pie{display:flex;justify-content:space-between;gap:2px 16px;flex-wrap:wrap;font-size:12.5px;color:var(--mut);font-variant-numeric:tabular-nums}
+  .oc-box{border-radius:13px;padding:12px 16px;border:1px solid;display:flex;flex-direction:column;justify-content:center;min-width:0}
+  .oc-box .l1,.oc-box .l2{font-size:12.5px;line-height:1.4}
+  .oc-box .big{font-size:28px;font-weight:800;line-height:1.15;letter-spacing:-.5px;margin:2px 0 1px;font-variant-numeric:tabular-nums}
+  .vinos .oc-box{background:#2a1520;border-color:#5a2b47;color:#efbdd3} .vinos .oc-box .big{color:var(--wine)}
+  .esp .oc-box{background:#2b2311;border-color:#4d3c16;color:#e9cb86} .esp .oc-box .big{color:var(--gold)}
+  .oc-solo{margin-top:10px;font-size:14.5px;color:var(--mut)} .oc-solo b{color:var(--ink);font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+  @media(max-width:760px){ .oc{grid-template-columns:1fr;padding:15px} .oc-box{margin-top:12px} .oc-pct{font-size:26px} .oc-box .big{font-size:26px} }
 
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:13px}
   .vc{background:linear-gradient(160deg,#ffffff12,#ffffff06);border:1px solid var(--line);border-radius:18px;padding:16px;backdrop-filter:blur(10px);transition:transform .15s,border-color .15s}
@@ -255,8 +261,8 @@
     const obj = Number(fam.totObjetivo)||0, v = Number(fam.totActual)||0;
     const titulo = '<div class="oc-t"><span class="dot"></span><span>'+esc(fam.nombre)+' <span class="q">· objetivo del mes</span></span></div>';
     // Sin objetivo cargado: solo lo vendido.
-    if (!obj) return '<div class="oc"><div class="oc-h">'+titulo+'<div class="oc-m">Unidades · sin objetivo cargado</div></div>'
-      + '<div class="oc-solo">Vendido <b>'+nf(v)+'</b></div></div>';
+    if (!obj) return '<div class="oc sola"><div class="oc-izq"><div class="oc-h">'+titulo+'<div class="oc-m">Unidades · sin objetivo cargado</div></div>'
+      + '<div class="oc-solo">Vendido <b>'+nf(v)+'</b></div></div></div>';
     const T = diaDelMes();
     const avMes = T.cerrado ? 1 : T.dia / T.dias;
     const esperado = Math.round(obj * avMes);
@@ -283,24 +289,24 @@
       ? 'Mes cerrado' + (cumplido ? '' : ' · faltaron '+nf(falt))
       : 'Esperado a hoy '+nf(esperado) + (cumplido ? '' : ' · faltan '+nf(falt));
 
-    let box = '', proyHtml = '';
+    let box = '', proyHtml = '';   // el recuadro va en el tercio de la derecha
     if (cumplido) {
-      box = '<div class="oc-box ok"><div class="l1">Objetivo logrado</div><div class="big">+'+nf(v - obj)+' unidades</div><div class="l2">sobre el objetivo</div></div>';
+      box = '<div class="oc-box"><div class="l1">Objetivo logrado</div><div class="big">+'+nf(v - obj)+' unidades</div><div class="l2">sobre el objetivo</div></div>';
     } else if (!T.cerrado) {
       const lineaRitmo = 'Ritmo actual: '+nf(ritmoAct)+' por día.'
         + (mult == null ? '' : (mult <= 1 ? ' Con este ritmo llegás.' : ' Hay que multiplicarlo por '+dec1(mult)+'.'));
       if (atrasado) {
         box = restantes === 1
-          ? '<div class="oc-box amb"><div class="l1">Para llegar, hoy tenés que vender</div><div class="big">'+nf(falt)+'</div><div class="l2">'+lineaRitmo+'</div></div>'
-          : '<div class="oc-box amb"><div class="l1">Para llegar, en los '+restantes+' días que quedan (con hoy)</div><div class="big">'+nf(ritmoNec)+' por día</div><div class="l2">'+lineaRitmo+'</div></div>';
+          ? '<div class="oc-box"><div class="l1">Para llegar, hoy tenés que vender</div><div class="big">'+nf(falt)+'</div><div class="l2">'+lineaRitmo+'</div></div>'
+          : '<div class="oc-box"><div class="l1">Para llegar, en los '+restantes+' días que quedan (con hoy)</div><div class="big">'+nf(ritmoNec)+' por día</div><div class="l2">'+lineaRitmo+'</div></div>';
       } else {
-        box = '<div class="oc-box ok"><div class="l1">Vas bien</div><div class="big">'+nf(ritmoNec)+' por día</div><div class="l2">es lo que necesitás para cumplir</div></div>';
+        box = '<div class="oc-box"><div class="l1">Vas bien</div><div class="big">'+nf(ritmoNec)+' por día</div><div class="l2">es lo que necesitás para cumplir</div></div>';
       }
-      if (v > 0) proyHtml = '<div class="oc-proy">Si se mantiene el ritmo, el mes cierra en '+nf(proy)+' ('+Math.round(100 * proy / obj)+'%)</div>';
+      if (v > 0) proyHtml = '<span>Si se mantiene el ritmo, el mes cierra en '+nf(proy)+' ('+Math.round(100 * proy / obj)+'%)</span>';
     }
-    return '<div class="oc"><div class="oc-h">'+titulo+'<div class="oc-m">Unidades · avance del mes '+Math.round(100 * avMes)+'%</div></div>'
+    return '<div class="oc'+(box ? '' : ' sola')+'"><div class="oc-izq"><div class="oc-h">'+titulo+'<div class="oc-m">Unidades · avance del mes '+Math.round(100 * avMes)+'%</div></div>'
       + '<div class="oc-row"><div class="oc-av">Avance <b>'+nf(v)+'</b> de '+nf(obj)+'</div><div class="oc-r">'+tag+'<span class="oc-pct">'+pct+'%</span></div></div>'
-      + barra + '<div class="oc-sub">'+sub+'</div>' + box + proyHtml + '</div>';
+      + barra + '<div class="oc-pie"><span>'+sub+'</span>'+proyHtml+'</div></div>' + box + '</div>';
   }
 
   function famBlock(eq, fam, meses){
